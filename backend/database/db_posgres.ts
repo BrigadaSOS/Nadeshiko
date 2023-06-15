@@ -23,11 +23,11 @@ const connection = new Sequelize({
   models: [Media, Category, Season, Episode, Segment],
   logging: false,
   pool: {
-    max: 30,
+    max: 5,
     min: 0,
     acquire: 60000,
-    idle: 5000,
-  },
+    idle: 5000 
+  }
 });
 
 export default connection;
