@@ -215,7 +215,7 @@ try {
         <div class="h-64 w-auto md:w-1/2">
           <img class="inset-0 h-full w-full object-cover object-center" :src="sentence.media_info.path_image" />
         </div>
-        <div class="w-full py-4 px-6 text-white flex flex-col justify-between">
+        <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
           <div className="flex">
             <button class="focus:outline-none" @click="playSound(sentence.media_info.path_audio)">
               <svg
@@ -252,13 +252,13 @@ try {
             </ul>
           </h4>
 
-          <div class="flex flex-wrap  ">
+          <div class="flex flex-wrap ">
             <div>
-              <div class="hs-dropdown relative z-30 inline-flex  mb-2 mr-2  " >
+              <div class="hs-dropdown relative z-30 inline-flex mb-2 mr-2 ">
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
-                  class="border-transparent     dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  class="border-transparent  dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                 >
                   <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                     <path
@@ -273,7 +273,7 @@ try {
                   Descargar
 
                   <svg
-                    class="hs-dropdown-open:rotate-180 w-2.5 h-2.5  text-gray-300"
+                    class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-gray-300"
                     width="16"
                     height="16"
                     viewBox="0 0 16 16"
@@ -487,7 +487,7 @@ try {
               </div>
             </div>
 
-            <div>
+            <div class="">
               <div class="relative inline-flex">
                 <button
                   @click="showModalContext(sentence)"
