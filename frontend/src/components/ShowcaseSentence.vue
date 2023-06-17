@@ -1,5 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+
 import router from '../router/index'
 import ContextSentence from './ContextSentence.vue'
 import ErrorConnection from './ErrorConnection.vue'
@@ -18,6 +20,14 @@ let contextactive = ref()
 let status = ref()
 let error_connection = ref(false)
 let no_results = ref(false)
+
+onBeforeRouteUpdate(async (to, from) => {
+  const searchTerm = to.query.query
+  if (searchTerm) {
+    querySearch.value = searchTerm
+    await getSentences(searchTerm)
+  }
+})
 
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
@@ -252,13 +262,13 @@ try {
             </ul>
           </h4>
 
-          <div class="flex flex-wrap ">
+          <div class="flex flex-wrap">
             <div>
-              <div class="hs-dropdown relative z-30 inline-flex mb-2 mr-2 ">
+              <div class="hs-dropdown relative z-30 inline-flex mb-2 mr-2">
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
-                  class="border-transparent  dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                 >
                   <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                     <path
