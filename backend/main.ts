@@ -118,6 +118,7 @@ async function reSyncDatabase() {
     await addBasicData(db);
     let mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
     await readAnimeDirectories(mediaDirectory);
+    //await readSpecificAnimeDirectory(mediaDirectory, "");
   });
 }
 
@@ -129,6 +130,10 @@ async function addBasicData(db: any) {
   await db.Category.create({
     name: "Book",
   });
+}
+
+async function readSpecificAnimeDirectory(baseDir: string, animeName: string) {
+
 }
 
 async function readAnimeDirectories(baseDir: string) {
