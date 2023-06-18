@@ -417,9 +417,12 @@ const getSelectedCheckboxes = async () => {
                       </div>
                     </div>
                   </div>
-                  <p class="text-sm text-gray-500 tracking-wide font-semibold mt-2">
-                    {{ sentence.basic_info.name_anime_en }} &bull; Temporada {{ sentence.basic_info.season }}, Episodio
-                    {{ sentence.basic_info.episode }}
+                  <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
+                    {{ sentence.basic_info.name_anime_en }} &bull;
+                    <template v-if="sentence.basic_info.season === 0"> Película </template>
+                    <template v-else>
+                      Temporada {{ sentence.basic_info.season }}, Episodio {{ sentence.basic_info.episode }}
+                    </template>
                   </p>
                 </div>
               </div>

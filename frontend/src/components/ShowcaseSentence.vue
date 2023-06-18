@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
-
+import SidebarAnimes from './Showcase/SidebarAnimes.vue'
 import router from '../router/index'
 import ContextSentence from './ContextSentence.vue'
 import ErrorConnection from './ErrorConnection.vue'
@@ -41,7 +41,7 @@ onMounted(async () => {
   // Crea una instancia del IntersectionObserver
   const observer = new IntersectionObserver(loadMoreSentences, {
     root: null,
-    rootMargin: '1000px', // Momento en el que se activa la función
+    rootMargin: '700px', // Momento en el que se activa la función
     threshold: 0.5
   })
 
@@ -54,10 +54,10 @@ onMounted(async () => {
     var currentScrollPos = window.pageYOffset
     if (prevScrollpos > currentScrollPos) {
       document.getElementById('search-bar').style.top = '0'
-      document.getElementById('unique-animes').style.top = '80px'
+      document.getElementById('search-anime').style.top = '80px'
     } else {
       document.getElementById('search-bar').style.top = '-50px'
-      document.getElementById('unique-animes').style.top = '30px'
+      document.getElementById('search-anime').style.top = '30px'
     }
     prevScrollpos = currentScrollPos
   }
@@ -176,9 +176,11 @@ try {
 }
 </script>
 <template>
-  <div class="sticky z-40 top-0" id="search-bar">
+  <div class="sticky z-30 top-0" id="search-bar">
     <form @submit="searchHandler">
-      <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Buscar</label>
+      <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white"
+        >Buscar</label
+      >
       <div class="relative lg:w-11/12 mx-auto mt-4">
         <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
           <svg
@@ -264,7 +266,7 @@ try {
 
           <div class="flex flex-wrap">
             <div>
-              <div class="hs-dropdown relative z-30 inline-flex mb-2 mr-2">
+              <div class="hs-dropdown relative z-20 inline-flex mb-2 mr-2">
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
@@ -413,7 +415,7 @@ try {
                 </button>
 
                 <div
-                  class="z-30 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
+                  class="z-20 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
                   aria-labelledby="hs-dropdown-with-title"
                 >
                   <div class="py-2 first:pt-0 last:pb-0">
@@ -527,8 +529,11 @@ try {
             </div>
           </div>
           <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
-            {{ sentence.basic_info.name_anime_en }} &bull; Temporada {{ sentence.basic_info.season }}, Episodio
-            {{ sentence.basic_info.episode }}
+            {{ sentence.basic_info.name_anime_en }} &bull;
+            <template v-if="sentence.basic_info.season === 0"> Película </template>
+            <template v-else>
+              Temporada {{ sentence.basic_info.season }}, Episodio {{ sentence.basic_info.episode }}
+            </template>
           </p>
         </div>
       </div>
@@ -574,20 +579,52 @@ try {
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
 
     <div v-if="sentences.length > 0" class="hidden w-3/12 lg:flex flex-col m-4 py-6">
-      <ul
-        id="unique-animes"
-        class="sticky z-30 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
-      >
-        <li v-for="item in statistics">
-          <button
-            @click="filterAnime(item.anime_id)"
-            class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
-          >
-            <span>{{ item.name_anime_en }}</span>
-            <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">{{ item.amount_sentences_found }}</span>
-          </button>
-        </li>
-      </ul>
+      <div id="search-anime" class="sticky -mt-2">
+        <div class="relative">
+          <input
+            type="search"
+            id="default-search2"
+            autocomplete="off"
+            class="block w-full p-4 pl-4 mb-4 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+            placeholder="Anime, película, drama, serie..."
+            required
+          />
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <svg
+              aria-hidden="true"
+              class="w-5 h-5 text-gray-500 dark:text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              ></path>
+            </svg>
+          </div>
+        </div>
+
+        <ul
+          id=""
+          class="sticky z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
+        >
+          <li v-for="item in statistics">
+            <button
+              @click="filterAnime(item.anime_id)"
+              class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
+            >
+              <span>{{ item.name_anime_en }}</span>
+              <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">{{
+                item.amount_sentences_found
+              }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
     </div>
     <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
       <div role="status" class="hidden w-10/12 lg:flex flex-col py-6 animate-pulse">
@@ -601,11 +638,15 @@ try {
       </div>
     </div>
   </div>
+  <SidebarAnimes :list="statistics" :sentences="sentences" />
 </template>
 
 <style>
 #search-bar,
 #unique-animes {
+  transition: top 0.3s ease;
+}
+#search-anime {
   transition: top 0.3s ease;
 }
 </style>

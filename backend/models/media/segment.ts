@@ -41,22 +41,22 @@ export class Segment extends Model {
   end_time!: string;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.TEXT,
     allowNull: true,
   })
-  content!: string;
+  content!: Text;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.TEXT,
     allowNull: true,
   })
-  content_spanish!: string;
+  content_spanish!: Text;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.TEXT,
     allowNull: true,
   })
-  content_english!: string;
+  content_english!: Text;
 
   @Column({
     type: DataType.STRING,
