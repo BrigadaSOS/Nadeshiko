@@ -19,7 +19,7 @@ dotenv.config();
 
 const app: Application = express();
 
-app.use(function (req, res, next) {
+app.use(function (_req, res, next) {
   // Website you wish to allow to connect
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -37,7 +37,7 @@ app.use(function (req, res, next) {
 
   // Set to true if you need the website to include cookies in the requests sent
   // to the API (e.g. in case you use sessions)
-  res.setHeader("Access-Control-Allow-Credentials", true);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
   // Pass to next layer of middleware
   next();
@@ -102,7 +102,7 @@ app.listen(process.env.PORT || 5000, async () => {
         console.error("Unable to connect to the database: ", error);
       });
 
-    await reSyncDatabase();
+    //await reSyncDatabase();
 
     console.log(`Database available. You can freely use this application`);
   } catch (error) {
@@ -132,7 +132,7 @@ async function addBasicData(db: any) {
   });
 }
 
-async function readSpecificAnimeDirectory(baseDir: string, animeName: string) {
+async function readSpecificAnimeDirectory(_baseDir: string, _animeName: string) {
 
 }
 

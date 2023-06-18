@@ -23,22 +23,22 @@ let no_results = ref(false)
 let querySearchAnime = ref('')
 
 const filteredAnimes = computed(() => {
-  const filteredItems = statistics.value.filter(item => {
-    return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase());
-  });
+  const filteredItems = statistics.value.filter((item) => {
+    return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase())
+  })
 
   const sortedItems = filteredItems.sort((a, b) => {
-    const nameA = a.name_anime_en.toLowerCase();
-    const nameB = b.name_anime_en.toLowerCase();
-    if (nameA === "todo") return -1;
-    if (nameB === "todo") return 1;
-    if (nameA < nameB) return -1;
-    if (nameA > nameB) return 1;
-    return 0;
-  });
+    const nameA = a.name_anime_en.toLowerCase()
+    const nameB = b.name_anime_en.toLowerCase()
+    if (nameA === 'todo') return -1
+    if (nameB === 'todo') return 1
+    if (nameA < nameB) return -1
+    if (nameA > nameB) return 1
+    return 0
+  })
 
-  return sortedItems;
-});
+  return sortedItems
+})
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -185,6 +185,19 @@ const downloadAudioOrImage = (url, filename) => {
       a.click()
       window.URL.revokeObjectURL(url)
     })
+}
+
+// Copia al portapapeles el contenido
+const copyToClipboard = async (url) => {
+      try {
+        const response = await fetch('https://example.com/image.png');
+        const blob = await response.blob();
+        const item = new ClipboardItem({ 'image/png': blob });
+        await navigator.clipboard.write([item]);
+        console.log('Image copied to clipboard');
+      } catch (error) {
+        console.error('Failed to copy image:', error);
+      }
 }
 
 // NO QUITAR, inicializa el componente para que no falle
@@ -442,8 +455,8 @@ try {
                       Multimedia
                     </span>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      href="#"
+                      @click="copyToClipboard(sentence.media_info.path_image)"
+                      class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path

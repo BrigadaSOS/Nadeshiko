@@ -1,5 +1,5 @@
 import express from 'express'
-import { searchTextByAnime, GetContextAnime, SearchAnimeSentence, mergeMp3Files } from "../controllers/mediaController"
+import { GetContextAnime, SearchAnimeSentence, mergeMp3Files } from "../controllers/mediaController"
 export const router = express.Router()
 const path = require('path');
 

@@ -21,14 +21,13 @@ export const mergeMp3Files = async (
   res: Response,
   next: NextFunction
 ) => {
-
   const urls = req.body.urls;
   if (!urls) throw new BadRequest("Debe ingresar una lista de urls.");
 
   try {
     const ffmpegCommand = ffmpeg();
 
-    urls.forEach((url, index) => {
+    urls.forEach((url: any, index: number) => {
       ffmpegCommand.input(url);
 
       // Agregar el tiempo de silencio de 2 segundos (2000 milisegundos) excepto para el último archivo
@@ -56,7 +55,7 @@ export const mergeMp3Files = async (
         console.error("Se produjo un error durante la conversión:", error);
       });
   } catch (error) {
-    next(error)
+    next(error);
   }
 };
 
@@ -132,22 +131,25 @@ export const SearchAnimeSentence = async (
       order: [["position", "ASC"]],
     });
 
-    let uniqueTitles = results_temp.reduce((titles, item) => {
-      const animeTitle = item?.episode?.season?.media?.english_name;
-      const animeId = item?.episode?.season?.media?.id;
+    let uniqueTitles = results_temp.reduce(
+      (titles: { [key: string]: any }, item) => {
+        const animeTitle = item?.episode?.season?.media?.english_name;
+        const animeId = item?.episode?.season?.media?.id;
 
-      if (animeTitle) {
-        if (!titles.hasOwnProperty(animeTitle)) {
-          titles[animeTitle] = {
-            amount_sentences_found: 0,
-            ids: [],
-          };
+        if (animeTitle) {
+          if (!titles.hasOwnProperty(animeTitle)) {
+            titles[animeTitle] = {
+              amount_sentences_found: 0,
+              ids: [],
+            };
+          }
+          titles[animeTitle].amount_sentences_found++;
+          titles[animeTitle].ids.push(animeId);
         }
-        titles[animeTitle].amount_sentences_found++;
-        titles[animeTitle].ids.push(animeId);
-      }
-      return titles;
-    }, {});
+        return titles;
+      },
+      {}
+    );
 
     uniqueTitles = Object.entries(uniqueTitles).map(([anime, data]) => ({
       anime_id: data?.ids[0],
@@ -283,7 +285,7 @@ export const GetContextAnime = async (
         (a, b) => a.segment_info.position - b.segment_info.position
       );
     }
-    
+
     return res.status(StatusCodes.ACCEPTED).json({
       context: limitedResults,
     });
