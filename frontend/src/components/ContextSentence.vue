@@ -89,6 +89,22 @@ const getSelectedCheckboxes = async () => {
   const mp3Url = response.url
   downloadAudio(mp3Url, 'audio.mp3')
 }
+
+const ampliarImagen = (url) => {
+  var ampliada = document.createElement('div');
+  ampliada.className = 'ampliada';
+  
+  var imgAmpliada = document.createElement('img');
+  imgAmpliada.src = url;
+  
+  ampliada.appendChild(imgAmpliada);
+  document.body.appendChild(ampliada);
+  
+  ampliada.onclick = function() {
+    document.body.removeChild(ampliada);
+  }
+}
+
 </script>
 
 <template>
@@ -138,16 +154,14 @@ const getSelectedCheckboxes = async () => {
                 class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-gray-700 mt-2 w-100 mx-2"
               >
                 <div class="h-64 w-auto md:w-1/2">
-                  <img class="inset-0 h-full w-full object-cover object-center" :src="sentence.media_info.path_image" />
+                  <img class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center" :src="sentence.media_info.path_image"  @click="ampliarImagen(sentence.media_info.path_image)" />
                 </div>
                 <div class="w-full py-4 px-6 text-white flex flex-col justify-between">
                   <div className="flex">
                     <button class="focus:outline-none" @click="playSound(sentence.media_info.path_audio)">
                       <svg
                         aria-hidden="true"
-                        class="w-6 mx-2 text-white dark:text-white"
-                        fill="white"
-                        stroke="currentColor"
+                        class="w-6 mx-2 fill-white hover:fill-gray-400 text-white dark:text-white"
                         viewBox="0 0 150 150"
                         xmlns="http://www.w3.org/2000/svg"
                       >
@@ -503,3 +517,27 @@ const getSelectedCheckboxes = async () => {
     </div>
   </div>
 </template>
+
+<style>
+.image-container {
+  position: relative;
+}
+
+.ampliada {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.ampliada img {
+  max-width: 90%;
+  max-height: 90%;
+}
+</style>
