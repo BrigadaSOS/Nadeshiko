@@ -1,4 +1,5 @@
 <script setup>
+import { ref, computed } from 'vue'
 const props = defineProps({
   list: {
     type: Object,
@@ -9,6 +10,20 @@ const props = defineProps({
     default: null
   }
 })
+
+let querySearchAnime = ref('')
+
+const filteredAnimes = computed(() => {
+  return props.list.filter((item) => {
+    return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase())
+  })
+})
+
+const emits = defineEmits(['filter-anime'])
+
+const fired = (id) => {
+  emits('filter-anime', id)
+}
 </script>
 
 <template>
@@ -56,7 +71,8 @@ const props = defineProps({
     <div class="relative lg:w-11/12 mx-auto mt-4">
       <input
         type="search"
-        id="default-search"
+        v-model="querySearchAnime"
+        id="default-search2"
         autocomplete="off"
         class="block w-full p-4 pl-4 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
         placeholder="Anime, drama, serie..."
@@ -109,9 +125,9 @@ const props = defineProps({
         id="unique-animes"
         class="sticky z-30 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
       >
-        <li v-for="item in list">
+        <li v-for="item in filteredAnimes">
           <button
-            @click="filterAnime(item.anime_id)"
+            @click="fired(item.anime_id)"
             class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
           >
             <span>{{ item.name_anime_en }}</span>

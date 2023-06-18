@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import SidebarAnimes from './Showcase/SidebarAnimes.vue'
 import router from '../router/index'
@@ -20,6 +20,13 @@ let contextactive = ref()
 let status = ref()
 let error_connection = ref(false)
 let no_results = ref(false)
+let querySearchAnime = ref('')
+
+const filteredAnimes = computed(() => {
+  return statistics.value.filter(item => {
+      return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase());
+    });
+})
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -583,6 +590,7 @@ try {
         <div class="relative">
           <input
             type="search"
+            v-model="querySearchAnime"
             id="default-search2"
             autocomplete="off"
             class="block w-full p-4 pl-4 mb-4 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
@@ -612,7 +620,7 @@ try {
           id=""
           class="sticky z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
         >
-          <li v-for="item in statistics">
+          <li v-for="item in filteredAnimes">
             <button
               @click="filterAnime(item.anime_id)"
               class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
@@ -638,7 +646,7 @@ try {
       </div>
     </div>
   </div>
-  <SidebarAnimes :list="statistics" :sentences="sentences" />
+  <SidebarAnimes :list="statistics" :sentences="sentences" @filter-anime="filterAnime" />
 </template>
 
 <style>
