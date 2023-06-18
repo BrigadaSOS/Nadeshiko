@@ -23,10 +23,22 @@ let no_results = ref(false)
 let querySearchAnime = ref('')
 
 const filteredAnimes = computed(() => {
-  return statistics.value.filter(item => {
-      return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase());
-    });
-})
+  const filteredItems = statistics.value.filter(item => {
+    return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase());
+  });
+
+  const sortedItems = filteredItems.sort((a, b) => {
+    const nameA = a.name_anime_en.toLowerCase();
+    const nameB = b.name_anime_en.toLowerCase();
+    if (nameA === "todo") return -1;
+    if (nameB === "todo") return 1;
+    if (nameA < nameB) return -1;
+    if (nameA > nameB) return 1;
+    return 0;
+  });
+
+  return sortedItems;
+});
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
