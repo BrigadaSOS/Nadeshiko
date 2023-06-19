@@ -80,7 +80,7 @@ onMounted(async () => {
       document.getElementById('search-anime').style.top = '80px'
     } else {
       document.getElementById('search-bar').style.top = '-50px'
-      document.getElementById('search-anime').style.width = '30px'
+      document.getElementById('search-anime').style.top = '30px'
     }
     prevScrollpos = currentScrollPos
   }
