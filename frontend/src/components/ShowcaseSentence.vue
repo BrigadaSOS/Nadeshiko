@@ -25,6 +25,7 @@ let no_results = ref(false)
 let querySearchAnime = ref('')
 let isBannerClosed = ref(null)
 let uuid = ref(null)
+let currentAudio = ref(null)
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
@@ -60,23 +61,22 @@ onMounted(async () => {
   if (searchTerm && uuid.value) {
     querySearch.value = searchTerm
     await getSentences(searchTerm, '', '', uuid.value)
-  }else if(searchTerm && !uuid.value){
+  } else if (searchTerm && !uuid.value) {
     querySearch.value = searchTerm
     await getSentences(searchTerm)
-  }else if(uuid.value){
+  } else if (uuid.value) {
     await getSentences('', '', '', uuid.value)
   }
 
   // Observa el elemento al final del contenedor solo si no hay un UUID
-    const observer = new IntersectionObserver(loadMoreSentences, {
-      root: null,
-      rootMargin: '700px',
-      threshold: 0.5
-    })
+  const observer = new IntersectionObserver(loadMoreSentences, {
+    root: null,
+    rootMargin: '700px',
+    threshold: 0.5
+  })
 
-    const sentinel = document.getElementById('sentinel')
-    observer.observe(sentinel)
-  
+  const sentinel = document.getElementById('sentinel')
+  observer.observe(sentinel)
 
   // Arregla la posición de la barra de búsqueda y categorias al hacer scroll
   var prevScrollpos = window.pageYOffset
@@ -92,12 +92,12 @@ onMounted(async () => {
     prevScrollpos = currentScrollPos
   }
 
-  isBannerClosed = localStorage.getItem('isBannerClosed');
-  let element = document.getElementById('drawer-button');
+  isBannerClosed = localStorage.getItem('isBannerClosed')
+  let element = document.getElementById('drawer-button')
 
-  if(isBannerClosed === null || isBannerClosed === true) {
+  if (isBannerClosed === null || isBannerClosed === true) {
     element.style.position = 'absolute'
-    element.style.top = '-120px' 
+    element.style.top = '-120px'
     element.style.right = '0px'
     console.log(element)
   }
@@ -158,12 +158,11 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
 
   next_cursor.value = response.cursor
   isLoading.value = false
-
 }
 
 // Función para cargar más elementos al final de la página
 const loadMoreSentences = async (entries) => {
-  if (entries[0].isIntersecting && next_cursor.value && !isLoading.value ) {
+  if (entries[0].isIntersecting && next_cursor.value && !isLoading.value) {
     await getSentences(querySearch.value, next_cursor.value, anime_id.value)
   }
 }
@@ -175,12 +174,23 @@ const filterAnime = async (anime_id) => {
 
 // Habilita la reproducción de audio de las oraciones
 const playSound = async (sound) => {
-  if (sound) {
-    console.log(sound)
-    var audio = new Audio(sound)
-    audio.play()
-  }
+      // Si hay un audio en reproducción, se detiene
+      if (currentAudio.value) {
+        currentAudio.value.pause()
+        currentAudio.value.currentTime = 0
+      }
+
+      // Se crea una nueva instancia de Audio para el nuevo sonido
+      const audio = new Audio(sound)
+
+      // Se asigna el audio actual a la referencia
+      currentAudio.value = audio
+
+      // Se reproduce el nuevo audio
+      await audio.play()
+
 }
+
 // Lógica para colorear el texto de acuerdo a la palabra buscada
 const highlightText = (text) => {
   return text.replace(
@@ -230,8 +240,10 @@ const copyToClipboard = async (url) => {
 }
 
 // Obtiene la URL de la oración para compartir
-const getSharingURL = (sentence) => {
-  console.log(`${window.location.origin}/database/sentences/?uuid=${sentence.segment_info.uuid}`)
+const getSharingURL = async (sentence) => {
+  await navigator.clipboard.writeText(
+    `${window.location.origin}/database/sentences/?uuid=${sentence.segment_info.uuid}`
+  )
 }
 
 const ampliarImagen = (url) => {
@@ -511,9 +523,31 @@ try {
                       @click="copyToClipboard(sentence.media_info.path_image)"
                       class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                     >
-                      <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="-0.5 0 25 25" fill="none">
                         <path
-                          d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z"
+                          d="M21 22H3C2.72 22 2.5 21.6517 2.5 21.2083V3.79167C2.5 3.34833 2.72 3 3 3H21C21.28 3 21.5 3.34833 21.5 3.79167V21.2083C21.5 21.6517 21.28 22 21 22Z"
+                          stroke="white"
+                          stroke-miterlimit="10"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M4.5 19.1875L9.66 12.6875C9.86 12.4375 10.24 12.4375 10.44 12.6875L15.6 19.1875"
+                          stroke="white"
+                          stroke-miterlimit="10"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M16.2 16.6975L16.4599 16.3275C16.6599 16.0775 17.0399 16.0775 17.2399 16.3275L19.4999 19.1875"
+                          stroke="white"
+                          stroke-miterlimit="10"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M17.2046 9.54315C17.2046 10.4294 16.4862 11.1478 15.6 11.1478C14.7138 11.1478 13.9954 10.4294 13.9954 9.54315C13.9954 8.65695 14.7138 7.93854 15.6 7.93854C16.4862 7.93854 17.2046 8.65695 17.2046 9.54315Z"
+                          stroke="#white"
                         />
                       </svg>
                       Imagen
@@ -649,74 +683,51 @@ try {
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="-0.5 0 25 25"
-                          fill="none"
+                          xmlns:xlink="http://www.w3.org/1999/xlink"
+                          width="20"
+                          height="20"
+                          class="fill-white"
+                          version="1.1"
+                          id="Layer_1"
+                          viewBox="0 0 512 512"
                         >
-                          <path
-                            d="M21 22H3C2.72 22 2.5 21.6517 2.5 21.2083V3.79167C2.5 3.34833 2.72 3 3 3H21C21.28 3 21.5 3.34833 21.5 3.79167V21.2083C21.5 21.6517 21.28 22 21 22Z"
-                            stroke="white"
-                            stroke-miterlimit="10"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M4.5 19.1875L9.66 12.6875C9.86 12.4375 10.24 12.4375 10.44 12.6875L15.6 19.1875"
-                            stroke="white"
-                            stroke-miterlimit="10"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M16.2 16.6975L16.4599 16.3275C16.6599 16.0775 17.0399 16.0775 17.2399 16.3275L19.4999 19.1875"
-                            stroke="white"
-                            stroke-miterlimit="10"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M17.2046 9.54315C17.2046 10.4294 16.4862 11.1478 15.6 11.1478C14.7138 11.1478 13.9954 10.4294 13.9954 9.54315C13.9954 8.65695 14.7138 7.93854 15.6 7.93854C16.4862 7.93854 17.2046 8.65695 17.2046 9.54315Z"
-                            stroke="#white"
-                          />
+                          <g>
+                            <g>
+                              <path
+                                d="M505.403,406.394L295.389,58.102c-8.274-13.721-23.367-22.245-39.39-22.245c-16.023,0-31.116,8.524-39.391,22.246    L6.595,406.394c-8.551,14.182-8.804,31.95-0.661,46.37c8.145,14.42,23.491,23.378,40.051,23.378h420.028    c16.56,0,31.907-8.958,40.052-23.379C514.208,438.342,513.955,420.574,505.403,406.394z M477.039,436.372    c-2.242,3.969-6.467,6.436-11.026,6.436H45.985c-4.559,0-8.784-2.466-11.025-6.435c-2.242-3.97-2.172-8.862,0.181-12.765    L245.156,75.316c2.278-3.777,6.433-6.124,10.844-6.124c4.41,0,8.565,2.347,10.843,6.124l210.013,348.292    C479.211,427.512,479.281,432.403,477.039,436.372z"
+                              />
+                            </g>
+                          </g>
+                          <g>
+                            <g>
+                              <path
+                                d="M256.154,173.005c-12.68,0-22.576,6.804-22.576,18.866c0,36.802,4.329,89.686,4.329,126.489    c0.001,9.587,8.352,13.607,18.248,13.607c7.422,0,17.937-4.02,17.937-13.607c0-36.802,4.329-89.686,4.329-126.489    C278.421,179.81,268.216,173.005,256.154,173.005z"
+                              />
+                            </g>
+                          </g>
+                          <g>
+                            <g>
+                              <path
+                                d="M256.465,353.306c-13.607,0-23.814,10.824-23.814,23.814c0,12.68,10.206,23.814,23.814,23.814    c12.68,0,23.505-11.134,23.505-23.814C279.97,364.13,269.144,353.306,256.465,353.306z"
+                              />
+                            </g>
+                          </g>
                         </svg>
-                        Reportar Oración
+                        Reportar
                       </a>
                       <a
                         class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                         @click="getSharingURL(sentence)"
                       >
                         <svg
+                          class="fill-white"
                           xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="-0.5 0 25 25"
-                          fill="none"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 50 50"
                         >
                           <path
-                            d="M21 22H3C2.72 22 2.5 21.6517 2.5 21.2083V3.79167C2.5 3.34833 2.72 3 3 3H21C21.28 3 21.5 3.34833 21.5 3.79167V21.2083C21.5 21.6517 21.28 22 21 22Z"
-                            stroke="white"
-                            stroke-miterlimit="10"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M4.5 19.1875L9.66 12.6875C9.86 12.4375 10.24 12.4375 10.44 12.6875L15.6 19.1875"
-                            stroke="white"
-                            stroke-miterlimit="10"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M16.2 16.6975L16.4599 16.3275C16.6599 16.0775 17.0399 16.0775 17.2399 16.3275L19.4999 19.1875"
-                            stroke="white"
-                            stroke-miterlimit="10"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M17.2046 9.54315C17.2046 10.4294 16.4862 11.1478 15.6 11.1478C14.7138 11.1478 13.9954 10.4294 13.9954 9.54315C13.9954 8.65695 14.7138 7.93854 15.6 7.93854C16.4862 7.93854 17.2046 8.65695 17.2046 9.54315Z"
-                            stroke="#white"
+                            d="M31.2,14.2,41,24.1l-9.8,9.8V26.8L27,27c-6.8.3-12,1-16.1,2.4,3.6-3.8,9.3-6.8,16.7-7.5l3.6-.3V14.2M28.3,6a1.2,1.2,0,0,0-1.1,1.3V17.9C12,19.4,2.2,29.8,2,40.3c0,.6.2,1,.6,1s.7-.3,1.1-1.1c2.4-5.4,7.8-8.5,23.5-9.2v9.7A1.2,1.2,0,0,0,28.3,42a.9.9,0,0,0,.8-.4L45.6,25.1a1.5,1.5,0,0,0,0-2L29.1,6.4a.9.9,0,0,0-.8-.4Z"
                           />
                         </svg>
                         Compartir
