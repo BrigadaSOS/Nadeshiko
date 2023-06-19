@@ -29,6 +29,7 @@ export class Segment extends Model {
   @Column({
     type: DataType.STRING,
     allowNull: true,
+    unique: true
   })
   uuid!: string;
 
