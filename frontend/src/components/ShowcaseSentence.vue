@@ -24,6 +24,7 @@ let error_connection = ref(false)
 let no_results = ref(false)
 let querySearchAnime = ref('')
 let isBannerClosed = ref(null)
+let uuid = ref(null)
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
@@ -54,22 +55,28 @@ onBeforeRouteUpdate(async (to, from) => {
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
   const searchTerm = urlParams.get('query')
+  uuid.value = urlParams.get('uuid')
 
-  if (searchTerm) {
+  if (searchTerm && uuid.value) {
+    querySearch.value = searchTerm
+    await getSentences(searchTerm, '', '', uuid.value)
+  }else if(searchTerm && !uuid.value){
     querySearch.value = searchTerm
     await getSentences(searchTerm)
+  }else if(uuid.value){
+    await getSentences('', '', '', uuid.value)
   }
 
-  // Crea una instancia del IntersectionObserver
-  const observer = new IntersectionObserver(loadMoreSentences, {
-    root: null,
-    rootMargin: '700px', // Momento en el que se activa la función
-    threshold: 0.5
-  })
+  // Observa el elemento al final del contenedor solo si no hay un UUID
+    const observer = new IntersectionObserver(loadMoreSentences, {
+      root: null,
+      rootMargin: '700px',
+      threshold: 0.5
+    })
 
-  // Observa el elemento al final del contenedor
-  const sentinel = document.getElementById('sentinel')
-  observer.observe(sentinel)
+    const sentinel = document.getElementById('sentinel')
+    observer.observe(sentinel)
+  
 
   // Arregla la posición de la barra de búsqueda y categorias al hacer scroll
   var prevScrollpos = window.pageYOffset
@@ -107,7 +114,7 @@ const searchHandler = async (event) => {
 }
 
 // Invoca a la API para obtener la lista de oraciones de forma recursiva
-const getSentences = async (searchTerm, cursor, animeId) => {
+const getSentences = async (searchTerm, cursor, animeId, uuid) => {
   isLoading.value = true
   error_connection.value = false
   anime_id.value = animeId
@@ -123,6 +130,7 @@ const getSentences = async (searchTerm, cursor, animeId) => {
         query: searchTerm,
         cursor: cursor,
         anime_id: anime_id.value,
+        uuid: uuid,
         limit: 10
       })
     })
@@ -150,11 +158,12 @@ const getSentences = async (searchTerm, cursor, animeId) => {
 
   next_cursor.value = response.cursor
   isLoading.value = false
+
 }
 
 // Función para cargar más elementos al final de la página
 const loadMoreSentences = async (entries) => {
-  if (entries[0].isIntersecting && next_cursor.value && !isLoading.value) {
+  if (entries[0].isIntersecting && next_cursor.value && !isLoading.value ) {
     await getSentences(querySearch.value, next_cursor.value, anime_id.value)
   }
 }
@@ -218,6 +227,11 @@ const copyToClipboard = async (url) => {
   } catch (error) {
     console.error('Failed to copy image:', error)
   }
+}
+
+// Obtiene la URL de la oración para compartir
+const getSharingURL = (sentence) => {
+  console.log(`${window.location.origin}/database/sentences/?uuid=${sentence.segment_info.uuid}`)
 }
 
 const ampliarImagen = (url) => {
@@ -670,7 +684,7 @@ try {
                       </a>
                       <a
                         class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                        @click=""
+                        @click="getSharingURL(sentence)"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

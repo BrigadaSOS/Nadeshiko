@@ -59,21 +59,48 @@ export const mergeMp3Files = async (
   }
 };
 
-export const SearchAnimeSentence = async (
+export const SearchAnimeSentences = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { query, cursor, limit, anime_id } = req.body;
+    const { query, cursor, limit, anime_id, uuid } = req.body;
 
-    if (!query) throw new BadRequest("Debe ingresar un término a buscar.");
+    let whereClause = {};
+    let whereClauseTempo = {};
 
-    const whereClause = cursor
-      ? { content: { [Op.like]: `%${query}%` }, position: { [Op.gt]: cursor } }
-      : { content: { [Op.like]: `%${query}%` } };
+    if (uuid && !query) {
+      whereClause = { uuid: { [Op.eq]: uuid } };
+      whereClauseTempo = {
+        content: { [Op.like]: `%${query}%` },
+        uuid: { [Op.eq]: uuid },
+      };
+    } else if (query && uuid) {
+      whereClause = { 
+        [Op.or]: [
+          { uuid: { [Op.eq]: uuid } },
+          { content: { [Op.like]: `%${query}%` } }
+        ]
+      };
+      whereClauseTempo = {
+        [Op.or]: [
+          { uuid: { [Op.eq]: uuid } },
+          { content: { [Op.like]: `%${query}%` } }
+        ]
+      };
+      
+    } else {
+      if (!query) throw new BadRequest("Debe ingresar un término a buscar.");
+      whereClause = cursor
+        ? {
+            content: { [Op.like]: `%${query}%` },
+            position: { [Op.gt]: cursor },
+          }
+        : { content: { [Op.like]: `%${query}%` } };
 
-    const whereClauseTempo = { content: { [Op.like]: `%${query}%` } };
+      whereClauseTempo = { content: { [Op.like]: `%${query}%` } };
+    }
 
     let whereClause2 = {};
     if (anime_id) {
@@ -169,12 +196,13 @@ export const SearchAnimeSentence = async (
         episode: result.episode.number,
       },
       segment_info: {
+        uuid: result.uuid,
         position: result.position,
         start_time: result.start_time,
         end_time: result.end_time,
         content_jp: result.content,
         content_en: result.content_english,
-        content_es: result.content_spanish,
+        content_es: result.content_spanish
       },
       media_info: {
         path_image: `${BASE_URL_MEDIA}/${
@@ -250,6 +278,7 @@ export const GetContextAnime = async (
         episode: result.episode.number,
       },
       segment_info: {
+        uuid: result.uuid,
         position: result.position,
         start_time: result.start_time,
         end_time: result.end_time,
