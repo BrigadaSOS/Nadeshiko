@@ -498,6 +498,7 @@ const ampliarImagen = (url) => {
               />
             </svg>
           </button>
+          
           <button
             type="button"
             @click="getSelectedCheckboxes"

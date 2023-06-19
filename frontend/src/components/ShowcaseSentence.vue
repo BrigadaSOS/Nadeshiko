@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import SidebarAnimes from './Showcase/SidebarAnimes.vue'
 import router from '../router/index'
@@ -7,6 +7,7 @@ import ContextSentence from './ContextSentence.vue'
 import ErrorConnection from './ErrorConnection.vue'
 import NoResults from './NoResults.vue'
 import LandingPageShowcase from './LandingPageShowcase.vue'
+import ReportModal from './Showcase/ReportModal.vue'
 
 const querySearch = ref('')
 let sentences = ref([])
@@ -15,12 +16,14 @@ let next_cursor = ref(null)
 let isLoading = ref(false)
 let anime_id = ref(null)
 let isModalContextActive = ref(false)
+let isModalReportActive = ref(false)
 let currentSentence = ref()
 let contextactive = ref()
 let status = ref()
 let error_connection = ref(false)
 let no_results = ref(false)
 let querySearchAnime = ref('')
+let isBannerClosed = ref(null)
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
@@ -68,6 +71,7 @@ onMounted(async () => {
   const sentinel = document.getElementById('sentinel')
   observer.observe(sentinel)
 
+  // Arregla la posición de la barra de búsqueda y categorias al hacer scroll
   var prevScrollpos = window.pageYOffset
   window.onscroll = function () {
     var currentScrollPos = window.pageYOffset
@@ -76,9 +80,19 @@ onMounted(async () => {
       document.getElementById('search-anime').style.top = '80px'
     } else {
       document.getElementById('search-bar').style.top = '-50px'
-      document.getElementById('search-anime').style.top = '30px'
+      document.getElementById('search-anime').style.width = '30px'
     }
     prevScrollpos = currentScrollPos
+  }
+
+  isBannerClosed = localStorage.getItem('isBannerClosed');
+  let element = document.getElementById('drawer-button');
+
+  if(isBannerClosed === null || isBannerClosed === true) {
+    element.style.position = 'absolute'
+    element.style.top = '-120px' 
+    element.style.right = '0px'
+    console.log(element)
   }
 })
 
@@ -173,6 +187,12 @@ const showModalContext = async (item) => {
   contextactive.value.getContextSentence(currentSentence.value)
 }
 
+// Invoca el modal contenedor para hacer reportes
+const showModalReport = async (item) => {
+  isModalReportActive.value = true
+  currentSentence.value = item
+}
+
 // Descarga el audio o imagen de la oración
 const downloadAudioOrImage = (url, filename) => {
   fetch(url)
@@ -189,29 +209,29 @@ const downloadAudioOrImage = (url, filename) => {
 
 // Copia al portapapeles el contenido
 const copyToClipboard = async (url) => {
-      try {
-        const response = await fetch('https://example.com/image.png');
-        const blob = await response.blob();
-        const item = new ClipboardItem({ 'image/png': blob });
-        await navigator.clipboard.write([item]);
-        console.log('Image copied to clipboard');
-      } catch (error) {
-        console.error('Failed to copy image:', error);
-      }
+  try {
+    const response = await fetch('https://example.com/image.png')
+    const blob = await response.blob()
+    const item = new ClipboardItem({ 'image/png': blob })
+    await navigator.clipboard.write([item])
+    console.log('Image copied to clipboard')
+  } catch (error) {
+    console.error('Failed to copy image:', error)
+  }
 }
 
 const ampliarImagen = (url) => {
-  var ampliada = document.createElement('div');
-  ampliada.className = 'ampliada';
-  
-  var imgAmpliada = document.createElement('img');
-  imgAmpliada.src = url;
-  
-  ampliada.appendChild(imgAmpliada);
-  document.body.appendChild(ampliada);
-  
-  ampliada.onclick = function() {
-    document.body.removeChild(ampliada);
+  var ampliada = document.createElement('div')
+  ampliada.className = 'ampliada'
+
+  var imgAmpliada = document.createElement('img')
+  imgAmpliada.src = url
+
+  ampliada.appendChild(imgAmpliada)
+  document.body.appendChild(ampliada)
+
+  ampliada.onclick = function () {
+    document.body.removeChild(ampliada)
   }
 }
 
@@ -220,6 +240,7 @@ try {
   contextactive.value.getContextSentence(currentSentence.value)
 } catch (error) {
   isModalContextActive.value = true
+  isModalReportActive.value = true
 }
 </script>
 <template>
@@ -264,6 +285,7 @@ try {
       </div>
     </form>
   </div>
+
   <div class="flex flex-row lg:w-11/12 mx-auto" @scroll="loadMoreSentences">
     <div class="container w-100 lg:w-11/12 mx-auto flex flex-col">
       <div
@@ -272,7 +294,11 @@ try {
         class="flex flex-col md:flex-row overflow-hidden rounded-lg border-b py-6 border-gray-800 mt-4 w-100 mx-2"
       >
         <div class="h-64 w-auto md:w-1/2">
-          <img class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center" :src="sentence.media_info.path_image"  @click="ampliarImagen(sentence.media_info.path_image)" />
+          <img
+            class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+            :src="sentence.media_info.path_image"
+            @click="ampliarImagen(sentence.media_info.path_image)"
+          />
         </div>
         <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
           <div className="flex">
@@ -570,6 +596,120 @@ try {
                   </svg>
                   Contexto
                 </button>
+
+                <div class="hs-dropdown relative z-20 inline-flex">
+                  <button
+                    id="hs-dropdown-with-title"
+                    type="button"
+                    class="border-transparent ml-2 dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  >
+                    <svg
+                      class="hs-dropdown-open:rotate-180 w-3.5 h-3.5 rotate-90 fill-white text-gray-300"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M14 5C14 6.10457 13.1046 7 12 7C10.8954 7 10 6.10457 10 5C10 3.89543 10.8954 3 12 3C13.1046 3 14 3.89543 14 5Z"
+                      />
+                      <path
+                        d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z"
+                      />
+                      <path
+                        d="M12 21C13.1046 21 14 20.1046 14 19C14 17.8954 13.1046 17 12 17C10.8954 17 10 17.8954 10 19C10 20.1046 10.8954 21 12 21Z"
+                      />
+                    </svg>
+                  </button>
+
+                  <div
+                    class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
+                    aria-labelledby="hs-dropdown-with-title"
+                  >
+                    <div class="py-2 first:pt-0 last:pb-0">
+                      <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
+                        Opciones
+                      </span>
+                      <a
+                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
+                        @click="showModalReport(sentence)"
+                        data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="-0.5 0 25 25"
+                          fill="none"
+                        >
+                          <path
+                            d="M21 22H3C2.72 22 2.5 21.6517 2.5 21.2083V3.79167C2.5 3.34833 2.72 3 3 3H21C21.28 3 21.5 3.34833 21.5 3.79167V21.2083C21.5 21.6517 21.28 22 21 22Z"
+                            stroke="white"
+                            stroke-miterlimit="10"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M4.5 19.1875L9.66 12.6875C9.86 12.4375 10.24 12.4375 10.44 12.6875L15.6 19.1875"
+                            stroke="white"
+                            stroke-miterlimit="10"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M16.2 16.6975L16.4599 16.3275C16.6599 16.0775 17.0399 16.0775 17.2399 16.3275L19.4999 19.1875"
+                            stroke="white"
+                            stroke-miterlimit="10"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M17.2046 9.54315C17.2046 10.4294 16.4862 11.1478 15.6 11.1478C14.7138 11.1478 13.9954 10.4294 13.9954 9.54315C13.9954 8.65695 14.7138 7.93854 15.6 7.93854C16.4862 7.93854 17.2046 8.65695 17.2046 9.54315Z"
+                            stroke="#white"
+                          />
+                        </svg>
+                        Reportar Oración
+                      </a>
+                      <a
+                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        @click=""
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="-0.5 0 25 25"
+                          fill="none"
+                        >
+                          <path
+                            d="M21 22H3C2.72 22 2.5 21.6517 2.5 21.2083V3.79167C2.5 3.34833 2.72 3 3 3H21C21.28 3 21.5 3.34833 21.5 3.79167V21.2083C21.5 21.6517 21.28 22 21 22Z"
+                            stroke="white"
+                            stroke-miterlimit="10"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M4.5 19.1875L9.66 12.6875C9.86 12.4375 10.24 12.4375 10.44 12.6875L15.6 19.1875"
+                            stroke="white"
+                            stroke-miterlimit="10"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M16.2 16.6975L16.4599 16.3275C16.6599 16.0775 17.0399 16.0775 17.2399 16.3275L19.4999 19.1875"
+                            stroke="white"
+                            stroke-miterlimit="10"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M17.2046 9.54315C17.2046 10.4294 16.4862 11.1478 15.6 11.1478C14.7138 11.1478 13.9954 10.4294 13.9954 9.54315C13.9954 8.65695 14.7138 7.93854 15.6 7.93854C16.4862 7.93854 17.2046 8.65695 17.2046 9.54315Z"
+                            stroke="#white"
+                          />
+                        </svg>
+                        Compartir
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -622,6 +762,7 @@ try {
       <div id="sentinel"></div>
     </div>
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
+    <ReportModal v-if="isModalReportActive" :item="currentSentence" />
 
     <div v-if="sentences.length > 0" class="hidden w-3/12 lg:flex flex-col m-4 py-6">
       <div id="search-anime" class="sticky -mt-2">
