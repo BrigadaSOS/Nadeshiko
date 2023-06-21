@@ -5,7 +5,7 @@ import { Segment } from "../models/media/segment";
 import { Media } from "../models/media/media";
 import { Episode } from "../models/media/episode";
 import { Season } from "../models/media/season";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 
 const ffmpegStatic = require("ffmpeg-static");
 const ffmpeg = require("fluent-ffmpeg");
@@ -77,29 +77,26 @@ export const SearchAnimeSentences = async (
         uuid: { [Op.eq]: uuid },
       };
     } else if (query && uuid) {
-      whereClause = { 
+      whereClause = {
         [Op.or]: [
           { uuid: { [Op.eq]: uuid } },
-          { content: { [Op.like]: `%${query}%` } }
-        ]
+          Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}' `),
+        ],
       };
       whereClauseTempo = {
-        [Op.or]: [
-          { uuid: { [Op.eq]: uuid } },
-          { content: { [Op.like]: `%${query}%` } }
-        ]
+        [Op.or]: [Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)],
       };
-      
     } else {
       if (!query) throw new BadRequest("Debe ingresar un término a buscar.");
-      whereClause = cursor
+      (whereClause = cursor
         ? {
-            content: { [Op.like]: `%${query}%` },
+            [Op.or]: [Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)],
             position: { [Op.gt]: cursor },
           }
-        : { content: { [Op.like]: `%${query}%` } };
-
-      whereClauseTempo = { content: { [Op.like]: `%${query}%` } };
+        : Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)),
+        (whereClauseTempo = {
+          [Op.or]: [Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)],
+        });
     }
 
     let whereClause2 = {};
@@ -202,7 +199,7 @@ export const SearchAnimeSentences = async (
         end_time: result.end_time,
         content_jp: result.content,
         content_en: result.content_english,
-        content_es: result.content_spanish
+        content_es: result.content_spanish,
       },
       media_info: {
         path_image: `${BASE_URL_MEDIA}/${
