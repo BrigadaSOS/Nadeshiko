@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
-import SidebarAnimes from './Showcase/SidebarAnimes.vue'
+import SidebarAnime from './Showcase/SidebarAnime.vue'
 import router from '../router/index'
 import ContextSentence from './ContextSentence.vue'
 import ErrorConnection from './ErrorConnection.vue'
@@ -862,7 +862,7 @@ try {
       </div>
     </div>
   </div>
-  <SidebarAnimes :list="statistics" :sentences="sentences" @filter-anime="filterAnime" />
+  <SidebarAnime :list="statistics" :sentences="sentences" @filter-anime="filterAnime" />
 </template>
 
 <style>
