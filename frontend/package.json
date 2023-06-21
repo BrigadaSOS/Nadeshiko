@@ -10,10 +10,13 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@vueuse/core": "^10.2.0",
+    "@vueuse/head": "^1.1.26",
     "flowbite": "^1.6.5",
     "pinia": "^2.0.36",
     "preline": "^1.9.0",
     "vue": "^3.3.2",
+    "vue-meta": "^2.4.0",
     "vue-router": "^4.2.0"
   },
   "devDependencies": {

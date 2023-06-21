@@ -8,7 +8,9 @@ import ErrorConnection from './ErrorConnection.vue'
 import NoResults from './NoResults.vue'
 import LandingPageShowcase from './LandingPageShowcase.vue'
 import ReportModal from './Showcase/ReportModal.vue'
+import { useHead } from '@vueuse/head'
 
+const head = useHead()
 const querySearch = ref('')
 let sentences = ref([])
 let statistics = ref([])
@@ -59,13 +61,23 @@ onMounted(async () => {
   uuid.value = urlParams.get('uuid')
 
   if (searchTerm && uuid.value) {
-    querySearch.value = searchTerm
-    await getSentences(searchTerm, '', '', uuid.value)
   } else if (searchTerm && !uuid.value) {
     querySearch.value = searchTerm
     await getSentences(searchTerm)
   } else if (uuid.value) {
     await getSentences('', '', '', uuid.value)
+    console.log(sentences.value[0].segment_info)
+    useHead({
+    title: 'Brigada SOS',
+    meta: [
+      { property: 'og:title', content: 'Brigada SOS' },
+      { property: 'og:description', content: sentences.value[0].segment_info.content_jp },
+      { property: 'og:url', content: 'sharingURL' },
+      { property: 'og:image', content: sentences.value[0].media_info.path_image },
+      // Agrega otras etiquetas meta según tus necesidades
+    ]
+  })
+
   }
 
   // Observa el elemento al final del contenedor solo si no hay un UUID
