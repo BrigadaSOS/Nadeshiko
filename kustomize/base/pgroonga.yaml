@@ -1,0 +1,78 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pgroonga-pvolume
+  namespace: nadedb
+  labels:
+    type: local
+    app: pgroonga
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pgroonga-pvolume-claim
+  namespace: nadedb
+  labels:
+    app: pgroonga
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgroonga
+  namespace: nadedb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgroonga
+  template:
+    metadata:
+      labels:
+        app: pgroonga
+    spec:
+      containers:
+        - name: pgroonga
+          image: groonga/pgroonga:latest
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: pgroonga-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: pgroongadb
+      volumes:
+        - name: pgroongadb
+          persistentVolumeClaim:
+            claimName: pgroonga-pvolume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgroonga-service
+  namespace: nadedb
+  labels:
+    app: pgroonga
+spec:
+  type: NodePort
+  ports:
+   - port: 5432
+  selector:
+   app: pgroonga
+
