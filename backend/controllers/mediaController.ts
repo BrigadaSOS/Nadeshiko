@@ -203,15 +203,15 @@ export const SearchAnimeSentences = async (
       },
       media_info: {
         path_image: `${BASE_URL_MEDIA}/${
-          result.episode.season.media.english_name
+          escape(result.episode.season.media.english_name)
         }/S${String("0" + result.episode.season.number).slice(-2)}/${String(
           "0" + result.episode.number
-        ).slice(-2)}/${result.path_image}`,
+        ).slice(-2)}/${escape(result.path_image)}`,
         path_audio: `${BASE_URL_MEDIA}/${
-          result.episode.season.media.english_name
+          escape(result.episode.season.media.english_name)
         }/S${String("0" + result.episode.season.number).slice(-2)}/${String(
           "0" + result.episode.number
-        ).slice(-2)}/${result.path_audio}`,
+        ).slice(-2)}/${escape(result.path_audio)}`,
       },
     }));
 
