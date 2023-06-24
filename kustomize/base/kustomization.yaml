@@ -4,6 +4,6 @@ resources:
 - pgroonga.yaml
 namespace: nadedb
 images:
-- name: nadedb-backend
-  newName: ghcr.io/brigadasos/nadedb-backend
+- name: brigadasos-db
+  newName: ghcr.io/brigadasos/brigadasos-db
   newTag: v0.1.0
