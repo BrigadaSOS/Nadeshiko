@@ -1,0 +1,120 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: brigadasos-db-pvolume
+  namespace: nadedb
+  labels:
+    type: local
+    app: brigadasos-db
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/nadedb"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: brigadasos-db-pvolume-claim
+  namespace: nadedb
+  labels:
+    app: brigadasos-db
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: brigadasos-db
+  namespace: nadedb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: brigadasos-db
+  template:
+    metadata:
+      labels:
+        app: brigadasos-db
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - image: brigadasos-db
+          name: brigadasos-db
+          envFrom:
+            - configMapRef:
+                name: brigadasos-db-config
+          volumeMounts:
+            - mountPath: /media/anime
+              name: brigadasos-db-vol
+          ports:
+            - containerPort: 5000
+
+      volumes:
+        - name: brigadasos-db-vol
+          persistentVolumeClaim:
+            claimName: brigadasos-db-pvolume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: brigadasos-db-service
+  namespace: nadedb
+  labels:
+    app: brigadasos-db
+spec:
+  selector:
+   app: brigadasos-db
+  ports:
+   - port: 5000
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: brigadasos-db-cert
+  namespace: nadedb
+spec:
+  secretName: certificate-brigadasos-db
+  dnsNames:
+    - nadedb.davafons.com
+  issuerRef:
+    name: clusterissuer-le
+    kind: ClusterIssuer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: brigadasos-db-ingress
+  namespace: nadedb
+  labels:
+    app: brigadasos-db
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/issuer: clusterissuer-le
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - nadedb.davafons.com
+      secretName: certificate-brigadasos-db
+  rules:
+    - host: nadedb.davafons.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: brigadasos-db-service
+                port:
+                  number: 5000
