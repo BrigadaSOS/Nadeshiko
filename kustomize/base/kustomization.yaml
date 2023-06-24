@@ -6,4 +6,4 @@ namespace: nadedb
 images:
 - name: nadedb-backend
   newName: ghcr.io/brigadasos/nadedb-backend
-  newTag: v0.1.9
+  newTag: v0.1.0
