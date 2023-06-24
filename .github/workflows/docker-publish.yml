@@ -108,7 +108,7 @@ jobs:
     - name: Update Kubernetes resources
       run: |
        cd kustomize/base
-       kustomize edit set image nadedb-backend=ghcr.io/brigadasos/nadedb-backend:$GITHUB_REF_NAME
+       kustomize edit set image brigadasos-db=ghcr.io/brigadasos/brigadasos-db:$GITHUB_REF_NAME
        cat kustomization.yaml
 
     - name: Commit files
