@@ -5,7 +5,7 @@
   "main": "main.ts",
   "scripts": {
     "dev": "ts-node-dev --respawn --pretty --transpile-only main.ts",
-    "build": "rimraf ./prod && tsc --build --pretty",
+    "build": "rm -rf ./prod && tsc --build --pretty",
     "start": "node prod/main.js"
   },
   "author": "",
