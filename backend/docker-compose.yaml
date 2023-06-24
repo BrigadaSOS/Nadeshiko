@@ -1,0 +1,30 @@
+version: "3"
+services:
+  pgroonga:
+    image: groonga/pgroonga:latest
+    environment:
+      POSTGRES_DB: ${PG_DATABASE}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    volumes:
+      - local_pgdata:/var/lib/postgresql/data
+    ports:
+      - ${PG_PORT}:5432
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pgadmin.com
+      PGADMIN_DEFAULT_PASSWORD: password
+      PGADMIN_LISTEN_PORT: 80
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - 15400:80
+    depends_on:
+      - pgroonga
+
+volumes:
+  local_pgdata:
+  pgadmin-data:
+
