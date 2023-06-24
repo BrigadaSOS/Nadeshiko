@@ -8,3 +8,6 @@ images:
 - name: brigadasos-db
   newName: ghcr.io/brigadasos/brigadasos-db
   newTag: v0.1.0
+- name: nadedb-backend
+  newName: ghcr.io/brigadasos/nadedb-backend
+  newTag: v0.1.1
