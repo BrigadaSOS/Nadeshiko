@@ -43,6 +43,18 @@ app.use(function (_req, res, next) {
   next();
 });
 
+interface Error {
+  status: number;
+  path: string;
+}
+
+function handleErrors(err: Error, _req: any, res: any, next: any) {
+  if (err instanceof Error && err.status === 404 && err.path) {
+    res.status(404).json({ error: `File not found: " ${err.path}` });
+  }
+  next(err);
+}
+
 if (process.env.ENVIROMENT === "testing") {
   // Access media uploaded from outside localhost
   app.use(
@@ -81,7 +93,7 @@ if (!parseInt(process.env.PORT as string)) {
 }
 
 app.get("/*", (_req, res) => {
-  res.status(200).json({ message: "Hello world :)" });
+  res.status(200).json({ message: "Hello Dav :)" });
 });
 
 app.use(function (err: any, _req: any, _res: any, next: (arg0: any) => void) {
@@ -103,7 +115,7 @@ app.listen(process.env.PORT || 5000, async () => {
         console.error("Unable to connect to the database: ", error);
       });
 
-    await reSyncDatabase();
+    //await reSyncDatabase();
 
     console.log(`Database available. You can freely use this application`);
   } catch (error) {
@@ -133,9 +145,10 @@ async function addBasicData(db: any) {
   });
 }
 
-async function readSpecificAnimeDirectory(_baseDir: string, _animeName: string) {
-
-}
+async function readSpecificAnimeDirectory(
+  _baseDir: string,
+  _animeName: string
+) {}
 
 async function readAnimeDirectories(baseDir: string) {
   const animeDirectories = fs.readdirSync(baseDir);
@@ -210,7 +223,8 @@ async function readAnimeDirectories(baseDir: string) {
               console.log("Anime data has been found: ", dataCsvPath);
               const rows = [];
 
-              const stream = fs.createReadStream(dataCsvPath)
+              const stream = fs
+                .createReadStream(dataCsvPath)
                 .pipe(csv({ separator: ";" }));
 
               for await (const row of stream) {
