@@ -43,17 +43,7 @@ app.use(function (_req, res, next) {
   next();
 });
 
-interface Error {
-  status: number;
-  path: string;
-}
-
-function handleErrors(err: Error, _req: any, res: any, next: any) {
-  if (err instanceof Error && err.status === 404 && err.path) {
-    res.status(404).json({ error: `File not found: " ${err.path}` });
-  }
-  next(err);
-}
+app.use(handleErrors)
 
 if (process.env.ENVIROMENT === "testing") {
   // Access media uploaded from outside localhost
