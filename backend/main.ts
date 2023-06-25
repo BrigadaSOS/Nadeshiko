@@ -45,7 +45,7 @@ app.use(function (_req, res, next) {
 
 app.use(handleErrors)
 
-if (process.env.ENVIROMENT === "testing") {
+if (process.env.ENVIRONMENT === "testing") {
   // Access media uploaded from outside localhost
   app.use(
     "/api/media/anime",
@@ -55,7 +55,7 @@ if (process.env.ENVIROMENT === "testing") {
     "/api/media/tmp",
     express.static(path.join(__dirname, "/media/tmp"), { fallthrough: false })
   );
-} else if (process.env.ENVIROMENT === "production") {
+} else if (process.env.ENVIRONMENT === "production") {
   // Access media uploaded from outside (DigitalOcean)
   let mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
   app.use(
@@ -82,10 +82,6 @@ if (!parseInt(process.env.PORT as string)) {
   process.exit(1);
 }
 
-app.get("/*", (_req, res) => {
-  res.status(200).json({ message: "Hello Dav :)" });
-});
-
 app.use(function (err: any, _req: any, _res: any, next: (arg0: any) => void) {
   console.log(err);
   next(err);
@@ -93,7 +89,8 @@ app.use(function (err: any, _req: any, _res: any, next: (arg0: any) => void) {
 
 // Starting the Server
 app.listen(process.env.PORT || 5000, async () => {
-  console.log("==========================");
+  console.log("===================================");
+  console.log(`Current environment: [${process.env.ENVIRONMENT}]`)
   console.log(`API is now available. Waiting for database...`);
   try {
     await connection
