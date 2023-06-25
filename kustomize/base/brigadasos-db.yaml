@@ -37,6 +37,7 @@ metadata:
   namespace: nadedb
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: brigadasos-db
@@ -53,11 +54,11 @@ spec:
           envFrom:
             - configMapRef:
                 name: brigadasos-db-config
+          ports:
+            - containerPort: 5000
           volumeMounts:
             - mountPath: /media/anime
               name: brigadasos-db-vol
-          ports:
-            - containerPort: 5000
 
       volumes:
         - name: brigadasos-db-vol
