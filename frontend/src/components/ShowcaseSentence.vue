@@ -774,10 +774,6 @@ try {
         </div>
       </div>
 
-
-
-
-      
       <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
         <div v-for="i in 4" :key="i">
           <div role="status" class="space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
