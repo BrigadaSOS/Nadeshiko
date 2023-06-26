@@ -9,6 +9,7 @@ module.exports = {
       sgray2: '#252526',
       sgrayhover: "#252527",
       redalert: "#4B1113",
+      graypalid: "#404040"
     }
   },
   plugins: [require('flowbite/plugin'), require('preline/plugin'),],

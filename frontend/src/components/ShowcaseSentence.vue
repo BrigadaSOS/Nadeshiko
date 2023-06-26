@@ -68,16 +68,15 @@ onMounted(async () => {
     await getSentences('', '', '', uuid.value)
     console.log(sentences.value[0].segment_info)
     useHead({
-    title: 'Brigada SOS',
-    meta: [
-      { property: 'og:title', content: 'Brigada SOS' },
-      { property: 'og:description', content: sentences.value[0].segment_info.content_jp },
-      { property: 'og:url', content: 'sharingURL' },
-      { property: 'og:image', content: sentences.value[0].media_info.path_image },
-      // Agrega otras etiquetas meta según tus necesidades
-    ]
-  })
-
+      title: 'Brigada SOS',
+      meta: [
+        { property: 'og:title', content: 'Brigada SOS' },
+        { property: 'og:description', content: sentences.value[0].segment_info.content_jp },
+        { property: 'og:url', content: 'sharingURL' },
+        { property: 'og:image', content: sentences.value[0].media_info.path_image }
+        // Agrega otras etiquetas meta según tus necesidades
+      ]
+    })
   }
 
   // Observa el elemento al final del contenedor solo si no hay un UUID
@@ -111,7 +110,6 @@ onMounted(async () => {
     element.style.position = 'absolute'
     element.style.top = '-120px'
     element.style.right = '0px'
-    console.log(element)
   }
 })
 
@@ -186,21 +184,20 @@ const filterAnime = async (anime_id) => {
 
 // Habilita la reproducción de audio de las oraciones
 const playSound = async (sound) => {
-      // Si hay un audio en reproducción, se detiene
-      if (currentAudio.value) {
-        currentAudio.value.pause()
-        currentAudio.value.currentTime = 0
-      }
+  // Si hay un audio en reproducción, se detiene
+  if (currentAudio.value) {
+    currentAudio.value.pause()
+    currentAudio.value.currentTime = 0
+  }
 
-      // Se crea una nueva instancia de Audio para el nuevo sonido
-      const audio = new Audio(sound)
+  // Se crea una nueva instancia de Audio para el nuevo sonido
+  const audio = new Audio(sound)
 
-      // Se asigna el audio actual a la referencia
-      currentAudio.value = audio
+  // Se asigna el audio actual a la referencia
+  currentAudio.value = audio
 
-      // Se reproduce el nuevo audio
-      await audio.play()
-
+  // Se reproduce el nuevo audio
+  await audio.play()
 }
 
 // Lógica para colorear el texto de acuerdo a la palabra buscada
@@ -289,21 +286,38 @@ try {
       >
       <div class="relative lg:w-11/12 mx-auto mt-4">
         <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <svg
-            aria-hidden="true"
-            class="w-5 h-5 text-gray-500 dark:text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
+          <div
+            v-if="
+              (!isLoading && error_connection === true) ||
+              error_connection === true ||
+              (!isLoading && error_connection === false)
+            "
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            ></path>
-          </svg>
+            <svg
+              aria-hidden="true"
+              class="w-5 h-5 text-gray-500 dark:text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              ></path>
+            </svg>
+          </div>
+          <div v-else-if="isLoading && error_connection === false">
+            <span
+              class="animate-spin inline-block mt-1 w-4 h-4 border-[3px] border-current border-t-transparent text-white rounded-full"
+              role="status"
+              aria-label="loading"
+            >
+              <span class="sr-only">Loading...</span>
+            </span>
+          </div>
         </div>
         <input
           v-model="querySearch"
@@ -760,10 +774,14 @@ try {
         </div>
       </div>
 
+
+
+
+      
       <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
         <div v-for="i in 4" :key="i">
-          <div role="status" class="space-y-8 mt-4 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
-            <div class="flex items-center justify-center w-full h-48 bg-gray-300 rounded sm:w-96 dark:bg-gray-700">
+          <div role="status" class="space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
+            <div class="flex items-center justify-center w-full h-64 bg-gray-300 rounded sm:w-5/12 dark:bg-graypalid">
               <svg
                 class="w-12 h-12 text-gray-200"
                 xmlns="http://www.w3.org/2000/svg"
@@ -777,11 +795,11 @@ try {
               </svg>
             </div>
             <div class="w-full">
-              <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
-              <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[480px] mb-2.5"></div>
-              <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[440px] mb-2.5"></div>
-              <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[460px] mb-2.5"></div>
-              <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
+              <div class="h-2.5 bg-gray-200 rounded-full dark:bg-graypalid max-w-[320px] mb-4"></div>
+              <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[680px] mb-2.5"></div>
+              <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[640px] mb-2.5"></div>
+              <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[660px] mb-2.5"></div>
+              <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[560px]"></div>
             </div>
             <span class="sr-only">Loading...</span>
           </div>
@@ -833,7 +851,6 @@ try {
         </div>
 
         <ul
-          id=""
           class="sticky z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
         >
           <li v-for="item in filteredAnimes">
@@ -852,12 +869,12 @@ try {
     </div>
     <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
       <div role="status" class="hidden w-10/12 lg:flex flex-col py-6 animate-pulse">
-        <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
+        <div class="h-2.5 bg-gray-200 rounded-full dark:bg-graypalid w-48 mb-4"></div>
+        <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[460px] mb-2.5"></div>
+        <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid mb-2.5"></div>
+        <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[330px] mb-2.5"></div>
+        <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[300px] mb-2.5"></div>
+        <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[360px]"></div>
         <span class="sr-only">Cargando...</span>
       </div>
     </div>
