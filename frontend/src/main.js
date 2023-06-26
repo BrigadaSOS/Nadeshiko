@@ -1,7 +1,7 @@
 import('preline')
 import './assets/main.css'
 
-import { createHead } from "@vueuse/head"
+import { createHead } from '@vueuse/head'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
@@ -10,6 +10,8 @@ import router from './router'
 
 const app = createApp(App)
 const head = createHead()
+
+document.documentElement.classList.add('dark')
 
 app.use(head)
 app.use(createPinia())
