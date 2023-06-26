@@ -1,7 +1,7 @@
 <template>
   <nav class="bg-white border-gray-200 dark:bg-sred">
     <div class="flex flex-wrap lg:w-11/12 items-center justify-between mx-auto p-3 navbar">
-      <a href="https://brigadasos.xyz/" class="flex items-center">
+      <a href="https://db.brigadasos.xyz/" class="flex items-center">
         <img src="../assets/logo.webp" class="h-8 mr-3 rounded-full" alt="Flowbite Logo" />
         <span class="self-center text-sm sm:text-base font-semibold whitespace-nowrap dark:text-white"
           >Brigada SOS</span

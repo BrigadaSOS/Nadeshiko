@@ -5,7 +5,7 @@ import StickyBanner from '../components/StickyBanner.vue';
 </script>
 
 <template>
-  <main>
+  <main >
     <NavBar />
     <ShowcaseSentence />
     <StickyBanner />
