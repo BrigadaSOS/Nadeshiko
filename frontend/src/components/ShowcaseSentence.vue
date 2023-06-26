@@ -82,7 +82,7 @@ onMounted(async () => {
   // Observa el elemento al final del contenedor solo si no hay un UUID
   const observer = new IntersectionObserver(loadMoreSentences, {
     root: null,
-    rootMargin: '700px',
+    rootMargin: '900px',
     threshold: 0.5
   })
 
@@ -122,6 +122,7 @@ const searchHandler = async (event) => {
     await getSentences(searchTerm)
   }
 }
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // Invoca a la API para obtener la lista de oraciones de forma recursiva
 const getSentences = async (searchTerm, cursor, animeId, uuid) => {
@@ -129,6 +130,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
   error_connection.value = false
   anime_id.value = animeId
   let response = null
+  // await delay(2000)
   try {
     response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/sentence', {
       method: 'POST',
@@ -343,7 +345,7 @@ try {
       <div
         v-if="sentences.length > 0"
         v-for="sentence in sentences"
-        class="flex flex-col md:flex-row overflow-hidden rounded-lg border-b py-6 border-gray-800 mt-4 w-100 mx-2"
+        class="flex flex-col md:flex-row overflow-hidden rounded-lg border-b py-6 border-gray-800 mt-4 w-100"
       >
         <div class="h-64 w-auto md:w-1/2">
           <img
@@ -811,11 +813,16 @@ try {
         <LandingPageShowcase />
       </div>
       <div id="sentinel"></div>
+      <div v-if="isLoading && sentences.length > 0" class="text-center">
+      <div class="animate-spin inline-block w-6 h-6 my-5 border-[3px]  border-current border-t-transparent text-blue-600 rounded-full" role="status" aria-label="loading">
+        <span class="sr-only">Loading...</span>
+      </div>
+    </div>
     </div>
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
 
-    <div v-if="sentences.length > 0" class="hidden w-3/12 lg:flex flex-col m-4 py-6">
+    <div v-if="sentences.length > 0" class="hidden w-3/12 lg:flex flex-col py-6">
       <div id="search-anime" class="sticky -mt-2">
         <div class="relative">
           <input
@@ -864,7 +871,7 @@ try {
       </div>
     </div>
     <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
-      <div role="status" class="hidden w-10/12 lg:flex flex-col py-6 animate-pulse">
+      <div role="status" class="hidden w-10/12 lg:flex flex-col py-6 animate-pulse ">
         <div class="h-2.5 bg-gray-200 rounded-full dark:bg-graypalid w-48 mb-4"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[460px] mb-2.5"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid mb-2.5"></div>
@@ -876,6 +883,7 @@ try {
     </div>
   </div>
   <SidebarAnime :list="statistics" :sentences="sentences" @filter-anime="filterAnime" />
+  
 </template>
 
 <style>
