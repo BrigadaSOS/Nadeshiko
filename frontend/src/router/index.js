@@ -9,13 +9,8 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView
-    },
-    {
-      path: '/database/sentences',
-      name: 'search',
       component: SearchView
-    },  
+    },
     {
       path: "/:catchAll(.*)",
       name: "not-found",
