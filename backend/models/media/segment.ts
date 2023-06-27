@@ -13,11 +13,21 @@ import { Episode } from "./episode";
 import { v3 as uuidv3 } from "uuid";
 import { Media } from "./media";
 
+import {
+  PaginateOptions,
+  PaginationConnection,
+  makePaginate,
+} from "sequelize-cursor-pagination";
+import { InferAttributes, InferCreationAttributes } from "sequelize/types/model";
+
 @Table({
   timestamps: false,
   tableName: "Segment",
 })
-export class Segment extends Model {
+export class Segment extends Model<
+InferAttributes<Segment>,
+InferCreationAttributes<Segment>
+>  {
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
@@ -29,7 +39,7 @@ export class Segment extends Model {
   @Column({
     type: DataType.STRING,
     allowNull: true,
-    unique: true
+    unique: true,
   })
   uuid!: string;
 
@@ -56,6 +66,12 @@ export class Segment extends Model {
     allowNull: true,
   })
   content!: string;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  content_length!: number;
 
   @Column({
     type: DataType.STRING,
@@ -90,6 +106,17 @@ export class Segment extends Model {
 
   @BelongsTo(() => Episode)
   episode!: Episode;
+  
+  declare static paginate: (
+    options: PaginateOptions<Segment>,
+  ) => Promise<PaginationConnection<Segment>>;
+
+  @BeforeCreate
+  static async generateLength(instance: Segment) {
+    if (instance.content) {
+      instance.content_length = instance.content.length;
+    }
+  }
 
   @BeforeCreate
   static async generateUUID(instance: Segment) {
@@ -100,8 +127,8 @@ export class Segment extends Model {
           include: [
             {
               model: Episode,
-              where : {
-                id: instance.episodeId 
+              where: {
+                id: instance.episodeId,
               },
               include: [
                 {
@@ -115,11 +142,12 @@ export class Segment extends Model {
     });
     if (media) {
       // Generate UUIDv3 based on the english_name, season, episode and the position of segment
-      const uuidNamespace:string | undefined = process.env.UUID_NAMESPACE?.toString();
-      const unique_base_id = `${media?.english_name}-${media?.season[0].number}-${media?.season[0].episode[0].number}-${instance.position}`
-      instance.uuid = uuidv3(unique_base_id,
-        uuidNamespace!
-      );
+      const uuidNamespace: string | undefined =
+        process.env.UUID_NAMESPACE?.toString();
+      const unique_base_id = `${media?.english_name}-${media?.season[0].number}-${media?.season[0].episode[0].number}-${instance.position}`;
+      instance.uuid = uuidv3(unique_base_id, uuidNamespace!);
     }
   }
 }
+
+

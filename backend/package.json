@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@enjoyjs/node-mecab": "^0.5.0",
+    "@ephys/sequelize-cursor-pagination": "^7.0.0-alpha.25",
     "axion": "^0.1.0",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
@@ -25,6 +26,7 @@
     "jsonwebtoken": "^9.0.0",
     "pg": "^8.11.0",
     "sequelize": "^6.25.5",
+    "sequelize-cursor-pagination": "^3.4.0",
     "sequelize-typescript": "^2.1.5",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
