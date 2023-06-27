@@ -13,21 +13,11 @@ import { Episode } from "./episode";
 import { v3 as uuidv3 } from "uuid";
 import { Media } from "./media";
 
-import {
-  PaginateOptions,
-  PaginationConnection,
-  makePaginate,
-} from "sequelize-cursor-pagination";
-import { InferAttributes, InferCreationAttributes } from "sequelize/types/model";
-
 @Table({
   timestamps: false,
   tableName: "Segment",
 })
-export class Segment extends Model<
-InferAttributes<Segment>,
-InferCreationAttributes<Segment>
->  {
+export class Segment extends Model {
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
@@ -107,10 +97,6 @@ InferCreationAttributes<Segment>
   @BelongsTo(() => Episode)
   episode!: Episode;
   
-  declare static paginate: (
-    options: PaginateOptions<Segment>,
-  ) => Promise<PaginationConnection<Segment>>;
-
   @BeforeCreate
   static async generateLength(instance: Segment) {
     if (instance.content) {
@@ -149,5 +135,3 @@ InferCreationAttributes<Segment>
     }
   }
 }
-
-
