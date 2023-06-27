@@ -65,7 +65,9 @@ export const SearchAnimeSentences = async (
   next: NextFunction
 ) => {
   try {
-    const { query, cursor, limit, anime_id, uuid } = req.body;
+    const { query, cursor, limit, anime_id, uuid, content_sort } = req.body;
+
+    const offset = cursor ? cursor - 1 : 0;
 
     let whereClause = {};
     let whereClauseTempo = {};
@@ -80,22 +82,37 @@ export const SearchAnimeSentences = async (
       whereClause = {
         [Op.or]: [
           { uuid: { [Op.eq]: uuid } },
-          Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}' `),
+          Sequelize.literal(
+            `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}' `
+          ),
         ],
       };
       whereClauseTempo = {
-        [Op.or]: [Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)],
+        [Op.or]: [
+          Sequelize.literal(
+            `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
+          ),
+        ],
       };
     } else {
       if (!query) throw new BadRequest("Debe ingresar un término a buscar.");
       (whereClause = cursor
         ? {
-            [Op.or]: [Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)],
-            position: { [Op.gt]: cursor },
+            [Op.or]: [
+              Sequelize.literal(
+                `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
+              ),
+            ],
           }
-        : Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)),
+        : Sequelize.literal(
+            `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
+          )),
         (whereClauseTempo = {
-          [Op.or]: [Sequelize.literal(`(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`)],
+          [Op.or]: [
+            Sequelize.literal(
+              `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
+            ),
+          ],
         });
     }
 
@@ -104,6 +121,15 @@ export const SearchAnimeSentences = async (
       whereClause2 = {
         id: anime_id,
       };
+    }
+
+    let order: string[][] = [];
+    if (content_sort) {
+      if (content_sort.toLowerCase() == "asc") {
+        order = [["content_length", "ASC"]];
+      } else if (content_sort.toLowerCase() == "desc") {
+        order = [["content_length", "DESC"]];
+      }
     }
 
     const results = await Segment.findAll({
@@ -127,8 +153,10 @@ export const SearchAnimeSentences = async (
           ],
         },
       ],
-      order: [["position", "ASC"]],
+      // @ts-ignore
+      order: order,
       limit: limit,
+      offset: offset,
     });
 
     // Get total number of results without limit
@@ -215,8 +243,7 @@ export const SearchAnimeSentences = async (
       },
     }));
 
-    const nextCursor =
-      results.length > 0 ? results[results.length - 1].position : null;
+    const nextCursor = cursor ? cursor + results.length : results.length + 1;
 
     return res.status(StatusCodes.ACCEPTED).json({
       sentences: simplifiedResults,
