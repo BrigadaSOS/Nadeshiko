@@ -102,7 +102,7 @@ app.listen(process.env.PORT || 5000, async () => {
         console.error("Unable to connect to the database: ", error);
       });
 
-    //await reSyncDatabase();
+    await reSyncDatabase();
 
     console.log(`Database available. You can freely use this application`);
   } catch (error) {
