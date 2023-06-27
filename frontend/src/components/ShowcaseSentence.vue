@@ -28,6 +28,7 @@ let querySearchAnime = ref('')
 let isBannerClosed = ref(null)
 let uuid = ref(null)
 let currentAudio = ref(null)
+let type_sort = ref(null)
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
@@ -74,7 +75,6 @@ onMounted(async () => {
         { property: 'og:description', content: sentences.value[0].segment_info.content_jp },
         { property: 'og:url', content: 'sharingURL' },
         { property: 'og:image', content: sentences.value[0].media_info.path_image }
-        // Agrega otras etiquetas meta según tus necesidades
       ]
     })
   }
@@ -82,7 +82,7 @@ onMounted(async () => {
   // Observa el elemento al final del contenedor solo si no hay un UUID
   const observer = new IntersectionObserver(loadMoreSentences, {
     root: null,
-    rootMargin: '900px',
+    rootMargin: '1400px',
     threshold: 0.5
   })
 
@@ -122,7 +122,7 @@ const searchHandler = async (event) => {
     await getSentences(searchTerm)
   }
 }
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 // Invoca a la API para obtener la lista de oraciones de forma recursiva
 const getSentences = async (searchTerm, cursor, animeId, uuid) => {
@@ -143,7 +143,8 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
         cursor: cursor,
         anime_id: anime_id.value,
         uuid: uuid,
-        limit: 10
+        limit: 10,
+        content_sort: type_sort.value
       })
     })
     response = await response.json()
@@ -175,7 +176,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
 // Función para cargar más elementos al final de la página
 const loadMoreSentences = async (entries) => {
   if (entries[0].isIntersecting && next_cursor.value && !isLoading.value) {
-    await getSentences(querySearch.value, next_cursor.value, anime_id.value)
+    await getSentences(querySearch.value, next_cursor.value, anime_id.value, '')
   }
 }
 
@@ -253,8 +254,15 @@ const copyToClipboard = async (url) => {
 // Obtiene la URL de la oración para compartir
 const getSharingURL = async (sentence) => {
   await navigator.clipboard.writeText(
-    `${window.location.origin}/database/sentences/?uuid=${sentence.segment_info.uuid}`
+    `${window.location.origin}/?uuid=${sentence.segment_info.uuid}`
   )
+}
+
+const sortFilter = async (type) =>{
+  type_sort.value = type
+  next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
+  sentences.value = [] // Reiniciar la lista de oraciones
+  await getSentences(querySearch.value, 0, anime_id.value)
 }
 
 const ampliarImagen = (url) => {
@@ -327,7 +335,7 @@ try {
           id="default-search"
           autocomplete="off"
           class="block w-full p-4 pl-10 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
-          placeholder="Palabra, oración..."
+          placeholder="Busca aquí una palabra o un kanji..."
           required
         />
         <button
@@ -344,7 +352,7 @@ try {
     <div class="container w-100 lg:w-11/12 mx-auto flex flex-col">
       <div
         v-if="sentences.length > 0"
-        v-for="sentence in sentences"
+        v-for="(sentence, index) in sentences"
         class="flex flex-col md:flex-row overflow-hidden rounded-lg border-b py-6 border-gray-800 mt-4 w-100"
       >
         <div class="h-64 w-auto md:w-1/2">
@@ -395,7 +403,7 @@ try {
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
-                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                 >
                   <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                     <path
@@ -814,64 +822,141 @@ try {
       </div>
       <div id="sentinel"></div>
       <div v-if="isLoading && sentences.length > 0" class="text-center">
-      <div class="animate-spin inline-block w-6 h-6 my-5 border-[3px]  border-current border-t-transparent text-blue-600 rounded-full" role="status" aria-label="loading">
-        <span class="sr-only">Loading...</span>
+        <div
+          class="animate-spin inline-block w-6 h-6 my-5 border-[3px] border-current border-t-transparent text-blue-600 rounded-full"
+          role="status"
+          aria-label="loading"
+        >
+          <span class="sr-only">Loading...</span>
+        </div>
       </div>
-    </div>
     </div>
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
-
     <div v-if="sentences.length > 0" class="hidden w-3/12 lg:flex flex-col py-6">
       <div id="search-anime" class="sticky -mt-2">
         <div class="relative">
-          <input
-            type="search"
-            v-model="querySearchAnime"
-            id="default-search2"
-            autocomplete="off"
-            class="block w-full p-4 pl-4 mb-4 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
-            placeholder="Anime, película, drama, serie..."
-            required
-          />
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <svg
-              aria-hidden="true"
-              class="w-5 h-5 text-gray-500 dark:text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              ></path>
-            </svg>
-          </div>
-        </div>
-
-        <ul
-          class="sticky z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
-        >
-          <li v-for="item in filteredAnimes">
+          <div class="hs-dropdown relative inline-block w-full z-30">
             <button
-              @click="filterAnime(item.anime_id)"
-              class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
+              id="hs-dropdown-default"
+              type="button"
+              class="hs-dropdown-toggle py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
             >
-              <span>{{ item.name_anime_en }}</span>
-              <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">{{
-                item.amount_sentences_found
-              }}</span>
+              <svg
+                aria-hidden="true"
+                class="w-6 mx-2 fill-white hover:fill-gray-400 text-white dark:text-white"
+                viewBox="0 -1 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  xmlns="http://www.w3.org/2000/svg"
+                  id="Path_36"
+                  data-name="Path 36"
+                  d="M28.854,12.146a.5.5,0,0,1,0,.708l-3,3a.518.518,0,0,1-.163.109.5.5,0,0,1-.382,0,.518.518,0,0,1-.163-.109l-3-3a.5.5,0,0,1,.708-.708L25,14.293V.5a.5.5,0,0,1,1,0V14.293l2.146-2.147A.5.5,0,0,1,28.854,12.146Zm9-9-3-3a.518.518,0,0,0-.163-.109.505.505,0,0,0-.382,0,.518.518,0,0,0-.163.109l-3,3a.5.5,0,0,0,.708.708L34,1.707V15.5a.5.5,0,0,0,1,0V1.707l2.146,2.147a.5.5,0,1,0,.708-.708Z"
+                  transform="translate(-22)"
+                />
+              </svg>
+              Sortear oraciones
+              <svg
+                class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M2 5L8.16086 10.6869C8.35239 10.8637 8.64761 10.8637 8.83914 10.6869L15 5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
             </button>
-          </li>
-        </ul>
+
+            <div
+              class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] hs-dropdown-open:opacity-100 opacity-0 w-2/12 hidden z-10 mt-2 min-w-[15rem] bg-white shadow-md rounded-lg p-2 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
+              aria-labelledby="hs-dropdown-default"
+            >
+              <a
+                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                @click="sortFilter('asc')"
+              >
+                <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path
+                    d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z"
+                  />
+                  <path
+                    d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
+                  />
+                </svg>
+                Más cortas
+              </a>
+              <a
+                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                @click="sortFilter('desc')"
+              >
+                <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path
+                    d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z"
+                  />
+                  <path
+                    d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
+                  />
+                </svg>
+                Más largas
+              </a>
+            </div>
+          </div>
+          <div class="flex flex-inline">
+            <input
+              type="search"
+              v-model="querySearchAnime"
+              id="default-search2"
+              autocomplete="off"
+              class="block w-full p-4 pl-4 mb-4 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+              placeholder="Buscador..."
+              required
+            />
+            <div class="absolute z-20 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
+              <svg
+                aria-hidden="true"
+                class="w-5 h-5 text-gray-500 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+            </div>
+          </div>
+
+          <ul
+            class="sticky z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
+          >
+            <li v-for="item in filteredAnimes">
+              <button
+                @click="filterAnime(item.anime_id)"
+                class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
+              >
+                <span>{{ item.name_anime_en }}</span>
+                <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">{{
+                  item.amount_sentences_found
+                }}</span>
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
     <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
-      <div role="status" class="hidden w-10/12 lg:flex flex-col py-6 animate-pulse ">
+      <div role="status" class="hidden w-10/12 lg:flex flex-col py-6 animate-pulse">
         <div class="h-2.5 bg-gray-200 rounded-full dark:bg-graypalid w-48 mb-4"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[460px] mb-2.5"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid mb-2.5"></div>
@@ -883,7 +968,6 @@ try {
     </div>
   </div>
   <SidebarAnime :list="statistics" :sentences="sentences" @filter-anime="filterAnime" />
-  
 </template>
 
 <style>
