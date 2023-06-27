@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --pretty --transpile-only main.ts",
     "build": "rm -rf ./prod && tsc --build --pretty",
+    "buildwin": "rmdir /s /q prod && tsc --build --pretty",
     "start": "node prod/main.js"
   },
   "author": "",
