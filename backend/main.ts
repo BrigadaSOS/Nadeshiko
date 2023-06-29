@@ -1,12 +1,13 @@
+// Must be called before all imports
+require("dotenv").config();
+require('newrelic');
+
 import path from "path";
 import { json } from "body-parser";
 import { router } from "./routes/router";
 import express, { Application } from "express";
 import connection from "./database/db_posgres";
 import { handleErrors } from "./middleware/errorHandler";
-
-require("dotenv").config();
-require('newrelic');
 
 const app: Application = express();
 
