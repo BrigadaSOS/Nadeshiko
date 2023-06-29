@@ -11,9 +11,7 @@ RUN npm run build
 #Run
 FROM node:alpine as server
 WORKDIR /app
-COPY package*.json ./
-# Copy .env for local building images for testing. Never push .env file to repository
-COPY .env .env
+COPY package*.json .env* ./
 RUN npm install --production
 COPY --from=builder ./app/prod ./prod
 
