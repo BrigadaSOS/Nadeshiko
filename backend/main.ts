@@ -1,12 +1,13 @@
 import path from "path";
-import * as dotenv from "dotenv";
 import { json } from "body-parser";
 import { router } from "./routes/router";
 import express, { Application } from "express";
 import connection from "./database/db_posgres";
 import { handleErrors } from "./middleware/errorHandler";
 
-dotenv.config();
+require("dotenv").config();
+require('newrelic');
+
 const app: Application = express();
 
 app.use(function (_req, res, next) {
