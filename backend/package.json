@@ -7,7 +7,8 @@
     "dev": "ts-node-dev --respawn --pretty --transpile-only main.ts",
     "build": "rm -rf ./prod && tsc --build --pretty",
     "buildwin": "rmdir /s /q prod && tsc --build --pretty",
-    "start": "NODE_OPTIONS='-r newrelic' node prod/main.js"
+    "start": "NODE_OPTIONS='-r newrelic' node prod/main.js",
+    "start:local": "node prod/main.js"
   },
   "author": "",
   "license": "ISC",
