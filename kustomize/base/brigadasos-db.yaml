@@ -37,7 +37,7 @@ metadata:
   namespace: nadedb
 spec:
   replicas: 1
-  revisionHistoryLimit: 2
+  revisionHistoryLimit: 1
   selector:
     matchLabels:
       app: brigadasos-db
@@ -86,7 +86,7 @@ metadata:
 spec:
   secretName: certificate-brigadasos-db
   dnsNames:
-    - nadedb.davafons.com
+    - api.brigadasos.xyz
   issuerRef:
     name: clusterissuer-le
     kind: ClusterIssuer
@@ -106,10 +106,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - nadedb.davafons.com
+        - api.brigadasos.xyz
       secretName: certificate-brigadasos-db
   rules:
-    - host: nadedb.davafons.com
+    - host: api.brigadasos.xyz
       http:
         paths:
           - pathType: Prefix
