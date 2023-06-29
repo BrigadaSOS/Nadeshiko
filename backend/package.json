@@ -25,14 +25,14 @@
     "helmet": "^7.0.0",
     "http-status-codes": "^2.2.0",
     "jsonwebtoken": "^9.0.0",
+    "newrelic": "^10.3.2",
     "pg": "^8.11.0",
     "sequelize": "^6.25.5",
     "sequelize-cursor-pagination": "^3.4.0",
     "sequelize-typescript": "^2.1.5",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
-    "uuid": "^9.0.0",
-    "newrelic": "latest"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
