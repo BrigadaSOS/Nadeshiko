@@ -1,5 +1,5 @@
 # Build
-FROM node:alpine AS builder
+FROM node:lts-alpine3.18 AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 
 #Run
-FROM node:alpine as server
+FROM node:lts-alpine3.18 AS server
 WORKDIR /app
 COPY package*.json .env* ./
 RUN npm install --production
