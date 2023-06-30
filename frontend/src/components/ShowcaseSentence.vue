@@ -967,7 +967,7 @@ try {
       </div>
     </div>
   </div>
-  <SidebarAnime :list="statistics" :sentences="sentences" @filter-anime="filterAnime" />
+  <SidebarAnime :list="statistics" :sentences="sentences" @filter-anime="filterAnime" @filter-anime-length="sortFilter" />
 </template>
 
 <style>

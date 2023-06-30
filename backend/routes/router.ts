@@ -1,6 +1,6 @@
 import express from "express";
 export const router = express.Router();
-import { reSyncDatabase } from "../controllers/databaseController";
+import { reSyncDatabase, SyncSpecificAnime } from "../controllers/databaseController";
 import {
   GetContextAnime,
   SearchAnimeSentences,
@@ -14,4 +14,5 @@ router.post("/v1/search/anime/context", GetContextAnime);
 router.post("/v1/utility/merge/audio", mergeMp3Files);
 
 /// Admin
-router.get("/v1/admin/database/resync", reSyncDatabase);
+router.post("/v1/admin/database/resync", reSyncDatabase);
+router.post("/v1/admin/database/sync/anime", SyncSpecificAnime);
