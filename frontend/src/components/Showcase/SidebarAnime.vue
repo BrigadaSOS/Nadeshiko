@@ -33,11 +33,16 @@ const filteredAnimes = computed(() => {
 });
 
 
-const emits = defineEmits(['filter-anime'])
+const emits = defineEmits(['filter-anime', 'filter-anime-length'])
 
 const fired = (id) => {
   emits('filter-anime', id)
 }
+
+const fired_sort_length = (type) => {
+  emits('filter-anime-length', type)
+}
+
 </script>
 
 <template>
@@ -128,7 +133,7 @@ const fired = (id) => {
             >
               <a
                 class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                @click="sortFilter('asc')"
+                @click="fired_sort_length('asc')"
               >
                 <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path
@@ -142,7 +147,7 @@ const fired = (id) => {
               </a>
               <a
                 class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                @click="sortFilter('desc')"
+                @click="fired_sort_length('desc')"
               >
                 <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path
