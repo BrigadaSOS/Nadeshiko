@@ -18,6 +18,138 @@ export async function addBasicData(db: any) {
   });
 }
 
+function folderExists(path: string) {
+  try {
+    // Check if the folder exists by attempting to read its stats
+    fs.statSync(path);
+    return true; // Folder exists
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      return false; // Folder does not exist
+    } else {
+      // Other error occurred
+      throw err;
+    }
+  }
+}
+
+export async function readSpecificDirectory(
+  baseDir: string,
+  folder_name: string
+) {
+  const animeDirectories = fs.readdirSync(baseDir);
+  const animeDirPath = path.join(baseDir, folder_name);
+
+  if (folderExists(animeDirPath)) {
+    // Verifica si el nombre de la carpeta ya existe en la base de datos
+    const existingMedia = await Media.findOne({
+      where: { english_name: folder_name },
+    });
+    if (existingMedia) {
+      console.log("Folder already exists in the database.");
+      return;
+    }
+    // Inserta el anime encontrado a la base de datos
+    try {
+      const media = await Media.create(
+        {
+          english_name: folder_name,
+          id_category: 1,
+        },
+        { include: Category }
+      );
+      //await media.save();
+      console.log("Folder inserted into the database");
+    } catch (error) {
+      console.error("Error while inserting into the database:", error);
+    }
+
+    if (fs.statSync(animeDirPath).isDirectory()) {
+      const temporadaDirectories = fs.readdirSync(animeDirPath);
+
+      for (const tempItem of temporadaDirectories) {
+        const tempDirPath = path.join(animeDirPath, tempItem);
+
+        let media = await Media.findOne({
+          where: { english_name: folder_name },
+          include: [Season, Category],
+        });
+
+        const number_season = tempItem.replace("S", "");
+
+        if (media) {
+          let season = await Season.create({
+            mediaId: media.id,
+            number: number_season,
+          });
+
+          await season.save();
+        }
+
+        if (fs.statSync(tempDirPath).isDirectory()) {
+          const episodeDirectories = fs.readdirSync(tempDirPath);
+
+          for (const episodeItem of episodeDirectories) {
+            const episodeDirPath = path.join(tempDirPath, episodeItem);
+
+            let season = await Season.findOne({
+              where: {
+                mediaId: media?.id,
+                number: number_season,
+              },
+              include: [Episode],
+            });
+
+            let number_episode = episodeItem;
+
+            let episode: Episode | null = null;
+
+            if (season) {
+              episode = await Episode.create({
+                seasonId: season?.id,
+                number: number_episode,
+              });
+
+              await episode.save();
+            }
+
+            const episodeItems = fs.readdirSync(episodeDirPath);
+            const dataCsvPath = path.join(episodeDirPath, "data.csv");
+            const dataCsvExists = fs.existsSync(dataCsvPath);
+
+            if (dataCsvExists) {
+              console.log("Anime data has been found: ", dataCsvPath);
+              const rows = [];
+
+              const stream = fs
+                .createReadStream(dataCsvPath)
+                .pipe(csv({ separator: ";" }));
+
+              for await (const row of stream) {
+                rows.push(row);
+              }
+
+              // Realizar inserciones en lotes
+              const batchSize = 100;
+              const batchCount = Math.ceil(rows.length / batchSize);
+
+              for (let i = 0; i < batchCount; i++) {
+                const start = i * batchSize;
+                const end = start + batchSize;
+                const batchRows = rows.slice(start, end);
+
+                await insertSegments(batchRows, episode);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    console.log("Folder does not exist.");
+  }
+}
+
 export async function readAnimeDirectories(baseDir: string) {
   const animeDirectories = fs.readdirSync(baseDir);
 
