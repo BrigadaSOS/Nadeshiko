@@ -70,10 +70,22 @@ export class Segment extends Model {
   content_spanish!: string;
 
   @Column({
+    type: DataType.BOOLEAN,
+    allowNull: true,
+  })
+  content_spanish_mt!: boolean;
+
+  @Column({
     type: DataType.STRING,
     allowNull: true,
   })
   content_english!: string;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: true,
+  })
+  content_english_mt!: boolean;
 
   @Column({
     type: DataType.STRING,
