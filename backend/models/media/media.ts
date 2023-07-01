@@ -27,6 +27,12 @@ export class Media extends Model {
   })
   japanese_name!: string;
   
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  folder_media_name!: string;
+
   @ForeignKey(() => Category)
   @Column({
     type: DataType.INTEGER,
