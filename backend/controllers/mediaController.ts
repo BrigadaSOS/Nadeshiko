@@ -190,7 +190,7 @@ export const SearchAnimeSentences = async (
 
     let uniqueTitles = results_temp.reduce(
       (titles: { [key: string]: any }, item) => {
-        const animeTitle = item?.episode?.season?.media?.english_name;
+        const animeTitle = item?.episode?.season?.media?.folder_media_name;
         const animeId = item?.episode?.season?.media?.id;
 
         if (animeTitle) {
@@ -298,7 +298,7 @@ export const GetContextAnime = async (
 function buildSimplifiedResults(req: Request, results: Segment[]) {
   return results.map((result) => {
 
-    const seriesNamePath = result.episode.season.media.english_name;
+    const seriesNamePath = result.episode.season.media.folder_media_name;
     const seasonNumberPath = `S${result.episode.season.number.toString().padStart(2, '0')}`;
     const episodeNumberPath= `E${result.episode.number.toString().padStart(2, '0')}`;
 
