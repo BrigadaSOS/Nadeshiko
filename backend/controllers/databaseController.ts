@@ -30,8 +30,8 @@ export const SyncSpecificAnime = async (
 ) => {
   try {
     const { folder_name, season, episode, force } = req.body;
-    await readSpecificDirectory(mediaDirectory, folder_name);
-    res.status(StatusCodes.OK).json({ message: "Anime synced" });
+    let message = await readSpecificDirectory(mediaDirectory, folder_name, season, episode, force);
+    res.status(StatusCodes.OK).json({ message: message });
   }catch (error) {
     next(error);
   }
