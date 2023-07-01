@@ -317,9 +317,9 @@ function buildSimplifiedResults(req: Request, results: Segment[]) {
         end_time: result.end_time,
         content_jp: result.content,
         content_en: result.content_english,
-        content_en_mt: result.content_english_mt,
+        content_en_mt: result.content_english_mt || true,
         content_es: result.content_spanish,
-        content_es_mt: result.content_spanish_mt,
+        content_es_mt: result.content_spanish_mt || true,
       },
       media_info: {
         path_image: url.format({
