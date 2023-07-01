@@ -25,27 +25,48 @@ export async function readAnimeDirectories(baseDir: string) {
 
   for (const animeItem of animeDirectories) {
     const animeDirPath = path.join(baseDir, animeItem);
+    // Antes de crear el MEDIA, debe verificar la existencia de un archivo JSON con la info
+    const dataJsonPath = path.join(animeDirPath, "info.json");
+    const dataJsonExists = fs.existsSync(dataJsonPath);
 
-    let media = await Media.create(
-      {
-        english_name: animeItem,
-        id_category: 1,
-      },
-      { include: Category }
-    );
+    let media_raw = null;
 
-    await media.save();
+    if (dataJsonExists) {
+      try {
+        const jsonString = fs.readFileSync(dataJsonPath);
+        media_raw = JSON.parse(jsonString);
+      } catch (error) {
+        console.log("Error reading JSON file:", error);
+      }
+
+      try {
+        let media = await Media.create(
+          {
+            english_name: media_raw.english_name,
+            japanese_name: media_raw.japanese_name,
+            folder_media_name: media_raw.folder_media_name,
+            id_category: 1,
+          },
+          { include: Category }
+        );
+
+        await media.save();
+      } catch (error) {
+        console.log("Error creating media:", error);
+      }
+    }
 
     if (fs.statSync(animeDirPath).isDirectory()) {
-      const seasonDirectories = fs.readdirSync(animeDirPath, {withFileTypes: true})
-          .filter(dirent => dirent.isDirectory())
-          .map(dirent => dirent.name);
+      const seasonDirectories = fs
+        .readdirSync(animeDirPath, { withFileTypes: true })
+        .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
+        .map((dirent: { name: any }) => dirent.name);
 
       for (const seasonDirname of seasonDirectories) {
         const tempDirPath = path.join(animeDirPath, seasonDirname);
 
         let media = await Media.findOne({
-          where: { english_name: animeItem },
+          where: { english_name: media_raw.english_name },
           include: [Season, Category],
         });
 
@@ -83,7 +104,6 @@ export async function readAnimeDirectories(baseDir: string) {
                 seasonId: season?.id,
                 number: number_episode,
               });
-
 
               await episode.save();
             }
@@ -235,9 +255,10 @@ async function fullSyncSpecificAnime(
   }
 
   // Lee cada temporada y empieza a mapearla en la base de datos
-  const seasonDirectories = fs.readdirSync(animeDirPath, {withFileTypes: true})
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+  const seasonDirectories = fs
+    .readdirSync(animeDirPath, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name);
 
   for (const seasonDirname of seasonDirectories) {
     const number_season = parseInt(seasonDirname.replace("S", ""));
