@@ -37,17 +37,19 @@ export async function readAnimeDirectories(baseDir: string) {
     await media.save();
 
     if (fs.statSync(animeDirPath).isDirectory()) {
-      const temporadaDirectories = fs.readdirSync(animeDirPath);
+      const seasonDirectories = fs.readdirSync(animeDirPath, {withFileTypes: true})
+          .filter(dirent => dirent.isDirectory())
+          .map(dirent => dirent.name);
 
-      for (const tempItem of temporadaDirectories) {
-        const tempDirPath = path.join(animeDirPath, tempItem);
+      for (const seasonDirname of seasonDirectories) {
+        const tempDirPath = path.join(animeDirPath, seasonDirname);
 
         let media = await Media.findOne({
           where: { english_name: animeItem },
           include: [Season, Category],
         });
 
-        const number_season = tempItem.replace("S", "");
+        const number_season = parseInt(seasonDirname.replace("S", ""));
 
         if (media) {
           let season = await Season.create({
@@ -61,8 +63,8 @@ export async function readAnimeDirectories(baseDir: string) {
         if (fs.statSync(tempDirPath).isDirectory()) {
           const episodeDirectories = fs.readdirSync(tempDirPath);
 
-          for (const episodeItem of episodeDirectories) {
-            const episodeDirPath = path.join(tempDirPath, episodeItem);
+          for (const episodeDirname of episodeDirectories) {
+            const episodeDirPath = path.join(tempDirPath, episodeDirname);
 
             let season = await Season.findOne({
               where: {
@@ -72,7 +74,7 @@ export async function readAnimeDirectories(baseDir: string) {
               include: [Episode],
             });
 
-            let number_episode = episodeItem.replace("E", "");
+            let number_episode = parseInt(episodeDirname.replace("E", ""));
 
             let episode: Episode | null = null;
 
@@ -82,10 +84,10 @@ export async function readAnimeDirectories(baseDir: string) {
                 number: number_episode,
               });
 
+
               await episode.save();
             }
 
-            const episodeItems = fs.readdirSync(episodeDirPath);
             const dataCsvPath = path.join(episodeDirPath, "data.csv");
             const dataCsvExists = fs.existsSync(dataCsvPath);
 
@@ -233,10 +235,12 @@ async function fullSyncSpecificAnime(
   }
 
   // Lee cada temporada y empieza a mapearla en la base de datos
-  const temporadaDirectories = fs.readdirSync(animeDirPath);
+  const seasonDirectories = fs.readdirSync(animeDirPath, {withFileTypes: true})
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
 
-  for (const tempItem of temporadaDirectories) {
-    const number_season = tempItem.replace("S", "");
+  for (const seasonDirname of seasonDirectories) {
+    const number_season = parseInt(seasonDirname.replace("S", ""));
     let season = await Season.create({
       mediaId: animeFound!.id,
       number: number_season,
@@ -244,18 +248,20 @@ async function fullSyncSpecificAnime(
     await season.save();
 
     // Una vez mapeada la temporada, mapea los episodios
-    const tempDirPath = path.join(animeDirPath, tempItem);
+    const tempDirPath = path.join(animeDirPath, seasonDirname);
     if (fs.statSync(tempDirPath).isDirectory()) {
       const episodeDirectories = fs.readdirSync(tempDirPath);
-      for (const episodeItem of episodeDirectories) {
+      for (const episodeDirname of episodeDirectories) {
+        const number_episode = parseInt(episodeDirname.replace("E", ""));
+
         let episode = await Episode.create({
           seasonId: season?.id,
-          number: episodeItem,
+          number: number_episode,
         });
         await episode.save();
 
         // Una vez mapeado el episodio, mapea los segmentos de acuerdo al archivo CSV dentro de la carpeta del episodio
-        const episodeDirPath = path.join(tempDirPath, episodeItem);
+        const episodeDirPath = path.join(tempDirPath, episodeDirname);
         const dataCsvPath = path.join(episodeDirPath, "data.csv");
         const dataCsvExists = fs.existsSync(dataCsvPath);
 
