@@ -72,7 +72,7 @@ export async function readAnimeDirectories(baseDir: string) {
               include: [Episode],
             });
 
-            let number_episode = episodeItem;
+            let number_episode = episodeItem.replace("E", "");
 
             let episode: Episode | null = null;
 
@@ -312,7 +312,9 @@ async function insertSegments(rows: any[], episode: Episode | null) {
           position: row.POSITION,
           content: row.CONTENT,
           content_english: row.CONTENT_TRANSLATION_ENGLISH,
+          content_english_mt: row.CONTENT_ENGLISH_MT,
           content_spanish: row.CONTENT_TRANSLATION_SPANISH,
+          content_spanish_mt: row.CONTENT_SPANISH_MT,
           path_image: row.NAME_SCREENSHOT,
           path_audio: row.NAME_AUDIO,
           episodeId: episode.id,

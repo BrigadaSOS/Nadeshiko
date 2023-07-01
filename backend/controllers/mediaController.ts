@@ -6,6 +6,7 @@ import { Media } from "../models/media/media";
 import { Episode } from "../models/media/episode";
 import { Season } from "../models/media/season";
 import { Op, Sequelize } from "sequelize";
+import url from 'url';
 
 const ffmpegStatic = require("ffmpeg-static");
 const ffmpeg = require("fluent-ffmpeg");
@@ -48,7 +49,11 @@ export const mergeMp3Files = async (
         console.log("La conversión se ha completado exitosamente");
         return res.status(StatusCodes.OK).json({
           message: "La conversión se ha completado exitosamente",
-          url: `${BASE_URL_TMP}/output.mp3`,
+          url: url.format({
+            protocol: req.protocol,
+            host: req.get('host'),
+            pathname: [BASE_URL_TMP, "output.mp3"].join("/")
+          })
         });
       })
       .catch((error) => {
@@ -212,36 +217,7 @@ export const SearchAnimeSentences = async (
     if (!results)
       throw new NotFound("No se han encontrado palabras en la base de datos.");
 
-    const simplifiedResults = results.map((result) => ({
-      basic_info: {
-        id_anime: result.episode.season.media.id,
-        name_anime_en: result.episode.season.media.english_name,
-        name_anime_jp: result.episode.season.media.japanese_name,
-        season: result.episode.season.number,
-        episode: result.episode.number,
-      },
-      segment_info: {
-        uuid: result.uuid,
-        position: result.position,
-        start_time: result.start_time,
-        end_time: result.end_time,
-        content_jp: result.content,
-        content_en: result.content_english,
-        content_es: result.content_spanish,
-      },
-      media_info: {
-        path_image: `${BASE_URL_MEDIA}/${
-          result.episode.season.media.english_name
-        }/S${String("0" + result.episode.season.number).slice(-2)}/${String(
-          "0" + result.episode.number
-        ).slice(-2)}/${result.path_image}`,
-        path_audio: `${BASE_URL_MEDIA}/${
-          result.episode.season.media.english_name
-        }/S${String("0" + result.episode.season.number).slice(-2)}/${String(
-          "0" + result.episode.number
-        ).slice(-2)}/${result.path_audio}`,
-      },
-    }));
+    const simplifiedResults = buildSimplifiedResults(req, results);
 
     const nextCursor = cursor ? cursor + results.length : results.length + 1;
 
@@ -293,36 +269,8 @@ export const GetContextAnime = async (
       ],
     });
 
-    const simplifiedResults = results.map((result) => ({
-      basic_info: {
-        id_anime: result.episode.season.media.id,
-        name_anime_en: result.episode.season.media.english_name,
-        name_anime_jp: result.episode.season.media.japanese_name,
-        season: result.episode.season.number,
-        episode: result.episode.number,
-      },
-      segment_info: {
-        uuid: result.uuid,
-        position: result.position,
-        start_time: result.start_time,
-        end_time: result.end_time,
-        content_jp: result.content,
-        content_en: result.content_english,
-        content_es: result.content_spanish,
-      },
-      media_info: {
-        path_image: `${BASE_URL_MEDIA}/${
-          result.episode.season.media.english_name
-        }/S${String("0" + result.episode.season.number).slice(-2)}/${String(
-          "0" + result.episode.number
-        ).slice(-2)}/${result.path_image}`,
-        path_audio: `${BASE_URL_MEDIA}/${
-          result.episode.season.media.english_name
-        }/S${String("0" + result.episode.season.number).slice(-2)}/${String(
-          "0" + result.episode.number
-        ).slice(-2)}/${result.path_audio}`,
-      },
-    }));
+
+    const simplifiedResults = buildSimplifiedResults(req, results);
 
     let limitedResults;
 
@@ -346,3 +294,44 @@ export const GetContextAnime = async (
     next(error);
   }
 };
+
+function buildSimplifiedResults(req: Request, results: Segment[]) {
+  return results.map((result) => {
+
+    const seriesNamePath = result.episode.season.media.english_name;
+    const seasonNumberPath = `S${result.episode.season.number.toString().padStart(2, '0')}`;
+    const episodeNumberPath= `E${result.episode.number.toString().padStart(2, '0')}`;
+
+    return {
+      basic_info: {
+        id_anime: result.episode.season.media.id,
+        name_anime_en: result.episode.season.media.english_name,
+        name_anime_jp: result.episode.season.media.japanese_name,
+        season: result.episode.season.number,
+        episode: result.episode.number,
+      },
+      segment_info: {
+        uuid: result.uuid,
+        position: result.position,
+        start_time: result.start_time,
+        end_time: result.end_time,
+        content_jp: result.content,
+        content_en: result.content_english,
+        content_en_mt: result.content_english_mt,
+        content_es: result.content_spanish,
+        content_es_mt: result.content_spanish_mt,
+      },
+      media_info: {
+        path_image: url.format({
+          protocol: req.protocol,
+          host: req.get('host'),
+          pathname: [BASE_URL_MEDIA, seriesNamePath, seasonNumberPath, episodeNumberPath, result.path_image].join("/")
+        }),
+        path_audio: url.format({
+          protocol: req.protocol,
+          host: req.get('host'),
+          pathname: [BASE_URL_MEDIA, seriesNamePath, seasonNumberPath, episodeNumberPath, result.path_audio].join("/")
+        })
+      }
+    }});
+}
