@@ -257,8 +257,8 @@ async function fullSyncSpecificAnime(
   // Lee cada temporada y empieza a mapearla en la base de datos
   const seasonDirectories = fs
     .readdirSync(animeDirPath, { withFileTypes: true })
-    .filter((dirent) => dirent.isDirectory())
-    .map((dirent) => dirent.name);
+    .filter((dirent: { isDirectory: () => any; }) => dirent.isDirectory())
+    .map((dirent: { name: any; }) => dirent.name);
 
   for (const seasonDirname of seasonDirectories) {
     const number_season = parseInt(seasonDirname.replace("S", ""));
