@@ -190,7 +190,7 @@ export const SearchAnimeSentences = async (
 
     let uniqueTitles = results_temp.reduce(
       (titles: { [key: string]: any }, item) => {
-        const animeTitle = item?.episode?.season?.media?.folder_media_name;
+        const animeTitle = item?.episode?.season?.media?.english_name;
         const animeId = item?.episode?.season?.media?.id;
 
         if (animeTitle) {
