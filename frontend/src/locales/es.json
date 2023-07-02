@@ -8,9 +8,9 @@
       "guide": "Guía principal"
     }
   },
-  "searchpage":{
-    "main":{
-      "buttons":{
+  "searchpage": {
+    "main": {
+      "buttons": {
         "download": "Descargar",
         "image": "Imagen",
         "audio": "Audio",
@@ -26,11 +26,26 @@
         "sortlengthmax": "Más largas",
         "search": "Buscar"
       },
-      "labels":{
+      "labels": {
         "season": "Temporada",
         "episode": "Episodio",
         "translation": "Traducción (EN/ES)",
-        "movie": "Película"
+        "movie": "Película",
+        "searchmain": "Busca aquí una palabra en japonés!",
+        "searchbar": "Busca aquí un anime",
+        "multimedia": "Multimedia",
+        "text": "Texto",
+        "options": "Opciones",
+        "all": "Todo"
+      }
+    },
+    "modalcontext": {
+      "buttons": {
+        "close": "Close",
+        "downloadmultipleaudios": "Descargar audios seleccionados"
+      },
+      "labels": {
+        "context": "Context"
       }
     }
   }

@@ -2,7 +2,8 @@
 import { ref, watch, nextTick } from 'vue'
 let finalsentences = ref([])
 const selectedCheckboxes = ref([])
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 defineExpose({
   getContextSentence
 })
@@ -52,7 +53,8 @@ const scrollToElement = (pos) => {
   })
 }
 
-const downloadAudio = (url, filename) => {
+// Descarga el audio o imagen de la oración
+const downloadAudioOrImage = (url, filename) => {
   fetch(url)
     .then((response) => response.blob())
     .then((blob) => {
@@ -91,20 +93,19 @@ const getSelectedCheckboxes = async () => {
 }
 
 const ampliarImagen = (url) => {
-  var ampliada = document.createElement('div');
-  ampliada.className = 'ampliada';
-  
-  var imgAmpliada = document.createElement('img');
-  imgAmpliada.src = url;
-  
-  ampliada.appendChild(imgAmpliada);
-  document.body.appendChild(ampliada);
-  
-  ampliada.onclick = function() {
-    document.body.removeChild(ampliada);
+  var ampliada = document.createElement('div')
+  ampliada.className = 'ampliada'
+
+  var imgAmpliada = document.createElement('img')
+  imgAmpliada.src = url
+
+  ampliada.appendChild(imgAmpliada)
+  document.body.appendChild(ampliada)
+
+  ampliada.onclick = function () {
+    document.body.removeChild(ampliada)
   }
 }
-
 </script>
 
 <template>
@@ -116,11 +117,11 @@ const ampliarImagen = (url) => {
       class="hs-overlay-open:mt-7 justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-6xl lg:w-full m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
     >
       <div
-        class="max-h-full overflow-hidden flex flex-col bg-white border shadow-sm rounded-xl dark:bg-sgray dark:border-sgray dark:shadow-slate-700/[.7]"
+        class="max-h-full overflow-hidden flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
       >
-        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-gray-700">
+        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
           <h3 class="font-bold text-gray-800 dark:text-white">
-            Contexto - {{ finalsentences[0]?.basic_info.name_anime_en }}
+            {{ t('searchpage.modalcontext.labels.context') }}  - {{ finalsentences[0]?.basic_info.name_anime_en }}
           </h3>
           <button
             type="button"
@@ -151,10 +152,14 @@ const ampliarImagen = (url) => {
                 v-for="sentence in finalsentences"
                 :key="sentence.segment_info.position"
                 :id="sentence.segment_info.position"
-                class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-gray-700 mt-2 w-100 mx-2"
+                class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-sgray2 mt-2 w-100 mx-2"
               >
                 <div class="h-64 w-auto md:w-1/2">
-                  <img class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center" :src="sentence.media_info.path_image"  @click="ampliarImagen(sentence.media_info.path_image)" />
+                  <img
+                    class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+                    :src="sentence.media_info.path_image"
+                    @click="ampliarImagen(sentence.media_info.path_image)"
+                  />
                 </div>
                 <div class="w-full py-4 px-6 text-white flex flex-col justify-between">
                   <div className="flex">
@@ -188,13 +193,22 @@ const ampliarImagen = (url) => {
                           type="checkbox"
                           v-model="selectedCheckboxes"
                           :value="sentence"
-                          class="w-6 h-6 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                          class="w-6 h-6 bg-gray-100 border-gray-300 rounded dark:ring-offset-gray-800 dark:bg-sgray2 dark:border-gray-600"
                         />
                       </div>
                     </div>
                   </div>
                   <h4 class="font-normal text-sm leading-tight my-4">
-                    {{ sentence.segment_info.content_en }}
+                    <span
+                      class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-500"
+                    >
+                      {{ t('searchpage.main.labels.translation') }}
+                    </span>
+
+                    <ul class="ml-5 list-disc text-gray-400">
+                      <li class="my-2">{{ sentence.segment_info.content_en }}</li>
+                      <li class="my-2">{{ sentence.segment_info.content_es }}</li>
+                    </ul>
                   </h4>
 
                   <div class="flex flex-wrap">
@@ -203,7 +217,7 @@ const ampliarImagen = (url) => {
                         <button
                           id="hs-dropdown-with-title"
                           type="button"
-                          class="border-transparent dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                          class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white"
                         >
                           <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                             <path
@@ -215,7 +229,7 @@ const ampliarImagen = (url) => {
                             />
                           </svg>
 
-                          Descargar
+                          {{ t('searchpage.main.buttons.download') }}
 
                           <svg
                             class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-gray-300"
@@ -235,101 +249,23 @@ const ampliarImagen = (url) => {
                         </button>
 
                         <div
-                          class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700"
+                          class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                           aria-labelledby="hs-dropdown-with-title"
                         >
                           <div class="py-2 first:pt-0 last:pb-0">
                             <span
                               class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500"
                             >
-                              Multimedia
+                              {{ t('searchpage.main.labels.multimedia') }}
                             </span>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                              href="#"
-                            >
-                              <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path
-                                  d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z"
-                                />
-                              </svg>
-                              Imagen
-                            </a>
-                            <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                              href="#"
-                            >
-                              <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M111.85,108.77c-3.47,4.82-8.39,8.52-14.13,10.48c-0.26,0.12-0.55,0.18-0.84,0.18c-0.28,0-0.56-0.06-0.82-0.17v0.06 c0,1.96-1.6,3.56-3.57,3.56l-7.68,0c-1.96,0-3.57-1.6-3.57-3.56l0-55.13c0-1.96,1.6-3.57,3.57-3.57h7.68c1.96,0,3.57,1.6,3.57,3.57 v0.34c0.26-0.12,0.54-0.18,0.82-0.18c0.22,0,0.44,0.04,0.64,0.1l0,0.01c4.36,1.45,8.26,3.92,11.42,7.11V59.15 c0-14.89-4.99-27.63-13.81-36.6l-3.91,5.83c-7.95-8.75-19.4-14.27-32.08-14.27c-12.76,0-24.29,5.59-32.24,14.45l-4.73-5.78 C13.47,31.65,8.54,44.21,8.54,59.15V73.4c3.4-4.08,7.92-7.22,13.07-8.93l0-0.01c0.21-0.07,0.43-0.11,0.64-0.11 c0.28,0,0.57,0.06,0.82,0.17v-0.34c0-1.96,1.61-3.57,3.57-3.57l7.68,0c1.96,0,3.57,1.6,3.57,3.57v55.13c0,1.96-1.61,3.56-3.57,3.56 h-7.68c-1.96,0-3.57-1.6-3.57-3.56v-0.06c-0.25,0.11-0.53,0.17-0.82,0.17c-0.3,0-0.58-0.07-0.83-0.18 c-5.74-1.96-10.66-5.66-14.13-10.48c-1.82-2.52-3.24-5.34-4.17-8.37l-3.12,0V59.15c0-16.27,6.65-31.05,17.37-41.77 C28.09,6.66,42.88,0,59.14,0c16.27,0,31.06,6.66,41.77,17.37c10.72,10.72,17.37,25.5,17.37,41.77v41.25h-2.27 C115.1,103.39,113.68,106.23,111.85,108.77L111.85,108.77L111.85,108.77z"
-                                ></path>
-                              </svg>
-                              Audio
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div class="hs-dropdown relative inline-flex mb-2 mr-2">
-                        <button
-                          id="hs-dropdown-with-title"
-                          type="button"
-                          class="border-transparent dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
-                        >
-                          <svg
-                            width="1em"
-                            height="1em"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
-                            aria-hidden="true"
-                            focusable="false"
-                            class="rs-icon"
-                            aria-label="copy"
-                            data-category="action"
-                          >
-                            <path
-                              d="M13 11.5a.5.5 0 01.5-.5h.5a1 1 0 001-1V2a1 1 0 00-1-1H6a1 1 0 00-1 1v.5a.5.5 0 01-1 0V2a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2h-.5a.5.5 0 01-.5-.5z"
-                            ></path>
-                            <path
-                              d="M2 5a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V6a1 1 0 00-1-1H2zm0-1h8a2 2 0 012 2v8a2 2 0 01-2 2H2a2 2 0 01-2-2V6a2 2 0 012-2z"
-                            ></path>
-                          </svg>
-                          Copiar al portapapeles
-
-                          <svg
-                            class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-gray-300"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M2 5L8.16086 10.6869C8.35239 10.8637 8.64761 10.8637 8.83914 10.6869L15 5"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                            />
-                          </svg>
-                        </button>
-
-                        <div
-                          class="z-30 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700"
-                          aria-labelledby="hs-dropdown-with-title"
-                        >
-                          <div class="py-2 first:pt-0 last:pb-0">
-                            <span
-                              class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500"
-                            >
-                              Multimedia
-                            </span>
-                            <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                              href="#"
+                              class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="
+                                downloadAudioOrImage(
+                                  sentence.media_info.path_image,
+                                  sentence.media_info.path_image.split('/').pop()
+                                )
+                              "
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -364,42 +300,147 @@ const ampliarImagen = (url) => {
                                   stroke="#white"
                                 />
                               </svg>
-                              Imagen
+                              {{ t('searchpage.main.buttons.image') }}
                             </a>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                              href="#"
+                              class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="
+                                downloadAudioOrImage(
+                                  sentence.media_info.path_audio,
+                                  sentence.media_info.path_audio.split('/').pop()
+                                )
+                              "
                             >
-                              <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
                                 <path
-                                  d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M111.85,108.77c-3.47,4.82-8.39,8.52-14.13,10.48c-0.26,0.12-0.55,0.18-0.84,0.18c-0.28,0-0.56-0.06-0.82-0.17v0.06 c0,1.96-1.6,3.56-3.57,3.56l-7.68,0c-1.96,0-3.57-1.6-3.57-3.56l0-55.13c0-1.96,1.6-3.57,3.57-3.57h7.68c1.96,0,3.57,1.6,3.57,3.57 v0.34c0.26-0.12,0.54-0.18,0.82-0.18c0.22,0,0.44,0.04,0.64,0.1l0,0.01c4.36,1.45,8.26,3.92,11.42,7.11V59.15 c0-14.89-4.99-27.63-13.81-36.6l-3.91,5.83c-7.95-8.75-19.4-14.27-32.08-14.27c-12.76,0-24.29,5.59-32.24,14.45l-4.73-5.78 C13.47,31.65,8.54,44.21,8.54,59.15V73.4c3.4-4.08,7.92-7.22,13.07-8.93l0-0.01c0.21-0.07,0.43-0.11,0.64-0.11 c0.28,0,0.57,0.06,0.82,0.17v-0.34c0-1.96,1.61-3.57,3.57-3.57l7.68,0c1.96,0,3.57,1.6,3.57,3.57v55.13c0,1.96-1.61,3.56-3.57,3.56 h-7.68c-1.96,0-3.57-1.6-3.57-3.56v-0.06c-0.25,0.11-0.53,0.17-0.82,0.17c-0.3,0-0.58-0.07-0.83-0.18 c-5.74-1.96-10.66-5.66-14.13-10.48c-1.82-2.52-3.24-5.34-4.17-8.37l-3.12,0V59.15c0-16.27,6.65-31.05,17.37-41.77 C28.09,6.66,42.88,0,59.14,0c16.27,0,31.06,6.66,41.77,17.37c10.72,10.72,17.37,25.5,17.37,41.77v41.25h-2.27 C115.1,103.39,113.68,106.23,111.85,108.77L111.85,108.77L111.85,108.77z"
+                                ></path>
+                              </svg>
+                              {{ t('searchpage.main.buttons.audio') }}
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="hs-dropdown relative inline-flex mb-2 mr-2">
+                        <button
+                          id="hs-dropdown-with-title"
+                          type="button"
+                          class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                        >
+                          <svg
+                            width="1em"
+                            height="1em"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            aria-hidden="true"
+                            focusable="false"
+                            class="rs-icon"
+                            aria-label="copy"
+                            data-category="action"
+                          >
+                            <path
+                              d="M13 11.5a.5.5 0 01.5-.5h.5a1 1 0 001-1V2a1 1 0 00-1-1H6a1 1 0 00-1 1v.5a.5.5 0 01-1 0V2a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2h-.5a.5.5 0 01-.5-.5z"
+                            ></path>
+                            <path
+                              d="M2 5a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V6a1 1 0 00-1-1H2zm0-1h8a2 2 0 012 2v8a2 2 0 01-2 2H2a2 2 0 01-2-2V6a2 2 0 012-2z"
+                            ></path>
+                          </svg>
+                          {{ t('searchpage.main.buttons.copyclipboard') }}
+
+                          <svg
+                            class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-gray-300"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M2 5L8.16086 10.6869C8.35239 10.8637 8.64761 10.8637 8.83914 10.6869L15 5"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        </button>
+
+                        <div
+                          class="z-20 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                          aria-labelledby="hs-dropdown-with-title"
+                        >
+                          <div class="py-2 first:pt-0 last:pb-0">
+                            <span
+                              class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500"
+                            >
+                              Multimedia
+                            </span>
+                            <a
+                              @click="copyToClipboard(sentence.media_info.path_image)"
+                              class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="-0.5 0 25 25"
+                                fill="none"
+                              >
+                                <path
+                                  d="M21 22H3C2.72 22 2.5 21.6517 2.5 21.2083V3.79167C2.5 3.34833 2.72 3 3 3H21C21.28 3 21.5 3.34833 21.5 3.79167V21.2083C21.5 21.6517 21.28 22 21 22Z"
+                                  stroke="white"
+                                  stroke-miterlimit="10"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
                                 />
                                 <path
-                                  d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
+                                  d="M4.5 19.1875L9.66 12.6875C9.86 12.4375 10.24 12.4375 10.44 12.6875L15.6 19.1875"
+                                  stroke="white"
+                                  stroke-miterlimit="10"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                                <path
+                                  d="M16.2 16.6975L16.4599 16.3275C16.6599 16.0775 17.0399 16.0775 17.2399 16.3275L19.4999 19.1875"
+                                  stroke="white"
+                                  stroke-miterlimit="10"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                                <path
+                                  d="M17.2046 9.54315C17.2046 10.4294 16.4862 11.1478 15.6 11.1478C14.7138 11.1478 13.9954 10.4294 13.9954 9.54315C13.9954 8.65695 14.7138 7.93854 15.6 7.93854C16.4862 7.93854 17.2046 8.65695 17.2046 9.54315Z"
+                                  stroke="#white"
                                 />
                               </svg>
-                              Audio
+                              {{ t('searchpage.main.buttons.image') }}
+                            </a>
+                            <a
+                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              href="#"
+                            >
+                              <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M111.85,108.77c-3.47,4.82-8.39,8.52-14.13,10.48c-0.26,0.12-0.55,0.18-0.84,0.18c-0.28,0-0.56-0.06-0.82-0.17v0.06 c0,1.96-1.6,3.56-3.57,3.56l-7.68,0c-1.96,0-3.57-1.6-3.57-3.56l0-55.13c0-1.96,1.6-3.57,3.57-3.57h7.68c1.96,0,3.57,1.6,3.57,3.57 v0.34c0.26-0.12,0.54-0.18,0.82-0.18c0.22,0,0.44,0.04,0.64,0.1l0,0.01c4.36,1.45,8.26,3.92,11.42,7.11V59.15 c0-14.89-4.99-27.63-13.81-36.6l-3.91,5.83c-7.95-8.75-19.4-14.27-32.08-14.27c-12.76,0-24.29,5.59-32.24,14.45l-4.73-5.78 C13.47,31.65,8.54,44.21,8.54,59.15V73.4c3.4-4.08,7.92-7.22,13.07-8.93l0-0.01c0.21-0.07,0.43-0.11,0.64-0.11 c0.28,0,0.57,0.06,0.82,0.17v-0.34c0-1.96,1.61-3.57,3.57-3.57l7.68,0c1.96,0,3.57,1.6,3.57,3.57v55.13c0,1.96-1.61,3.56-3.57,3.56 h-7.68c-1.96,0-3.57-1.6-3.57-3.56v-0.06c-0.25,0.11-0.53,0.17-0.82,0.17c-0.3,0-0.58-0.07-0.83-0.18 c-5.74-1.96-10.66-5.66-14.13-10.48c-1.82-2.52-3.24-5.34-4.17-8.37l-3.12,0V59.15c0-16.27,6.65-31.05,17.37-41.77 C28.09,6.66,42.88,0,59.14,0c16.27,0,31.06,6.66,41.77,17.37c10.72,10.72,17.37,25.5,17.37,41.77v41.25h-2.27 C115.1,103.39,113.68,106.23,111.85,108.77L111.85,108.77L111.85,108.77z"
+                                ></path>
+                              </svg>
+                              {{ t('searchpage.main.buttons.audio') }}
                             </a>
                           </div>
                           <div class="py-2 first:pt-0 last:pb-0">
                             <span
                               class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500"
                             >
-                              Texto
+                              {{ t('searchpage.main.labels.text') }}
                             </span>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                              href="#"
-                            >
-                              <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path
-                                  d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z"
-                                />
-                              </svg>
-                              Oración en Japonés
-                            </a>
-                            <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                               href="#"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -410,10 +451,10 @@ const ampliarImagen = (url) => {
                                   d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
                                 />
                               </svg>
-                              Oración en Inglés
+                              {{ t('searchpage.main.buttons.jpsentence') }}
                             </a>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                               href="#"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -424,8 +465,114 @@ const ampliarImagen = (url) => {
                                   d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
                                 />
                               </svg>
-                              Oración en español
+                              {{ t('searchpage.main.buttons.ensentence') }}
                             </a>
+                            <a
+                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              href="#"
+                            >
+                              <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path
+                                  d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z"
+                                />
+                                <path
+                                  d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
+                                />
+                              </svg>
+                              {{ t('searchpage.main.buttons.essentence') }}
+                            </a>
+                          </div>
+                        </div>
+                        <div class="hs-dropdown relative z-20 inline-flex">
+                          <button
+                            id="hs-dropdown-with-title"
+                            type="button"
+                            class="border-transparent ml-2 dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                          >
+                            <svg
+                              class="hs-dropdown-open:rotate-180 w-3.5 h-3.5 rotate-90 fill-white text-gray-300"
+                              viewBox="0 0 20 20"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M14 5C14 6.10457 13.1046 7 12 7C10.8954 7 10 6.10457 10 5C10 3.89543 10.8954 3 12 3C13.1046 3 14 3.89543 14 5Z"
+                              />
+                              <path
+                                d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z"
+                              />
+                              <path
+                                d="M12 21C13.1046 21 14 20.1046 14 19C14 17.8954 13.1046 17 12 17C10.8954 17 10 17.8954 10 19C10 20.1046 10.8954 21 12 21Z"
+                              />
+                            </svg>
+                          </button>
+
+                          <div
+                            class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                            aria-labelledby="hs-dropdown-with-title"
+                          >
+                            <div class="py-2 first:pt-0 last:pb-0">
+                              <span
+                                class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500"
+                              >
+                                {{ t('searchpage.main.labels.options') }}
+                              </span>
+                              <a
+                                class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
+                                @click="showModalReport(sentence)"
+                                data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  xmlns:xlink="http://www.w3.org/1999/xlink"
+                                  width="20"
+                                  height="20"
+                                  class="fill-white"
+                                  version="1.1"
+                                  id="Layer_1"
+                                  viewBox="0 0 512 512"
+                                >
+                                  <g>
+                                    <g>
+                                      <path
+                                        d="M505.403,406.394L295.389,58.102c-8.274-13.721-23.367-22.245-39.39-22.245c-16.023,0-31.116,8.524-39.391,22.246    L6.595,406.394c-8.551,14.182-8.804,31.95-0.661,46.37c8.145,14.42,23.491,23.378,40.051,23.378h420.028    c16.56,0,31.907-8.958,40.052-23.379C514.208,438.342,513.955,420.574,505.403,406.394z M477.039,436.372    c-2.242,3.969-6.467,6.436-11.026,6.436H45.985c-4.559,0-8.784-2.466-11.025-6.435c-2.242-3.97-2.172-8.862,0.181-12.765    L245.156,75.316c2.278-3.777,6.433-6.124,10.844-6.124c4.41,0,8.565,2.347,10.843,6.124l210.013,348.292    C479.211,427.512,479.281,432.403,477.039,436.372z"
+                                      />
+                                    </g>
+                                  </g>
+                                  <g>
+                                    <g>
+                                      <path
+                                        d="M256.154,173.005c-12.68,0-22.576,6.804-22.576,18.866c0,36.802,4.329,89.686,4.329,126.489    c0.001,9.587,8.352,13.607,18.248,13.607c7.422,0,17.937-4.02,17.937-13.607c0-36.802,4.329-89.686,4.329-126.489    C278.421,179.81,268.216,173.005,256.154,173.005z"
+                                      />
+                                    </g>
+                                  </g>
+                                  <g>
+                                    <g>
+                                      <path
+                                        d="M256.465,353.306c-13.607,0-23.814,10.824-23.814,23.814c0,12.68,10.206,23.814,23.814,23.814    c12.68,0,23.505-11.134,23.505-23.814C279.97,364.13,269.144,353.306,256.465,353.306z"
+                                      />
+                                    </g>
+                                  </g>
+                                </svg>
+                                {{ t('searchpage.main.buttons.report') }}
+                              </a>
+                              <a
+                                class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                                @click="getSharingURL(sentence)"
+                              >
+                                <svg
+                                  class="fill-white"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="20"
+                                  height="20"
+                                  viewBox="0 0 50 50"
+                                >
+                                  <path
+                                    d="M31.2,14.2,41,24.1l-9.8,9.8V26.8L27,27c-6.8.3-12,1-16.1,2.4,3.6-3.8,9.3-6.8,16.7-7.5l3.6-.3V14.2M28.3,6a1.2,1.2,0,0,0-1.1,1.3V17.9C12,19.4,2.2,29.8,2,40.3c0,.6.2,1,.6,1s.7-.3,1.1-1.1c2.4-5.4,7.8-8.5,23.5-9.2v9.7A1.2,1.2,0,0,0,28.3,42a.9.9,0,0,0,.8-.4L45.6,25.1a1.5,1.5,0,0,0,0-2L29.1,6.4a.9.9,0,0,0-.8-.4Z"
+                                  />
+                                </svg>
+                                {{ t('searchpage.main.buttons.share') }}
+                              </a>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -433,9 +580,12 @@ const ampliarImagen = (url) => {
                   </div>
                   <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
                     {{ sentence.basic_info.name_anime_en }} &bull;
-                    <template v-if="sentence.basic_info.season === 0"> Película </template>
+                    <template v-if="sentence.basic_info.season === 0">
+                      {{ t('searchpage.main.labels.movie') }}
+                    </template>
                     <template v-else>
-                      Temporada {{ sentence.basic_info.season }}, Episodio {{ sentence.basic_info.episode }}
+                      {{ t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},
+                      {{ t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
                     </template>
                   </p>
                 </div>
@@ -476,10 +626,10 @@ const ampliarImagen = (url) => {
             </div>
           </div>
         </div>
-        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-gray-700">
+        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-sgray2">
           <button
             type="button"
-            class="py-4 px-4 h-14 lg:h-12 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-gray-700 text-gray-700 shadow-sm align-middle hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="py-4 px-4 h-14 lg:h-12 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
             <svg
               width="1em"
@@ -498,20 +648,20 @@ const ampliarImagen = (url) => {
               />
             </svg>
           </button>
-          
+
           <button
             type="button"
             @click="getSelectedCheckboxes"
-            class="hs-dropdown-toggle h-14 lg:h-12 mr-auto py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-gray-700 text-gray-700 shadow-sm align-middle hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 mr-auto py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
-            Descargar audio(s) seleccionados
+          {{ t('searchpage.modalcontext.buttons.downloadmultipleaudios') }} 
           </button>
           <button
             type="button"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-gray-700 text-gray-700 shadow-sm align-middle hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal"
           >
-            Cerrar
+          {{ t('searchpage.modalcontext.buttons.close') }} 
           </button>
         </div>
       </div>

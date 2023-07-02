@@ -8,9 +8,9 @@
       "guide": "Main Guide"
     }
   },
-  "searchpage":{
-    "main":{
-      "buttons":{
+  "searchpage": {
+    "main": {
+      "buttons": {
         "download": "Download",
         "image": "Image",
         "audio": "Audio",
@@ -26,13 +26,26 @@
         "sortlengthmax": "Largest",
         "search": "Search"
       },
-      "labels":{
+      "labels": {
         "season": "Season",
         "episode": "Episode",
         "translation": "Translation (EN/ES)",
         "movie": "Movie",
-        "search1": "Search a word here!",
-        "search2": "Search an anime here!"
+        "searchmain": "Search a word here!",
+        "searchbar": "Search an anime here...",
+        "multimedia": "Multimedia",
+        "text": "Text",
+        "options": "Options",
+        "all": "All"
+      }
+    },
+    "modalcontext": {
+      "buttons": {
+        "close": "Close",
+        "downloadmultipleaudios": "Download selected audios"
+      },
+      "labels": {
+        "context": "Context"
       }
     }
   }
