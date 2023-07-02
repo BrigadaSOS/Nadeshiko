@@ -1,9 +1,12 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
-let finalsentences = ref([])
-const selectedCheckboxes = ref([])
 import { useI18n } from 'vue-i18n'
+
+let finalsentences = ref([])
+let currentSentenceIndex = ref(null)
+const selectedCheckboxes = ref([])
 const { t } = useI18n()
+
 defineExpose({
   getContextSentence
 })
@@ -34,6 +37,7 @@ async function getContextSentence(item) {
   })
   response = await response.json()
   finalsentences.value = response.context
+  currentSentenceIndex.value = item.segment_info.position
   await nextTick()
   await scrollToElement(item.segment_info.position)
 }
@@ -65,6 +69,11 @@ const downloadAudioOrImage = (url, filename) => {
       a.click()
       window.URL.revokeObjectURL(url)
     })
+}
+
+// Copia al portapapeles el contenido
+const copyToClipboard = async (item) => {
+  await navigator.clipboard.writeText(item)
 }
 
 const getSelectedCheckboxes = async () => {
@@ -152,7 +161,8 @@ const ampliarImagen = (url) => {
                 v-for="sentence in finalsentences"
                 :key="sentence.segment_info.position"
                 :id="sentence.segment_info.position"
-                class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-sgray2 mt-2 w-100 mx-2"
+                :class="{ ' bg-sgray2': sentence.segment_info.position === currentSentenceIndex }"
+  class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-sgray2 mt-2 w-100 mx-2"
               >
                 <div class="h-64 w-auto md:w-1/2">
                   <img
@@ -419,8 +429,8 @@ const ampliarImagen = (url) => {
                               {{ t('searchpage.main.buttons.image') }}
                             </a>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                              href="#"
+                              class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="copyToClipboard(sentence.media_info.path_audio)"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
                                 <path
@@ -440,8 +450,8 @@ const ampliarImagen = (url) => {
                               {{ t('searchpage.main.labels.text') }}
                             </span>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                              href="#"
+                              class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="copyToClipboard(sentence.segment_info.content_jp)"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                 <path
@@ -454,8 +464,8 @@ const ampliarImagen = (url) => {
                               {{ t('searchpage.main.buttons.jpsentence') }}
                             </a>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                              href="#"
+                              class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="copyToClipboard(sentence.segment_info.content_en)"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                 <path
@@ -468,8 +478,8 @@ const ampliarImagen = (url) => {
                               {{ t('searchpage.main.buttons.ensentence') }}
                             </a>
                             <a
-                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                              href="#"
+                              class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="copyToClipboard(sentence.segment_info.content_es)"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                 <path

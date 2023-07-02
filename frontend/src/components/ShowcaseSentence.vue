@@ -241,16 +241,8 @@ const downloadAudioOrImage = (url, filename) => {
 }
 
 // Copia al portapapeles el contenido
-const copyToClipboard = async (url) => {
-  try {
-    const response = await fetch('https://example.com/image.png')
-    const blob = await response.blob()
-    const item = new ClipboardItem({ 'image/png': blob })
-    await navigator.clipboard.write([item])
-    console.log('Image copied to clipboard')
-  } catch (error) {
-    console.error('Failed to copy image:', error)
-  }
+const copyToClipboard = async (item) => {
+  await navigator.clipboard.writeText(item)
 }
 
 // Obtiene la URL de la oración para compartir
@@ -591,8 +583,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       {{ t('searchpage.main.buttons.image') }}
                     </a>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      href="#"
+                      @click="copyToClipboard(sentence.media_info.path_audio)"
+                      class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
                         <path
@@ -610,8 +602,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       {{ t('searchpage.main.labels.text') }}
                     </span>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      href="#"
+                    @click="copyToClipboard(sentence.segment_info.content_jp)"
+                      class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path
@@ -624,8 +616,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       {{ t('searchpage.main.buttons.jpsentence') }}
                     </a>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      href="#"
+                      class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                      @click="copyToClipboard(sentence.segment_info.content_en)"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path
@@ -638,8 +630,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       {{ t('searchpage.main.buttons.ensentence') }}
                     </a>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      href="#"
+                      class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                      @click="copyToClipboard(sentence.segment_info.content_es)"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path
