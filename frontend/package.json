@@ -20,7 +20,8 @@
     "vue": "^3.3.2",
     "vue-i18n": "^9.2.2",
     "vue-meta": "^2.4.0",
-    "vue-router": "^4.2.0"
+    "vue-router": "^4.2.0",
+    "vue-toastification": "^2.0.0-rc.5"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.2.0",

@@ -36,7 +36,11 @@
         "multimedia": "Multimedia",
         "text": "Text",
         "options": "Options",
-        "all": "All"
+        "all": "All",
+        "copiedcontent": "The content has been copied to the clipboard.",
+        "errorcopiedcontent": "Error copying content to clipboard. Try again.",
+        "copiedsharingurl": "The URL has been copied to the clipboard.",
+        "errorcopiedsharingurl": "Error copying URL to clipboard. Try again."
       }
     },
     "modalcontext": {
