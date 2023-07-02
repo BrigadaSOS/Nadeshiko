@@ -9,8 +9,8 @@ import NoResults from './NoResults.vue'
 import LandingPageShowcase from './LandingPageShowcase.vue'
 import ReportModal from './Showcase/ReportModal.vue'
 import { useHead } from '@vueuse/head'
-import { useI18n } from "vue-i18n";
-const { t } = useI18n();
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const head = useHead()
 const querySearch = ref('')
@@ -40,8 +40,8 @@ const filteredAnimes = computed(() => {
   const sortedItems = filteredItems.sort((a, b) => {
     const nameA = a.name_anime_en.toLowerCase()
     const nameB = b.name_anime_en.toLowerCase()
-    if (nameA === 'todo') return -1
-    if (nameB === 'todo') return 1
+    if (nameA === t('searchpage.main.labels.all').toLowerCase()) return -1
+    if (nameB === t('searchpage.main.labels.all').toLowerCase()) return 1
     if (nameA < nameB) return -1
     if (nameA > nameB) return 1
     return 0
@@ -165,7 +165,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
   statistics.value = response.statistics
   const default_row_statistics = {
     anime_id: 0,
-    name_anime_en: 'Todo',
+    name_anime_en: t('searchpage.main.labels.all'),
     amount_sentences_found: statistics.value.reduce((a, b) => a + b.amount_sentences_found, 0)
   }
 
@@ -255,12 +255,10 @@ const copyToClipboard = async (url) => {
 
 // Obtiene la URL de la oración para compartir
 const getSharingURL = async (sentence) => {
-  await navigator.clipboard.writeText(
-    `${window.location.origin}/?uuid=${sentence.segment_info.uuid}`
-  )
+  await navigator.clipboard.writeText(`${window.location.origin}/?uuid=${sentence.segment_info.uuid}`)
 }
 
-const sortFilter = async (type) =>{
+const sortFilter = async (type) => {
   type_sort.value = type
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
@@ -289,13 +287,17 @@ try {
   isModalContextActive.value = true
   isModalReportActive.value = true
 }
+
+// VARIABLES con traducciones en lugares imposibles de forma directa
+let placeholder_search1 = t('searchpage.main.labels.searchmain')
+let placeholder_search2 = t('searchpage.main.labels.searchbar')
 </script>
 <template>
   <div class="sticky z-30 top-0" id="search-bar">
     <form @submit="searchHandler">
-      <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white"
-        >{{ t("searchpage.main.buttons.search") }}</label
-      >
+      <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white">{{
+        t('searchpage.main.buttons.search')
+      }}</label>
       <div class="relative lg:w-11/12 mx-auto mt-4">
         <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
           <div
@@ -337,14 +339,14 @@ try {
           id="default-search"
           autocomplete="off"
           class="block w-full p-4 pl-10 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
-          placeholder="Busca aquí una palabra o un kanji..."
+          :placeholder="placeholder_search1"
           required
         />
         <button
           type="submit"
           class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-blue-800"
         >
-        {{ t("searchpage.main.buttons.search") }}
+          {{ t('searchpage.main.buttons.search') }}
         </button>
       </div>
     </form>
@@ -390,7 +392,7 @@ try {
             <span
               class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-500"
             >
-            {{ t("searchpage.main.labels.translation") }}
+              {{ t('searchpage.main.labels.translation') }}
             </span>
 
             <ul class="ml-5 list-disc text-gray-400">
@@ -405,7 +407,7 @@ try {
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
-                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white"
                 >
                   <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                     <path
@@ -417,7 +419,7 @@ try {
                     />
                   </svg>
 
-                  {{ t("searchpage.main.buttons.download") }}
+                  {{ t('searchpage.main.buttons.download') }}
 
                   <svg
                     class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-gray-300"
@@ -435,14 +437,13 @@ try {
                     />
                   </svg>
                 </button>
-
                 <div
-                  class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
+                  class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                   aria-labelledby="hs-dropdown-with-title"
                 >
                   <div class="py-2 first:pt-0 last:pb-0">
                     <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
-                      Multimedia
+                      {{ t('searchpage.main.labels.multimedia') }}
                     </span>
                     <a
                       class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
@@ -480,7 +481,7 @@ try {
                           stroke="#white"
                         />
                       </svg>
-                      {{ t("searchpage.main.buttons.image") }}
+                      {{ t('searchpage.main.buttons.image') }}
                     </a>
                     <a
                       class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
@@ -499,7 +500,7 @@ try {
                           d="M111.85,108.77c-3.47,4.82-8.39,8.52-14.13,10.48c-0.26,0.12-0.55,0.18-0.84,0.18c-0.28,0-0.56-0.06-0.82-0.17v0.06 c0,1.96-1.6,3.56-3.57,3.56l-7.68,0c-1.96,0-3.57-1.6-3.57-3.56l0-55.13c0-1.96,1.6-3.57,3.57-3.57h7.68c1.96,0,3.57,1.6,3.57,3.57 v0.34c0.26-0.12,0.54-0.18,0.82-0.18c0.22,0,0.44,0.04,0.64,0.1l0,0.01c4.36,1.45,8.26,3.92,11.42,7.11V59.15 c0-14.89-4.99-27.63-13.81-36.6l-3.91,5.83c-7.95-8.75-19.4-14.27-32.08-14.27c-12.76,0-24.29,5.59-32.24,14.45l-4.73-5.78 C13.47,31.65,8.54,44.21,8.54,59.15V73.4c3.4-4.08,7.92-7.22,13.07-8.93l0-0.01c0.21-0.07,0.43-0.11,0.64-0.11 c0.28,0,0.57,0.06,0.82,0.17v-0.34c0-1.96,1.61-3.57,3.57-3.57l7.68,0c1.96,0,3.57,1.6,3.57,3.57v55.13c0,1.96-1.61,3.56-3.57,3.56 h-7.68c-1.96,0-3.57-1.6-3.57-3.56v-0.06c-0.25,0.11-0.53,0.17-0.82,0.17c-0.3,0-0.58-0.07-0.83-0.18 c-5.74-1.96-10.66-5.66-14.13-10.48c-1.82-2.52-3.24-5.34-4.17-8.37l-3.12,0V59.15c0-16.27,6.65-31.05,17.37-41.77 C28.09,6.66,42.88,0,59.14,0c16.27,0,31.06,6.66,41.77,17.37c10.72,10.72,17.37,25.5,17.37,41.77v41.25h-2.27 C115.1,103.39,113.68,106.23,111.85,108.77L111.85,108.77L111.85,108.77z"
                         ></path>
                       </svg>
-                      {{ t("searchpage.main.buttons.audio") }}
+                      {{ t('searchpage.main.buttons.audio') }}
                     </a>
                   </div>
                 </div>
@@ -510,7 +511,7 @@ try {
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
-                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                 >
                   <svg
                     width="1em"
@@ -530,7 +531,7 @@ try {
                       d="M2 5a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V6a1 1 0 00-1-1H2zm0-1h8a2 2 0 012 2v8a2 2 0 01-2 2H2a2 2 0 01-2-2V6a2 2 0 012-2z"
                     ></path>
                   </svg>
-                  {{ t("searchpage.main.buttons.copyclipboard") }}
+                  {{ t('searchpage.main.buttons.copyclipboard') }}
 
                   <svg
                     class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-gray-300"
@@ -548,9 +549,8 @@ try {
                     />
                   </svg>
                 </button>
-
                 <div
-                  class="z-20 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
+                  class="z-20 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                   aria-labelledby="hs-dropdown-with-title"
                 >
                   <div class="py-2 first:pt-0 last:pb-0">
@@ -588,10 +588,10 @@ try {
                           stroke="#white"
                         />
                       </svg>
-                      {{ t("searchpage.main.buttons.image") }}
+                      {{ t('searchpage.main.buttons.image') }}
                     </a>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       href="#"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
@@ -602,15 +602,15 @@ try {
                           d="M111.85,108.77c-3.47,4.82-8.39,8.52-14.13,10.48c-0.26,0.12-0.55,0.18-0.84,0.18c-0.28,0-0.56-0.06-0.82-0.17v0.06 c0,1.96-1.6,3.56-3.57,3.56l-7.68,0c-1.96,0-3.57-1.6-3.57-3.56l0-55.13c0-1.96,1.6-3.57,3.57-3.57h7.68c1.96,0,3.57,1.6,3.57,3.57 v0.34c0.26-0.12,0.54-0.18,0.82-0.18c0.22,0,0.44,0.04,0.64,0.1l0,0.01c4.36,1.45,8.26,3.92,11.42,7.11V59.15 c0-14.89-4.99-27.63-13.81-36.6l-3.91,5.83c-7.95-8.75-19.4-14.27-32.08-14.27c-12.76,0-24.29,5.59-32.24,14.45l-4.73-5.78 C13.47,31.65,8.54,44.21,8.54,59.15V73.4c3.4-4.08,7.92-7.22,13.07-8.93l0-0.01c0.21-0.07,0.43-0.11,0.64-0.11 c0.28,0,0.57,0.06,0.82,0.17v-0.34c0-1.96,1.61-3.57,3.57-3.57l7.68,0c1.96,0,3.57,1.6,3.57,3.57v55.13c0,1.96-1.61,3.56-3.57,3.56 h-7.68c-1.96,0-3.57-1.6-3.57-3.56v-0.06c-0.25,0.11-0.53,0.17-0.82,0.17c-0.3,0-0.58-0.07-0.83-0.18 c-5.74-1.96-10.66-5.66-14.13-10.48c-1.82-2.52-3.24-5.34-4.17-8.37l-3.12,0V59.15c0-16.27,6.65-31.05,17.37-41.77 C28.09,6.66,42.88,0,59.14,0c16.27,0,31.06,6.66,41.77,17.37c10.72,10.72,17.37,25.5,17.37,41.77v41.25h-2.27 C115.1,103.39,113.68,106.23,111.85,108.77L111.85,108.77L111.85,108.77z"
                         ></path>
                       </svg>
-                      {{ t("searchpage.main.buttons.audio") }}
+                      {{ t('searchpage.main.buttons.audio') }}
                     </a>
                   </div>
                   <div class="py-2 first:pt-0 last:pb-0">
                     <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
-                      Texto
+                      {{ t('searchpage.main.labels.text') }}
                     </span>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       href="#"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -621,10 +621,10 @@ try {
                           d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
                         />
                       </svg>
-                      {{ t("searchpage.main.buttons.jpsentence") }}
+                      {{ t('searchpage.main.buttons.jpsentence') }}
                     </a>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       href="#"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -635,10 +635,10 @@ try {
                           d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
                         />
                       </svg>
-                      {{ t("searchpage.main.buttons.ensentence") }}
+                      {{ t('searchpage.main.buttons.ensentence') }}
                     </a>
                     <a
-                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                      class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       href="#"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -649,7 +649,7 @@ try {
                           d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
                         />
                       </svg>
-                      {{ t("searchpage.main.buttons.essentence") }}
+                      {{ t('searchpage.main.buttons.essentence') }}
                     </a>
                   </div>
                 </div>
@@ -662,7 +662,7 @@ try {
                   @click="showModalContext(sentence)"
                   data-hs-overlay="#hs-vertically-centered-scrollable-modal"
                   type="button"
-                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  class=" dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
                 >
                   <svg
                     width="1em"
@@ -680,14 +680,14 @@ try {
                       d="M8 4a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3v3a.5.5 0 01-1 0v-3h-3a.5.5 0 010-1h3v-3A.5.5 0 018 4z"
                     ></path>
                   </svg>
-                  {{ t("searchpage.main.buttons.context") }}
+                  {{ t('searchpage.main.buttons.context') }}
                 </button>
 
                 <div class="hs-dropdown relative z-20 inline-flex">
                   <button
                     id="hs-dropdown-with-title"
                     type="button"
-                    class="border-transparent ml-2 dark:bg-sgray dark:hover:bg-sgrayhover dark:focus:ring-offset-gray-80 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                    class="border-transparent ml-2 dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                   >
                     <svg
                       class="hs-dropdown-open:rotate-180 w-3.5 h-3.5 rotate-90 fill-white text-gray-300"
@@ -707,12 +707,12 @@ try {
                   </button>
 
                   <div
-                    class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
+                    class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                     aria-labelledby="hs-dropdown-with-title"
                   >
                     <div class="py-2 first:pt-0 last:pb-0">
                       <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
-                        Opciones
+                        {{ t('searchpage.main.labels.options') }}
                       </span>
                       <a
                         class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
@@ -751,7 +751,7 @@ try {
                             </g>
                           </g>
                         </svg>
-                        {{ t("searchpage.main.buttons.report") }}
+                        {{ t('searchpage.main.buttons.report') }}
                       </a>
                       <a
                         class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
@@ -768,7 +768,7 @@ try {
                             d="M31.2,14.2,41,24.1l-9.8,9.8V26.8L27,27c-6.8.3-12,1-16.1,2.4,3.6-3.8,9.3-6.8,16.7-7.5l3.6-.3V14.2M28.3,6a1.2,1.2,0,0,0-1.1,1.3V17.9C12,19.4,2.2,29.8,2,40.3c0,.6.2,1,.6,1s.7-.3,1.1-1.1c2.4-5.4,7.8-8.5,23.5-9.2v9.7A1.2,1.2,0,0,0,28.3,42a.9.9,0,0,0,.8-.4L45.6,25.1a1.5,1.5,0,0,0,0-2L29.1,6.4a.9.9,0,0,0-.8-.4Z"
                           />
                         </svg>
-                        {{ t("searchpage.main.buttons.share") }}
+                        {{ t('searchpage.main.buttons.share') }}
                       </a>
                     </div>
                   </div>
@@ -778,9 +778,10 @@ try {
           </div>
           <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
             {{ sentence.basic_info.name_anime_en }} &bull;
-            <template v-if="sentence.basic_info.season === 0"> {{ t("searchpage.main.labels.movie") }} </template>
+            <template v-if="sentence.basic_info.season === 0"> {{ t('searchpage.main.labels.movie') }} </template>
             <template v-else>
-              {{ t("searchpage.main.labels.season") }} {{ sentence.basic_info.season }}, {{ t("searchpage.main.labels.episode") }} {{ sentence.basic_info.episode }}
+              {{ t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},
+              {{ t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
             </template>
           </p>
         </div>
@@ -842,7 +843,7 @@ try {
             <button
               id="hs-dropdown-default"
               type="button"
-              class="hs-dropdown-toggle py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+              class="hs-dropdown-toggle py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle hover:bg-gray-50 focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
             >
               <svg
                 aria-hidden="true"
@@ -858,7 +859,7 @@ try {
                   transform="translate(-22)"
                 />
               </svg>
-              {{ t("searchpage.main.buttons.sortmain") }}
+              {{ t('searchpage.main.buttons.sortmain') }}
               <svg
                 class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white"
                 width="16"
@@ -877,7 +878,7 @@ try {
             </button>
 
             <div
-              class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] hs-dropdown-open:opacity-100 opacity-0 w-2/12 hidden z-10 mt-2 min-w-[15rem] bg-white shadow-md rounded-lg p-2 dark:bg-sgray dark:border dark:border-gray-700 dark:divide-gray-700"
+              class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] hs-dropdown-open:opacity-100 opacity-0 w-2/12 hidden z-10 mt-2 min-w-[15rem] bg-white shadow-md rounded-lg p-2 dark:bg-sgray dark:border dark:border-gray-600 dark:divide-gray-700"
               aria-labelledby="hs-dropdown-default"
             >
               <a
@@ -892,7 +893,7 @@ try {
                     d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
                   />
                 </svg>
-                {{ t("searchpage.main.buttons.sortlengthmin") }}
+                {{ t('searchpage.main.buttons.sortlengthmin') }}
               </a>
               <a
                 class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
@@ -906,7 +907,7 @@ try {
                     d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
                   />
                 </svg>
-                {{ t("searchpage.main.buttons.sortlengthmax") }}
+                {{ t('searchpage.main.buttons.sortlengthmax') }}
               </a>
             </div>
           </div>
@@ -917,7 +918,7 @@ try {
               id="default-search2"
               autocomplete="off"
               class="block w-full p-4 pl-4 mb-4 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
-              placeholder="Buscador..."
+              :placeholder="placeholder_search2"
               required
             />
             <div class="absolute z-20 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
@@ -969,7 +970,12 @@ try {
       </div>
     </div>
   </div>
-  <SidebarAnime :list="statistics" :sentences="sentences" @filter-anime="filterAnime" @filter-anime-length="sortFilter" />
+  <SidebarAnime
+    :list="statistics"
+    :sentences="sentences"
+    @filter-anime="filterAnime"
+    @filter-anime-length="sortFilter"
+  />
 </template>
 
 <style>
