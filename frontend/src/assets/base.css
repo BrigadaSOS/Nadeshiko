@@ -17,6 +17,11 @@ we still enforce color-scheme: dark, despite the user preference */
   }
 }
 
+.Vue-Toastification__toast--success {
+  background-color: #428144;
+  color: #fff;
+}
+
 :root {
 
   --vt-c-black: #181818;
@@ -79,4 +84,3 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-

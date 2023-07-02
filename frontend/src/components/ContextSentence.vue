@@ -1,11 +1,13 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from 'vue-toastification'
 
-let finalsentences = ref([])
-let currentSentenceIndex = ref(null)
 const selectedCheckboxes = ref([])
 const { t } = useI18n()
+const toast = useToast()
+let finalsentences = ref([])
+let currentSentenceIndex = ref(null)
 
 defineExpose({
   getContextSentence
@@ -73,7 +75,34 @@ const downloadAudioOrImage = (url, filename) => {
 
 // Copia al portapapeles el contenido
 const copyToClipboard = async (item) => {
-  await navigator.clipboard.writeText(item)
+  const options = {
+    timeout: 3000,
+    position: 'bottom-right'
+  }
+  try {
+    await navigator.clipboard.writeText(item)
+    const message = t('searchpage.main.labels.copiedcontent')
+    toast.success(message, options)
+  } catch (error) {
+    const message =  t('searchpage.main.labels.errorcopiedcontent')
+    toast.error(message, options)
+  }
+}
+
+// Obtiene la URL de la oración para compartir
+const getSharingURL = async (sentence) => {
+  const options = {
+    timeout: 3000,
+    position: 'bottom-right'
+  }
+  try {
+    await navigator.clipboard.writeText(`${window.location.origin}/?uuid=${sentence.segment_info.uuid}`)
+    const message = t('searchpage.main.labels.copiedsharingurl')
+    toast.success(message, options)
+  } catch (error) {
+    const message =  t('searchpage.main.labels.errorcopiedsharingurl')
+    toast.error(message, options)
+  }
 }
 
 const getSelectedCheckboxes = async () => {
@@ -161,7 +190,7 @@ const ampliarImagen = (url) => {
                 v-for="sentence in finalsentences"
                 :key="sentence.segment_info.position"
                 :id="sentence.segment_info.position"
-                :class="{ ' bg-sgray2': sentence.segment_info.position === currentSentenceIndex }"
+                :class="{ 'bg-sgray2': sentence.segment_info.position === currentSentenceIndex }"
   class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-sgray2 mt-2 w-100 mx-2"
               >
                 <div class="h-64 w-auto md:w-1/2">
@@ -223,7 +252,7 @@ const ampliarImagen = (url) => {
 
                   <div class="flex flex-wrap">
                     <div>
-                      <div class="hs-dropdown relative inline-flex mb-2 mr-2">
+                      <div class="hs-dropdown  relative inline-flex mb-2 mr-2">
                         <button
                           id="hs-dropdown-with-title"
                           type="button"
@@ -259,7 +288,7 @@ const ampliarImagen = (url) => {
                         </button>
 
                         <div
-                          class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                          class="hs-dropdown-menu   z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                           aria-labelledby="hs-dropdown-with-title"
                         >
                           <div class="py-2 first:pt-0 last:pb-0">
@@ -336,7 +365,7 @@ const ampliarImagen = (url) => {
                       </div>
                     </div>
                     <div>
-                      <div class="hs-dropdown relative inline-flex mb-2 mr-2">
+                      <div class="hs-dropdown z-20 relative inline-flex mb-2 mr-2">
                         <button
                           id="hs-dropdown-with-title"
                           type="button"
