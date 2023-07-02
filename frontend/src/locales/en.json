@@ -1,0 +1,39 @@
+{
+  "navbar": {
+    "languages": {
+      "english": "English",
+      "spanish": "Spanish"
+    },
+    "buttons": {
+      "guide": "Main Guide"
+    }
+  },
+  "searchpage":{
+    "main":{
+      "buttons":{
+        "download": "Download",
+        "image": "Image",
+        "audio": "Audio",
+        "copyclipboard": "Copy to clipboard",
+        "jpsentence": "Japanese sentence",
+        "ensentence": "English sentence",
+        "essentence": "Spanish sentence",
+        "context": "Context",
+        "report": "Report",
+        "share": "Share",
+        "sortmain": "Sort sentences",
+        "sortlengthmin": "Shortest",
+        "sortlengthmax": "Largest",
+        "search": "Search"
+      },
+      "labels":{
+        "season": "Season",
+        "episode": "Episode",
+        "translation": "Translation (EN/ES)",
+        "movie": "Movie",
+        "search1": "Search a word here!",
+        "search2": "Search an anime here!"
+      }
+    }
+  }
+}

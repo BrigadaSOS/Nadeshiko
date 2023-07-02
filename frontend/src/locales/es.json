@@ -1,0 +1,37 @@
+{
+  "navbar": {
+    "languages": {
+      "english": "Inglés",
+      "spanish": "Español"
+    },
+    "buttons": {
+      "guide": "Guía principal"
+    }
+  },
+  "searchpage":{
+    "main":{
+      "buttons":{
+        "download": "Descargar",
+        "image": "Imagen",
+        "audio": "Audio",
+        "copyclipboard": "Copiar al portapapeles",
+        "jpsentence": "Oración en japonés",
+        "ensentence": "Oración en inglés",
+        "essentence": "Oración en español",
+        "context": "Contexto",
+        "report": "Reportar",
+        "share": "Compartir",
+        "sortmain": "Sortear oraciones",
+        "sortlengthmin": "Más cortas",
+        "sortlengthmax": "Más largas",
+        "search": "Buscar"
+      },
+      "labels":{
+        "season": "Temporada",
+        "episode": "Episodio",
+        "translation": "Traducción (EN/ES)",
+        "movie": "Película"
+      }
+    }
+  }
+}
