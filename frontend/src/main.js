@@ -5,6 +5,7 @@ import { createHead } from '@vueuse/head'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
+import { getStartingLocale } from './utils/i18n'
 
 import App from './App.vue'
 import router from './router'
@@ -14,8 +15,8 @@ import messages from '@intlify/unplugin-vue-i18n/messages'
 const i18n = createI18n({
   legacy: false,
   globalInjection: true,
-  locale: 'es',
-  fallbackLocale: 'es',
+  locale: getStartingLocale(),
+  fallbackLocale: 'en',
   availableLocales: ['es', 'en'],
   messages
 })
