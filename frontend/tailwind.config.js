@@ -5,7 +5,7 @@ module.exports = {
     extend: {},
     colors: {
       sred: "#ef5552",
-      bgcolorcontext: "#181818",
+      bgcolorcontext: "#1b1b1b",
       sgray: '#2f2f31',
       sgray2: '#252526',
       sgrayhover: "#252527",
