@@ -1,12 +1,17 @@
-<script setup>
-import { onMounted } from 'vue'
+<script>
+import { RouterView } from 'vue-router'
 import { initFlowbite } from 'flowbite'
-import { RouterLink, RouterView } from 'vue-router'
 
-// initialize components based on data attribute selectors
-onMounted(() => {
-  initFlowbite()
-})
+export default {
+  created() {
+    const savedLanguage = localStorage.getItem('language')
+    if (savedLanguage) {
+      this.$i18n.locale = savedLanguage
+    }
+
+    initFlowbite()
+  }
+}
 </script>
 
 <template>
