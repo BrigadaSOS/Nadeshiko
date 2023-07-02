@@ -9,9 +9,11 @@ import NoResults from './NoResults.vue'
 import LandingPageShowcase from './LandingPageShowcase.vue'
 import ReportModal from './Showcase/ReportModal.vue'
 import { useHead } from '@vueuse/head'
+import { useToast } from 'vue-toastification'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
+const toast = useToast()
 const head = useHead()
 const querySearch = ref('')
 let sentences = ref([])
@@ -242,12 +244,34 @@ const downloadAudioOrImage = (url, filename) => {
 
 // Copia al portapapeles el contenido
 const copyToClipboard = async (item) => {
-  await navigator.clipboard.writeText(item)
+  const options = {
+    timeout: 3000,
+    position: 'bottom-right'
+  }
+  try {
+    await navigator.clipboard.writeText(item)
+    const message = t('searchpage.main.labels.copiedcontent')
+    toast.success(message, options)
+  } catch (error) {
+    const message =  t('searchpage.main.labels.errorcopiedcontent')
+    toast.error(message, options)
+  }
 }
 
 // Obtiene la URL de la oración para compartir
 const getSharingURL = async (sentence) => {
-  await navigator.clipboard.writeText(`${window.location.origin}/?uuid=${sentence.segment_info.uuid}`)
+  const options = {
+    timeout: 3000,
+    position: 'bottom-right'
+  }
+  try {
+    await navigator.clipboard.writeText(`${window.location.origin}/?uuid=${sentence.segment_info.uuid}`)
+    const message = t('searchpage.main.labels.copiedsharingurl')
+    toast.success(message, options)
+  } catch (error) {
+    const message =  t('searchpage.main.labels.errorcopiedsharingurl')
+    toast.error(message, options)
+  }
 }
 
 const sortFilter = async (type) => {
@@ -395,7 +419,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 
           <div class="flex flex-wrap">
             <div>
-              <div class="hs-dropdown relative z-20 inline-flex mb-2 mr-2">
+              <div class="hs-dropdown relative z-30 inline-flex mb-2 mr-2">
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
@@ -542,7 +566,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   </svg>
                 </button>
                 <div
-                  class="z-20 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                  class="z-30 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                   aria-labelledby="hs-dropdown-with-title"
                 >
                   <div class="py-2 first:pt-0 last:pb-0">
@@ -602,7 +626,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       {{ t('searchpage.main.labels.text') }}
                     </span>
                     <a
-                    @click="copyToClipboard(sentence.segment_info.content_jp)"
+                      @click="copyToClipboard(sentence.segment_info.content_jp)"
                       class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -654,7 +678,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   @click="showModalContext(sentence)"
                   data-hs-overlay="#hs-vertically-centered-scrollable-modal"
                   type="button"
-                  class=" dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+                  class="dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
                 >
                   <svg
                     width="1em"
@@ -675,7 +699,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   {{ t('searchpage.main.buttons.context') }}
                 </button>
 
-                <div class="hs-dropdown relative z-20 inline-flex">
+                <div class="hs-dropdown relative inline-flex">
                   <button
                     id="hs-dropdown-with-title"
                     type="button"
@@ -699,7 +723,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   </button>
 
                   <div
-                    class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                    class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                     aria-labelledby="hs-dropdown-with-title"
                   >
                     <div class="py-2 first:pt-0 last:pb-0">

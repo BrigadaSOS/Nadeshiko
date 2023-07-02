@@ -36,7 +36,11 @@
         "multimedia": "Multimedia",
         "text": "Texto",
         "options": "Opciones",
-        "all": "Todo"
+        "all": "Todo",
+        "copiedcontent": "Se ha copiado el contenido al portapapeles.",
+        "errorcopiedcontent": "No ha sido posible copiar el contenido al portapapeles. Inténtalo de nuevo.",
+        "copiedsharingurl": "Se ha copiado la URL al portapapeles.",
+        "errorcopiedsharingurl": "No ha sido posible copiar la URL al portapapeles. Inténtalo de nuevo."
       }
     },
     "modalcontext": {
