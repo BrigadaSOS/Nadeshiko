@@ -5,9 +5,13 @@ WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
-RUN apt install ffmpeg
 COPY . .
 RUN npm run build
+
+# FFMPeg install
+RUN apt-get -y update
+RUN apt-get -y upgrade
+RUN apt-get install -y ffmpeg
 
 #Run
 FROM node:lts-alpine3.18 AS server
