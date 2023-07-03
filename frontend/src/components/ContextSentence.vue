@@ -16,10 +16,20 @@ defineExpose({
 
 // Habilita la reproducción de audio de las oraciones
 const playSound = async (sound) => {
-  if (sound) {
-    var audio = new Audio(sound)
-    audio.play()
+  // Si hay un audio en reproducción, se detiene
+  if (currentAudio.value) {
+    currentAudio.value.pause()
+    currentAudio.value.currentTime = 0
   }
+
+  // Se crea una nueva instancia de Audio para el nuevo sonido
+  const audio = new Audio(sound)
+
+  // Se asigna el audio actual a la referencia
+  currentAudio.value = audio
+
+  // Se reproduce el nuevo audio
+  await audio.play()
 }
 
 // Obtiene el contexto de una oración con base a la posición recibida
@@ -109,12 +119,13 @@ const getSharingURL = async (sentence) => {
 
 const getSelectedCheckboxes = async () => {
   let audio_items = []
+  let response = null
   const checkbox_items = JSON.parse(JSON.stringify(selectedCheckboxes.value))
   checkbox_items.forEach((item) => {
     audio_items.push(encodeURI(item.media_info.path_audio))
   })
   try {
-    let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
+     response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
       method: 'POST',
       mode: 'cors',
       headers: {
