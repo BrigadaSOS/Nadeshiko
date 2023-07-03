@@ -43,9 +43,9 @@ export const generateURLAudio = async (
     }
 
     let protocol: string = "";
-    if (process.env.ENVIROMENT == "production") {
+    if (process.env.ENVIRONMENT == "production") {
       protocol = "https";
-    } else if (process.env.ENVIROMENT == "testing") {
+    } else if (process.env.ENVIRONMENT == "testing") {
       protocol = "http";
     } else {
       protocol = req.protocol;
@@ -353,9 +353,9 @@ export const GetContextAnime = async (
 
 function buildSimplifiedResults(req: Request, results: Segment[]) {
   let protocol: string = "";
-  if (process.env.ENVIROMENT == "production") {
+  if (process.env.ENVIRONMENT == "production") {
     protocol = "https";
-  } else if (process.env.ENVIROMENT == "testing") {
+  } else if (process.env.ENVIRONMENT == "testing") {
     protocol = "http";
   } else {
     protocol = req.protocol;
