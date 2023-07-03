@@ -253,7 +253,7 @@ const copyToClipboard = async (item) => {
     const message = t('searchpage.main.labels.copiedcontent')
     toast.success(message, options)
   } catch (error) {
-    const message =  t('searchpage.main.labels.errorcopiedcontent')
+    const message = t('searchpage.main.labels.errorcopiedcontent')
     toast.error(message, options)
   }
 }
@@ -269,7 +269,7 @@ const getSharingURL = async (sentence) => {
     const message = t('searchpage.main.labels.copiedsharingurl')
     toast.success(message, options)
   } catch (error) {
-    const message =  t('searchpage.main.labels.errorcopiedsharingurl')
+    const message = t('searchpage.main.labels.errorcopiedsharingurl')
     toast.error(message, options)
   }
 }
@@ -369,7 +369,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
   </div>
 
   <div class="flex flex-row lg:w-11/12 mx-auto" @scroll="loadMoreSentences">
-    <div class="container w-100 lg:w-11/12 mx-auto flex flex-col">
+    <div class="md:container md:mx-auto w-100 flex flex-col">
       <div
         v-if="sentences.length > 0"
         v-for="(sentence, index) in sentences"
@@ -975,7 +975,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
     </div>
     <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
-      <div role="status" class="hidden w-10/12 lg:flex flex-col py-6 animate-pulse">
+      <div role="status" class="hidden w-11/12 lg:flex flex-col py-6 animate-pulse">
         <div class="h-2.5 bg-gray-200 rounded-full dark:bg-graypalid w-48 mb-4"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[460px] mb-2.5"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid mb-2.5"></div>
