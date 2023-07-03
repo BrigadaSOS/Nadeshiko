@@ -47,10 +47,8 @@ export const generateURLAudio = async (
       protocol = "https";
     } else if (process.env.ENVIRONMENT == "testing") {
       protocol = "http";
-    } else {
-      protocol = req.protocol;
-    }
-
+    } 
+    
     const urlHash = urls.join("");
 
     const randomFilename = `${uuidv3(
@@ -353,12 +351,10 @@ export const GetContextAnime = async (
 
 function buildSimplifiedResults(req: Request, results: Segment[]) {
   let protocol: string = "";
-  if (process.env.ENVIRONMENT == "production") {
+  if (process.env.ENVIRONMENT === "production") {
     protocol = "https";
   } else if (process.env.ENVIRONMENT == "testing") {
     protocol = "http";
-  } else {
-    protocol = req.protocol;
   }
   return results.map((result) => {
     const seriesNamePath = result.episode.season.media.folder_media_name;
