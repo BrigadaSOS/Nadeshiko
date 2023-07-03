@@ -113,19 +113,26 @@ const getSelectedCheckboxes = async () => {
   checkbox_items.forEach((item) => {
     audio_items.push(encodeURI(item.media_info.path_audio))
   })
-
-  let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
-    method: 'POST',
-    mode: 'cors',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      urls: audio_items
+  try {
+    let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        urls: audio_items
+      })
     })
-  })
-  response = await response.json()
-
+    response = await response.json()
+  } catch (error) {
+    const options = {
+      timeout: 3000,
+      position: 'bottom-right'
+    }
+    const message = t('searchpage.modalcontext.labels.errorconnection')
+    toast.error(message, options)
+  }
   downloadAudio(response.url, response.filename)
 }
 
@@ -170,7 +177,7 @@ const ampliarImagen = (url) => {
 <template>
   <div
     id="hs-vertically-centered-scrollable-modal"
-    class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
+    class="hs-overlay hidden w-full h-full fixed outline-none top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
   >
     <div
       class="hs-overlay-open:mt-7 justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-6xl lg:w-full m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"

@@ -50,7 +50,8 @@
       },
       "labels": {
         "context": "Context",
-        "errordownloadmultipleaudios": "Error downloading audios. Try again."
+        "errordownloadmultipleaudios": "Error downloading audios. Try again.",
+        "errorconnection": "Error connecting to the server."
       }
     }
   }

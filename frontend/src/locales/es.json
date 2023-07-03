@@ -50,7 +50,8 @@
       },
       "labels": {
         "context": "Context",
-        "errordownloadmultipleaudios": "No ha sido posible descargar los audios seleccionados. Inténtalo de nuevo."
+        "errordownloadmultipleaudios": "No ha sido posible descargar los audios seleccionados. Inténtalo de nuevo.",
+        "errorconnection": "No ha sido posible conectar con el servidor."
       }
     }
   }

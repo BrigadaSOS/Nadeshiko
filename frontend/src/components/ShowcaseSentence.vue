@@ -186,6 +186,9 @@ const loadMoreSentences = async (entries) => {
 
 // Función para filtrar por elementos encontrados
 const filterAnime = async (anime_id) => {
+  next_cursor.value = null 
+  sentences.value = [] 
+  window.scrollTo(0,0);
   await getSentences(querySearch.value, 0, anime_id)
 }
 
@@ -278,6 +281,7 @@ const sortFilter = async (type) => {
   type_sort.value = type
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
+  window.scrollTo(0,0);
   await getSentences(querySearch.value, 0, anime_id.value)
 }
 
