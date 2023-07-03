@@ -8,6 +8,7 @@ import { Season } from "../models/media/season";
 import { Op, Sequelize } from "sequelize";
 import { v3 as uuidv3 } from "uuid";
 import url from "url";
+import fs from "fs";
 
 const ffmpegStatic = require("ffmpeg-static");
 const ffmpeg = require("fluent-ffmpeg");
@@ -19,7 +20,17 @@ const BASE_URL_MEDIA = process.env.BASE_URL_MEDIA;
 const BASE_URL_TMP = process.env.BASE_URL_TMP;
 const tempDirectory: string = process.env.TEMP_DIRECTORY!;
 
-export const mergeMp3Files = async (
+/**
+ * Genera una URL con el acceso al archivo MP3.
+ * Primero se genera un HASH con base a las URLs proporcionadas. El HASH es el nombre del archivo MP3.
+ * Si no lo encuentra en la carpeta tmp, procede a hacer merge de las URLs y genera el archivo MP3.
+ * Devuelve la URL del archivo MP3 generado/encontrado.
+ * @param  {Request} req - Request con las URLs a procesar.
+ * @param  {Response} res - Response con la URL del archivo MP3 generado/encontrado.
+ * @param  {NextFunction} next - NextFunction
+ * @returns {Promise<Response>} - Devuelve la URL del archivo MP3 generado/encontrado.
+ */
+export const generateURLAudio = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -28,19 +39,67 @@ export const mergeMp3Files = async (
     const urls: string[] = req.body.urls;
 
     if (!Array.isArray(urls) || urls.length === 0) {
-      throw new BadRequest("Debe ingresar una lista de URLs.");
+      throw new BadRequest("Debe ingresar una lista de URLs MP3.");
     }
 
-    const ffmpegCommand = ffmpeg();
-    urls.forEach((url: string) => {
-      ffmpegCommand.input(url);
-    });
-
     const urlHash = urls.join("");
+
     const randomFilename = `${uuidv3(
       urlHash,
       process.env.UUID_NAMESPACE!
     )}.mp3`;
+
+    let outputUrl = "";
+    // Verifica si el archivo ya existe en la carpeta temporal
+    const filePathAPI = [BASE_URL_TMP, randomFilename].join("/");
+    const filePath = [tempDirectory, randomFilename].join("/");
+    if (fs.existsSync(filePath)) {
+      outputUrl = url.format({
+        protocol: req.protocol,
+        host: req.get("host"),
+        pathname: filePathAPI,
+      });
+      return res.status(StatusCodes.OK).json({
+        filename: randomFilename,
+        url: outputUrl,
+      });
+    } else {
+      // Caso contrario genera el archivo y vuelve a buscarlo
+      await mergeMp3Files(urls, randomFilename);
+
+      if (fs.existsSync(filePath)) {
+        const outputUrl = url.format({
+          protocol: req.protocol,
+          host: req.get("host"),
+          pathname: filePathAPI,
+        });
+
+        return res.status(StatusCodes.OK).json({
+          filename: randomFilename,
+          url: outputUrl,
+        });
+      } else {
+        throw new Error("No se pudo generar el archivo MP3.");
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+/**
+ * Realiza la fusión de archivos MP3 a partir de las URLs proporcionadas.
+ * @param {string[]} urls - Lista de URLs de los archivos MP3 a fusionar.
+ * @param {string} randomFilename - Nombre del archivo MP3 fusionado generado aleatoriamente.
+ * @returns {Promise<void>} - Resuelve cuando la fusión de archivos se completa correctamente.
+ */
+export const mergeMp3Files = async (urls: string[], randomFilename: string) => {
+  try {
+    const ffmpegCommand = ffmpeg();
+    urls.forEach((url: string) => {
+      ffmpegCommand.input(url);
+    });
 
     await new Promise<void>((resolve, reject) => {
       ffmpegCommand
@@ -48,24 +107,8 @@ export const mergeMp3Files = async (
         .on("error", reject)
         .mergeToFile([tempDirectory, randomFilename].join("/"));
     });
-
-    const outputUrl = url.format({
-      protocol: req.protocol,
-      host: req.get("host"),
-      pathname: [BASE_URL_TMP, randomFilename].join("/"),
-    });
-
-    return res.status(StatusCodes.OK).json({
-      filename: randomFilename,
-      url: outputUrl,
-    });
   } catch (error) {
     console.error("Se produjo un error durante la conversión:", error);
-    next(error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: "Se produjo un error al intentar unir los archivos.",
-      error,
-    });
   }
 };
 

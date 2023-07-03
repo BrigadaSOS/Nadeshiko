@@ -63,6 +63,9 @@ onBeforeRouteUpdate(async (to, from) => {
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
   const searchTerm = urlParams.get('query')
+  isBannerClosed = localStorage.getItem('isBannerClosed')
+  let element = document.getElementById('drawer-button')
+
   uuid.value = urlParams.get('uuid')
 
   if (searchTerm && uuid.value) {
@@ -71,16 +74,6 @@ onMounted(async () => {
     await getSentences(searchTerm)
   } else if (uuid.value) {
     await getSentences('', '', '', uuid.value)
-    console.log(sentences.value[0].segment_info)
-    useHead({
-      title: 'Brigada SOS',
-      meta: [
-        { property: 'og:title', content: 'Brigada SOS' },
-        { property: 'og:description', content: sentences.value[0].segment_info.content_jp },
-        { property: 'og:url', content: 'sharingURL' },
-        { property: 'og:image', content: sentences.value[0].media_info.path_image }
-      ]
-    })
   }
 
   // Observa el elemento al final del contenedor solo si no hay un UUID
@@ -94,9 +87,9 @@ onMounted(async () => {
   observer.observe(sentinel)
 
   // Arregla la posición de la barra de búsqueda y categorias al hacer scroll
-  var prevScrollpos = window.pageYOffset
+  var prevScrollpos = window.scrollY
   window.onscroll = function () {
-    var currentScrollPos = window.pageYOffset
+    var currentScrollPos = window.scrollY
     if (prevScrollpos > currentScrollPos) {
       document.getElementById('search-bar').style.top = '0'
       document.getElementById('search-anime').style.top = '80px'
@@ -107,14 +100,38 @@ onMounted(async () => {
     prevScrollpos = currentScrollPos
   }
 
-  isBannerClosed = localStorage.getItem('isBannerClosed')
-  let element = document.getElementById('drawer-button')
-
   if (isBannerClosed === null || isBannerClosed === true) {
     element.style.position = 'absolute'
     element.style.top = '-120px'
     element.style.right = '0px'
   }
+})
+
+document.addEventListener('DOMContentLoaded', function () {
+  var prevScrollpos = window.scrollY
+  var isScrolling = false
+
+  function handleScroll() {
+    if (!isScrolling) {
+      isScrolling = true
+
+      setTimeout(function () {
+        var currentScrollPos = window.scrollY
+        if (prevScrollpos > currentScrollPos) {
+          document.getElementById('search-bar').style.top = '0'
+          document.getElementById('search-anime').style.top = '80px'
+        } else {
+          document.getElementById('search-bar').style.top = '-50px'
+          document.getElementById('search-anime').style.top = '30px'
+        }
+
+        prevScrollpos = currentScrollPos
+        isScrolling = false
+      }, 100) // Establece el intervalo de tiempo deseado en milisegundos
+    }
+  }
+
+  window.addEventListener('scroll', handleScroll)
 })
 
 // Lógica de la barra de búsqueda
@@ -186,9 +203,9 @@ const loadMoreSentences = async (entries) => {
 
 // Función para filtrar por elementos encontrados
 const filterAnime = async (anime_id) => {
-  next_cursor.value = null 
-  sentences.value = [] 
-  window.scrollTo(0,0);
+  next_cursor.value = null
+  sentences.value = []
+  window.scrollTo(0, 0)
   await getSentences(querySearch.value, 0, anime_id)
 }
 
@@ -281,7 +298,7 @@ const sortFilter = async (type) => {
   type_sort.value = type
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
-  window.scrollTo(0,0);
+  window.scrollTo(0, 0)
   await getSentences(querySearch.value, 0, anime_id.value)
 }
 
@@ -377,7 +394,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       <div
         v-if="sentences.length > 0"
         v-for="(sentence, index) in sentences"
-        class="flex flex-col md:flex-row overflow-hidden rounded-lg border-b py-6 border-gray-800 mt-4 w-100"
+        class="flex flex-col md:flex-row overflow-hidden border-b py-6 border-sgray2 rounded-none mt-4 w-100"
       >
         <div class="h-64 w-auto md:w-1/2">
           <img
@@ -683,14 +700,14 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   @click="showModalContext(sentence)"
                   data-hs-overlay="#hs-vertically-centered-scrollable-modal"
                   type="button"
-                  class="dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+                  class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
                 >
                   <svg
                     viewBox="0 0 16 16"
                     fill="currentColor"
                     aria-hidden="true"
                     focusable="false"
-                    class="rs-icon w-4   h-[22px]"
+                    class="rs-icon w-4 h-[22px]"
                   >
                     <path
                       d="M4 2a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H4zm0-1h8a3 3 0 013 3v8a3 3 0 01-3 3H4a3 3 0 01-3-3V4a3 3 0 013-3z"
@@ -708,7 +725,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
-                  class="border-transparent  dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                  class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                 >
                   <svg
                     class="hs-dropdown-open:rotate-180 w-5 h-5 rotate-90 fill-white text-gray-300"
@@ -795,7 +812,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </div>
               </div>
             </div>
-            
           </div>
           <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
             {{ sentence.basic_info.name_anime_en }} &bull;
@@ -1002,10 +1018,10 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 <style>
 #search-bar,
 #unique-animes {
-  transition: top 0.3s ease;
+  transition: top 0.4s ease;
 }
 #search-anime {
-  transition: top 0.3s ease;
+  transition: top 0.4s ease;
 }
 .image-container {
   position: relative;
