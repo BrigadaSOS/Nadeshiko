@@ -9,6 +9,7 @@ const toast = useToast()
 let finalsentences = ref([])
 let selectedCheckboxes = ref([])
 let currentSentenceIndex = ref(null)
+let currentAudio = ref(null)
 
 defineExpose({
   getContextSentence
