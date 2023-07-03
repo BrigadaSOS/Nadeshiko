@@ -42,6 +42,15 @@ export const generateURLAudio = async (
       throw new BadRequest("Debe ingresar una lista de URLs MP3.");
     }
 
+    let protocol: string = "";
+    if (process.env.ENVIROMENT == "production") {
+      protocol = "https";
+    } else if (process.env.ENVIROMENT == "testing") {
+      protocol = "http";
+    } else {
+      protocol = req.protocol;
+    }
+
     const urlHash = urls.join("");
 
     const randomFilename = `${uuidv3(
@@ -55,7 +64,7 @@ export const generateURLAudio = async (
     const filePath = [tempDirectory, randomFilename].join("/");
     if (fs.existsSync(filePath)) {
       outputUrl = url.format({
-        protocol: req.protocol,
+        protocol: protocol,
         host: req.get("host"),
         pathname: filePathAPI,
       });
@@ -69,7 +78,7 @@ export const generateURLAudio = async (
 
       if (fs.existsSync(filePath)) {
         const outputUrl = url.format({
-          protocol: req.protocol,
+          protocol: protocol,
           host: req.get("host"),
           pathname: filePathAPI,
         });
@@ -343,6 +352,14 @@ export const GetContextAnime = async (
 };
 
 function buildSimplifiedResults(req: Request, results: Segment[]) {
+  let protocol: string = "";
+  if (process.env.ENVIROMENT == "production") {
+    protocol = "https";
+  } else if (process.env.ENVIROMENT == "testing") {
+    protocol = "http";
+  } else {
+    protocol = req.protocol;
+  }
   return results.map((result) => {
     const seriesNamePath = result.episode.season.media.folder_media_name;
     const seasonNumberPath = `S${result.episode.season.number
@@ -373,7 +390,7 @@ function buildSimplifiedResults(req: Request, results: Segment[]) {
       },
       media_info: {
         path_image: url.format({
-          protocol: req.protocol,
+          protocol: protocol,
           host: req.get("host"),
           pathname: [
             BASE_URL_MEDIA,
@@ -384,7 +401,7 @@ function buildSimplifiedResults(req: Request, results: Segment[]) {
           ].join("/"),
         }),
         path_audio: url.format({
-          protocol: req.protocol,
+          protocol: protocol,
           host: req.get("host"),
           pathname: [
             BASE_URL_MEDIA,

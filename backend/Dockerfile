@@ -8,10 +8,10 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# FFMPeg install
+# FFmpeg install
 RUN apk upgrade -U \ 
     && apk add ffmpeg 
-    
+
 #Run
 FROM node:lts-alpine3.18 AS server
 WORKDIR /app
