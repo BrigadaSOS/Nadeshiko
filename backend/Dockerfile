@@ -10,7 +10,8 @@ RUN npm run build
 
 # FFmpeg install
 RUN apk upgrade -U \ 
-    && apk add ffmpeg 
+    && apk add ffmpeg \ 
+    && apk add musl-nscd
 
 #Run
 FROM node:lts-alpine3.18 AS server
