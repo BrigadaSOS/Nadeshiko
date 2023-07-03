@@ -23,6 +23,7 @@ const playSound = async (sound) => {
 
 // Obtiene el contexto de una oración con base a la posición recibida
 async function getContextSentence(item) {
+  finalsentences.value = []
   let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/context', {
     method: 'POST',
     mode: 'cors',
@@ -47,7 +48,6 @@ async function getContextSentence(item) {
 const scrollToElement = (pos) => {
   return new Promise((resolve) => {
     const el = document.getElementById(pos)
-
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' })
       el.addEventListener('scroll', () => {
@@ -84,7 +84,7 @@ const copyToClipboard = async (item) => {
     const message = t('searchpage.main.labels.copiedcontent')
     toast.success(message, options)
   } catch (error) {
-    const message =  t('searchpage.main.labels.errorcopiedcontent')
+    const message = t('searchpage.main.labels.errorcopiedcontent')
     toast.error(message, options)
   }
 }
@@ -100,7 +100,7 @@ const getSharingURL = async (sentence) => {
     const message = t('searchpage.main.labels.copiedsharingurl')
     toast.success(message, options)
   } catch (error) {
-    const message =  t('searchpage.main.labels.errorcopiedsharingurl')
+    const message = t('searchpage.main.labels.errorcopiedsharingurl')
     toast.error(message, options)
   }
 }
@@ -159,7 +159,7 @@ const ampliarImagen = (url) => {
       >
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
           <h3 class="font-bold text-gray-800 dark:text-white">
-            {{ t('searchpage.modalcontext.labels.context') }}  - {{ finalsentences[0]?.basic_info.name_anime_en }}
+            {{ t('searchpage.modalcontext.labels.context') }} - {{ finalsentences[0]?.basic_info.name_anime_en }}
           </h3>
           <button
             type="button"
@@ -184,14 +184,14 @@ const ampliarImagen = (url) => {
         </div>
         <div class="overflow-y-auto">
           <div class="flex flex-row mx-auto">
-            <div class="container w-100 sm:mx-4 mx-auto flex flex-col">
+            <div class="container w-100 sm:mx-4 mx-auto flex flex-col w-screen">
               <div
                 v-if="finalsentences.length > 0"
                 v-for="sentence in finalsentences"
                 :key="sentence.segment_info.position"
                 :id="sentence.segment_info.position"
                 :class="{ 'bg-sgray2': sentence.segment_info.position === currentSentenceIndex }"
-  class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-sgray2 mt-2 w-100 mx-2"
+                class="flex flex-col md:flex-row overflow-hidden rounded-none border-b py-4 border-sgray2 mt-2 w-100 mx-2"
               >
                 <div class="h-64 w-auto md:w-1/2">
                   <img
@@ -252,7 +252,7 @@ const ampliarImagen = (url) => {
 
                   <div class="flex flex-wrap">
                     <div>
-                      <div class="hs-dropdown  relative inline-flex mb-2 mr-2">
+                      <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                         <button
                           id="hs-dropdown-with-title"
                           type="button"
@@ -288,7 +288,7 @@ const ampliarImagen = (url) => {
                         </button>
 
                         <div
-                          class="hs-dropdown-menu   z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                          class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                           aria-labelledby="hs-dropdown-with-title"
                         >
                           <div class="py-2 first:pt-0 last:pb-0">
@@ -636,9 +636,7 @@ const ampliarImagen = (url) => {
                     role="status"
                     class="space-y-8 mt-4 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center"
                   >
-                    <div
-                      class="flex items-center justify-center w-full h-48 bg-gray-300 rounded sm:w-96 dark:bg-gray-700"
-                    >
+                    <div class="flex items-center justify-center w-full h-48 bg-gray-300 rounded sm:w-96 dark:bg-sgray">
                       <svg
                         class="w-12 h-12 text-gray-200"
                         xmlns="http://www.w3.org/2000/svg"
@@ -652,11 +650,11 @@ const ampliarImagen = (url) => {
                       </svg>
                     </div>
                     <div class="w-full">
-                      <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
-                      <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[580px] mb-2.5"></div>
-                      <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[540px] mb-2.5"></div>
-                      <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[560px] mb-2.5"></div>
-                      <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
+                      <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-48 mb-4"></div>
+                      <div class="h-2 bg-gray-200 rounded-full dark:bg-sgray max-w-[780px] mb-2.5"></div>
+                      <div class="h-2 bg-gray-200 rounded-full dark:bg-sgray max-w-[740px] mb-2.5"></div>
+                      <div class="h-2 bg-gray-200 rounded-full dark:bg-sgray max-w-[760px] mb-2.5"></div>
+                      <div class="h-2 bg-gray-200 rounded-full dark:bg-sgray max-w-[560px]"></div>
                     </div>
                     <span class="sr-only">Loading...</span>
                   </div>
@@ -693,14 +691,14 @@ const ampliarImagen = (url) => {
             @click="getSelectedCheckboxes"
             class="hs-dropdown-toggle h-14 lg:h-12 mr-auto py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
-          {{ t('searchpage.modalcontext.buttons.downloadmultipleaudios') }} 
+            {{ t('searchpage.modalcontext.buttons.downloadmultipleaudios') }}
           </button>
           <button
             type="button"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal"
           >
-          {{ t('searchpage.modalcontext.buttons.close') }} 
+            {{ t('searchpage.modalcontext.buttons.close') }}
           </button>
         </div>
       </div>
