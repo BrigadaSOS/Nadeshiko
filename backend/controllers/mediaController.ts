@@ -6,7 +6,8 @@ import { Media } from "../models/media/media";
 import { Episode } from "../models/media/episode";
 import { Season } from "../models/media/season";
 import { Op, Sequelize } from "sequelize";
-import url from 'url';
+import { v3 as uuidv3 } from "uuid";
+import url from "url";
 
 const ffmpegStatic = require("ffmpeg-static");
 const ffmpeg = require("fluent-ffmpeg");
@@ -16,51 +17,55 @@ ffmpeg.setFfprobePath(ffprobe.path);
 
 const BASE_URL_MEDIA = process.env.BASE_URL_MEDIA;
 const BASE_URL_TMP = process.env.BASE_URL_TMP;
+const tempDirectory: string = process.env.TEMP_DIRECTORY!;
 
 export const mergeMp3Files = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const urls = req.body.urls;
-  if (!urls) throw new BadRequest("Debe ingresar una lista de urls.");
-
   try {
+    const urls: string[] = req.body.urls;
+
+    if (!Array.isArray(urls) || urls.length === 0) {
+      throw new BadRequest("Debe ingresar una lista de URLs.");
+    }
+
     const ffmpegCommand = ffmpeg();
-
-    urls.forEach((url: any, index: number) => {
+    urls.forEach((url: string) => {
       ffmpegCommand.input(url);
-
-      // Agregar el tiempo de silencio de 2 segundos (2000 milisegundos) excepto para el último archivo
-      if (index < urls.length - 1) {
-        ffmpegCommand
-          .input("anullsrc=cl=stereo:r=44100:d=0.2")
-          .inputFormat("lavfi");
-      }
     });
 
-    await new Promise((resolve, reject) => {
+    const urlHash = urls.join("");
+    const randomFilename = `${uuidv3(
+      urlHash,
+      process.env.UUID_NAMESPACE!
+    )}.mp3`;
+
+    await new Promise<void>((resolve, reject) => {
       ffmpegCommand
         .on("end", resolve)
         .on("error", reject)
-        .mergeToFile("./media/tmp/output.mp3");
-    })
-      .then(() => {
-        console.log("La conversión se ha completado exitosamente");
-        return res.status(StatusCodes.OK).json({
-          message: "La conversión se ha completado exitosamente",
-          url: url.format({
-            protocol: req.protocol,
-            host: req.get('host'),
-            pathname: [BASE_URL_TMP, "output.mp3"].join("/")
-          })
-        });
-      })
-      .catch((error) => {
-        console.error("Se produjo un error durante la conversión:", error);
-      });
+        .mergeToFile([tempDirectory, randomFilename].join("/"));
+    });
+
+    const outputUrl = url.format({
+      protocol: req.protocol,
+      host: req.get("host"),
+      pathname: [BASE_URL_TMP, randomFilename].join("/"),
+    });
+
+    return res.status(StatusCodes.OK).json({
+      filename: randomFilename,
+      url: outputUrl,
+    });
   } catch (error) {
+    console.error("Se produjo un error durante la conversión:", error);
     next(error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Se produjo un error al intentar unir los archivos.",
+      error,
+    });
   }
 };
 
@@ -269,7 +274,6 @@ export const GetContextAnime = async (
       ],
     });
 
-
     const simplifiedResults = buildSimplifiedResults(req, results);
 
     let limitedResults;
@@ -297,10 +301,13 @@ export const GetContextAnime = async (
 
 function buildSimplifiedResults(req: Request, results: Segment[]) {
   return results.map((result) => {
-
     const seriesNamePath = result.episode.season.media.folder_media_name;
-    const seasonNumberPath = `S${result.episode.season.number.toString().padStart(2, '0')}`;
-    const episodeNumberPath= `E${result.episode.number.toString().padStart(2, '0')}`;
+    const seasonNumberPath = `S${result.episode.season.number
+      .toString()
+      .padStart(2, "0")}`;
+    const episodeNumberPath = `E${result.episode.number
+      .toString()
+      .padStart(2, "0")}`;
 
     return {
       basic_info: {
@@ -324,14 +331,27 @@ function buildSimplifiedResults(req: Request, results: Segment[]) {
       media_info: {
         path_image: url.format({
           protocol: req.protocol,
-          host: req.get('host'),
-          pathname: [BASE_URL_MEDIA, seriesNamePath, seasonNumberPath, episodeNumberPath, result.path_image].join("/")
+          host: req.get("host"),
+          pathname: [
+            BASE_URL_MEDIA,
+            seriesNamePath,
+            seasonNumberPath,
+            episodeNumberPath,
+            result.path_image,
+          ].join("/"),
         }),
         path_audio: url.format({
           protocol: req.protocol,
-          host: req.get('host'),
-          pathname: [BASE_URL_MEDIA, seriesNamePath, seasonNumberPath, episodeNumberPath, result.path_audio].join("/")
-        })
-      }
-    }});
+          host: req.get("host"),
+          pathname: [
+            BASE_URL_MEDIA,
+            seriesNamePath,
+            seasonNumberPath,
+            episodeNumberPath,
+            result.path_audio,
+          ].join("/"),
+        }),
+      },
+    };
+  });
 }

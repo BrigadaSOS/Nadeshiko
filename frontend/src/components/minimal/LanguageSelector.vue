@@ -29,7 +29,7 @@ const setOption = (option) => {
 <template>
 <div class="relative text-base z-40">
     <button
-      class="flex items-center justify-between px-3 py-2 bg-sgray hover:bg-sgray2 w-full border border-gray-500 rounded-lg mr-2"
+      class="flex items-center justify-between px-3 py-2 bg-sgray hover:bg-sgray2 w-full rounded-lg mr-2"
       @click="data.isOptionsExpanded = !data.isOptionsExpanded"
       @blur="data.isOptionsExpanded = false"
     >
@@ -61,7 +61,7 @@ const setOption = (option) => {
           v-for="locale in $i18n.availableLocales"
           :value="locale"
           :key="locale"
-          class="text-center my-2 cursor-pointer"
+          class="text-center hover:bg-sgrayhover my-2 cursor-pointer"
           @mousedown.prevent="setOption(locale)"
         >
           {{ translate[locale] }}

@@ -369,7 +369,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
   </div>
 
   <div class="flex flex-row lg:w-11/12 mx-auto" @scroll="loadMoreSentences">
-    <div class="md:container md:mx-auto w-100 flex flex-col">
+    <div class="container md:mx-auto w-100 flex flex-col">
       <div
         v-if="sentences.length > 0"
         v-for="(sentence, index) in sentences"
@@ -419,7 +419,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 
           <div class="flex flex-wrap">
             <div>
-              <div class="hs-dropdown relative z-30 inline-flex mb-2 mr-2">
+              <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                 <button
                   id="hs-dropdown-with-title"
                   type="button"
@@ -454,7 +454,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   </svg>
                 </button>
                 <div
-                  class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                  class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                   aria-labelledby="hs-dropdown-with-title"
                 >
                   <div class="py-2 first:pt-0 last:pb-0">
@@ -522,6 +522,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </div>
               </div>
             </div>
+
             <div>
               <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                 <button
@@ -672,8 +673,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </div>
             </div>
 
-            <div class="">
-              <div class="relative inline-flex">
+            <div>
+              <div class="relative inline-flex mb-2 mr-2">
                 <button
                   @click="showModalContext(sentence)"
                   data-hs-overlay="#hs-vertically-centered-scrollable-modal"
@@ -681,13 +682,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   class="dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
                 >
                   <svg
-                    width="1em"
-                    height="1em"
                     viewBox="0 0 16 16"
                     fill="currentColor"
                     aria-hidden="true"
                     focusable="false"
-                    class="rs-icon"
+                    class="rs-icon w-4   h-[22px]"
                   >
                     <path
                       d="M4 2a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H4zm0-1h8a3 3 0 013 3v8a3 3 0 01-3 3H4a3 3 0 01-3-3V4a3 3 0 013-3z"
@@ -698,99 +697,101 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   </svg>
                   {{ t('searchpage.main.buttons.context') }}
                 </button>
-
-                <div class="hs-dropdown relative inline-flex">
-                  <button
-                    id="hs-dropdown-with-title"
-                    type="button"
-                    class="border-transparent ml-2 dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+              </div>
+            </div>
+            <div>
+              <div class="hs-dropdown relative inline-flex mb-2 mr-2">
+                <button
+                  id="hs-dropdown-with-title"
+                  type="button"
+                  class="border-transparent  dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                >
+                  <svg
+                    class="hs-dropdown-open:rotate-180 w-5 h-5 rotate-90 fill-white text-gray-300"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <svg
-                      class="hs-dropdown-open:rotate-180 w-3.5 h-3.5 rotate-90 fill-white text-gray-300"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
+                    <path
+                      d="M14 5C14 6.10457 13.1046 7 12 7C10.8954 7 10 6.10457 10 5C10 3.89543 10.8954 3 12 3C13.1046 3 14 3.89543 14 5Z"
+                    />
+                    <path
+                      d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z"
+                    />
+                    <path
+                      d="M12 21C13.1046 21 14 20.1046 14 19C14 17.8954 13.1046 17 12 17C10.8954 17 10 17.8954 10 19C10 20.1046 10.8954 21 12 21Z"
+                    />
+                  </svg>
+                </button>
+
+                <div
+                  class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                  aria-labelledby="hs-dropdown-with-title"
+                >
+                  <div class="py-2 first:pt-0 last:pb-0">
+                    <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
+                      {{ t('searchpage.main.labels.options') }}
+                    </span>
+                    <a
+                      class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
+                      @click="showModalReport(sentence)"
+                      data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
                     >
-                      <path
-                        d="M14 5C14 6.10457 13.1046 7 12 7C10.8954 7 10 6.10457 10 5C10 3.89543 10.8954 3 12 3C13.1046 3 14 3.89543 14 5Z"
-                      />
-                      <path
-                        d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z"
-                      />
-                      <path
-                        d="M12 21C13.1046 21 14 20.1046 14 19C14 17.8954 13.1046 17 12 17C10.8954 17 10 17.8954 10 19C10 20.1046 10.8954 21 12 21Z"
-                      />
-                    </svg>
-                  </button>
-
-                  <div
-                    class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
-                    aria-labelledby="hs-dropdown-with-title"
-                  >
-                    <div class="py-2 first:pt-0 last:pb-0">
-                      <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
-                        {{ t('searchpage.main.labels.options') }}
-                      </span>
-                      <a
-                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
-                        @click="showModalReport(sentence)"
-                        data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        xmlns:xlink="http://www.w3.org/1999/xlink"
+                        width="20"
+                        height="20"
+                        class="fill-white"
+                        version="1.1"
+                        id="Layer_1"
+                        viewBox="0 0 512 512"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          xmlns:xlink="http://www.w3.org/1999/xlink"
-                          width="20"
-                          height="20"
-                          class="fill-white"
-                          version="1.1"
-                          id="Layer_1"
-                          viewBox="0 0 512 512"
-                        >
+                        <g>
                           <g>
-                            <g>
-                              <path
-                                d="M505.403,406.394L295.389,58.102c-8.274-13.721-23.367-22.245-39.39-22.245c-16.023,0-31.116,8.524-39.391,22.246    L6.595,406.394c-8.551,14.182-8.804,31.95-0.661,46.37c8.145,14.42,23.491,23.378,40.051,23.378h420.028    c16.56,0,31.907-8.958,40.052-23.379C514.208,438.342,513.955,420.574,505.403,406.394z M477.039,436.372    c-2.242,3.969-6.467,6.436-11.026,6.436H45.985c-4.559,0-8.784-2.466-11.025-6.435c-2.242-3.97-2.172-8.862,0.181-12.765    L245.156,75.316c2.278-3.777,6.433-6.124,10.844-6.124c4.41,0,8.565,2.347,10.843,6.124l210.013,348.292    C479.211,427.512,479.281,432.403,477.039,436.372z"
-                              />
-                            </g>
+                            <path
+                              d="M505.403,406.394L295.389,58.102c-8.274-13.721-23.367-22.245-39.39-22.245c-16.023,0-31.116,8.524-39.391,22.246    L6.595,406.394c-8.551,14.182-8.804,31.95-0.661,46.37c8.145,14.42,23.491,23.378,40.051,23.378h420.028    c16.56,0,31.907-8.958,40.052-23.379C514.208,438.342,513.955,420.574,505.403,406.394z M477.039,436.372    c-2.242,3.969-6.467,6.436-11.026,6.436H45.985c-4.559,0-8.784-2.466-11.025-6.435c-2.242-3.97-2.172-8.862,0.181-12.765    L245.156,75.316c2.278-3.777,6.433-6.124,10.844-6.124c4.41,0,8.565,2.347,10.843,6.124l210.013,348.292    C479.211,427.512,479.281,432.403,477.039,436.372z"
+                            />
                           </g>
+                        </g>
+                        <g>
                           <g>
-                            <g>
-                              <path
-                                d="M256.154,173.005c-12.68,0-22.576,6.804-22.576,18.866c0,36.802,4.329,89.686,4.329,126.489    c0.001,9.587,8.352,13.607,18.248,13.607c7.422,0,17.937-4.02,17.937-13.607c0-36.802,4.329-89.686,4.329-126.489    C278.421,179.81,268.216,173.005,256.154,173.005z"
-                              />
-                            </g>
+                            <path
+                              d="M256.154,173.005c-12.68,0-22.576,6.804-22.576,18.866c0,36.802,4.329,89.686,4.329,126.489    c0.001,9.587,8.352,13.607,18.248,13.607c7.422,0,17.937-4.02,17.937-13.607c0-36.802,4.329-89.686,4.329-126.489    C278.421,179.81,268.216,173.005,256.154,173.005z"
+                            />
                           </g>
+                        </g>
+                        <g>
                           <g>
-                            <g>
-                              <path
-                                d="M256.465,353.306c-13.607,0-23.814,10.824-23.814,23.814c0,12.68,10.206,23.814,23.814,23.814    c12.68,0,23.505-11.134,23.505-23.814C279.97,364.13,269.144,353.306,256.465,353.306z"
-                              />
-                            </g>
+                            <path
+                              d="M256.465,353.306c-13.607,0-23.814,10.824-23.814,23.814c0,12.68,10.206,23.814,23.814,23.814    c12.68,0,23.505-11.134,23.505-23.814C279.97,364.13,269.144,353.306,256.465,353.306z"
+                            />
                           </g>
-                        </svg>
-                        {{ t('searchpage.main.buttons.report') }}
-                      </a>
-                      <a
-                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                        @click="getSharingURL(sentence)"
+                        </g>
+                      </svg>
+                      {{ t('searchpage.main.buttons.report') }}
+                    </a>
+                    <a
+                      class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                      @click="getSharingURL(sentence)"
+                    >
+                      <svg
+                        class="fill-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 50 50"
                       >
-                        <svg
-                          class="fill-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 50 50"
-                        >
-                          <path
-                            d="M31.2,14.2,41,24.1l-9.8,9.8V26.8L27,27c-6.8.3-12,1-16.1,2.4,3.6-3.8,9.3-6.8,16.7-7.5l3.6-.3V14.2M28.3,6a1.2,1.2,0,0,0-1.1,1.3V17.9C12,19.4,2.2,29.8,2,40.3c0,.6.2,1,.6,1s.7-.3,1.1-1.1c2.4-5.4,7.8-8.5,23.5-9.2v9.7A1.2,1.2,0,0,0,28.3,42a.9.9,0,0,0,.8-.4L45.6,25.1a1.5,1.5,0,0,0,0-2L29.1,6.4a.9.9,0,0,0-.8-.4Z"
-                          />
-                        </svg>
-                        {{ t('searchpage.main.buttons.share') }}
-                      </a>
-                    </div>
+                        <path
+                          d="M31.2,14.2,41,24.1l-9.8,9.8V26.8L27,27c-6.8.3-12,1-16.1,2.4,3.6-3.8,9.3-6.8,16.7-7.5l3.6-.3V14.2M28.3,6a1.2,1.2,0,0,0-1.1,1.3V17.9C12,19.4,2.2,29.8,2,40.3c0,.6.2,1,.6,1s.7-.3,1.1-1.1c2.4-5.4,7.8-8.5,23.5-9.2v9.7A1.2,1.2,0,0,0,28.3,42a.9.9,0,0,0,.8-.4L45.6,25.1a1.5,1.5,0,0,0,0-2L29.1,6.4a.9.9,0,0,0-.8-.4Z"
+                        />
+                      </svg>
+                      {{ t('searchpage.main.buttons.share') }}
+                    </a>
                   </div>
                 </div>
               </div>
             </div>
+            
           </div>
           <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
             {{ sentence.basic_info.name_anime_en }} &bull;

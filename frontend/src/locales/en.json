@@ -49,7 +49,8 @@
         "downloadmultipleaudios": "Download selected audios"
       },
       "labels": {
-        "context": "Context"
+        "context": "Context",
+        "errordownloadmultipleaudios": "Error downloading audios. Try again."
       }
     }
   }

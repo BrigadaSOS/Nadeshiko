@@ -1,12 +1,13 @@
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'vue-toastification'
 
-const selectedCheckboxes = ref([])
 const { t } = useI18n()
 const toast = useToast()
+
 let finalsentences = ref([])
+let selectedCheckboxes = ref([])
 let currentSentenceIndex = ref(null)
 
 defineExpose({
@@ -24,6 +25,7 @@ const playSound = async (sound) => {
 // Obtiene el contexto de una oración con base a la posición recibida
 async function getContextSentence(item) {
   finalsentences.value = []
+  selectedCheckboxes.value = []
   let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/context', {
     method: 'POST',
     mode: 'cors',
@@ -124,10 +126,29 @@ const getSelectedCheckboxes = async () => {
   })
   response = await response.json()
 
-  console.log(response)
+  downloadAudio(response.url, response.filename)
+}
 
-  const mp3Url = response.url
-  downloadAudio(mp3Url, 'audio.mp3')
+const downloadAudio = (url, filename) => {
+  try {
+    fetch(url)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        window.URL.revokeObjectURL(url)
+      })
+  } catch (error) {
+    const options = {
+      timeout: 3000,
+      position: 'bottom-right'
+    }
+    const message = t('searchpage.modalcontext.labels.errordownloadmultipleaudios')
+    toast.error(message, options)
+  }
 }
 
 const ampliarImagen = (url) => {
