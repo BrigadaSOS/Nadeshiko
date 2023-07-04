@@ -8,9 +8,6 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# FFmpeg install
-
-
 #Run
 FROM node:slim AS server
 WORKDIR /app
