@@ -6,7 +6,10 @@ import { Media } from "../models/media/media";
 import { Episode } from "../models/media/episode";
 import { Season } from "../models/media/season";
 import { Op, Sequelize } from "sequelize";
+import { pipeline, Transform } from "stream";
 import { v3 as uuidv3 } from "uuid";
+import axios from "axios";
+import path from "path";
 import url from "url";
 import fs from "fs";
 
@@ -95,9 +98,6 @@ export const generateURLAudio = async (
  * @param {string} randomFilename - Nombre del archivo MP3 fusionado generado aleatoriamente.
  * @returns {Promise<void>} - Resuelve cuando la fusión de archivos se completa correctamente.
  */
-import axios from "axios";
-import path from "path";
-import { pipeline, Transform } from "stream";
 
 const mergeMp3Files = async (urls: string[], randomFilename: string) => {
   const outputFilePath = path.join(tempDirectory, randomFilename);
