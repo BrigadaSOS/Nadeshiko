@@ -10,13 +10,6 @@ import { v3 as uuidv3 } from "uuid";
 import url from "url";
 import fs from "fs";
 
-const ffmpegStatic = require("ffmpeg-static");
-const ffmpeg = require("fluent-ffmpeg");
-ffmpeg.setFfmpegPath(ffmpegStatic);
-var ffprobe = require("ffprobe-static");
-ffmpeg.setFfprobePath(ffprobe.path);
-var audioconcat = require("audioconcat");
-
 const BASE_URL_MEDIA = process.env.BASE_URL_MEDIA;
 const BASE_URL_TMP = process.env.BASE_URL_TMP;
 const tempDirectory: string = process.env.TEMP_DIRECTORY!;
