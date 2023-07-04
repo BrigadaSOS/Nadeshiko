@@ -15,6 +15,7 @@ const ffmpeg = require("fluent-ffmpeg");
 ffmpeg.setFfmpegPath(ffmpegStatic);
 var ffprobe = require("ffprobe-static");
 ffmpeg.setFfprobePath(ffprobe.path);
+var audioconcat = require("audioconcat");
 
 const BASE_URL_MEDIA = process.env.BASE_URL_MEDIA;
 const BASE_URL_TMP = process.env.BASE_URL_TMP;
@@ -47,8 +48,8 @@ export const generateURLAudio = async (
       protocol = "https";
     } else if (process.env.ENVIRONMENT == "testing") {
       protocol = "http";
-    } 
-    
+    }
+
     const urlHash = urls.join("");
 
     const randomFilename = `${uuidv3(
@@ -101,21 +102,45 @@ export const generateURLAudio = async (
  * @param {string} randomFilename - Nombre del archivo MP3 fusionado generado aleatoriamente.
  * @returns {Promise<void>} - Resuelve cuando la fusión de archivos se completa correctamente.
  */
-export const mergeMp3Files = async (urls: string[], randomFilename: string) => {
+import axios from "axios";
+import path from "path";
+import { pipeline, Transform } from "stream";
+
+const mergeMp3Files = async (urls: string[], randomFilename: string) => {
+  const outputFilePath = path.join(tempDirectory, randomFilename);
+
   try {
-    const ffmpegCommand = ffmpeg();
-    urls.forEach((url: string) => {
-      ffmpegCommand.input(url).inputOptions("-threads 1");
+    const fileStreams = await Promise.all(
+      urls.map(async (url) => {
+        const response = await axios.get(url, { responseType: "stream" });
+        return response.data;
+      })
+    );
+
+    // Create a Transform stream to handle each input stream
+    const transformStream = new Transform({
+      transform(chunk, encoding, callback) {
+        this.push(chunk);
+        callback();
+      },
     });
 
+    // Pipe each file stream into the transform stream
+    fileStreams.forEach((stream) => stream.pipe(transformStream));
+
+    // Pipeline the transform stream to the output file
     await new Promise<void>((resolve, reject) => {
-      ffmpegCommand
-        .on("end", resolve)
-        .on("error", reject)
-        .mergeToFile([tempDirectory, randomFilename].join("/"));
+      pipeline(transformStream, fs.createWriteStream(outputFilePath), (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
     });
+    console.log("Successfully merged MP3 files!");
   } catch (error) {
-    console.error("Se produjo un error durante la conversión:", error);
+    console.error("An error occurred during merging:", error);
   }
 };
 
