@@ -14,6 +14,9 @@ spec:
     - ReadWriteMany
   hostPath:
     path: "/mnt/nadedb/anime"
+  claimRef:
+    name: brigadasos-db-anime-pvolume
+    namespace: nadedb
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -23,7 +26,8 @@ metadata:
   labels:
     app: brigadasos-db
 spec:
-  storageClassName: manual
+  storageClassName: "" # Empty string must be explicitly set otherwise default StorageClass will be set
+  volumeName: brigadasos-db-anime-pvolume
   accessModes:
     - ReadWriteMany
   resources:
