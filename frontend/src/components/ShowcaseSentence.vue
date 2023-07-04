@@ -54,8 +54,14 @@ const filteredAnimes = computed(() => {
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
-  if (searchTerm) {
+  const sortFilter = to.query.sort
+  if (searchTerm && !sortFilter) {
     querySearch.value = searchTerm
+    await getSentences(searchTerm)
+  }
+  if (searchTerm && sortFilter) {
+    querySearch.value = searchTerm
+    type_sort.value = sortFilter
     await getSentences(searchTerm)
   }
 })
@@ -63,10 +69,21 @@ onBeforeRouteUpdate(async (to, from) => {
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
   const searchTerm = urlParams.get('query')
+  const sortFilter = urlParams.get('sort')
+
   isBannerClosed = localStorage.getItem('isBannerClosed')
   let element = document.getElementById('drawer-button')
 
   uuid.value = urlParams.get('uuid')
+
+  // Configuración del filtro
+  if (sortFilter === 'asc') {
+    type_sort.value = 'asc'
+  } else if (sortFilter === 'desc') {
+    type_sort.value = 'desc'
+  } else {
+    type_sort.value = null
+  }
 
   if (searchTerm && uuid.value) {
   } else if (searchTerm && !uuid.value) {
@@ -139,7 +156,7 @@ const searchHandler = async (event) => {
   event.preventDefault()
   const searchTerm = querySearch.value.trim()
   if (searchTerm !== '') {
-    await router.push({ query: { query: searchTerm } })
+    await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
     await getSentences(searchTerm)
   }
 }
@@ -299,6 +316,7 @@ const sortFilter = async (type) => {
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
   window.scrollTo(0, 0)
+  await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
   await getSentences(querySearch.value, 0, anime_id.value)
 }
 
