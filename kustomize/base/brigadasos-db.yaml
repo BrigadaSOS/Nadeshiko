@@ -34,42 +34,6 @@ spec:
     requests:
       storage: 50Gi
 ---
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: brigadasos-db-temp-pvolume
-  namespace: nadedb
-  labels:
-    type: local
-    app: brigadasos-db
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 20Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    path: "/mnt/nadedb/temp"
-  claimRef:
-    name: brigadasos-db-temp-pvolume
-    namespace: nadedb
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: brigadasos-db-temp-pvolume-claim
-  namespace: nadedb
-  labels:
-    app: brigadasos-db
-spec:
-  storageClassName: manual
-  volumeName: brigadasos-db-temp-pvolume
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 20Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -99,15 +63,10 @@ spec:
           volumeMounts:
             - mountPath: /media/anime
               name: brigadasos-db-anime-vol
-            - mountPath: /media/temp
-              name: brigadasos-db-temp-vol
       volumes:
         - name: brigadasos-db-anime-vol
           persistentVolumeClaim:
             claimName: brigadasos-db-anime-pvolume-claim
-        - name: brigadasos-db-temp-vol
-          persistentVolumeClaim:
-            claimName: brigadasos-db-temp-pvolume-claim
 ---
 apiVersion: v1
 kind: Service
