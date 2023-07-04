@@ -8,7 +8,6 @@ export default {
     if (savedLanguage) {
       this.$i18n.locale = savedLanguage
     }
-
     initFlowbite()
   }
 }

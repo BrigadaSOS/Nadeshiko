@@ -914,7 +914,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   transform="translate(-22)"
                 />
               </svg>
-              {{ t('searchpage.main.buttons.sortmain') }}
+              <div>
+              {{t('searchpage.main.buttons.sortmain')}} 
+              <span v-if="type_sort === 'asc'">({{ t('searchpage.main.buttons.sortlengthmin') }})</span>
+              <span v-else-if="type_sort === 'desc'">({{ t('searchpage.main.buttons.sortlengthmax') }})</span>
+            </div>
               <svg
                 class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white"
                 width="16"
@@ -1028,6 +1032,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
   <SidebarAnime
     :list="statistics"
     :sentences="sentences"
+    :type_sort="type_sort"
     @filter-anime="filterAnime"
     @filter-anime-length="sortFilter"
   />
