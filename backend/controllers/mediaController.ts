@@ -105,7 +105,7 @@ export const mergeMp3Files = async (urls: string[], randomFilename: string) => {
   try {
     const ffmpegCommand = ffmpeg();
     urls.forEach((url: string) => {
-      ffmpegCommand.input(url);
+      ffmpegCommand.input(url).inputOptions("-threads 1");
     });
 
     await new Promise<void>((resolve, reject) => {
