@@ -1,7 +1,7 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: brigadasos-db-pvolume
+  name: brigadasos-db-anime-pvolume
   namespace: nadedb
   labels:
     type: local
@@ -15,19 +15,19 @@ spec:
   hostPath:
     path: "/mnt/nadedb/anime"
   claimRef:
-    name: brigadasos-db-pvolume
+    name: brigadasos-db-anime-pvolume
     namespace: nadedb
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: brigadasos-db-pvolume-claim
+  name: brigadasos-db-anime-pvolume-claim
   namespace: nadedb
   labels:
     app: brigadasos-db
 spec:
   storageClassName: manual
-  volumeName: brigadasos-db-pvolume
+  volumeName: brigadasos-db-anime-pvolume
   accessModes:
     - ReadWriteMany
   resources:
@@ -104,7 +104,7 @@ spec:
       volumes:
         - name: brigadasos-db-anime-vol
           persistentVolumeClaim:
-            claimName: brigadasos-db-pvolume-claim
+            claimName: brigadasos-db-anime-pvolume-claim
         - name: brigadasos-db-temp-vol
           persistentVolumeClaim:
             claimName: brigadasos-db-temp-pvolume-claim
