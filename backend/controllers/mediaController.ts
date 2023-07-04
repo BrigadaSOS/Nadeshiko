@@ -119,7 +119,7 @@ const mergeMp3Files = async (urls: string[], randomFilename: string) => {
 
     // Create a Transform stream to handle each input stream
     const transformStream = new Transform({
-      transform(chunk, encoding, callback) {
+      transform(chunk, _encoding, callback) {
         this.push(chunk);
         callback();
       },
