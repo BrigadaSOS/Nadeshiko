@@ -13,7 +13,7 @@ spec:
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "/mnt/nadedb"
+    path: "/mnt/nadedb/anime"
   claimRef:
     name: brigadasos-db-pvolume
     namespace: nadedb
@@ -45,11 +45,14 @@ metadata:
 spec:
   storageClassName: manual
   capacity:
-    storage: 50Gi
+    storage: 20Gi
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "/mnt/nadedb"
+    path: "/mnt/nadedb/temp"
+  claimRef:
+    name: brigadasos-db-temp-pvolume
+    namespace: nadedb
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -60,6 +63,7 @@ metadata:
     app: brigadasos-db
 spec:
   storageClassName: manual
+  volumeName: brigadasos-db-temp-pvolume
   accessModes:
     - ReadWriteMany
   resources:
@@ -116,7 +120,7 @@ spec:
   selector:
     app: brigadasos-db
   ports:
-    - port: 5000
+   - port: 5000
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
