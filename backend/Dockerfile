@@ -1,5 +1,5 @@
 # Build
-FROM node:lts-alpine3.18 AS builder
+FROM node:slim AS builder
 
 WORKDIR /app
 
@@ -9,12 +9,10 @@ COPY . .
 RUN npm run build
 
 # FFmpeg install
-RUN apk upgrade -U \ 
-    && apk add ffmpeg \ 
-    && apk add musl-nscd
+
 
 #Run
-FROM node:lts-alpine3.18 AS server
+FROM node:slim AS server
 WORKDIR /app
 COPY package*.json .env* ./
 RUN npm install --production
