@@ -63,7 +63,7 @@ const getLatestVersion = () => {
           </button>
         </div>
       </div>
-      <div id="navbar-collapse-with-animation" class="hs-collapse hidden basis-full grow sm:block">
+      <div id="navbar-collapse-with-animation" class="hs-collapse hidden basis-full grow md:block">
         <div
           class="flex flex-col gap-y-4 gap-x-0 mt-5 md:flex-row md:items-center md:gap-y-0 md:gap-x-7 md:mt-0 md:pl-10"
         >
