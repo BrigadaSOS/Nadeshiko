@@ -27,15 +27,15 @@ const getLatestVersion = () => {
 </script>
 <template>
   <header
-    class="flex flex-wrap sm:justify-start sm:flex-nowrap z-50 w-full bg-white border-b border-gray-200 text-sm py-3 sm:py-0 dark:bg-sred dark:border-gray-700"
+    class="flex flex-wrap md:justify-start md:flex-nowrap z-50 w-full bg-white border-b border-gray-200 text-sm py-3 md:py-0 dark:bg-sred dark:border-gray-700"
   >
-    <nav class="relative lg:w-11/12 w-full mx-auto px-4 sm:flex sm:items-center sm:justify-between" aria-label="Global">
+    <nav class="relative lg:w-11/12 w-full mx-auto px-4 md:flex md:items-center md:justify-between" aria-label="Global">
       <div class="flex items-center justify-between">
-        <img src="../assets/logo.webp" class="h-8 mr-3 rounded-full" alt="Flowbite Logo" />
+        <img src="../assets/logo.webp" class="h-8 mr-3 rounded-full" alt="Brigada SOS Logo" />
         <router-link to="/" class="flex-none text-base font-semibold dark:text-white" href="#" aria-label="Brand"
           >NadeDB</router-link
         >
-        <div class="sm:hidden">
+        <div class="md:hidden">
           <button
             type="button"
             class="hs-collapse-toggle p-2 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sred text-gray-700 align-middle hover:bg-sgray focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
@@ -65,13 +65,13 @@ const getLatestVersion = () => {
       </div>
       <div id="navbar-collapse-with-animation" class="hs-collapse hidden basis-full grow sm:block">
         <div
-          class="flex flex-col gap-y-4 gap-x-0 mt-5 sm:flex-row sm:items-center sm:gap-y-0 sm:gap-x-7 sm:mt-0 sm:pl-10"
+          class="flex flex-col gap-y-4 gap-x-0 mt-5 md:flex-row md:items-center md:gap-y-0 md:gap-x-7 md:mt-0 md:pl-10"
         >
-          <router-link to="/" class="font-bold sm:py-4 dark:text-white" aria-current="page">Inicio</router-link>
-          <a class="font-bold text-white/90 hover:text-gray-400 sm:py-5 dark:hover:text-gray-500" href="#">FAQ</a>
-          <a class="font-bold text-white/90 hover:text-gray-400 sm:py-5 dark:hover:text-gray-500" href="#">Acerca de</a>
-          <a class="font-bold text-white/90 hover:text-gray-400 sm:py-5 dark:hover:text-gray-500" href="#">Discord</a>
-          <div class="flex flex-col sm:flex-row z-50 items-center gap-x-2 sm:ml-auto">
+          <router-link to="/" class="font-bold md:py-4 dark:text-white" aria-current="page">Inicio</router-link>
+          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">FAQ</a>
+          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Acerca de</a>
+          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Discord</a>
+          <div class="flex flex-col md:flex-row z-50 items-center gap-x-2 md:ml-auto">
             <LanguageSelector class="w-full mb-2 md:mb-0 md:w-auto" />
             <a
               href="https://brigadasos.xyz/"
