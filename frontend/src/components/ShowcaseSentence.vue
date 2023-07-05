@@ -1,20 +1,31 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
-import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
-import SidebarAnime from './Showcase/SidebarAnime.vue'
-import router from '../router/index'
-import ContextSentence from './ContextSentence.vue'
-import ErrorConnection from './ErrorConnection.vue'
-import NoResults from './NoResults.vue'
-import LandingPageShowcase from './LandingPageShowcase.vue'
-import ReportModal from './Showcase/ReportModal.vue'
+// Variado
 import { useHead } from '@vueuse/head'
+import { mdiTuneVariant } from '@mdi/js'
 import { useToast } from 'vue-toastification'
+import { ref, onMounted, computed } from 'vue'
+import { onBeforeRouteUpdate } from 'vue-router'
+
+// Importación de componentes
+import router from '../router/index'
+import NoResults from './NoResults.vue'
+import BaseIcon from './minimal/BaseIcon.vue'
+import ErrorConnection from './ErrorConnection.vue'
+import ContextSentence from './ContextSentence.vue'
+import ReportModal from './Showcase/ReportModal.vue'
+import SidebarAnime from './Showcase/SidebarAnime.vue'
+import SettingsSearchModal from './Showcase/SettingsSearchModal.vue'
+import LandingPageShowcase from './LandingPageShowcase.vue'
+
+// Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
+// Importación de funciones
 const toast = useToast()
 const head = useHead()
+
+// Declaración de variables
 const querySearch = ref('')
 let sentences = ref([])
 let statistics = ref([])
@@ -23,6 +34,7 @@ let isLoading = ref(false)
 let anime_id = ref(null)
 let isModalContextActive = ref(false)
 let isModalReportActive = ref(false)
+let isModalSettingsSearchActive = ref(false)
 let currentSentence = ref()
 let contextactive = ref()
 let status = ref()
@@ -33,24 +45,6 @@ let isBannerClosed = ref(null)
 let uuid = ref(null)
 let currentAudio = ref(null)
 let type_sort = ref(null)
-
-const filteredAnimes = computed(() => {
-  const filteredItems = statistics.value.filter((item) => {
-    return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase())
-  })
-
-  const sortedItems = filteredItems.sort((a, b) => {
-    const nameA = a.name_anime_en.toLowerCase()
-    const nameB = b.name_anime_en.toLowerCase()
-    if (nameA === t('searchpage.main.labels.all').toLowerCase()) return -1
-    if (nameB === t('searchpage.main.labels.all').toLowerCase()) return 1
-    if (nameA < nameB) return -1
-    if (nameA > nameB) return 1
-    return 0
-  })
-
-  return sortedItems
-})
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -150,6 +144,51 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   window.addEventListener('scroll', handleScroll)
+})
+
+document.addEventListener('DOMContentLoaded', function () {
+  var prevScrollpos = window.scrollY
+  var isScrolling = false
+
+  function handleScroll() {
+    if (!isScrolling) {
+      isScrolling = true
+
+      setTimeout(function () {
+        var currentScrollPos = window.scrollY
+        if (prevScrollpos > currentScrollPos) {
+          document.getElementById('search-bar').style.top = '0'
+          document.getElementById('search-anime').style.top = '80px'
+        } else {
+          document.getElementById('search-bar').style.top = '-50px'
+          document.getElementById('search-anime').style.top = '30px'
+        }
+
+        prevScrollpos = currentScrollPos
+        isScrolling = false
+      }, 100) // Establece el intervalo de tiempo deseado en milisegundos
+    }
+  }
+
+  window.addEventListener('scroll', handleScroll)
+})
+
+const filteredAnimes = computed(() => {
+  const filteredItems = statistics.value.filter((item) => {
+    return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase())
+  })
+
+  const sortedItems = filteredItems.sort((a, b) => {
+    const nameA = a.name_anime_en.toLowerCase()
+    const nameB = b.name_anime_en.toLowerCase()
+    if (nameA === t('searchpage.main.labels.all').toLowerCase()) return -1
+    if (nameB === t('searchpage.main.labels.all').toLowerCase()) return 1
+    if (nameA < nameB) return -1
+    if (nameA > nameB) return 1
+    return 0
+  })
+
+  return sortedItems
 })
 
 // Lógica de la barra de búsqueda
@@ -266,6 +305,11 @@ const showModalReport = async (item) => {
   currentSentence.value = item
 }
 
+// Invoca el modal de la configuración de la barra de busqueda
+const showModalSettingsSearch = async () => {
+  isModalSettingsSearchActive.value = true
+}
+
 // Descarga el audio o imagen de la oración
 const downloadAudioOrImage = (url, filename) => {
   fetch(url)
@@ -317,9 +361,9 @@ const sortFilter = async (type) => {
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
   window.scrollTo(0, 0)
-  if(type === 'none'){
+  if (type === 'none') {
     await router.push({ query: { query: querySearch.value } })
-  }else{
+  } else {
     await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
   }
   await getSentences(querySearch.value, 0, anime_id.value)
@@ -359,59 +403,69 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         t('searchpage.main.buttons.search')
       }}</label>
       <div class="relative lg:w-11/12 mx-auto mt-4">
-        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <div
-            v-if="
-              (!isLoading && error_connection === true) ||
-              error_connection === true ||
-              (!isLoading && error_connection === false)
-            "
+        <div class="flex">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <div
+              v-if="
+                (!isLoading && error_connection === true) ||
+                error_connection === true ||
+                (!isLoading && error_connection === false)
+              "
+            >
+              <svg
+                aria-hidden="true"
+                class="w-5 h-5 text-gray-500 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+            </div>
+            <div v-else-if="isLoading && error_connection === false">
+              <span
+                class="animate-spin inline-block mt-1 w-4 h-4 border-[3px] border-current border-t-transparent text-white rounded-full"
+                role="status"
+                aria-label="loading"
+              >
+                <span class="sr-only">Loading...</span>
+              </span>
+            </div>
+          </div>
+          <div class="flex flex-1">
+            <input
+              v-model="querySearch"
+              type="search"
+              id="default-search"
+              autocomplete="off"
+              class="block w-full p-4 pl-10 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+              :placeholder="placeholder_search1"
+              required
+            />
+            <a
+              @click="showModalSettingsSearch()"
+              data-hs-overlay="#hs-vertically-centered-scrollable-modal3"
+              class="text-white cursor-pointer absolute right-[94px] bottom-2.5 focus:outline-none focus:ring-blue-300 rounded-lg text-sm px-4 pt-2 pb-1 dark:bg-graypalid dark:hover:bg-gray-500"
+            >
+              <BaseIcon :path="mdiTuneVariant" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
+            </a>
+          </div>
+          <button
+            type="submit"
+            class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-graypalid dark:hover:bg-gray-500 dark:focus:ring-blue-800"
           >
-            <svg
-              aria-hidden="true"
-              class="w-5 h-5 text-gray-500 dark:text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              ></path>
-            </svg>
-          </div>
-          <div v-else-if="isLoading && error_connection === false">
-            <span
-              class="animate-spin inline-block mt-1 w-4 h-4 border-[3px] border-current border-t-transparent text-white rounded-full"
-              role="status"
-              aria-label="loading"
-            >
-              <span class="sr-only">Loading...</span>
-            </span>
-          </div>
+            {{ t('searchpage.main.buttons.search') }}
+          </button>
         </div>
-        <input
-          v-model="querySearch"
-          type="search"
-          id="default-search"
-          autocomplete="off"
-          class="block w-full p-4 pl-10 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
-          :placeholder="placeholder_search1"
-          required
-        />
-        <button
-          type="submit"
-          class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-blue-800"
-        >
-          {{ t('searchpage.main.buttons.search') }}
-        </button>
       </div>
     </form>
   </div>
-
   <div class="flex flex-row lg:w-11/12 mx-auto" @scroll="loadMoreSentences">
     <div class="container mx-auto w-100 flex flex-col">
       <div
@@ -849,8 +903,13 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 
       <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
         <div v-for="i in 4" :key="i">
-          <div role="status" class=" border-sgray2 border-b space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
-            <div class="flex mb-10 items-center justify-center w-full h-64 bg-gray-300 rounded sm:w-5/12 dark:bg-graypalid">
+          <div
+            role="status"
+            class="border-sgray2 border-b space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center"
+          >
+            <div
+              class="flex mb-10 items-center justify-center w-full h-64 bg-gray-300 rounded sm:w-5/12 dark:bg-graypalid"
+            >
               <svg
                 class="w-12 h-12 text-gray-200"
                 xmlns="http://www.w3.org/2000/svg"
@@ -894,8 +953,10 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         </div>
       </div>
     </div>
+    <SettingsSearchModal v-if="isModalSettingsSearchActive" />
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
+
     <div v-if="sentences.length > 0" class="hidden w-3/12 lg:flex flex-col py-6">
       <div id="search-anime" class="sticky -mt-2">
         <div class="relative">
@@ -945,7 +1006,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] hs-dropdown-open:opacity-100 opacity-0 w-2/12 hidden z-10 mt-2 min-w-[15rem] bg-white shadow-md rounded-lg p-2 dark:bg-sgray dark:border dark:border-gray-600 dark:divide-gray-700"
               aria-labelledby="hs-dropdown-default"
             >
-            <a
+              <a
                 class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                 @click="sortFilter('none')"
               >
