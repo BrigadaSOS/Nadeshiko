@@ -884,7 +884,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <LandingPageShowcase />
       </div>
       <div id="sentinel"></div>
-      <div v-if="isLoading && sentences.length > 0" class="text-center">
+      <div v-if="isLoading && sentences.length > 0 && error_connection === false" class="text-center">
         <div
           class="animate-spin inline-block w-6 h-6 my-5 border-[3px] border-current border-t-transparent text-blue-600 rounded-full"
           role="status"
