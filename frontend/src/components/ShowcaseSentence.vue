@@ -908,7 +908,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             class="border-sgray2 border-b space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center"
           >
             <div
-              class="flex mb-10 items-center justify-center w-full h-64 bg-gray-300 rounded sm:w-5/12 dark:bg-graypalid"
+              class="flex mb-10 items-center justify-center  bg-gray-300 rounded h-64 w-auto md:w-6/1 dark:bg-graypalid"
             >
               <svg
                 class="w-12 h-12 text-gray-200"
