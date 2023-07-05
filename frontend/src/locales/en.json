@@ -22,6 +22,7 @@
         "report": "Report",
         "share": "Share",
         "sortmain": "Sort sentences",
+        "sortlengthnone": "None",
         "sortlengthmin": "Shortest",
         "sortlengthmax": "Largest",
         "search": "Search"

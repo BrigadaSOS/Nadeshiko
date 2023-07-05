@@ -56,6 +56,7 @@ onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
   const sortFilter = to.query.sort
   if (searchTerm && !sortFilter) {
+    type_sort.value = null
     querySearch.value = searchTerm
     await getSentences(searchTerm)
   }
@@ -316,7 +317,11 @@ const sortFilter = async (type) => {
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
   window.scrollTo(0, 0)
-  await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
+  if(type === 'none'){
+    await router.push({ query: { query: querySearch.value } })
+  }else{
+    await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
+  }
   await getSentences(querySearch.value, 0, anime_id.value)
 }
 
@@ -408,13 +413,13 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
   </div>
 
   <div class="flex flex-row lg:w-11/12 mx-auto" @scroll="loadMoreSentences">
-    <div class="container md:mx-auto w-100 flex flex-col">
+    <div class="container mx-auto w-100 flex flex-col">
       <div
         v-if="sentences.length > 0"
         v-for="(sentence, index) in sentences"
-        class="flex flex-col md:flex-row overflow-hidden border-b py-6 border-sgray2 rounded-none mt-4 w-100"
+        class="flex flex-col md:flex-row overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 rounded-none mt-4 w-100"
       >
-        <div class="h-64 w-auto md:w-1/2">
+        <div class="h-64 w-auto md:w-6/12">
           <img
             class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
             :src="sentence.media_info.path_image"
@@ -457,7 +462,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </h4>
 
           <div class="flex flex-wrap">
-            <div>
+            <div class="">
               <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                 <button
                   id="hs-dropdown-with-title"
@@ -844,8 +849,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 
       <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
         <div v-for="i in 4" :key="i">
-          <div role="status" class="space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
-            <div class="flex items-center justify-center w-full h-64 bg-gray-300 rounded sm:w-5/12 dark:bg-graypalid">
+          <div role="status" class=" border-sgray2 border-b space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
+            <div class="flex mb-10 items-center justify-center w-full h-64 bg-gray-300 rounded sm:w-5/12 dark:bg-graypalid">
               <svg
                 class="w-12 h-12 text-gray-200"
                 xmlns="http://www.w3.org/2000/svg"
@@ -915,10 +920,10 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 />
               </svg>
               <div>
-              {{t('searchpage.main.buttons.sortmain')}} 
-              <span v-if="type_sort === 'asc'">({{ t('searchpage.main.buttons.sortlengthmin') }})</span>
-              <span v-else-if="type_sort === 'desc'">({{ t('searchpage.main.buttons.sortlengthmax') }})</span>
-            </div>
+                {{ t('searchpage.main.buttons.sortmain') }}
+                <span v-if="type_sort === 'asc'">({{ t('searchpage.main.buttons.sortlengthmin') }})</span>
+                <span v-else-if="type_sort === 'desc'">({{ t('searchpage.main.buttons.sortlengthmax') }})</span>
+              </div>
               <svg
                 class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white"
                 width="16"
@@ -940,6 +945,20 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] hs-dropdown-open:opacity-100 opacity-0 w-2/12 hidden z-10 mt-2 min-w-[15rem] bg-white shadow-md rounded-lg p-2 dark:bg-sgray dark:border dark:border-gray-600 dark:divide-gray-700"
               aria-labelledby="hs-dropdown-default"
             >
+            <a
+                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                @click="sortFilter('none')"
+              >
+                <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path
+                    d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z"
+                  />
+                  <path
+                    d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
+                  />
+                </svg>
+                {{ t('searchpage.main.buttons.sortlengthnone') }}
+              </a>
               <a
                 class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                 @click="sortFilter('asc')"
