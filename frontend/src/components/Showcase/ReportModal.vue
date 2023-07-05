@@ -17,9 +17,9 @@ const submitReport = () => {
       class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
     >
       <div
-        class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-sgray dark:border-sgray dark:shadow-slate-700/[.7]"
+        class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
       >
-        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-gray-700">
+        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
           <h3 class="font-bold text-gray-800 dark:text-white">Reportar un problema</h3>
           <button
             type="button"
@@ -56,14 +56,14 @@ const submitReport = () => {
                 </p>
 
                 <p class="text-xl text-gray-500 dark:text-gray-400 font-medium">¿Cuál es el problema?</p>
-                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-gray-700">
+                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
                   <input
                     id="bordered-radio-1"
                     type="radio"
                     v-model="selectedOption"
                     value="1"
                     name="bordered-radio"
-                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-sgray dark:border-sgray"
                   />
                   <label
                     for="bordered-radio-1"
@@ -71,14 +71,14 @@ const submitReport = () => {
                     >El audio no corresponde a la oración.</label
                   >
                 </div>
-                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-gray-700">
+                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
                   <input
                     id="bordered-radio-2"
                     type="radio"
                     v-model="selectedOption"
                     value="2"
                     name="bordered-radio"
-                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-sgray dark:border-sgray"
                   />
                   <label
                     for="bordered-radio-2"
@@ -86,14 +86,14 @@ const submitReport = () => {
                     >El audio se encuentra desfasado con respecto a la oración.</label
                   >
                 </div>
-                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-gray-700">
+                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
                   <input
                     id="bordered-radio-3"
                     type="radio"
                     v-model="selectedOption"
                     value="3"
                     name="bordered-radio"
-                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-sgray dark:border-sgray2"
                   />
                   <label
                     for="bordered-radio-3"
@@ -101,14 +101,14 @@ const submitReport = () => {
                     >La oración no tiene imagen o sonido.</label
                   >
                 </div>
-                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-gray-700">
+                <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
                   <input
                     id="bordered-radio-4"
                     type="radio"
                     v-model="selectedOption"
                     value="4"
                     name="bordered-radio"
-                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    class="w-4 h-4 text-sred bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-sgray dark:border-sgray"
                   />
                   <label
                     for="bordered-radio-4"
@@ -120,18 +120,18 @@ const submitReport = () => {
             </div>
           </div>
         </div>
-        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-gray-700">
+        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-sgray2">
           <button
             type="button"
             @click="submitReport"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-gray-700 text-gray-700 shadow-sm align-middle hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
           >
             Enviar reporte
           </button>
           <button
             type="button"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-gray-700 text-gray-700 shadow-sm align-middle hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
           >
             Cerrar
