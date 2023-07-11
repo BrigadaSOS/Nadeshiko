@@ -244,55 +244,31 @@ export const GetContextAnime = async (
   try {
     const { id_anime, season, episode, index_segment, limit } = req.body;
 
-    let results = await Segment.findAll({
-      include: [
-        {
-          model: Episode,
-          required: true,
-          where: {
-            number: episode,
-          },
-          include: [
-            {
-              model: Season,
-              required: true,
-              where: {
-                number: season,
-              },
-              include: [
-                {
-                  model: Media,
-                  where: {
-                    id: id_anime,
-                  },
-                  required: true,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    let whereClause = ` WHERE me.id = ${id_anime} AND se.number = ${season} AND ep.number = ${episode} `;
+    let limitClause = limit
+      ? ` AND ABS(s.position - ${index_segment}) <= ${limit} `
+      : "";
+    let orderByClause = ` ORDER BY s.position `;
+
+    let sql =
+      `
+      SELECT s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+      FROM nadedb.public."Segment" s
+      INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
+      INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
+      INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id
+      ` +
+      whereClause +
+      limitClause +
+      orderByClause +
+      `;`;
+
+    let results = await connection.query(sql);
 
     const simplifiedResults = buildSimplifiedResults(req, results);
 
-    let limitedResults;
-
-    if (limit) {
-      limitedResults = simplifiedResults
-        .filter(
-          (result) =>
-            Math.abs(result.segment_info.position - index_segment) <= limit
-        )
-        .sort((a, b) => a.segment_info.position - b.segment_info.position);
-    } else {
-      limitedResults = simplifiedResults.sort(
-        (a, b) => a.segment_info.position - b.segment_info.position
-      );
-    }
-
     return res.status(StatusCodes.ACCEPTED).json({
-      context: limitedResults,
+      context: simplifiedResults,
     });
   } catch (error) {
     next(error);
