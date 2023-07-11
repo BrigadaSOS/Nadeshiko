@@ -240,10 +240,11 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
   // Concatena los nuevos elementos solo si hay un cursor
   sentences.value = cursor ? sentences.value.concat(response.sentences) : response.sentences
   statistics.value = response.statistics
+  console.log(statistics.value)
   const default_row_statistics = {
     anime_id: 0,
     name_anime_en: t('searchpage.main.labels.all'),
-    amount_sentences_found: statistics.value.reduce((a, b) => a + b.amount_sentences_found, 0)
+    amount_sentences_found: statistics.value.reduce((a, b) => a + parseInt(b.amount_sentences_found), 0)
   }
 
   statistics.value = [default_row_statistics].concat(statistics.value)
