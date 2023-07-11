@@ -286,14 +286,6 @@ const playSound = async (sound) => {
   await audio.play()
 }
 
-// Lógica para colorear el texto de acuerdo a la palabra buscada
-
-
-
-const highlightText = (text, metadata) => {
-  return text
-}
-
 // Invoca el modal contenedor del contexto
 const showModalContext = async (item) => {
   isModalContextActive.value = true
@@ -500,7 +492,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </svg>
             </button>
             <h3 class="font-semibold text-xl leading-tight">
-              <span v-html="highlightText(sentence.segment_info.content_jp, metadata)"></span>
+              <span v-html="sentence.segment_info.content_highlight"></span>
             </h3>
           </div>
 
@@ -1148,5 +1140,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 .ampliada img {
   max-width: 90%;
   max-height: 90%;
+}
+
+.keyword {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  color: rgb(251, 120, 120); /* o el valor correspondiente al rojo-400 en tu paleta de colores */
 }
 </style>
