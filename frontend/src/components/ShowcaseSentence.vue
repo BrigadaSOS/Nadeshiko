@@ -45,6 +45,7 @@ let isBannerClosed = ref(null)
 let uuid = ref(null)
 let currentAudio = ref(null)
 let type_sort = ref(null)
+let metadata = ref(null)
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -247,6 +248,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
 
   statistics.value = [default_row_statistics].concat(statistics.value)
 
+  metadata.value = response.metadata
   next_cursor.value = response.cursor
   isLoading.value = false
 }
@@ -285,11 +287,11 @@ const playSound = async (sound) => {
 }
 
 // Lógica para colorear el texto de acuerdo a la palabra buscada
-const highlightText = (text) => {
-  return text.replace(
-    new RegExp(querySearch.value, 'gi'),
-    (match) => `<span class="underline underline-offset-2 text-red-400">${match}</span>`
-  )
+
+
+
+const highlightText = (text, metadata) => {
+  return text
 }
 
 // Invoca el modal contenedor del contexto
@@ -498,7 +500,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </svg>
             </button>
             <h3 class="font-semibold text-xl leading-tight">
-              <span v-html="highlightText(sentence.segment_info.content_jp)"></span>
+              <span v-html="highlightText(sentence.segment_info.content_jp, metadata)"></span>
             </h3>
           </div>
 
@@ -908,7 +910,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             class="border-sgray2 border-b space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center"
           >
             <div
-              class="flex mb-10 items-center justify-center  bg-gray-300 rounded h-64 w-auto md:w-6/12 dark:bg-graypalid"
+              class="flex mb-10 items-center justify-center bg-gray-300 rounded h-64 w-auto md:w-5/12 dark:bg-graypalid"
             >
               <svg
                 class="w-12 h-12 text-gray-200"
