@@ -8,6 +8,8 @@ import { Season } from "../models/media/season";
 import { Op, Sequelize } from "sequelize";
 import { pipeline, Transform } from "stream";
 import { v3 as uuidv3 } from "uuid";
+import connection from "../database/db_posgres";
+
 import axios from "axios";
 import path from "path";
 import url from "url";
@@ -143,164 +145,94 @@ export const SearchAnimeSentences = async (
   next: NextFunction
 ) => {
   try {
+    // query: palabra/oración a buscar
+    // cursor: número de página
+    // limit: cantidad de resultados por página
+    // anime_id: id del anime (en caso de algún filtro)
+    // uuid: id del anime (para una busqueda de una oración en específico)
+    // content_sort: ordenar por contenido (asc/desc)
     const { query, cursor, limit, anime_id, uuid, content_sort } = req.body;
-
     const offset = cursor ? cursor - 1 : 0;
+    let results: any = null;
 
-    let whereClause = {};
-    let whereClauseTempo = {};
+    let sql = "";
+    let whereClause = "";
 
-    if (uuid && !query) {
-      whereClause = { uuid: { [Op.eq]: uuid } };
-      whereClauseTempo = {
-        content: { [Op.like]: `%${query}%` },
-        uuid: { [Op.eq]: uuid },
-      };
-    } else if (query && uuid) {
-      whereClause = {
-        [Op.or]: [
-          { uuid: { [Op.eq]: uuid } },
-          Sequelize.literal(
-            `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}' `
-          ),
-        ],
-      };
-      whereClauseTempo = {
-        [Op.or]: [
-          Sequelize.literal(
-            `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
-          ),
-        ],
-      };
-    } else {
-      if (!query) throw new BadRequest("Debe ingresar un término a buscar.");
-      (whereClause = cursor
-        ? {
-            [Op.or]: [
-              Sequelize.literal(
-                `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
-              ),
-            ],
-          }
-        : Sequelize.literal(
-            `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
-          )),
-        (whereClauseTempo = {
-          [Op.or]: [
-            Sequelize.literal(
-              `(content || '') &@~ '${query}' OR (content || '' || '') &@~ '${query}'`
-            ),
-          ],
-        });
-    }
-
-    let whereClause2 = {};
-    if (anime_id) {
-      whereClause2 = {
-        id: anime_id,
-      };
-    }
-
-    let order: string[][] = [];
+    // Orden por defecto
+    let sort = "";
     if (content_sort) {
-      if (content_sort.toLowerCase() == "asc") {
-        order = [["content_length", "ASC"]];
-      } else if (content_sort.toLowerCase() == "desc") {
-        order = [["content_length", "DESC"]];
+      if (
+        content_sort.toLowerCase() === "asc" ||
+        content_sort.toLowerCase() === "desc"
+      ) {
+        sort = ` ORDER BY v.content_length ${content_sort.toUpperCase()}`;
       }
     }
 
-    const results = await Segment.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: Episode,
-          required: true,
-          include: [
-            {
-              model: Season,
-              required: true,
-              include: [
-                {
-                  model: Media,
-                  required: true,
-                  where: whereClause2,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      // @ts-ignore
-      order: order,
-      limit: limit,
-      offset: offset,
-    });
+    if (anime_id) {
+      whereClause = ` AND me.id = ${anime_id} `;
+    }
 
-    // Get total number of results without limit
-    const results_temp = await Segment.findAll({
-      where: whereClauseTempo,
-      include: [
-        {
-          model: Episode,
-          required: true,
-          include: [
-            {
-              model: Season,
-              required: true,
-              include: [
-                {
-                  model: Media,
-                  required: true,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      order: [["position", "ASC"]],
-    });
-
-    let uniqueTitles = results_temp.reduce(
-      (titles: { [key: string]: any }, item) => {
-        const animeTitle = item?.episode?.season?.media?.english_name;
-        const animeId = item?.episode?.season?.media?.id;
-
-        if (animeTitle) {
-          if (!titles.hasOwnProperty(animeTitle)) {
-            titles[animeTitle] = {
-              amount_sentences_found: 0,
-              ids: [],
-            };
-          }
-          titles[animeTitle].amount_sentences_found++;
-          titles[animeTitle].ids.push(animeId);
-        }
-        return titles;
-      },
-      {}
-    );
-
-    uniqueTitles = Object.entries(uniqueTitles).map(([anime, data]) => ({
-      anime_id: data?.ids[0],
-      name_anime_en: anime,
-      amount_sentences_found: data?.amount_sentences_found,
-    }));
-
-    if (!results)
-      throw new NotFound("No se han encontrado palabras en la base de datos.");
+    if (query && !uuid) {
+      sql =
+        `
+        WITH Variations AS (
+          SELECT variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+          FROM nadedb.public."Segment" s
+          INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
+          INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
+          INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id,
+          LATERAL get_variations(s.content, '${query}') as variations
+          WHERE (((s.content || '' )) &@~ ja_expand('${query}')
+           OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
+        whereClause +
+        `)
+        SELECT pgroonga_highlight_html(v.content,
+                                       v.possible_highlights) as content_highlight, v.*
+        FROM Variations v${sort} LIMIT ${limit} OFFSET ${offset};
+      `;
+      results = await connection.query(sql);
+    }
 
     const simplifiedResults = buildSimplifiedResults(req, results);
 
-    const nextCursor = cursor ? cursor + results.length : results.length + 1;
+    const full_results_query =
+      `WITH Variations AS (
+        SELECT variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+        FROM nadedb.public."Segment" s
+        INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
+        INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
+        INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id,
+        LATERAL get_variations(s.content, '${query}') as variations
+        WHERE (((s.content || '' )) &@~ ja_expand('${query}')
+        OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
+      whereClause +
+      `)
+      SELECT media_id, english_name, japanese_name, COUNT(*) AS sentence_count
+      FROM Variations
+      GROUP BY media_id, english_name, japanese_name;
+    `;
+
+    const full_results = await connection.query(full_results_query);
+
+    let uniqueTitles = (full_results[0] as any[]).map((result) => ({
+      anime_id: result["media_id"],
+      name_anime_en: result["english_name"],
+      name_anime_jp: result["japanese_name"],
+      amount_sentences_found: result["sentence_count"],
+    }));
+
+    const nextCursor = cursor
+      ? cursor + results[0].length
+      : results[0].length + 1;
 
     return res.status(StatusCodes.ACCEPTED).json({
-      sentences: simplifiedResults,
       statistics: uniqueTitles,
+      sentences: simplifiedResults,
       cursor: nextCursor,
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -367,40 +299,39 @@ export const GetContextAnime = async (
   }
 };
 
-function buildSimplifiedResults(req: Request, results: Segment[]) {
+function buildSimplifiedResults(req: Request, results: any) {
   let protocol: string = "";
   if (process.env.ENVIRONMENT === "production") {
     protocol = "https";
   } else if (process.env.ENVIRONMENT == "testing") {
     protocol = "http";
   }
-  return results.map((result) => {
-    const seriesNamePath = result.episode.season.media.folder_media_name;
-    const seasonNumberPath = `S${result.episode.season.number
-      .toString()
-      .padStart(2, "0")}`;
-    const episodeNumberPath = `E${result.episode.number
+  return (results[0] as any[]).map((result) => {
+    const seriesNamePath = result["folder_media_name"];
+    const seasonNumberPath = `S${result["season"].toString().padStart(2, "0")}`;
+    const episodeNumberPath = `E${result["episode"]
       .toString()
       .padStart(2, "0")}`;
 
     return {
       basic_info: {
-        id_anime: result.episode.season.media.id,
-        name_anime_en: result.episode.season.media.english_name,
-        name_anime_jp: result.episode.season.media.japanese_name,
-        season: result.episode.season.number,
-        episode: result.episode.number,
+        id_anime: result["media_id"],
+        name_anime_en: result["english Name"],
+        name_anime_jp: result["japanese_name"],
+        season: result["season"],
+        episode: result["episode"],
       },
       segment_info: {
-        uuid: result.uuid,
-        position: result.position,
-        start_time: result.start_time,
-        end_time: result.end_time,
-        content_jp: result.content,
-        content_en: result.content_english,
-        content_en_mt: result.content_english_mt || true,
-        content_es: result.content_spanish,
-        content_es_mt: result.content_spanish_mt || true,
+        uuid: result["uuid"],
+        position: result["position"],
+        start_time: result["start_time"],
+        end_time: result["end_time"],
+        content_jp: result["content"],
+        content_highlight: result["content_highlight"],
+        content_en: result["content_english"],
+        content_en_mt: result["content_english_mt"] || true,
+        content_es: result["content_spanish"],
+        content_es_mt: result["content_spanish_mt"] || true,
       },
       media_info: {
         path_image: url.format({
@@ -411,7 +342,7 @@ function buildSimplifiedResults(req: Request, results: Segment[]) {
             seriesNamePath,
             seasonNumberPath,
             episodeNumberPath,
-            result.path_image,
+            result["path_image"],
           ].join("/"),
         }),
         path_audio: url.format({
@@ -422,7 +353,7 @@ function buildSimplifiedResults(req: Request, results: Segment[]) {
             seriesNamePath,
             seasonNumberPath,
             episodeNumberPath,
-            result.path_audio,
+            result["path_audio"],
           ].join("/"),
         }),
       },
