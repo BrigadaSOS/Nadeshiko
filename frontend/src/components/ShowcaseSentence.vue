@@ -1145,6 +1145,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 .keyword {
   text-decoration: underline;
   text-underline-offset: 0.2em;
-  color: rgb(251, 120, 120); /* o el valor correspondiente al rojo-400 en tu paleta de colores */
+  color: rgb(251, 120, 120); 
 }
 </style>
