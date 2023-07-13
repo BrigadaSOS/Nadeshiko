@@ -95,48 +95,83 @@ BEGIN
         ELSEIF(inflected_type  like '%五段%') THEN
             RAISE NOTICE '%', inflected_type;
             -- Part one: base form + godan case
-            -- Part two: verbal times (TODO)
+            -- Part two: verbal times
+            -- part three: potential, causative, etc (TODO)
             -- Refer to this video for more details about godan conjugation: https://www.youtube.com/watch?v=FhyrskGBKHE
             IF(RIGHT(base_form, 1) = 'う') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'い',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'わ',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'え',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'お'];
-            ELSEIF(RIGHT(base_form, 1) = 'く') THEN
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'って' ]);
+
+            ELSEIF(RIGHT(base_form, 1) = 'く' OR RIGHT(base_form, 1) = 'ぐ') THEN
+
+                IF(RIGHT(base_form, 1) = 'く') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'き',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'か',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'け',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'こ'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'いて' ]);
+                ELSEIF(RIGHT(base_form, 1) = 'ぐ') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'ぎ',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'が',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'げ',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'ご'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'いで' ]);
+                END IF;
+
             ELSEIF(RIGHT(base_form, 1) = 'す') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'し',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'さ',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'せ',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'そ'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'して' ]);
+
             ELSEIF(RIGHT(base_form, 1) = 'つ') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'ち',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'た',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'て',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'と'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'って' ]);
+
             ELSEIF(RIGHT(base_form, 1) = 'ぬ') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'に',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'な',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'ね',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'の'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'んで' ]);
+
             ELSEIF(RIGHT(base_form, 1) = 'ぶ') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'び',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'ば',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'べ',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'ぼ'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'んで' ]);
+
             ELSEIF(RIGHT(base_form, 1) = 'む') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'み',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'ま',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'め',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'も'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'んで' ]);
+
             ELSEIF(RIGHT(base_form, 1) = 'る') THEN
                 inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'り',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'ら',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'れ',
                                         LEFT(base_form, LENGTH(base_form) - 1) || 'ろ'];
+
+                inflected_word := array_cat(inflected_word, ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'って' ]);
+
             END IF;
         ELSE
             inflected_word := ARRAY[base_form];
