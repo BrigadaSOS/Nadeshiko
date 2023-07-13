@@ -93,12 +93,50 @@ BEGIN
             END IF;
         -- Godan
         ELSEIF(inflected_type  like '%五段%') THEN
-            --| 〜た (PAST, PLAIN)
-            IF(inflected_form = '連用タ接続') THEN
-                -- Verbs ending in 〜く change to 〜いた
-                IF(RIGHT(base_form, 1) = 'く') THEN
-                    inflected_word := ARRAY[(base_form, LENGTH(base_form) - 1) || 'いた'];
-                END IF;
+            RAISE NOTICE '%', inflected_type;
+            -- Part one: base form + godan case
+            -- Part two: verbal times (TODO)
+            -- Refer to this video for more details about godan conjugation: https://www.youtube.com/watch?v=FhyrskGBKHE
+            IF(RIGHT(base_form, 1) = 'う') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'い',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'わ',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'え',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'お'];
+            ELSEIF(RIGHT(base_form, 1) = 'く') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'き',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'か',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'け',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'こ'];
+            ELSEIF(RIGHT(base_form, 1) = 'す') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'し',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'さ',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'せ',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'そ'];
+            ELSEIF(RIGHT(base_form, 1) = 'つ') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'ち',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'た',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'て',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'と'];
+            ELSEIF(RIGHT(base_form, 1) = 'ぬ') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'に',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'な',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'ね',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'の'];
+            ELSEIF(RIGHT(base_form, 1) = 'ぶ') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'び',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'ば',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'べ',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'ぼ'];
+            ELSEIF(RIGHT(base_form, 1) = 'む') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'み',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'ま',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'め',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'も'];
+            ELSEIF(RIGHT(base_form, 1) = 'る') THEN
+                inflected_word := ARRAY[LEFT(base_form, LENGTH(base_form) - 1) || 'り',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'ら',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'れ',
+                                        LEFT(base_form, LENGTH(base_form) - 1) || 'ろ'];
             END IF;
         ELSE
             inflected_word := ARRAY[base_form];
@@ -193,7 +231,7 @@ CREATE INDEX idx_tatoeba_jpn_reading ON nadedb.public."Segment"
   );
 
 WITH Variations AS (
-    SELECT variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+    SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
     FROM nadedb.public."Segment" s
     INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
     INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
