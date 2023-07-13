@@ -197,7 +197,12 @@ const searchHandler = async (event) => {
   event.preventDefault()
   const searchTerm = querySearch.value.trim()
   if (searchTerm !== '') {
-    await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
+    if (type_sort.value === null) {
+      await router.push({ query: { query: querySearch.value } })
+    } else {
+      await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
+    }
+    console.log(type_sort.value)
     await getSentences(searchTerm)
   }
 }
@@ -467,7 +472,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         v-for="(sentence, index) in sentences"
         class="flex flex-col md:flex-row overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 rounded-none mt-4 w-100"
       >
-        <div class="h-64 w-auto md:w-6/12">
+        <div class="h-auto w-auto md:w-6/12">
           <img
             class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
             :src="sentence.media_info.path_image"
@@ -951,7 +956,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
 
-    <div v-if="sentences.length > 0" class="hidden w-3/12 lg:flex flex-col py-6">
+    <div v-if="statistics.length > 1" class="hidden w-3/12 lg:flex flex-col py-6 ml-10">
       <div id="search-anime" class="sticky -mt-2">
         <div class="relative">
           <div class="hs-dropdown relative inline-block w-full z-30">
@@ -1145,6 +1150,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 .keyword {
   text-decoration: underline;
   text-underline-offset: 0.2em;
-  color: rgb(251, 120, 120); 
+  color: rgb(251, 120, 120);
 }
 </style>

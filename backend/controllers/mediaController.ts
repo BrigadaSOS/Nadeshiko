@@ -206,7 +206,6 @@ export const SearchAnimeSentences = async (
         LATERAL get_variations(s.content, '${query}') as variations
         WHERE (((s.content || '' )) &@~ ja_expand('${query}')
         OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
-      whereClause +
       `)
       SELECT media_id, english_name, japanese_name, COUNT(*) AS sentence_count
       FROM Variations
@@ -292,7 +291,7 @@ function buildSimplifiedResults(req: Request, results: any) {
     return {
       basic_info: {
         id_anime: result["media_id"],
-        name_anime_en: result["english Name"],
+        name_anime_en: result["english_name"],
         name_anime_jp: result["japanese_name"],
         season: result["season"],
         episode: result["episode"],
