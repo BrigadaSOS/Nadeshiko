@@ -100,7 +100,6 @@ export const generateURLAudio = async (
  * @param {string} randomFilename - Nombre del archivo MP3 fusionado generado aleatoriamente.
  * @returns {Promise<void>} - Resuelve cuando la fusión de archivos se completa correctamente.
  */
-
 const mergeMp3Files = async (urls: string[], randomFilename: string) => {
   const outputFilePath = path.join(tempDirectory, randomFilename);
 

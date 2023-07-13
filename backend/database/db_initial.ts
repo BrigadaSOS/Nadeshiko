@@ -186,9 +186,24 @@ export async function readSpecificDirectory(
   // Verifica si el contenido multimedia existe en el backend
   if (folderExists(animeDirPath)) {
     // Verifica si existe el anime en la base de datos
+    // Verifica la existencia de un archivo JSON con la info
+    const dataJsonPath = path.join(animeDirPath, "info.json");
+    const dataJsonExists = fs.existsSync(dataJsonPath);
+
+    let media_raw = null;
+
+    if (dataJsonExists) {
+      try {
+        const jsonString = fs.readFileSync(dataJsonPath);
+        media_raw = JSON.parse(jsonString);
+      } catch (error) {
+        console.log("Error reading JSON file:", error);
+        return "Error reading JSON file: " + error;
+      }
+    }
 
     animeFound = await Media.findOne({
-      where: { english_name: folder_name },
+      where: { folder_media_name: folder_name },
       include: include,
     });
 
@@ -213,7 +228,7 @@ export async function readSpecificDirectory(
         } else if (!season && !episode) {
           await animeFound.destroy();
           try {
-            await fullSyncSpecificAnime(animeFound, folder_name, animeDirPath);
+            await fullSyncSpecificAnime(animeFound, media_raw, animeDirPath);
             return "Anime has been added to the database.";
           } catch (error) {
             return error;
@@ -224,7 +239,7 @@ export async function readSpecificDirectory(
       }
     } else {
       try {
-        await fullSyncSpecificAnime(animeFound, folder_name, animeDirPath);
+        await fullSyncSpecificAnime(animeFound, media_raw, animeDirPath);
         return "Anime has been added to the database.";
       } catch (error) {
         return error;
@@ -237,13 +252,15 @@ export async function readSpecificDirectory(
 
 async function fullSyncSpecificAnime(
   animeFound: Media | null,
-  folder_name: string,
+  media_raw: any,
   animeDirPath: string
 ) {
   try {
     animeFound = await Media.create(
       {
-        english_name: folder_name,
+        english_name: media_raw.english_name,
+        japanese_name: media_raw.japanese_name,
+        folder_media_name: media_raw.folder_media_name,
         id_category: 1,
       },
       { include: Category }
@@ -315,7 +332,6 @@ async function fullSyncSpecificAnime(
 }
 
 // Funciones menores
-
 function folderExists(path: string) {
   try {
     fs.statSync(path);
