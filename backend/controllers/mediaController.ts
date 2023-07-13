@@ -177,7 +177,7 @@ export const SearchAnimeSentences = async (
       sql =
         `
         WITH Variations AS (
-          SELECT variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+          SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
           FROM nadedb.public."Segment" s
           INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
           INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
@@ -198,7 +198,7 @@ export const SearchAnimeSentences = async (
 
     const full_results_query =
       `WITH Variations AS (
-        SELECT variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+        SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
         FROM nadedb.public."Segment" s
         INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
         INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
