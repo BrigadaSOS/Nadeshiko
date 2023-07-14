@@ -220,8 +220,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
       method: 'POST',
       mode: 'cors',
       headers: {
-        'Content-Type': 'application/json',
-        "x-api-key": import.meta.env.VITE_APP_X_API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         query: searchTerm,

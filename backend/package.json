@@ -17,6 +17,7 @@
     "@ephys/sequelize-cursor-pagination": "^7.0.0-alpha.25",
     "axion": "^0.1.0",
     "axios": "^1.4.0",
+    "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.1.1",
