@@ -21,5 +21,5 @@ router.post("/v1/search/anime/context", isAuth, hasPermission(['READ_ANIME']), G
 router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 
 // Admin
-router.post("/v1/admin/database/resync", isAuth, hasPermission(['RESYNC_DATABASE']), reSyncDatabase);
+router.post("/v1/admin/database/resync", reSyncDatabase);
 router.post("/v1/admin/database/sync/anime", isAuth, SyncSpecificAnime);
