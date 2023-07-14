@@ -39,7 +39,7 @@ async function getContextSentence(item) {
   selectedCheckboxes.value = []
   let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/context', {
     method: 'POST',
-    mode: 'no-cors',
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
     },
