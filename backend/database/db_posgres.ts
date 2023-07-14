@@ -38,7 +38,7 @@ const connection = new Sequelize({
     ApiAuthPermission,
     User,
   ],
-  logging: true,
+  logging: false,
   pool: {
     max: 5,
     min: 0,
