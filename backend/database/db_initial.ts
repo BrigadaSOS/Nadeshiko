@@ -5,18 +5,36 @@ import { Episode } from "../models/media/episode";
 import { Segment } from "../models/media/segment";
 import { Category } from "../models/media/category";
 
+import { ApiAuth } from "../models/api/apiAuth";
+import { User } from "../models/user/user";
+
 const fs = require("fs");
 const csv = require("csv-parser");
 
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
-  await db.Category.create({
-    name: "Anime",
-  });
+  await db.Category.bulkCreate([{ name: "Anime" }, { name: "Book" }]);
 
-  await db.Category.create({
-    name: "Book",
-  });
+  await db.ApiPermission.bulkCreate([
+    { name: "ADD_ANIME" },
+    { name: "READ_ANIME" },
+    { name: "REMOVE_ANIME" },
+    { name: "UPDATE_ANIME" },
+    { name: "RESYNC_DATABASE" },
+  ]);
+
+  await User.create(
+    {
+      "username": "Nadeshiko",
+      "email": "Jonathan.197ariza@gmail.com",
+      "apiAuth": {
+        "token": "1234",
+        "createdAt": Date.now(),
+        "isActive": true,
+      },
+    },
+    { include: ApiAuth }
+  );
 }
 
 // Función que lee todos los directorios y los mapea en la base de datos
@@ -274,8 +292,8 @@ async function fullSyncSpecificAnime(
   // Lee cada temporada y empieza a mapearla en la base de datos
   const seasonDirectories = fs
     .readdirSync(animeDirPath, { withFileTypes: true })
-    .filter((dirent: { isDirectory: () => any; }) => dirent.isDirectory())
-    .map((dirent: { name: any; }) => dirent.name);
+    .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
+    .map((dirent: { name: any }) => dirent.name);
 
   for (const seasonDirname of seasonDirectories) {
     const number_season = parseInt(seasonDirname.replace("S", ""));
