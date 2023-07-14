@@ -4,14 +4,22 @@ import { Season } from "../models/media/season";
 import { Episode } from "../models/media/episode";
 import { Segment } from "../models/media/segment";
 import { Category } from "../models/media/category";
-
+import { v4 as uuidv4 } from "uuid";
 import { ApiAuth } from "../models/api/apiAuth";
 import { User } from "../models/user/user";
 import { ApiPermission } from "../models/api/apiPermission";
 import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
+import crypto from "crypto";
 
 const fs = require("fs");
 const csv = require("csv-parser");
+
+
+function hashApiKey(apiKey: string) {
+    const hashedKey = crypto.createHash("sha256").update(apiKey).digest("hex");
+    return hashedKey;
+}
+
 
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
@@ -32,13 +40,14 @@ export async function addBasicData(db: any) {
     "UPDATE_ANIME",
     "RESYNC_DATABASE",
   ];
-
+  
+  const api_key = uuidv4()
   const newUser = await User.create(
     {
-      username: "Nadeshiko",
-      email: "brigadasosjapones@gmail.com",
+      username: process.env.USERNAME_API_NADEDB,
+      email: process.env.EMAIL_API_NADEDB,
       apiAuth: {
-        token: "1234",
+        token: hashApiKey(api_key),
         createdAt: new Date(),
         isActive: true,
       },
@@ -47,6 +56,8 @@ export async function addBasicData(db: any) {
       include: ApiAuth,
     }
   );
+
+  console.log('This is your API key: ', api_key, '.Please save it. You can only see it once.');
 
   const apiAuth = newUser.apiAuth;
 
