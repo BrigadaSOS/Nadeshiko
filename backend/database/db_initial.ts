@@ -7,6 +7,8 @@ import { Category } from "../models/media/category";
 
 import { ApiAuth } from "../models/api/apiAuth";
 import { User } from "../models/user/user";
+import { ApiPermission } from "../models/api/apiPermission";
+import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
 
 const fs = require("fs");
 const csv = require("csv-parser");
@@ -23,17 +25,44 @@ export async function addBasicData(db: any) {
     { name: "RESYNC_DATABASE" },
   ]);
 
-  await User.create(
+  const permissions = [
+    "ADD_ANIME",
+    "READ_ANIME",
+    "REMOVE_ANIME",
+    "UPDATE_ANIME",
+    "RESYNC_DATABASE",
+  ];
+
+  const newUser = await User.create(
     {
-      "username": "Nadeshiko",
-      "email": "Jonathan.197ariza@gmail.com",
-      "apiAuth": {
-        "token": "1234",
-        "createdAt": Date.now(),
-        "isActive": true,
+      username: "Nadeshiko",
+      email: "brigadasosjapones@gmail.com",
+      apiAuth: {
+        token: "1234",
+        createdAt: new Date(),
+        isActive: true,
       },
     },
-    { include: ApiAuth }
+    {
+      include: ApiAuth,
+    }
+  );
+
+  const apiAuth = newUser.apiAuth;
+
+  const apiPermissions = await ApiPermission.findAll({
+    where: {
+      name: permissions,
+    },
+  });
+
+  await Promise.all(
+    apiPermissions.map(async (permission) => {
+      await ApiAuthPermission.create({
+        apiAuthId: apiAuth.id,
+        apiPermissionId: permission.id,
+      });
+    })
   );
 }
 
