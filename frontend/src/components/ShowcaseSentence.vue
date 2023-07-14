@@ -480,12 +480,12 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           />
         </div>
         <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
-          <div className="flex">
-            <button class="focus:outline-none" @click="playSound(sentence.media_info.path_audio)">
+          <div className="inline-flex text-center items-center justify-center">
+            <button class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl text-center items-center" @click="playSound(sentence.media_info.path_audio)">
               <svg
                 aria-hidden="true"
-                class="w-6 mx-2 fill-white hover:fill-gray-400 text-white dark:text-white"
-                viewBox="0 0 150 150"
+                class="w-6 mx-auto ml-0.5 fill-white  text-white dark:text-white"
+                viewBox="0 0 130 130"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
@@ -496,7 +496,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 ></path>
               </svg>
             </button>
-            <h3 class="font-semibold text-xl leading-tight">
+            <h3 class="font-semibold ml-2 text-xl leading-tight">
               <span v-html="sentence.segment_info.content_highlight"></span>
             </h3>
           </div>
