@@ -15,7 +15,7 @@ export const reSyncDatabase = async (
     await connection.sync({ force: true }).then(async () => {
       const db = connection.models;
       await addBasicData(db);
-      await readAnimeDirectories(mediaDirectory);
+      // await readAnimeDirectories(mediaDirectory);
     });
     res.status(StatusCodes.OK).json({ message: "Database re-synced" });
   } catch (error) {
