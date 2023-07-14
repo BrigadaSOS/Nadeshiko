@@ -14,10 +14,8 @@
   "license": "ISC",
   "dependencies": {
     "@enjoyjs/node-mecab": "^0.5.0",
-    "@ephys/sequelize-cursor-pagination": "^7.0.0-alpha.25",
     "axion": "^0.1.0",
     "axios": "^1.4.0",
-    "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.1.1",
@@ -31,7 +29,6 @@
     "newrelic": "^10.3.2",
     "pg": "^8.11.0",
     "sequelize": "^6.25.5",
-    "sequelize-cursor-pagination": "^3.4.0",
     "sequelize-typescript": "^2.1.5",
     "sharp": "^0.32.1",
     "ts-node": "^10.9.1",
