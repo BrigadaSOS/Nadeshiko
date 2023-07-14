@@ -56,6 +56,7 @@ export const isAuth = async (req: any, res: Response, next: NextFunction) => {
           },
         ],
       });
+      console.log(user)
 
       if (!user) {
         return res.status(401).json({ error: "Invalid API key." });
