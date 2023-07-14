@@ -39,7 +39,6 @@ async function getContextSentence(item) {
   selectedCheckboxes.value = []
   let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/context', {
     method: 'POST',
-    mode: 'cors',
     headers: {
       'Content-Type': 'application/json'
     },
@@ -128,7 +127,6 @@ const getSelectedCheckboxes = async () => {
   try {
      response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
       method: 'POST',
-      mode: 'cors',
       headers: {
         'Content-Type': 'application/json'
       },
