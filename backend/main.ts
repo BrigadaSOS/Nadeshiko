@@ -26,7 +26,7 @@ app.use(function (_req, res, next) {
   // Request headers you wish to allow
   res.setHeader(
     "Access-Control-Allow-Headers",
-    ["X-Requested-With", "content-type", "newrelic", "traceparent", "tracestate"]
+    ["X-Requested-With", "content-type", "newrelic", "traceparent", "tracestate", "x-api-key"]
   );
 
   // Set to true if you need the website to include cookies in the requests sent
