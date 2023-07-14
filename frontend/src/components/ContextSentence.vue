@@ -41,8 +41,7 @@ async function getContextSentence(item) {
     method: 'POST',
     mode: 'cors',
     headers: {
-      'Content-Type': 'application/json',
-      "x-api-key": import.meta.env.VITE_APP_X_API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       id_anime: item.basic_info.id_anime,
