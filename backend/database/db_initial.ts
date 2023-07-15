@@ -102,7 +102,7 @@ export async function readAnimeDirectories(baseDir: string) {
           {
             english_name: media_raw.english_name,
             japanese_name: media_raw.japanese_name,
-            folder_media_name: media_raw.folder_media_name,
+            folder_media_name: media_raw.folder_media_anime,
             id_category: 1,
           },
           { include: Category }
@@ -318,7 +318,7 @@ async function fullSyncSpecificAnime(
       {
         english_name: media_raw.english_name,
         japanese_name: media_raw.japanese_name,
-        folder_media_name: media_raw.folder_media_name,
+        folder_media_name: media_raw.folder_media_anime,
         id_category: 1,
       },
       { include: Category }
