@@ -403,7 +403,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       }}</label>
       <div class="relative lg:w-11/12 mx-auto mt-4">
         <div class="flex">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <div class="absolute inset-y-0 left-0 flex items-center justify-center pl-3 pointer-events-none">
             <div
               v-if="
                 (!isLoading && error_connection === true) ||
@@ -445,7 +445,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               autocomplete="off"
               autocorrect="off"
               rows="1"
-              class="block w-full p-4 resize-none pl-10 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+              class="block w-full p-4 resize-none pl-10 text-sm h-[55px] text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
               :placeholder="placeholder_search1"
               required
               @keydown.enter="searchHandler"
