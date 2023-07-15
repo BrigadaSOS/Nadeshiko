@@ -481,7 +481,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         </div>
         <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
           <div className="inline-flex text-center items-center justify-center">
-            <button class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl text-center items-center" @click="playSound(sentence.media_info.path_audio)">
+            <button class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center" @click="playSound(sentence.media_info.path_audio)">
               <svg
                 aria-hidden="true"
                 class="w-6 mx-auto ml-0.5 fill-white  text-white dark:text-white"
@@ -503,7 +503,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 
           <h4 class="font-normal text-sm leading-tight my-4">
             <span
-              class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-500"
+              class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-700"
             >
               {{ t('searchpage.main.labels.translation') }}
             </span>
