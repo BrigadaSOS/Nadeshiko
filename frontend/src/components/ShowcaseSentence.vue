@@ -438,14 +438,17 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             </div>
           </div>
           <div class="flex flex-1">
-            <input
+            <textarea
               v-model="querySearch"
               type="search"
               id="default-search"
               autocomplete="off"
-              class="block w-full p-4 pl-10 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+              autocorrect="off"
+              rows="1"
+              class="block w-full p-4 resize-none pl-10 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
               :placeholder="placeholder_search1"
               required
+              @keydown.enter="searchHandler"
             />
             <a
               @click="showModalSettingsSearch()"
@@ -480,7 +483,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           />
         </div>
         <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
-          <div className="inline-flex text-center items-center justify-center">
+          <div className="inline-flex items-center justify-center">
             <button class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center" @click="playSound(sentence.media_info.path_audio)">
               <svg
                 aria-hidden="true"
