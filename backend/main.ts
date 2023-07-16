@@ -51,16 +51,18 @@ if (process.env.ENVIRONMENT === "testing") {
   );
 } else if (process.env.ENVIRONMENT === "production") {
   // Access media uploaded from outside (DigitalOcean)
-  let mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
-  let tmpDirectory : string = process.env.TMP_DIRECTORY!;
+  const mediaUrlPath: string = process.env.BASE_URL_MEDIA!;
+  const tmpUrlPath: string = process.env.BASE_URL_TMP!;
+  const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
+  const tmpDirectory : string = process.env.TMP_DIRECTORY!;
   app.use(
-    "/api/media/anime",
+    mediaUrlPath,
     express.static(mediaDirectory, {
       fallthrough: false,
     })
   );
   app.use(
-    "/api/media/tmp",
+    tmpUrlPath,
     express.static(tmpDirectory, {
       fallthrough: false,
     })
