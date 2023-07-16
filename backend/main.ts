@@ -52,6 +52,7 @@ if (process.env.ENVIRONMENT === "testing") {
 } else if (process.env.ENVIRONMENT === "production") {
   // Access media uploaded from outside (DigitalOcean)
   let mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
+  let tmpDirectory : string = process.env.TMP_DIRECTORY!;
   app.use(
     "/api/media/anime",
     express.static(mediaDirectory, {
@@ -60,7 +61,7 @@ if (process.env.ENVIRONMENT === "testing") {
   );
   app.use(
     "/api/media/tmp",
-    express.static(mediaDirectory, {
+    express.static(tmpDirectory, {
       fallthrough: false,
     })
   );
