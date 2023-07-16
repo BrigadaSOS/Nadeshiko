@@ -57,7 +57,7 @@ spec:
           ports:
             - containerPort: 5000
           volumeMounts:
-            - mountPath: /app/
+            - mountPath: /data/
               name: brigadasos-db-vol
       volumes:
         - name: brigadasos-db-vol
