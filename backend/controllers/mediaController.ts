@@ -17,7 +17,7 @@ import fs from "fs";
 
 const BASE_URL_MEDIA = process.env.BASE_URL_MEDIA;
 const BASE_URL_TMP = process.env.BASE_URL_TMP;
-const tempDirectory: string = process.env.TEMP_DIRECTORY!;
+const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
  * Genera una URL con el acceso al archivo MP3.
@@ -58,7 +58,7 @@ export const generateURLAudio = async (
     let outputUrl = "";
     // Verifica si el archivo ya existe en la carpeta temporal
     const filePathAPI = [BASE_URL_TMP, randomFilename].join("/");
-    const filePath = [tempDirectory, randomFilename].join("/");
+    const filePath = [tmpDirectory, randomFilename].join("/");
     if (fs.existsSync(filePath)) {
       outputUrl = url.format({
         protocol: protocol,
@@ -101,7 +101,7 @@ export const generateURLAudio = async (
  * @returns {Promise<void>} - Resuelve cuando la fusión de archivos se completa correctamente.
  */
 const mergeMp3Files = async (urls: string[], randomFilename: string) => {
-  const outputFilePath = path.join(tempDirectory, randomFilename);
+  const outputFilePath = path.join(tmpDirectory, randomFilename);
 
   try {
     const fileStreams = await Promise.all(

@@ -1,7 +1,7 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: brigadasos-db-anime-pv
+  name: brigadasos-db-pv
   namespace: nadedb
   labels:
     type: local
@@ -9,16 +9,16 @@ metadata:
 spec:
   storageClassName: manual
   capacity:
-    storage: 50Gi
+    storage: 80Gi
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "/mnt/nadedb/anime"
+    path: "/mnt/nadedb/"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: brigadasos-db-anime-pv-claim
+  name: brigadasos-db-pv-claim
   namespace: nadedb
   labels:
     app: brigadasos-db
@@ -57,12 +57,12 @@ spec:
           ports:
             - containerPort: 5000
           volumeMounts:
-            - mountPath: /media/anime
-              name: brigadasos-db-anime-vol
+            - mountPath: /app/
+              name: brigadasos-db-vol
       volumes:
-        - name: brigadasos-db-anime-vol
+        - name: brigadasos-db-vol
           persistentVolumeClaim:
-            claimName: brigadasos-db-anime-pv-claim
+            claimName: brigadasos-db-pv-claim
 ---
 apiVersion: v1
 kind: Service
