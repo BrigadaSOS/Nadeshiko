@@ -60,6 +60,7 @@ onBeforeRouteUpdate(async (to, from) => {
     type_sort.value = sortFilter
     await getSentences(searchTerm)
   }
+
 })
 
 onMounted(async () => {
