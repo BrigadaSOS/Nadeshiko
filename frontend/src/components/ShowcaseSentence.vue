@@ -77,6 +77,8 @@ onMounted(async () => {
     type_sort.value = 'asc'
   } else if (sortFilter === 'desc') {
     type_sort.value = 'desc'
+  } else if (sortFilter === 'random') {
+    type_sort.value = 'random'
   } else {
     type_sort.value = null
   }
@@ -484,10 +486,13 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         </div>
         <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
           <div className="inline-flex items-center justify-center">
-            <button class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center" @click="playSound(sentence.media_info.path_audio)">
+            <button
+              class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
+              @click="playSound(sentence.media_info.path_audio)"
+            >
               <svg
                 aria-hidden="true"
-                class="w-6 mx-auto ml-0.5 fill-white  text-white dark:text-white"
+                class="w-6 mx-auto ml-0.5 fill-white text-white dark:text-white"
                 viewBox="0 0 130 130"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -986,6 +991,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 {{ t('searchpage.main.buttons.sortmain') }}
                 <span v-if="type_sort === 'asc'">({{ t('searchpage.main.buttons.sortlengthmin') }})</span>
                 <span v-else-if="type_sort === 'desc'">({{ t('searchpage.main.buttons.sortlengthmax') }})</span>
+                <span v-else-if="type_sort === 'random'">({{ t('searchpage.main.buttons.sortrandom') }})</span>
               </div>
               <svg
                 class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white"
@@ -1049,6 +1055,20 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   />
                 </svg>
                 {{ t('searchpage.main.buttons.sortlengthmax') }}
+              </a>
+              <a
+                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                @click="sortFilter('random')"
+              >
+                <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path
+                    d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z"
+                  />
+                  <path
+                    d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"
+                  />
+                </svg>
+                {{ t('searchpage.main.buttons.sortrandom') }}
               </a>
             </div>
           </div>
