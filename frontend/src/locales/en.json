@@ -25,6 +25,7 @@
         "sortlengthnone": "None",
         "sortlengthmin": "Shortest",
         "sortlengthmax": "Largest",
+        "sortrandom": "Random",
         "search": "Search"
       },
       "labels": {

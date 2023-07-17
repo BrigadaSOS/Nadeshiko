@@ -165,6 +165,8 @@ export const SearchAnimeSentences = async (
         content_sort.toLowerCase() === "desc"
       ) {
         sort = ` ORDER BY v.content_length ${content_sort.toUpperCase()}`;
+      }else if(content_sort.toLowerCase() === "random"){
+        sort = ` ORDER BY RANDOM()`;
       }
     }
 
