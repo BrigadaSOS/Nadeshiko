@@ -188,7 +188,7 @@ export const SearchAnimeSentences = async (
            OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
         whereClause +
         `)
-        SELECT pgroonga_highlight_html(v.content,
+        SELECT DISTINCT pgroonga_highlight_html(v.content,
                                        v.possible_highlights) as content_highlight, v.*
         FROM Variations v${sort} LIMIT ${limit} OFFSET ${offset};
       `;
@@ -208,7 +208,7 @@ export const SearchAnimeSentences = async (
         WHERE (((s.content || '' )) &@~ ja_expand('${query}')
         OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
       `)
-      SELECT media_id, english_name, japanese_name, COUNT(*) AS sentence_count
+      SELECT DISTINCT media_id, english_name, japanese_name, COUNT(*) AS sentence_count
       FROM Variations
       GROUP BY media_id, english_name, japanese_name;
     `;
