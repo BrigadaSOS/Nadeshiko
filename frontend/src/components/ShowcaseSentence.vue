@@ -67,6 +67,7 @@ onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
   const searchTerm = urlParams.get('query')
   const sortFilter = urlParams.get('sort')
+  const animeId = urlParams.get('anime_id')
 
   isBannerClosed = localStorage.getItem('isBannerClosed')
   let element = document.getElementById('drawer-button')
@@ -84,13 +85,13 @@ onMounted(async () => {
   } else {
     type_sort.value = null
   }
-
   if (searchTerm && uuid.value) {
+    await getSentences(searchTerm, 0, animeId, uuid.value)
   } else if (searchTerm && !uuid.value) {
     querySearch.value = searchTerm
-    await getSentences(searchTerm)
+    await getSentences(searchTerm, 0, animeId)
   } else if (uuid.value) {
-    await getSentences('', '', '', uuid.value)
+    await getSentences('', '', animeId, uuid.value)
   }
 
   // Observa el elemento al final del contenedor solo si no hay un UUID
@@ -270,24 +271,24 @@ const loadMoreSentences = async (entries) => {
 }
 
 const filterAnime = async (anime_id) => {
-  next_cursor.value = null;
-  sentences.value = [];
-  window.scrollTo(0, 0);
-  const searchTerm = querySearch.value.trim();
-  
+  next_cursor.value = null
+  sentences.value = []
+  window.scrollTo(0, 0)
+  const searchTerm = querySearch.value.trim()
+
   if (searchTerm !== '') {
-    let queryParameters = { query: searchTerm };
+    let queryParameters = { query: searchTerm }
 
     if (['random', 'asc', 'desc'].includes(type_sort.value)) {
-      queryParameters.sort = type_sort.value;
+      queryParameters.sort = type_sort.value
     }
 
     if (anime_id !== 0) {
-      queryParameters.anime_id = anime_id;
+      queryParameters.anime_id = anime_id
     }
 
-    await router.push({ query: queryParameters });
-    await getSentences(searchTerm, 0, anime_id);
+    await router.push({ query: queryParameters })
+    await getSentences(searchTerm, 0, anime_id)
   }
 }
 
@@ -378,7 +379,7 @@ const sortFilter = async (type) => {
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
   window.scrollTo(0, 0)
-  
+
   if (type === 'none') {
     await router.push({ query: { query: querySearch.value } })
   } else if (type === 'asc' || type === 'desc' || type === 'random') {

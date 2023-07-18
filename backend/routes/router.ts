@@ -16,6 +16,7 @@ import { isAuth } from "../middleware/authorization";
 // Search
 router.post("/v1/search/anime/sentence", isAuth, hasPermission(['READ_ANIME']), SearchAnimeSentences);
 router.post("/v1/search/anime/context", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
+router.post("/v1/search/anime/info", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
 
 // Utility
 router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
