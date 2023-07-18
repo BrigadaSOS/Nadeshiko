@@ -241,7 +241,7 @@ const ampliarImagen = (url) => {
                   />
                 </div>
                 <div class="w-full py-4 px-6 text-white flex flex-col justify-between">
-                  <div className="inline-flex text-center items-center justify-center">
+                  <div className="inline-flex text-left items-center justify-center">
                     <button class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center" @click="playSound(sentence.media_info.path_audio)">
                       <svg
                         aria-hidden="true"
