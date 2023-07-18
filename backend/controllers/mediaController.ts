@@ -296,6 +296,75 @@ export const GetContextAnime = async (
   }
 };
 
+export const GetWordsMatched = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { words } = req.body;
+    console.log(words);
+
+
+    const  wordsFormatted = words.map(word => `'${word}'`).join(", ");
+
+    const sql = 
+    `WITH words AS (
+      SELECT UNNEST(ARRAY[${wordsFormatted}]) AS word
+    ), Variations AS (
+      SELECT 
+        words.word,
+        COALESCE(me.id, -1) AS mediaId,
+        COALESCE(me.english_name, '') AS englishName,
+        COALESCE(me.japanese_name, '') AS japaneseName,
+        COALESCE(me.folder_media_name, '') AS folderMediaName,  
+        COUNT(s.id) AS count
+      FROM 
+        words
+      LEFT JOIN LATERAL (
+          SELECT s.*, get_variations(s.content, words.word) as variations
+          FROM nadedb.public."Segment" s
+          WHERE ((s.content || '' ) &@~ ja_expand(words.word)
+              OR (s.content || '' || '') &@~ ja_expand(words.word))
+        ) s ON true
+      LEFT JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
+      LEFT JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
+      LEFT JOIN nadedb.public."Media" me ON se."mediaId" = me.id
+      GROUP BY 
+        words.word, me.id, me.english_name, me.japanese_name, me.folder_media_name
+    )
+    SELECT 
+      word, 
+      (SUM(count) > 0) AS isMatch,
+      SUM(count) as matches,
+      json_agg(
+        json_build_object(
+          'mediaId', mediaId, 
+          'english_name', englishName,
+          'japanese_name', japaneseName,
+          'folder_media_name', folderMediaName,
+          'count', count
+        )
+      ) FILTER (WHERE mediaId != -1) AS media
+    FROM 
+      Variations
+    GROUP BY
+      word`;
+  
+    
+
+    const resultados = await connection.query(sql);
+    console.log(resultados[0]);
+
+    return res.status(StatusCodes.ACCEPTED).json({
+      results: resultados[0],
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 function buildSimplifiedResults(req: Request, results: any) {
   let protocol: string = "";
   if (process.env.ENVIRONMENT === "production") {
