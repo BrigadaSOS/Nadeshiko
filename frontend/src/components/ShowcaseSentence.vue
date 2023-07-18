@@ -506,9 +506,9 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           />
         </div>
         <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
-          <div className="inline-flex items-center justify-center">
+          <div className="inline-flex items-start justify-center">
             <button
-              class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
+              class="focus:outline-none  bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
               @click="playSound(sentence.media_info.path_audio)"
             >
               <svg

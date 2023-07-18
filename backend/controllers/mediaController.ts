@@ -169,7 +169,6 @@ export const SearchAnimeSentences = async (
         sort = ` ORDER BY v.content_length ${content_sort.toUpperCase()}`;
       } else if (content_sort.toLowerCase() === "random") {
         if (random_seed !== null || random_seed !== undefined) {
-          console.log(random_seed)
           sql = `SELECT setseed(${random_seed});`;
           await connection.query(sql);
           sort = ` ORDER BY random()`;
@@ -257,23 +256,33 @@ export const GetContextAnime = async (
     const { id_anime, season, episode, index_segment, limit } = req.body;
 
     let whereClause = ` WHERE me.id = ${id_anime} AND se.number = ${season} AND ep.number = ${episode} `;
-    let limitClause = limit
-      ? ` AND ABS(s.position - ${index_segment}) <= ${limit} `
-      : "";
-    let orderByClause = ` ORDER BY s.position `;
-
     let sql =
       `
-      SELECT s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+    WITH ordered_segments AS (
+      SELECT s.*, ep.number as "episode", se.number as "season", 
+        me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id,
+        ROW_NUMBER() OVER (ORDER BY s.position) as row_number
       FROM nadedb.public."Segment" s
       INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
       INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
       INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id
       ` +
       whereClause +
-      limitClause +
-      orderByClause +
-      `;`;
+      `
+    ),
+    target_segment AS (
+      SELECT row_number
+      FROM ordered_segments
+      WHERE position = ${index_segment}
+    ),
+    context_segments AS (
+      SELECT *
+      FROM ordered_segments
+      WHERE row_number BETWEEN (SELECT row_number FROM target_segment) - ${limit}
+        AND (SELECT row_number FROM target_segment) + ${limit}
+    )
+    SELECT * FROM context_segments ORDER BY position;
+    `;
 
     let results = await connection.query(sql);
 
