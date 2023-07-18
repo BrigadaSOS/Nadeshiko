@@ -149,8 +149,10 @@ export const SearchAnimeSentences = async (
     // limit: cantidad de resultados por página
     // anime_id: id del anime (en caso de algún filtro)
     // uuid: id del anime (para una busqueda de una oración en específico)
-    // content_sort: ordenar por contenido (asc/desc)
-    const { query, cursor, limit, anime_id, uuid, content_sort } = req.body;
+    // content_sort: ordenar por contenido (asc/desc/random)
+    // random_seed: semilla para ordenar aleatoriamente. Obligatorio si content_sort = random
+    const { query, cursor, limit, anime_id, uuid, content_sort, random_seed } =
+      req.body;
     const offset = cursor ? cursor - 1 : 0;
     let results: any = null;
 
@@ -165,8 +167,18 @@ export const SearchAnimeSentences = async (
         content_sort.toLowerCase() === "desc"
       ) {
         sort = ` ORDER BY v.content_length ${content_sort.toUpperCase()}`;
-      }else if(content_sort.toLowerCase() === "random"){
-        sort = ` ORDER BY RANDOM()`;
+      } else if (content_sort.toLowerCase() === "random") {
+        if (random_seed !== null || random_seed !== undefined) {
+          console.log(random_seed)
+          sql = `SELECT setseed(${random_seed});`;
+          await connection.query(sql);
+          sort = ` ORDER BY random()`;
+        } else {
+          return res.status(StatusCodes.BAD_REQUEST).json({
+            message:
+              "You must provide a random seed to sort the results randomly. Values must be between -1 and 1",
+          });
+        }
       }
     }
 
@@ -188,7 +200,7 @@ export const SearchAnimeSentences = async (
            OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
         whereClause +
         `)
-        SELECT DISTINCT pgroonga_highlight_html(v.content,
+        SELECT pgroonga_highlight_html(v.content,
                                        v.possible_highlights) as content_highlight, v.*
         FROM Variations v${sort} LIMIT ${limit} OFFSET ${offset};
       `;
@@ -208,7 +220,7 @@ export const SearchAnimeSentences = async (
         WHERE (((s.content || '' )) &@~ ja_expand('${query}')
         OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
       `)
-      SELECT DISTINCT media_id, english_name, japanese_name, COUNT(*) AS sentence_count
+      SELECT media_id, english_name, japanese_name, COUNT(*) AS sentence_count
       FROM Variations
       GROUP BY media_id, english_name, japanese_name;
     `;

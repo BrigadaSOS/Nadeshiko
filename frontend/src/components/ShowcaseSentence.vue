@@ -46,6 +46,7 @@ let uuid = ref(null)
 let currentAudio = ref(null)
 let type_sort = ref(null)
 let metadata = ref(null)
+let random_seed = ref(null)
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -60,7 +61,6 @@ onBeforeRouteUpdate(async (to, from) => {
     type_sort.value = sortFilter
     await getSentences(searchTerm)
   }
-
 })
 
 onMounted(async () => {
@@ -80,6 +80,7 @@ onMounted(async () => {
     type_sort.value = 'desc'
   } else if (sortFilter === 'random') {
     type_sort.value = 'random'
+    random_seed.value = Math.random() * 2 - 1
   } else {
     type_sort.value = null
   }
@@ -205,7 +206,6 @@ const searchHandler = async (event) => {
     } else {
       await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
     }
-    console.log(type_sort.value)
     await getSentences(searchTerm)
   }
 }
@@ -231,7 +231,8 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
         anime_id: anime_id.value,
         uuid: uuid,
         limit: 10,
-        content_sort: type_sort.value
+        content_sort: type_sort.value,
+        random_seed: random_seed.value
       })
     })
     response = await response.json()
@@ -268,12 +269,26 @@ const loadMoreSentences = async (entries) => {
   }
 }
 
-// Función para filtrar por elementos encontrados
 const filterAnime = async (anime_id) => {
-  next_cursor.value = null
-  sentences.value = []
-  window.scrollTo(0, 0)
-  await getSentences(querySearch.value, 0, anime_id)
+  next_cursor.value = null;
+  sentences.value = [];
+  window.scrollTo(0, 0);
+  const searchTerm = querySearch.value.trim();
+  
+  if (searchTerm !== '') {
+    let queryParameters = { query: searchTerm };
+
+    if (['random', 'asc', 'desc'].includes(type_sort.value)) {
+      queryParameters.sort = type_sort.value;
+    }
+
+    if (anime_id !== 0) {
+      queryParameters.anime_id = anime_id;
+    }
+
+    await router.push({ query: queryParameters });
+    await getSentences(searchTerm, 0, anime_id);
+  }
 }
 
 // Habilita la reproducción de audio de las oraciones
@@ -363,9 +378,13 @@ const sortFilter = async (type) => {
   next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
   sentences.value = [] // Reiniciar la lista de oraciones
   window.scrollTo(0, 0)
+  
   if (type === 'none') {
     await router.push({ query: { query: querySearch.value } })
-  } else {
+  } else if (type === 'asc' || type === 'desc' || type === 'random') {
+    if (type === 'random') {
+      random_seed.value = Math.random() * 2 - 1
+    }
     await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
   }
   await getSentences(querySearch.value, 0, anime_id.value)
@@ -1107,7 +1126,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           >
             <li v-for="item in filteredAnimes">
               <button
-                @click="filterAnime(item.anime_id)"
+                @click="filterAnime(item.anime_id, item.name_anime_en)"
                 class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
               >
                 <span>{{ item.name_anime_en }}</span>
