@@ -156,10 +156,10 @@ watch(inputText, (newValue) => {
 
   <div
     id="hs-toggle-between-modals-second-modal"
-    class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
+    class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto "  
   >
     <div
-      class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] items-center"
+      class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out  transition-all lg:max-w-3xl m-3 sm:mx-auto flex  flex-col h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] "
     >
       <div
         class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
