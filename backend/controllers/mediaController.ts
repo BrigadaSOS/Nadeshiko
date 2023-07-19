@@ -304,7 +304,7 @@ export const GetWordsMatched = async (
   try {
     const { words } = req.body;
     const  wordsFormatted = words.map((word: string) => `'${word}'`).join(", ");
-    
+
     const sql = 
     `WITH words AS (
       SELECT UNNEST(ARRAY[${wordsFormatted}]) AS word
@@ -349,7 +349,6 @@ export const GetWordsMatched = async (
       word`;
   
     const resultados = await connection.query(sql);
-    console.log(resultados[0]);
 
     return res.status(StatusCodes.ACCEPTED).json({
       results: resultados[0],
