@@ -1,7 +1,7 @@
 <script setup>
 // Variado
 import { useHead } from '@vueuse/head'
-import { mdiTuneVariant } from '@mdi/js'
+import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
 import { useToast } from 'vue-toastification'
 import { ref, onMounted, computed } from 'vue'
 import { onBeforeRouteUpdate } from 'vue-router'
@@ -15,6 +15,7 @@ import ContextSentence from './ContextSentence.vue'
 import ReportModal from './Showcase/ReportModal.vue'
 import SidebarAnime from './Showcase/SidebarAnime.vue'
 import SettingsSearchModal from './Showcase/SettingsSearchModal.vue'
+import BatchSearchModal from './BatchSearchModal.vue'
 import LandingPageShowcase from './LandingPageShowcase.vue'
 
 // Configuración de lenguaje
@@ -35,6 +36,7 @@ let anime_id = ref(null)
 let isModalContextActive = ref(false)
 let isModalReportActive = ref(false)
 let isModalSettingsSearchActive = ref(false)
+let isModalBatchSearchActive = ref(false)
 let currentSentence = ref()
 let contextactive = ref()
 let status = ref()
@@ -328,6 +330,10 @@ const showModalSettingsSearch = async () => {
   isModalSettingsSearchActive.value = true
 }
 
+const showModalBatchSearch = async () => {
+  isModalBatchSearchActive.value = true
+}
+
 // Descarga el audio o imagen de la oración
 const downloadAudioOrImage = (url, filename) => {
   fetch(url)
@@ -508,7 +514,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
           <div className="inline-flex items-start justify-center">
             <button
-              class="focus:outline-none  bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
+              class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
               @click="playSound(sentence.media_info.path_audio)"
             >
               <svg
@@ -984,19 +990,33 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <SettingsSearchModal v-if="isModalSettingsSearchActive" />
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
-
+    <BatchSearchModal v-if="isModalBatchSearchActive" />
     <div v-if="statistics.length > 1" class="hidden w-3/12 lg:flex flex-col py-6 ml-10">
       <div id="search-anime" class="sticky -mt-2">
         <div class="relative">
+          <button
+            type="button"
+            @click="showModalBatchSearch"
+            data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
+            class="py-3 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+          >
+            <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
+
+            <div class="mr-2">Busqueda simultánea</div>
+          </button>
+          <div class="relative flex pb-4 items-center">
+            <div class="flex-grow border-t border-sgray2"></div>
+            <div class="flex-grow border-t border-sgray2"></div>
+          </div>
           <div class="hs-dropdown relative inline-block w-full z-30">
             <button
               id="hs-dropdown-default"
               type="button"
-              class="hs-dropdown-toggle py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle hover:bg-gray-50 focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+              class="hs-dropdown-toggle py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
             >
               <svg
                 aria-hidden="true"
-                class="w-6 mx-2 fill-white hover:fill-gray-400 text-white dark:text-white"
+                class="w-6 mx-2 fill-white text-white dark:text-white"
                 viewBox="0 -1 20 20"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -1093,13 +1113,17 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </a>
             </div>
           </div>
+          <div class="relative flex pb-4 items-center">
+            <div class="flex-grow border-t border-sgray2"></div>
+            <div class="flex-grow border-t border-sgray2"></div>
+          </div>
           <div class="flex flex-inline">
             <input
               type="search"
               v-model="querySearchAnime"
               id="default-search2"
               autocomplete="off"
-              class="block w-full p-4 pl-4 mb-4 text-sm text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+              class="block w-full p-4 pl-4 text-sm text-gray-900 border-1 mb-4 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
               :placeholder="placeholder_search2"
               required
             />
@@ -1128,7 +1152,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <li v-for="item in filteredAnimes">
               <button
                 @click="filterAnime(item.anime_id, item.name_anime_en)"
-                class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg dark:border-gray-600"
+                class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-left rounded-t-lg rounded-l-lg dark:border-gray-600"
               >
                 <span>{{ item.name_anime_en }}</span>
                 <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">{{
