@@ -407,10 +407,13 @@ async function insertSegments(rows: any[], episode: Episode | null) {
   await Promise.all(
     rows.map(async (row: any) => {
       if (episode) {
+        if(row.CONTENT === '' || row.CONTENT_TRANSLATION_ENGLISH === '' || row.CONTENT_TRANSLATION_SPANISH === '') {
+          return console.log('Empty segment. Skipping values: ', row)
+        }
         let segment = await Segment.create({
           start_time: row.START_TIME,
           end_time: row.END_TIME,
-          position: row.POSITION,
+          position: row.ID,
           content: row.CONTENT,
           content_english: row.CONTENT_TRANSLATION_ENGLISH,
           content_english_mt: row.CONTENT_ENGLISH_MT,
