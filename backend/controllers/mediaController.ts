@@ -303,11 +303,8 @@ export const GetWordsMatched = async (
 ) => {
   try {
     const { words } = req.body;
-    console.log(words);
-
-
-    const  wordsFormatted = words.map(word => `'${word}'`).join(", ");
-
+    const  wordsFormatted = words.map((word: string) => `'${word}'`).join(", ");
+    
     const sql = 
     `WITH words AS (
       SELECT UNNEST(ARRAY[${wordsFormatted}]) AS word
@@ -318,7 +315,7 @@ export const GetWordsMatched = async (
         COALESCE(me.english_name, '') AS englishName,
         COALESCE(me.japanese_name, '') AS japaneseName,
         COALESCE(me.folder_media_name, '') AS folderMediaName,  
-        COUNT(s.id) AS count
+        COUNT(s.id) AS matches
       FROM 
         words
       LEFT JOIN LATERAL (
@@ -335,15 +332,15 @@ export const GetWordsMatched = async (
     )
     SELECT 
       word, 
-      (SUM(count) > 0) AS isMatch,
-      SUM(count) as matches,
+      (SUM(matches) > 0) AS is_match,
+      SUM(matches) as total_matches,
       json_agg(
         json_build_object(
           'mediaId', mediaId, 
           'english_name', englishName,
           'japanese_name', japaneseName,
           'folder_media_name', folderMediaName,
-          'count', count
+          'matches', matches
         )
       ) FILTER (WHERE mediaId != -1) AS media
     FROM 
@@ -351,8 +348,6 @@ export const GetWordsMatched = async (
     GROUP BY
       word`;
   
-    
-
     const resultados = await connection.query(sql);
     console.log(resultados[0]);
 
