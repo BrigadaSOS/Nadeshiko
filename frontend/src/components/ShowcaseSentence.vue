@@ -3,9 +3,9 @@
 import { useHead } from '@vueuse/head'
 import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
 import { useToast } from 'vue-toastification'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick} from 'vue'
 import { onBeforeRouteUpdate } from 'vue-router'
-import { normalizeSentence } from "../utils/misc"
+import { normalizeSentence } from '../utils/misc'
 
 // Importación de componentes
 import router from '../router/index'
@@ -64,7 +64,14 @@ onBeforeRouteUpdate(async (to, from) => {
   }
 })
 
+
+const searchBar = ref(null)
+    const searchBarHeight = ref(0)
+
+
 onMounted(async () => {
+
+
   const urlParams = new URLSearchParams(window.location.search)
   const searchTerm = urlParams.get('query')
   const sortFilter = urlParams.get('sort')
@@ -106,80 +113,20 @@ onMounted(async () => {
   const sentinel = document.getElementById('sentinel')
   observer.observe(sentinel)
 
-  // Arregla la posición de la barra de búsqueda y categorias al hacer scroll
-  var prevScrollpos = window.scrollY
-  window.onscroll = function () {
-    var currentScrollPos = window.scrollY
-    if (prevScrollpos > currentScrollPos) {
-      document.getElementById('search-bar').style.top = '0'
-      document.getElementById('search-anime').style.top = '80px'
-    } else {
-      document.getElementById('search-bar').style.top = '-50px'
-      document.getElementById('search-anime').style.top = '30px'
-    }
-    prevScrollpos = currentScrollPos
-  }
 
-  if (isBannerClosed === null || isBannerClosed === true) {
-    element.style.position = 'absolute'
-    element.style.top = '-120px'
-    element.style.right = '0px'
-  }
+  await nextTick()
+  searchBarHeight.value = searchBar.value.offsetHeight+20
+
 })
 
-document.addEventListener('DOMContentLoaded', function () {
-  var prevScrollpos = window.scrollY
-  var isScrolling = false
 
-  function handleScroll() {
-    if (!isScrolling) {
-      isScrolling = true
+watch(
+      () => window.innerHeight,
+      () => {
+        searchBarHeight.value = searchBar.value.offsetHeight
+      }
+    )
 
-      setTimeout(function () {
-        var currentScrollPos = window.scrollY
-        if (prevScrollpos > currentScrollPos) {
-          document.getElementById('search-bar').style.top = '0'
-          document.getElementById('search-anime').style.top = '80px'
-        } else {
-          document.getElementById('search-bar').style.top = '-50px'
-          document.getElementById('search-anime').style.top = '30px'
-        }
-
-        prevScrollpos = currentScrollPos
-        isScrolling = false
-      }, 100) // Establece el intervalo de tiempo deseado en milisegundos
-    }
-  }
-
-  window.addEventListener('scroll', handleScroll)
-})
-
-document.addEventListener('DOMContentLoaded', function () {
-  var prevScrollpos = window.scrollY
-  var isScrolling = false
-
-  function handleScroll() {
-    if (!isScrolling) {
-      isScrolling = true
-
-      setTimeout(function () {
-        var currentScrollPos = window.scrollY
-        if (prevScrollpos > currentScrollPos) {
-          document.getElementById('search-bar').style.top = '0'
-          document.getElementById('search-anime').style.top = '80px'
-        } else {
-          document.getElementById('search-bar').style.top = '-50px'
-          document.getElementById('search-anime').style.top = '30px'
-        }
-
-        prevScrollpos = currentScrollPos
-        isScrolling = false
-      }, 100) // Establece el intervalo de tiempo deseado en milisegundos
-    }
-  }
-
-  window.addEventListener('scroll', handleScroll)
-})
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
@@ -442,7 +389,7 @@ let placeholder_search1 = t('searchpage.main.labels.searchmain')
 let placeholder_search2 = t('searchpage.main.labels.searchbar')
 </script>
 <template>
-  <div class="sticky z-30 top-0" id="search-bar">
+<div class="sticky z-30 top-0" id="search-bar" ref="searchBar">
     <form @submit="searchHandler">
       <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white">{{
         t('searchpage.main.buttons.search')
@@ -1009,7 +956,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
     <BatchSearchModal v-if="isModalBatchSearchActive" />
     <div v-if="statistics.length > 1" class="hidden w-3/12 lg:flex flex-col py-6 ml-10">
-      <div id="search-anime" class="sticky -mt-2">
+      <div id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px'}">
         <div class="relative">
           <button
             type="button"
@@ -1164,7 +1111,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </div>
 
           <ul
-            class="sticky z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
+            class=" z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
           >
             <li v-for="item in filteredAnimes">
               <button
