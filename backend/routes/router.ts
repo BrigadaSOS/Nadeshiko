@@ -18,11 +18,11 @@ import { isAuth } from "../middleware/authorization";
 router.post("/v1/search/anime/sentence", isAuth, hasPermission(['READ_ANIME']), SearchAnimeSentences);
 router.post("/v1/search/anime/context", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
 router.post("/v1/search/anime/info", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
-router.post('/v1/search/anime/words/match', GetWordsMatched)
+router.post('/v1/search/anime/words/match', isAuth, hasPermission(['READ_ANIME']), GetWordsMatched)
 
 // Utility
 router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 
 // Admin
 router.post("/v1/admin/database/resync", reSyncDatabase);
-router.post("/v1/admin/database/sync/anime", SyncSpecificAnime);
+router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);

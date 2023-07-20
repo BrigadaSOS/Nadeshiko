@@ -325,9 +325,16 @@ async function fullSyncSpecificAnime(
   try {
     animeFound = await Media.create(
       {
+        romaji_name: media_raw.romaji_name,
         english_name: media_raw.english_name,
         japanese_name: media_raw.japanese_name,
         folder_media_name: media_raw.folder_media_anime,
+        airing_format: media_raw.airing_format,
+        airing_status: media_raw.airing_status,
+        genres: media_raw.genres,
+        cover: media_raw.cover,
+        banner: media_raw.banner,
+        version: media_raw.version,
         id_category: 1,
       },
       { include: Category }
