@@ -435,6 +435,9 @@ async function insertSegments(rows: any[], episode: Episode | null) {
             row
           );
         }
+        if(row.CONTENT.length > 255 || row.CONTENT_TRANSLATION_ENGLISH.length > 255 || row.CONTENT_TRANSLATION_SPANISH.length > 255){
+          return console.log("Content too long. Skipping row...", row);
+        }
         let segment = await Segment.create({
           start_time: row.START_TIME,
           end_time: row.END_TIME,

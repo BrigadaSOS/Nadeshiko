@@ -8,8 +8,6 @@ export const hasPermission = (permissions: string[]) => {
         (permission: { name: string }) => permission.name
       );
 
-      console.log(userPermissions);
-
       // Comprueba si al menos uno de los permisos requeridos está en userPermissions
       const missingPermissions = permissions.filter(
         (permission) => !userPermissions.includes(permission)
