@@ -39,7 +39,7 @@ export async function addBasicData(db: any) {
     "RESYNC_DATABASE",
   ];
 
-  const api_key = uuidv4();
+  const api_key = process.env.API_KEY_MASTER!;
   const newUser = await User.create(
     {
       username: process.env.USERNAME_API_NADEDB,
