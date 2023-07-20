@@ -3,7 +3,7 @@
 import { useHead } from '@vueuse/head'
 import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
 import { useToast } from 'vue-toastification'
-import { ref, onMounted, computed, watch, nextTick} from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { onBeforeRouteUpdate } from 'vue-router'
 import { normalizeSentence } from '../utils/misc'
 
@@ -64,14 +64,10 @@ onBeforeRouteUpdate(async (to, from) => {
   }
 })
 
-
 const searchBar = ref(null)
-    const searchBarHeight = ref(0)
-
+const searchBarHeight = ref(0)
 
 onMounted(async () => {
-
-
   const urlParams = new URLSearchParams(window.location.search)
   const searchTerm = urlParams.get('query')
   const sortFilter = urlParams.get('sort')
@@ -114,19 +110,33 @@ onMounted(async () => {
   observer.observe(sentinel)
 
 
+  /* When the user scrolls down, hide the navbar. When the user scrolls up, show the navbar */
   await nextTick()
-  searchBarHeight.value = searchBar.value.offsetHeight+20
+  searchBarHeight.value = searchBar.value.offsetHeight + 20
+var prevScrollpos = window.pageYOffset;
+window.onscroll = function() {
+  var currentScrollPos = window.pageYOffset;
+  if (prevScrollpos > currentScrollPos) {
+    document.getElementById("search-bar").style.top = "0";
+    searchBarHeight.value = searchBar.value.offsetHeight +20
+
+  } else {
+    document.getElementById("search-bar").style.top = "-50px";
+    searchBarHeight.value = searchBar.value.offsetHeight -30
+  }
+  prevScrollpos = currentScrollPos;
+}
+
+
 
 })
 
-
 watch(
-      () => window.innerHeight,
-      () => {
-        searchBarHeight.value = searchBar.value.offsetHeight
-      }
-    )
-
+  () => window.innerHeight,
+  () => {
+    searchBarHeight.value = searchBar.value.offsetHeight
+  }
+)
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
@@ -375,7 +385,6 @@ const ampliarImagen = (url) => {
   }
 }
 
-
 // NO QUITAR, inicializa el componente para que no falle
 try {
   contextactive.value.getContextSentence(currentSentence.value)
@@ -389,7 +398,7 @@ let placeholder_search1 = t('searchpage.main.labels.searchmain')
 let placeholder_search2 = t('searchpage.main.labels.searchbar')
 </script>
 <template>
-<div class="sticky z-30 top-0" id="search-bar" ref="searchBar">
+  <div class="sticky z-30 top-0" id="search-bar" ref="searchBar">
     <form @submit="searchHandler">
       <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white">{{
         t('searchpage.main.buttons.search')
@@ -956,7 +965,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
     <BatchSearchModal v-if="isModalBatchSearchActive" />
     <div v-if="statistics.length > 1" class="hidden w-3/12 lg:flex flex-col py-6 ml-10">
-      <div id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px'}">
+      <div id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
         <div class="relative">
           <button
             type="button"
@@ -1111,7 +1120,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </div>
 
           <ul
-            class=" z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
+            class="z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
           >
             <li v-for="item in filteredAnimes">
               <button
