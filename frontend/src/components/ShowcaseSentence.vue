@@ -394,7 +394,7 @@ const sortFilter = async (type) => {
     }
     await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
   }
-  await getSentences(querySearch.value, 0, anime_id.value)
+  //await getSentences(querySearch.value, 0, anime_id.value)
 }
 
 const ampliarImagen = (url) => {
