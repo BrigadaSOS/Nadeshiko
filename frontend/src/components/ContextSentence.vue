@@ -2,6 +2,7 @@
 import { ref, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'vue-toastification'
+import { normalizeSentence } from "../utils/misc"
 
 const { t } = useI18n()
 const toast = useToast()
@@ -285,8 +286,8 @@ const ampliarImagen = (url) => {
                     </span>
 
                     <ul class="ml-5  list-disc text-gray-400">
-                      <li class="my-2">{{ sentence.segment_info.content_en }}</li>
-                      <li class="my-2">{{ sentence.segment_info.content_es }}</li>
+                      <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_en) }}</li>
+                      <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_es) }}</li>
                     </ul>
                   </h4>
 
@@ -534,7 +535,7 @@ const ampliarImagen = (url) => {
                             </a>
                             <a
                               class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                              @click="copyToClipboard(sentence.segment_info.content_en)"
+                              @click="copyToClipboard(normalizeSentence(sentence.segment_info.content_en))"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                 <path
@@ -548,7 +549,7 @@ const ampliarImagen = (url) => {
                             </a>
                             <a
                               class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                              @click="copyToClipboard(sentence.segment_info.content_es)"
+                              @click="copyToClipboard(normalizeSentence(sentence.segment_info.content_es))"
                             >
                               <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                 <path
