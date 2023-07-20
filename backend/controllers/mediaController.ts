@@ -376,8 +376,29 @@ function buildSimplifiedResults(req: Request, results: any) {
     return {
       basic_info: {
         id_anime: result["media_id"],
+        name_anime_ro: result["romaji_name"],
         name_anime_en: result["english_name"],
         name_anime_jp: result["japanese_name"],
+        airing_format: result["airing_format"],
+        airing_status: result["airing_status"],
+        genres: result["genres"],
+        cover: url.format({
+          protocol: protocol,
+          host: req.get("host"),
+          pathname: [
+            BASE_URL_MEDIA,
+            result["cover"],
+          ].join("/"),
+        }),
+        banner: url.format({
+          protocol: protocol,
+          host: req.get("host"),
+          pathname: [
+            BASE_URL_MEDIA,
+            result["banner"],
+          ].join("/"),
+        }),
+        version: result["version"],
         season: result["season"],
         episode: result["episode"],
       },
@@ -392,6 +413,9 @@ function buildSimplifiedResults(req: Request, results: any) {
         content_en_mt: result["content_english_mt"] || true,
         content_es: result["content_spanish"],
         content_es_mt: result["content_spanish_mt"] || true,
+        actor_ja: result["actor_ja"],
+        actor_es: result["actor_es"],
+        actor_en: result["actor_en"]
       },
       media_info: {
         path_image: url.format({

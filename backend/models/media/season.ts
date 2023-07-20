@@ -29,6 +29,13 @@ export class Season extends Model {
   })
   number!: string;
 
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  })
+  is_visible!: boolean;
+
   @ForeignKey(() => Media)
   @Column({
     type: DataType.INTEGER,

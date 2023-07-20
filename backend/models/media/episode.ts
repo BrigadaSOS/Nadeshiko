@@ -21,6 +21,13 @@ export class Episode extends Model {
   })
   number!: number;
 
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  })
+  is_visible!: boolean;
+
   @ForeignKey(() => Season)
   @Column({
     type: DataType.INTEGER,
