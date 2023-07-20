@@ -99,6 +99,24 @@ export class Segment extends Model {
   })
   path_audio!: string;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  actor_ja!: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  actor_es!: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  actor_en!: string;
+
   @ForeignKey(() => Episode)
   @Column({
     type: DataType.INTEGER,
@@ -139,10 +157,10 @@ export class Segment extends Model {
       ],
     });
     if (media) {
-      // Generate UUIDv3 based on the english_name, season, episode and the position of segment
+      // Generate UUIDv3 based on the romaji_name, season, episode and the position of segment
       const uuidNamespace: string | undefined =
         process.env.UUID_NAMESPACE?.toString();
-      const unique_base_id = `${media?.english_name}-${media?.season[0].number}-${media?.season[0].episode[0].number}-${instance.position}`;
+      const unique_base_id = `${media?.romaji_name}-${media?.season[0].number}-${media?.season[0].episode[0].number}-${instance.position}`;
       instance.uuid = uuidv3(unique_base_id, uuidNamespace!);
     }
   }
