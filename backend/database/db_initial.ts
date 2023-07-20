@@ -14,12 +14,10 @@ import crypto from "crypto";
 const fs = require("fs");
 const csv = require("csv-parser");
 
-
 function hashApiKey(apiKey: string) {
-    const hashedKey = crypto.createHash("sha256").update(apiKey).digest("hex");
-    return hashedKey;
+  const hashedKey = crypto.createHash("sha256").update(apiKey).digest("hex");
+  return hashedKey;
 }
-
 
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
@@ -40,8 +38,8 @@ export async function addBasicData(db: any) {
     "UPDATE_ANIME",
     "RESYNC_DATABASE",
   ];
-  
-  const api_key = uuidv4()
+
+  const api_key = uuidv4();
   const newUser = await User.create(
     {
       username: process.env.USERNAME_API_NADEDB,
@@ -57,7 +55,11 @@ export async function addBasicData(db: any) {
     }
   );
 
-  console.log('This is your API key: ', api_key, '.Please save it. You can only see it once.');
+  console.log(
+    "This is your API key: ",
+    api_key,
+    ".Please save it. You can only see it once."
+  );
 
   const apiAuth = newUser.apiAuth;
 
@@ -100,9 +102,16 @@ export async function readAnimeDirectories(baseDir: string) {
       try {
         let media = await Media.create(
           {
+            romaji_name: media_raw.romaji_name,
             english_name: media_raw.english_name,
             japanese_name: media_raw.japanese_name,
             folder_media_name: media_raw.folder_media_anime,
+            airing_format: media_raw.airing_format,
+            airing_status: media_raw.airing_status,
+            genres: media_raw.genres,
+            cover: media_raw.cover,
+            banner: media_raw.banner,
+            version: media_raw.version,
             id_category: 1,
           },
           { include: Category }
@@ -124,7 +133,7 @@ export async function readAnimeDirectories(baseDir: string) {
         const tempDirPath = path.join(animeDirPath, seasonDirname);
 
         let media = await Media.findOne({
-          where: { english_name: media_raw.english_name },
+          where: { romaji_name: media_raw.romaji_name },
           include: [Season, Category],
         });
 
@@ -407,8 +416,17 @@ async function insertSegments(rows: any[], episode: Episode | null) {
   await Promise.all(
     rows.map(async (row: any) => {
       if (episode) {
-        if(row.CONTENT === '' || row.CONTENT_TRANSLATION_ENGLISH === '' || row.CONTENT_TRANSLATION_SPANISH === '') {
-          return console.log('Empty segment. Skipping values: ', row)
+        if (row.CONTENT === "") {
+          return console.log("Empty japanese content. Skipping row...", row);
+        }
+        if (
+          row.CONTENT_TRANSLATION_ENGLISH === "" ||
+          row.CONTENT_TRANSLATION_SPANISH === ""
+        ) {
+          return console.log(
+            "Empty translation group. Skipping row...",
+            row
+          );
         }
         let segment = await Segment.create({
           start_time: row.START_TIME,
@@ -421,6 +439,9 @@ async function insertSegments(rows: any[], episode: Episode | null) {
           content_spanish_mt: row.CONTENT_SPANISH_MT,
           path_image: row.NAME_SCREENSHOT,
           path_audio: row.NAME_AUDIO,
+          actor_ja: row.ACTOR_JA,
+          actor_es: row.ACTOR_ES,
+          actor_en: row.ACTOR_EN,
           episodeId: episode.id,
         });
 
