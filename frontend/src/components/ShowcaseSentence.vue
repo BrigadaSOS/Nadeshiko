@@ -5,6 +5,7 @@ import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
 import { useToast } from 'vue-toastification'
 import { ref, onMounted, computed } from 'vue'
 import { onBeforeRouteUpdate } from 'vue-router'
+import { normalizeSentence } from "../utils/misc"
 
 // Importación de componentes
 import router from '../router/index'
@@ -53,15 +54,13 @@ let random_seed = ref(null)
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
   const sortFilter = to.query.sort
-  if (searchTerm && !sortFilter) {
-    type_sort.value = null
-    querySearch.value = searchTerm
-    await getSentences(searchTerm)
-  }
-  if (searchTerm && sortFilter) {
-    querySearch.value = searchTerm
-    type_sort.value = sortFilter
-    await getSentences(searchTerm)
+  const animeId = to.query.anime_id
+
+  querySearch.value = searchTerm || ''
+  type_sort.value = sortFilter || null
+
+  if (searchTerm) {
+    await getSentences(searchTerm, 0, animeId)
   }
 })
 
@@ -75,6 +74,7 @@ onMounted(async () => {
   let element = document.getElementById('drawer-button')
 
   uuid.value = urlParams.get('uuid')
+  anime_id.value = animeId
 
   // Configuración del filtro
   if (sortFilter === 'asc') {
@@ -272,25 +272,35 @@ const loadMoreSentences = async (entries) => {
   }
 }
 
-const filterAnime = async (anime_id) => {
-  next_cursor.value = null
-  sentences.value = []
-  window.scrollTo(0, 0)
+const filterAnime = async (new_anime_id) => {
+  // Si el anime seleccionado es el mismo que el anime actual, no hagas nada
+  if (anime_id.value === null || anime_id.value === undefined) {
+    anime_id.value = 0
+  }
+  if (parseInt(new_anime_id) === parseInt(anime_id.value)) {
+    return
+  }
+
   const searchTerm = querySearch.value.trim()
 
   if (searchTerm !== '') {
+    next_cursor.value = null
+    sentences.value = []
+    window.scrollTo(0, 0)
+
     let queryParameters = { query: searchTerm }
 
     if (['random', 'asc', 'desc'].includes(type_sort.value)) {
       queryParameters.sort = type_sort.value
     }
 
-    if (anime_id !== 0) {
-      queryParameters.anime_id = anime_id
+    if (new_anime_id !== 0) {
+      queryParameters.anime_id = new_anime_id
     }
 
     await router.push({ query: queryParameters })
-    await getSentences(searchTerm, 0, anime_id)
+
+    anime_id.value = new_anime_id
   }
 }
 
@@ -380,21 +390,27 @@ const getSharingURL = async (sentence) => {
   }
 }
 
-const sortFilter = async (type) => {
-  type_sort.value = type
-  next_cursor.value = null // Reiniciar el valor del cursor para obtener los primeros elementos
-  sentences.value = [] // Reiniciar la lista de oraciones
+const sortFilter = async (new_type) => {
+  if (new_type === type_sort.value) {
+    return
+  }
+
+  type_sort.value = new_type
+  next_cursor.value = null
+  sentences.value = []
   window.scrollTo(0, 0)
 
-  if (type === 'none') {
-    await router.push({ query: { query: querySearch.value } })
-  } else if (type === 'asc' || type === 'desc' || type === 'random') {
-    if (type === 'random') {
-      random_seed.value = Math.random() * 2 - 1
-    }
-    await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
+  let queryParameters = { query: querySearch.value }
+
+  if (type_sort.value !== 'none') {
+    queryParameters.sort = type_sort.value
   }
-  //await getSentences(querySearch.value, 0, anime_id.value)
+
+  if (anime_id.value !== 0) {
+    queryParameters.anime_id = anime_id.value
+  }
+
+  await router.push({ query: queryParameters })
 }
 
 const ampliarImagen = (url) => {
@@ -411,6 +427,7 @@ const ampliarImagen = (url) => {
     document.body.removeChild(ampliada)
   }
 }
+
 
 // NO QUITAR, inicializa el componente para que no falle
 try {
@@ -544,8 +561,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             </span>
 
             <ul class="ml-5 list-disc text-gray-400">
-              <li class="my-2">{{ sentence.segment_info.content_en }}</li>
-              <li class="my-2">{{ sentence.segment_info.content_es }}</li>
+              <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_en) }}</li>
+              <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_es) }}</li>
             </ul>
           </h4>
 
@@ -774,7 +791,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     </a>
                     <a
                       class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      @click="copyToClipboard(sentence.segment_info.content_en)"
+                      @click="copyToClipboard(normalizeSentence(sentence.segment_info.content_en))"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path
@@ -788,7 +805,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     </a>
                     <a
                       class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      @click="copyToClipboard(sentence.segment_info.content_es)"
+                      @click="copyToClipboard(normalizeSentence(sentence.segment_info.content_es))"
                     >
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path
