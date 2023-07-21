@@ -61,6 +61,15 @@ onBeforeRouteUpdate(async (to, from) => {
 
   if (searchTerm) {
     await getSentences(searchTerm, 0, animeId)
+  } else {
+    querySearch.value = ''
+    sentences.value = []
+    statistics.value = []
+    error_connection.value = false
+    isLoading.value = false
+    no_results.value = false
+    next_cursor.value = null
+    anime_id.value = null
   }
 })
 
@@ -479,7 +488,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <div
           v-if="sentences.length > 0"
           v-for="(sentence, index) in sentences"
-          class="flex flex-col md:flex-row duration-300 sm:hover:bg-sgray2 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 rounded-lg w-100"
+          class="flex flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 rounded-lg w-100"
         >
           <div class="h-auto w-auto lg:w-6/12 md:w-7/12">
             <img
@@ -991,7 +1000,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             type="button"
             @click="showModalBatchSearch"
             data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
-            class="py-3.5 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+            class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
           >
             <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
 
@@ -1005,7 +1014,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <button
               id="hs-dropdown-default"
               type="button"
-              class="hs-dropdown-toggle py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+              class="hs-dropdown-toggle duration-300 py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
             >
               <svg
                 aria-hidden="true"
@@ -1146,7 +1155,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <li v-for="item in filteredAnimes" :key="item.anime_id">
               <button
                 @click="filterAnime(item.anime_id, item.name_anime_en)"
-                class="flex items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left rounded-t-lg rounded-l-lg dark:border-gray-600"
+                class="flex duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left rounded-t-lg rounded-l-lg dark:border-gray-600"
               >
                 <span>{{ item.name_anime_en }}</span>
                 <span
