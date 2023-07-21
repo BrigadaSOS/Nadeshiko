@@ -189,7 +189,7 @@ export const SearchAnimeSentences = async (
       sql =
         `
         WITH Variations AS (
-          SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+          SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.banner, me.cover, me.folder_media_name, me.id as media_id
           FROM nadedb.public."Segment" s
           INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
           INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
@@ -358,6 +358,106 @@ export const GetWordsMatched = async (
     next(error);
   }
 };
+
+export const GetAllAnimes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+
+     const sql = 
+    `SELECT 
+        json_build_object(
+          'created_at', me.created_at,
+          'updated_at', me.updated_at,
+          'romaji_name', me.romaji_name,
+          'english_name', me.english_name, 
+          'japanese_name', me.japanese_name,
+          'airing_format', me.airing_format,
+          'airing_status', me.airing_status,
+          'genres', me.genres,
+          'cover', me.cover,
+          'banner', me.banner,
+          'version', me.version
+        ) AS media_info,
+        (
+          SELECT json_agg(
+            json_build_object(
+              'season', se.number,
+              'total_segments_season', (
+                SELECT COUNT(s.id)
+                FROM nadedb.public."Segment" s
+                WHERE s."episodeId" IN (
+                  SELECT ep.id FROM nadedb.public."Episode" ep WHERE se.id = ep."seasonId"
+                )
+              ),
+              'episodes', (
+                SELECT json_agg(
+                  json_build_object(
+                    'episode', ep.number,
+                    'total_segments_episode', (
+                      SELECT COUNT(s.id)
+                      FROM nadedb.public."Segment" s
+                      WHERE ep.id = s."episodeId"
+                    )
+                  )
+                )
+                FROM nadedb.public."Episode" ep
+                WHERE se.id = ep."seasonId"
+              )
+            )
+          )
+          FROM nadedb.public."Season" se
+          WHERE me.id = se."mediaId"
+        ) AS media_available,
+        (
+          SELECT COUNT(s.id)
+          FROM nadedb.public."Segment" s
+          WHERE s."episodeId" IN (
+            SELECT ep.id 
+            FROM nadedb.public."Episode" ep
+            JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
+            WHERE se."mediaId" = me.id
+          )
+        ) AS total_segments_media
+      FROM 
+        nadedb.public."Media" me
+      GROUP BY 
+        me.id, me.romaji_name, me.english_name, me.japanese_name`;
+
+
+        let protocol: string = "";
+        if (process.env.ENVIRONMENT === "production") {
+          protocol = "https";
+        } else if (process.env.ENVIRONMENT == "testing") {
+          protocol = "http";
+        }
+  
+    const resultados = await connection.query(sql);
+        // modify the results to include the full URLs for cover and banner
+        (resultados[0] as any[]).forEach(result => {
+          result.media_info.cover = url.format({
+            protocol: protocol,
+            host: req.get('host'),
+            pathname: [BASE_URL_MEDIA, result.media_info.cover].join('/')
+          });
+          result.media_info.banner = url.format({
+            protocol: protocol,
+            host: req.get('host'),
+            pathname: [BASE_URL_MEDIA, result.media_info.banner].join('/')
+          });
+        });
+
+    return res.status(StatusCodes.ACCEPTED).json({
+      results: resultados[0],
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 function buildSimplifiedResults(req: Request, results: any) {
   let protocol: string = "";
