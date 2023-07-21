@@ -177,17 +177,40 @@ export async function readAnimeDirectories(baseDir: string) {
 
             const dataCsvPath = path.join(episodeDirPath, "data.csv");
             const dataCsvExists = fs.existsSync(dataCsvPath);
+            const readline = require("readline");
+            const stream = require("stream");
 
             if (dataCsvExists) {
               console.log("Anime data has been found: ", dataCsvPath);
+
+              // Se lee cada linea mediante el stream del CSV y se usa la interfaz para manejarla despues
+              const rl = readline.createInterface({
+                input: fs.createReadStream(dataCsvPath, "utf-8"),
+                output: new stream.PassThrough(),
+                terminal: false,
+              });
+
               const rows = [];
+              let headers;
 
-              const stream = fs
-                .createReadStream(dataCsvPath)
-                .pipe(csv({ separator: ";" }));
-
-              for await (const row of stream) {
-                rows.push(row);
+              // Se lee cada linea de forma manual y creamos nuestro propio diccionario
+              // Para tener la libertad de reemplazar cada linea
+              for await (const line of rl) {
+                // Elimina las barras invertidas y divide la línea por el delimitador de CSV
+                const rowArray = line.replace(/\\/g, "").split(";");
+                if (!headers) {
+                  headers = rowArray;
+                } else {
+                  // Crea un objeto para la fila, usando 'headers' para las claves y 'rowArray' para los valores
+                  const rowObject = {};
+                  headers.forEach(
+                    (header: string | number, index: string | number) => {
+                      //@ts-ignore
+                      rowObject[header] = rowArray[index];
+                    }
+                  );
+                  rows.push(rowObject);
+                }
               }
 
               // Realizar inserciones en lotes
@@ -430,12 +453,13 @@ async function insertSegments(rows: any[], episode: Episode | null) {
           row.CONTENT_TRANSLATION_ENGLISH === "" ||
           row.CONTENT_TRANSLATION_SPANISH === ""
         ) {
-          return console.log(
-            "Empty translation group. Skipping row...",
-            row
-          );
+          return console.log("Empty translation group. Skipping row...", row);
         }
-        if(row.CONTENT.length > 255 || row.CONTENT_TRANSLATION_ENGLISH.length > 255 || row.CONTENT_TRANSLATION_SPANISH.length > 255){
+        if (
+          row.CONTENT.length > 255 ||
+          row.CONTENT_TRANSLATION_ENGLISH.length > 255 ||
+          row.CONTENT_TRANSLATION_SPANISH.length > 255
+        ) {
           return console.log("Content too long. Skipping row...", row);
         }
         let segment = await Segment.create({
