@@ -29,6 +29,7 @@
         "search": "Buscar"
       },
       "labels": {
+        "noresults": "No hay resultados...",
         "season": "Temporada",
         "episode": "Episodio",
         "translation": "Traducción (EN/ES)",
