@@ -6,7 +6,6 @@
           <div class="w-full pb-[145%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
             <img
               class="w-full h-full object-cover absolute top-0 left-0"
-              alt="Link Click Season 2"
               src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx150672-2WWJVXIAOG11.png"
             />
           </div>
@@ -18,7 +17,6 @@
           <div class="w-full pb-[145%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
             <img
               class="w-full h-full object-cover absolute top-0 left-0"
-              alt="Link Click Season 2"
               src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5081-mzWo8ZayqhES.jpg"
             />
           </div>
