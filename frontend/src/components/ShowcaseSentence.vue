@@ -109,26 +109,21 @@ onMounted(async () => {
   const sentinel = document.getElementById('sentinel')
   observer.observe(sentinel)
 
-
   /* When the user scrolls down, hide the navbar. When the user scrolls up, show the navbar */
   await nextTick()
   searchBarHeight.value = searchBar.value.offsetHeight + 20
-var prevScrollpos = window.pageYOffset;
-window.onscroll = function() {
-  var currentScrollPos = window.pageYOffset;
-  if (prevScrollpos > currentScrollPos) {
-    document.getElementById("search-bar").style.top = "0";
-    searchBarHeight.value = searchBar.value.offsetHeight +20
-
-  } else {
-    document.getElementById("search-bar").style.top = "-50px";
-    searchBarHeight.value = searchBar.value.offsetHeight -30
+  var prevScrollpos = window.pageYOffset
+  window.onscroll = function () {
+    var currentScrollPos = window.pageYOffset
+    if (prevScrollpos > currentScrollPos) {
+      document.getElementById('search-bar').style.top = '0'
+      searchBarHeight.value = searchBar.value.offsetHeight + 20
+    } else {
+      document.getElementById('search-bar').style.top = '-50px'
+      searchBarHeight.value = searchBar.value.offsetHeight - 30
+    }
+    prevScrollpos = currentScrollPos
   }
-  prevScrollpos = currentScrollPos;
-}
-
-
-
 })
 
 watch(
