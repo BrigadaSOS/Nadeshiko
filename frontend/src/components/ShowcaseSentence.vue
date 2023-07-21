@@ -465,14 +465,15 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
     </form>
   </div>
-  <div class="flex flex-row lg:w-11/12 mx-auto" @scroll="loadMoreSentences">
-    <div class="container mx-auto w-100 flex flex-col">
+  <div class="flex flex-row lg:w-11/12 mx-auto " @scroll="loadMoreSentences">
+    <div class="container sm:max-w-screen-lg md:max-w-full mx-auto w-100 flex flex-col">
+      <div class="mt-4">
       <div
         v-if="sentences.length > 0"
         v-for="(sentence, index) in sentences"
-        class="flex flex-col md:flex-row overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 rounded-none mt-4 w-100"
+        class="flex flex-col md:flex-row duration-300 transform sm:hover:bg-sgray2 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 rounded-lg w-100 "
       >
-        <div class="h-auto w-auto md:w-6/12">
+        <div class="h-auto w-auto lg:w-6/12 md:w-7/12 ">
           <img
             class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
             :src="sentence.media_info.path_image"
@@ -892,7 +893,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </div>
             </div>
           </div>
-          <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
+          
+          <p class="text-sm text-white/50 tracking-wide font-semibold mt-2">
             {{ sentence.basic_info.name_anime_en }} &bull;
             <template v-if="sentence.basic_info.season === 0"> {{ t('searchpage.main.labels.movie') }} </template>
             <template v-else>
@@ -904,7 +906,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
 
       <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
-        <div v-for="i in 4" :key="i">
+        <div class="" v-for="i in 4" :key="i">
           <div
             role="status"
             class="border-sgray2 border-b space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center"
@@ -955,11 +957,13 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         </div>
       </div>
     </div>
+
+    </div>
     <SettingsSearchModal v-if="isModalSettingsSearchActive" />
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
     <BatchSearchModal v-if="isModalBatchSearchActive" />
-    <div v-if="statistics.length > 1" class="hidden w-3/12 lg:flex flex-col py-6 ml-10">
+    <div v-if="statistics.length > 1" class="hidden w-3/12 xl:flex flex-col py-6 ml-10">
       <div id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
         <div class="relative">
           <button

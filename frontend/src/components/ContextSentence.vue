@@ -658,7 +658,7 @@ const ampliarImagen = (url) => {
                       </div>
                     </div>
                   </div>
-                  <p class="text-sm text-gray-600 tracking-wide font-semibold mt-2">
+                  <p class="text-sm text-white/50 tracking-wide font-semibold mt-2">
                     {{ sentence.basic_info.name_anime_en }} &bull;
                     <template v-if="sentence.basic_info.season === 0">
                       {{ t('searchpage.main.labels.movie') }}
