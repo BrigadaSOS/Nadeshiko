@@ -11,6 +11,8 @@ import { ApiPermission } from "../models/api/apiPermission";
 import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
 import crypto from "crypto";
 
+const readline = require("readline");
+const stream = require("stream");
 const fs = require("fs");
 const csv = require("csv-parser");
 
@@ -177,8 +179,6 @@ export async function readAnimeDirectories(baseDir: string) {
 
             const dataCsvPath = path.join(episodeDirPath, "data.csv");
             const dataCsvExists = fs.existsSync(dataCsvPath);
-            const readline = require("readline");
-            const stream = require("stream");
 
             if (dataCsvExists) {
               console.log("Anime data has been found: ", dataCsvPath);
@@ -402,17 +402,38 @@ async function fullSyncSpecificAnime(
 
         if (dataCsvExists) {
           console.log("Anime data has been found: ", dataCsvPath);
+
+          // Se lee cada linea mediante el stream del CSV y se usa la interfaz para manejarla despues
+          const rl = readline.createInterface({
+            input: fs.createReadStream(dataCsvPath, "utf-8"),
+            output: new stream.PassThrough(),
+            terminal: false,
+          });
+
           const rows = [];
+          let headers;
 
-          const stream = fs
-            .createReadStream(dataCsvPath)
-            .pipe(csv({ separator: ";" }));
-
-          for await (const row of stream) {
-            rows.push(row);
+          // Se lee cada linea de forma manual y creamos nuestro propio diccionario
+          // Para tener la libertad de reemplazar cada linea
+          for await (const line of rl) {
+            // Elimina las barras invertidas y divide la línea por el delimitador de CSV
+            const rowArray = line.replace(/\\/g, "").split(";");
+            if (!headers) {
+              headers = rowArray;
+            } else {
+              // Crea un objeto para la fila, usando 'headers' para las claves y 'rowArray' para los valores
+              const rowObject = {};
+              headers.forEach(
+                (header: string | number, index: string | number) => {
+                  //@ts-ignore
+                  rowObject[header] = rowArray[index];
+                }
+              );
+              rows.push(rowObject);
+            }
           }
 
-          // Realizar inserciones en lotes a la base de datos para no atascar el servicio
+          // Realizar inserciones en lotes
           const batchSize = 100;
           const batchCount = Math.ceil(rows.length / batchSize);
 
@@ -420,6 +441,7 @@ async function fullSyncSpecificAnime(
             const start = i * batchSize;
             const end = start + batchSize;
             const batchRows = rows.slice(start, end);
+
             await insertSegments(batchRows, episode);
           }
         }
