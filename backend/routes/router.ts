@@ -20,7 +20,7 @@ router.post("/v1/search/anime/sentence", isAuth, hasPermission(['READ_ANIME']), 
 router.post("/v1/search/anime/context", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
 router.post("/v1/search/anime/info", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
 router.post('/v1/search/anime/words/match', isAuth, hasPermission(['READ_ANIME']), GetWordsMatched)
-router.get('/v1/search/anime/all/info', isAuth, hasPermission(['READ_ANIME']), GetAllAnimes)
+router.get('/v1/search/anime/info', isAuth, hasPermission(['READ_ANIME']), GetAllAnimes)
 
 // Utility
 router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
