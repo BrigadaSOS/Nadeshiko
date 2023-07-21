@@ -29,6 +29,7 @@
         "search": "Search"
       },
       "labels": {
+        "noresults": "No results found...",
         "season": "Season",
         "episode": "Episode",
         "translation": "Translation (EN/ES)",

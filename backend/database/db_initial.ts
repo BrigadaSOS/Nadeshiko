@@ -417,7 +417,7 @@ async function fullSyncSpecificAnime(
           // Para tener la libertad de reemplazar cada linea
           for await (const line of rl) {
             // Elimina las barras invertidas y divide la línea por el delimitador de CSV
-            const rowArray = line.replace(/\\/g, "").split(";");
+            const rowArray = line.replaceAll(/\\/g, "").split(";");
             if (!headers) {
               headers = rowArray;
             } else {
