@@ -177,15 +177,15 @@ export async function readAnimeDirectories(baseDir: string) {
               await episode.save();
             }
 
-            const dataCsvPath = path.join(episodeDirPath, "data.csv");
-            const dataCsvExists = fs.existsSync(dataCsvPath);
+            const dataTsvPath = path.join(episodeDirPath, "data.tsv");
+            const dataTsvExists = fs.existsSync(dataTsvPath);
 
-            if (dataCsvExists) {
-              console.log("Anime data has been found: ", dataCsvPath);
+            if (dataTsvExists) {
+              console.log("Anime data has been found: ", dataTsvPath);
 
-              // Se lee cada linea mediante el stream del CSV y se usa la interfaz para manejarla despues
+              // Se lee cada linea mediante el stream del TSV y se usa la interfaz para manejarla despues
               const rl = readline.createInterface({
-                input: fs.createReadStream(dataCsvPath, "utf-8"),
+                input: fs.createReadStream(dataTsvPath, "utf-8"),
                 output: new stream.PassThrough(),
                 terminal: false,
               });
@@ -196,8 +196,8 @@ export async function readAnimeDirectories(baseDir: string) {
               // Se lee cada linea de forma manual y creamos nuestro propio diccionario
               // Para tener la libertad de reemplazar cada linea
               for await (const line of rl) {
-                // Elimina las barras invertidas y divide la línea por el delimitador de CSV
-                const rowArray = line.replace(/\\/g, "").split(";");
+                // Elimina las barras invertidas y divide la línea por el delimitador de TSV
+                const rowArray = line.split("\t").map((s: string) => s.replace(/\\/g, ""));
                 if (!headers) {
                   headers = rowArray;
                 } else {
@@ -395,17 +395,17 @@ async function fullSyncSpecificAnime(
         });
         await episode.save();
 
-        // Una vez mapeado el episodio, mapea los segmentos de acuerdo al archivo CSV dentro de la carpeta del episodio
+        // Una vez mapeado el episodio, mapea los segmentos de acuerdo al archivo TSV dentro de la carpeta del episodio
         const episodeDirPath = path.join(tempDirPath, episodeDirname);
-        const dataCsvPath = path.join(episodeDirPath, "data.csv");
-        const dataCsvExists = fs.existsSync(dataCsvPath);
+        const dataTsvPath = path.join(episodeDirPath, "data.tsv");
+        const dataTsvExists = fs.existsSync(dataTsvPath);
 
-        if (dataCsvExists) {
-          console.log("Anime data has been found: ", dataCsvPath);
+        if (dataTsvExists) {
+          console.log("Anime data has been found: ", dataTsvPath);
 
-          // Se lee cada linea mediante el stream del CSV y se usa la interfaz para manejarla despues
+          // Se lee cada linea mediante el stream del TSV y se usa la interfaz para manejarla despues
           const rl = readline.createInterface({
-            input: fs.createReadStream(dataCsvPath, "utf-8"),
+            input: fs.createReadStream(dataTsvPath, "utf-8"),
             output: new stream.PassThrough(),
             terminal: false,
           });
@@ -416,8 +416,8 @@ async function fullSyncSpecificAnime(
           // Se lee cada linea de forma manual y creamos nuestro propio diccionario
           // Para tener la libertad de reemplazar cada linea
           for await (const line of rl) {
-            // Elimina las barras invertidas y divide la línea por el delimitador de CSV
-            const rowArray = line.replaceAll(/\\/g, "").split(";");
+            // Elimina las barras invertidas y divide la línea por el delimitador de TSV
+            const rowArray = line.split("\t").map((s: string) => s.replace(/\\/g, ""));
             if (!headers) {
               headers = rowArray;
             } else {
