@@ -424,7 +424,8 @@ export const GetAllAnimes = async (
       FROM 
         nadedb.public."Media" me
       GROUP BY 
-        me.id, me.romaji_name, me.english_name, me.japanese_name`;
+        me.id, me.romaji_name, me.english_name, me.japanese_name
+      ORDER BY me.created_at DESC`;
 
 
         let protocol: string = "";
