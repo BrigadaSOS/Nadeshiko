@@ -1,5 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
+import BaseIcon from '../minimal/BaseIcon.vue'
+import BatchSearchModal from '../BatchSearchModal.vue'
 
 let latest_anime_list = ref([])
 
@@ -25,20 +28,28 @@ onMounted(() => {
 })
 </script>
 <template>
-  <!-- FAQ -->
+  <BatchSearchModal />
   <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5 mx-auto">
     <!-- Grid -->
-    <div class="grid md:grid-cols-7 gap-10  ">
-      <div class="md:col-span-3 rounded-lg  ">
+    <div class="grid md:grid-cols-7 gap-10">
+      <div class="md:col-span-3 rounded-lg">
         <div class="max-w-xl m-4">
           <h2 class="text-3xl font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
-          <p class="mt-1 text-xl md:block  dark:text-white/80">
+          <p class="mt-1 text-xl md:block dark:text-white/80">
             Una herramienta para buscar oraciones en japonés desde multiples contextos.
           </p>
-          <div class="flex flex-col dark:text-white/80 first-letter:items-left px-5 py-4 text-lg mx-auto sm:px-6 lg:px-8">
+          <div
+            class="flex flex-col dark:text-white/80 first-letter:items-left px-5 py-4 text-lg mx-auto sm:px-6 lg:px-8"
+          >
             <ul class="list-disc">
-              <li class="mb-2">Busqueda en japonés: <a class="underline text-blue-500 underline-offset-4" href="s">彼女</a></li>
-              <li >Busqueda en inglés/español: <a class="underline text-blue-500 underline-offset-4" href="s">Girlfriend</a>, <a class="underline text-blue-500 underline-offset-4" href="s">Novia</a></li>
+              <li class="mb-2">
+                Busqueda en japonés: <a class="underline text-blue-500 underline-offset-4" href="s">彼女</a>
+              </li>
+              <li>
+                Busqueda en inglés/español:
+                <a class="underline text-blue-500 underline-offset-4" href="s">Girlfriend</a>,
+                <a class="underline text-blue-500 underline-offset-4" href="s">Novia</a>
+              </li>
             </ul>
           </div>
         </div>
@@ -126,12 +137,26 @@ onMounted(() => {
             <span class="mx-1">API pública (próximamente)</span>
           </div>
         </div>
+        <div class="mb-5 border-b border-white/20" />
+        <h2 class="text-2xl m-4 font-bold md:text-xl md:leading-tight dark:text-white">Funcionalidad adicional</h2>
+
+        <button
+          type="button"
+          @click="showModalBatchSearch"
+          data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
+          class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+        >
+          <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
+
+          <div class="mr-2">Busqueda simultánea</div>
+        </button>
       </div>
+
       <!-- End Col -->
 
       <div class="md:col-span-4">
         <!-- Accordion -->
-        <section class="w-full rounded-lg ">
+        <section class="w-full rounded-lg">
           <div class="tab-content m-4">
             <div class="inline-flex justify-between items-center w-full mb-4">
               <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">Recién añadido</h1>
@@ -165,7 +190,7 @@ onMounted(() => {
                 </div>
 
                 <div class="mt-2 text-center justify-center flex flex-col items-center">
-                  <h3 class="text-sm text-center font-medium line-clamp-2">{{ item.media_info.english_name }}</h3>
+                  <h3 class="text-sm text-center font-semibold line-clamp-2">{{ item.media_info.english_name }}</h3>
                 </div>
                 <div class="text-center mt-1 justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-medium line-clamp-2">
