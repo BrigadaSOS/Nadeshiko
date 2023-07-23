@@ -185,7 +185,7 @@ onMounted(() => {
               </button>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-x-6 gap-y-3 ">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3 ">
               <div
                 v-if="latest_anime_list.length > 0"
                 v-for="(item, index) in latest_anime_list"
