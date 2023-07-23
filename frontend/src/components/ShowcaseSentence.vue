@@ -1152,13 +1152,13 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </svg>
               </div>
             </div>
-            <div class="overflow-auto max-h-96">
+            <div class="overflow-auto max-h-[50vh] ">
             <li v-for="item in filteredAnimes" :key="item.anime_id">
               <button
                 @click="filterAnime(item.anime_id, item.name_anime_en)"
-                class="flex  border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left  dark:border-white/5"
+                class="flex  duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left  dark:border-white/5"
               >
-                <span>{{ item.name_anime_en }}</span>
+                <span class="">{{ item.name_anime_en }}</span>
                 <span
                   v-if="item.name_anime_en.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
                   class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs"
