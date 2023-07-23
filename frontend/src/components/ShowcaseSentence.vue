@@ -1152,11 +1152,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </svg>
               </div>
             </div>
-            <div class="overflow-auto max-h-[50vh] ">
-            <li v-for="item in filteredAnimes" :key="item.anime_id">
+            <div class="overflow-auto  snap-y  max-h-[50vh] ">
+            <li class=" snap-start" v-for="item in filteredAnimes" :key="item.anime_id">
               <button
                 @click="filterAnime(item.anime_id, item.name_anime_en)"
-                class="flex  duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left  dark:border-white/5"
+                class="flex border  duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left  dark:border-white/5"
               >
                 <span class="">{{ item.name_anime_en }}</span>
                 <span
@@ -1205,6 +1205,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 }
 .image-container {
   position: relative;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--secondary) var(--primary);
 }
 
 .ampliada {
