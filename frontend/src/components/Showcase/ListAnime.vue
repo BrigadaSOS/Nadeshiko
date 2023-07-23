@@ -185,11 +185,11 @@ onMounted(() => {
               </button>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-x-6 gap-y-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-x-6 gap-y-3 ">
               <div
                 v-if="latest_anime_list.length > 0"
                 v-for="(item, index) in latest_anime_list"
-                class="w-full relative"
+                class="w-full relative "
               >
                 <Popper class="w-full" zIndex="50" arrow v-bind="$attrs" hover openDelay="0" closeDelay="0">
                   <div class="border-none pb-[145%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
@@ -197,16 +197,16 @@ onMounted(() => {
                   </div>
 
                   <template #content>
-                    <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col">
+                    <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col  max-w-[400px]">
                       <span
-                        class="mx-10 mt-2 md:mx-36 whitespace-nowrap text-lg font-bold text-gray-800 dark:text-white"
+                        class="mx-auto object-center mt-2 text-center px-2 text-lg font-bold text-gray-800 dark:text-white"
                         >{{ item.media_info.english_name }}</span
                       >
-                      <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
-                        <div class="border-none pb-[30%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                          <img class="w-full h-full object-cover absolute top-0 left-0" style="width: 100%; height: 130px;" :src="item.media_info.banner" />
+                      <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
+                        <div class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block ">
+                          <img class="object-cover absolute top-0 left-0 " :src="item.media_info.banner" />
                         </div>
-                        <div class="mt-3">
+                        <div class="mt-3 break-words">
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en romaji: </span>
                             {{ item.media_info.romaji_name }}
@@ -216,7 +216,7 @@ onMounted(() => {
                             {{ item.media_info.japanese_name }}
                           </p>
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white"> Temporadas: </span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white">Temporadas: </span>
 
                             <span v-for="(season, index) in item.media_available" :key="index">
                               <span class="">{{ season.season }}</span>
@@ -224,7 +224,7 @@ onMounted(() => {
                             </span>
                           </p>
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white"> Generos: </span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white break-words		 ">Generos: </span>
                             {{ item.media_info.genres.toString() }}
                           </p>
                         </div>
@@ -242,7 +242,7 @@ onMounted(() => {
                   </h3>
                 </div>
               </div>
-              <div v-else role="status" v-for="i in 10" class="animate-pulse relative">
+              <div v-else role="status" v-for="i in 15" class="animate-pulse relative">
                 <div
                   class="w-full pb-[145%] items-center overflow-hidden relative bg-[rgba(255,255,255,0.1)] block"
                 ></div>
