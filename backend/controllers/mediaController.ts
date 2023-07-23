@@ -1,19 +1,17 @@
 import { Authorized, BadRequest, Conflict, NotFound } from "../utils/error";
 import { Request, Response, NextFunction } from "express";
 import { StatusCodes } from "http-status-codes";
-import { Segment } from "../models/media/segment";
-import { Media } from "../models/media/media";
-import { Episode } from "../models/media/episode";
-import { Season } from "../models/media/season";
-import { Op, Sequelize } from "sequelize";
-import { pipeline, Transform } from "stream";
 import { v3 as uuidv3 } from "uuid";
 import connection from "../database/db_posgres";
 
-import axios from "axios";
 import path from "path";
 import url from "url";
 import fs from "fs";
+
+const { exec } = require("child_process");
+const util = require("util");
+const execPromisified = util.promisify(exec);
+const ffmpegStatic = require('ffmpeg-static');
 
 const BASE_URL_MEDIA = process.env.BASE_URL_MEDIA;
 const BASE_URL_TMP = process.env.BASE_URL_TMP;
@@ -100,14 +98,11 @@ export const generateURLAudio = async (
  * @param {string} randomFilename - Nombre del archivo MP3 fusionado generado aleatoriamente.
  * @returns {Promise<void>} - Resuelve cuando la fusión de archivos se completa correctamente.
  */
-const { exec } = require("child_process");
-const util = require("util");
-const execPromisified = util.promisify(exec);
 
 async function mergeAudioFiles(urls: string[], randomFilename: string) {
   const outputFilePath = path.join(tmpDirectory, randomFilename);
 
-  let command = urls.reduce((acc, file) => `${acc} -i "${file}"`, "ffmpeg");
+  let command = urls.reduce((acc, file) => `${acc} -i "${file}"`, `${ffmpegStatic}`);
 
   const filter =
     urls.length > 1 ? `-filter_complex concat=n=${urls.length}:v=0:a=1` : "";
