@@ -1,15 +1,21 @@
 # Build
-FROM node:slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
+
+## following 3 lines are for installing ffmepg
+RUN apk update
+RUN apk add
+RUN apk add ffmpeg
+
 COPY . .
 RUN npm run build
 
 #Run
-FROM node:slim AS server
+FROM node:20-alpine AS server
 WORKDIR /app
 COPY package*.json .env* ./
 RUN npm install --production
