@@ -3,8 +3,10 @@ import { onMounted, ref } from 'vue'
 import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
 import BaseIcon from '../minimal/BaseIcon.vue'
 import BatchSearchModal from '../BatchSearchModal.vue'
+import Popper from 'vue3-popper'
 
 let latest_anime_list = ref([])
+const base_hover = ref(null)
 
 const getLatestAnime = async () => {
   try {
@@ -17,6 +19,7 @@ const getLatestAnime = async () => {
     })
     response = await response.json()
     latest_anime_list.value = response.results
+    console.log(base_hover)
   } catch (error) {
     console.log(error)
     return
@@ -54,7 +57,6 @@ onMounted(() => {
           </div>
         </div>
         <div class="mb-5 border-b border-white/20" />
-
         <h2 class="text-2xl m-4 font-bold md:text-xl md:leading-tight dark:text-white">Caracteristícas</h2>
         <div class="grid gap-6 sm:grid-cols-2 text-base mb-8">
           <div class="flex items-center text-gray-800 -px-3 dark:text-gray-200">
@@ -184,10 +186,52 @@ onMounted(() => {
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-x-6 gap-y-3">
-              <div v-if="latest_anime_list.length > 0" v-for="(item, index) in latest_anime_list" class="relative">
-                <div class="w-full pb-[145%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                  <img class="w-full h-full object-cover absolute top-0 left-0" :src="item.media_info.cover" />
-                </div>
+              <div
+                v-if="latest_anime_list.length > 0"
+                v-for="(item, index) in latest_anime_list"
+                class="w-full relative"
+              >
+                <Popper class="w-full" zIndex="50" arrow v-bind="$attrs" hover openDelay="0" closeDelay="0">
+                  <div class="border-none pb-[145%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
+                    <img class="w-full h-full object-cover absolute top-0 left-0" :src="item.media_info.cover" />
+                  </div>
+
+                  <template #content>
+                    <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col">
+                      <span
+                        class="mx-10 mt-2 md:mx-36 whitespace-nowrap text-lg font-bold text-gray-800 dark:text-white"
+                        >{{ item.media_info.english_name }}</span
+                      >
+                      <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                        <div class="border-none pb-[30%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
+                          <img class="w-full h-full object-cover absolute top-0 left-0" :src="item.media_info.banner" />
+                        </div>
+                        <div class="mt-3">
+                          <p>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en romaji: </span>
+                            {{ item.media_info.romaji_name }}
+                          </p>
+                          <p>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en japonés: </span>
+                            {{ item.media_info.japanese_name }}
+                          </p>
+                          <p>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white"> Temporadas: </span>
+
+                            <span v-for="(season, index) in item.media_available" :key="index">
+                              <span class="">{{ season.season }}</span>
+                              <span v-if="index !== item.media_available.length - 1">, </span>
+                            </span>
+                          </p>
+                          <p>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white"> Generos: </span>
+                            {{ item.media_info.genres.toString() }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </Popper>
 
                 <div class="mt-2 text-center justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-semibold line-clamp-2">{{ item.media_info.english_name }}</h3>
@@ -215,3 +259,19 @@ onMounted(() => {
   </div>
   <!-- End FAQ -->
 </template>
+<style>
+:root {
+  --popper-theme-background-color-hover: #333333;
+  --popper-theme-text-color: #ffffff;
+  --popper-theme-border-width: 0px;
+  --popper-theme-border-style: solid;
+  --popper-theme-border-radius: 6px;
+  --popper-theme-padding: 0px;
+  --popper-theme-box-shadow: 0 6px 30px -6px rgba(0, 0, 0, 0.25);
+}
+
+[data-v-5784ed69].inline-block.w-full {
+  border: none !important;
+  margin: 0 !important;
+}
+</style>
