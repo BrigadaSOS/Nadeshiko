@@ -71,7 +71,9 @@ export const generateURLAudio = async (
       });
     } else {
       // Caso contrario genera el archivo y vuelve a buscarlo
-      await mergeMp3Files(urls, randomFilename);
+      await mergeAudioFiles(urls, randomFilename);
+
+      console.log(filePath)
 
       if (fs.existsSync(filePath)) {
         const outputUrl = url.format({
@@ -80,10 +82,12 @@ export const generateURLAudio = async (
           pathname: filePathAPI,
         });
 
+
         return res.status(StatusCodes.OK).json({
           filename: randomFilename,
           url: outputUrl,
         });
+
       } else {
         throw new Error("No se pudo generar el archivo MP3.");
       }
@@ -100,43 +104,36 @@ export const generateURLAudio = async (
  * @param {string} randomFilename - Nombre del archivo MP3 fusionado generado aleatoriamente.
  * @returns {Promise<void>} - Resuelve cuando la fusión de archivos se completa correctamente.
  */
-const mergeMp3Files = async (urls: string[], randomFilename: string) => {
+const { exec } = require("child_process");
+const util = require("util");
+const execPromisified = util.promisify(exec);
+
+async function mergeAudioFiles(urls: string[], randomFilename: string) {
   const outputFilePath = path.join(tmpDirectory, randomFilename);
 
+  let command = urls.reduce(
+    (acc, file, index) => `${acc} -i "${file}"`,
+    "ffmpeg"
+  );
+
+  const filter =
+    urls.length > 1 ? `-filter_complex concat=n=${urls.length}:v=0:a=1` : "";
+
+  command += ` ${filter} "${outputFilePath}"`;
+
   try {
-    const fileStreams = await Promise.all(
-      urls.map(async (url) => {
-        const response = await axios.get(url, { responseType: "stream" });
-        return response.data;
-      })
-    );
+    const { stdout, stderr } = await execPromisified(command);
 
-    // Create a Transform stream to handle each input stream
-    const transformStream = new Transform({
-      transform(chunk, _encoding, callback) {
-        this.push(chunk);
-        callback();
-      },
-    });
-
-    // Pipe each file stream into the transform stream
-    fileStreams.forEach((stream) => stream.pipe(transformStream));
-
-    // Pipeline the transform stream to the output file
-    await new Promise<void>((resolve, reject) => {
-      pipeline(transformStream, fs.createWriteStream(outputFilePath), (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-    console.log("Successfully merged MP3 files!");
+    if (stderr) {
+      console.error(`Error: ${stderr}`);
+    } else {
+      console.log("Files merged successfully!");
+    }
   } catch (error) {
-    console.error("An error occurred during merging:", error);
+    console.error(`Error merging files: ${error}`);
   }
-};
+  
+}
 
 export const SearchAnimeSentences = async (
   req: Request,
@@ -303,10 +300,9 @@ export const GetWordsMatched = async (
 ) => {
   try {
     const { words } = req.body;
-    const  wordsFormatted = words.map((word: string) => `'${word}'`).join(", ");
+    const wordsFormatted = words.map((word: string) => `'${word}'`).join(", ");
 
-    const sql = 
-    `WITH words AS (
+    const sql = `WITH words AS (
       SELECT UNNEST(ARRAY[${wordsFormatted}]) AS word
     ), Variations AS (
       SELECT 
@@ -347,13 +343,12 @@ export const GetWordsMatched = async (
       Variations
     GROUP BY
       word`;
-  
+
     const resultados = await connection.query(sql);
 
     return res.status(StatusCodes.ACCEPTED).json({
       results: resultados[0],
     });
-
   } catch (error) {
     next(error);
   }
@@ -365,9 +360,7 @@ export const GetAllAnimes = async (
   next: NextFunction
 ) => {
   try {
-
-     const sql = 
-    `SELECT 
+    const sql = `SELECT 
         json_build_object(
           'created_at', me.created_at,
           'updated_at', me.updated_at,
@@ -427,38 +420,35 @@ export const GetAllAnimes = async (
         me.id, me.romaji_name, me.english_name, me.japanese_name
       ORDER BY me.created_at DESC`;
 
+    let protocol: string = "";
+    if (process.env.ENVIRONMENT === "production") {
+      protocol = "https";
+    } else if (process.env.ENVIRONMENT == "testing") {
+      protocol = "http";
+    }
 
-        let protocol: string = "";
-        if (process.env.ENVIRONMENT === "production") {
-          protocol = "https";
-        } else if (process.env.ENVIRONMENT == "testing") {
-          protocol = "http";
-        }
-  
     const resultados = await connection.query(sql);
-        // modify the results to include the full URLs for cover and banner
-        (resultados[0] as any[]).forEach(result => {
-          result.media_info.cover = url.format({
-            protocol: protocol,
-            host: req.get('host'),
-            pathname: [BASE_URL_MEDIA, result.media_info.cover].join('/')
-          });
-          result.media_info.banner = url.format({
-            protocol: protocol,
-            host: req.get('host'),
-            pathname: [BASE_URL_MEDIA, result.media_info.banner].join('/')
-          });
-        });
+    // modify the results to include the full URLs for cover and banner
+    (resultados[0] as any[]).forEach((result) => {
+      result.media_info.cover = url.format({
+        protocol: protocol,
+        host: req.get("host"),
+        pathname: [BASE_URL_MEDIA, result.media_info.cover].join("/"),
+      });
+      result.media_info.banner = url.format({
+        protocol: protocol,
+        host: req.get("host"),
+        pathname: [BASE_URL_MEDIA, result.media_info.banner].join("/"),
+      });
+    });
 
     return res.status(StatusCodes.ACCEPTED).json({
       results: resultados[0],
     });
-
   } catch (error) {
     next(error);
   }
 };
-
 
 function buildSimplifiedResults(req: Request, results: any) {
   let protocol: string = "";
@@ -486,18 +476,12 @@ function buildSimplifiedResults(req: Request, results: any) {
         cover: url.format({
           protocol: protocol,
           host: req.get("host"),
-          pathname: [
-            BASE_URL_MEDIA,
-            result["cover"],
-          ].join("/"),
+          pathname: [BASE_URL_MEDIA, result["cover"]].join("/"),
         }),
         banner: url.format({
           protocol: protocol,
           host: req.get("host"),
-          pathname: [
-            BASE_URL_MEDIA,
-            result["banner"],
-          ].join("/"),
+          pathname: [BASE_URL_MEDIA, result["banner"]].join("/"),
         }),
         version: result["version"],
         season: result["season"],
@@ -516,7 +500,7 @@ function buildSimplifiedResults(req: Request, results: any) {
         content_es_mt: result["content_spanish_mt"] || true,
         actor_ja: result["actor_ja"],
         actor_es: result["actor_es"],
-        actor_en: result["actor_en"]
+        actor_en: result["actor_en"],
       },
       media_info: {
         path_image: url.format({
