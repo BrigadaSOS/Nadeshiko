@@ -995,7 +995,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <BatchSearchModal v-if="isModalBatchSearchActive" />
     <div v-if="statistics.length > 1" class="hidden w-3/12 xl:flex flex-col py-6 ml-10">
       <div id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
-        <div class="relative">
+        <div class=" relative">
           <button
             type="button"
             @click="showModalBatchSearch"
@@ -1117,14 +1117,14 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </div>
 
           <ul
-            class="z-20 divide-y divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
+            class="z-20 divide-y  divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
           >
             <div
-              class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600"
+              class="flex items-center  w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600"
             >
               <span class="font-medium text-base">Listado de contenido</span>
             </div>
-            <div class="flex flex-inline">
+            <div class="flex  flex-inline">
               <input
                 type="search"
                 v-model="querySearchAnime"
@@ -1134,7 +1134,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 :placeholder="placeholder_search2"
                 required
               />
-              <div class="absolute z-20 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
+              <div class="absolute  z-20 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
                 <svg
                   aria-hidden="true"
                   class="w-5 h-5 text-gray-500 dark:text-gray-400"
@@ -1152,10 +1152,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </svg>
               </div>
             </div>
+            <div class="overflow-auto max-h-96">
             <li v-for="item in filteredAnimes" :key="item.anime_id">
               <button
                 @click="filterAnime(item.anime_id, item.name_anime_en)"
-                class="flex duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left rounded-t-lg rounded-l-lg dark:border-gray-600"
+                class="flex  border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left  dark:border-white/5"
               >
                 <span>{{ item.name_anime_en }}</span>
                 <span
@@ -1166,6 +1167,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </span>
               </button>
             </li>
+          </div>
 
             <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600"></div>
           </ul>
