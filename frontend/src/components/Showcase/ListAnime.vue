@@ -204,7 +204,7 @@ onMounted(() => {
                       >
                       <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
                         <div class="border-none pb-[30%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                          <img class="w-full h-full object-cover absolute top-0 left-0" :src="item.media_info.banner" />
+                          <img class="w-full h-full object-cover absolute top-0 left-0" style="width: 100%; height: 130px;" :src="item.media_info.banner" />
                         </div>
                         <div class="mt-3">
                           <p>
