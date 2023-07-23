@@ -73,8 +73,6 @@ export const generateURLAudio = async (
       // Caso contrario genera el archivo y vuelve a buscarlo
       await mergeAudioFiles(urls, randomFilename);
 
-      console.log(filePath)
-
       if (fs.existsSync(filePath)) {
         const outputUrl = url.format({
           protocol: protocol,
@@ -82,12 +80,10 @@ export const generateURLAudio = async (
           pathname: filePathAPI,
         });
 
-
         return res.status(StatusCodes.OK).json({
           filename: randomFilename,
           url: outputUrl,
         });
-
       } else {
         throw new Error("No se pudo generar el archivo MP3.");
       }
@@ -111,10 +107,7 @@ const execPromisified = util.promisify(exec);
 async function mergeAudioFiles(urls: string[], randomFilename: string) {
   const outputFilePath = path.join(tmpDirectory, randomFilename);
 
-  let command = urls.reduce(
-    (acc, file, index) => `${acc} -i "${file}"`,
-    "ffmpeg"
-  );
+  let command = urls.reduce((acc, file) => `${acc} -i "${file}"`, "ffmpeg");
 
   const filter =
     urls.length > 1 ? `-filter_complex concat=n=${urls.length}:v=0:a=1` : "";
@@ -132,7 +125,6 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
   } catch (error) {
     console.error(`Error merging files: ${error}`);
   }
-  
 }
 
 export const SearchAnimeSentences = async (
