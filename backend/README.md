@@ -23,3 +23,7 @@
 * Run `docker run --rm -p 5000:5000 --network host -v ./media:/app/media --name nadedb-backend nadedb-backend`
 * The application will be available in `localhost:5000`
 
+### Extra: Elasticsearch / Kibanna
+
+* After running `docker-compose up`, the Kibana dashboard should be available in
+    `localhost:5601`
