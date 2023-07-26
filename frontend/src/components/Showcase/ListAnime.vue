@@ -34,7 +34,7 @@ onMounted(() => {
   <BatchSearchModal />
   <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5 mx-auto">
     <!-- Grid -->
-    <div class="grid md:grid-cols-7 gap-10">
+    <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
         <div class="max-w-xl m-4">
           <h2 class="text-3xl font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
@@ -260,6 +260,13 @@ onMounted(() => {
                 <div
                   class="w-full pb-[145%] items-center overflow-hidden relative bg-[rgba(255,255,255,0.1)] block"
                 ></div>
+                <div class="mt-2 text-center justify-center flex flex-col items-center">
+                  <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-36 mt-2 mb-4"></div>
+                </div>
+                <div class="text-center mt-1 justify-center flex flex-col items-center">
+                  <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-28 mb-4"></div>
+
+                </div>
               </div>
             </div>
           </div>
