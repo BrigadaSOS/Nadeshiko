@@ -11,13 +11,18 @@ const inputText = ref('')
 const wordCount = ref(0)
 const errorMessage = ref('')
 const wordsMatch = ref([])
+const totalWordsSearched = ref(0)
+let isLoading = ref(false)
 
 const sortedWordsMatch = computed(() => {
   // Ordenar las palabras por item.total_matches de manera descendente,
   // luego por item.is_match de manera descendente
   const sortedItems = wordsMatch.value.slice().sort((a, b) => {
-    if (a.total_matches > b.total_matches) return -1
-    if (a.total_matches < b.total_matches) return 1
+    const aTotalMatches = Number(a.total_matches)
+    const bTotalMatches = Number(b.total_matches)
+
+    if (aTotalMatches > bTotalMatches) return -1
+    if (aTotalMatches < bTotalMatches) return 1
     if (a.is_match && !b.is_match) return -1
     if (!a.is_match && b.is_match) return 1
     return 0
@@ -27,6 +32,7 @@ const sortedWordsMatch = computed(() => {
 })
 
 const getWordMatch = async () => {
+  isLoading.value = true
   let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/words/match', {
     method: 'POST',
     mode: 'cors',
@@ -39,9 +45,19 @@ const getWordMatch = async () => {
   })
   const data = await response.json()
   wordsMatch.value = data.results
-  console.log(wordsMatch.value)
+  totalWordsSearched.value = words.value.length
+  isLoading.value = false
   return data
 }
+
+const percentageMatched = computed(() => {
+  const totalMatches = sortedWordsMatch.value.filter((item) => item.is_match).length
+  return (totalMatches / totalWordsSearched.value) * 100
+})
+
+const wordsFound = computed(() => {
+  return sortedWordsMatch.value.filter((item) => item.is_match).length
+})
 
 watch(inputText, (newValue) => {
   words.value = newValue
@@ -53,10 +69,10 @@ watch(inputText, (newValue) => {
 
   if (words.value.length > 100) {
     errorMessage.value = `Se ha excedido el límite de palabras permitidas: ${words.value.length} / 100`
-    wordCount.value = null
+    wordCount.value = words.value.length
   } else if (newValue.includes(',') && newValue.includes('\n')) {
     errorMessage.value = 'El formato de entrada es incorrecto. Verifique si hay comas y saltos de línea simultáneos.'
-    wordCount.value = null
+    wordCount.value = 'No disponible'
   } else {
     errorMessage.value = ''
     wordCount.value = words.value.length
@@ -123,10 +139,7 @@ watch(inputText, (newValue) => {
                   placeholder="彼女&#10;彼氏&#10;走る&#10;恋人&#10;...&#10;...&#10;..."
                 ></textarea>
                 <div v-if="errorMessage" class="text-red-500">{{ errorMessage }}</div>
-                <div
-                  v-if="wordCount !== null"
-                  class="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto"
-                >
+                <div class="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
                   Total de palabras: {{ wordCount }} / 100
                 </div>
               </div>
@@ -156,10 +169,10 @@ watch(inputText, (newValue) => {
 
   <div
     id="hs-toggle-between-modals-second-modal"
-    class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto "  
+    class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
   >
     <div
-      class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out  transition-all lg:max-w-3xl m-3 sm:mx-auto flex  flex-col h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] "
+      class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto flex flex-col h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)]"
     >
       <div
         class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
@@ -191,7 +204,14 @@ watch(inputText, (newValue) => {
         <div class="p-4 overflow-y-auto">
           <div class="flex flex-col">
             <div class="-m-1.5 overflow-x-auto">
-              <div class="p-1.5 min-w-full inline-block align-middle">
+              <div v-if="!isLoading" class="p-1.5 min-w-full inline-block align-middle">
+                <div class="mb-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
+                  Palabras buscadas: {{ wordCount }}
+                  <br />
+                  Palabras con resultados: {{ wordsFound }}
+                  <br />
+                  Porcentaje de coincidencias: {{ percentageMatched.toFixed(2) }}%
+                </div>
                 <div class="border rounded-lg shadow overflow-hidden dark:border-sgray2 dark:shadow-gray-900">
                   <table class="min-w-full divide-y bg-sgray2 divide-gray-200 dark:divide-white/30">
                     <thead>
@@ -248,6 +268,16 @@ watch(inputText, (newValue) => {
                     </tbody>
                   </table>
                 </div>
+              </div>
+              <div v-else-if="isLoading" class="p-1.5 min-w-full inline-block align-middle">
+                <span
+                class="animate-spin text-center inline-block mt-1 mr-2 w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
+                role="status"
+                aria-label="loading"
+              >
+                <span class="sr-only">Loading...</span>
+              </span>
+              Realizando busqueda...
               </div>
             </div>
           </div>
