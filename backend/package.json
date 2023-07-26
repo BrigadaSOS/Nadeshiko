@@ -28,6 +28,7 @@
     "pg": "^8.11.0",
     "sequelize": "^6.25.5",
     "sequelize-typescript": "^2.1.5",
+    "sharp": "^0.32.4",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "uuid": "^9.0.0"

@@ -1,6 +1,6 @@
 // Must be called before all imports
 require("dotenv").config();
-const newrelic = require('newrelic');
+const newrelic = require("newrelic");
 
 import path from "path";
 import { json } from "body-parser";
@@ -9,7 +9,7 @@ import express, { Application } from "express";
 import connection from "./database/db_posgres";
 import { handleErrors } from "./middleware/errorHandler";
 
-newrelic.instrumentLoadedModule('express', express)
+newrelic.instrumentLoadedModule("express", express);
 
 const app: Application = express();
 
@@ -24,10 +24,14 @@ app.use(function (_req, res, next) {
   );
 
   // Request headers you wish to allow
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    ["X-Requested-With", "content-type", "newrelic", "traceparent", "tracestate", "x-api-key"]
-  );
+  res.setHeader("Access-Control-Allow-Headers", [
+    "X-Requested-With",
+    "content-type",
+    "newrelic",
+    "traceparent",
+    "tracestate",
+    "x-api-key",
+  ]);
 
   // Set to true if you need the website to include cookies in the requests sent
   // to the API (e.g. in case you use sessions)
@@ -39,12 +43,57 @@ app.use(function (_req, res, next) {
 
 app.use(handleErrors);
 
+const sharp = require("sharp");
+const fs = require("fs");
+
 if (process.env.ENVIRONMENT === "testing") {
   // Access media uploaded from outside localhost
-  app.use(
-    "/api/media/anime",
-    express.static(path.join(__dirname, "/media/anime"), { fallthrough: false })
-  );
+  app.use("/api/media/anime", (req, res, next) => {
+    const width = req.query.width ? Number(req.query.width) : null;
+    const height = req.query.height ? Number(req.query.height) : null;
+    const imagePath = path.join(__dirname, "/media/anime", req.path);
+
+    // If no resizing parameters are provided, serve the original image
+    if (!width && !height) {
+      return express.static(path.join(__dirname, "/media/anime"))(
+        req,
+        res,
+        next
+      );
+    }
+
+    const cacheDir = path.join(
+      __dirname,
+      "media/tmp/cache/anime",
+      path.dirname(req.path)
+    );
+    const cachePath = path.join(
+      cacheDir,
+      `${path.basename(req.path.replace(".webp", ""))}-${width}_${height}.webp`
+    );
+
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+
+    if (fs.existsSync(cachePath)) {
+      return res.sendFile(cachePath);
+    }
+
+    sharp(imagePath)
+      .resize(width, height, {
+        kernel: sharp.kernel.lanczos3 
+        })
+      .toFile(cachePath)
+      .then(() => {
+        res.sendFile(cachePath);
+      })
+      .catch((err: any) => {
+        console.error(err);
+        res.status(500).end();
+      });
+  });
+
   app.use(
     "/api/media/tmp",
     express.static(path.join(__dirname, "/media/tmp"), { fallthrough: false })
@@ -54,13 +103,40 @@ if (process.env.ENVIRONMENT === "testing") {
   const mediaUrlPath: string = process.env.BASE_URL_MEDIA!;
   const tmpUrlPath: string = process.env.BASE_URL_TMP!;
   const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
-  const tmpDirectory : string = process.env.TMP_DIRECTORY!;
-  app.use(
-    mediaUrlPath,
-    express.static(mediaDirectory, {
-      fallthrough: false,
-    })
-  );
+  const tmpDirectory: string = process.env.TMP_DIRECTORY!;
+
+  app.use(mediaUrlPath, (req, res, next) => {
+    const width = req.query.width ? Number(req.query.width) : null;
+    const height = req.query.height ? Number(req.query.height) : null;
+    const imagePath = path.join(mediaDirectory, req.path);
+
+    if (!width && !height) {
+      return express.static(mediaDirectory, { fallthrough: false })(req, res, next);
+    }
+
+    const cacheDir = path.join(mediaDirectory, 'media/tmp/cache/anime', path.dirname(req.path));
+    const cachePath = path.join(cacheDir, `${path.basename(req.path.replace(".webp", ""))}-${width}_${height}.webp`);
+
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+
+    if (fs.existsSync(cachePath)) {
+      return res.sendFile(cachePath);
+    }
+
+    sharp(imagePath)
+      .resize(width, height)
+      .toFile(cachePath)
+      .then(() => {
+        res.sendFile(cachePath);
+      })
+      .catch((err: any) => {
+        console.error(err);
+        res.status(500).end();
+      });
+  });
+
   app.use(
     tmpUrlPath,
     express.static(tmpDirectory, {
