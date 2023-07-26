@@ -8,7 +8,7 @@ import Footer from '../components/Footer.vue'
 <template>
   <main>
     <NavBar />
-    <div class="flex flex-col min-h-screen">
+    <div class="">
       <ShowcaseSentence />
     </div>
     <div class="mt-auto">
