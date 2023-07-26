@@ -19,7 +19,6 @@ const getLatestAnime = async () => {
     })
     response = await response.json()
     latest_anime_list.value = response.results
-    console.log(base_hover)
   } catch (error) {
     console.log(error)
     return
@@ -156,7 +155,6 @@ onMounted(() => {
         <button
           type="button"
           disabled
-          @click="showModalBatchSearch"
           data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
           class="py-3.5 duration-300 px-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-[#149de144] focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-[#149de15d] dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
         >
@@ -258,7 +256,7 @@ onMounted(() => {
               </div>
               <div v-else role="status" v-for="i in 10" class="animate-pulse relative">
                 <div
-                  class="w-full pb-[145%] items-center overflow-hidden relative bg-[rgba(255,255,255,0.1)] block"
+                  class="w-full pb-[145%] rounded-md items-center overflow-hidden relative bg-[rgba(255,255,255,0.1)] block"
                 ></div>
                 <div class="mt-2 text-center justify-center flex flex-col items-center">
                   <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-36 mt-2 mb-4"></div>

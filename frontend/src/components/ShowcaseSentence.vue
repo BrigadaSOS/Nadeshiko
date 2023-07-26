@@ -995,8 +995,18 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
     <BatchSearchModal v-if="isModalBatchSearchActive" />
-    <div v-if="statistics.length > 1" class="hidden w-3/12 xl:flex flex-col py-6 ml-10">
-      <div id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
+    <div v-if="statistics.length > 1">
+      <div>
+        <SidebarAnime
+    :list="statistics"
+    :sentences="sentences"
+    :type_sort="type_sort"
+    @filter-anime="filterAnime"
+    @filter-anime-length="sortFilter"
+  />
+      </div>
+      <div class="hidden xl:w-[22rem] xl:flex flex-col py-6 ml-10">
+      <div  id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
         <div class=" relative">
           <button
             type="button"
@@ -1176,6 +1186,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         </div>
       </div>
     </div>
+  </div>
     <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
       <div role="status" class="hidden w-11/12 lg:flex flex-col py-6 animate-pulse">
         <div class="h-2.5 bg-gray-200 rounded-full dark:bg-graypalid w-48 mb-4"></div>
@@ -1188,13 +1199,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
     </div>
   </div>
-  <SidebarAnime
-    :list="statistics"
-    :sentences="sentences"
-    :type_sort="type_sort"
-    @filter-anime="filterAnime"
-    @filter-anime-length="sortFilter"
-  />
 </div>
 </template>
 
