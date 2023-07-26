@@ -174,6 +174,7 @@ onMounted(() => {
           <div class="tab-content md:m-2">
             <div class="inline-flex justify-between items-center w-full mb-4">
               <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">Recién añadido</h1>
+              <router-link to="/anime/all">
               <button
                 type="button"
                 class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
@@ -195,6 +196,7 @@ onMounted(() => {
                   />
                 </svg>
               </button>
+            </router-link>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3">
