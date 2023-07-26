@@ -237,7 +237,7 @@ const ampliarImagen = (url) => {
                 <div class="h-64 w-auto md:w-1/2">
                   <img
                     class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
-                    :src="sentence.media_info.path_image"
+                    :src="sentence.media_info.path_image+'?width=960&height=540'"
                     @click="ampliarImagen(sentence.media_info.path_image)"
                   />
                 </div>

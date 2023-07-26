@@ -495,7 +495,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           <div class="h-auto w-auto lg:w-6/12 md:w-7/12">
             <img
               class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
-              :src="sentence.media_info.path_image"
+              :src="sentence.media_info.path_image+'?width=960&height=540'"
               @click="ampliarImagen(sentence.media_info.path_image)"
             />
           </div>
