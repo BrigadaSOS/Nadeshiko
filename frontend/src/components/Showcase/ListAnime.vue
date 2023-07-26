@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
+import { mdiStarShootingOutline, mdiTextSearch } from '@mdi/js'
 import BaseIcon from '../minimal/BaseIcon.vue'
 import BatchSearchModal from '../BatchSearchModal.vue'
 import Popper from 'vue3-popper'
@@ -152,13 +152,25 @@ onMounted(() => {
 
           <div class="mr-2">Busqueda simultánea</div>
         </button>
+
+        <button
+          type="button"
+          disabled
+          @click="showModalBatchSearch"
+          data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
+          class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-[#149de144] focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-[#149de15d] dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+        >
+          <BaseIcon :path="mdiStarShootingOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
+          <div class="mr-2">Soporte con Anki (Próximamente)</div>
+        </button>
+        
       </div>
 
       <!-- End Col -->
 
       <div class="md:col-span-4">
         <!-- Accordion -->
-        <section class="w-full rounded-lg">
+        <section class="w-full p-2 rounded-lg">
           <div class="tab-content m-4">
             <div class="inline-flex justify-between items-center w-full mb-4">
               <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">Recién añadido</h1>
@@ -185,26 +197,26 @@ onMounted(() => {
               </button>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3 ">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3">
               <div
                 v-if="latest_anime_list.length > 0"
                 v-for="(item, index) in latest_anime_list"
-                class="w-full relative "
+                class="w-full relative"
               >
                 <Popper class="w-full" zIndex="50" arrow v-bind="$attrs" hover openDelay="0" closeDelay="0">
-                  <div class="border-none pb-[145%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                    <img class="w-full h-full object-cover absolute top-0 left-0" :src="item.media_info.cover" />
+                  <div class="border-none pb-[145%] rounded-md overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
+                    <img class="w-full h-full object-cover absolute top-0 left-0" :src="item.media_info.cover+'?width=230&height=326'" />
                   </div>
 
                   <template #content>
-                    <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col  max-w-[400px]">
+                    <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
                       <span
                         class="mx-auto object-center mt-2 text-center px-2 text-lg font-bold text-gray-800 dark:text-white"
                         >{{ item.media_info.english_name }}</span
                       >
                       <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
-                        <div class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block ">
-                          <img class="object-cover absolute top-0 left-0 " :src="item.media_info.banner" />
+                        <div class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
+                          <img class="object-cover absolute top-0 left-0" :src="item.media_info.banner" />
                         </div>
                         <div class="mt-3 break-words">
                           <p>
@@ -224,7 +236,7 @@ onMounted(() => {
                             </span>
                           </p>
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white break-words		 ">Generos: </span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white break-words">Generos: </span>
                             {{ item.media_info.genres.toString() }}
                           </p>
                         </div>
@@ -242,7 +254,7 @@ onMounted(() => {
                   </h3>
                 </div>
               </div>
-              <div v-else role="status" v-for="i in 15" class="animate-pulse relative">
+              <div v-else role="status" v-for="i in 10" class="animate-pulse relative">
                 <div
                   class="w-full pb-[145%] items-center overflow-hidden relative bg-[rgba(255,255,255,0.1)] block"
                 ></div>
@@ -250,14 +262,12 @@ onMounted(() => {
             </div>
           </div>
         </section>
-
         <!-- End Accordion -->
       </div>
       <!-- End Col -->
     </div>
     <!-- End Grid -->
   </div>
-  <!-- End FAQ -->
 </template>
 <style>
 :root {
@@ -274,4 +284,7 @@ onMounted(() => {
   border: none !important;
   margin: 0 !important;
 }
+
+.b{fill:none;stroke:#ffffff;stroke-linecap:round;stroke-linejoin:round;}
 </style>
+

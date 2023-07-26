@@ -8,5 +8,6 @@ import StickyBanner from '../components/StickyBanner.vue'
   <main>
     <NavBar />
     <StickyBanner />
+    
   </main>
 </template>

@@ -4,6 +4,8 @@ import { mdiBookOutline } from '@mdi/js'
 import BaseIcon from './minimal/BaseIcon.vue'
 import { useI18n } from 'vue-i18n'
 import { onMounted, ref } from 'vue'
+import router from '../router/index'
+
 const { t } = useI18n()
 let latestVersion = ref('')
 
@@ -23,6 +25,12 @@ const getLatestVersion = () => {
     .catch((error) => {
       console.error('Error al obtener la versión más reciente:', error)
     })
+}
+
+const redirectReload = () => {
+  router.push({ path: '/' }).then(() => {
+    router.go()
+  })
 }
 </script>
 <template>
@@ -67,7 +75,7 @@ const getLatestVersion = () => {
         <div
           class="flex flex-col gap-y-4 gap-x-0 mt-5 md:flex-row md:items-center md:gap-y-0 md:gap-x-7 md:mt-0 md:pl-10"
         >
-          <router-link to="/" class="font-bold md:py-4 dark:text-white" aria-current="page">Inicio</router-link>
+          <button @click="redirectReload" class="font-bold md:py-4 dark:text-white" aria-current="page">Inicio</button>
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">FAQ</a>
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Acerca de</a>
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Discord</a>
@@ -85,8 +93,7 @@ const getLatestVersion = () => {
       </div>
     </nav>
     <div class="fixed bottom-0 right-0 text-center z-30">
-      <span class=" text-base lg:text-lg text-white/30  mr-3">Versión: {{ latestVersion }}</span>
-
+      <span class="text-base lg:text-lg text-white/30 mr-3">Versión: {{ latestVersion }}</span>
     </div>
   </header>
 </template>

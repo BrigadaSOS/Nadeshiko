@@ -15,6 +15,7 @@ coverage
 *.local
 media/anime
 media/hidden
+media/tmp
 .env
 prod
 
