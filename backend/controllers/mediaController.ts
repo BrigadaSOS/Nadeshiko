@@ -375,12 +375,7 @@ export const GetAllAnimes = async (
               'episodes', (
                 SELECT json_agg(
                   json_build_object(
-                    'episode', ep.number,
-                    'total_segments_episode', (
-                      SELECT COUNT(s.id)
-                      FROM nadedb.public."Segment" s
-                      WHERE ep.id = s."episodeId"
-                    )
+                    'episode', ep.number
                   )
                 )
                 FROM nadedb.public."Episode" ep
