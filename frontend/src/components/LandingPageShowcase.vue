@@ -4,5 +4,4 @@ import ListAnime from './Showcase/ListAnime.vue'
 
 <template>
   <ListAnime />
-  
 </template>
