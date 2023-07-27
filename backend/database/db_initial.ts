@@ -479,8 +479,8 @@ async function insertSegments(rows: any[], episode: Episode | null) {
         }
         if (
           row.CONTENT.length >= 100 ||
-          row.CONTENT_TRANSLATION_ENGLISH.length >= 100 ||
-          row.CONTENT_TRANSLATION_SPANISH.length >= 100
+          row.CONTENT_TRANSLATION_ENGLISH.length >= 255 ||
+          row.CONTENT_TRANSLATION_SPANISH.length >= 255
         ) {
           return console.log("Content too long. Skipping row...", row);
         }
