@@ -122,15 +122,15 @@ onMounted(async () => {
   /* When the user scrolls down, hide the navbar. When the user scrolls up, show the navbar */
   await nextTick()
   searchBarHeight.value = searchBar.value.offsetHeight + 20
-  var prevScrollpos = window.pageYOffset
+  let prevScrollpos = window.scrollY
   window.onscroll = function () {
-    var currentScrollPos = window.pageYOffset
+    var currentScrollPos = window.scrollY
     if (prevScrollpos > currentScrollPos) {
       document.getElementById('search-bar').style.top = '0'
-      searchBarHeight.value = searchBar.value.offsetHeight + 20
+      searchBarHeight.value = searchBar.value.offsetHeight
     } else {
       document.getElementById('search-bar').style.top = '-50px'
-      searchBarHeight.value = searchBar.value.offsetHeight - 30
+      searchBarHeight.value = searchBar.value.offsetHeight - 45
     }
     prevScrollpos = currentScrollPos
   }
@@ -1005,8 +1005,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     @filter-anime-length="sortFilter"
   />
       </div>
-      <div class="hidden xl:w-[22rem] xl:flex flex-col py-6 ml-10">
-      <div  id="search-anime" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
+      <div id="search-anime" class="hidden xl:w-[22rem] xl:flex flex-col py-6 ml-10" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
+      <div>
         <div class=" relative">
           <button
             type="button"
