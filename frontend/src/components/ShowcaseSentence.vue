@@ -484,7 +484,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
     </form>
   </div>
-  <div class="flex flex-row lg:w-11/12 mx-auto" @scroll="loadMoreSentences">
+  <div class="flex flex-row lg:w-11/12 mx-auto mb-20" @scroll="loadMoreSentences">
     <div class="container sm:max-w-screen-lg md:max-w-full mx-auto w-100 flex flex-col">
       <div class="mt-4">
         <div

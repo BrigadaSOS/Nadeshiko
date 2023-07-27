@@ -478,9 +478,9 @@ async function insertSegments(rows: any[], episode: Episode | null) {
           return console.log("Empty translation group. Skipping row...", row);
         }
         if (
-          row.CONTENT.length > 255 ||
-          row.CONTENT_TRANSLATION_ENGLISH.length > 255 ||
-          row.CONTENT_TRANSLATION_SPANISH.length > 255
+          row.CONTENT.length >= 100 ||
+          row.CONTENT_TRANSLATION_ENGLISH.length >= 100 ||
+          row.CONTENT_TRANSLATION_SPANISH.length >= 100
         ) {
           return console.log("Content too long. Skipping row...", row);
         }
@@ -488,7 +488,7 @@ async function insertSegments(rows: any[], episode: Episode | null) {
           start_time: row.START_TIME,
           end_time: row.END_TIME,
           position: row.ID,
-          content: row.CONTENT,
+          content: row.CONTENT.replace("-", ""),
           content_english: row.CONTENT_TRANSLATION_ENGLISH,
           content_english_mt: row.CONTENT_ENGLISH_MT,
           content_spanish: row.CONTENT_TRANSLATION_SPANISH,
