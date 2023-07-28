@@ -2,7 +2,6 @@ import { StatusCodes } from "http-status-codes";
 import connection from "../database/db_posgres";
 import { Request, Response, NextFunction } from "express";
 import { addBasicData, readAnimeDirectories, readSpecificDirectory } from "../database/db_initial";
-import { Authorized, BadRequest, Conflict, NotFound } from "../utils/error";
 
 const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
 

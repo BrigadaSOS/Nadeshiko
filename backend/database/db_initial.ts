@@ -1,10 +1,6 @@
 import path from "path";
-import { Media } from "../models/media/media";
-import { Season } from "../models/media/season";
-import { Episode } from "../models/media/episode";
-import { Segment } from "../models/media/segment";
-import { Category } from "../models/media/category";
-import { v4 as uuidv4 } from "uuid";
+import { Media, CategoryType } from "../models/media/media";
+import {Segment, SegmentStatus} from "../models/media/segment";
 import { ApiAuth } from "../models/api/apiAuth";
 import { User } from "../models/user/user";
 import { ApiPermission } from "../models/api/apiPermission";
@@ -23,8 +19,6 @@ function hashApiKey(apiKey: string) {
 
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
-  await db.Category.bulkCreate([{ name: "Anime" }, { name: "Book" }]);
-
   await db.ApiPermission.bulkCreate([
     { name: "ADD_ANIME" },
     { name: "READ_ANIME" },
@@ -92,6 +86,7 @@ export async function readAnimeDirectories(baseDir: string) {
     const dataJsonExists = fs.existsSync(dataJsonPath);
 
     let media_raw = null;
+    let media = null;
 
     if (dataJsonExists) {
       try {
@@ -102,7 +97,7 @@ export async function readAnimeDirectories(baseDir: string) {
       }
 
       try {
-        let media = await Media.create(
+        media = await Media.create(
           {
             romaji_name: media_raw.romaji_name,
             english_name: media_raw.english_name,
@@ -114,9 +109,9 @@ export async function readAnimeDirectories(baseDir: string) {
             cover: media_raw.cover,
             banner: media_raw.banner,
             version: media_raw.version,
+            category_type: CategoryType.ANIME,
             id_category: 1,
-          },
-          { include: Category }
+          }
         );
 
         await media.save();
@@ -131,51 +126,28 @@ export async function readAnimeDirectories(baseDir: string) {
         .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
         .map((dirent: { name: any }) => dirent.name);
 
+      console.log("media raw", media_raw);
+      let numSegments = 0;
+      let numSeasons = 0;
+      let numEpisodes = 0;
       for (const seasonDirname of seasonDirectories) {
         const tempDirPath = path.join(animeDirPath, seasonDirname);
+        numSeasons += 1;
 
         let media = await Media.findOne({
           where: { romaji_name: media_raw.romaji_name },
-          include: [Season, Category],
         });
 
         const number_season = parseInt(seasonDirname.replace("S", ""));
-
-        if (media) {
-          let season = await Season.create({
-            mediaId: media.id,
-            number: number_season,
-          });
-
-          await season.save();
-        }
 
         if (fs.statSync(tempDirPath).isDirectory()) {
           const episodeDirectories = fs.readdirSync(tempDirPath);
 
           for (const episodeDirname of episodeDirectories) {
             const episodeDirPath = path.join(tempDirPath, episodeDirname);
-
-            let season = await Season.findOne({
-              where: {
-                mediaId: media?.id,
-                number: number_season,
-              },
-              include: [Episode],
-            });
+            numEpisodes += 1;
 
             let number_episode = parseInt(episodeDirname.replace("E", ""));
-
-            let episode: Episode | null = null;
-
-            if (season) {
-              episode = await Episode.create({
-                seasonId: season?.id,
-                number: number_episode,
-              });
-
-              await episode.save();
-            }
 
             const dataTsvPath = path.join(episodeDirPath, "data.tsv");
             const dataTsvExists = fs.existsSync(dataTsvPath);
@@ -197,7 +169,7 @@ export async function readAnimeDirectories(baseDir: string) {
               // Para tener la libertad de reemplazar cada linea
               for await (const line of rl) {
                 // Elimina las barras invertidas y divide la línea por el delimitador de TSV
-                const rowArray = line.split("\t").map((s: string) => s.replace(/\\/g, ""));
+                const rowArray = line.split("\t").map((s: string) => s.replace(/[\\\-]/g, ""));
                 if (!headers) {
                   headers = rowArray;
                 } else {
@@ -217,17 +189,35 @@ export async function readAnimeDirectories(baseDir: string) {
               const batchSize = 100;
               const batchCount = Math.ceil(rows.length / batchSize);
 
+              const batchInsertPromises = []
               for (let i = 0; i < batchCount; i++) {
                 const start = i * batchSize;
                 const end = start + batchSize;
                 const batchRows = rows.slice(start, end);
 
-                await insertSegments(batchRows, episode);
+                batchInsertPromises.push(insertSegments(batchRows, number_season, number_episode, media!));
               }
+              await Promise.all(batchInsertPromises);
+
+              numSegments += rows.length;
             }
           }
         }
       }
+
+      // Set on DB number of segments saved
+      await Media.update(
+          {
+            num_segments: numSegments,
+            num_seasons: numSeasons,
+            num_episodes: numEpisodes
+          },
+          {
+            where: {
+              id: media?.id
+            }
+          }
+      )
     }
   }
 }
@@ -242,35 +232,6 @@ export async function readSpecificDirectory(
 ) {
   // Define la busqueda del anime en la base de datos
   const animeDirPath = path.join(baseDir, folder_name);
-
-  let include:
-    | {
-        model: typeof Season;
-        where: { number: string };
-        include: { model: typeof Episode; where: { number: string } }[];
-      }[]
-    | { model: typeof Season; where: { number: string } }[] = [];
-  if (season && episode) {
-    include = [
-      {
-        model: Season,
-        where: { number: season },
-        include: [
-          {
-            model: Episode,
-            where: { number: episode },
-          },
-        ],
-      },
-    ];
-  } else if (season && !episode) {
-    include = [
-      {
-        model: Season,
-        where: { number: season },
-      },
-    ];
-  }
 
   let animeFound = null;
   // Verifica si el contenido multimedia existe en el backend
@@ -294,7 +255,6 @@ export async function readSpecificDirectory(
 
     animeFound = await Media.findOne({
       where: { folder_media_name: folder_name },
-      include: include,
     });
 
     // Si encuentra el anime, empieza a actualizar de acuerdo a los parametros
@@ -305,14 +265,11 @@ export async function readSpecificDirectory(
         // Si se recibe la temporada y el episodio, se fuerza la actualización de un episodio en especifico de esa temporada
         // Si se recibe solo el episodio, no se hace nada
         // Si no recibe ningún parametro, se fuerza una actualización total del contenido
+        // TODO: Leaving this not implemented for now.
         if (season && !episode) {
-          await Season.destroy({
-            where: { mediaId: animeFound.id, number: season },
-          });
+          return "Not implemented for now. Please sync the full anime.";
         } else if (season && episode) {
-          await Episode.destroy({
-            where: { mediaId: animeFound.id, number: episode },
-          });
+          return "Not implemented for now. Please sync the full anime.";
         } else if (!season && episode) {
           return "You must specify a season to delete an episode.";
         } else if (!season && !episode) {
@@ -358,9 +315,8 @@ async function fullSyncSpecificAnime(
         cover: media_raw.cover,
         banner: media_raw.banner,
         version: media_raw.version,
-        id_category: 1,
-      },
-      { include: Category }
+        category: CategoryType.ANIME,
+      }
     );
     await animeFound.save();
     console.log("Media info inserted into the database.");
@@ -374,13 +330,12 @@ async function fullSyncSpecificAnime(
     .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
     .map((dirent: { name: any }) => dirent.name);
 
+  let numSegments = 0;
+  let numSeasons = 0;
+  let numEpisodes = 0;
   for (const seasonDirname of seasonDirectories) {
     const number_season = parseInt(seasonDirname.replace("S", ""));
-    let season = await Season.create({
-      mediaId: animeFound!.id,
-      number: number_season,
-    });
-    await season.save();
+    numSeasons += 1;
 
     // Una vez mapeada la temporada, mapea los episodios
     const tempDirPath = path.join(animeDirPath, seasonDirname);
@@ -388,12 +343,7 @@ async function fullSyncSpecificAnime(
       const episodeDirectories = fs.readdirSync(tempDirPath);
       for (const episodeDirname of episodeDirectories) {
         const number_episode = parseInt(episodeDirname.replace("E", ""));
-
-        let episode = await Episode.create({
-          seasonId: season?.id,
-          number: number_episode,
-        });
-        await episode.save();
+        numEpisodes += 1;
 
         // Una vez mapeado el episodio, mapea los segmentos de acuerdo al archivo TSV dentro de la carpeta del episodio
         const episodeDirPath = path.join(tempDirPath, episodeDirname);
@@ -417,7 +367,7 @@ async function fullSyncSpecificAnime(
           // Para tener la libertad de reemplazar cada linea
           for await (const line of rl) {
             // Elimina las barras invertidas y divide la línea por el delimitador de TSV
-            const rowArray = line.split("\t").map((s: string) => s.replace(/\\/g, ""));
+            const rowArray = line.split("\t").map((s: string) => s.replace(/[\\\-]/g, ""));
             if (!headers) {
               headers = rowArray;
             } else {
@@ -437,17 +387,35 @@ async function fullSyncSpecificAnime(
           const batchSize = 100;
           const batchCount = Math.ceil(rows.length / batchSize);
 
+          const batchInsertPromises = []
           for (let i = 0; i < batchCount; i++) {
             const start = i * batchSize;
             const end = start + batchSize;
             const batchRows = rows.slice(start, end);
 
-            await insertSegments(batchRows, episode);
+            batchInsertPromises.push(insertSegments(batchRows, number_season, number_episode, animeFound!));
           }
+          await Promise.all(batchInsertPromises);
+
+          numSegments += rows.length;
         }
       }
     }
   }
+
+  // Set on DB number of segments saved
+  await Media.update(
+      {
+        num_segments: numSegments,
+        num_seasons: numSeasons,
+        num_episodes: numEpisodes
+      },
+      {
+        where: {
+          id: animeFound?.id
+        }
+      }
+  )
 }
 
 // Funciones menores
@@ -464,45 +432,59 @@ function folderExists(path: string) {
   }
 }
 
-async function insertSegments(rows: any[], episode: Episode | null) {
-  await Promise.all(
+async function insertSegments(rows: any[], season: number, episode: number, media: Media) {
+  return Promise.all(
     rows.map(async (row: any) => {
-      if (episode) {
-        if (row.CONTENT === "") {
-          return console.log("Empty japanese content. Skipping row...", row);
-        }
-        if (
-          row.CONTENT_TRANSLATION_ENGLISH === "" ||
-          row.CONTENT_TRANSLATION_SPANISH === ""
-        ) {
-          return console.log("Empty translation group. Skipping row...", row);
-        }
-        if (
-          row.CONTENT.length >= 100 ||
-          row.CONTENT_TRANSLATION_ENGLISH.length >= 255 ||
-          row.CONTENT_TRANSLATION_SPANISH.length >= 255
-        ) {
-          return console.log("Content too long. Skipping row...", row);
-        }
-        let segment = await Segment.create({
-          start_time: row.START_TIME,
-          end_time: row.END_TIME,
-          position: row.ID,
-          content: row.CONTENT.replace("-", ""),
-          content_english: row.CONTENT_TRANSLATION_ENGLISH,
-          content_english_mt: row.CONTENT_ENGLISH_MT,
-          content_spanish: row.CONTENT_TRANSLATION_SPANISH,
-          content_spanish_mt: row.CONTENT_SPANISH_MT,
-          path_image: row.NAME_SCREENSHOT,
-          path_audio: row.NAME_AUDIO,
-          actor_ja: row.ACTOR_JA,
-          actor_es: row.ACTOR_ES,
-          actor_en: row.ACTOR_EN,
-          episodeId: episode.id,
-        });
+      let status = SegmentStatus.ACTIVE;
 
-        await segment.save();
+      if (row.CONTENT === "") {
+        console.log("Empty japanese content. Flagging row...", row);
+        status = SegmentStatus.INVALID_SENTENCE;
       }
+      else if (
+        row.CONTENT_TRANSLATION_ENGLISH === "" ||
+        row.CONTENT_TRANSLATION_SPANISH === ""
+      ) {
+        console.log("Empty translation group. Flagging row...", row);
+        status = SegmentStatus.INVALID_SENTENCE;
+      }
+      if (
+        row.CONTENT.length >= 100
+      ) {
+        console.log("Content longer than 100 chars. Flagging row...", row);
+        status = SegmentStatus.SENTENCE_TOO_LONG;
+      }
+
+      if (
+          row.CONTENT.length >= 400 ||
+          row.CONTENT_TRANSLATION_ENGLISH.length >= 400 ||
+          row.CONTENT_TRANSLATION_SPANISH.length >= 400
+      ) {
+        console.log("Content longer than 400 characters. Can not save row, skipping...", row);
+        return;
+      }
+
+      let segment = await Segment.create({
+        start_time: row.START_TIME,
+        end_time: row.END_TIME,
+        position: row.ID,
+        status: status,
+        content: row.CONTENT,
+        content_english: row.CONTENT_TRANSLATION_ENGLISH,
+        content_english_mt: row.CONTENT_ENGLISH_MT,
+        content_spanish: row.CONTENT_TRANSLATION_SPANISH,
+        content_spanish_mt: row.CONTENT_SPANISH_MT,
+        path_image: row.NAME_SCREENSHOT,
+        path_audio: row.NAME_AUDIO,
+        actor_ja: row.ACTOR_JA,
+        actor_es: row.ACTOR_ES,
+        actor_en: row.ACTOR_EN,
+        season: season,
+        episode: episode,
+        media_id: media.id
+      });
+
+      return segment.save();
     })
   );
 }
