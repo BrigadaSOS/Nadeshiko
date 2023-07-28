@@ -1,6 +1,9 @@
-import { Table, Model, Column, DataType, HasMany, ForeignKey, BelongsTo } from "sequelize-typescript";
-import { Category } from "./category";
-import { Season } from "./season"
+import { Table, Model, Column, DataType } from "sequelize-typescript";
+
+export enum CategoryType {
+  ANIME= 1,
+  BOOK=2
+}
 
 @Table({
   timestamps: false,
@@ -89,23 +92,30 @@ export class Media extends Model {
   version!: string;
 
   @Column({
-    type: DataType.BOOLEAN,
+    type: DataType.SMALLINT,
     allowNull: false,
-    defaultValue: true
+    defaultValue: CategoryType.ANIME
   })
-  is_visible!: boolean;
+  category!: number;
 
-  @ForeignKey(() => Category)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false
+    allowNull: false,
+    defaultValue: 0
   })
-  id_category!: number
+  num_segments!: number;
 
-  @BelongsTo(() => Category)
-  category!: Category;
-  
-  @HasMany(() => Season)
-  season!: Season[];
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  })
+  num_seasons!: number;
 
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  })
+  num_episodes!: number;
 }
