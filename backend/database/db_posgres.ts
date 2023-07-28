@@ -1,8 +1,5 @@
 import { Sequelize } from "sequelize-typescript";
-import { Category } from "../models/media/category";
-import { Episode } from "../models/media/episode";
 import { Media } from "../models/media/media";
-import { Season } from "../models/media/season";
 import { Segment } from "../models/media/segment";
 import { ApiAuth } from "../models/api/apiAuth";
 import { ApiPermission } from "../models/api/apiPermission";
@@ -28,9 +25,6 @@ const connection = new Sequelize({
   port: Number(process.env.PG_PORT),
   models: [
     Media,
-    Category,
-    Season,
-    Episode,
     Segment,
     ApiAuth,
     ApiPermission,
