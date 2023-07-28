@@ -4,14 +4,19 @@ import {
   Column,
   DataType,
   ForeignKey,
-  BelongsTo,
-  HasMany,
   BeforeCreate,
 } from "sequelize-typescript";
-import { Season } from "./season";
-import { Episode } from "./episode";
 import { v3 as uuidv3 } from "uuid";
 import { Media } from "./media";
+
+export enum SegmentStatus {
+  DELETED=0,
+  ACTIVE=1,
+  SUSPENDED=2,
+  VERIFIED=3,
+  INVALID_SENTENCE=100,
+  SENTENCE_TOO_LONG=101
+}
 
 @Table({
   timestamps: false,
@@ -40,6 +45,13 @@ export class Segment extends Model {
   position!: number;
 
   @Column({
+    type: DataType.SMALLINT,
+    allowNull: false,
+    defaultValue: SegmentStatus.ACTIVE
+  })
+  status!: number;
+
+  @Column({
     type: DataType.STRING,
     allowNull: true,
   })
@@ -52,7 +64,7 @@ export class Segment extends Model {
   end_time!: string;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.STRING(400),
     allowNull: true,
   })
   content!: string;
@@ -64,7 +76,7 @@ export class Segment extends Model {
   content_length!: number;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.STRING(400),
     allowNull: true,
   })
   content_spanish!: string;
@@ -76,7 +88,7 @@ export class Segment extends Model {
   content_spanish_mt!: boolean;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.STRING(400),
     allowNull: true,
   })
   content_english!: string;
@@ -117,16 +129,25 @@ export class Segment extends Model {
   })
   actor_en!: string;
 
-  @ForeignKey(() => Episode)
+  @Column({
+    type: DataType.SMALLINT,
+    allowNull: false
+  })
+  episode!: number;
+
+  @Column({
+    type: DataType.SMALLINT,
+    allowNull: false
+  })
+  season!: number;
+
+  @ForeignKey(() => Media)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: false
   })
-  episodeId!: number;
+  media_id!: number;
 
-  @BelongsTo(() => Episode)
-  episode!: Episode;
-  
   @BeforeCreate
   static async generateLength(instance: Segment) {
     if (instance.content) {
@@ -136,32 +157,10 @@ export class Segment extends Model {
 
   @BeforeCreate
   static async generateUUID(instance: Segment) {
-    const media = await Media.findOne({
-      include: [
-        {
-          model: Season,
-          include: [
-            {
-              model: Episode,
-              where: {
-                id: instance.episodeId,
-              },
-              include: [
-                {
-                  model: Segment,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
-    if (media) {
-      // Generate UUIDv3 based on the romaji_name, season, episode and the position of segment
-      const uuidNamespace: string | undefined =
-        process.env.UUID_NAMESPACE?.toString();
-      const unique_base_id = `${media?.romaji_name}-${media?.season[0].number}-${media?.season[0].episode[0].number}-${instance.position}`;
-      instance.uuid = uuidv3(unique_base_id, uuidNamespace!);
-    }
+    // Generate UUIDv3 based on the romaji_name, season, episode and the position of segment
+    const uuidNamespace: string | undefined =
+      process.env.UUID_NAMESPACE?.toString();
+    const unique_base_id = `${instance.media_id}-${instance.season}-${instance.episode}-${instance.position}`;
+    instance.uuid = uuidv3(unique_base_id, uuidNamespace!);
   }
 }

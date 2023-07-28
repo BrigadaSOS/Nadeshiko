@@ -229,11 +229,11 @@ onMounted(() => {
                           </p>
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white">Temporadas: </span>
-
-                            <span v-for="(season, index) in item.media_available" :key="index">
-                              <span class="">{{ season.season }}</span>
-                              <span v-if="index !== item.media_available.length - 1">, </span>
-                            </span>
+                            {{item.media_info.num_seasons}}
+                          </p>
+                          <p>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white">Episodios: </span>
+                            {{item.media_info.num_episodes}}
                           </p>
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white break-words">Generos: </span>
@@ -250,7 +250,7 @@ onMounted(() => {
                 </div>
                 <div class="text-center mt-1 justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-medium line-clamp-2">
-                    {{ item.total_segments_media }} oraciones
+                    {{ item.media_info.num_segments }} oraciones
                   </h3>
                 </div>
               </div>
