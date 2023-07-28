@@ -1,4 +1,4 @@
-import { Authorized, BadRequest, Conflict, NotFound } from "../utils/error";
+import { BadRequest } from "../utils/error";
 import { Request, Response, NextFunction } from "express";
 import { StatusCodes } from "http-status-codes";
 import { v3 as uuidv3 } from "uuid";
@@ -173,11 +173,9 @@ export const SearchAnimeSentences = async (
       sql =
         `
         WITH Variations AS (
-          SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.banner, me.cover, me.folder_media_name, me.id as media_id
+          SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.banner, me.cover, me.folder_media_name, me.id
           FROM nadedb.public."Segment" s
-          INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
-          INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
-          INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id,
+          INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id,
           LATERAL get_variations(s.content, '${query}') as variations
           WHERE (((s.content || '' )) &@~ ja_expand('${query}')
            OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
@@ -194,11 +192,9 @@ export const SearchAnimeSentences = async (
 
     const full_results_query =
       `WITH Variations AS (
-        SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+        SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.folder_media_name, me.id
         FROM nadedb.public."Segment" s
-        INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
-        INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
-        INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id,
+        INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id,
         LATERAL get_variations(s.content, '${query}') as variations
         WHERE (((s.content || '' )) &@~ ja_expand('${query}')
         OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
@@ -239,17 +235,13 @@ export const GetContextAnime = async (
   try {
     const { id_anime, season, episode, index_segment, limit } = req.body;
 
-    let whereClause = ` WHERE me.id = ${id_anime} AND se.number = ${season} AND ep.number = ${episode} `;
+    let whereClause = ` WHERE me.id = ${id_anime} AND s.season = ${season} AND s.episode = ${episode} AND s.status = 1`;
     let sql =
       `
     WITH ordered_segments AS (
-      SELECT s.*, ep.number as "episode", se.number as "season", 
-        me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id,
-        ROW_NUMBER() OVER (ORDER BY s.position) as row_number
+      SELECT s.*, me.english_name, me.japanese_name, me.folder_media_name, me.id, ROW_NUMBER() OVER (ORDER BY s.position) as row_number
       FROM nadedb.public."Segment" s
-      INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
-      INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
-      INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id
+      INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id
       ` +
       whereClause +
       `
@@ -307,9 +299,7 @@ export const GetWordsMatched = async (
           WHERE ((s.content || '' ) &@~ ja_expand(words.word)
               OR (s.content || '' || '') &@~ ja_expand(words.word))
         ) s ON true
-      LEFT JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
-      LEFT JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
-      LEFT JOIN nadedb.public."Media" me ON se."mediaId" = me.id
+      LEFT JOIN nadedb.public."Media" me ON s."media_id" = me.id
       GROUP BY 
         words.word, me.id, me.english_name, me.japanese_name, me.folder_media_name
     )
@@ -359,43 +349,11 @@ export const GetAllAnimes = async (
           'genres', me.genres,
           'cover', me.cover,
           'banner', me.banner,
-          'version', me.version
-        ) AS media_info,
-        (
-          SELECT json_agg(
-            json_build_object(
-              'season', se.number,
-              'total_segments_season', (
-                SELECT COUNT(s.id)
-                FROM nadedb.public."Segment" s
-                WHERE s."episodeId" IN (
-                  SELECT ep.id FROM nadedb.public."Episode" ep WHERE se.id = ep."seasonId"
-                )
-              ),
-              'episodes', (
-                SELECT json_agg(
-                  json_build_object(
-                    'episode', ep.number
-                  )
-                )
-                FROM nadedb.public."Episode" ep
-                WHERE se.id = ep."seasonId"
-              )
-            )
-          )
-          FROM nadedb.public."Season" se
-          WHERE me.id = se."mediaId"
-        ) AS media_available,
-        (
-          SELECT COUNT(s.id)
-          FROM nadedb.public."Segment" s
-          WHERE s."episodeId" IN (
-            SELECT ep.id 
-            FROM nadedb.public."Episode" ep
-            JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
-            WHERE se."mediaId" = me.id
-          )
-        ) AS total_segments_media
+          'version', me.version,
+          'num_segments', me.num_segments,
+          'num_seasons', me.num_seasons,
+          'num_episodes', me.num_episodes
+        ) AS media_info
       FROM 
         nadedb.public."Media" me
       GROUP BY 
@@ -470,6 +428,7 @@ function buildSimplifiedResults(req: Request, results: any) {
         episode: result["episode"],
       },
       segment_info: {
+        status: result["status"],
         uuid: result["uuid"],
         position: result["position"],
         start_time: result["start_time"],

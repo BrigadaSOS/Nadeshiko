@@ -266,11 +266,9 @@ CREATE INDEX idx_tatoeba_jpn_reading ON nadedb.public."Segment"
   );
 
 WITH Variations AS (
-    SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, ep.number as "episode", se.number as "season", me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
+    SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.folder_media_name, me.id as media_id
     FROM nadedb.public."Segment" s
-    INNER JOIN nadedb.public."Episode" ep ON s."episodeId" = ep.id
-    INNER JOIN nadedb.public."Season" se ON ep."seasonId" = se.id
-    INNER JOIN nadedb.public."Media" me ON se."mediaId" = me.id,
+    INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id,
     LATERAL get_variations(s.content, '飯') as variations
     WHERE (((s.content || '' )) &@~ ja_expand('飯')
      OR (s.content || '' || '') &@~ ja_expand('飯')) --and (s.content &@~ '身の程わきまえて 生きろよ')
