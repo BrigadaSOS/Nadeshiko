@@ -99,6 +99,7 @@ export async function readAnimeDirectories(baseDir: string) {
       try {
         media = await Media.create(
           {
+            id: media_raw.id,
             romaji_name: media_raw.romaji_name,
             english_name: media_raw.english_name,
             japanese_name: media_raw.japanese_name,
@@ -305,6 +306,7 @@ async function fullSyncSpecificAnime(
   try {
     animeFound = await Media.create(
       {
+        id: media_raw.id,
         romaji_name: media_raw.romaji_name,
         english_name: media_raw.english_name,
         japanese_name: media_raw.japanese_name,
