@@ -79,15 +79,16 @@ const redirectReload = () => {
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">FAQ</a>
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Acerca de</a>
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Discord</a>
+          <a href="https://brigadasos.xyz/"  class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500">Guía principal</a>
+
           <div class="flex flex-col md:flex-row z-50 items-center gap-x-2 md:ml-auto">
             <LanguageSelector class="w-full mb-2 md:mb-0 md:w-auto" />
-            <a
-              href="https://brigadasos.xyz/"
-              class="dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
+            
+            <button
+              class="dark:bg-sgray  w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
             >
-              <BaseIcon :path="mdiBookOutline" w="w-10 md:w-5" h="h-10 md:h-5" size="24" class="" />
-              {{ t('navbar.buttons.guide') }}
-            </a>
+               Iniciar sesión / Registrarse
+            </button>
           </div>
         </div>
       </div>

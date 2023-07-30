@@ -62,7 +62,7 @@ onBeforeRouteUpdate(async (to, from) => {
   if (searchTerm) {
     await getSentences(searchTerm, 0, animeId)
   } else {
-    /*
+    
     querySearch.value = ''
     sentences.value = []
     statistics.value = []
@@ -70,7 +70,7 @@ onBeforeRouteUpdate(async (to, from) => {
     isLoading.value = false
     no_results.value = false
     next_cursor.value = null
-    anime_id.value = null*/
+    anime_id.value = null
   }
 })
 

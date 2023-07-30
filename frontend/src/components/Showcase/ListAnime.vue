@@ -18,7 +18,7 @@ const getLatestAnime = async () => {
       }
     })
     response = await response.json()
-    latest_anime_list.value = response.results
+    latest_anime_list.value = response.results.slice(0,10)
   } catch (error) {
     console.log(error)
     return

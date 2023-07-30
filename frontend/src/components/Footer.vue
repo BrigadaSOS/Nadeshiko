@@ -1,6 +1,6 @@
 <template>
   <footer class="bg-white  dark:bg-sgray2/60">
-    <div class=" max-w-[195vh] px-6 py-4 md:py-8 mx-auto">
+    <div class=" max-w-[195vh] px-6 py-4 md:py-6 mx-auto">
       <div class="flex flex-col items-center text-center">
         <div class="flex flex-wrap justify-center mt-4 -mx-4">
           <a
@@ -37,10 +37,10 @@
         </div>
       </div>
 
-      <hr class="my-6 border-gray-200 md:my-10 dark:border-white/20" />
+      <hr class="my-6 border-gray-200 md:my-8 dark:border-white/20" />
 
       <div class="flex text-center flex-col items-center sm:flex-row sm:justify-between">
-        <p class="text-sm mb-4 sm:mb-0 text-gray-500 text-center dark:text-gray-300">NadeDB - BrigadaSOS. 2023.</p>
+        <p class="text-sm mb-4 sm:mb-0 text-gray-500 text-center dark:text-gray-300">NadeDB - BrigadaSOS. 2023</p>
 
         <div class="flex -mx-2">
           <a
