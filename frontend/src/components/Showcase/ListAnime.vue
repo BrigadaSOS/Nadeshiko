@@ -274,10 +274,15 @@ onMounted(() => {
       <!-- End Col -->
     </div>
     <!-- End Grid -->
-    <div class="my-10 border-b border-white/10" />
+    <div class="my-10 border-b border-white/20" />
+
 <section class="text-white body-font mt-10 ">
-    <div class="mx-auto ">
+  <h2 class="text-2xl m-4 -mt-5 font-bold md:text-xl md:leading-tight dark:text-white">Estádisticas</h2>
+
+    <div class="mx-auto -mb-20">
+
       <div class="flex flex-wrap -m-4 text-center">
+        
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class=" bg-white/5 border-none px-4 py-6 rounded-lg">
             <h2 class="title-font font-medium text-3xl text-white">+100K</h2>
