@@ -31,7 +31,7 @@ onMounted(() => {
 </script>
 <template>
   <BatchSearchModal />
-  <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5 mx-auto">
+  <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5 mx-auto ">
     <!-- Grid -->
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
@@ -274,7 +274,28 @@ onMounted(() => {
       <!-- End Col -->
     </div>
     <!-- End Grid -->
+    <div class="my-10 border-b border-white/10" />
+<section class="text-white body-font mt-10 ">
+    <div class="mx-auto ">
+      <div class="flex flex-wrap -m-4 text-center">
+        <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
+          <div class=" bg-white/5 border-none px-4 py-6 rounded-lg">
+            <h2 class="title-font font-medium text-3xl text-white">+100K</h2>
+            <p class="leading-relaxed">Oraciones</p>
+          </div>
+        </div>
+        <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
+          <div class=" bg-white/5 border-none px-4 py-6 rounded-lg">
+            <h2 class="title-font font-medium text-3xl text-white">+20</h2>
+            <p class="leading-relaxed">Animes, películas y dramas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+</section>
   </div>
+
+
 </template>
 <style>
 :root {
