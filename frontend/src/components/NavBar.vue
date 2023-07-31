@@ -5,6 +5,7 @@ import BaseIcon from './minimal/BaseIcon.vue'
 import { useI18n } from 'vue-i18n'
 import { onMounted, ref } from 'vue'
 import router from '../router/index'
+import Auth from './auth/LoginSignUp.vue'
 
 const { t } = useI18n()
 let latestVersion = ref('')
@@ -34,6 +35,7 @@ const redirectReload = () => {
 }
 </script>
 <template>
+  <Auth/>
   <header
     class="flex flex-wrap md:justify-start md:flex-nowrap z-50 w-full bg-white border-b border-gray-200 text-sm py-3 md:py-0 dark:bg-sred dark:border-gray-700"
   >
@@ -85,6 +87,7 @@ const redirectReload = () => {
             <LanguageSelector class="w-full mb-2 md:mb-0 md:w-auto" />
             
             <button
+              data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
               class="dark:bg-sgray  w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
             >
                Iniciar sesión / Registrarse
