@@ -281,9 +281,9 @@ onMounted(() => {
 
 
   </div>
-  <section class="text-white body-font">
+  <section class="text-white p-4 lg:p-0 body-font">
       <h2 class="text-2xl m-4 -mt-8 font-bold md:text-xl md:leading-tight dark:text-white">Estádisticas generales</h2>
-      <div class="mx-auto -mb-10">
+      <div class="mx-auto -mb-12">
         <div class="flex flex-wrap -m-4 text-center">
           <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
             <div class="bg-white/5 border-none px-4 py-6 rounded-lg">
