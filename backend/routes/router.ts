@@ -11,7 +11,7 @@ import {
   GetWordsMatched,
   GetAllAnimes
 } from "../controllers/mediaController";
-import { signUp, login } from "../controllers/userController";
+import { signUp, logIn } from "../controllers/userController";
 import { hasPermission } from "../middleware/permissionHandler";
 import { isAuth } from "../middleware/authorization";
 
@@ -28,7 +28,7 @@ router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 
 // User
 router.post("/v1/user/register", isAuth, signUp);
-
+router.post("/v1/user/login", isAuth, logIn);
 // Admin
 router.post("/v1/admin/database/resync", reSyncDatabase);
 router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
