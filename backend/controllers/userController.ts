@@ -81,14 +81,12 @@ export const logIn = async (
       include: UserRole,
     });
 
-    console.log(user);
-
     if (!user) throw new NotFound("This email has not been found.");
     if (!user.is_active) throw new NotFound("This user is not active.");
 
     // Compare the passwords
     const password: boolean = await bcrypt.compare(
-      req.body.password,
+      req.body.password.toString(),
       user.password
     );
     if (!password)
@@ -99,7 +97,7 @@ export const logIn = async (
         "The email has not been verified. Please check your email again."
       );
 
-    // Create Token with role permissions
+    // Create Token with role
     const user_role = await UserRole.findAll({
       where: { id_user: user.id },
       include: [
