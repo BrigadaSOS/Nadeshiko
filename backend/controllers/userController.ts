@@ -36,8 +36,8 @@ export const signUp = async (
         : "";
       const randomTokenEmail: string = jwt.sign({ email: email }, jwtSecretKey);
 
-      // 1: Normal user
-      const roles = [1];
+      // 3: Normal user
+      const roles = [3];
 
       const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
@@ -49,7 +49,7 @@ export const signUp = async (
           email_token: randomTokenEmail,
           is_verified: false,
           is_active: true,
-          user_roles: userRoles,
+          UserRoles: userRoles,
         },
         { include: UserRole }
       );
