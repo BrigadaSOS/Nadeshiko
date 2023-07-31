@@ -6,6 +6,7 @@ import { User } from "../models/user/user";
 import { ApiPermission } from "../models/api/apiPermission";
 import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
 import crypto from "crypto";
+import { UserRole } from "../models/user/userRole";
 
 const bcrypt = require("bcrypt");
 const readline = require("readline");
@@ -20,6 +21,12 @@ function hashApiKey(apiKey: string) {
 
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
+  await db.Role.bulkCreate([
+    { id: 1, name: "ADMIN", description: "Administrator" },
+    { id: 2, name: "MOD", description: "Moderator"},
+    { id: 3, name: "USER", description: "User" },
+  ]);
+
   await db.ApiPermission.bulkCreate([
     { name: "ADD_ANIME" },
     { name: "READ_ANIME" },
@@ -39,6 +46,9 @@ export async function addBasicData(db: any) {
   const salt: string = await bcrypt.genSalt(10);
   const encryptedPassword: string = await bcrypt.hash(process.env.PASSWORD_API_NADEDB, salt);
   const api_key = process.env.API_KEY_MASTER!;
+  const roles = [1];
+  const userRoles = roles.map((roleId) => ({ id_role: roleId }));
+
   const newUser = await User.create(
     {
       username: process.env.USERNAME_API_NADEDB,
@@ -51,9 +61,10 @@ export async function addBasicData(db: any) {
         createdAt: new Date(),
         isActive: true,
       },
+      UserRoles: userRoles
     },
     {
-      include: ApiAuth,
+      include: [ApiAuth, UserRole],
     }
   );
 
