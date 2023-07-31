@@ -7,6 +7,7 @@ import { ApiPermission } from "../models/api/apiPermission";
 import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
 import crypto from "crypto";
 
+const bcrypt = require("bcrypt");
 const readline = require("readline");
 const stream = require("stream");
 const fs = require("fs");
@@ -35,11 +36,16 @@ export async function addBasicData(db: any) {
     "RESYNC_DATABASE",
   ];
 
+  const salt: string = await bcrypt.genSalt(10);
+  const encryptedPassword: string = await bcrypt.hash(process.env.PASSWORD_API_NADEDB, salt);
   const api_key = process.env.API_KEY_MASTER!;
   const newUser = await User.create(
     {
       username: process.env.USERNAME_API_NADEDB,
+      password: encryptedPassword,
       email: process.env.EMAIL_API_NADEDB,
+      is_active: true,
+      is_verified: true,
       apiAuth: {
         token: hashApiKey(api_key),
         createdAt: new Date(),
