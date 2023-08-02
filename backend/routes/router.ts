@@ -11,9 +11,10 @@ import {
   GetWordsMatched,
   GetAllAnimes
 } from "../controllers/mediaController";
-import { signUp, logIn } from "../controllers/userController";
+import { signUp, logIn, logout, getUserInfo } from "../controllers/userController";
 import { hasPermission } from "../middleware/permissionHandler";
 import { isAuth } from "../middleware/authorization";
+import { isAuthJWT } from "../middleware/isAuthJWT";
 
 // API Routes v1
 // Search
@@ -29,6 +30,9 @@ router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 // User
 router.post("/v1/user/register", isAuth, signUp);
 router.post("/v1/user/login", isAuth, logIn);
+router.post("/v1/user/logout", logout);
+router.post('/v1/user/info', isAuthJWT, getUserInfo)
+
 // Admin
 router.post("/v1/admin/database/resync", reSyncDatabase);
 router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);

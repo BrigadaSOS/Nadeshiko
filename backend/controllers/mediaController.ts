@@ -173,7 +173,7 @@ export const SearchAnimeSentences = async (
       sql =
         `
         WITH Variations AS (
-          SELECT variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.banner, me.cover, me.folder_media_name, me.id
+          SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.banner, me.cover, me.folder_media_name, me.id
           FROM nadedb.public."Segment" s
           INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id,
           LATERAL get_variations(s.content, '${query}') as variations
@@ -192,7 +192,7 @@ export const SearchAnimeSentences = async (
 
     const full_results_query =
       `WITH Variations AS (
-        SELECT variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.folder_media_name, me.id
+        SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.folder_media_name, me.id
         FROM nadedb.public."Segment" s
         INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id,
         LATERAL get_variations(s.content, '${query}') as variations

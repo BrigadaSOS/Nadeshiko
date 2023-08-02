@@ -3,15 +3,22 @@ import LanguageSelector from './minimal/LanguageSelector.vue'
 import { mdiBookOutline } from '@mdi/js'
 import BaseIcon from './minimal/BaseIcon.vue'
 import { useI18n } from 'vue-i18n'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import router from '../router/index'
 import Auth from './auth/LoginSignUp.vue'
+import { userStore } from '../stores/user'
+const store = userStore()
+const isAuth = computed(() => store.isLoggedIn)
+
+const email = ref('')
+let isLoading = ref(false)
 
 const { t } = useI18n()
 let latestVersion = ref('')
 
 onMounted(async () => {
   getLatestVersion()
+  isLoading.value = true
 })
 
 const getLatestVersion = () => {
@@ -29,13 +36,11 @@ const getLatestVersion = () => {
 }
 
 const redirectReload = () => {
-  router.push({ path: '/' }).then(() => {
-    router.go()
-  })
+  router.push({ path: '/' })
 }
 </script>
 <template>
-  <Auth/>
+  <Auth />
   <header
     class="flex flex-wrap md:justify-start md:flex-nowrap z-50 w-full bg-white border-b border-gray-200 text-sm py-3 md:py-0 dark:bg-sred dark:border-gray-700"
   >
@@ -81,17 +86,71 @@ const redirectReload = () => {
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">FAQ</a>
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Acerca de</a>
           <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Discord</a>
-          <a href="https://brigadasos.xyz/"  class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500">Guía principal</a>
+          <a
+            href="https://brigadasos.xyz/"
+            class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500"
+            >Guía principal</a
+          >
 
           <div class="flex flex-col md:flex-row z-50 items-center gap-x-2 md:ml-auto">
             <LanguageSelector class="w-full mb-2 md:mb-0 md:w-auto" />
-            
+
             <button
+              v-if="!isAuth"
               data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
-              class="dark:bg-sgray  w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
+              class="dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
             >
-               Iniciar sesión / Registrarse
+              Iniciar sesión / Registrarse
             </button>
+
+            <div v-else class="hs-dropdown relative inline-flex [--strategy:absolute]">
+              <button
+                id="hs-dropdown-left-but-right-on-lg"
+                type="button"
+                class="hs-dropdown-toggle focus:outline-none dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white0"
+              >
+                Perfil
+
+                <svg
+                  class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2 5L8.16086 10.6869C8.35239 10.8637 8.64761 10.8637 8.83914 10.6869L15 5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+
+              <div
+                class="hs-dropdown-menu w-72 divide-y transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden z-10 top-0 lg:left-auto bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-sgray dark:divide-white/20"
+                aria-labelledby="hs-dropdown-left-but-right-on-lg"
+              >
+                <div class="py-2 first:pt-0 last:pb-0">
+                  <router-link
+                    to="/account"
+                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-white dark:hover:bg-sgray2"
+                  >
+                    Ver cuenta
+                  </router-link>
+                </div>
+                <div class="py-2 first:pt-0 last:pb-0">
+                  <a
+                    @click="store.logout()"
+                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-white dark:hover:bg-sgray2"
+                    href="#"
+                  >
+                    Cerrar sesión
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
