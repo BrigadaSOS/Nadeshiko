@@ -37,8 +37,21 @@ services:
     ports:
       - 9200:9200
       - 9300:9300
+    command: >
+      bash -c '
+        if [ ! "-d" "/usr/share/elasticsearch/plugins/analysis-icu" ]; then
+          ./bin/elasticsearch-plugin install analysis-icu;
+        fi;
+        if [ ! "-d" "/usr/share/elasticsearch/plugins/analysis-kuromoji" ]; then
+          ./bin/elasticsearch-plugin install analysis-kuromoji;
+        fi;
+        ./bin/elasticsearch
+      '
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+      - elasticsearch_config:/usr/share/elasticsearch/config
+      - elasticsearch_plugins:/usr/share/elasticsearch/plugins
+
     networks:
       - nadedb-network
 
@@ -63,4 +76,6 @@ volumes:
   local_pgdata:
   pgadmin-data:
   elasticsearch_data:
+  elasticsearch_config:
+  elasticsearch_plugins:
   kibana_data:
