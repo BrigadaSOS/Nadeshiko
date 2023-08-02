@@ -1,4 +1,6 @@
-import { Table, Model, Column, DataType } from "sequelize-typescript";
+import { Table, Model, Column, DataType, HasMany } from "sequelize-typescript";
+
+import { Segment } from "./segment";
 
 export enum CategoryType {
   ANIME= 1,
@@ -118,4 +120,8 @@ export class Media extends Model {
     defaultValue: 0
   })
   num_episodes!: number;
+
+  @HasMany(() => Segment)
+  segments!: Segment[];
+
 }
