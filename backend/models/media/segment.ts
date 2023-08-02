@@ -5,6 +5,7 @@ import {
   DataType,
   ForeignKey,
   BeforeCreate,
+  BelongsTo,
 } from "sequelize-typescript";
 import { v3 as uuidv3 } from "uuid";
 import { Media } from "./media";
@@ -147,6 +148,9 @@ export class Segment extends Model {
     allowNull: false
   })
   media_id!: number;
+  
+  @BelongsTo(() => Media)
+  media!: Media;
 
   @BeforeCreate
   static async generateLength(instance: Segment) {
