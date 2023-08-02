@@ -160,7 +160,7 @@ onMounted(() => {
         >
           <BaseIcon :path="mdiStarShootingOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
           <div class="mr-2">Soporte con Anki (Próximamente)</div>
-        </button>       
+        </button>
       </div>
 
       <!-- End Col -->
@@ -278,28 +278,26 @@ onMounted(() => {
     </div>
     <!-- End Grid -->
     <div class="my-10 border-b border-white/20" />
-
-
   </div>
   <section class="text-white p-4 lg:p-0 body-font">
-      <h2 class="text-2xl m-4 -mt-8 font-bold md:text-xl md:leading-tight dark:text-white">Estádisticas generales</h2>
-      <div class="mx-auto -mb-12">
-        <div class="flex flex-wrap -m-4 text-center">
-          <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
-            <div class="bg-white/5 border-none px-4 py-6 rounded-lg">
-              <h2 class="title-font font-medium text-3xl text-white">+100K</h2>
-              <p class="leading-relaxed">Oraciones</p>
-            </div>
+    <h2 class="text-2xl m-4 -mt-8 font-bold md:text-xl md:leading-tight dark:text-white">Estádisticas generales</h2>
+    <div class="mx-auto -mb-12">
+      <div class="flex flex-wrap -m-4 text-center">
+        <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
+          <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
+            <h2 class="title-font font-medium text-3xl text-white">+100K</h2>
+            <p class="leading-relaxed">Oraciones</p>
           </div>
-          <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
-            <div class="bg-white/5 border-none px-4 py-6 rounded-lg">
-              <h2 class="title-font font-medium text-3xl text-white">+20</h2>
-              <p class="leading-relaxed">Animes, películas y dramas</p>
-            </div>
+        </div>
+        <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
+          <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
+            <h2 class="title-font font-medium text-3xl text-white">+30</h2>
+            <p class="leading-relaxed">Animes, películas y dramas</p>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 </template>
 <style>
 :root {

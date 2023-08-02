@@ -13,9 +13,16 @@ newrelic.instrumentLoadedModule("express", express);
 
 const app: Application = express();
 
-app.use(function (_req, res, next) {
-  // Website you wish to allow to connect
-  res.setHeader("Access-Control-Allow-Origin", "*");
+const allowedOrigins = ["http://localhost:5173", "https://db.brigadasos.xyz"];
+
+app.use(function (req, res, next) {
+  // Obtiene el origen de la solicitud
+  const origin: string | undefined = req.headers.origin;
+
+  // Si el origen de la solicitud está en la lista de origines permitidos, establece el encabezado Access-Control-Allow-Origin
+  if (allowedOrigins.includes(origin as string)) {
+    res.setHeader("Access-Control-Allow-Origin", origin as string);
+  }
 
   // Request methods you wish to allow
   res.setHeader(
@@ -24,14 +31,10 @@ app.use(function (_req, res, next) {
   );
 
   // Request headers you wish to allow
-  res.setHeader("Access-Control-Allow-Headers", [
-    "X-Requested-With",
-    "content-type",
-    "newrelic",
-    "traceparent",
-    "tracestate",
-    "x-api-key",
-  ]);
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-Requested-With,content-type,newrelic,traceparent,tracestate,x-api-key"
+  );
 
   // Set to true if you need the website to include cookies in the requests sent
   // to the API (e.g. in case you use sessions)
@@ -82,8 +85,8 @@ if (process.env.ENVIRONMENT === "testing") {
 
     sharp(imagePath)
       .resize(width, height, {
-        kernel: sharp.kernel.lanczos3 
-        })
+        kernel: sharp.kernel.lanczos3,
+      })
       .toFile(cachePath)
       .then(() => {
         res.sendFile(cachePath);
@@ -111,11 +114,22 @@ if (process.env.ENVIRONMENT === "testing") {
     const imagePath = path.join(mediaDirectory, req.path);
 
     if (!width && !height) {
-      return express.static(mediaDirectory, { fallthrough: false })(req, res, next);
+      return express.static(mediaDirectory, { fallthrough: false })(
+        req,
+        res,
+        next
+      );
     }
 
-    const cacheDir = path.join(mediaDirectory, 'media/tmp/cache/anime', path.dirname(req.path));
-    const cachePath = path.join(cacheDir, `${path.basename(req.path.replace(".webp", ""))}-${width}_${height}.webp`);
+    const cacheDir = path.join(
+      mediaDirectory,
+      "media/tmp/cache/anime",
+      path.dirname(req.path)
+    );
+    const cachePath = path.join(
+      cacheDir,
+      `${path.basename(req.path.replace(".webp", ""))}-${width}_${height}.webp`
+    );
 
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir, { recursive: true });

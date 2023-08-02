@@ -8,7 +8,46 @@ import { UserRole } from "../models/user/userRole";
 import { Role } from "../models/user/role";
 import { createToken, maxAge } from "../middleware/createTokenJWT";
 
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
+
+export const logout = (_req: Request, res: Response, _next: NextFunction) => {
+  return res.clearCookie("access_token").status(StatusCodes.OK).json({
+    status: res.status,
+    message: "Logout successfully.",
+  });
+};
+
+declare module "express" {
+  export interface Request {
+    jwt: any;
+  }
+}
+
+export const getUserInfo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = await User.findOne({
+      where: { id: req.jwt.user_id },
+    });
+
+    if (!user) throw new NotFound("This user has not been found.");
+
+    const info_user = {
+      username: user.username,
+      email: user.email,
+    };
+
+    return res.status(StatusCodes.OK).json({
+      status: res.status,
+      info_user,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
 
 export const signUp = async (
   req: Request,
@@ -29,7 +68,10 @@ export const signUp = async (
     } else {
       // encrypt the password
       const salt: string = await bcrypt.genSalt(10);
-      const encryptedPassword: string = await bcrypt.hash(password.toString(), salt);
+      const encryptedPassword: string = await bcrypt.hash(
+        password.toString(),
+        salt
+      );
       // Generate random email verification token
       const jwtSecretKey: string = process.env.SECRET_KEY_JWT
         ? process.env.SECRET_KEY_JWT
@@ -111,11 +153,11 @@ export const logIn = async (
     const list_roles = user_role.map((user_role) => user_role.id_role);
 
     const token = createToken(user.id, list_roles);
+
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: true,
       maxAge: maxAge * 1000,
-      sameSite: "none",
     });
 
     const data_user = {

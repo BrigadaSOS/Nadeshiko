@@ -13,7 +13,11 @@ import App from './App.vue'
 import router from './router'
 import Toast from "vue-toastification";
 import messages from '@intlify/unplugin-vue-i18n/messages'
+import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 
+import { userStore} from './stores/user'
+
+const pinia = createPinia();
 
 // Language Configuration
 const i18n = createI18n({
@@ -36,10 +40,14 @@ const options_toast = {
   newestOnTop: true,
 }
 
+pinia.use(piniaPluginPersistedstate);
+
 app.use(head)
-app.use(createPinia())
+app.use(pinia)
 app.use(router)
 app.use(i18n)
-app.use(Toast, options_toast);
+app.use(Toast, options_toast)
+
+const store = userStore()
 
 app.mount('#app')

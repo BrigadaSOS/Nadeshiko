@@ -1,4 +1,30 @@
-<script setup></script>
+<script setup>
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { userStore } from '../../stores/user';
+
+const store = userStore()
+const isAuth = computed(() => store.isLoggedIn)
+
+const email = ref('')
+const password = ref('')
+
+onMounted(() => {
+  watch(isAuth, async (newVal) => {
+    if (newVal) {
+      // Espera hasta que la página se haya actualizado
+      await nextTick();
+
+      // Encuentra el botón que cierra el modal y haz clic en él
+      const closeButton = document.querySelector('[data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"]');
+      if (closeButton) {
+        closeButton.click();
+      }
+    }
+  });
+});
+
+
+</script>
 
 <template>
   <div
@@ -37,14 +63,10 @@
         <div class="overflow-y-auto">
           <div class="flex flex-row mx-auto">
             <div class="container w-[80vw] sm:w-[60vh] sm:mx-4 mx-auto flex flex-col">
-              <nav
-                class="relative mt-2 z-0 flex border  overflow-hidden border-none"
-                aria-label="Tabs"
-                role="tablist"
-              >
+              <nav class="relative mt-2 z-0 flex border overflow-hidden border-none" aria-label="Tabs" role="tablist">
                 <button
                   type="button"
-                  class="hs-tab-active:border-b-sred hs-tab-active:text-gray-900 dark:hs-tab-active:text-white dark:hs-tab-active:border-b-sred relative min-w-0 flex-1 first:border-l-0  border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:hover:bg-sgray2 dark:border-l-gray-700 dark:border-b-white/30 dark:hover:text-gray-400 active"
+                  class="hs-tab-active:border-b-sred hs-tab-active:text-gray-900 dark:hs-tab-active:text-white dark:hs-tab-active:border-b-sred relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:hover:bg-sgray2 dark:border-l-gray-700 dark:border-b-white/30 dark:hover:text-gray-400 active"
                   id="bar-with-underline-item-1"
                   data-hs-tab="#bar-with-underline-1"
                   aria-controls="bar-with-underline-1"
@@ -54,7 +76,7 @@
                 </button>
                 <button
                   type="button"
-                  class="hs-tab-active:border-b-sred hs-tab-active:text-gray-900 dark:hs-tab-active:text-white dark:hs-tab-active:border-b-sred relative min-w-0 flex-1 first:border-l-0  border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:border-l-gray-700 dark:border-b-white/30 dark:hover:bg-sgray2 dark:hover:text-gray-400 dark:hover:text-gray-300"
+                  class="hs-tab-active:border-b-sred hs-tab-active:text-gray-900 dark:hs-tab-active:text-white dark:hs-tab-active:border-b-sred relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:border-l-gray-700 dark:border-b-white/30 dark:hover:bg-sgray2 dark:hover:text-gray-400 dark:hover:text-gray-300"
                   id="bar-with-underline-item-2"
                   data-hs-tab="#bar-with-underline-2"
                   aria-controls="bar-with-underline-2"
@@ -122,6 +144,7 @@
                                 type="email"
                                 id="email"
                                 name="email"
+                                v-model="email"
                                 class="py-3 px-4 block w-full border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-sgray2 dark:border-gray-700 dark:text-gray-400"
                                 required
                                 aria-describedby="email-error"
@@ -161,6 +184,7 @@
                               <input
                                 type="password"
                                 id="password"
+                                v-model="password"
                                 name="password"
                                 class="py-3 px-4 block w-full border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-sgray2 dark:border-gray-700 dark:text-gray-400"
                                 required
@@ -204,7 +228,8 @@
                           <!-- End Checkbox -->
 
                           <button
-                            type="submit"
+                            @click="store.login(email, password)"
+                            type="button" 
                             class="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-sgray text-white hover:bg-sgray2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
                           >
                             Iniciar sesión
@@ -234,8 +259,8 @@
                                 <div class="relative">
                                   <input
                                     type="email"
-                                    id="email"
-                                    name="email"
+                                    id="email-register"
+                                    name="email-register"
                                     class="py-3 px-4 block w-full border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-sgray2 dark:border-gray-700 dark:text-gray-400"
                                     required
                                     aria-describedby="email-error"
@@ -265,78 +290,80 @@
 
                               <!-- Form Group -->
                               <div class="flex justify-between space-x-4">
-    <!-- Campo de contraseña -->
-    <div class="flex-grow">
-        <div class="flex justify-between items-center">
-            <label for="password" class="block text-sm mb-2 dark:text-white">Contraseña</label>
-        </div>
-        <div class="relative">
-            <input
-                type="password"
-                id="password"
-                name="password"
-                class="py-3 px-4 block w-full border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-sgray2 dark:border-gray-700 dark:text-gray-400"
-                required
-                aria-describedby="password-error"
-            />
-            <div
-                class="hidden absolute inset-y-0 right-0 flex items-center pointer-events-none pr-3"
-            >
-                <svg
-                    class="h-5 w-5 text-red-500"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                    aria-hidden="true"
-                >
-                    <path
-                        d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
-                    />
-                </svg>
-            </div>
-        </div>
-        <p class="hidden text-xs text-red-600 mt-2" id="password-error">
-            8+ characters required
-        </p>
-    </div>
+                                <!-- Campo de contraseña -->
+                                <div class="flex-grow">
+                                  <div class="flex justify-between items-center">
+                                    <label for="password" class="block text-sm mb-2 dark:text-white">Contraseña</label>
+                                  </div>
+                                  <div class="relative">
+                                    <input
+                                      type="password"
+                                      id="password-register"
+                                      name="password-register"
+                                      class="py-3 px-4 block w-full border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-sgray2 dark:border-gray-700 dark:text-gray-400"
+                                      required
+                                      aria-describedby="password-error"
+                                    />
+                                    <div
+                                      class="hidden absolute inset-y-0 right-0 flex items-center pointer-events-none pr-3"
+                                    >
+                                      <svg
+                                        class="h-5 w-5 text-red-500"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        viewBox="0 0 16 16"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
+                                        />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                  <p class="hidden text-xs text-red-600 mt-2" id="password-error">
+                                    8+ characters required
+                                  </p>
+                                </div>
 
-    <!-- Campo para repetir contraseña -->
-    <div class="flex-grow">
-        <div class="flex justify-between items-center">
-            <label for="password_repeat" class="block text-sm mb-2 dark:text-white">Repetir Contraseña</label>
-        </div>
-        <div class="relative">
-            <input
-                type="password"
-                id="password_repeat"
-                name="password_repeat"
-                class="py-3 px-4 block w-full border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-sgray2 dark:border-gray-700 dark:text-gray-400"
-                required
-                aria-describedby="password_repeat-error"
-            />
-            <div
-                class="hidden absolute inset-y-0 right-0 flex items-center pointer-events-none pr-3"
-            >
-                <svg
-                    class="h-5 w-5 text-red-500"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                    aria-hidden="true"
-                >
-                    <path
-                        d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
-                    />
-                </svg>
-            </div>
-        </div>
-        <p class="hidden text-xs text-red-600 mt-2" id="password_repeat-error">
-            Las contraseñas deben coincidir
-        </p>
-    </div>
-</div>
+                                <!-- Campo para repetir contraseña -->
+                                <div class="flex-grow">
+                                  <div class="flex justify-between items-center">
+                                    <label for="password_repeat" class="block text-sm mb-2 dark:text-white"
+                                      >Repetir Contraseña</label
+                                    >
+                                  </div>
+                                  <div class="relative">
+                                    <input
+                                      type="password"
+                                      id="password_repeat"
+                                      name="password_repeat"
+                                      class="py-3 px-4 block w-full border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-sgray2 dark:border-gray-700 dark:text-gray-400"
+                                      required
+                                      aria-describedby="password_repeat-error"
+                                    />
+                                    <div
+                                      class="hidden absolute inset-y-0 right-0 flex items-center pointer-events-none pr-3"
+                                    >
+                                      <svg
+                                        class="h-5 w-5 text-red-500"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        viewBox="0 0 16 16"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
+                                        />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                  <p class="hidden text-xs text-red-600 mt-2" id="password_repeat-error">
+                                    Las contraseñas deben coincidir
+                                  </p>
+                                </div>
+                              </div>
 
                               <!-- End Form Group -->
 
