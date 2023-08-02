@@ -6,6 +6,7 @@ services:
       POSTGRES_DB: ${PG_DATABASE}
       POSTGRES_USER: ${PG_USER}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
+    command: postgres -c wal_level=logical -c max_replication_slots=10 -c max_slot_wal_keep_size=5GB
     volumes:
       - local_pgdata:/var/lib/postgresql/data
     ports:
@@ -34,11 +35,34 @@ services:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - xpack.security.enabled=false
+      - network.host=127.0.0.1
+      - http.host=0.0.0.0
     ports:
       - 9200:9200
       - 9300:9300
+    command: >
+      bash -c '
+        if [ ! "-d" "/usr/share/elasticsearch/plugins/analysis-icu" ]; then
+          ./bin/elasticsearch-plugin install analysis-icu;
+        fi;
+        if [ ! "-d" "/usr/share/elasticsearch/plugins/analysis-kuromoji" ]; then
+          ./bin/elasticsearch-plugin install analysis-kuromoji;
+        fi;
+        ./bin/elasticsearch
+      '
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+      - elasticsearch_config:/usr/share/elasticsearch/config
+      - elasticsearch_plugins:/usr/share/elasticsearch/plugins
+
+    networks:
+      - nadedb-network
+
+  redis:
+    image: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - 6379:6379
     networks:
       - nadedb-network
 
@@ -56,6 +80,41 @@ services:
     depends_on:
       - elasticsearch
 
+  pgsync:
+    image: kahidna/pgsync:2.5.0
+    networks:
+    - nadedb-network
+    depends_on:
+      - pgroonga
+      - redis
+      - elasticsearch
+    volumes:
+      - ./config/pgsync:/code/pgsync
+    command: >
+      bash -c '
+        /bin/sleep 5
+        ./pgsync/runserver.sh
+      '
+    restart: unless-stopped
+    labels:
+      org.label-schema.name: "pgsync"
+      org.label-schema.description: "Postgres to Elasticsearch sync"
+      com.label-schema.service-type: "daemon"
+    environment:
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_HOST: pgroonga
+      PG_PORT: ${PG_PORT}
+      LOG_LEVEL: INFO
+      ELASTICSEARCH_PORT: 9200
+      ELASTICSEARCH_SCHEME: http
+      ELASTICSEARCH_HOST: elasticsearch
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_AUTH: ${REDIS_PASSWORD}
+      ELASTICSEARCH: true
+      OPENSEARCH: false
+
 networks:
   nadedb-network:
 
@@ -63,4 +122,6 @@ volumes:
   local_pgdata:
   pgadmin-data:
   elasticsearch_data:
+  elasticsearch_config:
+  elasticsearch_plugins:
   kibana_data:
