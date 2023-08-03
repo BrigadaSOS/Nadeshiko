@@ -93,7 +93,7 @@ services:
     command: >
       bash -c '
         /bin/sleep 5
-        ./pgsync/runserver.sh
+        /code/pgsync/runserver.sh
       '
     restart: unless-stopped
     labels:
