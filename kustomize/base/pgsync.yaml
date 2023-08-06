@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pgsync-data
+  namespace: nadedb
+spec:
+  storageClassName: local-storage
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/pgsync/"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pgsync
+  namespace: nadedb
+spec:
+  serviceName: pgsyc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgsync
+  template:
+    metadata:
+      labels:
+        app: pgsync
+    spec:
+      containers:
+        - name: pgsync
+          image: kahidna/pgsync:2.5.0
+          command: [ "bootstrap"]
+          args: ["--config", "/data/schema.json"]
+          envFrom:
+            - configMapRef:
+                name: pgsync-config
+          volumeMounts:
+            - name: pgsync-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: pgsync-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 100Mi
