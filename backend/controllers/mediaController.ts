@@ -1,5 +1,5 @@
 import { BadRequest } from "../utils/error";
-import { Request, Response, NextFunction } from "express";
+import {Request, Response, NextFunction, request} from "express";
 import { StatusCodes } from "http-status-codes";
 import { v3 as uuidv3 } from "uuid";
 import connection from "../database/db_posgres";
@@ -13,6 +13,15 @@ const util = require("util");
 const execPromisified = util.promisify(exec);
 const ffmpegStatic = require('ffmpeg-static');
 
+import { searchSegments } from "../search/elasticsearch";
+import {estypes} from "@elastic/elasticsearch";
+import {FieldValue, SearchResponse} from "@elastic/elasticsearch/lib/api/types";
+import {
+  SearchAnimeSentencesResponse,
+  SearchAnimeSentencesSegment, SearchAnimeSentencesStatistics
+} from "../models/search/searchAnimeSentencesResponse";
+import {queryMediaInfo} from "../search/media";
+import {QueryMediaInfoResponse} from "../models/search/queryMediaInfoResponse";
 const BASE_URL_MEDIA = process.env.BASE_URL_MEDIA;
 const BASE_URL_TMP = process.env.BASE_URL_TMP;
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
@@ -137,95 +146,96 @@ export const SearchAnimeSentences = async (
     // random_seed: semilla para ordenar aleatoriamente. Obligatorio si content_sort = random
     const { query, cursor, limit, anime_id, uuid, content_sort, random_seed } =
       req.body;
-    const offset = cursor ? cursor - 1 : 0;
-    let results: any = null;
 
-    let sql = "";
-    let whereClause = "";
+    // TODO: Add sorting and random results
 
-    // Orden por defecto
-    let sort = "";
-    if (content_sort) {
-      if (
-        content_sort.toLowerCase() === "asc" ||
-        content_sort.toLowerCase() === "desc"
-      ) {
-        sort = ` ORDER BY v.content_length ${content_sort.toUpperCase()}`;
-      } else if (content_sort.toLowerCase() === "random") {
-        if (random_seed !== null || random_seed !== undefined) {
-          sql = `SELECT setseed(${random_seed});`;
-          await connection.query(sql);
-          sort = ` ORDER BY random()`;
-        } else {
-          return res.status(StatusCodes.BAD_REQUEST).json({
-            message:
-              "You must provide a random seed to sort the results randomly. Values must be between -1 and 1",
-          });
-        }
-      }
-    }
+    const mediaInfo = await queryMediaInfo();
 
-    if (anime_id) {
-      whereClause = ` AND me.id = ${anime_id} `;
-    }
-
-    if (query && !uuid) {
-      sql =
-        `
-        WITH Variations AS (
-          SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.banner, me.cover, me.folder_media_name, me.id
-          FROM nadedb.public."Segment" s
-          INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id,
-          LATERAL get_variations(s.content, '${query}') as variations
-          WHERE (((s.content || '' )) &@~ ja_expand('${query}')
-           OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
-        whereClause +
-        `)
-        SELECT pgroonga_highlight_html(v.content,
-                                       v.possible_highlights) as content_highlight, v.*
-        FROM Variations v${sort} LIMIT ${limit} OFFSET ${offset};
-      `;
-      results = await connection.query(sql);
-    }
-
-    const simplifiedResults = buildSimplifiedResults(req, results);
-
-    const full_results_query =
-      `WITH Variations AS (
-        SELECT DISTINCT ON (s.content, s.uuid) variations.possible_highlights, s.*, me.english_name, me.japanese_name, me.folder_media_name, me.id
-        FROM nadedb.public."Segment" s
-        INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id,
-        LATERAL get_variations(s.content, '${query}') as variations
-        WHERE (((s.content || '' )) &@~ ja_expand('${query}')
-        OR (s.content || '' || '') &@~ ja_expand('${query}'))` +
-      `)
-      SELECT media_id, english_name, japanese_name, COUNT(*) AS sentence_count
-      FROM Variations
-      GROUP BY media_id, english_name, japanese_name;
-    `;
-
-    const full_results = await connection.query(full_results_query);
-
-    let uniqueTitles = (full_results[0] as any[]).map((result) => ({
-      anime_id: result["media_id"],
-      name_anime_en: result["english_name"],
-      name_anime_jp: result["japanese_name"],
-      amount_sentences_found: result["sentence_count"],
-    }));
-
-    const nextCursor = cursor
-      ? cursor + results[0].length
-      : results[0].length + 1;
-
-    return res.status(StatusCodes.ACCEPTED).json({
-      statistics: uniqueTitles,
-      sentences: simplifiedResults,
-      cursor: nextCursor,
+    const protocol = (process.env.ENVIRONMENT === "production") ? "https" : "http";
+    const baseHostUrl=  url.format({
+      protocol: protocol,
+      host: req.get("host"),
+      pathname: BASE_URL_MEDIA
     });
+
+    const esResponse = await searchSegments(query, uuid, anime_id, limit, cursor);
+    return res.status(StatusCodes.OK).json(buildSearchAnimeSentencesResponse(esResponse, mediaInfo, baseHostUrl));
+
   } catch (error) {
     next(error);
   }
 };
+
+function buildSearchAnimeSentencesResponse(esResponse: SearchResponse, mediaInfoResponse: QueryMediaInfoResponse, baseHostUrl: string): SearchAnimeSentencesResponse {
+  const sentences: SearchAnimeSentencesSegment[] = esResponse.hits.hits.map(hit => {
+    const data: any = hit["_source"];
+    const highlight: any = hit["highlight"] || {};
+    const mediaInfo = mediaInfoResponse[Number(data["media_id"])] || {};
+    const seriesNamePath = mediaInfo["folder_media_name"];
+    const seasonNumberPath = `S${data["season"].toString().padStart(2, "0")}`;
+    const episodeNumberPath = `E${data["episode"].toString().padStart(2, "0")}`;
+
+    return {
+      basic_info: {
+        id_anime: data["media_id"],
+        name_anime_en: mediaInfo.english_name,
+        name_anime_jp: mediaInfo.japanese_name,
+        cover: [baseHostUrl, mediaInfo.cover].join("/"),
+        banner: [baseHostUrl, mediaInfo.banner].join("/"),
+        episode: data["episode"],
+        season: data["season"]
+      },
+      segment_info: {
+        status: data["status"],
+        uuid: data["uuid"],
+        position: data["position"],
+        start_time: data["start_time"],
+        end_time: data["end_time"],
+        content_jp: data["content"],
+        content_jp_highlight: ("content.readingform" in highlight) ? highlight["content.readingform"][0] : "",
+        content_en: data["content_english"],
+        content_en_highlight: ("content_english" in highlight) ? highlight["content_english"][0] : "",
+        content_en_mt: data["content_english_mt"],
+        content_es: data["content_spanish"],
+        content_es_highlight: ("content_spanish" in highlight) ? highlight["content_spanish"][0] : "",
+        content_es_mt: data["content_spanish_mt"],
+        actor_ja: data["actor_ja"],
+        actor_en: data["actor_en"],
+        actor_es: data["actor_es"]
+      },
+      media_info: {
+        path_image: [baseHostUrl, seriesNamePath, seasonNumberPath, episodeNumberPath, data["path_image"]].join("/"),
+        path_audio: [baseHostUrl, seriesNamePath, seasonNumberPath, episodeNumberPath, data["path_audio"]].join("/")
+      }
+    }
+  });
+
+  let statistics: SearchAnimeSentencesStatistics[] = [];
+  if(esResponse.aggregations && "group_by_media_id" in esResponse.aggregations) {
+    // @ts-ignore
+    statistics = esResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
+      const mediaInfo = mediaInfoResponse[Number(bucket["key"])];
+
+      return {
+        anime_id: bucket["key"],
+        name_anime_en: mediaInfo.english_name,
+        name_anime_jp: mediaInfo.japanese_name,
+        amount_sentences_found: bucket["doc_count"]
+      }
+    });
+  }
+
+  let cursor: FieldValue[] | undefined = undefined;
+  if(esResponse.hits.hits.length >= 1) {
+    cursor = esResponse.hits.hits[esResponse.hits.hits.length - 1]["sort"];
+  }
+
+  return {
+    statistics: statistics,
+    sentences,
+    cursor
+  }
+}
 
 export const GetContextAnime = async (
   req: Request,
