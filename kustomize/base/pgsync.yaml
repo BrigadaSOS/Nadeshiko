@@ -31,8 +31,11 @@ spec:
       containers:
         - name: pgsync
           image: kahidna/pgsync:2.5.0
-          command: [ "bootstrap"]
-          args: ["--config", "/data/schema.json"]
+          command: [ "pgsync"]
+          args: ["--config", "/data/schema.json", "--daemon"]
+          # loop forever, outputting "yo" every 5 seconds
+          # command: [ "sh", "-c"]
+          # args: ["while true; do echo 'yo' && sleep 5; done;"]
           envFrom:
             - configMapRef:
                 name: pgsync-config

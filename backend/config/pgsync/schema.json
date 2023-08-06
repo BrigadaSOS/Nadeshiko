@@ -415,10 +415,12 @@
                   "fielddata": true,
                   "analyzer": "ja_kuromoji_index_analyzer",
                   "search_analyzer": "ja_kuromoji_search_analyzer",
-                  "readingform": {
-                    "type": "text",
-                    "search_analyzer": "ja_readingform_search_analyzer",
-                    "analyzer": "ja_readingform_index_analyzer"
+                  "fields": {
+                    "readingform": {
+                      "type": "text",
+                      "search_analyzer": "ja_readingform_search_analyzer",
+                      "analyzer": "ja_readingform_index_analyzer"
+                    }
                   }
                 },
                 "content_english": {
