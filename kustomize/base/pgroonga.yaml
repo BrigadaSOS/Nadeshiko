@@ -49,8 +49,6 @@ spec:
         - name: pgroonga
           image: groonga/pgroonga:latest
           imagePullPolicy: "IfNotPresent"
-          command: ["postgres"]
-          args: ["-c", "wal_level=logical", "-c", "max_replication_slots=5", "-c", "max_slot_wal_keep_size=5GB"]
           ports:
             - containerPort: 5432
           envFrom:
