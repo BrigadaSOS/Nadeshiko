@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - pgroonga.yaml
 - brigadasos-db.yaml
+- pgsync.yaml
 namespace: nadedb
 images:
 - name: brigadasos-db
