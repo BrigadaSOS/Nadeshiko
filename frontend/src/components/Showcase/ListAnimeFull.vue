@@ -18,7 +18,7 @@ const getLatestAnime = async () => {
       }
     })
     response = await response.json()
-    latest_anime_list.value = response.results
+    latest_anime_list.value = Object.values(response.results)
     console.log(base_hover)
   } catch (error) {
     console.log(error)

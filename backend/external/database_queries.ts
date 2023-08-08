@@ -1,6 +1,7 @@
 import connection from "../database/db_posgres";
-import {QueryMediaInfoResponse} from "../models/external/queryMediaInfoResponse";
+import {MediaInfoData, QueryMediaInfoResponse} from "../models/external/queryMediaInfoResponse";
 import {getBaseUrlMedia} from "../utils/utils";
+import {query} from "express";
 
 let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
 
@@ -35,7 +36,10 @@ export const queryMediaInfo = async (): Promise<QueryMediaInfoResponse> => {
 
         const queryResponse = await connection.query(sql);
 
-        MEDIA_TABLE_CACHE = {};
+        const results: {[key: number]: MediaInfoData} = {};
+        let total_animes = 0;
+        let total_segments= 0;
+
         queryResponse[0].forEach((result: any) => {
             if(!("media_id" in result.media_info)) {
                 console.log("WARN: Invalid query, media_id not found");
@@ -45,11 +49,24 @@ export const queryMediaInfo = async (): Promise<QueryMediaInfoResponse> => {
             result.media_info.cover = [getBaseUrlMedia(), result.media_info.cover].join("/");
             result.media_info.banner = [getBaseUrlMedia(), result.media_info.banner].join("/");
 
-            MEDIA_TABLE_CACHE![Number(result.media_info["media_id"])] = result.media_info;
+            results[Number(result.media_info["media_id"])] = result.media_info;
+            console.log(result)
+            console.log(results)
+
+            total_segments += result.media_info.num_segments;
+            total_animes += 1;
         })
+
+        MEDIA_TABLE_CACHE = {
+            stats: {
+                total_animes,
+                total_segments
+            },
+            results
+        }
     }
 
-    return MEDIA_TABLE_CACHE!;
+    return MEDIA_TABLE_CACHE;
 }
 
 export const refreshMediaInfoCache = async () => {

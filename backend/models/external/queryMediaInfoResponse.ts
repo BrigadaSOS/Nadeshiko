@@ -1,6 +1,11 @@
-
 export interface QueryMediaInfoResponse {
-    [key: number]: MediaInfoData;
+    readonly stats: MediaInfoStats;
+    readonly results: {[key: number]: MediaInfoData};
+}
+
+export interface MediaInfoStats {
+    readonly total_animes: number;
+    readonly total_segments: number;
 }
 
 export interface MediaInfoData {

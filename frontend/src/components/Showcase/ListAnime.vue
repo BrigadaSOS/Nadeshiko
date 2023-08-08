@@ -6,6 +6,7 @@ import BatchSearchModal from '../BatchSearchModal.vue'
 import Popper from 'vue3-popper'
 
 let latest_anime_list = ref([])
+let general_stats = ref({})
 const base_hover = ref(null)
 
 const getLatestAnime = async () => {
@@ -18,7 +19,8 @@ const getLatestAnime = async () => {
       }
     })
     response = await response.json()
-    latest_anime_list.value = response.results.slice(0, 10)
+    latest_anime_list.value = Object.values(response.results)
+    general_stats.value = response.stats
   } catch (error) {
     console.log(error)
     return
@@ -285,13 +287,13 @@ onMounted(() => {
       <div class="flex flex-wrap -m-4 text-center">
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">+100K</h2>
+            <h2 class="title-font font-medium text-3xl text-white">+{{Math.ceil(general_stats.total_segments / 100) * 100}}</h2>
             <p class="leading-relaxed">Oraciones</p>
           </div>
         </div>
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">+30</h2>
+            <h2 class="title-font font-medium text-3xl text-white">{{general_stats.total_animes}}</h2>
             <p class="leading-relaxed">Animes, películas y dramas</p>
           </div>
         </div>

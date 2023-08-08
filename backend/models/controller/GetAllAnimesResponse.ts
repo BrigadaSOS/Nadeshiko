@@ -1,5 +1,3 @@
-import { MediaInfoData } from "../external/queryMediaInfoResponse";
+import {MediaInfoData, QueryMediaInfoResponse} from "../external/queryMediaInfoResponse";
 
-export interface GetAllAnimesResponse {
-    readonly results: MediaInfoData[];
-}
+export interface GetAllAnimesResponse extends QueryMediaInfoResponse {}

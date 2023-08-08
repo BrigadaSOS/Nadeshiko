@@ -205,9 +205,7 @@ export const GetAllAnimes = async (
   try {
     const response: QueryMediaInfoResponse = await queryMediaInfo();
 
-    return res.status(StatusCodes.ACCEPTED).json({
-      results: Object.values(response),
-    });
+    return res.status(StatusCodes.ACCEPTED).json(response);
 
   } catch (error) {
     next(error);

@@ -126,7 +126,7 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
     const sentences: SearchAnimeSentencesSegment[] = esResponse.hits.hits.map(hit => {
         const data: any = hit["_source"];
         const highlight: any = hit["highlight"] || {};
-        const mediaInfo = mediaInfoResponse[Number(data["media_id"])] || {};
+        const mediaInfo = mediaInfoResponse.results[Number(data["media_id"])] || {};
         const seriesNamePath = mediaInfo["folder_media_name"];
         const seasonNumberPath = `S${data["season"].toString().padStart(2, "0")}`;
         const episodeNumberPath = `E${data["episode"].toString().padStart(2, "0")}`;
@@ -174,7 +174,7 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
     if(esResponse.aggregations && "group_by_media_id" in esResponse.aggregations) {
         // @ts-ignore
         statistics = esResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
-            const mediaInfo = mediaInfoResponse[Number(bucket["key"])];
+            const mediaInfo = mediaInfoResponse.results[Number(bucket["key"])];
 
             return {
                 anime_id: bucket["key"],
@@ -214,7 +214,7 @@ const buildQueryWordsMatchedResponse = (words: string[], esResponse: MsearchResp
         if(response.aggregations && "group_by_media_id" in response.aggregations) {
             // @ts-ignore
             media = response.aggregations["group_by_media_id"].buckets.map((bucket: any) : WordMatchMediaInfo=> {
-                const mediaInfo = mediaInfoResponse[Number(bucket["key"])];
+                const mediaInfo = mediaInfoResponse.results[Number(bucket["key"])];
 
                 return {
                     media_id: mediaInfo["media_id"],
