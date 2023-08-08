@@ -102,12 +102,10 @@ if (process.env.ENVIRONMENT === "testing") {
   );
 } else if (process.env.ENVIRONMENT === "production") {
   // Access media uploaded from outside (DigitalOcean)
-  const mediaUrlPath: string = process.env.BASE_URL_MEDIA!;
-  const tmpUrlPath: string = process.env.BASE_URL_TMP!;
   const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
   const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
-  app.use(mediaUrlPath, (req, res, next) => {
+  app.use("api/media/anime", (req, res, next) => {
     const width = req.query.width ? Number(req.query.width) : null;
     const height = req.query.height ? Number(req.query.height) : null;
     const imagePath = path.join(mediaDirectory, req.path);
@@ -151,7 +149,7 @@ if (process.env.ENVIRONMENT === "testing") {
   });
 
   app.use(
-    tmpUrlPath,
+    "api/media/tmp",
     express.static(tmpDirectory, {
       fallthrough: false,
     })
