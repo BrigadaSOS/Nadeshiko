@@ -16,8 +16,13 @@ import {queryMediaInfo} from "./database_queries";
 import {getBaseUrlMedia} from "../utils/utils";
 import {QueryWordsMatchedResponse, WordMatch, WordMatchMediaInfo} from "../models/external/queryWordsMatchedResponse";
 
+
 export const client = new Client({
-    node: process.env.ELASTICSEARCH_HOST
+    node: process.env.ELASTICSEARCH_HOST,
+    auth: {
+        username: 'elastic',
+        password: process.env.ELASTICSEARCH_PASSWORD || ""
+    }
 });
 
 

@@ -60,7 +60,7 @@ services:
 
   redis:
     image: redis
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass nadeshiko
     ports:
       - 6379:6379
     networks:
@@ -111,7 +111,7 @@ services:
       ELASTICSEARCH_HOST: elasticsearch
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_AUTH: ${REDIS_PASSWORD}
+      REDIS_AUTH: nadeshiko
       ELASTICSEARCH: true
       OPENSEARCH: false
 

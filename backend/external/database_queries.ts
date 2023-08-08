@@ -1,7 +1,6 @@
 import connection from "../database/db_posgres";
 import {MediaInfoData, QueryMediaInfoResponse} from "../models/external/queryMediaInfoResponse";
 import {getBaseUrlMedia} from "../utils/utils";
-import {query} from "express";
 
 let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
 
@@ -50,8 +49,6 @@ export const queryMediaInfo = async (): Promise<QueryMediaInfoResponse> => {
             result.media_info.banner = [getBaseUrlMedia(), result.media_info.banner].join("/");
 
             results[Number(result.media_info["media_id"])] = result.media_info;
-            console.log(result)
-            console.log(results)
 
             total_segments += result.media_info.num_segments;
             total_animes += 1;
