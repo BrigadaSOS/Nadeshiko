@@ -2,6 +2,7 @@
 require("dotenv").config();
 const newrelic = require("newrelic");
 
+import "./external/elasticsearch"; // Initialize client
 import path from "path";
 import { json } from "body-parser";
 import { router } from "./routes/router";
