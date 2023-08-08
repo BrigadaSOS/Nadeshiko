@@ -3,7 +3,7 @@ import { Response, NextFunction } from 'express'
 var jwt = require('jsonwebtoken');
 
 // Check the user if is Authenticated
-export const isAuthJWT = (req: any, res: Response, next: NextFunction): void => {
+export const isAuthJWT = (req: any, _: Response, next: NextFunction): void => {
   const authHeader: string | undefined = req.headers['cookie']
   const token = authHeader ? authHeader && authHeader.split('=')[1] : ''
 
