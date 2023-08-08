@@ -213,7 +213,6 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
       body: JSON.stringify(body)
     })
     response = await response.json()
-    console.log(response);
     if (response.sentences.length === 0) {
       no_results.value = true
     }

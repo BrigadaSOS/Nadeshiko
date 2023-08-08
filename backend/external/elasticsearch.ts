@@ -206,7 +206,7 @@ const buildQueryWordsMatchedResponse = (words: string[], esResponse: MsearchResp
         let total_matches = 0;
 
         if(response.hits !== undefined && response.hits.total !== undefined) {
-            is_match = response.hits.total > 0;
+            is_match = (response.hits.total as SearchTotalHits).value > 0;
             total_matches = (response.hits.total as SearchTotalHits).value;
         }
 

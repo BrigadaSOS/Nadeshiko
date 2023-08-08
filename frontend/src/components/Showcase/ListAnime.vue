@@ -250,11 +250,11 @@ onMounted(() => {
                 </Popper>
 
                 <div class="mt-2 text-center justify-center flex flex-col items-center">
-                  <h3 class="text-sm text-center font-semibold line-clamp-2">{{ item.media_info.english_name }}</h3>
+                  <h3 class="text-sm text-center font-semibold line-clamp-2">{{ media_info.english_name }}</h3>
                 </div>
                 <div class="text-center mt-1 justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-medium line-clamp-2">
-                    {{ item.media_info.num_segments }} oraciones
+                    {{ media_info.num_segments }} oraciones
                   </h3>
                 </div>
               </div>
