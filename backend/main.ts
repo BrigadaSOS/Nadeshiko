@@ -45,8 +45,6 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.use(handleErrors);
-
 const sharp = require("sharp");
 const fs = require("fs");
 
@@ -164,6 +162,7 @@ app.use(json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+// @ts-ignore
 app.use(handleErrors);
 
 if (!parseInt(process.env.PORT as string)) {
