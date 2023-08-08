@@ -105,7 +105,7 @@ if (process.env.ENVIRONMENT === "testing") {
   const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
   const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
-  app.use("api/media/anime", (req, res, next) => {
+  app.use("/api/media/anime", (req, res, next) => {
     const width = req.query.width ? Number(req.query.width) : null;
     const height = req.query.height ? Number(req.query.height) : null;
     const imagePath = path.join(mediaDirectory, req.path);
@@ -149,7 +149,7 @@ if (process.env.ENVIRONMENT === "testing") {
   });
 
   app.use(
-    "api/media/tmp",
+    "/api/media/tmp",
     express.static(tmpDirectory, {
       fallthrough: false,
     })
