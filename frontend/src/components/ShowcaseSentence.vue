@@ -60,7 +60,7 @@ onBeforeRouteUpdate(async (to, from) => {
   type_sort.value = sortFilter || null
 
   if (searchTerm) {
-    await getSentences(searchTerm, 0, animeId)
+    await getSentences(searchTerm, null, animeId)
   } else {
     
     querySearch.value = ''
@@ -188,8 +188,21 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
   isLoading.value = true
   error_connection.value = false
   anime_id.value = animeId
+
   let response = null
-  // await delay(2000)
+
+  const body = {
+    query: searchTerm,
+    anime_id: anime_id.value,
+    uuid: uuid,
+    limit: 20,
+    content_sort: type_sort.value,
+    random_seed: random_seed.value
+  };
+
+  // Calls to backend fail if this is passed to the body when null or undefined
+  if(cursor) body.cursor = cursor;
+
   try {
     response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/sentence', {
       method: 'POST',
@@ -197,17 +210,10 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        query: searchTerm,
-        cursor: cursor,
-        anime_id: anime_id.value,
-        uuid: uuid,
-        limit: 10,
-        content_sort: type_sort.value,
-        random_seed: random_seed.value
-      })
+      body: JSON.stringify(body)
     })
     response = await response.json()
+    console.log(response);
     if (response.sentences.length === 0) {
       no_results.value = true
     }
@@ -416,7 +422,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white">{{
         t('searchpage.main.buttons.search')
       }}</label>
-      <div class="relative lg:w-11/12 mx-auto mt-4">
+      <div class="relative lg:w-11/12 mx-auto mt-3">
         <div class="flex">
           <div class="absolute inset-y-0 left-0 flex items-center justify-center pl-3 pointer-events-none">
             <div
@@ -520,7 +526,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </svg>
               </button>
               <h3 class="font-semibold ml-2 text-xl leading-tight">
-                <span v-html="sentence.segment_info.content_highlight"></span>
+                <span v-html="(sentence.segment_info.content_jp_highlight) ? sentence.segment_info.content_jp_highlight : sentence.segment_info.content_jp"></span>
               </h3>
             </div>
 
@@ -532,8 +538,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </span>
 
               <ul class="ml-5 list-disc text-gray-400">
-                <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_en) }}</li>
-                <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_es) }}</li>
+                <li class="my-2" v-html="normalizeSentence((sentence.segment_info.content_es_highlight) ? sentence.segment_info.content_es_highlight : sentence.segment_info.content_es)"></li>
+                <li class="my-2" v-html="normalizeSentence((sentence.segment_info.content_en_highlight) ? sentence.segment_info.content_en_highlight : sentence.segment_info.content_en)"></li>
               </ul>
             </h4>
 
@@ -1237,9 +1243,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
   max-height: 90%;
 }
 
-.keyword {
+em {
   text-decoration: underline;
   text-underline-offset: 0.2em;
+  font-style: normal;
   color: rgb(251, 120, 120);
 }
+
 </style>

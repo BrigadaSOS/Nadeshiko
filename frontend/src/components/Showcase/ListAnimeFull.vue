@@ -38,12 +38,12 @@ onMounted(() => {
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3 mt-2 mb-8">
-        <div v-if="latest_anime_list.length > 0" v-for="(item, index) in latest_anime_list" class="w-full relative">
+        <div v-if="latest_anime_list.length > 0" v-for="(media_info, index) in latest_anime_list" class="w-full relative">
           <Popper class="w-full" zIndex="50" arrow v-bind="$attrs" hover openDelay="0" closeDelay="0">
             <div class="border-none pb-[145%] rounded-md overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
               <img
                 class="w-full h-full object-cover absolute top-0 left-0"
-                :src="item.media_info.cover"
+                :src="media_info.cover"
               />
             </div>
 
@@ -51,32 +51,32 @@ onMounted(() => {
               <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
                 <span
                   class="mx-auto object-center mt-2 text-center px-2 text-lg font-bold text-gray-800 dark:text-white"
-                  >{{ item.media_info.english_name }}</span
+                  >{{ media_info.english_name }}</span
                 >
                 <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
                   <div class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                    <img class="object-cover absolute top-0 left-0" :src="item.media_info.banner" />
+                    <img class="object-cover absolute top-0 left-0" :src="media_info.banner" />
                   </div>
                   <div class="mt-3 break-words">
                     <p>
                       <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en romaji: </span>
-                      {{ item.media_info.romaji_name }}
+                      {{ media_info.romaji_name }}
                     </p>
                     <p>
                       <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en japonés: </span>
-                      {{ item.media_info.japanese_name }}
+                      {{ media_info.japanese_name }}
                     </p>
                     <p>
                       <span class="font-bold pt-3 first:pt-0 dark:text-white">Temporadas: </span>
-                      {{item.media_info.num_seasons}}
+                      {{media_info.num_seasons}}
                     </p>
                     <p>
                       <span class="font-bold pt-3 first:pt-0 dark:text-white">Episodios: </span>
-                      {{item.media_info.num_episodes}}
+                      {{media_info.num_episodes}}
                     </p>
                     <p>
                       <span class="font-bold pt-3 first:pt-0 dark:text-white break-words">Generos: </span>
-                      {{ item.media_info.genres.toString() }}
+                      {{ media_info.genres.toString() }}
                     </p>
                   </div>
                 </div>

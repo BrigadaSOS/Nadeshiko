@@ -3,7 +3,7 @@ export interface QueryMediaInfoResponse {
     [key: number]: MediaInfoData;
 }
 
-interface MediaInfoData {
+export interface MediaInfoData {
     media_id: number,
     created_at: string,
     updated_at?: number,

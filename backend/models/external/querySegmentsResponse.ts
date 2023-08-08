@@ -1,7 +1,7 @@
 import {FieldValue} from "@elastic/elasticsearch/lib/api/types";
 
 
-export interface SearchAnimeSentencesResponse {
+export interface QuerySegmentsResponse {
     statistics: SearchAnimeSentencesStatistics[];
     sentences: SearchAnimeSentencesSegment[];
     cursor?: FieldValue[];
