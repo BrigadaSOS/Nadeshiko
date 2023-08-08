@@ -19,7 +19,7 @@ const getLatestAnime = async () => {
       }
     })
     response = await response.json()
-    latest_anime_list.value = Object.values(response.results)
+    latest_anime_list.value = Object.values(response.results).slice(0, 15)
     general_stats.value = response.stats
   } catch (error) {
     console.log(error)

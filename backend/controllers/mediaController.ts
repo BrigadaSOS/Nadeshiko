@@ -128,7 +128,7 @@ export const SearchAnimeSentences = async (
 
     // TODO: Add sorting and random results
 
-    const response= await querySegments(query, uuid, anime_id, limit, cursor);
+    const response = await querySegments(query, uuid, anime_id, limit, cursor);
     return res.status(StatusCodes.OK).json(response);
 
   } catch (error) {
@@ -189,7 +189,7 @@ export const GetWordsMatched = async (
   try {
     const { words } = req.body;
 
-    const response= await queryWordsMatched(words);
+    const response = await queryWordsMatched(words);
     return res.status(StatusCodes.OK).json(response);
 
   } catch (error) {

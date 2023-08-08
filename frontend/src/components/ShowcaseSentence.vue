@@ -421,7 +421,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white">{{
         t('searchpage.main.buttons.search')
       }}</label>
-      <div class="relative lg:w-11/12 mx-auto mt-3">
+      <div class="relative lg:w-11/12 mx-auto mt-4">
         <div class="flex">
           <div class="absolute inset-y-0 left-0 flex items-center justify-center pl-3 pointer-events-none">
             <div
