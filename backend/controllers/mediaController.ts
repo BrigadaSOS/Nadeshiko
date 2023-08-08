@@ -212,7 +212,7 @@ export const GetAllAnimes = async (
   }
 };
 
-function buildSimplifiedResults(req: Request, results: any) {
+function buildSimplifiedResults(_: Request, results: any) {
   let protocol: string = "";
   if (process.env.ENVIRONMENT === "production") {
     protocol = "https";
