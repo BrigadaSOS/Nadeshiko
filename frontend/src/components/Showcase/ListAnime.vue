@@ -6,6 +6,7 @@ import BatchSearchModal from '../BatchSearchModal.vue'
 import Popper from 'vue3-popper'
 
 let latest_anime_list = ref([])
+let general_stats = ref({})
 const base_hover = ref(null)
 
 const getLatestAnime = async () => {
@@ -18,7 +19,8 @@ const getLatestAnime = async () => {
       }
     })
     response = await response.json()
-    latest_anime_list.value = response.results.slice(0, 10)
+    latest_anime_list.value = Object.values(response.results).slice(0, 15)
+    general_stats.value = response.stats
   } catch (error) {
     console.log(error)
     return
@@ -45,12 +47,12 @@ onMounted(() => {
           >
             <ul class="list-disc">
               <li class="mb-2">
-                Busqueda en japonés: <a class="underline text-blue-500 underline-offset-4" href="s">彼女</a>
+                Busqueda en japonés: <a class="underline text-blue-500 underline-offset-4" href="?query=彼女">彼女</a>
               </li>
               <li>
                 Busqueda en inglés/español:
-                <a class="underline text-blue-500 underline-offset-4" href="s">Girlfriend</a>,
-                <a class="underline text-blue-500 underline-offset-4" href="s">Novia</a>
+                <a class="underline text-blue-500 underline-offset-4" href="?query=Girlfriend">Girlfriend</a>,
+                <a class="underline text-blue-500 underline-offset-4" href="?query=Novia">Novia</a>
               </li>
             </ul>
           </div>
@@ -199,7 +201,7 @@ onMounted(() => {
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3">
               <div
                 v-if="latest_anime_list.length > 0"
-                v-for="(item, index) in latest_anime_list"
+                v-for="(media_info, index) in latest_anime_list"
                 class="w-full relative"
               >
                 <Popper class="w-full" zIndex="50" arrow v-bind="$attrs" hover openDelay="0" closeDelay="0">
@@ -208,7 +210,7 @@ onMounted(() => {
                   >
                     <img
                       class="w-full h-full object-cover absolute top-0 left-0"
-                      :src="item.media_info.cover + '?width=230&height=326'"
+                      :src="media_info.cover + '?width=230&height=326'"
                     />
                   </div>
 
@@ -216,32 +218,32 @@ onMounted(() => {
                     <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
                       <span
                         class="mx-auto object-center mt-2 text-center px-2 text-lg font-bold text-gray-800 dark:text-white"
-                        >{{ item.media_info.english_name }}</span
+                        >{{ media_info.english_name }}</span
                       >
                       <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
                         <div class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                          <img class="object-cover absolute top-0 left-0" :src="item.media_info.banner" />
+                          <img class="object-cover absolute top-0 left-0" :src="media_info.banner" />
                         </div>
                         <div class="mt-3 break-words">
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en romaji: </span>
-                            {{ item.media_info.romaji_name }}
+                            {{ media_info.romaji_name }}
                           </p>
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en japonés: </span>
-                            {{ item.media_info.japanese_name }}
+                            {{ media_info.japanese_name }}
                           </p>
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white">Temporadas: </span>
-                            {{ item.media_info.num_seasons }}
+                            {{ media_info.num_seasons }}
                           </p>
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white">Episodios: </span>
-                            {{ item.media_info.num_episodes }}
+                            {{ media_info.num_episodes }}
                           </p>
                           <p>
                             <span class="font-bold pt-3 first:pt-0 dark:text-white break-words">Generos: </span>
-                            {{ item.media_info.genres.toString() }}
+                            {{ media_info.genres.toString() }}
                           </p>
                         </div>
                       </div>
@@ -250,11 +252,11 @@ onMounted(() => {
                 </Popper>
 
                 <div class="mt-2 text-center justify-center flex flex-col items-center">
-                  <h3 class="text-sm text-center font-semibold line-clamp-2">{{ item.media_info.english_name }}</h3>
+                  <h3 class="text-sm text-center font-semibold line-clamp-2">{{ media_info.english_name }}</h3>
                 </div>
                 <div class="text-center mt-1 justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-medium line-clamp-2">
-                    {{ item.media_info.num_segments }} oraciones
+                    {{ media_info.num_segments }} oraciones
                   </h3>
                 </div>
               </div>
@@ -285,13 +287,13 @@ onMounted(() => {
       <div class="flex flex-wrap -m-4 text-center">
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">+100K</h2>
+            <h2 class="title-font font-medium text-3xl text-white">+{{Math.ceil(general_stats.total_segments / 100) * 100}}</h2>
             <p class="leading-relaxed">Oraciones</p>
           </div>
         </div>
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">+30</h2>
+            <h2 class="title-font font-medium text-3xl text-white">{{general_stats.total_animes}}</h2>
             <p class="leading-relaxed">Animes, películas y dramas</p>
           </div>
         </div>
