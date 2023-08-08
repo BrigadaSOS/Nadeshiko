@@ -156,7 +156,7 @@ const redirectReload = () => {
       </div>
     </nav>
     <div class="fixed bottom-0 right-0 text-center z-30">
-      <span class="text-base lg:text-lg text-white/30 mr-3">Versión: {{ latestVersion }}</span>
+      <span class="text-base text-white/30 mr-3">Versión: {{ latestVersion }}</span>
     </div>
   </header>
 </template>

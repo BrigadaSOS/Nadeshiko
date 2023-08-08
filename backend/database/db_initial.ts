@@ -7,6 +7,7 @@ import { ApiPermission } from "../models/api/apiPermission";
 import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
 import crypto from "crypto";
 import { UserRole } from "../models/user/userRole";
+import {refreshMediaInfoCache} from "../external/database_queries";
 
 const bcrypt = require("bcrypt");
 const readline = require("readline");
@@ -236,6 +237,9 @@ export async function readAnimeDirectories(baseDir: string) {
             }
           }
       )
+
+      // Refresh cache after modifying Media table
+      await refreshMediaInfoCache();
     }
   }
 }
@@ -435,6 +439,9 @@ async function fullSyncSpecificAnime(
         }
       }
   )
+
+  // Refresh cache after modifying Media table
+  await refreshMediaInfoCache();
 }
 
 // Funciones menores
