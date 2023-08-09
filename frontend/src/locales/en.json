@@ -53,7 +53,20 @@
     "description5": "200 words at once",
     "totalWords": "Total words",
     "search": "Search",
-    "close": "Close"
+    "close": "Close",
+    "results": {
+      "title": "Simultaneous Search - Results",
+      "words": "Searched words",
+      "wordsWithMatch": "Words with match",
+      "percentageMatched": "Percentage matched",
+      "wordColumn": "word",
+      "match": "Match?",
+      "matchesCount": "Total matches",
+      "true": "Yes",
+      "false": "No",
+      "searching": "Searching...",
+      "return": "Return"
+    }
   },
   "animeList": {
     "recentlyAddedTitle": "Recently Added",
