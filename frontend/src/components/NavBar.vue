@@ -2,18 +2,18 @@
 import LanguageSelector from './minimal/LanguageSelector.vue'
 import { mdiBookOutline } from '@mdi/js'
 import BaseIcon from './minimal/BaseIcon.vue'
-import { useI18n } from 'vue-i18n'
 import { onMounted, ref, computed } from 'vue'
 import router from '../router/index'
 import Auth from './auth/LoginSignUp.vue'
 import { userStore } from '../stores/user'
 const store = userStore()
 const isAuth = computed(() => store.isLoggedIn)
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const email = ref('')
 let isLoading = ref(false)
 
-const { t } = useI18n()
 let latestVersion = ref('')
 
 onMounted(async () => {
@@ -82,14 +82,14 @@ const redirectReload = () => {
         <div
           class="flex flex-col gap-y-4 gap-x-0 mt-5 md:flex-row md:items-center md:gap-y-0 md:gap-x-7 md:mt-0 md:pl-10"
         >
-          <button @click="redirectReload" class="font-bold md:py-4 dark:text-white" aria-current="page">Inicio</button>
-          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">FAQ</a>
-          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Acerca de</a>
-          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">Discord</a>
+          <button @click="redirectReload" class="font-bold md:py-4 dark:text-white" aria-current="page">{{t("navbar.buttons.home")}}</button>
+          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">{{t("navbar.buttons.faq")}}</a>
+          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">{{t("navbar.buttons.about")}}</a>
+          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" target="_blank" href="https://discord.gg/ajWm26ADEj">{{t("navbar.buttons.discord")}}</a>
           <a
             href="https://brigadasos.xyz/"
             class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500"
-            >Guía principal</a
+            >{{t("navbar.buttons.guide")}}</a
           >
 
           <div class="flex flex-col md:flex-row z-50 items-center gap-x-2 md:ml-auto">
@@ -100,7 +100,7 @@ const redirectReload = () => {
               data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
               class="dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
             >
-              Iniciar sesión / Registrarse
+              {{ t("navbar.buttons.login")}}
             </button>
 
             <div v-else class="hs-dropdown relative inline-flex [--strategy:absolute]">
@@ -109,7 +109,7 @@ const redirectReload = () => {
                 type="button"
                 class="hs-dropdown-toggle focus:outline-none dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white0"
               >
-                Perfil
+                {{ t("navbar.buttons.profile")}}
 
                 <svg
                   class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white"
@@ -137,7 +137,7 @@ const redirectReload = () => {
                     to="/account"
                     class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-white dark:hover:bg-sgray2"
                   >
-                    Ver cuenta
+                    {{ t("navbar.buttons.seeProfile")}}
                   </router-link>
                 </div>
                 <div class="py-2 first:pt-0 last:pb-0">
@@ -146,7 +146,7 @@ const redirectReload = () => {
                     class="flex items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-white dark:hover:bg-sgray2"
                     href="#"
                   >
-                    Cerrar sesión
+                    {{ t("navbar.buttons.logout")}}
                   </a>
                 </div>
               </div>
@@ -156,7 +156,7 @@ const redirectReload = () => {
       </div>
     </nav>
     <div class="fixed bottom-0 right-0 text-center z-30">
-      <span class="text-base text-white/30 mr-3">Versión: {{ latestVersion }}</span>
+      <span class="text-base text-white/30 mr-3">{{t("home.version")}}: {{ latestVersion }}</span>
     </div>
   </header>
 </template>
