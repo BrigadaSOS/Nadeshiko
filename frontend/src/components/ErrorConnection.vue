@@ -1,3 +1,8 @@
+<script setup>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+</script>
+
 <template>
-  <p class="text-white text-2xl text-center m-10">Algo ha ocurrido y no ha sido posible obtener una respuesta satisfactoria por parte del servidor.<br/>Vuelve a intentarlo en unos minutos.</p>
+  <p class="text-white text-2xl text-center m-10">{{t("searchpage.main.labels.errorMessage1")}}<br/>{{t("searchpage.main.labels.errorMessage2")}}</p>
 </template>

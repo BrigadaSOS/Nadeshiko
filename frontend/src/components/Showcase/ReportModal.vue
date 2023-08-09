@@ -2,6 +2,9 @@
 import { ref, watch, nextTick } from 'vue'
 const selectedOption = ref('')
 
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
 const submitReport = () => {
   console.log(selectedOption.value)
 }
@@ -20,7 +23,7 @@ const submitReport = () => {
         class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
       >
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
-          <h3 class="font-bold text-gray-800 dark:text-white">Reportar un problema</h3>
+          <h3 class="font-bold text-gray-800 dark:text-white">{{t("reportModal.title")}}</h3>
           <button
             type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
@@ -47,15 +50,13 @@ const submitReport = () => {
             <div class="container w-100 sm:mx-4 mx-auto flex flex-col">
               <div class="p-6 space-y-6">
                 <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                  Las oraciones que se presentan en este sitio web están segmentadas con herramientas que procesan de
-                  forma automática el contenido multimedia. Si bien, aunque pasan por un filtro de calidad, es posible
-                  que en el proceso ciertas oraciones tengan problemas. <br />
+                  {{t("reportModal.description1")}}
                   <br />
-                  Si encuentra algún problema, se lo agradecemos reportándolo mediante el formulario que se encuentra a
-                  continuación.
+                  <br />
+                  {{t("reportModal.description2")}}
                 </p>
 
-                <p class="text-xl text-gray-500 dark:text-gray-400 font-medium">¿Cuál es el problema?</p>
+                <p class="text-xl text-gray-500 dark:text-gray-400 font-medium">{{t("reportModal.reportQuestion")}}</p>
                 <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
                   <input
                     id="bordered-radio-1"
@@ -68,7 +69,7 @@ const submitReport = () => {
                   <label
                     for="bordered-radio-1"
                     class="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >El audio no corresponde a la oración.</label
+                    >{{t("reportModal.reason1")}}</label
                   >
                 </div>
                 <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
@@ -83,7 +84,7 @@ const submitReport = () => {
                   <label
                     for="bordered-radio-2"
                     class="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >El audio se encuentra desfasado con respecto a la oración.</label
+                    >{{t("reportModal.reason2")}}</label
                   >
                 </div>
                 <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
@@ -98,7 +99,7 @@ const submitReport = () => {
                   <label
                     for="bordered-radio-3"
                     class="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >La oración no tiene imagen o sonido.</label
+                    >{{t("reportModal.reason3")}}</label
                   >
                 </div>
                 <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-sgray">
@@ -113,7 +114,7 @@ const submitReport = () => {
                   <label
                     for="bordered-radio-4"
                     class="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >La imagen, oración, o audio no son apropiadas (NSFW).</label
+                    >{{t("reportModal.reason4")}}</label
                   >
                 </div>
               </div>
@@ -127,14 +128,14 @@ const submitReport = () => {
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
           >
-            Enviar reporte
+            {{t("reportModal.send")}}
           </button>
           <button
             type="button"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
           >
-            Cerrar
+            {{t("reportModal.close")}}
           </button>
         </div>
       </div>
