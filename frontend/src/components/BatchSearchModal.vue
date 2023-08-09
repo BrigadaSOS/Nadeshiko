@@ -2,6 +2,8 @@
 import { ref, watch, computed } from 'vue'
 const selectedOption = ref('')
 let words = ref('')
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const submitReport = () => {
   console.log(selectedOption.value)
@@ -92,7 +94,7 @@ watch(inputText, (newValue) => {
         class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
       >
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
-          <h3 class="font-bold text-gray-800 dark:text-white">Busqueda simultánea</h3>
+          <h3 class="font-bold text-gray-800 dark:text-white">{{t("batchSearch.title")}}</h3>
           <button
             type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
@@ -119,16 +121,12 @@ watch(inputText, (newValue) => {
             <div class="container w-100 sm:mx-4 mx-auto flex flex-col">
               <div class="p-6 space-y-6 flex flex-col">
                 <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                  Esta función le ofrece la posibilidad de realizar una búsqueda en la base de datos introduciendo
-                  múltiples palabras clave. Esto le devolverá una lista con las palabras que se encuentran disponibles
-                  con un hipervinculo que lo redireccionará a la busqueda<br />
+                  {{t("batchSearch.description1")}}.
                   <br />
-                  Para empezar, puede añadir el listado de palabras abajo en el cuadro de texto.
-                  <span class="underline underline-offset-4"
-                    >Puede añadir una palabra por línea o separadas por comas.</span
-                  >
-                  Solo se permite un total de
-                  <span class="underline underline-offset-4">100 palabras por busqueda.</span>
+                  <br />
+                  {{t("batchSearch.description2")}}.
+                  <span class="underline underline-offset-4">{{t("batchSearch.description3")}}</span>.
+                  {{t("batchSearch.description4")}}<span class="underline underline-offset-4">{{t("batchSearch.description5")}}</span>.
                 </p>
 
                 <textarea
@@ -140,7 +138,7 @@ watch(inputText, (newValue) => {
                 ></textarea>
                 <div v-if="errorMessage" class="text-red-500">{{ errorMessage }}</div>
                 <div class="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
-                  Total de palabras: {{ wordCount }} / 100
+                  {{t("batchSearch.totalWords")}}: {{ wordCount }} / 100
                 </div>
               </div>
             </div>
@@ -153,14 +151,14 @@ watch(inputText, (newValue) => {
             data-hs-overlay="#hs-toggle-between-modals-second-modal"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
-            Realizar busqueda
+            {{t("batchSearch.search")}}
           </button>
           <button
             type="button"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay-close
           >
-            Cerrar
+            {{t("batchSearch.close")}}
           </button>
         </div>
       </div>

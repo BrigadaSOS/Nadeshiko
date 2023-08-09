@@ -4,6 +4,8 @@ import { mdiStarShootingOutline, mdiTextSearch } from '@mdi/js'
 import BaseIcon from '../minimal/BaseIcon.vue'
 import BatchSearchModal from '../BatchSearchModal.vue'
 import Popper from 'vue3-popper'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 let latest_anime_list = ref([])
 const base_hover = ref(null)
@@ -34,7 +36,7 @@ onMounted(() => {
   <section class="w-full p-1 rounded-lg">
     <div class="tab-content md:mx-16 mt-6">
       <div class="inline-flex justify-between items-center w-full mb-4">
-        <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">Listado de animes</h1>
+        <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">{{t("animeList.fullListTitle")}}</h1>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3 mt-2 mb-8">
@@ -59,23 +61,23 @@ onMounted(() => {
                   </div>
                   <div class="mt-3 break-words">
                     <p>
-                      <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en romaji: </span>
+                      <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.romajiName")}}: </span>
                       {{ media_info.romaji_name }}
                     </p>
                     <p>
-                      <span class="font-bold pt-3 first:pt-0 dark:text-white">Nombre en japonés: </span>
+                      <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.japaneseName")}}: </span>
                       {{ media_info.japanese_name }}
                     </p>
                     <p>
-                      <span class="font-bold pt-3 first:pt-0 dark:text-white">Temporadas: </span>
+                      <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.seasons")}}: </span>
                       {{media_info.num_seasons}}
                     </p>
                     <p>
-                      <span class="font-bold pt-3 first:pt-0 dark:text-white">Episodios: </span>
+                      <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.episodes")}}: </span>
                       {{media_info.num_episodes}}
                     </p>
                     <p>
-                      <span class="font-bold pt-3 first:pt-0 dark:text-white break-words">Generos: </span>
+                      <span class="font-bold pt-3 first:pt-0 dark:text-white break-words">{{t("animeList.genres")}}: </span>
                       {{ media_info.genres.toString() }}
                     </p>
                   </div>
@@ -88,7 +90,7 @@ onMounted(() => {
             <h3 class="text-sm text-center font-semibold line-clamp-2">{{ media_info.english_name }}</h3>
           </div>
           <div class="text-center mt-1 justify-center flex flex-col items-center">
-            <h3 class="text-sm text-center font-medium line-clamp-2">{{ media_info.num_segments }} oraciones</h3>
+            <h3 class="text-sm text-center font-medium line-clamp-2">{{ media_info.num_segments }} {{t("animeList.sentenceCount")}}</h3>
           </div>
         </div>
         <div v-else role="status" v-for="i in 10" class="animate-pulse relative">

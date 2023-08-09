@@ -1,3 +1,8 @@
+<script setup>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+</script>
+
 <template>
   <footer class="bg-white  dark:bg-sgray2/60">
     <div class=" max-w-[195vh] px-6 py-4 md:py-6 mx-auto">
@@ -6,33 +11,33 @@
           <a
             href="#"
             class="mx-4 text-sm mb-2 sm:mb-0 text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="Reddit"
+            aria-label="Home"
           >
-            Inicio
+            {{t("navbar.buttons.home")}}
           </a>
 
           <a
             href="#"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="Reddit"
+            aria-label="Privacy"
           >
-            Privacidad
+            {{t("navbar.buttons.privacy")}}
           </a>
 
           <a
             href="#"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="Reddit"
+            aria-label="TermsAndConditions"
           >
-            Términos y Condiciones
+            {{t("navbar.buttons.terms")}}
           </a>
 
           <a
             href="#"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="Reddit"
+            aria-label="Contact"
           >
-            Contacto
+            {{t("navbar.buttons.contact")}}
           </a>
         </div>
       </div>
@@ -44,9 +49,10 @@
 
         <div class="flex -mx-2">
           <a
-            href="#"
+            href="https://discord.gg/ajWm26ADEj"
             class="mx-2  text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
-            aria-label="Reddit"
+            target="_blank"
+            aria-label="Discord"
           >
             <svg
               class="w-5 h-5 fill-white"
@@ -64,8 +70,9 @@
             </svg>
           </a>
           <a
-            href="#"
+            href="https://github.com/BrigadaSOS/BrigadaSOS-db"
             class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+            target="_blank"
             aria-label="Github"
           >
             <svg class="w-5 h-5 fill-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
