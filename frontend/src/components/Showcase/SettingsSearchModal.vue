@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 const selectedOption = ref('')
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const submitReport = () => {
   console.log(selectedOption.value)
@@ -19,7 +21,7 @@ const submitReport = () => {
         class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-sgray dark:border-sgray dark:shadow-slate-700/[.7]"
       >
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-gray-700">
-          <h3 class="font-bold text-gray-800 dark:text-white">Ajustes del buscador</h3>
+          <h3 class="font-bold text-gray-800 dark:text-white">{{t("searchSettingsModal.title")}}</h3>
           <button
             type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
@@ -47,10 +49,10 @@ const submitReport = () => {
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
                   <span class="flex flex-col flex-grow" id="toggleLabel">
-                    <span class="text-sm font-medium text-white">Habilitar busqueda exacta</span>
-                    <span class="text-sm leading-normal text-white/50"
-                      >Permite realizar una busqueda sin variaciones o conjugaciones adicionales.</span
-                    >
+                    <span class="text-sm font-medium text-white">
+                      {{t("searchSettingsModal.exactMatchTitle")}}</span>
+                    <span class="text-sm leading-normal text-white/50">
+                      {{t("searchSettingsModal.exactMatchDescription")}}</span>
                   </span>
                   <label for="toggle-example" class="flex items-center cursor-pointer relative ml-5">
                     <input type="checkbox" id="toggle-example" class="sr-only" />
@@ -67,7 +69,7 @@ const submitReport = () => {
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-gray-700 text-gray-700 shadow-sm align-middle hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal3"
           >
-            Cerrar
+            {{t("searchSettingsModal.close")}}
           </button>
         </div>
       </div>
