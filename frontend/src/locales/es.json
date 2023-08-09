@@ -44,8 +44,8 @@
     }
   },
   "batchSearch": {
-    "button": "Búsqueda simultanea",
-    "title": "Búsqueda simultanea",
+    "button": "Búsqueda simultánea",
+    "title": "Búsqueda simultánea",
     "description1": "Esta función le ofrece la posibilidad de realizar una búsqueda en la base de datos introduciendo múltiples palabras clave. Esto le devolverá una lista con las palabras que se encuentran disponibles con un hipervínculo que lo redireccionará a la búsqueda",
     "description2": "Para empezar, puede añadir el listado de palabras abajo en el cuadro de texto",
     "description3": "Puede añadir una palabra por línea o separadas por comas",
@@ -53,7 +53,20 @@
     "description5": "200 palabras por búsqueda",
     "totalWords": "Total de palabras",
     "search": "Realizar búsqueda",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "results": {
+      "title": "Búsqueda simultánea - Resultados",
+      "words": "Palabras buscadas",
+      "wordsWithMatch": "Palabras con resultados",
+      "percentageMatched": "Porcentaje de coincidencia",
+      "wordColumn": "Palabra",
+      "match": "¿Existe?",
+      "matchesCount": "Coincidencias",
+      "true": "Si",
+      "false": "No",
+      "searching": "Realizando búsqueda...",
+      "return": "Regresar"
+    }
   },
   "animeList": {
     "recentlyAddedTitle": "Recién añadidos",

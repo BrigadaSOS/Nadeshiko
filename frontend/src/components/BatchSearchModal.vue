@@ -176,7 +176,7 @@ watch(inputText, (newValue) => {
         class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
       >
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
-          <h3 class="font-bold text-gray-800 dark:text-white">Busqueda simultánea - Resultados</h3>
+          <h3 class="font-bold text-gray-800 dark:text-white">{{t("batchSearch.results.title")}}</h3>
           <button
             type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
@@ -204,24 +204,24 @@ watch(inputText, (newValue) => {
             <div class="-m-1.5 overflow-x-auto">
               <div v-if="!isLoading" class="p-1.5 min-w-full inline-block align-middle">
                 <div class="mb-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
-                  Palabras buscadas: {{ wordCount }}
+                  {{t("batchSearch.results.words")}}: {{ wordCount }}
                   <br />
-                  Palabras con resultados: {{ wordsFound }}
+                  {{t("batchSearch.results.wordsWithMatch")}}: {{ wordsFound }}
                   <br />
-                  Porcentaje de coincidencias: {{ percentageMatched.toFixed(2) }}%
+                  {{t("batchSearch.results.percentageMatched")}}: {{ percentageMatched.toFixed(2) }}%
                 </div>
                 <div class="border rounded-lg shadow overflow-hidden dark:border-sgray2 dark:shadow-gray-900">
                   <table class="min-w-full divide-y bg-sgray2 divide-gray-200 dark:divide-white/30">
                     <thead>
                       <tr class="divide-x divide-gray-200 dark:divide-white/30">
                         <th scope="col" class="py-3 text-center text-xs font-medium text-white/60 uppercase">
-                          Palabra
+                          {{t("batchSearch.results.wordColumn")}}
                         </th>
                         <th scope="col" class="py-3 text-center text-xs font-medium text-white/60 uppercase">
-                          ¿Existe?
+                          {{t("batchSearch.results.match")}}
                         </th>
                         <th scope="col" class="py-3 text-center text-xs font-medium text-white/60 uppercase">
-                          Coincidencias
+                          {{t("batchSearch.results.matchesCount")}}
                         </th>
                       </tr>
                     </thead>
@@ -253,7 +253,7 @@ watch(inputText, (newValue) => {
                             }"
                             class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium flex justify-center items-center px-2.5 py-0.5 rounded w-full border border-gray-700 text-center"
                           >
-                            {{ item.is_match ? 'Verdadero' : 'Falso' }}
+                            {{ item.is_match ? t("batchSearch.results.true") : t("batchSearch.results.false") }}
                           </span>
                         </td>
 
@@ -275,7 +275,7 @@ watch(inputText, (newValue) => {
               >
                 <span class="sr-only">Loading...</span>
               </span>
-              Realizando busqueda...
+                {{t("batchSearch.results.searching")}}
               </div>
             </div>
           </div>
@@ -286,7 +286,7 @@ watch(inputText, (newValue) => {
             class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
           >
-            Regresar
+            {{t("batchSearch.results.return")}}
           </button>
         </div>
       </div>
