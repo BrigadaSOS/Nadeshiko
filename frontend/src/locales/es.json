@@ -5,8 +5,84 @@
       "spanish": "Español"
     },
     "buttons": {
-      "guide": "Guía principal"
+      "home": "Inicio",
+      "faq": "FAQ",
+      "about": "Acerca de",
+      "discord": "Discord",
+      "guide": "Guía principal",
+      "login": "Iniciar sesión / Registrarse",
+      "profile": "Perfil",
+      "seeProfile": "Ver perfil",
+      "logout": "Cerrar sesión",
+      "privacy": "Privacidad",
+      "terms": "Términos y Condiciones",
+      "contact": "Contacto"
     }
+  },
+  "home": {
+    "version": "Versión",
+    "nadeDbDescription": "Una herramienta para buscar oraciones en japonés desde multiples contextos.",
+    "nadeDbDescriptionJpSearch": "Búsqueda en Japonés",
+    "nadeDbDescriptionOtherSearch": "Búsqueda en Inglés o Español",
+    "keyFeatures": {
+      "title": "Características",
+      "feature1": "Contenido reciente",
+      "feature2": "Disponible en Español e Inglés",
+      "feature3": "Descarga de contenido",
+      "feature4": "Soporte para unir múltiples audios",
+      "feature5": "Contexto de una oración",
+      "feature6": "API pública (próximamente)"
+    },
+    "otherFeatures": {
+      "title": "Funcionalidad adicional",
+      "ankiSupport": "Integración con Anki (próximamente)"
+    },
+    "stats": {
+      "title": "Estadísticas generales",
+      "sentenceCount": "Oraciones",
+      "mediaCount": "Animes y Películas"
+    }
+  },
+  "batchSearch": {
+    "button": "Búsqueda simultanea",
+    "title": "Búsqueda simultanea",
+    "description1": "Esta función le ofrece la posibilidad de realizar una búsqueda en la base de datos introduciendo múltiples palabras clave. Esto le devolverá una lista con las palabras que se encuentran disponibles con un hipervínculo que lo redireccionará a la búsqueda",
+    "description2": "Para empezar, puede añadir el listado de palabras abajo en el cuadro de texto",
+    "description3": "Puede añadir una palabra por línea o separadas por comas",
+    "description4": "Solo se permite un total de ",
+    "description5": "200 palabras por búsqueda",
+    "totalWords": "Total de palabras",
+    "search": "Realizar búsqueda",
+    "close": "Cerrar"
+  },
+  "animeList": {
+    "recentlyAddedTitle": "Recién añadidos",
+    "fullListTitle": "Listado de Animes",
+    "seeAll": "Ver todos",
+    "sentenceCount": "oraciones",
+    "romajiName": "Nombre",
+    "japaneseName": "Nombre en Japonés",
+    "seasons": "Temporadas",
+    "episodes": "Episodios",
+    "genres": "Géneros"
+  },
+  "searchSettingsModal": {
+    "title": "Ajustes del buscador",
+    "exactMatchTitle": "Habilitar búsqueda exacta",
+    "exactMatchDescription": "Permite realizar una búsqueda sin variaciones o conjugaciones adicionales",
+    "close": "Cerrar"
+  },
+  "reportModal": {
+    "title": "Reportar un problema",
+    "description1": " Las oraciones que se presentan en este sitio web están segmentadas con herramientas que procesan de forma automática el contenido multimedia. Si bien, aunque pasan por un filtro de calidad, es posible que en el proceso ciertas oraciones tengan problemas. ",
+    "description2": " Si encuentra algún problema, se lo agradecemos reportándolo mediante el formulario que se encuentra a continuación. ",
+    "reportQuestion": "¿Cuál es el problema?",
+    "reason1": "El audio no corresponde a la oración",
+    "reason2": "El audio se encuentra desfasado con respecto a la oración",
+    "reason3": "La oración no tiene imagen o sonido",
+    "reason4": "La imagen, oración, o audio no son apropiadas (NSFW)",
+    "send": "Enviar reporte",
+    "close": "Cerrar"
   },
   "searchpage": {
     "main": {
@@ -29,6 +105,9 @@
         "search": "Buscar"
       },
       "labels": {
+        "errorMessage1": "Algo ha ocurrido y no ha sido posible obtener una respuesta satisfactoria por parte del servidor.",
+        "errorMessage2": "Vuelve a intentarlo en unos minutos.",
+        "contentList": "Listado de contenido",
         "noresults": "No hay resultados...",
         "season": "Temporada",
         "episode": "Episodio",
@@ -43,7 +122,8 @@
         "copiedcontent": "Se ha copiado el contenido al portapapeles.",
         "errorcopiedcontent": "No ha sido posible copiar el contenido al portapapeles. Inténtalo de nuevo.",
         "copiedsharingurl": "Se ha copiado la URL al portapapeles.",
-        "errorcopiedsharingurl": "No ha sido posible copiar la URL al portapapeles. Inténtalo de nuevo."
+        "errorcopiedsharingurl": "No ha sido posible copiar la URL al portapapeles. Inténtalo de nuevo.",
+        "mtTooltip": "Esta frase ha sido traducida automáticamente, puede que el contenido no sea exacto"
       }
     },
     "modalcontext": {

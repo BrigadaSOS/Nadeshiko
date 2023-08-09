@@ -1,7 +1,7 @@
 <script setup>
 // Variado
 import { useHead } from '@vueuse/head'
-import { mdiTuneVariant, mdiTextSearch } from '@mdi/js'
+import {mdiTuneVariant, mdiTextSearch, mdiTranslate, mdiStarShootingOutline} from '@mdi/js'
 import { useToast } from 'vue-toastification'
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { onBeforeRouteUpdate } from 'vue-router'
@@ -537,8 +537,24 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </span>
 
               <ul class="ml-5 list-disc text-gray-400">
-                <li class="my-2" v-html="normalizeSentence((sentence.segment_info.content_es_highlight) ? sentence.segment_info.content_es_highlight : sentence.segment_info.content_es)"></li>
-                <li class="my-2" v-html="normalizeSentence((sentence.segment_info.content_en_highlight) ? sentence.segment_info.content_en_highlight : sentence.segment_info.content_en)"></li>
+                <li class="my-2" >
+                  <span v-html="normalizeSentence((sentence.segment_info.content_es_highlight) ? sentence.segment_info.content_es_highlight : sentence.segment_info.content_es)"></span>
+                  <div v-if="sentence.segment_info.content_es_mt" class="hs-tooltip inline-block">
+                  <BaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4" h="h-4" size="19" class="ml-2 hs-tooltip-toggle" />
+                  <span class="hs-tooltip-content hs-tooltip-shown:opacity-90 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-[#181818] shadow-sm rounded-md text-white" role="tooltip">
+                    {{ t('searchpage.main.labels.mtTooltip') }}
+                  </span>
+                  </div>
+                </li>
+                <li class="my-2">
+                  <span v-html="normalizeSentence((sentence.segment_info.content_en_highlight) ? sentence.segment_info.content_en_highlight : sentence.segment_info.content_en)"></span>
+                  <div v-if="sentence.segment_info.content_en_mt" class="hs-tooltip inline-block">
+                    <BaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4" h="h-4" size="19" class="ml-2 hs-tooltip-toggle" />
+                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-90 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-[#181818] shadow-sm rounded-md text-white" role="tooltip">
+                    {{ t('searchpage.main.labels.mtTooltip') }}
+                  </span>
+                  </div>
+                </li>
               </ul>
             </h4>
 
@@ -1021,7 +1037,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           >
             <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
 
-            <div class="mr-2">Busqueda simultánea</div>
+            <div class="mr-2">{{t("batchSearch.button")}}</div>
           </button>
           <div class="relative flex pb-4 items-center">
             <div class="flex-grow border-t border-sgray2"></div>
@@ -1139,7 +1155,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <div
               class="flex items-center  w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600"
             >
-              <span class="font-medium text-base">Listado de contenido</span>
+              <span class="font-medium text-base">{{t("searchpage.main.labels.contentList")}}</span>
             </div>
             <div class="flex  flex-inline">
               <input

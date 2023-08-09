@@ -5,8 +5,84 @@
       "spanish": "Spanish"
     },
     "buttons": {
-      "guide": "Main Guide"
+      "home": "Home",
+      "faq": "FAQ",
+      "about": "About",
+      "discord": "Discord",
+      "guide": "Main Page",
+      "login": "Login / Sign up",
+      "profile": "Profile",
+      "seeProfile": "See Profile",
+      "logout": "Logout",
+      "privacy": "Privacy",
+      "terms": "Terms and Conditions",
+      "contact": "Contact"
     }
+  },
+  "home": {
+    "version": "Version",
+    "nadeDbDescription": "A tool for searching japanese sentences from multiple contexts.",
+    "nadeDbDescriptionJpSearch": "Search in Japanese",
+    "nadeDbDescriptionOtherSearch": "Search in English or Spanish",
+    "keyFeatures": {
+      "title": "Key Features",
+      "feature1": "Recent content",
+      "feature2": "Available in English and Spanish",
+      "feature3": "Download content",
+      "feature4": "Merge multiple audio sentences",
+      "feature5": "Get context of a sentence",
+      "feature6": "Public API (WIP)"
+    },
+    "otherFeatures": {
+      "title": "Extra Features",
+      "ankiSupport": "Anki integration (WIP)"
+    },
+    "stats": {
+      "title": "General Stats",
+      "sentenceCount": "Sentences",
+      "mediaCount": "Animes and Movies"
+    }
+  },
+  "batchSearch": {
+    "button": "Simultaneous Search",
+    "title": "Simultaneous Search",
+    "description1": "This feature can be used to search multiple words at once. A list will be returned with the words that have been found in the database, and a link to that specific search",
+    "description2": "To start, add some words on the box below",
+    "description3": "Add one word per line, or a coma separated list of words",
+    "description4": "You can only search up to ",
+    "description5": "200 words at once",
+    "totalWords": "Total words",
+    "search": "Search",
+    "close": "Close"
+  },
+  "animeList": {
+    "recentlyAddedTitle": "Recently Added",
+    "fullListTitle": "All Animes",
+    "seeAll": "See all",
+    "sentenceCount": "sentences",
+    "romajiName": "Name",
+    "japaneseName": "Japanese",
+    "seasons": "Seasons",
+    "episodes": "Episodes",
+    "genres": "Genres"
+  },
+  "searchSettingsModal": {
+    "title": "Search settings",
+    "exactMatchTitle": "Exact match",
+    "exactMatchDescription": "Perform an exact match search, without including conjugations or other results",
+    "close": "Close"
+  },
+  "reportModal": {
+    "title": "Report a problem",
+    "description1": "The sentences included on this page have been extracted using several automated tools. They go under a quality control before being uploaded, but sometimes sentences might still present issues.",
+    "description2": "If you find an error, please report it using the form below. It will be greatly appreciated.",
+    "reportQuestion": "What is the issue?",
+    "reason1": "Audio and sentence don't match",
+    "reason2": "Audio is off-sync compared to the sentence",
+    "reason3": "Sentence doesn't have audio or image",
+    "reason4": "Image, sentence or audio are not appropriate (NSFW)",
+    "send": "Send report",
+    "close": "Close"
   },
   "searchpage": {
     "main": {
@@ -29,6 +105,9 @@
         "search": "Search"
       },
       "labels": {
+        "errorMessage1": "An error has occurred while doing the search.",
+        "errorMessage2": "Please try again later.",
+        "contentList": "Content list",
         "noresults": "No results found...",
         "season": "Season",
         "episode": "Episode",
@@ -43,7 +122,8 @@
         "copiedcontent": "The content has been copied to the clipboard.",
         "errorcopiedcontent": "Error copying content to clipboard. Try again.",
         "copiedsharingurl": "The URL has been copied to the clipboard.",
-        "errorcopiedsharingurl": "Error copying URL to clipboard. Try again."
+        "errorcopiedsharingurl": "Error copying URL to clipboard. Try again.",
+        "mtTooltip": "This sentence has been machine translated, content might not be accurate"
       }
     },
     "modalcontext": {
