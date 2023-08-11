@@ -412,7 +412,6 @@
                 },
                 "content": {
                   "type": "text",
-                  "fielddata": true,
                   "analyzer": "ja_kuromoji_index_analyzer",
                   "search_analyzer": "ja_kuromoji_search_analyzer",
                   "fields": {
@@ -441,8 +440,8 @@
                   "type": "boolean"
                 },
                 "end_time": {
-                  "type": "keyword",
-                  "index": false
+                  "type": "date",
+                  "format": "H:mm:ss[.SSSSSS]"
                 },
                 "episode": {
                   "type": "short"
@@ -463,15 +462,14 @@
                   "index": false
                 },
                 "position": {
-                  "type": "keyword",
-                  "index": false
+                  "type": "integer"
                 },
                 "season": {
                   "type": "short"
                 },
                 "start_time": {
-                  "type": "keyword",
-                  "index": false
+                  "type": "date",
+                  "format": "H:mm:ss[.SSSSSS]"
                 },
                 "status": {
                   "type": "short"
@@ -484,3 +482,4 @@
         }
     }
 ]
+
