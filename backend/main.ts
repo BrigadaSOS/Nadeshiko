@@ -9,6 +9,9 @@ import { router } from "./routes/router";
 import express, { Application } from "express";
 import connection from "./database/db_posgres";
 import { handleErrors } from "./middleware/errorHandler";
+import winston, {log} from 'winston';
+import expressWinston from 'express-winston';
+import {expressWinstonErrorLogger, expressWinstonLogger} from "./utils/log";
 
 newrelic.instrumentLoadedModule("express", express);
 
@@ -159,7 +162,25 @@ if (process.env.ENVIRONMENT === "testing") {
 app.use(json());
 app.use(express.urlencoded({ extended: true }));
 
+// Must go before router
+app.use(expressWinstonLogger);
+
 app.use("/api", router);
+
+// Must go after router
+app.use(expressWinstonErrorLogger);
+
+app.use(expressWinston.errorLogger({
+  transports: [
+      new winston.transports.Console()
+  ],
+  format: winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.errors(),
+      winston.format.prettyPrint()
+  )
+}));
+
 // @ts-ignore
 app.use(handleErrors);
 

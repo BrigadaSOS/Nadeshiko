@@ -30,6 +30,6 @@ export const handleErrors = (
   return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
     status: res.statusCode,
     error: error,
-    message: error.message,
+    message: "An internal error has ocurred",
   });
 };
