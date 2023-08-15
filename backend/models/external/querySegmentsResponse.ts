@@ -52,4 +52,5 @@ interface SegmentInfoData {
 interface MediaInfoData {
     path_image: string;
     path_audio: string;
+    path_video: string;
 }
