@@ -170,7 +170,8 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
             },
             media_info: {
                 path_image: [getBaseUrlMedia(), seriesNamePath, seasonNumberPath, episodeNumberPath, data["path_image"]].join("/"),
-                path_audio: [getBaseUrlMedia(), seriesNamePath, seasonNumberPath, episodeNumberPath, data["path_audio"]].join("/")
+                path_audio: [getBaseUrlMedia(), seriesNamePath, seasonNumberPath, episodeNumberPath, data["path_audio"]].join("/"),
+                path_video: [getBaseUrlMedia(), seriesNamePath, seasonNumberPath, episodeNumberPath, `${data["position"]}.mp4`].join("/")
             }
         }
     });
