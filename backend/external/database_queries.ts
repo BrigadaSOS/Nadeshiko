@@ -67,5 +67,6 @@ export const queryMediaInfo = async (): Promise<QueryMediaInfoResponse> => {
 }
 
 export const refreshMediaInfoCache = async () => {
+    MEDIA_TABLE_CACHE = undefined;
     MEDIA_TABLE_CACHE = await queryMediaInfo();
 }
