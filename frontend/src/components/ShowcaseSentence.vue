@@ -1,7 +1,15 @@
 <script setup>
 // Variado
 import { useHead } from '@vueuse/head'
-import {mdiTuneVariant, mdiTextSearch, mdiTranslate, mdiStarShootingOutline} from '@mdi/js'
+import {
+  mdiTuneVariant,
+  mdiTextSearch,
+  mdiTranslate,
+  mdiStarShootingOutline,
+  mdiMultimedia,
+  mdiVideoBox,
+  mdiVideo, mdiFileVideoOutline, mdiBookMusic, mdiFileVideo
+} from '@mdi/js'
 import { useToast } from 'vue-toastification'
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { onBeforeRouteUpdate } from 'vue-router'
@@ -603,6 +611,32 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         {{ t('searchpage.main.labels.multimedia') }}
                       </span>
                       <a
+                          class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                          @click="
+                          downloadAudioOrImage(
+                            sentence.media_info.path_video,
+                            sentence.media_info.path_video.split('/').pop()
+                          )
+                        "
+                      >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="-0.5 0 25 25"
+                            fill="none"
+                        >
+                          <path
+                              :d="mdiFileVideo"
+                              stroke="white"
+                              stroke-miterlimit="10"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                          />
+                        </svg>
+                        {{ t('searchpage.main.buttons.video') }}
+                      </a>
+                      <a
                         class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                         @click="
                           downloadAudioOrImage(
@@ -721,6 +755,27 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
                         Multimedia
                       </span>
+                      <a
+                          @click="copyToClipboard(sentence.media_info.path_video)"
+                          class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                      >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="-0.5 0 25 25"
+                            fill="none"
+                        >
+                          <path
+                              :d="mdiFileVideo"
+                              stroke="white"
+                              stroke-miterlimit="10"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                          />
+                        </svg>
+                        {{ t('searchpage.main.buttons.video') }}
+                      </a>
                       <a
                         @click="copyToClipboard(sentence.media_info.path_image)"
                         class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
