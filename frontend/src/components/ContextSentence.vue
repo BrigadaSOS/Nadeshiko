@@ -1,5 +1,6 @@
 <script setup>
 import { ref, nextTick } from 'vue'
+import {mdiFileVideo, mdiVideoBox} from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'vue-toastification'
 import { normalizeSentence } from "../utils/misc"
@@ -339,6 +340,32 @@ const ampliarImagen = (url) => {
                               {{ t('searchpage.main.labels.multimedia') }}
                             </span>
                             <a
+                                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                                @click="
+                                downloadAudioOrImage(
+                                  sentence.media_info.path_video,
+                                  sentence.media_info.path_video.split('/').pop()
+                                )
+                              "
+                            >
+                              <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="-0.5 0 25 25"
+                                  fill="none"
+                              >
+                                <path
+                                    :d="mdiFileVideo"
+                                    stroke="white"
+                                    stroke-miterlimit="10"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                              </svg>
+                              {{ t('searchpage.main.buttons.video') }}
+                            </a>
+                            <a
                               class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                               @click="
                                 downloadAudioOrImage(
@@ -406,7 +433,7 @@ const ampliarImagen = (url) => {
                       </div>
                     </div>
                     <div>
-                      <div class="hs-dropdown z-20 relative inline-flex mb-2 mr-2">
+                      <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                         <button
                           id="hs-dropdown-with-title"
                           type="button"
@@ -459,6 +486,27 @@ const ampliarImagen = (url) => {
                             >
                               Multimedia
                             </span>
+                            <a
+                                @click="copyToClipboard(sentence.media_info.path_video)"
+                                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                            >
+                              <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="-0.5 0 25 25"
+                                  fill="none"
+                              >
+                                <path
+                                    :d="mdiFileVideo"
+                                    stroke="white"
+                                    stroke-miterlimit="10"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                              </svg>
+                              {{ t('searchpage.main.buttons.video') }}
+                            </a>
                             <a
                               @click="copyToClipboard(sentence.media_info.path_image)"
                               class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
@@ -563,7 +611,7 @@ const ampliarImagen = (url) => {
                             </a>
                           </div>
                         </div>
-                        <div class="hs-dropdown relative z-20 inline-flex">
+                        <div class="hs-dropdown relative inline-flex">
                           <button
                             id="hs-dropdown-with-title"
                             type="button"

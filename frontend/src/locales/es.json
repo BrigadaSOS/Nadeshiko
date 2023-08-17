@@ -101,6 +101,7 @@
     "main": {
       "buttons": {
         "download": "Descargar",
+        "video": "Imagen + Audio",
         "image": "Imagen",
         "audio": "Audio",
         "copyclipboard": "Copiar al portapapeles",
