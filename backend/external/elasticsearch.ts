@@ -15,6 +15,7 @@ import {
 import {queryMediaInfo} from "./database_queries";
 import {getBaseUrlMedia} from "../utils/utils";
 import {QueryWordsMatchedResponse, WordMatch, WordMatchMediaInfo} from "../models/external/queryWordsMatchedResponse";
+import {logger} from "../utils/log";
 
 
 export const client = new Client({
@@ -140,6 +141,11 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
         const content_en_highlight = ("content_english" in highlight) ? highlight["content_english"][0] : "";
         const content_es_highlight = ("content_spanish" in highlight) ? highlight["content_spanish"][0] : "";
 
+        if(!mediaInfo || !Object.keys(mediaInfo).length) {
+            logger.error("Media Info not found for anime with id %s", data["media_id"])
+            return;
+        }
+
         return {
             basic_info: {
                 id_anime: data["media_id"],
@@ -174,13 +180,16 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
                 path_video: [getBaseUrlMedia(), seriesNamePath, seasonNumberPath, episodeNumberPath, `${data["position"]}.mp4`].join("/")
             }
         }
-    });
+    }).filter((x: SearchAnimeSentencesSegment | undefined) => x != undefined);
 
     let statistics: SearchAnimeSentencesStatistics[] = [];
     if(esResponse.aggregations && "group_by_media_id" in esResponse.aggregations) {
         // @ts-ignore
         statistics = esResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
             const mediaInfo = mediaInfoResponse.results[Number(bucket["key"])];
+            if(!mediaInfo || !Object.keys(mediaInfo).length) {
+                return;
+            }
 
             return {
                 anime_id: bucket["key"],
@@ -188,7 +197,7 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
                 name_anime_jp: mediaInfo.japanese_name,
                 amount_sentences_found: bucket["doc_count"]
             }
-        });
+        }).filter((x: SearchAnimeSentencesStatistics | undefined) => x !== undefined);
     }
 
     let cursor: FieldValue[] | undefined = undefined;

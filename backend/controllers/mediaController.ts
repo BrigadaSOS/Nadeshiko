@@ -271,6 +271,13 @@ function buildSimplifiedResults(_: Request, results: any) {
           seasonNumberPath,
           episodeNumberPath,
           result["path_audio"],
+        ].join("/"),
+        path_video: [
+          getBaseUrlMedia(),
+          seriesNamePath,
+          seasonNumberPath,
+          episodeNumberPath,
+          `${result["position"]}.mp4`,
         ].join("/")
       },
     };
