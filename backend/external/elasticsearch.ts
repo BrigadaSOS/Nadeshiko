@@ -13,9 +13,10 @@ import {
     SearchAnimeSentencesStatistics
 } from "../models/external/querySegmentsResponse";
 import {queryMediaInfo} from "./database_queries";
-import {getBaseUrlMedia} from "../utils/utils";
+import {getBaseUrlMedia, notEmpty} from "../utils/utils";
 import {QueryWordsMatchedResponse, WordMatch, WordMatchMediaInfo} from "../models/external/queryWordsMatchedResponse";
 import {logger} from "../utils/log";
+import {SearchAnimeSentences} from "../controllers/mediaController";
 
 
 export const client = new Client({
@@ -180,7 +181,7 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
                 path_video: [getBaseUrlMedia(), seriesNamePath, seasonNumberPath, episodeNumberPath, `${data["position"]}.mp4`].join("/")
             }
         }
-    }).filter((x: SearchAnimeSentencesSegment | undefined) => x != undefined);
+    }).filter(notEmpty);
 
     let statistics: SearchAnimeSentencesStatistics[] = [];
     if(esResponse.aggregations && "group_by_media_id" in esResponse.aggregations) {
@@ -197,7 +198,7 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
                 name_anime_jp: mediaInfo.japanese_name,
                 amount_sentences_found: bucket["doc_count"]
             }
-        }).filter((x: SearchAnimeSentencesStatistics | undefined) => x !== undefined);
+        }).filter(notEmpty);
     }
 
     let cursor: FieldValue[] | undefined = undefined;
