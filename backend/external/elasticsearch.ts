@@ -82,7 +82,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         })
 
         if(request.anime_id) {
-            must.push(
+            filter.push(
                 {
                     term: {
                         media_id: request.anime_id

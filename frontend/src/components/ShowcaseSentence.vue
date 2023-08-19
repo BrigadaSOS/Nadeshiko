@@ -58,7 +58,6 @@ let uuid = ref(null)
 let currentAudio = ref(null)
 let type_sort = ref(null)
 let metadata = ref(null)
-let random_seed = ref(null)
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -108,7 +107,6 @@ onMounted(async () => {
     type_sort.value = 'desc'
   } else if (sortFilter === 'random') {
     type_sort.value = 'random'
-    random_seed.value = Math.random() * 2 - 1
   } else {
     type_sort.value = null
   }
@@ -221,8 +219,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
     exact_match: exact_match.value,
     uuid: uuid,
     limit: 20,
-    content_sort: type_sort.value,
-    random_seed: random_seed.value
+    content_sort: type_sort.value
   };
 
   // Calls to backend fail if this is passed to the body when null or undefined
