@@ -126,10 +126,11 @@ export const SearchAnimeSentences = async (
     const response = await querySegments({
       query: req.body.query,
       uuid: req.body.uuid,
-      length_sort_order: req.body.content_sort || "asc",
+      length_sort_order: req.body.content_sort || "none",
       limit: req.body.limit || 10,
       status: req.body.status || [1],
       cursor: req.body.cursor,
+      random_seed: req.body.random_seed,
       media: req.body.media,
       anime_id: req.body.anime_id,
       exact_match: req.body.exact_match
