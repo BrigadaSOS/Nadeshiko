@@ -42,6 +42,7 @@ let statistics = ref([])
 let next_cursor = ref(null)
 let isLoading = ref(false)
 let anime_id = ref(null)
+const exact_match = ref(null)
 let isModalContextActive = ref(false)
 let isModalReportActive = ref(false)
 let isModalSettingsSearchActive = ref(false)
@@ -63,14 +64,15 @@ onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
   const sortFilter = to.query.sort
   const animeId = to.query.anime_id
+  const exactMatch = to.query.exact_match
 
   querySearch.value = searchTerm || ''
   type_sort.value = sortFilter || null
+  exact_match.value = exactMatch || null
 
   if (searchTerm) {
     await getSentences(searchTerm, null, animeId)
   } else {
-    
     querySearch.value = ''
     sentences.value = []
     statistics.value = []
@@ -90,12 +92,14 @@ onMounted(async () => {
   const searchTerm = urlParams.get('query')
   const sortFilter = urlParams.get('sort')
   const animeId = urlParams.get('anime_id')
+  const exactMatch = urlParams.get('exact_match')
 
   isBannerClosed = localStorage.getItem('isBannerClosed')
   let element = document.getElementById('drawer-button')
 
   uuid.value = urlParams.get('uuid')
   anime_id.value = animeId
+  exact_match.value = exactMatch
 
   // Configuración del filtro
   if (sortFilter === 'asc') {
@@ -180,12 +184,24 @@ const filteredAnimes = computed(() => {
 const searchHandler = async (event) => {
   event.preventDefault()
   const searchTerm = querySearch.value.trim()
+  const sortTerm = (type_sort.value) ? type_sort.value.trim() : null
+  const exactMatchTerm = (exact_match.value) ? exact_match.value.trim() : null
+
   if (searchTerm !== '') {
-    if (type_sort.value === null) {
-      await router.push({ query: { query: querySearch.value } })
-    } else {
-      await router.push({ query: { query: querySearch.value, sort: type_sort.value } })
+    const query = {
+      query: querySearch.value
     }
+
+    if(sortTerm) {
+      query.sort = sortTerm
+    }
+
+    if(exactMatchTerm) {
+      query.exact_match = exactMatchTerm
+    }
+
+    await router.push({query: query});
+
     await getSentences(searchTerm)
   }
 }
@@ -202,6 +218,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
   const body = {
     query: searchTerm,
     anime_id: anime_id.value,
+    exact_match: exact_match.value,
     uuid: uuid,
     limit: 20,
     content_sort: type_sort.value,
@@ -264,6 +281,7 @@ const filterAnime = async (new_anime_id) => {
   }
 
   const searchTerm = querySearch.value.trim()
+  const exactMatchTerm = (exact_match.value) ? exact_match.value.trim() : null;
 
   if (searchTerm !== '') {
     next_cursor.value = null
@@ -278,6 +296,10 @@ const filterAnime = async (new_anime_id) => {
 
     if (new_anime_id !== 0) {
       queryParameters.anime_id = new_anime_id
+    }
+
+    if(exactMatchTerm) {
+      queryParameters["exact_match"] = exactMatchTerm
     }
 
     await router.push({ query: queryParameters })
@@ -386,6 +408,10 @@ const sortFilter = async (new_type) => {
 
   if (type_sort.value !== 'none') {
     queryParameters.sort = type_sort.value
+  }
+
+  if (exact_match.value) {
+    queryParameters.exact_match = exact_match.value
   }
 
   if (anime_id.value !== 0) {
