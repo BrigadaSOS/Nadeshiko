@@ -1,3 +1,6 @@
+import {SortOrder} from "@elastic/elasticsearch/lib/api/types";
+import {SegmentStatus} from "../media/segment";
+
 export interface SearchAnimeSentencesRequest {
     // String query including the keyword to search
     readonly query?: string;
@@ -8,10 +11,24 @@ export interface SearchAnimeSentencesRequest {
     // Specific anime_id to return results from
     readonly anime_id?: number;
     // Sorting mode for the response. Valid values: [asc, desc, random]
-    readonly content_sort?: string;
-    // Random seed to use when random sorting
-    readonly random_seed?: string;
+    readonly content_sort?: SortOrder;
+    // Return an exact match for the segment
+    readonly exact_match?: boolean;
+    // List of segment status to include
+    readonly status?: SegmentStatus[];
     // Previous cursor to use when doing paginated searches. Pass this value as it was returned from the previous
     // query, without making any changes
     readonly cursor?: any[];
+    // Filter by specific media
+    readonly media: QuerySegmentsAnimeFilter[];
+}
+
+export interface QuerySegmentsAnimeFilter {
+    readonly media_id: string;
+    readonly seasons: QuerySegmentsSeasonFilter[];
+}
+
+export interface QuerySegmentsSeasonFilter {
+    readonly season: number;
+    readonly episodes: number[];
 }

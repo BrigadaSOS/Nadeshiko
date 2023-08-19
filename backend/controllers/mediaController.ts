@@ -123,12 +123,17 @@ export const SearchAnimeSentences = async (
   next: NextFunction
 ) => {
   try {
-    const { query, cursor, limit, anime_id, uuid, content_sort, random_seed } =
-      req.body;
-
-    // TODO: Add sorting and random results
-
-    const response = await querySegments(query, uuid, anime_id, limit, cursor);
+    const response = await querySegments({
+      query: req.body.query,
+      uuid: req.body.uuid,
+      length_sort_order: req.body.content_sort || "asc",
+      limit: req.body.limit || 10,
+      status: req.body.status || [1],
+      cursor: req.body.cursor,
+      media: req.body.media,
+      anime_id: req.body.anime_id,
+      exact_match: req.body.exact_match
+    });
     return res.status(StatusCodes.OK).json(response);
 
   } catch (error) {
@@ -213,12 +218,6 @@ export const GetAllAnimes = async (
 };
 
 function buildSimplifiedResults(_: Request, results: any) {
-  let protocol: string = "";
-  if (process.env.ENVIRONMENT === "production") {
-    protocol = "https";
-  } else if (process.env.ENVIRONMENT == "testing") {
-    protocol = "http";
-  }
   return (results[0] as any[]).map((result) => {
     const seriesNamePath = result["folder_media_name"];
     const seasonNumberPath = `S${result["season"].toString().padStart(2, "0")}`;
