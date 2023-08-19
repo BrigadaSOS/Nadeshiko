@@ -7,7 +7,7 @@ import {
     SearchResponse,
     SearchResponseBody,
     SearchTotalHits,
-    Sort,
+    Sort, SortOrder,
 } from "@elastic/elasticsearch/lib/api/types";
 import {QueryMediaInfoResponse} from "../models/external/queryMediaInfoResponse";
 import {
@@ -32,6 +32,7 @@ export const client = new Client({
 
 export const querySegments = async (request: QuerySegmentsRequest): Promise<QuerySegmentsResponse> => {
     const must: QueryDslQueryContainer[] = [];
+    const filter: QueryDslQueryContainer[] = [];
     let sort: Sort = [];
 
     // Match only by uuid and return 1 result. This takes precedence over other queries
@@ -45,12 +46,36 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
 
     // Search by query, optionally filtering by media_id to only return results from an specific anime
     if(request.query && !request.uuid) {
-        must.push( {
-            bool: {
-                should: buildMultiLanguageQuery(request.query, request.exact_match || false)
-            }
-        },
-        {
+        if(request.length_sort_order && request.length_sort_order.toLowerCase() === "random") {
+            const seed = request.random_seed || undefined;
+
+            must.push({
+                function_score: {
+                    query: {
+                        bool: {
+                            should: buildMultiLanguageQuery(request.query, request.exact_match || false)
+                        }
+                    },
+                    functions: [
+                        {
+                            random_score: {
+                                field: "_seq_no",
+                                seed: seed
+                            }
+                        }
+                    ],
+                    boost_mode: "multiply"
+                },
+            })
+        } else {
+            must.push({
+                bool: {
+                    should: buildMultiLanguageQuery(request.query, request.exact_match || false)
+                }
+            })
+        }
+
+        filter.push({
             terms: {
                 status: request.status
             }
@@ -140,7 +165,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
                 })
             })
 
-            must.push({
+            filter.push({
                 bool: {
                     should: mediaQueries
                 }
@@ -148,10 +173,23 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         }
 
         // Sort is only used when we search by a query. For uuid queries it is not included
-        sort = [
-            { _score: { order: "desc" } },
-            { content_length: { order: request.length_sort_order } }
-        ];
+        if(!request.length_sort_order || request.length_sort_order === "none") {
+            sort = [
+                { _score: { order: "desc" } },
+                { content_length: { order: "asc"} }
+            ];
+        } else if(request.length_sort_order === "random") {
+            // Score is randomized, but with this is required for cursor field to appear
+            sort = [
+                { _score: { order: "desc" } },
+                { content_length: { order: "asc"} }
+            ];
+        } else {
+            // Override score order when defining sort order
+            sort = [
+                { content_length: { order: request.length_sort_order as SortOrder } }
+            ];
+        }
     }
 
     const esResponse = client.search({
@@ -170,6 +208,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         },
         query: {
             bool: {
+                filter,
                 must
             },
         },
@@ -354,7 +393,7 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
                 "analyze_wildcard": true,
                 "allow_leading_wildcard": false,
                 "fuzzy_transpositions": false,
-                "fields": ["content^3", "content.readingform"],
+                "fields": (exact_match) ? ["content"] : ["content^3", "content.readingform"],
                 "default_operator": "AND",
                 "quote_analyzer": "ja_original_search_analyzer"
             }

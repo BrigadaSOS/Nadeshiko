@@ -12,6 +12,8 @@ export interface SearchAnimeSentencesRequest {
     readonly anime_id?: number;
     // Sorting mode for the response. Valid values: [asc, desc, random]
     readonly content_sort?: SortOrder;
+    // Sorting mode for the response. Valid values: [asc, desc, random]
+    readonly random_seed?: number;
     // Return an exact match for the segment
     readonly exact_match?: boolean;
     // List of segment status to include

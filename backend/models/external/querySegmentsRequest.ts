@@ -4,7 +4,8 @@ import {SegmentStatus} from "../media/segment";
 export interface QuerySegmentsRequest {
     readonly query?: string;
     readonly uuid?: string;
-    readonly length_sort_order: SortOrder;
+    readonly length_sort_order: string;
+    readonly random_seed?: number;
     readonly limit: number;
     readonly status: SegmentStatus[];
     readonly cursor?: FieldValue[];
