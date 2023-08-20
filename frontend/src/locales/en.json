@@ -151,5 +151,25 @@
         "errorconnection": "Error connecting to the server."
       }
     }
+  },
+  "modalauth": {
+    "buttons": {
+      "login": "Login",
+      "googlelogin": "Login with Google",
+      "register": "Register"
+    },
+    "labels":{
+      "questionaccount": "Don't have an account?",
+      "answerquestionaccount": "Sign up here",
+      "conditionalor": "Or",
+      "email": "Email",
+      "password": "Password",
+      "repeatpassword": "Repeat password",
+      "rememberme": "Remember me for 30 days",
+      "forgottenpassword": "Forgotten password?",
+      "successfullogin": "Succesful login!",
+      "logout": "You are now logged out.",
+      "errorlogin400": "Please check your email/password and try again."
+    }
   }
 }

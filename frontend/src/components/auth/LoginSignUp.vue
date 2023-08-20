@@ -101,7 +101,9 @@ onMounted(() => {
                       </p>
                     </div>
 
-                    <div class="mt-5">
+                    <div class="mt-5 flex flex-col">
+                      <GoogleLogin :callback="callback">
+
                       <a
                         class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-sgray dark:hover:bg-sgray2 border-none dark:text-gray-400 dark:hover:text-white dark:focus:ring-offset-gray-800"
                         href="#"
@@ -126,6 +128,7 @@ onMounted(() => {
                         </svg>
                         Inicia con Google
                       </a>
+                    </GoogleLogin>
 
                       <div
                         class="py-3 flex items-center text-xs text-gray-400 uppercase before:flex-[1_1_0%] before:border-t before:border-gray-200 before:mr-6 after:flex-[1_1_0%] after:border-t after:border-gray-200 after:ml-6 dark:text-gray-500 dark:before:border-gray-600 dark:after:border-gray-600"
