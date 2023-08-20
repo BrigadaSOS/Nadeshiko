@@ -151,5 +151,25 @@
         "errorconnection": "No ha sido posible conectar con el servidor."
       }
     }
+  },
+  "modalauth": {
+    "buttons": {
+      "login": "Inciar sesión",
+      "googlelogin": "Inicia sesión con Google",
+      "register": "Registrarse"
+    },
+    "labels":{
+      "questionaccount": "¿No tienes una cuenta?",
+      "answerquestionaccount": "Registrate aquí",
+      "conditionalor": "O",
+      "email": "Correo",
+      "password": "Contraseña",
+      "repeatpassword": "Repetir contraseña",
+      "rememberme": "Recuerda mi inicio por 30 días",
+      "forgottenpassword": "Contraseña olvidada?",
+      "successfullogin": "Inicio de sesión exitoso!",
+      "logout": "Se ha cerrado la sesión.",
+      "errorlogin400": "Por favor, revisa tu correo/contraseña e intenta de nuevo."
+    }
   }
 }
