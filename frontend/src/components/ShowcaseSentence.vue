@@ -1,5 +1,6 @@
 <script setup>
 // Variado
+import { userStore } from "../stores/user";
 import { useHead } from '@vueuse/head'
 import {
   mdiTuneVariant,
@@ -34,6 +35,7 @@ const { t } = useI18n()
 // Importación de funciones
 const toast = useToast()
 const head = useHead()
+const store = userStore();
 
 // Declaración de variables
 const querySearch = ref('')
@@ -42,6 +44,7 @@ let statistics = ref([])
 let next_cursor = ref(null)
 let isLoading = ref(false)
 let anime_id = ref(null)
+const exactMatchFromStore = computed(() => store.$state.filterPreferences.exact_match);
 const exact_match = ref(null)
 let isModalContextActive = ref(false)
 let isModalReportActive = ref(false)
@@ -58,6 +61,7 @@ let uuid = ref(null)
 let currentAudio = ref(null)
 let type_sort = ref(null)
 let metadata = ref(null)
+const isMounted = ref(false);
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -67,9 +71,9 @@ onBeforeRouteUpdate(async (to, from) => {
 
   querySearch.value = searchTerm || ''
   type_sort.value = sortFilter || null
-  exact_match.value = exactMatch || null
+  exact_match.value = exactMatchFromStore.value !== null ? exactMatchFromStore.value : (exactMatch === 'true');
 
-  if (searchTerm) {
+  if (isMounted.value && searchTerm) {
     await getSentences(searchTerm, null, animeId)
   } else {
     querySearch.value = ''
@@ -98,8 +102,8 @@ onMounted(async () => {
 
   uuid.value = urlParams.get('uuid')
   anime_id.value = animeId
-  exact_match.value = exactMatch
-
+  exact_match.value = exactMatchFromStore.value !== null ? exactMatchFromStore.value : (exactMatch === 'true');
+  
   // Configuración del filtro
   if (sortFilter === 'asc') {
     type_sort.value = 'asc'
@@ -110,13 +114,14 @@ onMounted(async () => {
   } else {
     type_sort.value = null
   }
+  
   if (searchTerm && uuid.value) {
-    await getSentences(searchTerm, 0, animeId, uuid.value)
+    await getSentences(searchTerm, 0, animeId ? animeId : undefined, uuid.value)
   } else if (searchTerm && !uuid.value) {
     querySearch.value = searchTerm
-    await getSentences(searchTerm, 0, animeId)
+    await getSentences(searchTerm, 0, animeId ? animeId : undefined)
   } else if (uuid.value) {
-    await getSentences('', '', animeId, uuid.value)
+    await getSentences('', '', animeId ? animeId : undefined, uuid.value)
   }
 
   // Observa el elemento al final del contenedor solo si no hay un UUID
@@ -144,6 +149,9 @@ onMounted(async () => {
     }
     prevScrollpos = currentScrollPos
   }
+
+  isMounted.value = true;
+
 })
 
 watch(
@@ -183,8 +191,8 @@ const searchHandler = async (event) => {
   event.preventDefault()
   const searchTerm = querySearch.value.trim()
   const sortTerm = (type_sort.value) ? type_sort.value.trim() : null
-  const exactMatchTerm = (exact_match.value) ? exact_match.value.trim() : null
-
+  const exact_match = exactMatchFromStore.value !== null ? exactMatchFromStore.value : (exact_match === 'true');
+  
   if (searchTerm !== '') {
     const query = {
       query: querySearch.value
@@ -194,8 +202,8 @@ const searchHandler = async (event) => {
       query.sort = sortTerm
     }
 
-    if(exactMatchTerm) {
-      query.exact_match = exactMatchTerm
+    if (exact_match === true) {
+      query.exact_match = exact_match;
     }
 
     await router.push({query: query});
@@ -216,7 +224,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
   const body = {
     query: searchTerm,
     anime_id: anime_id.value,
-    exact_match: exact_match.value,
+    exact_match: exactMatchFromStore.value ? 1 : 0, // Normalize exact match value from true/false to 1/0 
     uuid: uuid,
     limit: 20,
     content_sort: type_sort.value
@@ -278,7 +286,6 @@ const filterAnime = async (new_anime_id) => {
   }
 
   const searchTerm = querySearch.value.trim()
-  const exactMatchTerm = (exact_match.value) ? exact_match.value.trim() : null;
 
   if (searchTerm !== '') {
     next_cursor.value = null
@@ -295,8 +302,8 @@ const filterAnime = async (new_anime_id) => {
       queryParameters.anime_id = new_anime_id
     }
 
-    if(exactMatchTerm) {
-      queryParameters["exact_match"] = exactMatchTerm
+    if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
+      queryParameters.exact_match = exact_match.value ? "true" : "false";
     }
 
     await router.push({ query: queryParameters })
@@ -407,8 +414,8 @@ const sortFilter = async (new_type) => {
     queryParameters.sort = type_sort.value
   }
 
-  if (exact_match.value) {
-    queryParameters.exact_match = exact_match.value
+  if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
+    queryParameters["exact_match"] = exact_match.value ? "true" : "false";
   }
 
   if (anime_id.value !== 0) {
@@ -526,7 +533,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <div
           v-if="sentences.length > 0"
           v-for="(sentence, index) in sentences"
-          class="flex flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 rounded-lg w-100"
+          class="flex flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2  w-100"
         >
           <div class="h-auto w-auto lg:w-6/12 md:w-7/12">
             <img

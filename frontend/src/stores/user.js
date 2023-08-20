@@ -1,14 +1,26 @@
 import { defineStore } from 'pinia'
 import router from '../router/index'
+import { useToast } from 'vue-toastification'
+import { i18n } from '../main' 
+
+const toast = useToast()
+
+const options = {
+  timeout: 3000,
+  position: 'bottom-right'
+}
 
 export const userStore = defineStore('user', {
   state: () => ({
-    isLoggedIn: false
+    isLoggedIn: false,
+    filterPreferences: {
+      exact_match: false
+    }
   }),
   persist: {
     key: 'info',
     storage: window.localStorage,
-    paths: ['isLoggedIn']
+    paths: ['isLoggedIn', 'filterPreferences']
   },
   actions: {
     async login(email, password) {
@@ -26,11 +38,16 @@ export const userStore = defineStore('user', {
             password: password
           })
         }).then((response) => {
-          this.$patch((state) => {
-            state.isLoggedIn = true
-            console.log(state.isLoggedIn)
-          })
-          router.push('/')
+          if(response.status === 404 || response.status === 400){
+            const message = i18n.global.t('modalauth.labels.errorlogin400')
+            toast.error(message, options)
+          }else{
+            this.$patch((state) => {
+              state.isLoggedIn = true
+            })
+            const message = i18n.global.t('modalauth.labels.successfullogin')
+            toast.success(message, options)
+          }
         })
       } catch (error) {
         console.log(error)
@@ -49,8 +66,9 @@ export const userStore = defineStore('user', {
         }).then((response) => {
           this.$patch((state) => {
             state.isLoggedIn = false
-            console.log(state.isLoggedIn)
           })
+          const message = i18n.global.t('modalauth.labels.logout')
+          toast.success(message, options)
           router.push('/')
         })
       } catch (error) {

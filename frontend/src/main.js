@@ -12,6 +12,7 @@ import { getStartingLocale } from './utils/i18n'
 import App from './App.vue'
 import router from './router'
 import Toast from "vue-toastification";
+import vue3GoogleLogin from 'vue3-google-login'
 import messages from '@intlify/unplugin-vue-i18n/messages'
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 
@@ -20,7 +21,7 @@ import { userStore} from './stores/user'
 const pinia = createPinia();
 
 // Language Configuration
-const i18n = createI18n({
+export const i18n = createI18n({
   legacy: false,
   globalInjection: true,
   locale: getStartingLocale(),
@@ -47,6 +48,9 @@ app.use(pinia)
 app.use(router)
 app.use(i18n)
 app.use(Toast, options_toast)
+app.use(vue3GoogleLogin, {
+  clientId: 'YOUR_GOOGLE_CLIENT_ID'
+})
 
 const store = userStore()
 

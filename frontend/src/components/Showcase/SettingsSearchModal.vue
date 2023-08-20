@@ -1,85 +1,89 @@
 <script setup>
 import { ref } from 'vue'
-const selectedOption = ref('')
 import { useI18n } from 'vue-i18n'
+import BaseIcon from '../minimal/BaseIcon.vue';
+import { mdiTagSearchOutline } from '@mdi/js'
+import { userStore } from "../../stores/user";
+
+const selectedOption = ref('')
 const { t } = useI18n()
+const store = userStore();
 
 const submitReport = () => {
   console.log(selectedOption.value)
 }
+
+const manageExactMatch = (item) => {
+  store.$patch((state) => {
+    if (!state.filterPreferences.exact_match) {
+      state.filterPreferences.exact_match = false;
+    }
+    state.filterPreferences.exact_match = !state.filterPreferences.exact_match;
+  })
+}
+
 </script>
 
 <template>
-  <div
-    id="hs-vertically-centered-scrollable-modal3"
-    class="hs-overlay-open:mt-7 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
-  >
+  <div id="hs-vertically-centered-scrollable-modal3"
+    class="hs-overlay-open:mt-7 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
     <div
-      class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
-    >
+      class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center">
       <div
-        class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-sgray dark:border-sgray dark:shadow-slate-700/[.7]"
-      >
-        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-gray-700">
-          <h3 class="font-bold text-gray-800 dark:text-white">{{t("searchSettingsModal.title")}}</h3>
-          <button
-            type="button"
+        class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]">
+        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
+          <h3 class="font-bold text-gray-800 dark:text-white">{{ t("searchSettingsModal.title") }}</h3>
+          <button type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
-            data-hs-overlay="#hs-vertically-centered-scrollable-modal3"
-          >
+            data-hs-overlay="#hs-vertically-centered-scrollable-modal3">
             <span class="sr-only">Close</span>
-            <svg
-              class="w-3.5 h-3.5"
-              width="8"
-              height="8"
-              viewBox="0 0 8 8"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
+              xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z"
-                fill="currentColor"
-              />
+                fill="currentColor" />
             </svg>
           </button>
         </div>
         <div class="overflow-y-auto">
           <div class="flex flex-row mx-auto">
-            <div class="container w-100 sm:mx-4 mx-auto flex flex-col">
-              <div class="p-6 space-y-6">
-                <div class="flex items-center justify-between">
-                  <span class="flex flex-col flex-grow" id="toggleLabel">
-                    <span class="text-sm font-medium text-white">
-                      {{t("searchSettingsModal.exactMatchTitle")}}</span>
-                    <span class="text-sm leading-normal text-white/50">
-                      {{t("searchSettingsModal.exactMatchDescription")}}</span>
-                  </span>
-                  <label for="toggle-example" class="flex items-center cursor-pointer relative ml-5">
-                    <input type="checkbox" id="toggle-example" class="sr-only" />
-                    <div class="toggle-bg bg-gray-200 border-2 border-gray-200 h-6 w-11 rounded-full"></div>
+            <div class="p-4 sm:p-8 overflow-y-auto">
+              <div class="space-y-4">
+                <!-- Card -->
+                <div class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-sgray2 dark:border-sgray">
+                  <label for="hs-account-activity" class="flex p-4 md:p-5">
+                    <span class="flex mr-5">
+
+                      <BaseIcon :path="mdiTagSearchOutline" w="w-5 md:w-5" h="h-5 md:h-5" size=25 class="mt-1" />
+                      <span class="ml-5">
+                        <span class="block font-medium text-gray-800 dark:text-gray-200">{{
+                          t("searchSettingsModal.exactMatchTitle") }}</span>
+                        <span class="block text-sm text-gray-500">{{ t("searchSettingsModal.exactMatchDescription")
+                        }}</span>
+                      </span>
+                    </span>
+
+                    <input type="checkbox" id="hs-account-activity" @change="manageExactMatch"
+                      :checked="store.$state.filterPreferences.exact_match"
+                      class="relative shrink-0 w-[3.25rem] ml-auto h-7 bg-gray-100 checked:bg-none checked:bg-blue-600 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 border border-transparent ring-1 ring-transparent  ring-offset-white focus:outline-none appearance-none dark:bg-graypalid dark:checked:bg-blue-600 dark:focus:ring-offset-gray-800
+
+              before:inline-block before:w-6 before:h-6 before:bg-white checked:before:bg-blue-200 before:translate-x-0 checked:before:translate-x-full before:shadow before:rounded-full before:transform before:ring-0 before:transition before:ease-in-out before:duration-200 dark:before:bg-gray-400 dark:checked:before:bg-blue-200"
+                      checked>
                   </label>
                 </div>
+                <!-- End Card -->
               </div>
             </div>
           </div>
         </div>
-        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-gray-700">
-          <button
-            type="button"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-gray-700 text-gray-700 shadow-sm align-middle hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
-            data-hs-overlay="#hs-vertically-centered-scrollable-modal3"
-          >
-            {{t("searchSettingsModal.close")}}
+        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-sgray2">
+          <button type="button"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            data-hs-overlay="#hs-vertically-centered-scrollable-modal3">
+            {{ t("searchSettingsModal.close") }}
           </button>
         </div>
       </div>
     </div>
   </div>
 </template>
-
-<style>
-input:checked + .toggle-bg {
-  background: #f21c27;
-  border-color: #f21c1c;
-}
-</style>
