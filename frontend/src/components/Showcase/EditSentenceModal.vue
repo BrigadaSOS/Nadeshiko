@@ -216,8 +216,6 @@ const submitReport = () => {
                 <div class="relative mx-5 mt-4">
                   <div class="flex">
                     <div class="flex flex-col w-full space-y-4">
-                      <!-- Añadido espacio vertical entre elementos -->
-
                       <div class="relative group">
                         <div class="flex justify-between items-center">
                           <label for="with-corner-hint" class="block text-sm font-medium mb-2 dark:text-white"
