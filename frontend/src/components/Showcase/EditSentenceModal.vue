@@ -16,6 +16,7 @@ const props = defineProps({
 let sentence_jp = ref('')
 let sentence_en = ref('')
 let sentence_es = ref('')
+let isNSFW = ref(false);
 
 const boxjp = ref(null)
 const boxen = ref(null)
@@ -67,7 +68,7 @@ const submitReport = () => {
       <div
         class="max-h-full max-w-6xl flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
       >
-        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
+        <div class="flex justify-between items-center py-3 px-4 border-b border-t dark:border-sgray2">
           <h3 class="font-bold text-gray-800 dark:text-white">Editar una oración</h3>
           <button
             type="button"
@@ -95,24 +96,23 @@ const submitReport = () => {
           <div class="flex flex-col md:flex-row mx-auto">
             <div class="container overflow-hidden mx-auto flex flex-col">
               <div class="flex flex-row">
-                <div class="container mx-auto flex overflow-hidden flex-col w-screen">
-                  <h2 class="font-bold text-xl border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
+                <div class="container border-t border-t-sgray2 flex overflow-hidden flex-col w-screen">
+                  <h2 class="font-bold text-center text-xl border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
                     Previsualización
                   </h2>
                   <div
                     v-if="props.item"
                     :key="props.item.segment_info.position"
                     :id="props.item.segment_info.position"
-                    class="flex flex-col overflow-hidden rounded-none  py-4 border-sgray2 p-2"
+                    class="flex md:mx-5 flex-col overflow-hidden rounded-none  py-4 border-sgray2 p-2"
                   >
                     <div class="h-64 w-auto">
                       <img
-                        class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+                        class="inset-0 h-full w-full object-cover object-center"
                         :src="props.item.media_info.path_image + '?width=960&height=540'"
-                        @click="ampliarImagen(props.item.media_info.path_image)"
                       />
                     </div>
-                    <div class="w-full py-4 px-6 text-white flex flex-col justify-between">
+                    <div class="w-full py-4  text-white flex flex-col justify-between">
                       <div className="inline-flex text-left items-center justify-center">
                         <button
                           class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
@@ -144,6 +144,13 @@ const submitReport = () => {
                           class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-700"
                         >
                           {{ t('searchpage.main.labels.translation') }}
+                        </span>
+
+                        <span
+                          v-if="isNSFW" 
+                          class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/30 dark:text-gray-400 border border-gray-700"
+                        >
+                          NSFW
                         </span>
 
                         <ul class="ml-5 list-disc text-gray-400">
@@ -200,15 +207,13 @@ const submitReport = () => {
                 </div>
               </div>
             </div>
-            <div class="container w-full border-l border-l-sgray2 mx-auto flex flex-col">
-              <h2 class="font-bold overflow-auto text-xl border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
-
-                
+            <div class="container w-full border-l border-l-sgray2 border-t border-t-sgray2 flex flex-col">
+              <h2 class="font-bold text-center overflow-auto text-xl border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
                 Edición
               </h2>
 
               <form @submit="searchHandler">
-                <div class="relative lg:w-11/12 mx-auto mt-4">
+                <div class="relative mx-5 mt-4">
                   <div class="flex">
                     <div class="flex flex-col w-full space-y-4">
                       <!-- Añadido espacio vertical entre elementos -->
@@ -278,6 +283,7 @@ const submitReport = () => {
                         <div>
                           <input
                             type="checkbox"
+                            v-model="isNSFW" 
                             class="relative shrink-0 w-[3.25rem] h-7 bg-gray-100 checked:bg-none checked:bg-blue-600 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 border border-transparent ring-1 ring-transparent focus:border-blue-600 focus:ring-blue-600 ring-offset-white focus:outline-none appearance-none dark:bg-graypalid dark:checked:bg-blue-600 dark:focus:ring-offset-gray-800 before:inline-block before:w-6 before:h-6 before:bg-white checked:before:bg-blue-200 before:translate-x-0 checked:before:translate-x-full before:shadow before:rounded-full before:transform before:ring-0 before:transition before:ease-in-out before:duration-200 dark:before:bg-gray-400 dark:checked:before:bg-blue-200"
                           />
                           <label class="text-sm text-gray-500 ml-3 dark:text-gray-400">Contenido NSFW</label>
@@ -292,12 +298,7 @@ const submitReport = () => {
                         </div>
                       </div>
                       <div class="pb-5">
-                      <button
-                        type="button"
-                        class="dark:bg-sred/40 outline-none w-full dark:hover:bg-sred/30 hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
-                      >
-                        Borrar oración
-                      </button>
+
                     </div>
                     </div>
                   </div>
@@ -310,10 +311,18 @@ const submitReport = () => {
           <button
             type="button"
             @click="submitReport"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sred/60 text-gray-700 shadow-sm align-middle hover:bg-sred/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
+          >
+            Borrar oración
+          </button>
+          <button
+            type="button"
+            @click="submitReport"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
           >
-            Editar
+            Editar oración
           </button>
           <button
             type="button"
