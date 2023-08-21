@@ -10,6 +10,7 @@ import {
   mdiMultimedia,
   mdiVideoBox,
   mdiPencilOutline,
+  mdiRefresh,
   mdiVideo, mdiFileVideoOutline, mdiBookMusic, mdiFileVideo
 } from '@mdi/js'
 import { useToast } from 'vue-toastification'
@@ -402,6 +403,10 @@ const getSharingURL = async (sentence) => {
 
 const sortFilter = async (new_type) => {
   if (new_type === type_sort.value) {
+    next_cursor.value = null
+    sentences.value = []
+    window.scrollTo(0, 0) 
+    await getSentences(querySearch.value, next_cursor.value, anime_id.value, '')
     return
   }
 
@@ -1135,7 +1140,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
       <div id="search-anime" class="hidden xl:w-[22rem] xl:flex flex-col py-6 ml-10" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
       <div>
-        <div class=" relative">
+        <div class="w-full flex flex-col relative">
           <button
             type="button"
             @click="showModalBatchSearch"
@@ -1150,7 +1155,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <div class="flex-grow border-t border-sgray2"></div>
             <div class="flex-grow border-t border-sgray2"></div>
           </div>
-          <div class="hs-dropdown relative inline-block w-full z-30">
+          <div class="inline-flex space-x-2">
+          <div class="hs-dropdown relative inline-block w-full z-30 ">
             <button
               id="hs-dropdown-default"
               type="button"
@@ -1255,7 +1261,17 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </a>
             </div>
           </div>
+          
+          <button
+            type="button"
+            v-if="type_sort === 'random'"
+            @click="sortFilter('random')"
+            class="py-2 duration-300 px-2 mb-4 w-auto mx-auto inline-flex justify-center items-center gap-= border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-xs text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+          >
+            <BaseIcon :path="mdiRefresh" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mx-2" />
 
+          </button>
+          </div>
           <ul
             class="z-20 divide-y  divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
           >
