@@ -16,6 +16,11 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
+      component: HomeView
+    },
+    {
+      path: '/search/sentences',
+      name: 'search-sentences',
       component: SearchView
     },
     {

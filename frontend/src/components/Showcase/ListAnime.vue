@@ -35,7 +35,7 @@ onMounted(() => {
 </script>
 <template>
   <BatchSearchModal />
-  <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5 mx-auto">
+  <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5 ">
     <!-- Grid -->
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
@@ -49,12 +49,12 @@ onMounted(() => {
           >
             <ul class="list-disc">
               <li class="mb-2">
-                {{t("home.nadeDbDescriptionJpSearch")}}: <a class="underline text-blue-500 underline-offset-4" href="?query=彼女">彼女</a>
+                {{t("home.nadeDbDescriptionJpSearch")}}: <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=彼女">彼女</a>
               </li>
               <li>
                 {{t("home.nadeDbDescriptionOtherSearch")}}:
-                <a class="underline text-blue-500 underline-offset-4" href="?query=Girlfriend">Girlfriend</a>,
-                <a class="underline text-blue-500 underline-offset-4" href="?query=Novia">Novia</a>
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Girlfriend">Girlfriend</a>,
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Novia">Novia</a>
               </li>
             </ul>
           </div>
