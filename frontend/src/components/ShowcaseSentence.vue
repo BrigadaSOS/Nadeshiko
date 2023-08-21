@@ -9,6 +9,7 @@ import {
   mdiStarShootingOutline,
   mdiMultimedia,
   mdiVideoBox,
+  mdiPencilOutline,
   mdiVideo, mdiFileVideoOutline, mdiBookMusic, mdiFileVideo
 } from '@mdi/js'
 import { useToast } from 'vue-toastification'
@@ -27,6 +28,7 @@ import SidebarAnime from './Showcase/SidebarAnime.vue'
 import SettingsSearchModal from './Showcase/SettingsSearchModal.vue'
 import BatchSearchModal from './BatchSearchModal.vue'
 import LandingPageShowcase from './LandingPageShowcase.vue'
+import EditSentenceModal from "./Showcase/EditSentenceModal.vue"
 
 // Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
@@ -533,7 +535,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <div
           v-if="sentences.length > 0"
           v-for="(sentence, index) in sentences"
-          class="flex flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2  w-100"
+          class="flex group flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2  w-100"
         >
           <div class="h-auto w-auto lg:w-6/12 md:w-7/12">
             <img
@@ -542,7 +544,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               @click="ampliarImagen(sentence.media_info.path_image)"
             />
           </div>
-          <div class="w-full py-6 sm:py-2 px-6 text-white justify-between">
+          <div class="w-full py-6 sm:py-2 px-6 text-white flex flex-col justify-between">
             <div className="inline-flex items-start justify-center">
               <button
                 class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
@@ -562,11 +564,13 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   ></path>
                 </svg>
               </button>
+              <div class="flex flex-1 relative">
               <h3 class="font-semibold ml-2 text-xl leading-tight">
                 <span v-html="(sentence.segment_info.content_jp_highlight) ? sentence.segment_info.content_jp_highlight : sentence.segment_info.content_jp"></span>
               </h3>
-            </div>
 
+            </div>
+          </div>
             <h4 class="font-normal text-sm leading-tight my-4">
               <span
                 class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-700"
@@ -632,6 +636,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       />
                     </svg>
                   </button>
+                  
                   <div
                     class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                     aria-labelledby="hs-dropdown-with-title"
@@ -1031,6 +1036,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </div>
             </div>
 
+            <div class="flex justify-center">
             <p class="text-sm text-white/50 tracking-wide font-semibold mt-2">
               {{ sentence.basic_info.name_anime_en }} &bull;
               <template v-if="sentence.basic_info.season === 0"> {{ t('searchpage.main.labels.movie') }} </template>
@@ -1038,7 +1044,21 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 {{ t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},
                 {{ t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
               </template>
+     
             </p>
+            <div class="ml-auto">
+                <div class="relative inline-flex">
+                  <button
+                    @click="currentSentence = sentence"
+                    data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
+                    type="button"
+                    class="opacity-0 group-hover:opacity-100 dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-2 px-3 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+                  >
+                  <BaseIcon display="inline-block" vertical-align="top" :path="mdiPencilOutline" fill="#DDDF" w="w-5" h="h-5" size="20" class="text-center" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1101,6 +1121,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
     <ReportModal v-if="isModalReportActive" :item="currentSentence" />
     <BatchSearchModal v-if="isModalBatchSearchActive" />
+    <EditSentenceModal :item="currentSentence"/>
+
     <div v-if="statistics.length > 1">
       <div>
         <SidebarAnime
