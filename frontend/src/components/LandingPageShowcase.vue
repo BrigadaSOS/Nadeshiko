@@ -48,7 +48,7 @@ const searchHandler = async (event) => {
 </script>
 
 <template>
-  <div class="w-screen">
+  <div class="">
     <div class="sticky z-30 top-0" id="search-bar" ref="searchBar">
     <form @submit="searchHandler">
       <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white">{{
