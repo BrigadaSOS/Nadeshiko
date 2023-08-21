@@ -1,7 +1,9 @@
 # Build
-FROM node:slim AS builder
+FROM node:20.5.1-bullseye AS builder
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y nscd
 
 COPY package*.json ./
 RUN npm install
@@ -9,7 +11,7 @@ COPY . .
 RUN npm run build
 
 #Run
-FROM node:slim AS server
+FROM node:20.5.1-bullseye AS server
 WORKDIR /app
 COPY package*.json .env* ./
 RUN npm install --production
