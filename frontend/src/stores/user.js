@@ -15,17 +15,20 @@ export const userStore = defineStore('user', {
     isLoggedIn: false,
     filterPreferences: {
       exact_match: false
+    },
+    userInfo: {
+      roles: null
     }
   }),
   persist: {
     key: 'info',
     storage: window.localStorage,
-    paths: ['isLoggedIn', 'filterPreferences']
+    paths: ['isLoggedIn', 'filterPreferences', 'userInfo']
   },
   actions: {
     async login(email, password) {
       try {
-        fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/login', {
+        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/login', {
           method: 'POST',
           mode: 'cors',
           headers: {
@@ -37,22 +40,27 @@ export const userStore = defineStore('user', {
             email: email,
             password: password
           })
-        }).then((response) => {
-          if(response.status === 404 || response.status === 400){
-            const message = i18n.global.t('modalauth.labels.errorlogin400')
-            toast.error(message, options)
-          }else{
-            this.$patch((state) => {
-              state.isLoggedIn = true
-            })
-            const message = i18n.global.t('modalauth.labels.successfullogin')
-            toast.success(message, options)
-          }
-        })
+        });
+    
+        // Si la respuesta es exitosa, extrae el JSON
+        if (response.ok) {
+          const responseData = await response.json();
+          this.$patch((state) => {
+            state.isLoggedIn = true;
+            state.userInfo = {
+              roles: responseData.user.roles.map((roles) => roles.id_role)
+            };
+          });
+          const message = i18n.global.t('modalauth.labels.successfullogin');
+          toast.success(message, options);
+        } else {
+          const message = i18n.global.t('modalauth.labels.errorlogin400');
+          toast.error(message, options);
+        }
       } catch (error) {
-        console.log(error)
+        console.log(error);
       }
-    },
+    },    
     async logout() {
       try {
         fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/logout', {
@@ -66,6 +74,7 @@ export const userStore = defineStore('user', {
         }).then((response) => {
           this.$patch((state) => {
             state.isLoggedIn = false
+            state.userInfo = null
           })
           const message = i18n.global.t('modalauth.labels.logout')
           toast.success(message, options)

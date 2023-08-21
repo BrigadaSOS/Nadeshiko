@@ -41,6 +41,7 @@ const head = useHead()
 const store = userStore();
 
 // Declaración de variables
+const user = computed(() => store.userInfo);
 const querySearch = ref('')
 let sentences = ref([])
 let statistics = ref([])
@@ -979,6 +980,15 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
                         {{ t('searchpage.main.labels.options') }}
                       </span>
+                  <a v-if="user?.roles.includes(1)"
+                    @click="currentSentence = sentence"
+                    data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
+                    type="button"
+                    class="flex items-center w-full cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                  >
+                  <BaseIcon display="inline-block" vertical-align="top" :path="mdiPencilOutline" fill="#DDDF" w="w-5" h="h-5" size="20" class="text-center" />
+                    Editar oracion
+                    </a>
                       <a
                         class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
                         @click="showModalReport(sentence)"
@@ -1035,13 +1045,14 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         </svg>
                         {{ t('searchpage.main.buttons.share') }}
                       </a>
+
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="flex justify-center">
+            <div class="flex justify-left">
             <p class="text-sm text-white/50 tracking-wide font-semibold mt-2">
               {{ sentence.basic_info.name_anime_en }} &bull;
               <template v-if="sentence.basic_info.season === 0"> {{ t('searchpage.main.labels.movie') }} </template>
@@ -1051,18 +1062,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </template>
      
             </p>
-            <div class="ml-auto">
-                <div class="relative inline-flex">
-                  <button
-                    @click="currentSentence = sentence"
-                    data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
-                    type="button"
-                    class="opacity-0 group-hover:opacity-100 dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-2 px-3 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
-                  >
-                  <BaseIcon display="inline-block" vertical-align="top" :path="mdiPencilOutline" fill="#DDDF" w="w-5" h="h-5" size="20" class="text-center" />
-                  </button>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
