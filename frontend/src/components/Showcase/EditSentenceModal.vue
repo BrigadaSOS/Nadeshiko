@@ -33,6 +33,7 @@ const resize = () => {
   adjustHeight(boxes.value)
 }
 
+
 watch(
   () => props.item,
   (newValue) => {
@@ -49,9 +50,6 @@ watch(
   },
   { immediate: true }
 )
-
-
-
 
 const submitReport = () => {
   console.log(selectedOption.value)
@@ -97,7 +95,7 @@ const submitReport = () => {
             <div class="container overflow-hidden mx-auto flex flex-col">
               <div class="flex flex-row">
                 <div class="container border-t border-t-sgray2 flex overflow-hidden flex-col w-screen">
-                  <h2 class="font-bold text-center text-xl border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
+                  <h2 class="font-bold text-center text-lg border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
                     Previsualización
                   </h2>
                   <div
@@ -208,10 +206,9 @@ const submitReport = () => {
               </div>
             </div>
             <div class="container w-full border-l border-l-sgray2 border-t border-t-sgray2 flex flex-col">
-              <h2 class="font-bold text-center overflow-auto text-xl border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
+              <h2 class="font-bold text-center overflow-auto text-lg border-b border-sgray2 pb-3 text-gray-800 dark:text-white mt-3 px-5">
                 Edición
               </h2>
-
               <form @submit="searchHandler">
                 <div class="relative mx-5 mt-4">
                   <div class="flex">
