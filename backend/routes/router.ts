@@ -16,9 +16,13 @@ import {
 import { signUp, logIn, logout, getUserInfo } from "../controllers/userController";
 import { hasPermission } from "../middleware/permissionHandler";
 import { isAuth } from "../middleware/authorization";
-import { isAuthJWT } from "../middleware/isAuthJWT";
+import { isAuthJWT, requireRole, ADMIN, MOD, USER } from "../middleware/isAuthJWT";
 
 // API Routes v1
+// isAuth is for authentication using keys
+// isAuthJWT is for authentication using JWT 
+
+////////// AUTH KEYS
 // Search
 router.post("/v1/search/anime/sentence", isAuth, hasPermission(['READ_ANIME']), SearchAnimeSentences);
 router.post("/v1/search/anime/context", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
@@ -29,12 +33,14 @@ router.get('/v1/search/anime/info', isAuth, hasPermission(['READ_ANIME']), GetAl
 // Utility
 router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 
+// Admin
+router.post("/v1/admin/database/resync", reSyncDatabase);
+router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
+
+////////// AUTH JWT
 // User
 router.post("/v1/user/register", isAuth, signUp);
 router.post("/v1/user/login", isAuth, logIn);
 router.post("/v1/user/logout", logout);
-router.post('/v1/user/info', isAuthJWT, getUserInfo)
+router.post('/v1/user/info', isAuthJWT, requireRole(ADMIN, MOD, USER), getUserInfo)
 
-// Admin
-router.post("/v1/admin/database/resync", reSyncDatabase);
-router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
