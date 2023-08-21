@@ -1107,9 +1107,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <div v-else-if="no_results === true && error_connection === false">
           <NoResults />
         </div>
-        <div v-else>
-          <LandingPageShowcase />
-        </div>
         <div id="sentinel"></div>
         <div v-if="isLoading && sentences.length > 0 && error_connection === false" class="text-center">
           <div
