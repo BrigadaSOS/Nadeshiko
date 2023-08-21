@@ -980,7 +980,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
                         {{ t('searchpage.main.labels.options') }}
                       </span>
-                  <a v-if="user?.roles.includes(1)"
+                  <a v-if="user?.roles?.includes(1)"
                     @click="currentSentence = sentence"
                     data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
                     type="button"
