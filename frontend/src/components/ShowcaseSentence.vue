@@ -393,7 +393,7 @@ const getSharingURL = async (sentence) => {
     position: 'bottom-right'
   }
   try {
-    await navigator.clipboard.writeText(`${window.location.origin}/?uuid=${sentence.segment_info.uuid}`)
+    await navigator.clipboard.writeText(`${window.location.origin}/search/sentences?uuid=${sentence.segment_info.uuid}`)
     const message = t('searchpage.main.labels.copiedsharingurl')
     toast.success(message, options)
   } catch (error) {
@@ -430,7 +430,7 @@ const sortFilter = async (new_type) => {
     queryParameters.anime_id = anime_id.value
   }
 
-  await router.push({ query: queryParameters })
+  await router.push({path: '/search/sentences', query: queryParameters })
 }
 
 const ampliarImagen = (url) => {
