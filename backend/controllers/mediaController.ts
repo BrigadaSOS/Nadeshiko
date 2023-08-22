@@ -225,7 +225,6 @@ function buildSimplifiedResults(_: Request, results: any) {
     const episodeNumberPath = `E${result["episode"]
       .toString()
       .padStart(2, "0")}`;
-
     return {
       basic_info: {
         id_anime: result["media_id"],
@@ -253,6 +252,7 @@ function buildSimplifiedResults(_: Request, results: any) {
         content_en_mt: result["content_english_mt"] || true,
         content_es: result["content_spanish"],
         content_es_mt: result["content_spanish_mt"] || true,
+        is_nsfw: result["is_nsfw"],
         actor_ja: result["actor_ja"],
         actor_es: result["actor_es"],
         actor_en: result["actor_en"],

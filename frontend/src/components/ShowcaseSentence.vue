@@ -603,7 +603,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               >
                 {{ t('searchpage.main.labels.translation') }}
               </span>
-
+              <span
+                v-if="sentence.segment_info.is_nsfw"
+                class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/30 dark:text-gray-400 border border-gray-700"
+                >NSFW
+              </span>
               <ul class="ml-5 list-disc text-gray-400">
                 <li class="my-2" v-for="segment in orderedSegments" :key="segment.content">
                   <span v-html="normalizeSentence((sentence.segment_info[segment.highlight]) ? sentence.segment_info[segment.highlight] : sentence.segment_info[segment.content])"></span>
