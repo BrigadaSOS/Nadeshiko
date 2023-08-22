@@ -120,7 +120,7 @@ const getSharingURL = async (sentence) => {
   }
 }
 
-const getSelectedCheckboxes = async () => {
+const getSelectedCheckboxes = async (type) => {
   let audio_items = []
   let response = null
   const checkbox_items = JSON.parse(JSON.stringify(selectedCheckboxes.value))
@@ -147,7 +147,12 @@ const getSelectedCheckboxes = async () => {
     const message = t('searchpage.modalcontext.labels.errorconnection')
     toast.error(message, options)
   }
-  downloadAudio(response.url, response.filename)
+  console.log(type)
+  if(type === 1){
+    downloadAudio(response.url, response.filename)
+  } else if(type === 2){
+    playSound(response.url)
+  }
 }
 
 const downloadAudio = (url, filename) => {
@@ -755,6 +760,7 @@ const ampliarImagen = (url) => {
         <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-sgray2">
           <button
             type="button"
+            @click="getSelectedCheckboxes(2)"
             class="py-4 px-4 h-14 lg:h-12 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
             <svg
@@ -777,7 +783,7 @@ const ampliarImagen = (url) => {
 
           <button
             type="button"
-            @click="getSelectedCheckboxes"
+            @click="getSelectedCheckboxes(1)"
             class="hs-dropdown-toggle h-14 lg:h-12 mr-auto py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
             {{ t('searchpage.modalcontext.buttons.downloadmultipleaudios') }}
