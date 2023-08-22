@@ -44,6 +44,8 @@ interface SegmentInfoData {
     content_es?: string;
     content_es_highlight?: string;
     content_es_mt: boolean;
+    is_nsfw: boolean;
+    segment_info: boolean;
     actor_ja?: string;
     actor_es?: string;
     actor_en?: string;
