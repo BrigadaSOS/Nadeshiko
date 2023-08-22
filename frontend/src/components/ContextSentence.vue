@@ -1,9 +1,9 @@
 <script setup>
 import { ref, nextTick } from 'vue'
-import {mdiFileVideo, mdiVideoBox} from '@mdi/js'
+import { mdiFileVideo, mdiVideoBox } from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'vue-toastification'
-import { normalizeSentence } from "../utils/misc"
+import { normalizeSentence } from '../utils/misc'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -18,21 +18,21 @@ defineExpose({
 })
 
 // Habilita la reproducción de audio de las oraciones
-const playSound = async (sound) => {
-  // Si hay un audio en reproducción, se detiene
-  if (currentAudio.value) {
-    currentAudio.value.pause()
-    currentAudio.value.currentTime = 0
-  }
+const playSound = (sound) => {
+  return new Promise(async (resolve, reject) => {
+    if (currentAudio.value) {
+      currentAudio.value.pause()
+      currentAudio.value.currentTime = 0
+    }
 
-  // Se crea una nueva instancia de Audio para el nuevo sonido
-  const audio = new Audio(sound)
+    const audio = new Audio(sound)
+    currentAudio.value = audio
 
-  // Se asigna el audio actual a la referencia
-  currentAudio.value = audio
+    audio.onended = resolve
+    audio.onerror = reject
 
-  // Se reproduce el nuevo audio
-  await audio.play()
+    await audio.play()
+  })
 }
 
 // Obtiene el contexto de una oración con base a la posición recibida
@@ -43,7 +43,7 @@ async function getContextSentence(item) {
     method: 'POST',
     mode: 'cors',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       id_anime: item.basic_info.id_anime,
@@ -127,31 +127,32 @@ const getSelectedCheckboxes = async (type) => {
   checkbox_items.forEach((item) => {
     audio_items.push(encodeURI(item.media_info.path_audio))
   })
-  try {
-     response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        urls: audio_items
+  if (type === 1) {
+    try {
+      response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          urls: audio_items
+        })
       })
-    })
-    response = await response.json()
-  } catch (error) {
-    const options = {
-      timeout: 3000,
-      position: 'bottom-right'
+      response = await response.json()
+    } catch (error) {
+      const options = {
+        timeout: 3000,
+        position: 'bottom-right'
+      }
+      const message = t('searchpage.modalcontext.labels.errorconnection')
+      toast.error(message, options)
     }
-    const message = t('searchpage.modalcontext.labels.errorconnection')
-    toast.error(message, options)
-  }
-  console.log(type)
-  if(type === 1){
     downloadAudio(response.url, response.filename)
-  } else if(type === 2){
-    playSound(response.url)
+  } else if (type === 2) {
+    for (let url of audio_items) {
+      await playSound(url)
+    }
   }
 }
 
@@ -243,16 +244,19 @@ const ampliarImagen = (url) => {
                 <div class="h-64 w-auto md:w-1/2">
                   <img
                     class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
-                    :src="sentence.media_info.path_image+'?width=960&height=540'"
+                    :src="sentence.media_info.path_image + '?width=960&height=540'"
                     @click="ampliarImagen(sentence.media_info.path_image)"
                   />
                 </div>
                 <div class="w-full py-4 px-6 text-white flex flex-col justify-between">
                   <div className="inline-flex text-left items-center justify-center">
-                    <button class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center" @click="playSound(sentence.media_info.path_audio)">
+                    <button
+                      class="focus:outline-none bg-sgray hover:bg-sgrayhover p-1.5 rounded-xl items-center"
+                      @click="playSound(sentence.media_info.path_audio)"
+                    >
                       <svg
                         aria-hidden="true"
-                        class="w-6 mx-auto ml-0.5 fill-white  text-white dark:text-white"
+                        class="w-6 mx-auto ml-0.5 fill-white text-white dark:text-white"
                         viewBox="0 0 130 130"
                         xmlns="http://www.w3.org/2000/svg"
                       >
@@ -291,7 +295,7 @@ const ampliarImagen = (url) => {
                       {{ t('searchpage.main.labels.translation') }}
                     </span>
 
-                    <ul class="ml-5  list-disc text-gray-400">
+                    <ul class="ml-5 list-disc text-gray-400">
                       <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_en) }}</li>
                       <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_es) }}</li>
                     </ul>
@@ -345,8 +349,8 @@ const ampliarImagen = (url) => {
                               {{ t('searchpage.main.labels.multimedia') }}
                             </span>
                             <a
-                                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                                @click="
+                              class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="
                                 downloadAudioOrImage(
                                   sentence.media_info.path_video,
                                   sentence.media_info.path_video.split('/').pop()
@@ -354,18 +358,18 @@ const ampliarImagen = (url) => {
                               "
                             >
                               <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
-                                  viewBox="-0.5 0 25 25"
-                                  fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="-0.5 0 25 25"
+                                fill="none"
                               >
                                 <path
-                                    :d="mdiFileVideo"
-                                    stroke="white"
-                                    stroke-miterlimit="10"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
+                                  :d="mdiFileVideo"
+                                  stroke="white"
+                                  stroke-miterlimit="10"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
                                 />
                               </svg>
                               {{ t('searchpage.main.buttons.video') }}
@@ -492,22 +496,22 @@ const ampliarImagen = (url) => {
                               Multimedia
                             </span>
                             <a
-                                @click="copyToClipboard(sentence.media_info.path_video)"
-                                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                              @click="copyToClipboard(sentence.media_info.path_video)"
+                              class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                             >
                               <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
-                                  viewBox="-0.5 0 25 25"
-                                  fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="-0.5 0 25 25"
+                                fill="none"
                               >
                                 <path
-                                    :d="mdiFileVideo"
-                                    stroke="white"
-                                    stroke-miterlimit="10"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
+                                  :d="mdiFileVideo"
+                                  stroke="white"
+                                  stroke-miterlimit="10"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
                                 />
                               </svg>
                               {{ t('searchpage.main.buttons.video') }}
