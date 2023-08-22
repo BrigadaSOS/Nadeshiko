@@ -1,12 +1,32 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import { mdiFileVideo, mdiVideoBox } from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'vue-toastification'
 import { normalizeSentence } from '../utils/misc'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
+
+const orderedSegments = computed(() => {
+  const segments = [
+    {
+      content: 'content_es',
+      highlight: 'content_es_highlight',
+      mt: 'content_es_mt'
+    },
+    {
+      content: 'content_en',
+      highlight: 'content_en_highlight',
+      mt: 'content_en_mt'
+    }
+  ]
+
+  if (locale.value === 'en') {
+    return [segments[1], segments[0]]
+  }
+  return segments
+})
 
 let finalsentences = ref([])
 let selectedCheckboxes = ref([])
@@ -296,8 +316,9 @@ const ampliarImagen = (url) => {
                     </span>
 
                     <ul class="ml-5 list-disc text-gray-400">
-                      <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_en) }}</li>
-                      <li class="my-2">{{ normalizeSentence(sentence.segment_info.content_es) }}</li>
+                      <li class="my-2" v-for="segment in orderedSegments" :key="segment.content">
+                        {{ normalizeSentence(sentence.segment_info[segment.content]) }}
+                      </li>
                     </ul>
                   </h4>
 

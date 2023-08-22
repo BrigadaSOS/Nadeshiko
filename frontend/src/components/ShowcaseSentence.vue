@@ -33,7 +33,27 @@ import EditSentenceModal from "./Showcase/EditSentenceModal.vue"
 
 // Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const orderedSegments = computed(() => {
+  const segments = [
+    {
+      content: 'content_es',
+      highlight: 'content_es_highlight',
+      mt: 'content_es_mt'
+    },
+    {
+      content: 'content_en',
+      highlight: 'content_en_highlight',
+      mt: 'content_en_mt'
+    }
+  ]
+
+  if (locale.value === 'en') {
+    return [segments[1], segments[0]]
+  }
+  return segments
+})
 
 // Importación de funciones
 const toast = useToast()
@@ -585,27 +605,17 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </span>
 
               <ul class="ml-5 list-disc text-gray-400">
-                <li class="my-2" >
-                  <span v-html="normalizeSentence((sentence.segment_info.content_es_highlight) ? sentence.segment_info.content_es_highlight : sentence.segment_info.content_es)"></span>
-                  <div v-if="sentence.segment_info.content_es_mt" class="hs-tooltip inline-block">
-                  <BaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4" h="h-4" size="19" class="ml-2 hs-tooltip-toggle" />
-                  <span class="hs-tooltip-content hs-tooltip-shown:opacity-90 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-[#181818] shadow-sm rounded-md text-white" role="tooltip">
-                    {{ t('searchpage.main.labels.mtTooltip') }}
-                  </span>
-                  </div>
-                </li>
-                <li class="my-2">
-                  <span v-html="normalizeSentence((sentence.segment_info.content_en_highlight) ? sentence.segment_info.content_en_highlight : sentence.segment_info.content_en)"></span>
-                  <div v-if="sentence.segment_info.content_en_mt" class="hs-tooltip inline-block">
+                <li class="my-2" v-for="segment in orderedSegments" :key="segment.content">
+                  <span v-html="normalizeSentence((sentence.segment_info[segment.highlight]) ? sentence.segment_info[segment.highlight] : sentence.segment_info[segment.content])"></span>
+                  <div v-if="sentence.segment_info[segment.mt]" class="hs-tooltip inline-block">
                     <BaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4" h="h-4" size="19" class="ml-2 hs-tooltip-toggle" />
                     <span class="hs-tooltip-content hs-tooltip-shown:opacity-90 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-[#181818] shadow-sm rounded-md text-white" role="tooltip">
-                    {{ t('searchpage.main.labels.mtTooltip') }}
-                  </span>
+                      {{ t('searchpage.main.labels.mtTooltip') }}
+                    </span>
                   </div>
                 </li>
               </ul>
             </h4>
-
             <div class="flex flex-wrap">
               <div class="">
                 <div class="hs-dropdown relative inline-flex mb-2 mr-2">
