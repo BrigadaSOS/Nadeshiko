@@ -101,6 +101,13 @@ export class Segment extends Model {
   content_english_mt!: boolean;
 
   @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  })
+  is_nsfw!: boolean;
+
+  @Column({
     type: DataType.STRING,
     allowNull: true,
   })

@@ -269,7 +269,7 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
         const content_jp_highlight = ("content.readingform" in highlight) ? highlight["content.readingform"][0] : ("content" in highlight) ? highlight["content"][0] : "";
         const content_en_highlight = ("content_english" in highlight) ? highlight["content_english"][0] : ("content_english.exact" in highlight) ? highlight["content_english.exact"][0] : "";
         const content_es_highlight = ("content_spanish" in highlight) ? highlight["content_spanish"][0] : ("content_spanish.exact" in highlight) ? highlight["content_spanish.exact"][0] : "";
-
+        
         if(!mediaInfo || !Object.keys(mediaInfo).length) {
             logger.error("Media Info not found for anime with id %s", data["media_id"])
             return;
@@ -299,6 +299,7 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
                 content_es: data["content_spanish"],
                 content_es_highlight,
                 content_es_mt: data["content_spanish_mt"],
+                is_nsfw: data["is_nsfw"],
                 actor_ja: data["actor_ja"],
                 actor_en: data["actor_en"],
                 actor_es: data["actor_es"]

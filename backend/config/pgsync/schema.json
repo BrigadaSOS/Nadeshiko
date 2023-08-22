@@ -701,6 +701,7 @@
               "content_spanish_mt",
               "content_english",
               "content_english_mt",
+              "is_nsfw",
               "path_image",
               "path_audio",
               "actor_ja",
@@ -779,6 +780,9 @@
                 },
                 "content_english_mt": {
                   "type": "boolean"
+                },
+                "is_nsfw": {
+                  "type": "text"
                 },
                 "path_image": {
                   "type": "keyword",
