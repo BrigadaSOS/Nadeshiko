@@ -232,7 +232,7 @@ watch(inputText, (newValue) => {
                         >
                           <a
                             v-if="item.is_match"
-                            :href="'/?query=' + item.word + '&exact_match=1'"
+                            :href="'search/sentences?query=' + item.word + '&exact_match=1'"
                             class="text-blue-500 underline-offset-2 underline"
                             target="_blank"
                           >
