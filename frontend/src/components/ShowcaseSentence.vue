@@ -85,6 +85,7 @@ let uuid = ref(null)
 let currentAudio = ref(null)
 let type_sort = ref(null)
 let metadata = ref(null)
+let random_seed = ref(null)
 const isMounted = ref(false);
 
 onBeforeRouteUpdate(async (to, from) => {
@@ -135,6 +136,7 @@ onMounted(async () => {
     type_sort.value = 'desc'
   } else if (sortFilter === 'random') {
     type_sort.value = 'random'
+    random_seed.value = Math.floor(Math.random() * 65535)
   } else {
     type_sort.value = null
   }
@@ -251,7 +253,8 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
     exact_match: exactMatchFromStore.value ? 1 : 0, // Normalize exact match value from true/false to 1/0 
     uuid: uuid,
     limit: 20,
-    content_sort: type_sort.value
+    content_sort: type_sort.value,
+    random_seed: random_seed.value
   };
 
   // Calls to backend fail if this is passed to the body when null or undefined
@@ -318,8 +321,13 @@ const filterAnime = async (new_anime_id) => {
 
     let queryParameters = { query: searchTerm }
 
-    if (['random', 'asc', 'desc'].includes(type_sort.value)) {
+    if (['asc', 'desc'].includes(type_sort.value)) {
       queryParameters.sort = type_sort.value
+    }
+
+    if (type_sort.value === 'random') {
+      queryParameters.sort = type_sort.value
+      queryParameters.random_seed = random_seed.value
     }
 
     if (new_anime_id !== 0) {
@@ -440,6 +448,10 @@ const sortFilter = async (new_type) => {
 
   if (type_sort.value !== 'none') {
     queryParameters.sort = type_sort.value
+  }
+
+  if(type_sort.value === "random") {
+    queryParameters.random_seed = random_seed.value = Math.floor(Math.random() * 65535)
   }
 
   if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
