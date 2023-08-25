@@ -179,7 +179,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
                 { content_length: { order: "asc"} }
             ];
         } else if(request.length_sort_order === "random") {
-            // Score is randomized, but with this is required for cursor field to appear
+            // Score is randomized by the random function score, but this is required for the cursor field to appear
             sort = [
                 { _score: { order: "desc" } },
                 { content_length: { order: "asc"} }
@@ -198,12 +198,18 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         index: "nadedb",
         highlight: {
             fields: {
-                content: {},
-                "content.readingform": {},
-                content_english: {},
-                "content_english.exact": {},
-                content_spanish: {},
-                "content_spanish.exact": {}
+                content: {
+                    matched_fields: [ "content", "content.readingform", "content.baseform"],
+                    type: "fvh"
+                },
+                content_english: {
+                    matched_fields: ["content_english", "content_english.exact"],
+                    type: "fvh"
+                },
+                content_spanish: {
+                    matched_fields: ["content_spanish", "content_spanish.exact"],
+                    type: "fvh"
+                }
             }
         },
         query: {
@@ -266,9 +272,9 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
         const seasonNumberPath = `S${data["season"].toString().padStart(2, "0")}`;
         const episodeNumberPath = `E${data["episode"].toString().padStart(2, "0")}`;
 
-        const content_jp_highlight = ("content.readingform" in highlight) ? highlight["content.readingform"][0] : ("content" in highlight) ? highlight["content"][0] : "";
-        const content_en_highlight = ("content_english" in highlight) ? highlight["content_english"][0] : ("content_english.exact" in highlight) ? highlight["content_english.exact"][0] : "";
-        const content_es_highlight = ("content_spanish" in highlight) ? highlight["content_spanish"][0] : ("content_spanish.exact" in highlight) ? highlight["content_spanish.exact"][0] : "";
+        const content_jp_highlight = highlight["content"][0];
+        const content_en_highlight = highlight["content_english"][0];
+        const content_es_highlight = highlight["content_spanish"][0];
         
         if(!mediaInfo || !Object.keys(mediaInfo).length) {
             logger.error("Media Info not found for anime with id %s", data["media_id"])

@@ -739,16 +739,19 @@
                   "type": "text",
                   "search_analyzer": "ja_original_search_analyzer",
                   "analyzer": "ja_original_index_analyzer",
+                  "term_vector": "with_positions_offsets",
                   "fields": {
                     "baseform": {
                       "type": "text",
                       "search_analyzer": "ja_kuromoji_search_analyzer",
-                      "analyzer": "ja_kuromoji_index_analyzer"
+                      "analyzer": "ja_kuromoji_index_analyzer",
+                      "term_vector": "with_positions_offsets"
                     },
                     "readingform": {
                       "type": "text",
                       "search_analyzer": "ja_readingform_search_analyzer",
-                      "analyzer": "ja_readingform_index_analyzer"
+                      "analyzer": "ja_readingform_index_analyzer",
+                      "term_vector": "with_positions_offsets"
                     }
                   }
                 },
@@ -758,10 +761,12 @@
                 "content_spanish": {
                   "type": "text",
                   "analyzer": "spanish_custom",
+                  "term_vector": "with_positions_offsets",
                   "fields": {
                     "exact": {
                       "type": "text",
-                      "analyzer": "spanish_exact"
+                      "analyzer": "spanish_exact",
+                      "term_vector": "with_positions_offsets"
                     }
                   }
                 },
@@ -771,10 +776,12 @@
                 "content_english": {
                   "type": "text",
                   "analyzer": "english_custom",
+                  "term_vector": "with_positions_offsets",
                   "fields": {
                     "exact": {
                       "type": "text",
-                      "analyzer": "english_exact"
+                      "analyzer": "english_exact",
+                      "term_vector": "with_positions_offsets"
                     }
                   }
                 },
