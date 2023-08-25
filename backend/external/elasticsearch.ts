@@ -272,10 +272,10 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
         const seasonNumberPath = `S${data["season"].toString().padStart(2, "0")}`;
         const episodeNumberPath = `E${data["episode"].toString().padStart(2, "0")}`;
 
-        const content_jp_highlight = highlight["content"][0];
-        const content_en_highlight = highlight["content_english"][0];
-        const content_es_highlight = highlight["content_spanish"][0];
-        
+        const content_jp_highlight = ("content" in highlight) ? highlight["content"][0] : "";
+        const content_en_highlight = ("content_english" in highlight) ? highlight["content_english"][0] : "";
+        const content_es_highlight = ("content_spanish" in highlight) ? highlight["content_spanish"][0] : "";
+
         if(!mediaInfo || !Object.keys(mediaInfo).length) {
             logger.error("Media Info not found for anime with id %s", data["media_id"])
             return;
