@@ -478,11 +478,11 @@ async function insertSegments(rows: any[], season: number, episode: number, medi
       }
 
       if (
-          row.CONTENT.length >= 400 ||
-          row.CONTENT_TRANSLATION_ENGLISH.length >= 400 ||
-          row.CONTENT_TRANSLATION_SPANISH.length >= 400
+          row.CONTENT.length >= 1000 ||
+          row.CONTENT_TRANSLATION_ENGLISH.length >= 1000 ||
+          row.CONTENT_TRANSLATION_SPANISH.length >= 1000
       ) {
-        logger.info( `Content longer than 400 characters. Can not save row, skipping... %s`, row);
+        logger.info( `Content longer than 1000 characters. Can not save row, skipping... %s`, row);
         return;
       }
 
