@@ -782,7 +782,7 @@
                   "type": "boolean"
                 },
                 "is_nsfw": {
-                  "type": "text"
+                  "type": "boolean"
                 },
                 "path_image": {
                   "type": "keyword",
