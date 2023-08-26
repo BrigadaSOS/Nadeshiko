@@ -496,7 +496,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
   <div>
   <div class="sticky z-30 top-0" id="search-bar" ref="searchBar">
     <form @submit="searchHandler">
-      <label for="default-search" class="mb-2 text-sm font-medium z-30 text-gray-900 sr-only dark:text-white">{{
+      <label for="default-search" class="mb-2 text-sm xxl:text-base font-medium z-30 text-gray-900 sr-only dark:text-white">{{
         t('searchpage.main.buttons.search')
       }}</label>
       <div class="relative lg:w-11/12 mx-auto mt-4">
@@ -544,7 +544,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               autocorrect="off"
               autofocus
               rows="1"
-              class="block w-full p-4 resize-none pl-10 text-sm h-[55px] text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+              class="block w-full p-4 resize-none pl-10 text-sm  h-[55px] text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
               :placeholder="placeholder_search1"
               required
               @keydown.enter="searchHandler"
@@ -552,7 +552,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <a
               @click="showModalSettingsSearch()"
               data-hs-overlay="#hs-vertically-centered-scrollable-modal3"
-              class="text-white cursor-pointer absolute right-[94px] bottom-2.5 focus:outline-none focus:ring-blue-300 rounded-lg text-sm px-4 pt-2 pb-1 dark:bg-graypalid dark:hover:bg-gray-500"
+              class="text-white cursor-pointer absolute right-[94px] bottom-2.5 focus:outline-none focus:ring-blue-300 rounded-lg text-sm  px-4 pt-2 pb-1 dark:bg-graypalid dark:hover:bg-gray-500"
             >
               <BaseIcon :path="mdiTuneVariant" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
             </a>
@@ -575,7 +575,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           v-for="(sentence, index) in sentences"
           class="flex group flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2  w-100"
         >
-          <div class="h-auto w-auto lg:w-6/12 md:w-7/12">
+          <div class="h-auto w-auto md:h-[16em] md:w-[30em] 2xl:h-[16em] 2xl:w-[41em] xxl:w-auto xxl:h-auto">
             <img
               class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
               :src="sentence.media_info.path_image+'?width=960&height=540'"
@@ -603,25 +603,25 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 </svg>
               </button>
               <div class="flex flex-1 relative">
-              <h3 class="font-semibold ml-2 text-xl leading-tight">
+              <h3 class="font-semibold ml-2 text-xl xxl:text-2xl xxl:font-normal leading-tight">
                 <span v-html="(sentence.segment_info.content_jp_highlight) ? sentence.segment_info.content_jp_highlight : sentence.segment_info.content_jp"></span>
               </h3>
 
             </div>
           </div>
-            <h4 class="font-normal text-sm leading-tight my-4">
+            <h4 class="font-normal text-sm xxl:text-base leading-tight my-4">
               <span
-                class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-700"
+                class="bg-gray-100 mb-1 text-gray-800 text-xs xxl:text-base font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sgray dark:text-gray-400 border border-gray-700"
               >
                 {{ t('searchpage.main.labels.translation') }}
               </span>
               <span
                 v-if="sentence.segment_info.is_nsfw"
-                class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/30 dark:text-gray-400 border border-gray-700"
+                class="bg-gray-100 mb-1 text-gray-800 text-xs  xxl:text-base font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/30 dark:text-gray-400 border border-gray-700"
                 >NSFW
               </span>
               <ul class="ml-5 list-disc text-gray-400">
-                <li class="my-2" v-for="segment in orderedSegments" :key="segment.content">
+                <li class="my-2 text-sm xxl:text-base" v-for="segment in orderedSegments" :key="segment.content">
                   <span v-html="normalizeSentence((sentence.segment_info[segment.highlight]) ? sentence.segment_info[segment.highlight] : sentence.segment_info[segment.content])"></span>
                   <div v-if="sentence.segment_info[segment.mt]" class="hs-tooltip inline-block">
                     <BaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4" h="h-4" size="19" class="ml-2 hs-tooltip-toggle" />
@@ -638,7 +638,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <button
                     id="hs-dropdown-with-title"
                     type="button"
-                    class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white"
+                    class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white"
                   >
                     <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                       <path
@@ -678,7 +678,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         {{ t('searchpage.main.labels.multimedia') }}
                       </span>
                       <a
-                          class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                          class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                           @click="
                           downloadAudioOrImage(
                             sentence.media_info.path_video,
@@ -704,7 +704,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         {{ t('searchpage.main.buttons.video') }}
                       </a>
                       <a
-                        class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                         @click="
                           downloadAudioOrImage(
                             sentence.media_info.path_image,
@@ -748,7 +748,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         {{ t('searchpage.main.buttons.image') }}
                       </a>
                       <a
-                        class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                         @click="
                           downloadAudioOrImage(
                             sentence.media_info.path_audio,
@@ -776,7 +776,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <button
                     id="hs-dropdown-with-title"
                     type="button"
-                    class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                    class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                   >
                     <svg
                       width="1em"
@@ -824,7 +824,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       </span>
                       <a
                           @click="copyToClipboard(sentence.media_info.path_video)"
-                          class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                          class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -845,7 +845,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       </a>
                       <a
                         @click="copyToClipboard(sentence.media_info.path_image)"
-                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -884,7 +884,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       </a>
                       <a
                         @click="copyToClipboard(sentence.media_info.path_audio)"
-                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       >
                         <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
                           <path
@@ -903,7 +903,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       </span>
                       <a
                         @click="copyToClipboard(sentence.segment_info.content_jp)"
-                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                       >
                         <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                           <path
@@ -916,7 +916,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         {{ t('searchpage.main.buttons.jpsentence') }}
                       </a>
                       <a
-                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                         @click="copyToClipboard(normalizeSentence(sentence.segment_info.content_en))"
                       >
                         <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -930,7 +930,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         {{ t('searchpage.main.buttons.ensentence') }}
                       </a>
                       <a
-                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                         @click="copyToClipboard(normalizeSentence(sentence.segment_info.content_es))"
                       >
                         <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -954,7 +954,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     @click="showModalContext(sentence)"
                     data-hs-overlay="#hs-vertically-centered-scrollable-modal"
                     type="button"
-                    class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+                    class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
                   >
                     <svg
                       viewBox="0 0 16 16"
@@ -979,7 +979,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <button
                     id="hs-dropdown-with-title"
                     type="button"
-                    class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                    class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                   >
                     <svg
                       class="hs-dropdown-open:rotate-180 w-5 h-5 rotate-90 fill-white text-gray-300"
@@ -1010,13 +1010,13 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     @click="currentSentence = sentence"
                     data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
                     type="button"
-                    class="flex items-center w-full cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                    class="flex items-center w-full cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                   >
                   <BaseIcon display="inline-block" vertical-align="top" :path="mdiPencilOutline" fill="#DDDF" w="w-5" h="h-5" size="20" class="text-center" />
                     Editar oracion
                     </a>
                       <a
-                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
+                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
                         @click="showModalReport(sentence)"
                         data-hs-overlay="#hs-vertically-centered-scrollable-modal2"
                       >
@@ -1055,7 +1055,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         {{ t('searchpage.main.buttons.report') }}
                       </a>
                       <a
-                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                        class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                         @click="getSharingURL(sentence)"
                       >
                         <svg
@@ -1079,7 +1079,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             </div>
 
             <div class="flex justify-left">
-            <p class="text-sm text-white/50 tracking-wide font-semibold mt-2">
+            <p class="text-sm xxl:text-base text-white/50 tracking-wide font-semibold mt-2">
               {{ sentence.basic_info.name_anime_en }} &bull;
               <template v-if="sentence.basic_info.season === 0"> {{ t('searchpage.main.labels.movie') }} </template>
               <template v-else>
@@ -1096,7 +1096,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <div
           v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false"
         >
-          <div class="" v-for="i in 4" :key="i">
+          <div class="" v-for="i in 8" :key="i">
             <div
               role="status"
               class="border-sgray2 border-b space-y-8 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center"
@@ -1161,14 +1161,14 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     @filter-anime-length="sortFilter"
   />
       </div>
-      <div id="search-anime" class="hidden xl:w-[22rem] xl:flex flex-col py-6 ml-10" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
+      <div id="search-anime" class="hidden xl:w-[22rem] xxl:w-[30rem] xl:flex flex-col py-6 ml-10" :style="{ position: 'sticky', top: searchBarHeight + 'px' }">
       <div>
         <div class="w-full flex flex-col relative">
           <button
             type="button"
             @click="showModalBatchSearch"
             data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
-            class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+            class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
           >
             <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
 
@@ -1183,7 +1183,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <button
               id="hs-dropdown-default"
               type="button"
-              class="hs-dropdown-toggle duration-300 py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+              class="hs-dropdown-toggle duration-300 py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
             >
               <svg
                 aria-hidden="true"
@@ -1227,7 +1227,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               aria-labelledby="hs-dropdown-default"
             >
               <a
-                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                 @click="sortFilter('none')"
               >
                 <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -1241,7 +1241,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 {{ t('searchpage.main.buttons.sortlengthnone') }}
               </a>
               <a
-                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                 @click="sortFilter('asc')"
               >
                 <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -1255,7 +1255,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 {{ t('searchpage.main.buttons.sortlengthmin') }}
               </a>
               <a
-                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                 @click="sortFilter('desc')"
               >
                 <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -1269,7 +1269,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 {{ t('searchpage.main.buttons.sortlengthmax') }}
               </a>
               <a
-                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                 @click="sortFilter('random')"
               >
                 <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -1296,7 +1296,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </button>
           </div>
           <ul
-            class="z-20 divide-y  divide-gray-600 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
+            class="z-20 divide-y  divide-gray-600 text-sm xxl:text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white"
           >
             <div
               class="flex items-center  w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600"
@@ -1309,7 +1309,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 v-model="querySearchAnime"
                 id="default-search2"
                 autocomplete="off"
-                class="block w-full p-4 pl-4 text-sm text-gray-900 border-none dark:bg-sgray dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+                class="block w-full p-4 pl-4 text-sm xxl:text-base text-gray-900 border-none dark:bg-sgray dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
                 :placeholder="placeholder_search2"
                 required
               />
@@ -1335,7 +1335,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             <li class=" snap-start" v-for="item in filteredAnimes" :key="item.anime_id">
               <button
                 @click="filterAnime(item.anime_id, item.name_anime_en)"
-                class="flex border  duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm text-left  dark:border-white/5"
+                class="flex border  duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base text-left  dark:border-white/5"
               >
                 <span class="">{{ item.name_anime_en }}</span>
                 <span
