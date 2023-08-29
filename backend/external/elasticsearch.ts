@@ -266,7 +266,7 @@ export const queryWordsMatched = async (words: string[]) : Promise<QueryWordsMat
 }
 
 
-export const querySurroundingSegments = async (request: QuerySurroundingSegmentsRequest): QuerySurroundingSegmentsResponse => {
+export const querySurroundingSegments = async (request: QuerySurroundingSegmentsRequest): Promise<QuerySurroundingSegmentsResponse> => {
     const contextSearches: MsearchRequestItem[] = [{},
             {
                 sort: [
