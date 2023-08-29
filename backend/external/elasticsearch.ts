@@ -20,6 +20,8 @@ import {getBaseUrlMedia, notEmpty} from "../utils/utils";
 import {QueryWordsMatchedResponse, WordMatch, WordMatchMediaInfo} from "../models/external/queryWordsMatchedResponse";
 import {logger} from "../utils/log";
 import {QuerySegmentsRequest} from "../models/external/querySegmentsRequest";
+import {QuerySurroundingSegmentsRequest} from "../models/external/querySurroundingSegmentsRequest";
+import {QuerySurroundingSegmentsResponse} from "../models/external/querySurroundingSegmentsResponse";
 
 
 export const client = new Client({
@@ -229,6 +231,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     });
 
     const mediaInfo = queryMediaInfo();
+
     return buildSearchAnimeSentencesResponse(await esResponse, await mediaInfo);
 }
 
@@ -263,8 +266,102 @@ export const queryWordsMatched = async (words: string[]) : Promise<QueryWordsMat
 }
 
 
+export const querySurroundingSegments = async (request: QuerySurroundingSegmentsRequest): QuerySurroundingSegmentsResponse => {
+    const contextSearches: MsearchRequestItem[] = [{},
+            {
+                sort: [
+                    {
+                        position: {
+                            order: "asc"
+                        }
+                    }
+                ],
+                size: (request.limit) ? request.limit + 1 : 16,
+                query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+                    range: {
+                        position: {
+                            gte: request.segment_position
+                        }
+                    }
+                })
+            },
+        {},
+        {
+            sort: [
+                {
+                    position: {
+                        order: "desc"
+                    }
+                }
+            ],
+            size: request.limit || 14,
+            query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+                range: {
+                    position: {
+                        lt: request.segment_position
+                    }
+                }
+            })
+        }];
+
+    const esResponse = await client.msearch({
+        index: "nadedb",
+        searches: contextSearches
+    });
+
+    const mediaInfo = await queryMediaInfo();
+
+    let previousSegments: SearchAnimeSentencesSegment[] = [];
+    let nextSegments: SearchAnimeSentencesSegment[] = [];
+    if(esResponse.responses[0].status) {
+        previousSegments = buildSearchAnimeSentencesSegments((esResponse.responses[0] as SearchResponseBody), mediaInfo);
+    }
+
+    if(esResponse.responses[1].status) {
+        nextSegments = buildSearchAnimeSentencesSegments((esResponse.responses[1] as SearchResponseBody), mediaInfo);
+    }
+    let sortedSegments = [...previousSegments, ...nextSegments].sort((a , b) => (a.segment_info.position - b.segment_info.position));
+
+    return {
+        context: sortedSegments
+    }
+}
+
 const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfoResponse: QueryMediaInfoResponse): QuerySegmentsResponse => {
-    const sentences: SearchAnimeSentencesSegment[] = esResponse.hits.hits.map(hit => {
+    const sentences: SearchAnimeSentencesSegment[] = buildSearchAnimeSentencesSegments(esResponse, mediaInfoResponse);
+
+    let statistics: SearchAnimeSentencesStatistics[] = [];
+    if(esResponse.aggregations && "group_by_media_id" in esResponse.aggregations) {
+        // @ts-ignore
+        statistics = esResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
+            const mediaInfo = mediaInfoResponse.results[Number(bucket["key"])];
+            if(!mediaInfo || !Object.keys(mediaInfo).length) {
+                return;
+            }
+
+            return {
+                anime_id: bucket["key"],
+                name_anime_en: mediaInfo.english_name,
+                name_anime_jp: mediaInfo.japanese_name,
+                amount_sentences_found: bucket["doc_count"]
+            }
+        }).filter(notEmpty);
+    }
+
+    let cursor: FieldValue[] | undefined = undefined;
+    if(esResponse.hits.hits.length >= 1) {
+        cursor = esResponse.hits.hits[esResponse.hits.hits.length - 1]["sort"];
+    }
+
+    return {
+        statistics: statistics,
+        sentences,
+        cursor
+    }
+}
+
+const buildSearchAnimeSentencesSegments = (esResponse: SearchResponse, mediaInfoResponse: QueryMediaInfoResponse): SearchAnimeSentencesSegment[] => {
+    return esResponse.hits.hits.map(hit => {
         const data: any = hit["_source"];
         const highlight: any = hit["highlight"] || {};
         const mediaInfo = mediaInfoResponse.results[Number(data["media_id"])] || {};
@@ -317,35 +414,6 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
             }
         }
     }).filter(notEmpty);
-
-    let statistics: SearchAnimeSentencesStatistics[] = [];
-    if(esResponse.aggregations && "group_by_media_id" in esResponse.aggregations) {
-        // @ts-ignore
-        statistics = esResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
-            const mediaInfo = mediaInfoResponse.results[Number(bucket["key"])];
-            if(!mediaInfo || !Object.keys(mediaInfo).length) {
-                return;
-            }
-
-            return {
-                anime_id: bucket["key"],
-                name_anime_en: mediaInfo.english_name,
-                name_anime_jp: mediaInfo.japanese_name,
-                amount_sentences_found: bucket["doc_count"]
-            }
-        }).filter(notEmpty);
-    }
-
-    let cursor: FieldValue[] | undefined = undefined;
-    if(esResponse.hits.hits.length >= 1) {
-        cursor = esResponse.hits.hits[esResponse.hits.hits.length - 1]["sort"];
-    }
-
-    return {
-        statistics: statistics,
-        sentences,
-        cursor
-    }
 }
 
 const buildQueryWordsMatchedResponse = (words: string[], esResponse: MsearchResponse, mediaInfoResponse: QueryMediaInfoResponse): QueryWordsMatchedResponse => {
@@ -450,4 +518,29 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
     }
 
     return languageQueries;
+}
+
+const buildUuidContextQuery = (mediaId: number, season: number, episode: number, rangeQuery: QueryDslQueryContainer): QueryDslQueryContainer => {
+    return {
+            bool: {
+                filter: [
+                    {
+                        term: {
+                            "media_id": mediaId
+                        }
+                    },
+                    {
+                        term: {
+                            season
+                        }
+                    },
+                    {
+                        term: {
+                            episode
+                        }
+                    },
+                    rangeQuery
+                ]
+            }
+        }
 }
