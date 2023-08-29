@@ -721,8 +721,7 @@
                   "type": "keyword"
                 },
                 "position": {
-                  "type": "keyword",
-                  "index": false
+                  "type": "integer"
                 },
                 "status": {
                   "type": "short"

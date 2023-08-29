@@ -12,7 +12,7 @@ const util = require("util");
 const execPromisified = util.promisify(exec);
 const ffmpegStatic = require('ffmpeg-static');
 
-import {querySegments, queryWordsMatched} from "../external/elasticsearch";
+import {querySegments, querySurroundingSegments, queryWordsMatched} from "../external/elasticsearch";
 import {queryMediaInfo} from "../external/database_queries";
 import {QueryMediaInfoResponse} from "../models/external/queryMediaInfoResponse";
 import {GetAllAnimesResponse} from "../models/controller/GetAllAnimesResponse";
@@ -22,6 +22,8 @@ import {SearchAnimeSentencesResponse} from "../models/controller/SearchAnimeSent
 import {GetWordsMatchedRequest} from "../models/controller/GetWordsMatchedRequest";
 import {GetWordsMatchedResponse} from "../models/controller/GetWordsMatchedResponse";
 import {GetAllAnimesRequest} from "../models/controller/GetAllAnimesRequest";
+import {GetContextAnimeRequest} from "../models/controller/GetContextAnimeRequest";
+import {GetContextAnimeResponse} from "../models/controller/GetContextAnimeResponse";
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
@@ -144,45 +146,14 @@ export const SearchAnimeSentences = async (
 };
 
 export const GetContextAnime = async (
-  req: Request,
-  res: Response,
+  req: ControllerRequest<GetContextAnimeRequest>,
+  res: ControllerResponse<GetContextAnimeResponse>,
   next: NextFunction
 ) => {
   try {
-    const { id_anime, season, episode, index_segment, limit } = req.body;
+    const response = await querySurroundingSegments(req.body);
 
-    let whereClause = ` WHERE me.id = ${id_anime} AND s.season = ${season} AND s.episode = ${episode} AND s.status = 1`;
-    let sql =
-      `
-    WITH ordered_segments AS (
-      SELECT s.*, me.english_name, me.japanese_name, me.folder_media_name, me.id, ROW_NUMBER() OVER (ORDER BY s.position) as row_number
-      FROM nadedb.public."Segment" s
-      INNER JOIN nadedb.public."Media" me ON s."media_id" = me.id
-      ` +
-      whereClause +
-      `
-    ),
-    target_segment AS (
-      SELECT row_number
-      FROM ordered_segments
-      WHERE position = ${index_segment}
-    ),
-    context_segments AS (
-      SELECT *
-      FROM ordered_segments
-      WHERE row_number BETWEEN (SELECT row_number FROM target_segment) - ${limit}
-        AND (SELECT row_number FROM target_segment) + ${limit}
-    )
-    SELECT * FROM context_segments ORDER BY position;
-    `;
-
-    let results = await connection.query(sql);
-
-    const simplifiedResults = buildSimplifiedResults(req, results);
-
-    return res.status(StatusCodes.ACCEPTED).json({
-      context: simplifiedResults,
-    });
+    return res.status(StatusCodes.ACCEPTED).json(response);
   } catch (error) {
     next(error);
   }
@@ -232,69 +203,3 @@ export const GetAllAnimes = async (
     next(error);
   }
 };
-
-function buildSimplifiedResults(_: Request, results: any) {
-  return (results[0] as any[]).map((result) => {
-    const seriesNamePath = result["folder_media_name"];
-    const seasonNumberPath = `S${result["season"].toString().padStart(2, "0")}`;
-    const episodeNumberPath = `E${result["episode"]
-      .toString()
-      .padStart(2, "0")}`;
-    return {
-      basic_info: {
-        id_anime: result["media_id"],
-        name_anime_ro: result["romaji_name"],
-        name_anime_en: result["english_name"],
-        name_anime_jp: result["japanese_name"],
-        airing_format: result["airing_format"],
-        airing_status: result["airing_status"],
-        genres: result["genres"],
-        cover: [getBaseUrlMedia(), result["cover"]].join("/"),
-        banner: [getBaseUrlMedia(), result["banner"]].join("/"),
-        version: result["version"],
-        season: result["season"],
-        episode: result["episode"],
-      },
-      segment_info: {
-        status: result["status"],
-        uuid: result["uuid"],
-        position: result["position"],
-        start_time: result["start_time"],
-        end_time: result["end_time"],
-        content_jp: result["content"],
-        content_highlight: result["content_highlight"],
-        content_en: result["content_english"],
-        content_en_mt: result["content_english_mt"] || true,
-        content_es: result["content_spanish"],
-        content_es_mt: result["content_spanish_mt"] || true,
-        is_nsfw: result["is_nsfw"],
-        actor_ja: result["actor_ja"],
-        actor_es: result["actor_es"],
-        actor_en: result["actor_en"],
-      },
-      media_info: {
-        path_image: [
-          getBaseUrlMedia(),
-          seriesNamePath,
-          seasonNumberPath,
-          episodeNumberPath,
-          result["path_image"],
-        ].join("/"),
-        path_audio: [
-          getBaseUrlMedia(),
-          seriesNamePath,
-          seasonNumberPath,
-          episodeNumberPath,
-          result["path_audio"],
-        ].join("/"),
-        path_video: [
-          getBaseUrlMedia(),
-          seriesNamePath,
-          seasonNumberPath,
-          episodeNumberPath,
-          `${result["position"]}.mp4`,
-        ].join("/")
-      },
-    };
-  });
-}
