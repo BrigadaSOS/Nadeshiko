@@ -66,10 +66,10 @@ async function getContextSentence(item) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      id_anime: item.basic_info.id_anime,
+      media_id: item.basic_info.id_anime,
       season: item.basic_info.season,
       episode: item.basic_info.episode,
-      index_segment: item.segment_info.position,
+      segment_position: item.segment_info.position,
       limit: 15
     })
   })
