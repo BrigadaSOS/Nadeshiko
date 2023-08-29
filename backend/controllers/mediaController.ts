@@ -21,6 +21,7 @@ import {ControllerRequest, ControllerResponse, getBaseUrlMedia, getBaseUrlTmp} f
 import {SearchAnimeSentencesResponse} from "../models/controller/SearchAnimeSentencesResponse";
 import {GetWordsMatchedRequest} from "../models/controller/GetWordsMatchedRequest";
 import {GetWordsMatchedResponse} from "../models/controller/GetWordsMatchedResponse";
+import {GetAllAnimesRequest} from "../models/controller/GetAllAnimesRequest";
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
@@ -204,14 +205,28 @@ export const GetWordsMatched = async (
 };
 
 export const GetAllAnimes = async (
-  _: ControllerRequest<void>,
+  req: ControllerRequest<void, GetAllAnimesRequest>,
   res: ControllerResponse<GetAllAnimesResponse>,
   next: NextFunction
 ) => {
   try {
     const response: QueryMediaInfoResponse = await queryMediaInfo();
 
-    return res.status(StatusCodes.ACCEPTED).json(response);
+    let results = [];
+    if(req.query.sorted && req.query.sorted.toLowerCase() === "true") {
+      results = Object.values(response.results).sort((a, b) => {return Date.parse(b.created_at) - Date.parse(a.created_at) })
+    } else {
+      results = Object.values(response.results)
+    }
+
+    if(req.query.size && Number(req.query.size) >= 0) {
+      results = results.slice(0, Number(req.query.size));
+    }
+
+    return res.status(StatusCodes.ACCEPTED).json({
+      stats: response.stats,
+      results
+    });
 
   } catch (error) {
     next(error);
