@@ -143,6 +143,11 @@ export async function readAnimeDirectories(baseDir: string) {
         let numSeasons = 0;
         let numEpisodes = 0;
         for (const seasonDirname of seasonDirectories) {
+          
+          if (!seasonDirname.startsWith('S')) {
+            continue;
+          }
+
           const tempDirPath = path.join(animeDirPath, seasonDirname);
           numSeasons += 1;
 
@@ -352,7 +357,12 @@ async function fullSyncSpecificAnime(
   let numSegments = 0;
   let numSeasons = 0;
   let numEpisodes = 0;
+
   for (const seasonDirname of seasonDirectories) {
+    if (!seasonDirname.startsWith('S')) {
+      continue;
+    }
+    
     const number_season = parseInt(seasonDirname.replace("S", ""));
     numSeasons += 1;
 
