@@ -17,6 +17,7 @@ import messages from '@intlify/unplugin-vue-i18n/messages'
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 
 import { userStore} from './stores/user'
+import { ankiStore } from './stores/anki'
 
 const pinia = createPinia();
 
@@ -51,7 +52,5 @@ app.use(Toast, options_toast)
 app.use(vue3GoogleLogin, {
   clientId: 'YOUR_GOOGLE_CLIENT_ID'
 })
-
-const store = userStore()
 
 app.mount('#app')
