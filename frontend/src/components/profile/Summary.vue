@@ -96,9 +96,17 @@ watch(selectedDeck, async (newValue, oldValue) => {
           </div>
 
           <p class="mt-2 text-sm text-red-700 dark:text-red-200">
-            No se ha podido establecer conexión con Anki. Verifica que la aplicación de Anki este abierta y el addon
+            No se ha podido establecer conexión con Anki. 
+            <ol class="pl-5 list-disc">
+              <li>
+                Verifique que la aplicación de Anki este abierta y el addon
             <a class="underline text-blue-400" href="https://ankiweb.net/shared/info/2055492159">Ankiconnect</a>
             instalado.
+              </li>
+              <li>
+                Verifique que "https://db.brigadasos.xyz" este en el webCorsOriginList de tus configuraciones de AnkiConnect.
+              </li>
+            </ol>
           </p>
         </div>
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-8 mb-4 mt-2">
