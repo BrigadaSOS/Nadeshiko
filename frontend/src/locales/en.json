@@ -101,6 +101,7 @@
     "main": {
       "buttons": {
         "download": "Download",
+        "add": "Add",
         "video": "Image + Audio",
         "image": "Image",
         "audio": "Audio",
