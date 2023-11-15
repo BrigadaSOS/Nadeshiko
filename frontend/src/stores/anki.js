@@ -31,6 +31,32 @@ export const ankiStore = defineStore('anki', {
     paths: ['ankiPreferences']
   },
   actions: {
+    async executeAction(action, params = {}) {
+      try {
+        const response = await fetch(this.ankiPreferences.serverAddress, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: action,
+            params: params,
+            version: 6
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${action}.`)
+        }
+
+        return await response.json()
+      } catch (error) {
+        console.error(`Error while requesting ${action}:`, error)
+        throw error
+      }
+    },
+
     async loadAnkiData() {
       try {
         let permission = await this.requestPermission()
@@ -40,120 +66,38 @@ export const ankiStore = defineStore('anki', {
         if (permission !== 'granted') {
           throw new Error('Permission was denied.')
         }
-
         if (decks && Array.isArray(decks)) {
           this.ankiPreferences.availableDecks = decks
         }
-
         if (models && Array.isArray(models)) {
           this.ankiPreferences.availableModels = models
         }
+
       } catch (error) {
         throw new Error(`Failed to load Anki data: ${error.message}`)
       }
     },
+
     async requestPermission() {
-      try {
-        const response = await fetch(this.ankiPreferences.serverAddress, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'requestPermission',
-            version: 6
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch permission.')
-        }
-
-        const responseData = await response.json()
-        return responseData.result.permission
-      } catch (error) {
-        console.error('Error while requesting permission:', error)
-        throw error
-      }
+      let response = await this.executeAction('requestPermission')
+      return response.result.permission
     },
+
     async getAllDeckNames() {
-      try {
-        const response = await fetch(this.ankiPreferences.serverAddress, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'deckNames',
-            version: 6
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch decks.')
-        }
-
-        const responseData = await response.json()
-        return responseData.result
-      } catch (error) {
-        console.error('Error while requesting deck names:', error)
-        throw error
-      }
+      let response = await this.executeAction('deckNames')
+      return response.result
     },
+
     async getAllModels() {
-      try {
-        const response = await fetch(this.ankiPreferences.serverAddress, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'modelNames',
-            version: 6
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch models.')
-        }
-
-        const responseData = await response.json()
-        return responseData.result
-      } catch (error) {
-        console.error('Error while requesting models:', error)
-        throw error
-      }
+      let response = await this.executeAction('modelNames')
+      return response.result
     },
+
     async getAllModelFieldNames(modelName) {
-      try {
-        const response = await fetch(this.ankiPreferences.serverAddress, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'modelFieldNames',
-            params: {
-              modelName: modelName
-            },
-            version: 6
-          })
-        })
+      let response = await this.executeAction('modelFieldNames', { modelName: modelName })
+      return response
+    },
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch model field names.')
-        }
-
-        const responseData = await response.json()
-        return responseData
-      } catch (error) {
-        console.error('Error while requesting model field names:', error)
-        throw error
-      }
-    }
+    
   }
 })
