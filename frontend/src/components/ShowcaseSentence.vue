@@ -1,6 +1,7 @@
 <script setup>
 // Variado
 import { userStore } from '../stores/user'
+import { ankiStore } from '../stores/anki'
 import { useHead } from '@vueuse/head'
 import {
   mdiTuneVariant,
@@ -503,13 +504,14 @@ const ampliarImagen = (url) => {
 
 
 const addToAnki = async (sentence) => {
-  
-  console.log(sentence)
-  const extensionId = 'fkdcaemionojdihmdegiidoiecfeieam'; // Reemplaza con el ID real de la extensión
-  const message = {
-    data: sentence
+  const settings = JSON.parse(localStorage.getItem('settings'))
+  const extensionId = 'fkdcaemionojdihmdegiidoiecfeieam';
+  const request = {
+    action: 'updateAnkiCard',
+    settings: settings,
+    sentence: sentence
   };
-  chrome.runtime.sendMessage(extensionId, message, (response) => {
+  chrome.runtime.sendMessage(extensionId, request, (response) => {
     console.log('Respuesta de la extensión:', response);
   });
 };
