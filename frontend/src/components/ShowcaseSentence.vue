@@ -512,7 +512,7 @@ const addToAnki = async (sentence) => {
     sentence: sentence
   };
   chrome.runtime.sendMessage(extensionId, request, (response) => {
-    console.log('Respuesta de la extensión:', response);
+    console.log(response);
   });
 };
 
