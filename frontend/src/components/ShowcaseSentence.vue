@@ -504,6 +504,10 @@ const ampliarImagen = (url) => {
 
 
 const addToAnki = async (sentence) => {
+  const options = {
+      timeout: 3000,
+      position: 'bottom-right'
+  }
   const settings = JSON.parse(localStorage.getItem('settings'))
   const extensionId = 'fkdcaemionojdihmdegiidoiecfeieam';
   const request = {
@@ -511,8 +515,17 @@ const addToAnki = async (sentence) => {
     settings: settings,
     sentence: sentence
   };
+
   chrome.runtime.sendMessage(extensionId, request, (response) => {
     console.log(response);
+    if(response.error){
+      const message = 'No se ha podido añadir la tarjeta en Anki. Error: '+response.error
+      toast.error(message, options)
+    }else{
+      const message = ('La tarjeta ha sido añadida en Anki')
+      toast.success(message, options)
+    }
+
   });
 };
 
@@ -675,7 +688,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                           @click="addToAnki(sentence)">
                           <BaseIcon :path="mdiStarShootingOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
-                          Anki
+                          Anki (Guardado rápido)
                         </a>
                       </div>
                     </div>
