@@ -35,11 +35,11 @@ export async function findNotes(deck, noteType) {
 
   queryParts.push(`"deck:${deck}"`)
   queryParts.push(`"note:${noteType}"`)
-  queryParts.push(`added:2`);
-  queryParts.push("is:new");
+  queryParts.push(`added:2`)
+  queryParts.push('is:new')
 
-  queryString = queryParts.join(" ");
-  
+  queryString = queryParts.join(' ')
+
   let response = await executeAction('findNotes', { query: queryString })
   return response.result
 }
@@ -50,12 +50,92 @@ export async function notesInfo(notes) {
 }
 
 export async function storeMediaFile(sentenceData) {
-  let result = []
-  let imageResult = await executeAction('storeMediaFile', { filename: sentenceData.segment_info.uuid+'.webp', url: sentenceData.media_info.path_image })
-  let audioResult = await executeAction('storeMediaFile', { filename: sentenceData.segment_info.uuid+'.mp3', url: sentenceData.media_info.path_audio })
+  let result = {}
 
-  result.push(imageResult)
-  result.push(audioResult)
+  let imageResult = await executeAction('storeMediaFile', {
+    filename: sentenceData.segment_info.uuid + '.webp',
+    url: sentenceData.media_info.path_image,
+  })
+
+  let audioResult = await executeAction('storeMediaFile', {
+    filename: sentenceData.segment_info.uuid + '.mp3',
+    url: sentenceData.media_info.path_audio,
+  })
+
+  result['image'] = imageResult
+  result['audio'] = audioResult
 
   return result
+}
+
+export async function updateMediaFields(
+  infoCard,
+  mediaStored,
+  fields,
+  sentence
+) {
+  let allowedFields = [
+    'sentence-jp',
+    'content_jp_highlight',
+    'sentence-es',
+    'sentence-en',
+    'image',
+    'sentence-audio',
+    'empty',
+  ]
+  let fieldsNew = {}
+
+  fields.forEach((field) => {
+    const regex = new RegExp(`\\{(${allowedFields.join('|')})\\}`)
+
+    const match = field.value.match(regex)
+    if (match) {
+      const key = match[1]
+
+      switch (key) {
+        case 'empty':
+          fieldsNew[field.key] = field.value.replace(`{${key}}`, '')
+          break
+        case 'sentence-jp':
+          fieldsNew[field.key] = field.value.replace(
+            `{${key}}`,
+            '<div>' + sentence.segment_info.content_jp + '</div>'
+          )
+          break
+        case 'sentence-es':
+          fieldsNew[field.key] = field.value.replace(
+            `{${key}}`,
+            '<div>' + sentence.segment_info.content_es + '</div>'
+          )
+          break
+        case 'sentence-en':
+          fieldsNew[field.key] = field.value.replace(
+            `{${key}}`,
+            '<div>' + sentence.segment_info.content_en + '</div>'
+          )
+          break
+        case 'image':
+          fieldsNew[field.key] = field.value.replace(
+            `{${key}}`,
+            `<img src="${mediaStored.image.result}">`
+          )
+          break
+        case 'sentence-audio':
+          fieldsNew[field.key] = field.value.replace(
+            `{${key}}`,
+            `[sound:${mediaStored.audio.result}]`
+          )
+          break
+      }
+    }
+  })
+
+  let response = await executeAction('updateNoteFields', {
+    note: {
+      fields: fieldsNew,
+      id: infoCard[0].noteId,
+    },
+  })
+
+  return response
 }
