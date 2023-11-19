@@ -86,46 +86,48 @@ export async function updateMediaFields(
   let fieldsNew = {}
 
   fields.forEach((field) => {
-    const regex = new RegExp(`\\{(${allowedFields.join('|')})\\}`)
+    if (field.value) {
+      const regex = new RegExp(`\\{(${allowedFields.join('|')})\\}`)
+      const match = field.value.match(regex)
 
-    const match = field.value.match(regex)
-    if (match) {
-      const key = match[1]
+      if (match) {
+        const key = match[1]
 
-      switch (key) {
-        case 'empty':
-          fieldsNew[field.key] = field.value.replace(`{${key}}`, '')
-          break
-        case 'sentence-jp':
-          fieldsNew[field.key] = field.value.replace(
-            `{${key}}`,
-            '<div>' + sentence.segment_info.content_jp + '</div>'
-          )
-          break
-        case 'sentence-es':
-          fieldsNew[field.key] = field.value.replace(
-            `{${key}}`,
-            '<div>' + sentence.segment_info.content_es + '</div>'
-          )
-          break
-        case 'sentence-en':
-          fieldsNew[field.key] = field.value.replace(
-            `{${key}}`,
-            '<div>' + sentence.segment_info.content_en + '</div>'
-          )
-          break
-        case 'image':
-          fieldsNew[field.key] = field.value.replace(
-            `{${key}}`,
-            `<img src="${mediaStored.image.result}">`
-          )
-          break
-        case 'sentence-audio':
-          fieldsNew[field.key] = field.value.replace(
-            `{${key}}`,
-            `[sound:${mediaStored.audio.result}]`
-          )
-          break
+        switch (key) {
+          case 'empty':
+            fieldsNew[field.key] = field.value.replace(`{${key}}`, '')
+            break
+          case 'sentence-jp':
+            fieldsNew[field.key] = field.value.replace(
+              `{${key}}`,
+              '<div>' + sentence.segment_info.content_jp + '</div>'
+            )
+            break
+          case 'sentence-es':
+            fieldsNew[field.key] = field.value.replace(
+              `{${key}}`,
+              '<div>' + sentence.segment_info.content_es + '</div>'
+            )
+            break
+          case 'sentence-en':
+            fieldsNew[field.key] = field.value.replace(
+              `{${key}}`,
+              '<div>' + sentence.segment_info.content_en + '</div>'
+            )
+            break
+          case 'image':
+            fieldsNew[field.key] = field.value.replace(
+              `{${key}}`,
+              `<img src="${mediaStored.image.result}">`
+            )
+            break
+          case 'sentence-audio':
+            fieldsNew[field.key] = field.value.replace(
+              `{${key}}`,
+              `[sound:${mediaStored.audio.result}]`
+            )
+            break
+        }
       }
     }
   })
