@@ -16,9 +16,6 @@ import vue3GoogleLogin from 'vue3-google-login'
 import messages from '@intlify/unplugin-vue-i18n/messages'
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 
-import { userStore} from './stores/user'
-import { ankiStore } from './stores/anki'
-
 const pinia = createPinia();
 
 // Language Configuration
