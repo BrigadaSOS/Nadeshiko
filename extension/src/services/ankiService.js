@@ -141,3 +141,8 @@ export async function updateMediaFields(
 
   return response
 }
+
+export async function guiBrowse(query) {
+  let response = await executeAction('guiBrowse', { query: query })
+  return response.result
+}
