@@ -1,4 +1,4 @@
-import { requestPermission, findNotes, notesInfo, storeMediaFile } from '../services/ankiService'
+import { requestPermission, findNotes, notesInfo, storeMediaFile, updateMediaFields } from '../services/ankiService'
 
 chrome.runtime.onInstalled.addListener(async (opt) => {
   if (opt.reason === 'install') {
@@ -54,6 +54,10 @@ async function updateAnkiCard(settings: any, sentence: any) {
   let mediaStored = await storeMediaFile(sentence)
   console.log(mediaStored)
   
+  // Actualiza la ultima tarjeta insertada
+  let resultUpdate = await updateMediaFields(infoCard, mediaStored, settings.ankiPreferences.settings.current.fields, sentence)
+  console.log(resultUpdate)
+
 }
 
 async function handleRequest(request: any) {
