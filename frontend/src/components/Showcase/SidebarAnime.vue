@@ -51,7 +51,7 @@ const fired_sort_length = (type) => {
 
 <template>
   <!-- drawer init and show -->
-  <div class="fixed right-6 bottom-6 z-50 group xl:hidden">
+  <div class="fixed right-6 bottom-6 z-50 group">
     <button
       type="button"
       id="drawer-button"
@@ -83,7 +83,7 @@ const fired_sort_length = (type) => {
   <!-- drawer component -->
   <div
     id="drawer-navigation"
-    class="fixed xl:hidden bg-opacity-900 top-0 z-40 left-0 w-64 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-sgray2"
+    class="fixed  bg-opacity-900 top-0 z-40 left-0 w-64 md:w-96 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-sgray2"
     tabindex="-1"
     aria-labelledby="drawer-navigation-label"
   >
