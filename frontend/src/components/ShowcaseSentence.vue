@@ -614,7 +614,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     </div>
 
     <div class="flex flex-row lg:w-11/12 mx-auto mb-20" @scroll="loadMoreSentences">
-      <div class="container sm:max-w-screen-lg md:max-w-full mx-auto w-100 flex flex-col">
+      <div class="container sm:max-w-screen-lg md:max-w-full w-100 mx-auto flex flex-col">
+        <div class="">
         <Tabs class="mt-2">
           <Tab active="true" title="Todo"> </Tab>
           <Tab title="Anime"> </Tab>
@@ -1296,6 +1297,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </div>
         </div>
       </div>
+      </div>
       <SettingsSearchModal v-if="isModalSettingsSearchActive" />
       <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
       <ReportModal v-if="isModalReportActive" :item="currentSentence" />
@@ -1508,14 +1510,15 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </div>
         </div>
       </div>
-      <div v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
+      <div class="ml-20 w-[400px]" v-else-if="sentences.length === 0 && querySearch !== '' && isLoading === true && error_connection === false">
         <div role="status" class="hidden w-11/12 lg:flex flex-col py-6 animate-pulse">
-          <div class="h-2.5 bg-gray-200 rounded-full dark:bg-graypalid w-48 mb-4"></div>
+          <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[460px] mb-4"></div>
           <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[460px] mb-2.5"></div>
-          <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid mb-2.5"></div>
+          <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[300px] mb-2.5"></div>
           <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[330px] mb-2.5"></div>
           <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[300px] mb-2.5"></div>
-          <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[360px]"></div>
+          <div class="h-2 bg-gray-200 rounded-full dark:bg-graypalid max-w-[300px] mb-2.5"></div>
+
           <span class="sr-only">Cargando...</span>
         </div>
       </div>
