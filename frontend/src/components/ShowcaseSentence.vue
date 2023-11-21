@@ -1302,8 +1302,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       <BatchSearchModal v-if="isModalBatchSearchActive" />
       <EditSentenceModal :item="currentSentence" />
 
-      <div v-if="statistics.length > 1">
-        <div>
+      <div>
           <SidebarAnime
             :list="statistics"
             :sentences="sentences"
@@ -1312,6 +1311,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
             @filter-anime-length="sortFilter"
           />
         </div>
+      <div v-if="statistics.length > 1">
         <div
           id="search-anime"
           class="hidden xl:w-[22rem] xxl:w-[30rem] xl:flex flex-col py-6 ml-10"
