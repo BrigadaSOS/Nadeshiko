@@ -51,7 +51,7 @@ const fired_sort_length = (type) => {
 
 <template>
   <!-- drawer init and show -->
-  <div class="fixed right-6 bottom-6 z-30 group xl:hidden">
+  <div class="fixed right-6 bottom-6 z-50 group xl:hidden">
     <button
       type="button"
       id="drawer-button"
