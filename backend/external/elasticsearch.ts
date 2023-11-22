@@ -224,7 +224,8 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         aggs: {
             group_by_media_id: {
                 terms: {
-                    field: "media_id"
+                    field: "media_id",
+                    size: 10000
                 }
             }
         }
