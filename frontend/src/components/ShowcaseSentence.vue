@@ -212,6 +212,48 @@ const filteredAnimes = computed(() => {
   return sortedItems
 })
 
+const filterAnime = async (new_anime_id) => {
+  // Si el anime seleccionado es el mismo que el anime actual, no hagas nada
+  if (anime_id.value === null || anime_id.value === undefined) {
+    anime_id.value = 0
+  }
+  if (parseInt(new_anime_id) === parseInt(anime_id.value)) {
+    return
+  }
+
+  const searchTerm = querySearch.value.trim()
+
+  if (searchTerm !== '') {
+    next_cursor.value = null
+    sentences.value = []
+    window.scrollTo(0, 0)
+
+    let queryParameters = { query: searchTerm }
+
+    if (['asc', 'desc'].includes(type_sort.value)) {
+      queryParameters.sort = type_sort.value
+    }
+
+    if (type_sort.value === 'random') {
+      queryParameters.sort = type_sort.value
+      queryParameters.random_seed = random_seed.value
+    }
+
+    if (new_anime_id !== 0) {
+      queryParameters.anime_id = new_anime_id
+    }
+
+    if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
+      queryParameters.exact_match = exact_match.value ? 'true' : 'false'
+    }
+
+    await router.push({ query: queryParameters })
+
+    anime_id.value = new_anime_id
+  }
+}
+
+
 // Lógica de la barra de búsqueda
 const searchHandler = async (event) => {
   event.preventDefault()
@@ -300,47 +342,6 @@ const getSentences = async (searchTerm, cursor, animeId, uuid) => {
 const loadMoreSentences = async (entries) => {
   if (entries[0].isIntersecting && next_cursor.value && !isLoading.value) {
     await getSentences(querySearch.value, next_cursor.value, anime_id.value, '')
-  }
-}
-
-const filterAnime = async (new_anime_id) => {
-  // Si el anime seleccionado es el mismo que el anime actual, no hagas nada
-  if (anime_id.value === null || anime_id.value === undefined) {
-    anime_id.value = 0
-  }
-  if (parseInt(new_anime_id) === parseInt(anime_id.value)) {
-    return
-  }
-
-  const searchTerm = querySearch.value.trim()
-
-  if (searchTerm !== '') {
-    next_cursor.value = null
-    sentences.value = []
-    window.scrollTo(0, 0)
-
-    let queryParameters = { query: searchTerm }
-
-    if (['asc', 'desc'].includes(type_sort.value)) {
-      queryParameters.sort = type_sort.value
-    }
-
-    if (type_sort.value === 'random') {
-      queryParameters.sort = type_sort.value
-      queryParameters.random_seed = random_seed.value
-    }
-
-    if (new_anime_id !== 0) {
-      queryParameters.anime_id = new_anime_id
-    }
-
-    if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
-      queryParameters.exact_match = exact_match.value ? 'true' : 'false'
-    }
-
-    await router.push({ query: queryParameters })
-
-    anime_id.value = new_anime_id
   }
 }
 
