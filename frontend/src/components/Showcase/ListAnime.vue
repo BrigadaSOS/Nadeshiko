@@ -14,7 +14,7 @@ const base_hover = ref(null)
 const getLatestAnime = async () => {
   try {
     let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/info?' + new URLSearchParams({
-        size: 15,
+        size: 10,
         sorted: true
       }), {
       method: 'GET',
@@ -43,7 +43,7 @@ onMounted(() => {
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
         <div class="max-w-xl m-4">
-          <h2 class="text-3xl font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
+          <h2 class="text-3xl mt-5 sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
           <p class="mt-1 text-xl md:block dark:text-white/80">
             {{t("home.nadeDbDescription")}}
           </p>
