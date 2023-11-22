@@ -58,7 +58,7 @@ const fired_sort_length = (type) => {
       data-drawer-target="drawer-navigation"
       data-drawer-show="drawer-navigation"
       aria-controls="drawer-navigation"
-      class="flex items-center justify-center outline-none text-white bg-sgray rounded-full w-14 h-14 hover:bg-sgrayhover dark:bg-sred focus:ring-4 focus:outline-none"
+      class="flex items-center justify-center outline-none xl:hidden text-white bg-sgray rounded-full w-14 h-14 hover:bg-sgrayhover dark:bg-sred focus:ring-4 focus:outline-none"
     >
       <svg
         aria-hidden="true"
@@ -83,7 +83,7 @@ const fired_sort_length = (type) => {
   <!-- drawer component -->
   <div
     id="drawer-navigation"
-    class="fixed  bg-opacity-900 top-0 z-40 left-0 w-64 md:w-96 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-sgray2"
+    class="fixed  bg-opacity-900 top-0 z-40 left-0 w-64 md:w-96  h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-sgray2"
     tabindex="-1"
     aria-labelledby="drawer-navigation-label"
   >
