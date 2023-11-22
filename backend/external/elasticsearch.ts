@@ -194,6 +194,42 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         }
     }
 
+    const esNoHitsNoFiltersResponse = client.search({
+        size: 0,
+        sort,
+        index: "nadedb",
+        highlight: {
+            fields: {
+                content: {
+                    matched_fields: [ "content", "content.readingform", "content.baseform"],
+                    type: "fvh"
+                },
+                content_english: {
+                    matched_fields: ["content_english", "content_english.exact"],
+                    type: "fvh"
+                },
+                content_spanish: {
+                    matched_fields: ["content_spanish", "content_spanish.exact"],
+                    type: "fvh"
+                }
+            }
+        },
+        query: {
+            bool: {
+                must
+            },
+        },
+        search_after: request.cursor,
+        aggs: {
+            group_by_media_id: {
+                terms: {
+                    field: "media_id",
+                    size: 10000
+                }
+            }
+        }
+    });
+
     const esResponse = client.search({
         size: request.limit,
         sort,
@@ -233,7 +269,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
 
     const mediaInfo = queryMediaInfo();
 
-    return buildSearchAnimeSentencesResponse(await esResponse, await mediaInfo);
+    return buildSearchAnimeSentencesResponse(await esResponse, await mediaInfo, await esNoHitsNoFiltersResponse);
 }
 
 
@@ -328,13 +364,13 @@ export const querySurroundingSegments = async (request: QuerySurroundingSegments
     }
 }
 
-const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfoResponse: QueryMediaInfoResponse): QuerySegmentsResponse => {
+const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfoResponse: QueryMediaInfoResponse, esNoHitsNoFiltersResponse: SearchResponse): QuerySegmentsResponse => {
     const sentences: SearchAnimeSentencesSegment[] = buildSearchAnimeSentencesSegments(esResponse, mediaInfoResponse);
 
     let statistics: SearchAnimeSentencesStatistics[] = [];
-    if(esResponse.aggregations && "group_by_media_id" in esResponse.aggregations) {
+    if(esNoHitsNoFiltersResponse.aggregations && "group_by_media_id" in esNoHitsNoFiltersResponse.aggregations) {
         // @ts-ignore
-        statistics = esResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
+        statistics = esNoHitsNoFiltersResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
             const mediaInfo = mediaInfoResponse.results[Number(bucket["key"])];
             if(!mediaInfo || !Object.keys(mediaInfo).length) {
                 return;
