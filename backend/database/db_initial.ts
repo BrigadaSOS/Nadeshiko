@@ -481,19 +481,10 @@ async function insertSegments(rows: any[], season: number, episode: number, medi
         status = SegmentStatus.INVALID_SENTENCE;
       }
       if (
-        row.CONTENT.length >= 100
+        row.CONTENT.length >= 85 || row.CONTENT_TRANSLATION_ENGLISH.length >= 85 || row.CONTENT_TRANSLATION_SPANISH.length >= 85
       ) {
-        logger.info(`Content longer than 100 chars. Flagging row... %s`, row);
+        logger.info(`Content longer than 85 chars. Flagging row... %s`, row);
         status = SegmentStatus.SENTENCE_TOO_LONG;
-      }
-
-      if (
-          row.CONTENT.length >= 400 ||
-          row.CONTENT_TRANSLATION_ENGLISH.length >= 400 ||
-          row.CONTENT_TRANSLATION_SPANISH.length >= 400
-      ) {
-        logger.info( `Content longer than 400 characters. Can not save row, skipping... %s`, row);
-        return;
       }
 
       let segment = await Segment.create({
