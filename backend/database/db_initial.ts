@@ -487,6 +487,15 @@ async function insertSegments(rows: any[], season: number, episode: number, medi
         status = SegmentStatus.SENTENCE_TOO_LONG;
       }
 
+      if (
+          row.CONTENT.length >= 500 ||
+          row.CONTENT_TRANSLATION_ENGLISH.length >= 500 ||
+          row.CONTENT_TRANSLATION_SPANISH.length >= 500
+      ) {
+        logger.info( `Content longer than 500 characters. Can not save row, skipping... %s`, row);
+        return;
+      }
+
       let segment = await Segment.create({
         start_time: row.START_TIME,
         end_time: row.END_TIME,

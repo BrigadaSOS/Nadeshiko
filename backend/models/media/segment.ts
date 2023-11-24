@@ -65,7 +65,7 @@ export class Segment extends Model {
   end_time!: string;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.STRING(500),
     allowNull: true,
   })
   content!: string;
@@ -77,7 +77,7 @@ export class Segment extends Model {
   content_length!: number;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.STRING(500),
     allowNull: true,
   })
   content_spanish!: string;
@@ -89,7 +89,7 @@ export class Segment extends Model {
   content_spanish_mt!: boolean;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.STRING(500),
     allowNull: true,
   })
   content_english!: string;
