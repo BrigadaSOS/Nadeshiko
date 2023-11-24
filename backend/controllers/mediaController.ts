@@ -24,6 +24,7 @@ import {GetWordsMatchedResponse} from "../models/controller/GetWordsMatchedRespo
 import {GetAllAnimesRequest} from "../models/controller/GetAllAnimesRequest";
 import {GetContextAnimeRequest} from "../models/controller/GetContextAnimeRequest";
 import {GetContextAnimeResponse} from "../models/controller/GetContextAnimeResponse";
+import { SaveUserSearchHistory } from "./databaseController";
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
@@ -138,6 +139,11 @@ export const SearchAnimeSentences = async (
       anime_id: req.body.anime_id,
       exact_match: req.body.exact_match
     });
+
+    if(!req.body.cursor){
+      await SaveUserSearchHistory(600, req.body.query, req.ip);
+    }
+
     return res.status(StatusCodes.OK).json(response);
 
   } catch (error) {
