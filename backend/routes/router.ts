@@ -4,6 +4,7 @@ import express from "express";
 export const router = express.Router();
 import {
   reSyncDatabase,
+  reSyncDatabasePartial,
   SyncSpecificAnime,
 } from "../controllers/databaseController";
 import {
@@ -34,7 +35,9 @@ router.get('/v1/search/anime/info', isAuth, hasPermission(['READ_ANIME']), GetAl
 router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 
 // Admin
-router.post("/v1/admin/database/resync", reSyncDatabase);
+router.post("/v1/admin/database/resync/full", reSyncDatabase);
+router.post("/v1/admin/database/resync/partial", reSyncDatabasePartial);
+
 router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
 
 ////////// AUTH JWT

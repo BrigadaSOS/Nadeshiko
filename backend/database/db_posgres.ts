@@ -8,6 +8,7 @@ import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
 import { User } from "../models/user/user";
 import { UserRole } from "../models/user/userRole";
 import { Role } from "../models/user/role";
+import { UserSearchHistory } from "../models/miscellaneous/userSearchHistory"
 
 require("dotenv").config();
 
@@ -35,6 +36,7 @@ const connection = new Sequelize({
     User,
     UserRole,
     Role,
+    UserSearchHistory,
   ],
   logging: false,
   pool: {
