@@ -54,18 +54,17 @@ export const SyncSpecificAnime = async (
 export const SaveUserSearchHistory = async (
   EventType: number,
   Query: any,
-  IP: any
+  IP: any,
+  Hits: any
 ) => {
   try {
     const searchLog = await UserSearchHistory.create({
       event_type: EventType,
       query: Query,
-      ip_address: IP
+      ip_address: IP,
+      hits: Hits
     })
-
     await searchLog.save();
-    console.log( "Search log inserted into the database");
-
   }catch (error) {
     console.log( "Error while inserting search log into the database", error);
   }

@@ -47,4 +47,10 @@ export class UserSearchHistory extends Model {
   })
   ip_address!: string;
 
+  @Column({
+    type: DataType.BIGINT,
+    allowNull: true,
+    unique: false,
+  })
+  hits!: number;
 }
