@@ -276,7 +276,7 @@ const searchHandler = async (event) => {
 
     await router.push({ query: query })
 
-    await getSentences(searchTerm)
+    //await getSentences(searchTerm)
   }
 }
 const delay = (ms) => new Promise((res) => setTimeout(res, ms))
