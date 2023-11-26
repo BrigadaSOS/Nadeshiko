@@ -11,6 +11,7 @@ const { exec } = require("child_process");
 const util = require("util");
 const execPromisified = util.promisify(exec);
 const ffmpegStatic = require('ffmpeg-static');
+const requestIp = require('request-ip');
 
 import {querySegments, querySurroundingSegments, queryWordsMatched} from "../external/elasticsearch";
 import {queryMediaInfo} from "../external/database_queries";
@@ -25,6 +26,7 @@ import {GetAllAnimesRequest} from "../models/controller/GetAllAnimesRequest";
 import {GetContextAnimeRequest} from "../models/controller/GetContextAnimeRequest";
 import {GetContextAnimeResponse} from "../models/controller/GetContextAnimeResponse";
 import { SaveUserSearchHistory } from "./databaseController";
+import { EventTypeHistory } from "../models/miscellaneous/userSearchHistory"
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
@@ -141,7 +143,8 @@ export const SearchAnimeSentences = async (
     });
 
     if(!req.body.cursor){
-      await SaveUserSearchHistory(600, req.body.query, req.ip);
+      const hits = response.statistics.reduce((total, item) => { return total + item.amount_sentences_found;}, 0);
+      await SaveUserSearchHistory(EventTypeHistory.SEARCH_MAIN_QUERY_TEXT, req.body.query, requestIp.getClientIp(req), hits);
     }
 
     return res.status(StatusCodes.OK).json(response);
