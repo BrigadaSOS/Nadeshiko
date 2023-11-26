@@ -8,4 +8,4 @@ namespace: nadedb
 images:
 - name: brigadasos-db
   newName: ghcr.io/brigadasos/brigadasos-db
-  newTag: v0.7.2-2
+  newTag: v0.7.2-3
