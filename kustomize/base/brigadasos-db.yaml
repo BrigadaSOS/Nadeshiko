@@ -76,7 +76,6 @@ spec:
     app: brigadasos-db
   ports:
    - port: 5000
-  externalTrafficPolicy: Local
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
