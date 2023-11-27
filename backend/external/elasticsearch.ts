@@ -273,14 +273,14 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
 }
 
 
-export const queryWordsMatched = async (words: string[]) : Promise<QueryWordsMatchedResponse> => {
+export const queryWordsMatched = async (words: string[], exact_match: boolean) : Promise<QueryWordsMatchedResponse> => {
     const searches: MsearchRequestItem[] = words.map((word) => {
         return [{},
             {
             size: 0,
             query: {
                 bool: {
-                    should: buildMultiLanguageQuery(word, true)
+                    should: buildMultiLanguageQuery(word, exact_match)
                 }
             },
             aggs: {

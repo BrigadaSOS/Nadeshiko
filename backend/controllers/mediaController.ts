@@ -174,9 +174,9 @@ export const GetWordsMatched = async (
   next: NextFunction
 ) => {
   try {
-    const { words } = req.body;
+    const { words, exact_match } = req.body;
 
-    const response = await queryWordsMatched(words);
+    const response = await queryWordsMatched(words, exact_match);
     return res.status(StatusCodes.OK).json(response);
 
   } catch (error) {
