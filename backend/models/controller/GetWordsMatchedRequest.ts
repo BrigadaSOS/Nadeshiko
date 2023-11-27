@@ -1,3 +1,4 @@
 export interface GetWordsMatchedRequest {
-    words: string[];
+    words: string[],
+    exact_match: boolean
 }
