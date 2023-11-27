@@ -4,6 +4,8 @@ const selectedOption = ref('')
 let words = ref('')
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+import { mdiTagSearchOutline } from '@mdi/js'
+import BaseIcon from './minimal/BaseIcon.vue'
 
 const submitReport = () => {
   console.log(selectedOption.value)
@@ -14,6 +16,7 @@ const wordCount = ref(0)
 const errorMessage = ref('')
 const wordsMatch = ref([])
 const totalWordsSearched = ref(0)
+const checkExactSearch = ref(false)
 let isLoading = ref(false)
 
 const sortedWordsMatch = computed(() => {
@@ -42,7 +45,8 @@ const getWordMatch = async () => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      words: words.value
+      words: words.value,
+      exact_match: checkExactSearch.value
     })
   })
   const data = await response.json()
@@ -69,8 +73,8 @@ watch(inputText, (newValue) => {
     .map((word) => word.trim())
     .filter((word) => word !== '')
 
-  if (words.value.length > 100) {
-    errorMessage.value = `Se ha excedido el límite de palabras permitidas: ${words.value.length} / 100`
+  if (words.value.length > 200) {
+    errorMessage.value = `Se ha excedido el límite de palabras permitidas: ${words.value.length} / 200`
     wordCount.value = words.value.length
   } else if (newValue.includes(',') && newValue.includes('\n')) {
     errorMessage.value = 'El formato de entrada es incorrecto. Verifique si hay comas y saltos de línea simultáneos.'
@@ -136,11 +140,37 @@ watch(inputText, (newValue) => {
                   class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-sgray2 dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
                   placeholder="彼女&#10;彼氏&#10;走る&#10;恋人&#10;...&#10;...&#10;..."
                 ></textarea>
-                <div v-if="errorMessage" class="text-red-500">{{ errorMessage }}</div>
-                <div class="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
-                  {{t("batchSearch.totalWords")}}: {{ wordCount }} / 100
-                </div>
+
               </div>
+              <div class="px-4 sm:px-6 overflow-y-auto">
+              <div class="space-y-4">
+                <!-- Card -->
+                <div class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-sgray2 dark:border-sgray">
+                  <label for="hs-account-activity" class="flex p-4 md:p-5">
+                    <span class="flex mr-5">
+
+                      <BaseIcon :path="mdiTagSearchOutline" w="w-5 md:w-5" h="h-5 md:h-5" size=25 class="mt-1" />
+                      <span class="ml-5">
+                        <span class="block font-medium text-gray-800 dark:text-gray-200">{{
+                          t("searchSettingsModal.exactMatchTitle") }}</span>
+                        <span class="block text-sm text-gray-500">{{ t("searchSettingsModal.exactMatchDescription")
+                        }}</span>
+                      </span>
+                    </span>
+
+                    <input type="checkbox" id="hs-account-activity" v-model="checkExactSearch"
+                      class="relative shrink-0 w-[3.25rem] ml-auto h-7 bg-gray-100 checked:bg-none checked:bg-blue-600 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 border border-transparent ring-1 ring-transparent  ring-offset-white focus:outline-none appearance-none dark:bg-graypalid dark:checked:bg-blue-600 dark:focus:ring-offset-gray-800
+              before:inline-block before:w-6 before:h-6 before:bg-white checked:before:bg-blue-200 before:translate-x-0 checked:before:translate-x-full before:shadow before:rounded-full before:transform before:ring-0 before:transition before:ease-in-out before:duration-200 dark:before:bg-gray-400 dark:checked:before:bg-blue-200"
+                      >
+                  </label>
+                </div>
+                <!-- End Card -->
+              </div>
+            </div>
+            <div v-if="errorMessage" class="p-4 sm:p-6 ml-auto text-red-500">{{ errorMessage }}</div>
+                <div v-if="!errorMessage" class="p-4 sm:p-6  leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
+                  {{t("batchSearch.totalWords")}}: {{ wordCount }} / 200
+                </div>
             </div>
           </div>
         </div>
@@ -204,6 +234,8 @@ watch(inputText, (newValue) => {
             <div class="-m-1.5 overflow-x-auto">
               <div v-if="!isLoading" class="p-1.5 min-w-full inline-block align-middle">
                 <div class="mb-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
+                  Tipo de busqueda: {{ checkExactSearch ? "Exacta" : "Normal" }}
+                  <br />
                   {{t("batchSearch.results.words")}}: {{ wordCount }}
                   <br />
                   {{t("batchSearch.results.wordsWithMatch")}}: {{ wordsFound }}
@@ -232,7 +264,7 @@ watch(inputText, (newValue) => {
                         >
                           <a
                             v-if="item.is_match"
-                            :href="'search/sentences?query=' + item.word + '&exact_match=1'"
+                            :href="'search/sentences?query=' + item.word + '&exact_match=true'"
                             class="text-blue-500 underline-offset-2 underline"
                             target="_blank"
                           >
