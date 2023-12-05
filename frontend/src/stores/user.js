@@ -61,6 +61,34 @@ export const userStore = defineStore('user', {
         console.log(error);
       }
     },    
+    async register(email, password) {
+      try {
+        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/register', {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true,
+          credentials: 'include',
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
+        });
+        // Si la respuesta es exitosa, extrae el JSON
+        if (response.ok) {
+          const responseData = await response.json();
+          const message = 'Registro exitoso'
+          toast.success(message, options);
+        } else {
+          const message = 'Registro fallido. Intentelo nuevamente'
+          toast.error(message, options);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    },    
     async logout() {
       try {
         fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/logout', {
