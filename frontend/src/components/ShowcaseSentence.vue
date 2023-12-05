@@ -18,6 +18,7 @@ import { normalizeSentence } from '../utils/misc'
 // Importación de componentes
 import router from '../router/index'
 import NoResults from './NoResults.vue'
+import SearchBarSentences from './minimal/SearchBarSentences.vue'
 import BaseIcon from './minimal/BaseIcon.vue'
 import Tabs from './minimal/Tabs.vue'
 import Tab from './minimal/Tab.vue'
@@ -25,7 +26,6 @@ import ErrorConnection from './ErrorConnection.vue'
 import ContextSentence from './ContextSentence.vue'
 import ReportModal from './Showcase/ReportModal.vue'
 import SidebarAnime from './Showcase/SidebarAnime.vue'
-import SettingsSearchModal from './Showcase/SettingsSearchModal.vue'
 import BatchSearchModal from './BatchSearchModal.vue'
 import EditSentenceModal from './Showcase/EditSentenceModal.vue'
 
@@ -56,10 +56,11 @@ const orderedSegments = computed(() => {
 // Importación de funciones
 const toast = useToast()
 const store = userStore()
+const querySearch = ref('')
+let searchBarHeight = ref(0)
 
 // Declaración de variables
 const user = computed(() => store.userInfo)
-const querySearch = ref('')
 let sentences = ref([])
 let statistics = ref([])
 let next_cursor = ref(null)
@@ -69,7 +70,6 @@ const exactMatchFromStore = computed(() => store.$state.filterPreferences.exact_
 const exact_match = ref(null)
 let isModalContextActive = ref(false)
 let isModalReportActive = ref(false)
-let isModalSettingsSearchActive = ref(false)
 let isModalBatchSearchActive = ref(false)
 let currentSentence = ref()
 let contextactive = ref()
@@ -108,9 +108,7 @@ onBeforeRouteUpdate(async (to, from) => {
     anime_id.value = null
   }
 })
-
-const searchBar = ref(null)
-const searchBarHeight = ref(0)
+const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
@@ -155,36 +153,8 @@ onMounted(async () => {
 
   const sentinel = document.getElementById('sentinel')
   observer.observe(sentinel)
-
-  /* When the user scrolls down, hide the navbar. When the user scrolls up, show the navbar */
-  await nextTick()
-  searchBarHeight.value = searchBar?.value.offsetHeight + 20
-  let prevScrollpos = window.scrollY
-  window.onscroll = function () {
-    var currentScrollPos = window.scrollY
-    if (prevScrollpos > currentScrollPos) {
-      try {
-        document.getElementById('search-bar').style.top = '0'
-        searchBarHeight.value = searchBar?.value.offsetHeight
-      } catch (error) {}
-    } else {
-      try {
-        document.getElementById('search-bar').style.top = '-50px'
-        searchBarHeight.value = searchBar?.value.offsetHeight - 45
-      } catch (error) {}
-    }
-    prevScrollpos = currentScrollPos
-  }
-
   isMounted.value = true
 })
-
-watch(
-  () => window.innerHeight,
-  () => {
-    searchBarHeight.value = searchBar.value.offsetHeight
-  }
-)
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
@@ -251,33 +221,6 @@ const filterAnime = async (new_anime_id) => {
   }
 }
 
-
-// Lógica de la barra de búsqueda
-const searchHandler = async (event) => {
-  event.preventDefault()
-  const searchTerm = querySearch.value.trim()
-  const sortTerm = type_sort.value ? type_sort.value.trim() : null
-  const exact_match = exactMatchFromStore.value !== null ? exactMatchFromStore.value : exact_match === 'true'
-
-  if (searchTerm !== '') {
-    const query = {
-      query: querySearch.value
-    }
-
-    if (sortTerm) {
-      query.sort = sortTerm
-    }
-
-    if (exact_match === true) {
-      query.exact_match = exact_match
-    }
-
-    await router.push({ query: query })
-
-    //await getSentences(searchTerm)
-  }
-}
-const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 // Invoca a la API para obtener la lista de oraciones de forma recursiva
 const getSentences = async (searchTerm, cursor, animeId, uuid) => {
@@ -390,11 +333,6 @@ const showModalReport = async (item) => {
   if (activatorReportModal) {
     activatorReportModal.click()
   }
-}
-
-// Invoca el modal de la configuración de la barra de busqueda
-const showModalSettingsSearch = async () => {
-  isModalSettingsSearchActive.value = true
 }
 
 const showModalBatchSearch = async () => {
@@ -519,6 +457,10 @@ const addToAnki = async (sentence) => {
   })
 }
 
+const setBarHeightValue = async (value) => {
+  searchBarHeight.value = value
+}
+
 // NO QUITAR, inicializa el componente para que no falle
 try {
   contextactive.value.getContextSentence(currentSentence.value)
@@ -527,88 +469,11 @@ try {
   isModalReportActive.value = true
 }
 
-// VARIABLES con traducciones en lugares imposibles de forma directa
-let placeholder_search1 = t('searchpage.main.labels.searchmain')
 let placeholder_search2 = t('searchpage.main.labels.searchbar')
 </script>
 <template>
   <div>
-    <div class="sticky z-30 top-0" id="search-bar" ref="searchBar">
-      <form @submit="searchHandler">
-        <label
-          for="default-search"
-          class="mb-2 text-sm xxl:text-base xxm:text-2xl font-medium z-30 text-gray-900 sr-only dark:text-white"
-          >{{ t('searchpage.main.buttons.search') }}</label
-        >
-        <div class="relative lg:w-11/12 mx-auto mt-4">
-          <div class="flex">
-            <div class="absolute inset-y-0 left-0 flex items-center justify-center pl-3 pointer-events-none">
-              <div
-                v-if="
-                  (!isLoading && error_connection === true) ||
-                  error_connection === true ||
-                  (!isLoading && error_connection === false)
-                "
-              >
-                <svg
-                  aria-hidden="true"
-                  class="w-5 h-5 text-gray-500 dark:text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  ></path>
-                </svg>
-              </div>
-              <div v-else-if="isLoading && error_connection === false">
-                <span
-                  class="animate-spin inline-block mt-1 w-4 h-4 border-[3px] border-current border-t-transparent text-white rounded-full"
-                  role="status"
-                  aria-label="loading"
-                >
-                  <span class="sr-only">Loading...</span>
-                </span>
-              </div>
-            </div>
-            <div class="flex flex-1">
-              <textarea
-                v-model="querySearch"
-                type="search"
-                id="default-search"
-                autocomplete="off"
-                autocorrect="off"
-                autofocus
-                rows="1"
-                class="block w-full p-4 resize-none pl-10 text-sm h-[55px] text-gray-900 border-1 border-gray-300 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
-                :placeholder="placeholder_search1"
-                required
-                @keydown.enter="searchHandler"
-              />
-              <a
-                @click="showModalSettingsSearch()"
-                data-hs-overlay="#hs-vertically-centered-scrollable-modal3"
-                class="text-white cursor-pointer absolute right-[94px] bottom-2.5 focus:outline-none focus:ring-blue-300 rounded-lg text-sm px-4 pt-2 pb-1 dark:bg-graypalid dark:hover:bg-gray-500"
-              >
-                <BaseIcon :path="mdiTuneVariant" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
-              </a>
-            </div>
-            <button
-              type="submit"
-              class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-graypalid dark:hover:bg-gray-500 dark:focus:ring-blue-800"
-            >
-              {{ t('searchpage.main.buttons.search') }}
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-
+  <SearchBarSentences :isLoading="isLoading" :error_connection="error_connection" @searchBarHeight="setBarHeightValue" />
     <div class="flex flex-row lg:w-11/12 mx-auto mb-20" @scroll="loadMoreSentences">
       <div class="container sm:max-w-screen-lg md:max-w-full w-100 mx-auto flex flex-col">
         <Tabs class="mt-2">
@@ -1292,7 +1157,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </div>
         </div>
       </div>
-      <SettingsSearchModal v-if="isModalSettingsSearchActive" />
       <ContextSentence v-if="isModalContextActive" :item="currentSentence" ref="contextactive" />
       <ReportModal v-if="isModalReportActive" :item="currentSentence" />
       <BatchSearchModal v-if="isModalBatchSearchActive" />
