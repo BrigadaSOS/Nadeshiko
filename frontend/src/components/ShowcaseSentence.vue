@@ -133,7 +133,6 @@ onMounted(async () => {
     type_sort.value = 'desc'
   } else if (sortFilter === 'random') {
     type_sort.value = 'random'
-    random_seed.value = Math.floor(Math.random() * 65535)
   } else {
     type_sort.value = null
   }
@@ -236,7 +235,6 @@ const filterAnime = async (new_anime_id) => {
 
     if (type_sort.value === 'random') {
       queryParameters.sort = type_sort.value
-      queryParameters.random_seed = random_seed.value
     }
 
     if (new_anime_id !== 0) {
@@ -453,6 +451,7 @@ const sortFilter = async (new_type) => {
   if (new_type === type_sort.value) {
     next_cursor.value = null
     sentences.value = []
+    random_seed.value = Math.floor(Math.random() * 65535)
     window.scrollTo(0, 0)
     await getSentences(querySearch.value, next_cursor.value, anime_id.value, '')
     return
@@ -467,10 +466,6 @@ const sortFilter = async (new_type) => {
 
   if (type_sort.value !== 'none') {
     queryParameters.sort = type_sort.value
-  }
-
-  if (type_sort.value === 'random') {
-    queryParameters.random_seed = random_seed.value = Math.floor(Math.random() * 65535)
   }
 
   if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
