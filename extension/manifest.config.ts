@@ -18,18 +18,24 @@ export default defineManifest(async (env) => ({
   // semver is OK in "version_name"
   version_name: version,
   manifest_version: 3,
-  // key: 'ekgmcbpgglflmgcfajnglpbcbdccnnje',
+  key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqztdqUpyxLnlGXjK5xrCE4jn73wd/u0MZjFGWMfvZyXEyYzDR4sjhaH0Faq8uZCOkKewbd8fUmvRjS50ztQmk6ZBr6VLCFeeoyRYZen65E8/nUnuwaJq/voPItc0SlMXx6pxcVToyNz9nuOZkiDyMQ02T2SuOBesRu+lkePKoI9RA8qnNLK8h5FFToaQYoNcY3u/ayYJeWe41eFJz20hN/VRuDWbA7KMMHoTpi+47fWZmdDzbcjy+g8YEqE8EZwYsaK0XoLNd422Nxu4CkI+Hwjj/1IHDm9wuHnpfCB847ic6LerKgChTuRm6NvlmBFQGhN6csilgR8ANd6BluSj4wIDAQAB',
   action: {
     default_popup: 'src/popup/index.html',
   },
   background: {
     service_worker: 'src/background/index.ts',
   },
-  host_permissions: ['*://*/*'],
+  host_permissions: ['*://*.brigadasos.xyz/*'],
   options_page: 'src/options/index.html',
-  permissions: ['storage', 'activeTab', 'identity'],
+  permissions: [],
   web_accessible_resources: [],
   externally_connectable: {
     matches: ['https://*.brigadasos.xyz/*', '*://localhost/*']
-  }
+  },
+  "icons": {
+    "16": "src/assets/16x16.png",
+    "48": "src/assets/48x48.png",
+    "64": "src/assets/64x64.png",
+    "128": "src/assets/128x128.png"
+  },
 }))

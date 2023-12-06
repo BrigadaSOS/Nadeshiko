@@ -3,7 +3,7 @@
     "vue": "^3.3.4",
     "vue-router": "^4.2.5"
   },
-  "description": "A Vue 3 + Vite project for building Chrome extensions",
+  "description": "A tool for export content from NadeDB to Anki",
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.0.0-beta.19",
     "@iconify-json/mdi": "^1.1.54",
@@ -37,8 +37,8 @@
     "vue-tsc": "^1.8.15",
     "webext-bridge": "^6.0.1"
   },
-  "displayName": "Vite Vue 3 Chrome Extension",
-  "name": "vite-vue3-chrome-extension-v3",
+  "displayName": "NadeDB Export Tool",
+  "name": "nadedb-export-tool",
   "overrides": {
     "@crxjs/vite-plugin": "$@crxjs/vite-plugin"
   },
@@ -61,5 +61,5 @@
     "preview": "vite preview"
   },
   "type": "module",
-  "version": "0.0.1"
+  "version": "1.0.0"
 }
