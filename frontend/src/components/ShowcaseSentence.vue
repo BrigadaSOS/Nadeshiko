@@ -438,7 +438,7 @@ const addToAnki = async (sentence) => {
     position: 'bottom-right'
   }
   const settings = JSON.parse(localStorage.getItem('settings'))
-  const extensionId = 'fkdcaemionojdihmdegiidoiecfeieam'
+  const extensionId = import.meta.env.VITE_APP_EXTENSION_KEY
   const request = {
     action: 'updateAnkiCard',
     settings: settings,
