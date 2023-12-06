@@ -93,8 +93,8 @@ services:
     command: >
       bash -c '
         /bin/sleep 5
-        /code/pgsync/runserver.sh
-      '
+        chmod 777 -R /code
+        /code/pgsync/runserver.sh'
     restart: unless-stopped
     labels:
       org.label-schema.name: "pgsync"
