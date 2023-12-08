@@ -20,12 +20,6 @@ chrome.runtime.onInstalled.addListener(async (opt) => {
 
 async function checkBasicSettings(settings: any) {
   if (!settings.ankiPreferences.serverAddress) {
-    const ankiAccess = await requestPermission()
-    if (ankiAccess !== 'granted') {
-      throw new Error(
-        'Could not access Anki server address. Please make sure Anki and Ankiconnect are working properly.'
-      )
-    }
     throw new Error(
       'Could not find Anki server address. Please make sure URL is properly setted.'
     )
