@@ -8,7 +8,13 @@ import { UserRole } from "../models/user/userRole";
 import { Role } from "../models/user/role";
 import { createToken, maxAge } from "../middleware/createTokenJWT";
 
+const { OAuth2Client } = require("google-auth-library");
 const bcrypt = require("bcrypt");
+
+const client = new OAuth2Client({
+  clientId: process.env.ID_OAUTH_GOOGLE,
+  clientSecret: process.env.SECRET_OAUTH_GOOGLE,
+});
 
 export const logout = (_req: Request, res: Response, _next: NextFunction) => {
   return res.clearCookie("access_token").status(StatusCodes.OK).json({
@@ -177,4 +183,28 @@ export const logIn = async (
   }
 };
 
+export const logInOAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    let userInfo = await verifyCodeOAuth(req.body.code);
+    console.log(userInfo);
+    return res.status(StatusCodes.OK).json({
+      message: `Succesful`,
+    });
+  } catch (error) {
+    console.log(error)
+    return next(error);
+  }
+};
 
+async function verifyCodeOAuth(code: any) {
+  let { tokens } = await client.getToken(code);
+  client.setCredentials({ access_token: tokens.access_token });
+  const userinfo = await client.request({
+    url: "https://www.googleapis.com/oauth2/v3/userinfo",
+  });
+  return userinfo.data;
+}
