@@ -47,7 +47,7 @@ app.use(router)
 app.use(i18n)
 app.use(Toast, options_toast)
 app.use(vue3GoogleLogin, {
-  clientId: 'YOUR_GOOGLE_CLIENT_ID'
+  clientId: '467066531682-q8p3ve3pc59cqnfjqn9vftpbmplclum3.apps.googleusercontent.com'
 })
 
 app.mount('#app')

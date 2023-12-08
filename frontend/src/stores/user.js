@@ -60,6 +60,39 @@ export const userStore = defineStore('user', {
       } catch (error) {
         console.log(error);
       }
+    },   
+    async logInOAuth(code) {
+      try {
+        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/login/oauth', {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          body: JSON.stringify({
+            code: code
+          })
+        });
+    
+        // Si la respuesta es exitosa, extrae el JSON
+        if (response.ok) {
+          const responseData = await response.json();
+          this.$patch((state) => {
+            state.isLoggedIn = true;
+            state.userInfo = {
+              roles: responseData.user.roles.map((roles) => roles.id_role)
+            };
+          });
+          const message = i18n.global.t('modalauth.labels.successfullogin');
+          toast.success(message, options);
+        } else {
+          const message = i18n.global.t('modalauth.labels.errorlogin400');
+          toast.error(message, options);
+        }
+      } catch (error) {
+        console.log(error);
+      }
     },    
     async register(email, password) {
       try {
