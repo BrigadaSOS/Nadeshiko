@@ -26,6 +26,14 @@ onMounted(() => {
     }
   })
 })
+const callback = (response) => {
+  // This callback will be triggered when the user selects or login to
+  // his Google account from the popup
+  console.log("Handle the response", response)
+  
+  store.logInOAuth(response.code)
+}
+
 </script>
 
 <template>
@@ -110,7 +118,7 @@ onMounted(() => {
                       </p>
                     </div>
                     <div class="mt-5 flex flex-col">
-                      <GoogleLogin>
+                      <GoogleLogin :callback="callback">
                         <a
                           class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-sgray dark:hover:bg-sgray2 border-none dark:text-gray-400 dark:hover:text-white dark:focus:ring-offset-gray-800"
                           href="#"
@@ -260,7 +268,7 @@ onMounted(() => {
                         <div class="-mt-4">
                           <div class="flex flex-col">
                             <!-- Form -->
-                            <GoogleLogin>
+                            <GoogleLogin :callback="callback">
                               <a
                                 class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-sgray dark:hover:bg-sgray2 border-none dark:text-gray-400 dark:hover:text-white dark:focus:ring-offset-gray-800"
                                 href="#"
