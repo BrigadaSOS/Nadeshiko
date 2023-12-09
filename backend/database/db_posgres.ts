@@ -9,6 +9,8 @@ import { User } from "../models/user/user";
 import { UserRole } from "../models/user/userRole";
 import { Role } from "../models/user/role";
 import { UserSearchHistory } from "../models/miscellaneous/userSearchHistory"
+import { UserAuth } from "../models/user/userAuth";
+import { UserToken } from "../models/user/userToken";
 
 require("dotenv").config();
 
@@ -37,6 +39,8 @@ const connection = new Sequelize({
     UserRole,
     Role,
     UserSearchHistory,
+    UserAuth,
+    UserToken
   ],
   logging: false,
   pool: {

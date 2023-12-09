@@ -3,6 +3,7 @@ import { ApiAuth } from "../api/apiAuth";
 import { ApiUsageHistory } from "../api/apiUsageHistory";
 import { DataTypes } from "sequelize";
 import { UserRole } from './userRole'
+import { UserAuth } from './userAuth'
 
 @Table({
   timestamps: false,
@@ -17,6 +18,7 @@ export class User extends Model {
   })
   id!: number;
 
+  // Basic data from user
   @Column({
     type: DataType.STRING,
     allowNull: false,
@@ -28,12 +30,6 @@ export class User extends Model {
     allowNull: false,
   })
   email!: string;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  password!: string;
 
   @Column({
     type: DataType.DATE,
@@ -68,19 +64,12 @@ export class User extends Model {
   })
   is_active!: Boolean;
 
+  // Fields for local auth
   @Column({
     type: DataType.STRING,
     allowNull: true,
-    unique: true,
   })
-  email_token!: String;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-    unique: true,
-  })
-  password_token!: String;
+  password!: string;
 
   @HasOne(() => ApiAuth)
   apiAuth!: ApiAuth;
@@ -90,5 +79,8 @@ export class User extends Model {
 
   @HasMany(() => UserRole)
   UserRoles!: UserRole[];
+
+  @HasMany(() => UserAuth)
+  userAuths!: UserAuth[];
 
 }
