@@ -69,24 +69,30 @@ const callback = (response) => {
               <nav class="relative mt-2 z-0 flex border overflow-hidden border-none" aria-label="Tabs" role="tablist">
                 <button
                   type="button"
-                  class="relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:hover:bg-sgray2 dark:border-l-gray-700 dark:border-b-white/30 dark:hover:text-gray-400 active"
+                  class="relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:hover:bg-sgray2 dark:border-l-gray-700  dark:hover:text-gray-400 active"
                   id="bar-with-underline-item-1"
                   data-hs-tab="#bar-with-underline-1"
                   aria-controls="bar-with-underline-1"
                   role="tab"
                   @click="activeTab = 0"
-                  :class="{ 'dark:border-b-red-500 text-white': activeTab == 0 }"
+                  :class="{
+                    'border-b-sred dark:border-b-sred text-white': activeTab == 0, 
+                    'dark:border-b-white/30': activeTab != 0
+                  }"
                 >
                   Inciar sesión
                 </button>
                 <button
                   type="button"
-                  class="relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:border-l-gray-700 dark:border-b-white/30 dark:hover:bg-sgray2 dark:hover:text-gray-400 dark:hover:text-gray-300"
+                  class="relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:border-l-gray-700  dark:hover:bg-sgray2 dark:hover:text-gray-400 dark:hover:text-gray-300"
                   id="bar-with-underline-item-2"
                   data-hs-tab="#bar-with-underline-2"
                   aria-controls="bar-with-underline-2"
                   role="tab"
-                  :class="{ 'dark:border-b-red-500  text-white': activeTab == 1 }"
+                  :class="{
+                    'border-b-sred dark:border-b-sred text-white': activeTab == 1, 
+                    'dark:border-b-white/30': activeTab != 1
+                  }"
                   @click="activeTab = 1"
                 >
                   Registrarse
