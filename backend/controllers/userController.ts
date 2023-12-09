@@ -6,6 +6,7 @@ import { StatusCodes } from "http-status-codes";
 import { User } from "../models/user/user";
 import { UserRole } from "../models/user/userRole";
 import { Role } from "../models/user/role";
+import { UserAuth } from "../models/user/userAuth"
 import { createToken, maxAge } from "../middleware/createTokenJWT";
 
 const { OAuth2Client } = require("google-auth-library");
@@ -14,6 +15,7 @@ const bcrypt = require("bcrypt");
 const client = new OAuth2Client({
   clientId: process.env.ID_OAUTH_GOOGLE,
   clientSecret: process.env.SECRET_OAUTH_GOOGLE,
+  redirectUri: process.env.URI_ALLOWED_GOOGLE
 });
 
 export const logout = (_req: Request, res: Response, _next: NextFunction) => {
@@ -97,7 +99,7 @@ export const signUp = async (
           email_token: randomTokenEmail,
           is_verified: false,
           is_active: true,
-          UserRoles: userRoles,
+          UserRoles: userRoles
         },
         { include: UserRole }
       );
@@ -183,7 +185,7 @@ export const logIn = async (
   }
 };
 
-export const logInOAuth = async (
+export const loginGoogle = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -191,9 +193,72 @@ export const logInOAuth = async (
   try {
     let userInfo = await verifyCodeOAuth(req.body.code);
     console.log(userInfo);
-    return res.status(StatusCodes.OK).json({
-      message: `Succesful`,
+
+    let user = await User.findOne({
+      include: [{
+        model: UserAuth, 
+        where: { providerUserId: userInfo.sub, provider: 'google' }
+      },{
+        model: UserRole
+      }
+    ]
+    },);
+
+    if (!user) {
+      // 3: Normal user
+      const roles = [3];
+      const userRoles = roles.map((roleId) => ({ id_role: roleId }));
+
+      user = await User.create({
+        username: userInfo.name,
+        email: userInfo.email,
+        is_verified: true,
+        is_active: true,
+        UserRoles: userRoles,
+      }, { include: UserRole });
+
+      await UserAuth.create({
+        userId: user.id,
+        provider: 'google',
+        providerUserId: userInfo.sub
+      });
+
+    }
+
+    // Create Token with role
+    const user_role = await UserRole.findAll({
+      where: { id_user: user.id },
+      include: [
+        {
+          model: Role,
+          required: true,
+        },
+      ],
     });
+
+    const list_roles = user_role.map((user_role) => user_role.id_role);
+
+    const token = createToken(user.id, list_roles);
+
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: true,
+      maxAge: maxAge * 1000,
+    });
+
+    const data_user = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      roles: user?.UserRoles,
+    };
+
+    return res.status(StatusCodes.OK).json({
+      message: `Succesful login, ${user.username}`,
+      user: data_user,
+      token: token,
+    });
+
   } catch (error) {
     console.log(error)
     return next(error);

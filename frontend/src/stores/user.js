@@ -61,23 +61,25 @@ export const userStore = defineStore('user', {
         console.log(error);
       }
     },   
-    async logInOAuth(code) {
+    async loginGoogle(code) {
       try {
-        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/login/oauth', {
+        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/login/google', {
           method: 'POST',
           mode: 'cors',
           headers: {
             'Content-Type': 'application/json'
           },
-
+          withCredentials: true,
+          credentials: 'include',
           body: JSON.stringify({
             code: code
           })
-        });
-    
+        });    
         // Si la respuesta es exitosa, extrae el JSON
         if (response.ok) {
           const responseData = await response.json();
+          console.log(responseData)
+
           this.$patch((state) => {
             state.isLoggedIn = true;
             state.userInfo = {
