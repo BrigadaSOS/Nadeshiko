@@ -84,6 +84,7 @@ let type_sort = ref(null)
 let metadata = ref(null)
 let random_seed = ref(null)
 const isMounted = ref(false)
+const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 onBeforeRouteUpdate(async (to, from) => {
   const searchTerm = to.query.query
@@ -108,7 +109,6 @@ onBeforeRouteUpdate(async (to, from) => {
     anime_id.value = null
   }
 })
-const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
@@ -490,6 +490,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               <img
                 class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
                 :src="sentence.media_info.path_image + '?width=960&height=540'"
+                :key="sentence.media_info.path_image"
                 @click="ampliarImagen(sentence.media_info.path_image)"
               />
             </div>
