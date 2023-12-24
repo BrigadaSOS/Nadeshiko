@@ -9,7 +9,7 @@ import path from "path";
 export const getFilesFromDirectory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // TEMPORAL 
-    let MEDIA_DIRECTORY = null 
+    let MEDIA_DIRECTORY = '' 
 
     if (process.env.ENVIRONMENT === "testing") {
       MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
