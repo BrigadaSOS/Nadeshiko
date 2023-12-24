@@ -14,7 +14,7 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
     if (process.env.ENVIRONMENT === "testing") {
       MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
     }else if(process.env.ENVIRONMENT === 'production'){
-      MEDIA_DIRECTORY = path.resolve(__dirname, 'mnt/nadedb/media');
+      MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
     }
     
     let directory = typeof req.query.directory === 'string' ? req.query.directory : 'media';
