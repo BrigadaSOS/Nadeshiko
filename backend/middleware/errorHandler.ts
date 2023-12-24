@@ -13,7 +13,6 @@ export const handleErrors = (
     return res.status(error.getCode()).json({
       status: res.statusCode,
       error: error,
-      message: error.message,
     });
   }
 
@@ -30,6 +29,5 @@ export const handleErrors = (
   return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
     status: res.statusCode,
     error: error,
-    message: "An internal error has ocurred",
   });
 };
