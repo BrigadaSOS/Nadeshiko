@@ -7,6 +7,7 @@ import { userStore } from '../../stores/user'
 const store = userStore()
 let directoryTree = ref([])
 let currentDirectory = ref('media')
+let isNavigating = ref(false);
 
 onMounted(async () => {
   await getDirectoryTree('media')
@@ -64,6 +65,10 @@ const formatSize = (size) => {
 }
 
 const navigate = (item) => {
+  if (isNavigating.value) {
+    return
+  }
+  isNavigating.value = true
   if (item.name === '...') {
     const pathSegments = currentDirectory.value.split('/')
     pathSegments.pop()
@@ -71,11 +76,12 @@ const navigate = (item) => {
   } else if (item.type === 'directory') {
     currentDirectory.value += '/' + item.name
   }
+  isNavigating.value = false;
 }
 
 const breadcrumbSegments = computed(() => {
   const segments = currentDirectory.value.split('/')
-  return segments.filter((segment) => segment !== '') 
+  return segments.filter((segment) => segment !== '')
 })
 
 const navigateToRoot = () => {
@@ -100,9 +106,22 @@ const navigateToSegment = (segment) => {
       >
         Home
       </a>
-<div class="flex items-center text-gray-500">
-      <svg class="flex-shrink-0 mx-2 overflow-visible h-4 w-4 text-gray-400 dark:text-neutral-600 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-    </div>
+      <div class="flex items-center text-gray-500">
+        <svg
+          class="flex-shrink-0 mx-2 overflow-visible h-4 w-4 text-gray-400 dark:text-neutral-600 dark:text-neutral-600"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </div>
     </li>
     <li v-for="(segment, index) in breadcrumbSegments" :key="index" class="inline-flex items-center">
       <a
@@ -114,8 +133,22 @@ const navigateToSegment = (segment) => {
       </a>
 
       <div class="flex items-center text-gray-500">
-      <svg  v-if="index < breadcrumbSegments.length - 1" class="flex-shrink-0 mx-2 overflow-visible h-4 w-4 text-gray-400 dark:text-neutral-600 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-    </div>
+        <svg
+          v-if="index < breadcrumbSegments.length - 1"
+          class="flex-shrink-0 mx-2 overflow-visible h-4 w-4 text-gray-400 dark:text-neutral-600 dark:text-neutral-600"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </div>
     </li>
   </ol>
 
