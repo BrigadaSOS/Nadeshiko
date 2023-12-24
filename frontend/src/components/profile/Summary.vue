@@ -4,6 +4,7 @@ import Tabs from '../minimal/Tabs.vue'
 import Tab from '../minimal/Tab.vue'
 import { ankiStore } from '../../stores/anki'
 
+import FileExplorer from './FileExplorer.vue'
 // Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
@@ -102,7 +103,7 @@ watch(deckOptions, async (newValue, oldValue) => {
 
 <template>
   <div class="container sm:max-w-screen-lg md:max-w-screen-2xl mx-auto flex flex-col">
-    <Tabs class="mt-2">
+    <Tabs class="mt-3">
       <Tab active="true" title="Anki">
         <div role="alert" v-if="isError"
           class="rounded border-s-4 border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900">
@@ -309,6 +310,9 @@ watch(deckOptions, async (newValue, oldValue) => {
             </div>
           </section>
         </div>
+      </Tab>
+      <Tab active="false" title="File Explorer">
+        <FileExplorer/>
       </Tab>
     </Tabs>
   </div>
