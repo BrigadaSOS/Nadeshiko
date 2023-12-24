@@ -7,15 +7,20 @@ import { userStore } from '../../stores/user'
 const store = userStore()
 let directoryTree = ref([])
 let currentDirectory = ref('media')
-let isNavigating = ref(false);
+const isNavigating = ref(false);
 
 onMounted(async () => {
   await getDirectoryTree('media')
 })
+const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 const getDirectoryTree = async (directory) => {
   let response = null
-
+  if (isNavigating.value === true) {
+    return
+  }
+  isNavigating.value = true
+  // await delay(2000)
   try {
     const params = new URLSearchParams({ directory }).toString()
     response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `files?${params}`, {
@@ -28,12 +33,14 @@ const getDirectoryTree = async (directory) => {
       }
     })
     response = await response.json()
+    isNavigating.value = false
 
     if (response.status === 401) {
       return store.logout('La sesión ha expirado. Inicia sesión nuevamente.')
     }
   } catch (error) {
     console.log(error)
+    isNavigating.value = false
     return
   }
 
@@ -46,7 +53,7 @@ const getDirectoryTree = async (directory) => {
   directoryTree.value = response
 }
 watch(currentDirectory, (newDir) => {
- if (isNavigating.value) {
+  if (isNavigating.value === true) {
     return
   }
   getDirectoryTree(newDir)
@@ -68,10 +75,9 @@ const formatSize = (size) => {
 }
 
 const navigate = (item) => {
-  if (isNavigating.value) {
+  if (isNavigating.value === true) {
     return
   }
-  isNavigating.value = true
   if (item.name === '...') {
     const pathSegments = currentDirectory.value.split('/')
     pathSegments.pop()
@@ -79,7 +85,6 @@ const navigate = (item) => {
   } else if (item.type === 'directory') {
     currentDirectory.value += '/' + item.name
   }
-  isNavigating.value = false;
 }
 
 const breadcrumbSegments = computed(() => {
