@@ -46,6 +46,9 @@ const getDirectoryTree = async (directory) => {
   directoryTree.value = response
 }
 watch(currentDirectory, (newDir) => {
+ if (isNavigating.value) {
+    return
+  }
   getDirectoryTree(newDir)
 })
 const formatDate = (dateString) => {
