@@ -15,6 +15,7 @@ import {
   GetAllAnimes
 } from "../controllers/mediaController";
 import { signUp, logIn, logout, getUserInfo, loginGoogle } from "../controllers/userController";
+import { getFilesFromDirectory } from "../controllers/explorerController"
 import { hasPermission } from "../middleware/permissionHandler";
 import { isAuth } from "../middleware/authorization";
 import { isAuthJWT, requireRole, ADMIN, MOD, USER } from "../middleware/isAuthJWT";
@@ -37,8 +38,8 @@ router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 // Admin
 router.post("/v1/admin/database/resync/full", reSyncDatabase);
 router.post("/v1/admin/database/resync/partial", reSyncDatabasePartial);
-
 router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
+router.get("/v1/files", isAuth, getFilesFromDirectory)
 
 ////////// AUTH JWT
 // User
