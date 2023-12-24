@@ -39,13 +39,13 @@ router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 router.post("/v1/admin/database/resync/full", reSyncDatabase);
 router.post("/v1/admin/database/resync/partial", reSyncDatabasePartial);
 router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
-router.get("/v1/files", isAuth, getFilesFromDirectory)
+router.get("/v1/files", isAuthJWT, getFilesFromDirectory)
 
 ////////// AUTH JWT
 // User
 router.post("/v1/user/register", isAuth, signUp);
 router.post("/v1/user/login", isAuth, logIn);
-router.post("/v1/user/login/google", isAuth, loginGoogle)
-router.post("/v1/user/logout", logout);
+router.post("/v1/user/login/google", isAuth, isAuth, loginGoogle)
+router.post("/v1/user/logout", isAuth, logout);
 router.post('/v1/user/info', isAuthJWT, requireRole(ADMIN, MOD, USER), getUserInfo)
 

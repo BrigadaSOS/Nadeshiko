@@ -124,7 +124,7 @@ export const userStore = defineStore('user', {
         console.log(error);
       }
     },    
-    async logout() {
+    async logout(msg) {
       try {
         fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/logout', {
           method: 'POST',
@@ -139,7 +139,7 @@ export const userStore = defineStore('user', {
             state.isLoggedIn = false
             state.userInfo = null
           })
-          const message = i18n.global.t('modalauth.labels.logout')
+          const message = msg ? msg : i18n.global.t('modalauth.labels.logout')
           toast.success(message, options)
           router.push('/')
         })
@@ -149,7 +149,7 @@ export const userStore = defineStore('user', {
     },
     async getBasicInfo() {
       try {
-        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/info', {
+        let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/info', {
           method: 'POST',
           mode: 'cors',
           headers: {
@@ -158,7 +158,12 @@ export const userStore = defineStore('user', {
           withCredentials: true,
           credentials: 'include'
         })
-        return await response.json()
+
+        response = await response.json()
+        if (response.status === 401) {
+          this.logout();
+        }
+        return response
       } catch (error) {
         console.log(error)
       }

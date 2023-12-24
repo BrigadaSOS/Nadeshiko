@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import Tabs from '../minimal/Tabs.vue'
 import Tab from '../minimal/Tab.vue'
 import { ankiStore } from '../../stores/anki'
+import { userStore } from '../../stores/user'
 
 import FileExplorer from './FileExplorer.vue'
 // Configuración de lenguaje
@@ -10,6 +11,8 @@ import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 
 const store = ankiStore()
+const user_store = userStore()
+const user = computed(() => user_store.userInfo)
 
 let isError = ref(false)
 let isLoading = ref(false)
@@ -311,7 +314,7 @@ watch(deckOptions, async (newValue, oldValue) => {
           </section>
         </div>
       </Tab>
-      <Tab active="false" title="File Explorer">
+      <Tab v-if="user?.roles?.includes(1)" title="File Explorer">
         <FileExplorer/>
       </Tab>
     </Tabs>
