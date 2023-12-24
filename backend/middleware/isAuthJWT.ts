@@ -9,10 +9,6 @@ export const USER = 3;
 export const isAuthJWT = (req: Request, _: Response, next: NextFunction): void => {
   const token = extractTokenFromCookie(req);
 
-  if (!token) {
-    return next(new Authorized('No hay token...'));
-  }
-
   try {
     const jwtSecretKey: string = getJwtSecretKey();
     const decoded: any = jwt.verify(token, jwtSecretKey);
@@ -51,8 +47,10 @@ function getJwtSecretKey(): string {
 }
 
 function handleError(error: any, next: NextFunction): void {
-  if (error.message === 'jwt expired') {
-    return next(new BadRequest('El token JWT ha expirado.'));
+  if (error instanceof jwt.TokenExpiredError) {
+    return next(new Authorized('El token JWT ha expirado.'));
+  } else if (error instanceof jwt.JsonWebTokenError) {
+    return next(new Authorized('Token JWT inválido.'));
   }
   next(new Authorized('Token inválido...'));
 }
