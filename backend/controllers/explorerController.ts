@@ -4,10 +4,19 @@ import { Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 
-const MEDIA_DIRECTORY = path.resolve(__dirname, '../media'); 
+ 
 
 export const getFilesFromDirectory = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // TEMPORAL 
+    let MEDIA_DIRECTORY = null 
+
+    if (process.env.ENVIRONMENT === "testing") {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
+    }else if(process.env.ENVIRONMENT === 'production'){
+      MEDIA_DIRECTORY = path.resolve(__dirname, 'mnt/nadedb/media');
+    }
+    
     let directory = typeof req.query.directory === 'string' ? req.query.directory : 'media';
     const order = req.query.order;
     const sortBy = req.query.sortBy;
