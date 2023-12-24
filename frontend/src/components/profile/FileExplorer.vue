@@ -29,9 +29,8 @@ const getDirectoryTree = async (directory) => {
     response = await response.json()
 
     if (response.status === 401) {
-        return store.logout("La sesión ha expirado. Inicia sesión nuevamente.")
+      return store.logout('La sesión ha expirado. Inicia sesión nuevamente.')
     }
-
   } catch (error) {
     console.log(error)
     return
@@ -73,10 +72,54 @@ const navigate = (item) => {
     currentDirectory.value += '/' + item.name
   }
 }
+
+const breadcrumbSegments = computed(() => {
+  const segments = currentDirectory.value.split('/')
+  return segments.filter((segment) => segment !== '') 
+})
+
+const navigateToRoot = () => {
+  currentDirectory.value = 'media'
+}
+
+const navigateToSegment = (segment) => {
+  const index = breadcrumbSegments.value.indexOf(segment)
+  if (index !== -1) {
+    const newPath = breadcrumbSegments.value.slice(0, index + 1).join('/')
+    currentDirectory.value = newPath
+  }
+}
 </script>
 <template>
-    
-  <table class="min-w-full divide-y  bg-gray-100 dark:bg-sgray2 divide-gray-200 dark:divide-white/30">
+  <ol class="flex items-center whitespace-nowrap pb-5 pt-2" aria-label="Breadcrumb">
+    <li class="inline-flex items-center">
+      <a
+        class="flex items-center text-sm text-gray-300 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:focus:text-blue-500"
+        href="#"
+        @click.prevent="navigateToRoot"
+      >
+        Home
+      </a>
+<div class="flex items-center text-gray-500">
+      <svg class="flex-shrink-0 mx-2 overflow-visible h-4 w-4 text-gray-400 dark:text-neutral-600 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+    </li>
+    <li v-for="(segment, index) in breadcrumbSegments" :key="index" class="inline-flex items-center">
+      <a
+        class="flex items-center text-sm text-gray-300 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:focus:text-blue-500"
+        href="#"
+        @click.prevent="navigateToSegment(segment)"
+      >
+        {{ segment }}
+      </a>
+
+      <div class="flex items-center text-gray-500">
+      <svg  v-if="index < breadcrumbSegments.length - 1" class="flex-shrink-0 mx-2 overflow-visible h-4 w-4 text-gray-400 dark:text-neutral-600 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+    </li>
+  </ol>
+
+  <table class="min-w-full divide-y bg-gray-100 dark:bg-sgray2 divide-gray-200 dark:divide-white/30">
     <thead>
       <tr class="divide-x bg-gray-200 dark:bg-sgray divide-gray-200 dark:divide-white/30">
         <th class="py-3 px-6 text-left text-xs font-medium text-gray-700 dark:text-white uppercase">Nombre</th>
