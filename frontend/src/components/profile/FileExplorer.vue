@@ -1,14 +1,23 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import BaseIcon from '../minimal/BaseIcon.vue'
-import { mdiFolder, mdiFileOutline, mdiDotsVertical, mdiFolderPlusOutline  } from '@mdi/js'
+import {
+  mdiFolder,
+  mdiFileOutline,
+  mdiDotsVertical,
+  mdiFolderPlusOutline,
+  mdiUpload,
+  mdiTrashCanOutline
+} from '@mdi/js'
 import { userStore } from '../../stores/user'
 import CreateFolder from './explorer/CreateFolderModal.vue'
+import DeleteFolderOrFile from './explorer/DeleteFolderOrFileModal.vue'
 
 const store = userStore()
 let directoryTree = ref([])
 let currentDirectory = ref('media')
 const isNavigating = ref(false)
+let selectedItem = ref(null)
 
 onMounted(async () => {
   await getDirectoryTree('media')
@@ -106,11 +115,10 @@ const navigateToSegment = (segment) => {
 }
 </script>
 <template>
-  <ol class="flex items-center whitespace-nowrap pb-5 pt-2" aria-label="Breadcrumb">
+  <ol class="flex items-center whitespace-nowrap pb-3 pt-2" aria-label="Breadcrumb">
     <li class="inline-flex items-center">
       <a
-        class="flex items-center text-sm text-gray-300 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:focus:text-blue-500"
-        href="#"
+        class="flex cursor-pointer items-center text-base text-gray-300 hover:text-sred focus:outline-none focus:text-sred dark:focus:text-sred"
         @click.prevent="navigateToRoot"
       >
         Home
@@ -134,7 +142,7 @@ const navigateToSegment = (segment) => {
     </li>
     <li v-for="(segment, index) in breadcrumbSegments" :key="index" class="inline-flex items-center">
       <a
-        class="flex items-center text-sm text-gray-300 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:focus:text-blue-500"
+        class="flex items-center text-base text-gray-300 hover:text-sred focus:outline-none focus:text-blue-600 dark:focus:text-blue-500"
         href="#"
         @click.prevent="navigateToSegment(segment)"
       >
@@ -162,14 +170,22 @@ const navigateToSegment = (segment) => {
   </ol>
 
   <div class="flex">
-    <div class="relative ml-auto inline-flex mb-2">
+    <div class="relative ml-auto inline-flex mb-3">
       <button
         data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
         type="button"
+        class="dark:bg-sgray mr-2 outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+      >
+        <BaseIcon display="flex" size="20" :path="mdiFolderPlusOutline" fill="#DDDF" />
+        Nueva carpeta
+      </button>
+      <button
+        data-hs-overlay="#hs-vertically-centered-scrollable-uploadfile"
+        type="button"
         class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
       >
-      <BaseIcon display="flex" size="20" :path="mdiFolderPlusOutline " fill="#DDDF" />
-        Nueva carpeta
+        <BaseIcon display="flex" size="20" :path="mdiUpload" fill="#DDDF" />
+        Subir archivo
       </button>
     </div>
   </div>
@@ -187,7 +203,7 @@ const navigateToSegment = (segment) => {
     </thead>
     <tbody class="bg-white dark:bg-sgray2 divide-y divide-gray-200 dark:divide-white/20">
       <tr
-        class="divide-x divide-gray-200 dark:divide-white/20 hover:bg-sgray dark:hover:bg-sgray3"
+        class="divide-x group divide-gray-200 dark:divide-white/20 hover:bg-sgray dark:hover:bg-sgray3"
         v-for="(item, index) in directoryTree"
       >
         <td class="py-4 cursor-pointer px-6" @click="navigate(item)">
@@ -209,15 +225,42 @@ const navigateToSegment = (segment) => {
           {{ formatSize(item.size) }}
         </td>
         <td @click="navigate(item)" v-else class="py-4 cursor-pointer px-4"></td>
-
         <td class="pr-10 border-none text-right">
-          <button v-if="item.name !== '...'" class="hover:bg-white/25 rounded-full items-center text-center p-2">
-            <BaseIcon display="flex" size="20" :path="mdiDotsVertical" fill="#DDDF" />
-          </button>
+          <div>
+            <div class="hs-dropdown relative inline-flex mb-2 mr-2">
+              <button
+                v-if="item.name !== '...'"
+                id="hs-dropdown-with-title"
+                type="button"
+                class="hover:bg-white/25 hidden group-hover:flex rounded-full items-center text-center p-2 absolute right-0 top-1/2 transform -translate-y-1/2"
+              >
+                <BaseIcon display="flex" size="20" :path="mdiDotsVertical" fill="#DDDF" />
+              </button>
+
+              <div
+                class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                aria-labelledby="hs-dropdown-with-title"
+              >
+                <div class="py-2 first:pt-0 last:pb-0">
+                  <span class="block py-2 px-3 text-xs text-left font-medium uppercase text-gray-400 dark:text-gray-500">
+                    Opciones
+                  </span>
+                  <a
+                    class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                    data-hs-overlay="#hs-vertically-centered-scrollable-deletefolderorfile"
+                    @click="selectedItem = item.type === 'file' ? (currentDirectory + '/' + item.name) : (currentDirectory + '/' + item.name)"
+                  >
+                    <BaseIcon :path="mdiTrashCanOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
+                    Eliminar
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         </td>
       </tr>
     </tbody>
   </table>
-
-  <CreateFolder :path="currentDirectory"/>
+  <CreateFolder :path="currentDirectory" />
+  <DeleteFolderOrFile  :path="selectedItem" />
 </template>
