@@ -1,13 +1,14 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import BaseIcon from '../minimal/BaseIcon.vue'
-import { mdiFolder, mdiFileOutline, mdiDotsVertical } from '@mdi/js'
+import { mdiFolder, mdiFileOutline, mdiDotsVertical, mdiFolderPlusOutline  } from '@mdi/js'
 import { userStore } from '../../stores/user'
+import CreateFolder from './explorer/CreateFolderModal.vue'
 
 const store = userStore()
 let directoryTree = ref([])
 let currentDirectory = ref('media')
-const isNavigating = ref(false);
+const isNavigating = ref(false)
 
 onMounted(async () => {
   await getDirectoryTree('media')
@@ -160,6 +161,19 @@ const navigateToSegment = (segment) => {
     </li>
   </ol>
 
+  <div class="flex">
+    <div class="relative ml-auto inline-flex mb-2">
+      <button
+        data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
+        type="button"
+        class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+      >
+      <BaseIcon display="flex" size="20" :path="mdiFolderPlusOutline " fill="#DDDF" />
+        Nueva carpeta
+      </button>
+    </div>
+  </div>
+
   <table class="min-w-full divide-y bg-gray-100 dark:bg-sgray2 divide-gray-200 dark:divide-white/30">
     <thead>
       <tr class="divide-x bg-gray-200 dark:bg-sgray divide-gray-200 dark:divide-white/30">
@@ -204,4 +218,6 @@ const navigateToSegment = (segment) => {
       </tr>
     </tbody>
   </table>
+
+  <CreateFolder :path="currentDirectory"/>
 </template>
