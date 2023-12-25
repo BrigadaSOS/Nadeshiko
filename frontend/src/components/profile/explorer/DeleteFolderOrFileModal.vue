@@ -9,6 +9,7 @@ const props = defineProps({
 
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+const emits = defineEmits(['refresh-directorytree'])
 
 const createFolder = async () => {
   let response = null
@@ -30,6 +31,7 @@ const createFolder = async () => {
     if (response.status === 401) {
       return store.logout('La sesión ha expirado. Inicia sesión nuevamente.')
     }
+    emits('refresh-directorytree')
   } catch (error) {
     console.log(error)
     return
@@ -77,7 +79,7 @@ const createFolder = async () => {
               <div class="px-2 py-6 space-y-6">
                 <div class="flex gap-x-4 md:gap-x-7">
                   <div class="grow">
-                    <p class="text-white">¿Está seguro de eliminar <b>{{ props.item }}</b> de NadeDB?</p>
+                    <p class="text-white">¿Está seguro de eliminar <b>"{{ props.path }}"</b> de NadeDB?</p>
                   </div>
                 </div>
               </div>

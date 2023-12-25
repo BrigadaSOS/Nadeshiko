@@ -11,7 +11,7 @@ const props = defineProps({
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
-
+const emits = defineEmits(['refresh-directorytree'])
 const createFolder = async () => {
   let response = null
 
@@ -34,6 +34,7 @@ const createFolder = async () => {
     if (response.status === 401) {
       return store.logout('La sesión ha expirado. Inicia sesión nuevamente.')
     }
+    emits('refresh-directorytree')
   } catch (error) {
     console.log(error)
     return

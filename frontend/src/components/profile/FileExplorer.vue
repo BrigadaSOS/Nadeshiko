@@ -7,7 +7,8 @@ import {
   mdiDotsVertical,
   mdiFolderPlusOutline,
   mdiUpload,
-  mdiTrashCanOutline
+  mdiTrashCanOutline,
+  mdiArrowUpRightBold
 } from '@mdi/js'
 import { userStore } from '../../stores/user'
 import CreateFolder from './explorer/CreateFolderModal.vue'
@@ -57,7 +58,7 @@ const getDirectoryTree = async (directory) => {
   if (currentDirectory.value !== 'media') {
     response.unshift({
       name: '...',
-      type: 'directory'
+      type: 'directory-up'
     })
   }
   directoryTree.value = response
@@ -215,6 +216,10 @@ const navigateToSegment = (segment) => {
             <BaseIcon display="inline-block" :path="mdiFolder" fill="#DDDF" />
             {{ item.name }}
           </i>
+          <i v-else-if="item.type === 'directory-up'">
+            <BaseIcon display="inline-block" size="18" :path="mdiArrowUpRightBold" fill="#DDDF" />
+            {{ item.name }}
+          </i>
         </td>
         <td @click="navigate(item)" v-if="item.name !== '...'" class="py-4 cursor-pointer px-4">
           {{ formatDate(item.createdDate) }}
@@ -242,13 +247,18 @@ const navigateToSegment = (segment) => {
                 aria-labelledby="hs-dropdown-with-title"
               >
                 <div class="py-2 first:pt-0 last:pb-0">
-                  <span class="block py-2 px-3 text-xs text-left font-medium uppercase text-gray-400 dark:text-gray-500">
+                  <span
+                    class="block py-2 px-3 text-xs text-left font-medium uppercase text-gray-400 dark:text-gray-500"
+                  >
                     Opciones
                   </span>
                   <a
                     class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                     data-hs-overlay="#hs-vertically-centered-scrollable-deletefolderorfile"
-                    @click="selectedItem = item.type === 'file' ? (currentDirectory + '/' + item.name) : (currentDirectory + '/' + item.name)"
+                    @click="
+                      selectedItem =
+                        item.type === 'file' ? currentDirectory + '/' + item.name : currentDirectory + '/' + item.name
+                    "
                   >
                     <BaseIcon :path="mdiTrashCanOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
                     Eliminar
@@ -261,6 +271,6 @@ const navigateToSegment = (segment) => {
       </tr>
     </tbody>
   </table>
-  <CreateFolder :path="currentDirectory" />
-  <DeleteFolderOrFile  :path="selectedItem" />
+  <CreateFolder :path="currentDirectory" @refresh-directorytree="getDirectoryTree(currentDirectory)"/>
+  <DeleteFolderOrFile :path="selectedItem" @refresh-directorytree="getDirectoryTree(currentDirectory)" />
 </template>
