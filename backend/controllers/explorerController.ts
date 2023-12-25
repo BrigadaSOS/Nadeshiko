@@ -116,3 +116,45 @@ export const createFolder = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
+export const deleteFolderOrFile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let MEDIA_DIRECTORY = '';
+
+    if (process.env.ENVIRONMENT === 'testing') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
+    } else if (process.env.ENVIRONMENT === 'production') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
+    }
+
+    let directory = typeof req.body.directory === 'string' ? req.body.directory : '';
+
+    if (!directory) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Ruta del elemento no especificada' });
+    }
+
+    directory = path.normalize(directory).replace(/^(\.\.[/\\])+/g, '');
+
+    if (directory.startsWith('media') || directory.startsWith('media/')) {
+      directory = directory.replace(/^media[/\\]?/g, '');
+    }
+
+    const fullPath = path.join(MEDIA_DIRECTORY, directory);
+
+    if (!fs.existsSync(fullPath)) {
+      return res.status(StatusCodes.NOT_FOUND).json({ error: 'Elemento no encontrado' });
+    }
+
+    const stats = fs.statSync(fullPath);
+
+    if (stats.isFile()) {
+      fs.unlinkSync(fullPath);
+    } else if (stats.isDirectory()) {
+      fs.rmdirSync(fullPath, { recursive: true });
+    }
+
+    res.status(StatusCodes.OK).json({ message: 'Elemento eliminado exitosamente' });
+  } catch (error) {
+    next(error);
+  }
+};
