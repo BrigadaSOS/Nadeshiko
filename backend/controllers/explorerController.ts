@@ -73,3 +73,46 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
 };
 
 
+export const createFolder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let MEDIA_DIRECTORY = '';
+
+    if (process.env.ENVIRONMENT === 'testing') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
+    } else if (process.env.ENVIRONMENT === 'production') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
+    }
+
+    let directory = typeof req.body.directory === 'string' ? req.body.directory : 'media';
+
+    if (!directory) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Directorio no especificado' });
+    }
+
+    directory = path.normalize(directory).replace(/^(\.\.[/\\])+/g, '');
+
+    if (directory.startsWith('media') || directory.startsWith('media/')) {
+      directory = directory.replace(/^media[/\\]?/g, '');
+    }
+
+    // Construct the full path for the new folder
+    const newFolderPath = path.join(MEDIA_DIRECTORY, directory, req.body.folderName);
+
+    // Check if the folder already exists
+    if (fs.existsSync(newFolderPath)) {
+      return res.status(StatusCodes.CONFLICT).json({ error: 'La carpeta ya existe' });
+    }
+
+    // Create the new folder
+    fs.mkdir(newFolderPath, { recursive: true }, (err) => {
+      if (err) {
+        console.error('Error al crear la carpeta:', err);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Error al crear la carpeta' });
+      }
+
+      res.status(StatusCodes.CREATED).json({ message: 'Carpeta creada exitosamente' });
+    });
+  } catch (error) {
+    next(error);
+  }
+};
