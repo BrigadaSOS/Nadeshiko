@@ -1,22 +1,20 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
-const folderName = ref('')
 const props = defineProps({
   path: {
-    type: String,
-    required: true,
+    type: Object,
+    required: true
   }
-});
+})
 
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
-
 
 const createFolder = async () => {
   let response = null
 
   try {
-    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `files/createFolder`, {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `files/deleteFolderOrFile`, {
       method: 'POST',
       mode: 'cors',
       withCredentials: true,
@@ -26,11 +24,9 @@ const createFolder = async () => {
       },
       body: JSON.stringify({
         directory: props.path,
-        folderName: folderName.value
-      }),
+      })
     })
     response = await response.json()
-    folderName.value = ''
     if (response.status === 401) {
       return store.logout('La sesión ha expirado. Inicia sesión nuevamente.')
     }
@@ -43,7 +39,7 @@ const createFolder = async () => {
 
 <template>
   <div
-    id="hs-vertically-centered-scrollable-createfolder"
+    id="hs-vertically-centered-scrollable-deletefolderorfile"
     class="hs-overlay-open:mt-7 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
   >
     <div
@@ -53,11 +49,11 @@ const createFolder = async () => {
         class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-bgcolorcontext dark:border-sgray dark:shadow-slate-700/[.7]"
       >
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-sgray2">
-          <h3 class="font-bold text-gray-800 dark:text-white">Nueva Carpeta</h3>
+          <h3 class="font-bold text-gray-800 dark:text-white">Eliminar</h3>
           <button
             type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
-            data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
+            data-hs-overlay="#hs-vertically-centered-scrollable-deletefolderorfile"
           >
             <span class="sr-only">Close</span>
             <svg
@@ -79,34 +75,30 @@ const createFolder = async () => {
           <div class="flex flex-row mx-auto">
             <div class="container w-100 sm:mx-4 mx-auto flex flex-col">
               <div class="px-2 py-6 space-y-6">
-                <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                  <input
-                    type="text"
-                    v-model="folderName"
-                    placeholder="Carpeta sin título"
-                    class="w-96 text-white rounded-md bg-gray-100 border-gray-300 focus:ring-sred dark:focus:ring-sred dark:ring-offset-gray-800 focus:ring-2 dark:bg-sgray dark:border-sgray"
-                  />
-                </p>
+                <div class="flex gap-x-4 md:gap-x-7">
+                  <div class="grow">
+                    <p class="text-white">¿Está seguro de eliminar <b>{{ props.item }}</b> de NadeDB?</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-sgray2">
-
           <button
             type="button"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
-            data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
+            data-hs-overlay="#hs-vertically-centered-scrollable-deletefolderorfile"
           >
-            {{t("reportModal.close")}}
+            Cancelar
           </button>
           <button
             type="button"
             @click="createFolder"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
-            data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sred/60 text-gray-700 shadow-sm align-middle hover:bg-sred/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-none dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            data-hs-overlay="#hs-vertically-centered-scrollable-deletefolderorfile"
           >
-            Crear carpeta
+            Eliminar
           </button>
         </div>
       </div>

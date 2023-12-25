@@ -15,7 +15,7 @@ import {
   GetAllAnimes
 } from "../controllers/mediaController";
 import { signUp, logIn, logout, getUserInfo, loginGoogle } from "../controllers/userController";
-import { getFilesFromDirectory, createFolder } from "../controllers/explorerController"
+import { getFilesFromDirectory, createFolder, deleteFolderOrFile } from "../controllers/explorerController"
 import { hasPermission } from "../middleware/permissionHandler";
 import { isAuth } from "../middleware/authorization";
 import { isAuthJWT, requireRole, ADMIN, MOD, USER } from "../middleware/isAuthJWT";
@@ -39,8 +39,6 @@ router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
 router.post("/v1/admin/database/resync/full", reSyncDatabase);
 router.post("/v1/admin/database/resync/partial", reSyncDatabasePartial);
 router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
-router.get("/v1/files", isAuthJWT, getFilesFromDirectory)
-router.post("/v1/files/createFolder", isAuthJWT, createFolder)
 
 ////////// AUTH JWT
 // User
@@ -50,3 +48,8 @@ router.post("/v1/user/login/google", isAuth, isAuth, loginGoogle)
 router.post("/v1/user/logout", isAuth, logout);
 router.post('/v1/user/info', isAuthJWT, requireRole(ADMIN, MOD, USER), getUserInfo)
 
+
+// Explorer
+router.get("/v1/files", isAuthJWT, getFilesFromDirectory)
+router.post("/v1/files/createFolder", isAuthJWT, createFolder)
+router.post("/v1/files/deleteFolderOrFile", isAuthJWT, deleteFolderOrFile)
