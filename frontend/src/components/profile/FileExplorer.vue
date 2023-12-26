@@ -114,6 +114,55 @@ const navigateToSegment = (segment) => {
     currentDirectory.value = newPath
   }
 }
+
+const fileInput = ref(null);
+const selectedFile = ref(null);
+
+const triggerFileInput = () => {
+  fileInput.value.click();
+};
+
+const handleFileUpload = (event) => {
+  selectedFile.value = event.target.files[0];
+  submitFile();
+};
+
+const submitFile = () => {
+  if (!selectedFile.value) {
+    return;
+  }
+
+  let formData = new FormData();
+  formData.append('directory', currentDirectory.value);
+  formData.append('file', selectedFile.value);
+
+  const xhr = new XMLHttpRequest();
+
+  xhr.open('POST', import.meta.env.VITE_APP_BASE_URL_BACKEND + 'files/upload', true);
+  xhr.withCredentials = true; // Si necesitas credenciales
+
+  // Escucha para el progreso de la subida
+  xhr.upload.onprogress = function(event) {
+    if (event.lengthComputable) {
+      const percentComplete = Math.round((event.loaded / event.total) * 100);
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.style.width = percentComplete + '%';
+    }
+  };
+
+  xhr.onload = async function() {
+    if (xhr.status === 200) {
+      await getDirectoryTree(currentDirectory.value);
+    }
+  };
+
+  xhr.onerror = function() {
+    console.error('Error al subir el archivo');
+    alert('Error al subir el archivo');
+  };
+
+  xhr.send(formData);
+};
 </script>
 <template>
   <ol class="flex items-center whitespace-nowrap pb-3 pt-2" aria-label="Breadcrumb">
@@ -169,7 +218,9 @@ const navigateToSegment = (segment) => {
       </div>
     </li>
   </ol>
-
+  <div id="progress-container" class=" mb-2" style="width: 100%; background-color: #727272;">
+    <div id="progress-bar" style="width: 0%; height: 20px; background-color: #4CAF50;"></div>
+    </div>
   <div class="flex">
     <div class="relative ml-auto inline-flex mb-3">
       <button
@@ -180,17 +231,18 @@ const navigateToSegment = (segment) => {
         <BaseIcon display="flex" size="20" :path="mdiFolderPlusOutline" fill="#DDDF" />
         Nueva carpeta
       </button>
+      <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none;" />
       <button
         data-hs-overlay="#hs-vertically-centered-scrollable-uploadfile"
         type="button"
         class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
       >
-        <BaseIcon display="flex" size="20" :path="mdiUpload" fill="#DDDF" />
+        <BaseIcon @click="triggerFileInput" display="flex" size="20" :path="mdiUpload" fill="#DDDF" />
         Subir archivo
       </button>
     </div>
   </div>
-
+  
   <table class="min-w-full divide-y bg-gray-100 dark:bg-sgray2 divide-gray-200 dark:divide-white/30">
     <thead>
       <tr class="divide-x bg-gray-200 dark:bg-sgray divide-gray-200 dark:divide-white/30">
@@ -274,3 +326,5 @@ const navigateToSegment = (segment) => {
   <CreateFolder :path="currentDirectory" @refresh-directorytree="getDirectoryTree(currentDirectory)"/>
   <DeleteFolderOrFile :path="selectedItem" @refresh-directorytree="getDirectoryTree(currentDirectory)" />
 </template>
+<style>
+</style>

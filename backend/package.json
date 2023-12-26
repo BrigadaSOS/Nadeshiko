@@ -28,6 +28,7 @@
     "helmet": "^7.0.0",
     "http-status-codes": "^2.2.0",
     "jsonwebtoken": "^9.0.1",
+    "multer": "^1.4.5-lts.1",
     "newrelic": "^10.3.2",
     "pg": "^8.11.0",
     "request-ip": "^3.3.0",
