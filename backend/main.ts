@@ -11,6 +11,7 @@ import { handleErrors } from "./middleware/errorHandler";
 import winston, {log} from 'winston';
 import expressWinston from 'express-winston';
 import {expressWinstonErrorLogger, expressWinstonLogger} from "./utils/log";
+const bodyParser = require('body-parser');
 
 newrelic.instrumentLoadedModule("express", express);
 
@@ -160,8 +161,8 @@ if (process.env.ENVIRONMENT === "testing") {
   );
 }
 
-app.use(express.json({limit: '10000mb'}));
-app.use(express.urlencoded({ limit: '10000mb', extended: true, parameterLimit: 50000 }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Must go before router
 app.use(expressWinstonLogger);
