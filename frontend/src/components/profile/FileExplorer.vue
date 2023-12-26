@@ -167,7 +167,7 @@ const downloadFile = async (item) => {
       const response = await axios({
         method: 'get',
         url: import.meta.env.VITE_APP_BASE_URL_BACKEND + `files/download?directory=${currentDirectory.value}/${item.name}`,
-        responseType: 'blob', // Esto indica que la respuesta es un archivo binario
+        responseType: 'blob', 
         withCredentials: true,
       });
 
