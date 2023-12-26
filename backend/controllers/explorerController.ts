@@ -187,7 +187,7 @@ export const dynamicStorage = async(req: Request, res: Response, next: NextFunct
     }
   });
 
-  const upload = multer({ storage: storage }).fields([
+  const upload = multer({ storage: storage, limits: { fileSize: 10737418240 } }).fields([
     { name: 'file', maxCount: 1 }
   ]);
 
