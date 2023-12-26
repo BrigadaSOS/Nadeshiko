@@ -4,7 +4,6 @@ const newrelic = require("newrelic");
 
 import "./external/elasticsearch"; // Initialize client
 import path from "path";
-import { json } from "body-parser";
 import { router } from "./routes/router";
 import express, { Application } from "express";
 import connection from "./database/db_posgres";
@@ -161,7 +160,7 @@ if (process.env.ENVIRONMENT === "testing") {
   );
 }
 
-app.use(json({ limit: '10000mb' }));
+app.use(express.json({limit: '10000mb'}));
 app.use(express.urlencoded({ limit: '10000mb', extended: true, parameterLimit: 50000 }));
 
 // Must go before router
