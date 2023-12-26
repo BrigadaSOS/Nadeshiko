@@ -139,7 +139,7 @@ const submitFile = () => {
   const xhr = new XMLHttpRequest();
 
   xhr.open('POST', import.meta.env.VITE_APP_BASE_URL_BACKEND + 'files/upload', true);
-  xhr.withCredentials = true; // Si necesitas credenciales
+  xhr.withCredentials = true; 
 
   // Escucha para el progreso de la subida
   xhr.upload.onprogress = function(event) {
