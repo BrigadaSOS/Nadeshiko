@@ -209,3 +209,54 @@ export const uploadFile = async (_req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+
+export const downloadFile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let MEDIA_DIRECTORY = '';
+
+    if (process.env.ENVIRONMENT === 'testing') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
+    } else if (process.env.ENVIRONMENT === 'production') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
+    }
+
+    let directory = typeof req.query.directory === 'string' ? req.query.directory : '';
+
+    if (!directory) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Ruta del elemento no especificada' });
+    }
+
+    directory = path.normalize(directory).replace(/^(\.\.[/\\])+/g, '');
+
+    if (directory.startsWith('media') || directory.startsWith('media/')) {
+      directory = directory.replace(/^media[/\\]?/g, '');
+    }
+
+    const fullPath = path.join(MEDIA_DIRECTORY, directory);
+
+    // Verificar si el archivo o directorio existe
+    if (!fs.existsSync(fullPath)) {
+      return res.status(StatusCodes.NOT_FOUND).json({ error: 'Archivo o directorio no encontrado' });
+    }
+
+    // Determinar si es un archivo o un directorio
+    const isFile = fs.statSync(fullPath).isFile();
+
+    if (isFile) {
+      // Establecer las cabeceras de la respuesta para la descarga del archivo
+      res.setHeader('Content-Disposition', `attachment; filename=${path.basename(fullPath)}`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+
+      // Crear un flujo de lectura para el archivo
+      const fileStream = fs.createReadStream(fullPath);
+
+      // Enviar el archivo como respuesta
+      fileStream.pipe(res);
+    } else {
+      // Si es un directorio, devolvemos un mensaje de error
+      res.status(StatusCodes.BAD_REQUEST).json({ error: 'No se puede descargar un directorio' });
+    }
+  } catch (error) {
+    next(error);
+  }
+};

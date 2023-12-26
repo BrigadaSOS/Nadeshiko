@@ -8,7 +8,8 @@ import {
   mdiFolderPlusOutline,
   mdiUpload,
   mdiTrashCanOutline,
-  mdiArrowUpRightBold
+  mdiArrowUpRightBold,
+  mdiTrayArrowDown
 } from '@mdi/js'
 import { userStore } from '../../stores/user'
 import CreateFolder from './explorer/CreateFolderModal.vue'
@@ -160,6 +161,30 @@ const submitFile = async () => {
   }
 };
 
+const downloadFile = async (item) => {
+  if (item.type === 'file') {
+    try {
+      const response = await axios({
+        method: 'get',
+        url: import.meta.env.VITE_APP_BASE_URL_BACKEND + `files/download?directory=${currentDirectory.value}/${item.name}`,
+        responseType: 'blob', // Esto indica que la respuesta es un archivo binario
+        withCredentials: true,
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', item.name);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error al descargar el archivo:', error);
+      alert('Error al descargar el archivo');
+    }
+  }
+};
+
 </script>
 <template>
   <ol class="flex items-center whitespace-nowrap pb-3 pt-2" aria-label="Breadcrumb">
@@ -232,9 +257,10 @@ const submitFile = async () => {
       <button
         data-hs-overlay="#hs-vertically-centered-scrollable-uploadfile"
         type="button"
+        @click="triggerFileInput"
         class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
       >
-        <BaseIcon @click="triggerFileInput" display="flex" size="20" :path="mdiUpload" fill="#DDDF" />
+        <BaseIcon  display="flex" size="20" :path="mdiUpload" fill="#DDDF" />
         Subir archivo
       </button>
     </div>
@@ -311,6 +337,19 @@ const submitFile = async () => {
                   >
                     <BaseIcon :path="mdiTrashCanOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
                     Eliminar
+                  </a>
+                  <a
+                    @click="downloadFile(item)"
+                    class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                  >
+                    <BaseIcon 
+                    :path="mdiTrayArrowDown"
+                     w="w-5 md:w-5" 
+                     h="h-5 md:h-5" 
+                     size="20" 
+                     class="" 
+                    />
+                    Descargar
                   </a>
                 </div>
               </div>
