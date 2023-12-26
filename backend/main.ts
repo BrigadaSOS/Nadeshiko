@@ -18,20 +18,36 @@ newrelic.instrumentLoadedModule("express", express);
 const app: Application = express();
 
 const allowedOrigins = ["http://localhost:5173", "https://db.brigadasos.xyz"];
-var cors = require('cors');
-const corsOptions = {
-  origin: function (origin: any, callback:any) {
-    if (allowedOrigins.includes(origin) || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Origen no permitido por CORS'));
-    }
-  },
-  credentials: true,
-  exposedHeaders: ["set-cookie"]
-};
 
-app.use(cors(corsOptions));
+app.use(function (req, res, next) {
+  // Obtiene el origen de la solicitud
+  const origin: string | undefined = req.headers.origin;
+
+  // Si el origen de la solicitud está en la lista de origines permitidos, establece el encabezado Access-Control-Allow-Origin
+  if (allowedOrigins.includes(origin as string)) {
+    res.setHeader("Access-Control-Allow-Origin", origin as string);
+  }
+
+  // Request methods you wish to allow
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+  );
+
+  // Request headers you wish to allow
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-Requested-With,content-type,newrelic,traceparent,tracestate,x-api-key"
+  );
+
+  // Set to true if you need the website to include cookies in the requests sent
+  // to the API (e.g. in case you use sessions)
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  // Pass to next layer of middleware
+  next();
+});
+
 app.set('trust proxy', true);
 
 const sharp = require("sharp");
