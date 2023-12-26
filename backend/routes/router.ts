@@ -15,7 +15,7 @@ import {
   GetAllAnimes
 } from "../controllers/mediaController";
 import { signUp, logIn, logout, getUserInfo, loginGoogle } from "../controllers/userController";
-import { getFilesFromDirectory, createFolder, deleteFolderOrFile, uploadFile, dynamicStorage, downloadFile } from "../controllers/explorerController"
+import { getFilesFromDirectory, createFolder, deleteFolderOrFile, compressDirectory, uploadFile, dynamicStorage, downloadFile } from "../controllers/explorerController"
 import { hasPermission } from "../middleware/permissionHandler";
 import { isAuth } from "../middleware/authorization";
 import { isAuthJWT, requireRole, ADMIN, MOD, USER } from "../middleware/isAuthJWT";
@@ -55,3 +55,4 @@ router.post("/v1/files/createFolder", isAuthJWT, createFolder)
 router.post("/v1/files/deleteFolderOrFile", isAuthJWT, deleteFolderOrFile)
 router.post("/v1/files/upload", isAuthJWT, dynamicStorage, uploadFile)
 router.get("/v1/files/download", isAuthJWT, downloadFile)
+router.get("/v1/files/compress", isAuthJWT, compressDirectory)

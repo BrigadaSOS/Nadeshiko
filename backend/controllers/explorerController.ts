@@ -4,18 +4,20 @@ import { Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 import multer from 'multer';
+import archiver from 'archiver';
+import recursive from 'recursive-readdir';
 
 export const getFilesFromDirectory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // TEMPORAL 
-    let MEDIA_DIRECTORY = '' 
+    let MEDIA_DIRECTORY = ''
 
     if (process.env.ENVIRONMENT === "testing") {
       MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
-    }else if(process.env.ENVIRONMENT === 'production'){
+    } else if (process.env.ENVIRONMENT === 'production') {
       MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
     }
-    
+
     let directory = typeof req.query.directory === 'string' ? req.query.directory : 'media';
     const order = req.query.order;
     const sortBy = req.query.sortBy;
@@ -28,7 +30,7 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
 
     if (directory.startsWith('media') || directory.startsWith('media/')) {
       directory = directory.replace(/^media[\/\\]?/, '');
-    }    
+    }
 
     // Construir la ruta solicitada
     const requestedPath = path.join(MEDIA_DIRECTORY, directory);
@@ -157,33 +159,33 @@ export const deleteFolderOrFile = async (req: Request, res: Response, next: Next
 };
 
 
-export const dynamicStorage = async(req: Request, res: Response, next: NextFunction) => {
+export const dynamicStorage = async (req: Request, res: Response, next: NextFunction) => {
   const storage = multer.diskStorage({
-    destination: function(req: Request, _file: any, cb: any) {
+    destination: function (req: Request, _file: any, cb: any) {
       let MEDIA_DIRECTORY = '';
-    
+
       if (process.env.ENVIRONMENT === 'testing') {
         MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
       } else if (process.env.ENVIRONMENT === 'production') {
         MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
       }
-    
+
       let directory = typeof req.body.directory === 'string' ? req.body.directory : 'media';
-    
+
       if (!directory) {
         return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Directorio no especificado' });
       }
-    
+
       directory = path.normalize(directory).replace(/^(\.\.[/\\])+/g, '');
-    
+
       if (directory.startsWith('media') || directory.startsWith('media/')) {
         directory = directory.replace(/^media[/\\]?/g, '');
       }
       const uploadPath = path.join(MEDIA_DIRECTORY, directory);
       cb(null, uploadPath);
     },
-    filename: function(_req: Request, file: any, cb: any) {
-      cb(null, file.originalname); 
+    filename: function (_req: Request, file: any, cb: any) {
+      cb(null, file.originalname);
     }
   });
 
@@ -234,29 +236,96 @@ export const downloadFile = async (req: Request, res: Response, next: NextFuncti
 
     const fullPath = path.join(MEDIA_DIRECTORY, directory);
 
-    // Verificar si el archivo o directorio existe
     if (!fs.existsSync(fullPath)) {
       return res.status(StatusCodes.NOT_FOUND).json({ error: 'Archivo o directorio no encontrado' });
     }
 
-    // Determinar si es un archivo o un directorio
     const isFile = fs.statSync(fullPath).isFile();
 
     if (isFile) {
-      // Establecer las cabeceras de la respuesta para la descarga del archivo
       res.setHeader('Content-Disposition', `attachment; filename=${path.basename(fullPath)}`);
       res.setHeader('Content-Type', 'application/octet-stream');
-
-      // Crear un flujo de lectura para el archivo
       const fileStream = fs.createReadStream(fullPath);
-
-      // Enviar el archivo como respuesta
       fileStream.pipe(res);
     } else {
-      // Si es un directorio, devolvemos un mensaje de error
       res.status(StatusCodes.BAD_REQUEST).json({ error: 'No se puede descargar un directorio' });
     }
   } catch (error) {
     next(error);
   }
 };
+
+export const compressDirectory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let MEDIA_DIRECTORY = '';
+
+    if (process.env.ENVIRONMENT === 'testing') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
+    } else if (process.env.ENVIRONMENT === 'production') {
+      MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
+    }
+
+    let directory = typeof req.query.directory === 'string' ? req.query.directory : 'media';
+
+    if (!directory) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: 'Ruta del elemento no especificada' });
+    }
+
+    directory = path.normalize(directory).replace(/^(\.\.[/\\])+/g, '');
+
+    if (directory.startsWith('media') || directory.startsWith('media/')) {
+      directory = directory.replace(/^media[/\\]?/g, '');
+    }
+
+    const outputZipPath = path.join(MEDIA_DIRECTORY, 'compressed.zip');
+    const pathToZip = path.join(MEDIA_DIRECTORY, directory);
+
+
+    // Crear un archivo zip
+    const output = fs.createWriteStream(outputZipPath);
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Nivel de compresión
+    });
+
+
+    archive.on('error', (err) => {
+      throw err;
+    });
+
+    archive.pipe(output);
+
+    // Use recursive-readdir to get all files in the directory
+    const files = await recursive(pathToZip);
+
+    const totalSize = files.reduce((acc, file) => {
+      const stat = fs.statSync(file);
+      if (stat.isFile()) {
+        return acc + stat.size;
+      }
+      return acc;
+    }, 0);
+
+    archive.directory(pathToZip, false);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    res.write('data: {"progress": 0}\n\n');
+
+    archive.on('progress', (progress) => {
+      const newProgress = (progress.fs.processedBytes / totalSize) * 100;
+      console.log(progress.fs.processedBytes, totalSize)
+      res.write(`data: {"progress": ${newProgress.toFixed(2)}}\n\n`);
+    });
+
+    output.on('close', () => {
+      console.log('La compresión ha finalizado:', archive.pointer() + ' bytes totales');
+      res.end();
+    });
+    archive.finalize();
+  } catch (error) {
+    console.error('Error al comprimir el directorio:', error);
+    res.status(500).json({ error: 'Error al comprimir el directorio' });
+  }
+}
