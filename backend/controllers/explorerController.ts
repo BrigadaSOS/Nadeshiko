@@ -5,7 +5,6 @@ import fs from "fs";
 import path from "path";
 import multer from 'multer';
 
-
 export const getFilesFromDirectory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // TEMPORAL 
@@ -192,7 +191,7 @@ export const dynamicStorage = async(req: Request, res: Response, next: NextFunct
     { name: 'file', maxCount: 1 }
   ]);
 
-  upload(req, res, function (err: { message: any; }) {
+  upload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       return res.status(500).json({ error: err.message });
     } else if (err) {
