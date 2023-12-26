@@ -161,8 +161,8 @@ if (process.env.ENVIRONMENT === "testing") {
   );
 }
 
-app.use(json());
-app.use(express.urlencoded({ extended: true }));
+app.use(json({ limit: '10gb' }));
+app.use(express.urlencoded({ limit: '10gb', extended: true }));
 
 // Must go before router
 app.use(expressWinstonLogger);
