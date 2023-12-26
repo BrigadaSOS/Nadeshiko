@@ -13,6 +13,7 @@ import {
 import { userStore } from '../../stores/user'
 import CreateFolder from './explorer/CreateFolderModal.vue'
 import DeleteFolderOrFile from './explorer/DeleteFolderOrFileModal.vue'
+import axios from 'axios';
 
 const store = userStore()
 let directoryTree = ref([])
@@ -127,7 +128,7 @@ const handleFileUpload = (event) => {
   submitFile();
 };
 
-const submitFile = () => {
+const submitFile = async () => {
   if (!selectedFile.value) {
     return;
   }
@@ -135,34 +136,30 @@ const submitFile = () => {
   let formData = new FormData();
   formData.append('directory', currentDirectory.value);
   formData.append('file', selectedFile.value);
+  const progressBar = document.getElementById('progress-bar');
 
-  const xhr = new XMLHttpRequest();
+  try {
+    const response = await axios({
+      method: 'post',
+      url: import.meta.env.VITE_APP_BASE_URL_BACKEND + 'files/upload',
+      data: formData,
+      withCredentials: true,
+      onUploadProgress: (progressEvent) => {
+        let percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        progressBar.style.width = percentCompleted + '%';
+      }
+    });
 
-  xhr.open('POST', import.meta.env.VITE_APP_BASE_URL_BACKEND + 'files/upload', true);
-  xhr.withCredentials = true; 
-
-  // Escucha para el progreso de la subida
-  xhr.upload.onprogress = function(event) {
-    if (event.lengthComputable) {
-      const percentComplete = Math.round((event.loaded / event.total) * 100);
-      const progressBar = document.getElementById('progress-bar');
-      progressBar.style.width = percentComplete + '%';
-    }
-  };
-
-  xhr.onload = async function() {
-    if (xhr.status === 200) {
+    if (response.status === 200) {
+      alert('Archivo subido con éxito!');
       await getDirectoryTree(currentDirectory.value);
     }
-  };
-
-  xhr.onerror = function() {
-    console.error('Error al subir el archivo');
+  } catch (error) {
+    console.error('Error al subir el archivo:', error);
     alert('Error al subir el archivo');
-  };
-
-  xhr.send(formData);
+  }
 };
+
 </script>
 <template>
   <ol class="flex items-center whitespace-nowrap pb-3 pt-2" aria-label="Breadcrumb">
