@@ -254,6 +254,7 @@ export const downloadFile = async (req: Request, res: Response, next: NextFuncti
       archive.pipe(output);
 
       archive.on('error', (err) => {
+        console.log(err)
         res.status(500).json({ error: 'Error al comprimir el directorio' });
       });
 
