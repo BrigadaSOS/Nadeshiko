@@ -281,7 +281,7 @@ export const downloadFile = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const compressDirectory = async (req: Request, res: Response, next: NextFunction) => {
+export const compressDirectory = async (req: Request, res: Response, _next: NextFunction) => {
   try {
     let MEDIA_DIRECTORY = '';
 
