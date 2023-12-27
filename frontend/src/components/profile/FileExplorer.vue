@@ -162,7 +162,7 @@ const submitFile = async () => {
 };
 
 const downloadFile = async (item) => {
-  if (item.type === 'file') {
+  if (item.type === 'file' || item.type === 'directory') {
     try {
       const response = await axios({
         method: 'get',
@@ -171,10 +171,13 @@ const downloadFile = async (item) => {
         withCredentials: true,
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/zip' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', item.name);
+
+      const fileName = item.type === 'directory' ? item.name + '.zip' : item.name;
+      link.setAttribute('download', fileName);
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
