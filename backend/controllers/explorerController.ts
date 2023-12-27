@@ -274,6 +274,7 @@ export const downloadFile = async (req: Request, res: Response, next: NextFuncti
       const fileStream = fs.createReadStream(fullPath);
       fileStream.pipe(res);
     }
+    next();
   } catch (error) {
     console.error('Error al descargar el archivo:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Error al descargar el archivo' });
