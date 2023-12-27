@@ -240,18 +240,43 @@ export const downloadFile = async (req: Request, res: Response, next: NextFuncti
       return res.status(StatusCodes.NOT_FOUND).json({ error: 'Archivo o directorio no encontrado' });
     }
 
-    const isFile = fs.statSync(fullPath).isFile();
+    const stats = fs.statSync(fullPath);
 
-    if (isFile) {
-      res.setHeader('Content-Disposition', `attachment; filename=${path.basename(fullPath)}`);
+    if (stats.isDirectory()) {
+      const zipFileName = `compressed-${Date.now()}.zip`;
+      const outputZipPath = path.join(MEDIA_DIRECTORY, '/tmp', zipFileName);
+
+      const output = fs.createWriteStream(outputZipPath);
+      const archive = archiver('zip', {
+        zlib: { level: 9 } 
+      });
+
+      archive.pipe(output);
+
+      archive.on('error', (err) => {
+        res.status(500).json({ error: 'Error al comprimir el directorio' });
+      });
+
+      archive.directory(fullPath, false);
+
+      output.on('close', () => {
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+        const fileStream = fs.createReadStream(outputZipPath);
+        fileStream.pipe(res);
+      });
+
+      archive.finalize();
+    } else {
+      // Enviar archivo individual si no es un directorio
+      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(fullPath)}"`);
       res.setHeader('Content-Type', 'application/octet-stream');
       const fileStream = fs.createReadStream(fullPath);
       fileStream.pipe(res);
-    } else {
-      res.status(StatusCodes.BAD_REQUEST).json({ error: 'No se puede descargar un directorio' });
     }
   } catch (error) {
-    next(error);
+    console.error('Error al descargar el archivo:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Error al descargar el archivo' });
   }
 };
 
