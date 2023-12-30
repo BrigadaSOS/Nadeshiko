@@ -98,7 +98,7 @@ metadata:
   labels:
     app: brigadasos-db
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: 0
+    nginx.ingress.kubernetes.io/proxy-body-size: 10g
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/rewrite-target: /
     cert-manager.io/issuer: clusterissuer-le
