@@ -272,6 +272,8 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
       // Enviar archivo individual si no es un directorio
       res.setHeader('Content-Disposition', `attachment; filename="${path.basename(fullPath)}"`);
       res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Length', stats.size);
+
       const fileStream = fs.createReadStream(fullPath);
       fileStream.pipe(res);
     }
