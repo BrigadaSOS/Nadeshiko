@@ -269,13 +269,39 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
 
       archive.finalize();
     } else {
-      // Enviar archivo individual si no es un directorio
+      const fileSize = stats.size;
+
+      let start, end;
+      if (req.headers.range) {
+        const parts = req.headers.range.replace(/bytes=/, "").split("-");
+        start = parseInt(parts[0], 10);
+        end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      } else {
+        start = 0;
+        end = fileSize - 1;
+      }
+    
+      if(start >= fileSize) {
+        res.status(416).send('Requested Range Not Satisfiable');
+        return;
+      }
+    
       res.setHeader('Content-Disposition', `attachment; filename="${path.basename(fullPath)}"`);
       res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Length', stats.size);
-
-      const fileStream = fs.createReadStream(fullPath);
-      fileStream.pipe(res);
+      res.setHeader('Content-Length', end - start + 1);
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.status(206);
+    
+      const fileStream = fs.createReadStream(fullPath, { start, end });
+      fileStream.on('error', (error) => {
+        console.error('Error al leer el archivo:', error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Error al leer el archivo' });
+      });
+      req.on('close', () => {
+        fileStream.destroy();
+      });
+      fileStream.pipe(res);    
     }
   } catch (error) {
     console.error('Error al descargar el archivo:', error);
