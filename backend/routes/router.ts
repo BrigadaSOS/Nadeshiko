@@ -14,7 +14,7 @@ import {
   GetWordsMatched,
   GetAllAnimes
 } from "../controllers/mediaController";
-import { signUp, logIn, logout, getUserInfo, loginGoogle } from "../controllers/userController";
+import { signUp, logIn, logout, getUserInfo, loginGoogle, sendReportSegment } from "../controllers/userController";
 import { getFilesFromDirectory, createFolder, deleteFolderOrFile, compressDirectory, uploadFile, dynamicStorage, downloadFile } from "../controllers/explorerController"
 import { hasPermission } from "../middleware/permissionHandler";
 import { isAuth } from "../middleware/authorization";
@@ -34,6 +34,7 @@ router.get('/v1/search/anime/info', isAuth, hasPermission(['READ_ANIME']), GetAl
 
 // Utility
 router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
+router.post("/v1/utility/report/segment", isAuthJWT, sendReportSegment)
 
 // Admin
 router.post("/v1/admin/database/resync/full", reSyncDatabase);
@@ -47,7 +48,6 @@ router.post("/v1/user/login", isAuth, logIn);
 router.post("/v1/user/login/google", isAuth, isAuth, loginGoogle)
 router.post("/v1/user/logout", isAuth, logout);
 router.post('/v1/user/info', isAuthJWT, requireRole(ADMIN, MOD, USER), getUserInfo)
-
 
 // Explorer
 router.get("/v1/files", isAuthJWT, getFilesFromDirectory)

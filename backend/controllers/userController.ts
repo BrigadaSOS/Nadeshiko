@@ -8,6 +8,7 @@ import { UserRole } from "../models/user/userRole";
 import { Role } from "../models/user/role";
 import { UserAuth } from "../models/user/userAuth"
 import { createToken, maxAge } from "../middleware/createTokenJWT";
+import { Report, ReportStatus, ReportType } from "../models/miscellaneous/report"
 
 const { OAuth2Client } = require("google-auth-library");
 const bcrypt = require("bcrypt");
@@ -56,6 +57,49 @@ export const getUserInfo = async (
     return next(error);
   }
 };
+
+
+export const sendReportSegment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+
+    const segment = req.body.segment;
+    const report_type = req.body.report_type;
+
+    const user = await User.findOne({
+      where: { id: req.jwt.user_id },
+    });
+
+    if (!user) throw new NotFound("This user has not been found.");
+
+    const reportTypeValue = Number(report_type);
+    if (!(reportTypeValue in ReportType)) {
+      throw new Error("Invalid report_type value");
+    }
+
+    const report = await Report.create(
+      {
+        segment_id: segment.segment_id,
+        segment_uuid: segment.segment_uuid,
+        report_type: reportTypeValue,
+        user_id: user.id,
+        status: ReportStatus.REPORTED
+      },
+    );
+
+    await report.save();
+
+    return res.status(StatusCodes.OK).json({
+      status: res.status
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 
 export const signUp = async (
   req: Request,
