@@ -18,11 +18,19 @@ import {
     DISMISSED = 3,
   }
   
+  export enum ReportType {
+    WRONG_AUDIO = 0,
+    DELAYED_AUDIO = 1,
+    NO_IMAGE_OR_AUDIO = 2,
+    NSFW_SEGMENT = 3,
+    BAD_QUALITY_SEGMENT = 4
+  }
+
   @Table({
     timestamps: true,  
-    tableName: "report",
+    tableName: "Report",
   })
-  export class ErrorReport extends Model {
+  export class Report extends Model {
     @Column({
       type: DataType.INTEGER,
       allowNull: false,
