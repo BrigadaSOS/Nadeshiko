@@ -4,7 +4,7 @@ import SearchView from '../views/SearchView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 import AllAnimeView from '../views/AllAnimeView.vue'
 import AccountSummaryView from '../views/AccountSummaryView.vue'
-
+import AboutView from '../views/AboutView.vue'
 import { userStore } from '../stores/user'
 
 const router = createRouter({
@@ -27,6 +27,11 @@ const router = createRouter({
       path: '/anime/all',
       name: 'anime-all',
       component: AllAnimeView
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: AboutView
     },
     {
       path: '/:catchAll(.*)',
