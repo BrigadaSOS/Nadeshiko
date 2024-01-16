@@ -26,7 +26,7 @@ onMounted(async () => {
     <div class="container mx-auto mt-6">
         <div class="">
             <h2
-                class="text-xl border-sred border-b-2 p-1  font-bold text-gray-700 dark:text-white hover:text-gray-600 dark:hover:text-gray-200">
+                class="text-xl border-sred border-b-2  pb-2   font-bold text-gray-700 dark:text-white hover:text-gray-600 dark:hover:text-gray-200">
                 Desarrolladores</h2>
         </div>
 
@@ -99,6 +99,40 @@ onMounted(async () => {
                 </div>
             </article>
         </div>
+        <div>
+            <h2
+                class="text-xl border-sred border-b-2 pt-2 pb-2 font-bold text-gray-700 dark:text-white hover:text-gray-600 dark:hover:text-gray-200">
+                Créditos y Fuentes de Datos
+            </h2>
+            <p class="mt-3 mb-3 text-gray-700 dark:text-gray-200">
+                Este sitio hace uso de materiales y referencias que son propiedad intelectual de sus respectivos autores y
+                poseedores de derechos. Consulte <a class="text-sred dark:hover:text-gray-200 underline"
+                    href="/anime/all">aquí</a> para obtener el listado de contenido utilizado como sus respectivos autores.
+            </p>
+            <p class="mt-3 inline text-gray-700 dark:text-gray-200">
+            El uso de estos materiales se realiza bajo la creencia de que cumple con las directrices de "uso justo" para
+            fines educativos y sin ánimo de lucro. Si usted es el titular de los derechos de alguno de estos materiales
+            y cree que no se cumple con las normas de uso justo, por favor, póngase en contacto con nosotros a
+        <p class="inline text-sred">brigadasosjapones@gmail.com</p>.
+        </p>
+    </div>
 
-
-</div></template>
+        <h2
+            class="text-xl border-sred border-b-2 pt-5 pb-2   font-bold text-gray-700 dark:text-white hover:text-gray-600 dark:hover:text-gray-200">
+            Contacto</h2>
+        <p class="mt-3 text-gray-700 dark:text-gray-200">
+            Si desea ponerse en contacto ya sea para dejar algún comentario, sugerencia, contribución o alguna otra cosa,
+            puede hacerlo a través de:
+        <ul class="list-disc pl-6 mt-2 text-gray-700 dark:text-gray-200">
+            <li>Nuestro correo: <p class="inline text-sred">brigadasosjapones@gmail.com</p>
+            </li>
+            <li>En Discord a través del <a class="inline dark:hover:text-gray-300 text-sred underline"
+                    href="https://discord.gg/ajWm26ADEj">servidor</a> de la Brigada SOS.</li>
+        </ul>
+        </p>
+        <p class="mt-3 text-gray-700 dark:text-gray-200">
+            Este sitio web está bajo la Licencia <a href="https://www.gnu.org/licenses/agpl-3.0.html"
+                class="text-sred underline hover:text-gray-600 dark:hover:text-gray-300" target="_blank">AGPL-3.0</a>.
+        </p>        
+</div>
+</template>
