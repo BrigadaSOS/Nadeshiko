@@ -16,7 +16,7 @@ let isLoading = ref(false)
 
 let latestVersion = ref('')
 
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 
 const route = useRoute()
 
@@ -103,26 +103,28 @@ const redirectReload = () => {
         >
           {{t("navbar.buttons.faq")}}
         </button>
+        <router-link to="/about">
         <button
           :class="isActive('/about').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
           class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
         >
           {{t("navbar.buttons.about")}}
         </button>
-        <button
-          :class="isActive('/about').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+      </router-link>
+        <a
+          :class="isActive('/discord').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
           class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
           href="https://discord.gg/ajWm26ADEj"
         >
           {{t("navbar.buttons.discord")}}
-        </button>
-        <button
-          :class="isActive('/about').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+      </a>
+        <a
+          :class="isActive('/guide').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
           class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
           href="https://brigadasos.xyz/"
         >
           {{t("navbar.buttons.guide")}}
-        </button>
+        </a>
   
           <div class="flex flex-col md:py-2 md:flex-row z-50 items-center gap-x-2 md:ml-auto">
             <LanguageSelector class="w-full mb-2 md:mb-0 md:w-auto" />
