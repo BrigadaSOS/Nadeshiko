@@ -97,12 +97,20 @@ const redirectReload = () => {
         >
           {{t("navbar.buttons.home")}}
         </button>
-        <button
-          :class="isActive('/faq').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
-          class="font-bold text-white md:py-3 px-4 transition border-b-2  border-transparent hover:border-white"
+        <a
+          :class="isActive('/discord').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
+          href="https://discord.gg/ajWm26ADEj"
         >
-          {{t("navbar.buttons.faq")}}
-        </button>
+          {{t("navbar.buttons.discord")}}
+      </a>
+      <a
+          :class="isActive('/guide').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
+          href="https://brigadasos.xyz/"
+        >
+          {{t("navbar.buttons.guide")}}
+        </a>
         <router-link to="/about">
         <button
           :class="isActive('/about').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
@@ -111,20 +119,8 @@ const redirectReload = () => {
           {{t("navbar.buttons.about")}}
         </button>
       </router-link>
-        <a
-          :class="isActive('/discord').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
-          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
-          href="https://discord.gg/ajWm26ADEj"
-        >
-          {{t("navbar.buttons.discord")}}
-      </a>
-        <a
-          :class="isActive('/guide').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
-          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
-          href="https://brigadasos.xyz/"
-        >
-          {{t("navbar.buttons.guide")}}
-        </a>
+
+
   
           <div class="flex flex-col md:py-2 md:flex-row z-50 items-center gap-x-2 md:ml-auto">
             <LanguageSelector class="w-full mb-2 md:mb-0 md:w-auto" />
