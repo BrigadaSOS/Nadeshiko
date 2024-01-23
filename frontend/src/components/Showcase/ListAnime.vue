@@ -13,16 +13,21 @@ const base_hover = ref(null)
 
 const getLatestAnime = async () => {
   try {
-    let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/info?' + new URLSearchParams({
-        size: 10,
-        sorted: true
-      }), {
-      method: 'GET',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json'
+    let response = await fetch(
+      import.meta.env.VITE_APP_BASE_URL_BACKEND +
+        'search/anime/info?' +
+        new URLSearchParams({
+          size: 10,
+          sorted: true
+        }),
+      {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
-    })
+    )
     response = await response.json()
     latest_anime_list.value = response.results
     general_stats.value = response.stats
@@ -38,25 +43,28 @@ onMounted(() => {
 </script>
 <template>
   <BatchSearchModal />
-  <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5 ">
+  <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5">
     <!-- Grid -->
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
         <div class="max-w-xl m-4">
           <h2 class="text-3xl mt-5 sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
           <p class="mt-1 text-xl md:block dark:text-white/80">
-            {{t("home.nadeDbDescription")}}
+            {{ t('home.nadeDbDescription') }}
           </p>
           <div
             class="flex flex-col dark:text-white/80 first-letter:items-left px-5 py-4 text-lg mx-auto sm:px-6 lg:px-8"
           >
             <ul class="list-disc">
               <li class="mb-2">
-                {{t("home.nadeDbDescriptionJpSearch")}}: <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=彼女">彼女</a>
+                {{ t('home.nadeDbDescriptionJpSearch') }}:
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=彼女">彼女</a>
               </li>
               <li>
-                {{t("home.nadeDbDescriptionOtherSearch")}}:
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Girlfriend">Girlfriend</a>,
+                {{ t('home.nadeDbDescriptionOtherSearch') }}:
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Girlfriend"
+                  >Girlfriend</a
+                >,
                 <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Novia">Novia</a>
               </li>
             </ul>
@@ -64,7 +72,7 @@ onMounted(() => {
         </div>
         <div class="mb-5 border-b border-white/20" />
         <h2 class="text-2xl m-4 font-bold md:text-xl md:leading-tight dark:text-white">
-          {{t("home.keyFeatures.title")}}
+          {{ t('home.keyFeatures.title') }}
         </h2>
         <div class="grid gap-6 sm:grid-cols-2 text-base mb-8">
           <div class="flex items-center text-gray-800 -px-3 dark:text-gray-200">
@@ -78,7 +86,7 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
 
-            <span class="mx-1">{{t("home.keyFeatures.feature1")}}</span>
+            <span class="mx-1">{{ t('home.keyFeatures.feature1') }}</span>
           </div>
 
           <div class="flex items-center text-gray-800 -px-3 dark:text-gray-200">
@@ -92,7 +100,7 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
 
-            <span class="mx-1">{{t("home.keyFeatures.feature2")}}</span>
+            <span class="mx-1">{{ t('home.keyFeatures.feature2') }}</span>
           </div>
           <div class="flex items-center text-gray-800 -px-3 dark:text-gray-200">
             <svg
@@ -105,7 +113,7 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
 
-            <span class="mx-1">{{t("home.keyFeatures.feature3")}}</span>
+            <span class="mx-1">{{ t('home.keyFeatures.feature3') }}</span>
           </div>
           <div class="flex items-center text-gray-800 -px-3 dark:text-gray-200">
             <svg
@@ -118,7 +126,7 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
 
-            <span class="mx-1">{{t("home.keyFeatures.feature4")}}</span>
+            <span class="mx-1">{{ t('home.keyFeatures.feature4') }}</span>
           </div>
           <div class="flex items-center text-gray-800 -px-3 dark:text-gray-200">
             <svg
@@ -131,7 +139,7 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
 
-            <span class="mx-1">{{t("home.keyFeatures.feature5")}}</span>
+            <span class="mx-1">{{ t('home.keyFeatures.feature5') }}</span>
           </div>
           <div class="flex items-center text-gray-800 -px-3 dark:text-gray-200">
             <svg
@@ -144,12 +152,12 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
 
-            <span class="mx-1">{{t("home.keyFeatures.feature6")}}</span>
+            <span class="mx-1">{{ t('home.keyFeatures.feature6') }}</span>
           </div>
         </div>
         <div class="mb-5 border-b border-white/20" />
         <h2 class="text-2xl m-4 font-bold md:text-xl md:leading-tight dark:text-white">
-          {{t("home.otherFeatures.title")}}
+          {{ t('home.otherFeatures.title') }}
         </h2>
 
         <button
@@ -161,8 +169,8 @@ onMounted(() => {
           <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
 
           <div class="mr-2">
-            {{t("batchSearch.button")}}
-            </div>
+            {{ t('batchSearch.button') }}
+          </div>
         </button>
 
         <button
@@ -173,7 +181,7 @@ onMounted(() => {
         >
           <BaseIcon :path="mdiStarShootingOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
           <div class="mr-2">
-            {{t("home.otherFeatures.ankiSupport")}}
+            {{ t('home.otherFeatures.ankiSupport') }}
           </div>
         </button>
       </div>
@@ -186,14 +194,14 @@ onMounted(() => {
           <div class="tab-content md:m-2">
             <div class="inline-flex justify-between items-center w-full mb-4">
               <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">
-                {{t("animeList.recentlyAddedTitle")}}
+                {{ t('animeList.recentlyAddedTitle') }}
               </h1>
               <router-link to="/anime/all">
                 <button
                   type="button"
                   class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                 >
-                  {{t("animeList.seeAll")}}
+                  {{ t('animeList.seeAll') }}
                   <svg
                     class="w-2.5 h-auto"
                     width="17"
@@ -227,6 +235,9 @@ onMounted(() => {
                       class="w-full h-full object-cover absolute top-0 left-0"
                       :src="media_info.cover + '?width=230&height=326'"
                     />
+                    <span class="absolute bottom-1 left-1 rounded-md bg-sgray2/90 text-white font-bold text-xs px-2 py-1 ">
+                      {{ media_info.airing_format }}
+                    </span>
                   </div>
 
                   <template #content>
@@ -241,23 +252,31 @@ onMounted(() => {
                         </div>
                         <div class="mt-3 break-words">
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.romajiName")}}:</span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white"
+                              >{{ t('animeList.romajiName') }}:</span
+                            >
                             {{ media_info.romaji_name }}
                           </p>
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.japaneseName")}}:</span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white"
+                              >{{ t('animeList.japaneseName') }}:</span
+                            >
                             {{ media_info.japanese_name }}
                           </p>
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.seasons")}}:</span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white">{{ t('animeList.seasons') }}:</span>
                             {{ media_info.num_seasons }}
                           </p>
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white">{{t("animeList.episodes")}}: </span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white"
+                              >{{ t('animeList.episodes') }}:
+                            </span>
                             {{ media_info.num_episodes }}
                           </p>
                           <p>
-                            <span class="font-bold pt-3 first:pt-0 dark:text-white break-words">{{t("animeList.genres")}}: </span>
+                            <span class="font-bold pt-3 first:pt-0 dark:text-white break-words"
+                              >{{ t('animeList.genres') }}:
+                            </span>
                             {{ media_info.genres.toString() }}
                           </p>
                         </div>
@@ -271,7 +290,7 @@ onMounted(() => {
                 </div>
                 <div class="text-center mt-1 justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-medium line-clamp-2">
-                    {{ media_info.num_segments }} {{t("animeList.sentenceCount")}}
+                    {{ media_info.num_segments }} {{ t('animeList.sentenceCount') }}
                   </h3>
                 </div>
               </div>
@@ -298,24 +317,26 @@ onMounted(() => {
   </div>
   <section class="text-white p-4 lg:p-0 body-font">
     <h2 class="text-2xl m-4 -mt-8 font-bold md:text-xl md:leading-tight dark:text-white">
-      {{t("home.stats.title")}}
+      {{ t('home.stats.title') }}
     </h2>
     <div class="mx-auto -mb-12">
       <div class="flex flex-wrap -m-4 text-center">
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">+{{Math.ceil(general_stats.total_segments / 100) * 100}}</h2>
+            <h2 class="title-font font-medium text-3xl text-white">
+              +{{ Math.ceil(general_stats.total_segments / 100) * 100 }}
+            </h2>
             <p class="leading-relaxed">
-              {{t("home.stats.sentenceCount")}}
+              {{ t('home.stats.sentenceCount') }}
             </p>
           </div>
         </div>
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">{{general_stats.total_animes}}</h2>
+            <h2 class="title-font font-medium text-3xl text-white">{{ general_stats.total_animes }}</h2>
             <p class="leading-relaxed">
-              {{t("home.stats.mediaCount")}}
-              </p>
+              {{ t('home.stats.mediaCount') }}
+            </p>
           </div>
         </div>
       </div>
