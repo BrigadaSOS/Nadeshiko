@@ -3,7 +3,7 @@ import "vue-toastification/dist/index.css";
 
 import './assets/main.css'
 
-import { createHead } from '@vueuse/head'
+import { createHead } from '@unhead/vue'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
