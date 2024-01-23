@@ -16,6 +16,14 @@ let isLoading = ref(false)
 
 let latestVersion = ref('')
 
+import { RouterLink, useRoute } from 'vue-router'
+
+const route = useRoute()
+
+const isActive = (path) => {
+  return computed(() => route.path === path)
+}
+
 onMounted(async () => {
   getLatestVersion()
   isLoading.value = true
@@ -42,7 +50,7 @@ const redirectReload = () => {
 <template>
   <Auth />
   <header
-    class="flex flex-wrap md:justify-start md:flex-nowrap z-50 w-full bg-white border-b border-gray-200 text-sm py-3 md:py-0 dark:bg-sred dark:border-gray-700"
+    class="flex flex-wrap md:justify-start md:flex-nowrap z-50 w-full bg-white border-b border-gray-200 text-sm py-3 md:py-0 dark:bg-sred  dark:border-gray-700"
   >
     <nav class="relative lg:w-11/12 w-full mx-auto px-4 md:flex md:items-center md:justify-between" aria-label="Global">
       <div class="flex items-center justify-between">
@@ -78,21 +86,43 @@ const redirectReload = () => {
           </button>
         </div>
       </div>
-      <div id="navbar-collapse-with-animation" class="hs-collapse hidden basis-full grow md:block">
+      <div id="navbar-collapse-with-animation" class="hs-collapse  hidden basis-full grow md:block">
         <div
-          class="flex flex-col gap-y-4 gap-x-0 mt-5 md:flex-row md:items-center md:gap-y-0 md:gap-x-7 md:mt-0 md:pl-10"
+          class="flex flex-col  gap-y-4 gap-x-0 mt-5 md:flex-row md:items-center md:gap-y-0 md:gap-x-4 md:mt-0 md:pl-10"
         >
-          <button @click="redirectReload" class="font-bold md:py-4 dark:text-white" aria-current="page">{{t("navbar.buttons.home")}}</button>
-          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">{{t("navbar.buttons.faq")}}</a>
-          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" href="#">{{t("navbar.buttons.about")}}</a>
-          <a class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500" target="_blank" href="https://discord.gg/ajWm26ADEj">{{t("navbar.buttons.discord")}}</a>
-          <a
-            href="https://brigadasos.xyz/"
-            class="font-bold text-white/90 hover:text-gray-400 md:py-5 dark:hover:text-gray-500"
-            >{{t("navbar.buttons.guide")}}</a
-          >
+        <button
+          @click="redirectReload"
+          :class="isActive('/').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
+        >
+          {{t("navbar.buttons.home")}}
+        </button>
+        <a
+          :class="isActive('/discord').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
+          href="https://discord.gg/ajWm26ADEj"
+        >
+          {{t("navbar.buttons.discord")}}
+      </a>
+      <a
+          :class="isActive('/guide').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
+          href="https://brigadasos.xyz/"
+        >
+          {{t("navbar.buttons.guide")}}
+        </a>
+        <router-link to="/about">
+        <button
+          :class="isActive('/about').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
+        >
+          {{t("navbar.buttons.about")}}
+        </button>
+      </router-link>
 
-          <div class="flex flex-col md:flex-row z-50 items-center gap-x-2 md:ml-auto">
+
+  
+          <div class="flex flex-col md:py-2 md:flex-row z-50 items-center gap-x-2 md:ml-auto">
             <LanguageSelector class="w-full mb-2 md:mb-0 md:w-auto" />
 
             <button
