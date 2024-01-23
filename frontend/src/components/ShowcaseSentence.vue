@@ -1,6 +1,5 @@
 <script setup>
 import { userStore } from '../stores/user'
-import { useHead } from '@vueuse/head'
 import {
   mdiTuneVariant,
   mdiTextSearch,
@@ -32,6 +31,10 @@ import EditSentenceModal from './Showcase/EditSentenceModal.vue'
 // Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
+
+// Configuracion metadata
+import { useHead } from '@unhead/vue'
+
 
 const orderedSegments = computed(() => {
   const segments = [
@@ -111,12 +114,23 @@ onBeforeRouteUpdate(async (to, from) => {
 })
 
 onMounted(async () => {
+  
   const urlParams = new URLSearchParams(window.location.search)
   const searchTerm = urlParams.get('query')
   const sortFilter = urlParams.get('sort')
   const animeId = urlParams.get('anime_id')
   const exactMatch = urlParams.get('exact_match')
-
+  const metaTitle = computed(() => `${querySearch.value} - NadeDB`);
+  const metaDescription = computed(() => `Viewing search results for ${querySearch.value} on NadeDB.`);
+  useHead({
+    title: metaTitle,
+    meta: [
+      {
+        name: 'description',
+        content: metaDescription,
+      },
+    ],
+  });
   isBannerClosed = localStorage.getItem('isBannerClosed')
   let element = document.getElementById('drawer-button')
 
