@@ -9,8 +9,11 @@ import { userStore } from '../stores/user'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  scrollBehavior() {
-    return { top: 0 }
+  scrollBehavior(to) {
+    if (to.path === '/search/sentences') {
+      return false;
+    }
+    return { top: 0 };
   },
   routes: [
     {
