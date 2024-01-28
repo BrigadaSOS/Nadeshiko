@@ -1172,7 +1172,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     <li class="snap-start"
                       v-for="season in Object.keys(animeMap[anime_id].season_with_episode_hits || {})">
                       <button @click="toggleSeasonSelection(season)"
-                        :class="{ 'bg-sgrayhover': isSelectedSeason(season) }"
+                        :class="{ 'bg-sgrayhover underline': isSelectedSeason(season) }"
                         class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span class="">Temporada {{ season }}</span>
                         <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
@@ -1199,7 +1199,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     </button>
                     <li class="snap-start-disabled"
                       v-for="episode in Object.keys(animeMap[anime_id]?.season_with_episode_hits[selected_season])">
-                      <button @click="toggleEpisodeSelection(episode)" :class="{ 'bg-sgrayhover': isSelected(episode) }"
+                      <button @click="toggleEpisodeSelection(episode)" :class="{ 'bg-sgrayhover underline': isSelected(episode) }"
                         class="flex border duration-300  hover:bg-sgrayhover items-center justify-between w-full px-4 py-2 text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span>Episodio {{ episode }}</span>
                         <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
