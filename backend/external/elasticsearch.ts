@@ -93,6 +93,22 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
             )
         }
 
+        if (request.season) {
+            filter.push({
+                terms: {
+                    season: request.season
+                }
+            });
+        }
+        
+        if (request.episode) {
+            filter.push({
+                terms: {
+                    episode: request.episode
+                }
+            });
+        }
+
         if(request.media) {
             const mediaQueries :QueryDslQueryContainer[] = request.media.flatMap((mediaFilter) => {
                 if(!mediaFilter.seasons) {
@@ -225,7 +241,23 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
                 terms: {
                     field: "media_id",
                     size: 10000
-                }
+                },
+                aggs: {
+                    group_by_season: {
+                        terms: {
+                            field: "season",
+                            size: 10000
+                        },
+                        aggs: {
+                            group_by_episode: {
+                                terms: {
+                                    field: "episode",
+                                    size: 10000
+                                }
+                            }
+                        }        
+                    }
+                }        
             }
         }
     });
@@ -370,17 +402,30 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
     let statistics: SearchAnimeSentencesStatistics[] = [];
     if(esNoHitsNoFiltersResponse.aggregations && "group_by_media_id" in esNoHitsNoFiltersResponse.aggregations) {
         // @ts-ignore
-        statistics = esNoHitsNoFiltersResponse.aggregations["group_by_media_id"].buckets.map((bucket  : any) => {
-            const mediaInfo = mediaInfoResponse.results[Number(bucket["key"])];
+        statistics = esNoHitsNoFiltersResponse.aggregations["group_by_media_id"].buckets.map((mediaBucket) => {
+            const mediaInfo = mediaInfoResponse.results[Number(mediaBucket["key"])];
             if(!mediaInfo || !Object.keys(mediaInfo).length) {
                 return;
             }
+            // @ts-ignore
+            const seasonsWithResults = mediaBucket["group_by_season"].buckets.reduce((seasonsAcc, seasonBucket) => {
+                // @ts-ignore
+                const episodes = seasonBucket["group_by_episode"].buckets.reduce((episodesAcc, episodeBucket) => {
+                    episodesAcc[episodeBucket["key"]] = episodeBucket["doc_count"];
+                    return episodesAcc;
+                }, {});
+    
+                seasonsAcc[seasonBucket["key"]] = episodes;
+                return seasonsAcc;
+            }, {});
+    
 
             return {
-                anime_id: bucket["key"],
+                anime_id: mediaBucket["key"],
                 name_anime_en: mediaInfo.english_name,
                 name_anime_jp: mediaInfo.japanese_name,
-                amount_sentences_found: bucket["doc_count"]
+                amount_sentences_found: mediaBucket["doc_count"],
+                season_with_episode_hits: seasonsWithResults
             }
         }).filter(notEmpty);
     }
