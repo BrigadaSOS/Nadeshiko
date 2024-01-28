@@ -1053,7 +1053,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           </button>
 
 
-          <div class="w-full flex flex-col relative">
+          <div v-if="filtersVisible" class="w-full flex flex-col relative">
             <button type="button" @click="showModalBatchSearch"
               data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
               class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
