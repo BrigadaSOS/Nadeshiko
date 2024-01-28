@@ -246,6 +246,10 @@ const updateURL = () => {
     queryParameters.episode = selectedEpisodes.value.join(',');
   }
 
+  if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
+      queryParameters.exact_match = exact_match.value ? 'true' : 'false'
+    }
+
   router.push({ query: queryParameters })
 };
 
@@ -316,6 +320,8 @@ const filterAnime = async (new_anime_id) => {
       queryParameters.exact_match = exact_match.value ? 'true' : 'false'
     }
 
+    selected_season.value = null
+    selectedEpisodes.value = []
     await router.push({ query: queryParameters })
 
     anime_id.value = new_anime_id
@@ -1031,7 +1037,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <div id="search-anime-disabled" class="hidden ml-6  xl:w-[22rem] xxl:w-[30rem] xl:flex flex-col py-6 "
           :style="{ position: 'relative', top: searchBarHeight + 'px-disabled' }">
           <div>
-            <div class="w-full   flex flex-col relative">
+            <div class="w-full flex flex-col relative">
               <button type="button" @click="showModalBatchSearch"
                 data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
                 class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
@@ -1139,8 +1145,9 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <div class="overflow-auto snap-y max-h-[50vh]">
                     <li class="snap-start" v-for="item in filteredAnimes" :key="item.anime_id">
                       <button @click="filterAnime(item.anime_id, item.name_anime_en)"
+                        :class="{ 'bg-sgrayhover': item.anime_id == anime_id }"
                         class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span class="">{{ item.name_anime_en }}</span>
+                        <span :class="{ '': item.anime_id == anime_id }">{{ item.name_anime_en }}</span>
                         <span
                           v-if="item.name_anime_en.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
                           class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
@@ -1165,16 +1172,16 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     <span class="font-medium text-base">Temporadas</span>
                   </div>
                   <div class="overflow-auto snap-y max-h-[18vh]">
-                    <button @click="toggleSeasonSelection('all')"
+                    <button @click="toggleSeasonSelection('all')" :class="{ 'bg-sgrayhover': isNaN(selected_season) || selected_season === null  }"
                       class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                       <span>{{ t('searchpage.main.labels.all') }}</span>
                     </button>
                     <li class="snap-start"
                       v-for="season in Object.keys(animeMap[anime_id].season_with_episode_hits || {})">
                       <button @click="toggleSeasonSelection(season)"
-                        :class="{ 'bg-sgrayhover underline': isSelectedSeason(season) }"
+                        :class="{ 'bg-sgrayhover': isSelectedSeason(season) }"
                         class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span class="">Temporada {{ season }}</span>
+                        <span :class="{ '': isSelectedSeason(season) }" class="">Temporada {{ season }}</span>
                         <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
                           {{ Object.values(animeMap[anime_id]?.season_with_episode_hits[season]).reduce((total,
                             valorActual) => total + valorActual, 0) }}
@@ -1193,15 +1200,15 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     <span class="font-medium text-base">Episodios</span>
                   </div>
                   <div class="overflow-auto snap-y max-h-[26vh]">
-                    <button @click="toggleEpisodeSelection('all')"
+                    <button @click="toggleEpisodeSelection('all')" :class="{ 'bg-sgrayhover': selectedEpisodes.length === 0  }"
                       class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                       <span>{{ t('searchpage.main.labels.all') }}</span>
                     </button>
                     <li class="snap-start-disabled"
                       v-for="episode in Object.keys(animeMap[anime_id]?.season_with_episode_hits[selected_season])">
-                      <button @click="toggleEpisodeSelection(episode)" :class="{ 'bg-sgrayhover underline': isSelected(episode) }"
+                      <button @click="toggleEpisodeSelection(episode)" :class="{ 'bg-sgrayhover': isSelected(episode) }"
                         class="flex border duration-300  hover:bg-sgrayhover items-center justify-between w-full px-4 py-2 text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span>Episodio {{ episode }}</span>
+                        <span :class="{ '': isSelected(episode) }">Episodio {{ episode }}</span>
                         <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
                           {{ animeMap[anime_id]?.season_with_episode_hits[selected_season][episode] }}
                         </span>
