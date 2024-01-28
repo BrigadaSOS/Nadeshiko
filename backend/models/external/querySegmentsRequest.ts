@@ -11,6 +11,8 @@ export interface QuerySegmentsRequest {
     readonly cursor?: FieldValue[];
     readonly exact_match?: boolean;
     readonly anime_id?: number; // To be deprecated
+    readonly season?: any[];
+    readonly episode?: any[];
     readonly media?: QuerySegmentsAnimeFilter[];
 }
 
