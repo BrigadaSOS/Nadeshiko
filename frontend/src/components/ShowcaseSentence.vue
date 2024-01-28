@@ -1145,7 +1145,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <div class="overflow-auto snap-y max-h-[50vh]">
                     <li class="snap-start" v-for="item in filteredAnimes" :key="item.anime_id">
                       <button @click="filterAnime(item.anime_id, item.name_anime_en)"
-                        :class="{ 'bg-sgrayhover': item.anime_id == anime_id }"
+                        :class="{ 'bg-sgrayhover': item.anime_id == anime_id}"
                         class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span :class="{ '': item.anime_id == anime_id }">{{ item.name_anime_en }}</span>
                         <span
