@@ -1,13 +1,16 @@
 <script setup>
 import { userStore } from '../stores/user'
 import {
+  mdiArrowCollapseRight,
   mdiTuneVariant,
   mdiTextSearch,
   mdiTranslate,
   mdiStarShootingOutline,
   mdiPencilOutline,
   mdiRefresh,
-  mdiFileVideo
+  mdiFileVideo,
+  mdiArrowCollapseLeft,
+  mdiSwapVertical
 } from '@mdi/js'
 import { useToast } from 'vue-toastification'
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
@@ -89,6 +92,7 @@ let random_seed = ref(null)
 const isMounted = ref(false)
 let selected_season = ref(null)
 let selected_episode = ref(null)
+let filtersVisible = ref(true)
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
@@ -247,8 +251,8 @@ const updateURL = () => {
   }
 
   if (typeof exact_match.value !== 'undefined' && exact_match.value !== null) {
-      queryParameters.exact_match = exact_match.value ? 'true' : 'false'
-    }
+    queryParameters.exact_match = exact_match.value ? 'true' : 'false'
+  }
 
   router.push({ query: queryParameters })
 };
@@ -1033,193 +1037,207 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <SidebarAnime :list="statistics" :sentences="sentences" :type_sort="type_sort" @filter-anime="filterAnime"
           @filter-anime-length="sortFilter" />
       </div>
+
       <div v-if="statistics.length > 1">
-        <div id="search-anime-disabled" class="hidden ml-6  xl:w-[22rem] xxl:w-[30rem] xl:flex flex-col py-6 "
+        <div id="search-anime-disabled"
+          :class="{ 'xl:w-[21rem] xxl:w-[30rem]': filtersVisible, 'xl:w-[4rem] xxl:w-[10rem]': !filtersVisible }"
+          class="hidden ml-6 xl:flex flex-col py-7"
           :style="{ position: 'relative', top: searchBarHeight + 'px-disabled' }">
-          <div>
-            <div class="w-full flex flex-col relative">
-              <button type="button" @click="showModalBatchSearch"
-                data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
-                class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
 
-                <div class="mr-2">{{ t('batchSearch.button') }}</div>
-              </button>
-              <div class="relative flex pb-4 items-center">
-                <div class="flex-grow border-t border-sgray2"></div>
-                <div class="flex-grow border-t border-sgray2"></div>
-              </div>
-              <div class="inline-flex space-x-2">
-                <div class="hs-dropdown relative inline-block w-full z-20">
-                  <button id="hs-dropdown-default" type="button"
-                    class="hs-dropdown-toggle duration-300 py-3 px-4 w-full mb-4 inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                    <svg aria-hidden="true" class="w-6 mx-2 fill-white text-white dark:text-white" viewBox="0 -1 20 20"
+          <button type="button" @click="filtersVisible = !filtersVisible"
+            class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <BaseIcon :path="filtersVisible ? mdiArrowCollapseRight : mdiArrowCollapseLeft" w="w-5 md:w-5" h="h-5 md:h-5"
+              size="20" :class="{ 'mr-3': filtersVisible, '': !filtersVisible }" />
+
+            <div v-if="filtersVisible" class="mr-2">Ocultar Filtros</div>
+          </button>
+
+
+          <div class="w-full flex flex-col relative">
+            <button type="button" @click="showModalBatchSearch"
+              data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
+              class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+              <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20"
+                :class="{ 'mr-3': filtersVisible, '': !filtersVisible }" />
+
+              <div v-if="filtersVisible" class="mr-2">{{ t('batchSearch.button') }}</div>
+            </button>
+            <div class="relative flex pb-4 items-center">
+              <div class="flex-grow border-t border-sgray2"></div>
+              <div class="flex-grow border-t border-sgray2"></div>
+            </div>
+            <div class="inline-flex space-x-2">
+              <div class="hs-dropdown relative inline-block w-full z-20">
+                <button id="hs-dropdown-default" type="button"
+                  class="hs-dropdown-toggle duration-300 py-3.5 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <svg aria-hidden="true" class="w-5 h-5 mx-2 fill-white text-white dark:text-white" viewBox="0 0 18 18"
                       xmlns="http://www.w3.org/2000/svg">
-                      <path xmlns="http://www.w3.org/2000/svg" id="Path_36" data-name="Path 36"
+                      <path stroke-width="0.5" stroke="white"  xmlns="http://www.w3.org/2000/svg" id="Path_36" data-name="Path 36"
                         d="M28.854,12.146a.5.5,0,0,1,0,.708l-3,3a.518.518,0,0,1-.163.109.5.5,0,0,1-.382,0,.518.518,0,0,1-.163-.109l-3-3a.5.5,0,0,1,.708-.708L25,14.293V.5a.5.5,0,0,1,1,0V14.293l2.146-2.147A.5.5,0,0,1,28.854,12.146Zm9-9-3-3a.518.518,0,0,0-.163-.109.505.505,0,0,0-.382,0,.518.518,0,0,0-.163.109l-3,3a.5.5,0,0,0,.708.708L34,1.707V15.5a.5.5,0,0,0,1,0V1.707l2.146,2.147a.5.5,0,1,0,.708-.708Z"
-                        transform="translate(-22)" />
+                        transform="translate(-22)"/>
                     </svg>
-                    <div>
-                      {{ t('searchpage.main.buttons.sortmain') }}
-                      <span v-if="type_sort === 'asc'">({{ t('searchpage.main.buttons.sortlengthmin') }})</span>
-                      <span v-else-if="type_sort === 'desc'">({{ t('searchpage.main.buttons.sortlengthmax') }})</span>
-                      <span v-else-if="type_sort === 'random'">({{ t('searchpage.main.buttons.sortrandom') }})</span>
-                    </div>
-                    <svg class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white" width="16" height="16"
-                      viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M2 5L8.16086 10.6869C8.35239 10.8637 8.64761 10.8637 8.83914 10.6869L15 5"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
-                  </button>
+                    
+                  <div v-if="filtersVisible">
+                    {{ t('searchpage.main.buttons.sortmain') }}
+                    <span v-if="type_sort === 'asc'">({{ t('searchpage.main.buttons.sortlengthmin') }})</span>
+                    <span v-else-if="type_sort === 'desc'">({{ t('searchpage.main.buttons.sortlengthmax') }})</span>
+                    <span v-else-if="type_sort === 'random'">({{ t('searchpage.main.buttons.sortrandom') }})</span>
+                  </div>
+                  <svg v-if="filtersVisible" class="hs-dropdown-open:rotate-180 w-2.5 h-2.5 text-white" width="16"
+                    height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 5L8.16086 10.6869C8.35239 10.8637 8.64761 10.8637 8.83914 10.6869L15 5"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </button>
 
-                  <div
-                    class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] hs-dropdown-open:opacity-100 opacity-0 w-2/12 hidden z-10 mt-2 min-w-[15rem] bg-white shadow-md rounded-lg p-2 dark:bg-sgray dark:border dark:border-gray-600 dark:divide-gray-700"
-                    aria-labelledby="hs-dropdown-default">
-                    <a class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      @click="sortFilter('none')">
-                      <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path
-                          d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
-                        <path
-                          d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
-                      </svg>
-                      {{ t('searchpage.main.buttons.sortlengthnone') }}
-                    </a>
-                    <a class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      @click="sortFilter('asc')">
-                      <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path
-                          d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
-                        <path
-                          d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
-                      </svg>
-                      {{ t('searchpage.main.buttons.sortlengthmin') }}
-                    </a>
-                    <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      @click="sortFilter('desc')">
-                      <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path
-                          d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
-                        <path
-                          d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
-                      </svg>
-                      {{ t('searchpage.main.buttons.sortlengthmax') }}
-                    </a>
-                    <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
-                      @click="sortFilter('random')">
-                      <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path
-                          d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
-                        <path
-                          d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
-                      </svg>
-                      {{ t('searchpage.main.buttons.sortrandom') }}
-                    </a>
+                <div
+                  class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] hs-dropdown-open:opacity-100 opacity-0 w-2/12 hidden z-10 mt-2 min-w-[15rem] bg-white shadow-md rounded-lg p-2 dark:bg-sgray dark:border dark:border-gray-600 dark:divide-gray-700"
+                  aria-labelledby="hs-dropdown-default">
+                  <a class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                    @click="sortFilter('none')">
+                    <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path
+                        d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
+                      <path
+                        d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
+                    </svg>
+                    {{ t('searchpage.main.buttons.sortlengthnone') }}
+                  </a>
+                  <a class="flex cursor-pointer items-center gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                    @click="sortFilter('asc')">
+                    <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path
+                        d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
+                      <path
+                        d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
+                    </svg>
+                    {{ t('searchpage.main.buttons.sortlengthmin') }}
+                  </a>
+                  <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                    @click="sortFilter('desc')">
+                    <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path
+                        d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
+                      <path
+                        d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
+                    </svg>
+                    {{ t('searchpage.main.buttons.sortlengthmax') }}
+                  </a>
+                  <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                    @click="sortFilter('random')">
+                    <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path
+                        d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zm.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51z" />
+                      <path
+                        d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z" />
+                    </svg>
+                    {{ t('searchpage.main.buttons.sortrandom') }}
+                  </a>
+                </div>
+              </div>
+
+              <button type="button" v-if="type_sort === 'random'" @click="sortFilter('random')"
+                class="py-2 duration-300 px-2 mb-4 w-auto mx-auto inline-flex  justify-center items-center gap-= border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-xs text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                <BaseIcon :path="mdiRefresh" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mx-2" />
+              </button>
+            </div>
+            <div v-if="filtersVisible">
+              <ul
+                class="z-20 divide-y divide-gray-600 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white">
+                <div
+                  class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600">
+                  <span class="font-medium text-base">{{ t('searchpage.main.labels.contentList') }}</span>
+                </div>
+                <div class="flex flex-inline">
+                  <input type="search" v-model="querySearchAnime" id="default-search2" autocomplete="off"
+                    class="block w-full p-4 pl-4 text-sm xxl:text-base xxm:text-2xl text-gray-900 border-none dark:bg-sgray dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+                    :placeholder="placeholder_search2" required />
+                  <div class="absolute z-10 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
+                    <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none"
+                      stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
                   </div>
                 </div>
-
-                <button type="button" v-if="type_sort === 'random'" @click="sortFilter('random')"
-                  class="py-2 duration-300 px-2 mb-4 w-auto mx-auto inline-flex justify-center items-center gap-= border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-xs text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                  <BaseIcon :path="mdiRefresh" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mx-2" />
-                </button>
-              </div>
-              <div>
-                <ul
-                  class="z-20 divide-y divide-gray-600 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white">
-                  <div
-                    class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600">
-                    <span class="font-medium text-base">{{ t('searchpage.main.labels.contentList') }}</span>
-                  </div>
-                  <div class="flex flex-inline">
-                    <input type="search" v-model="querySearchAnime" id="default-search2" autocomplete="off"
-                      class="block w-full p-4 pl-4 text-sm xxl:text-base xxm:text-2xl text-gray-900 border-none dark:bg-sgray dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
-                      :placeholder="placeholder_search2" required />
-                    <div class="absolute z-20 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
-                      <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  <div class="overflow-auto snap-y max-h-[50vh]">
-                    <li class="snap-start" v-for="item in filteredAnimes" :key="item.anime_id">
-                      <button @click="filterAnime(item.anime_id, item.name_anime_en)"
-                        :class="{ 'bg-sgrayhover': item.anime_id == anime_id}"
-                        class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span :class="{ '': item.anime_id == anime_id }">{{ item.name_anime_en }}</span>
-                        <span
-                          v-if="item.name_anime_en.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
-                          class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
-                          {{ item.amount_sentences_found }}
-                        </span>
-                      </button>
-                    </li>
-                  </div>
-
-                  <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600"></div>
-                </ul>
-              </div>
-              <div v-if="animeMap[anime_id] && anime_id !== 0" class="relative flex py-4 items-center">
-                <div class="flex-grow border-t border-sgray2"></div>
-                <div class="flex-grow border-t border-sgray2"></div>
-              </div>
-              <div class="pb-4" v-if="animeMap[anime_id] && anime_id !== 0">
-                <ul
-                  class="z-20 divide-y divide-gray-600 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white">
-                  <div
-                    class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600">
-                    <span class="font-medium text-base">Temporadas</span>
-                  </div>
-                  <div class="overflow-auto snap-y max-h-[18vh]">
-                    <button @click="toggleSeasonSelection('all')" :class="{ 'bg-sgrayhover': isNaN(selected_season) || selected_season === null  }"
+                <div class="overflow-auto snap-y max-h-[50vh]">
+                  <li class="snap-start" v-for="item in filteredAnimes" :key="item.anime_id">
+                    <button @click="filterAnime(item.anime_id, item.name_anime_en)"
+                      :class="{ 'bg-sgrayhover': item.anime_id == anime_id }"
                       class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                      <span>{{ t('searchpage.main.labels.all') }}</span>
+                      <span :class="{ '': item.anime_id == anime_id }">{{ item.name_anime_en }}</span>
+                      <span
+                        v-if="item.name_anime_en.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
+                        class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
+                        {{ item.amount_sentences_found }}
+                      </span>
                     </button>
-                    <li class="snap-start"
-                      v-for="season in Object.keys(animeMap[anime_id].season_with_episode_hits || {})">
-                      <button @click="toggleSeasonSelection(season)"
-                        :class="{ 'bg-sgrayhover': isSelectedSeason(season) }"
-                        class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span :class="{ '': isSelectedSeason(season) }" class="">Temporada {{ season }}</span>
-                        <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
-                          {{ Object.values(animeMap[anime_id]?.season_with_episode_hits[season]).reduce((total,
-                            valorActual) => total + valorActual, 0) }}
-                        </span>
-                      </button>
-                    </li>
-                  </div>
-                  <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600"></div>
-                </ul>
-              </div>
-              <div v-if="animeMap[anime_id] && anime_id !== 0 && selected_season">
-                <ul
-                  class="z-20 divide-y  divide-gray-600 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white">
-                  <div
-                    class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600">
-                    <span class="font-medium text-base">Episodios</span>
-                  </div>
-                  <div class="overflow-auto snap-y max-h-[26vh]">
-                    <button @click="toggleEpisodeSelection('all')" :class="{ 'bg-sgrayhover': selectedEpisodes.length === 0  }"
+                  </li>
+                </div>
+
+                <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600"></div>
+              </ul>
+            </div>
+            <div v-if="animeMap[anime_id] && anime_id !== 0 && filtersVisible" class="relative flex py-4 items-center">
+              <div class="flex-grow border-t border-sgray2"></div>
+              <div class="flex-grow border-t border-sgray2"></div>
+            </div>
+            <div class="pb-4" v-if="animeMap[anime_id] && anime_id !== 0 && filtersVisible">
+              <ul
+                class="z-20 divide-y divide-gray-600 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white">
+                <div
+                  class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600">
+                  <span class="font-medium text-base">Temporadas</span>
+                </div>
+                <div class="overflow-auto snap-y max-h-[18vh]">
+                  <button @click="toggleSeasonSelection('all')"
+                    :class="{ 'bg-sgrayhover': isNaN(selected_season) || selected_season === null }"
+                    class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+                    <span>{{ t('searchpage.main.labels.all') }}</span>
+                  </button>
+                  <li class="snap-start" v-for="season in Object.keys(animeMap[anime_id].season_with_episode_hits || {})">
+                    <button @click="toggleSeasonSelection(season)" :class="{ 'bg-sgrayhover': isSelectedSeason(season) }"
                       class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                      <span>{{ t('searchpage.main.labels.all') }}</span>
+                      <span :class="{ '': isSelectedSeason(season) }" class="">Temporada {{ season }}</span>
+                      <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
+                        {{ Object.values(animeMap[anime_id]?.season_with_episode_hits[season]).reduce((total,
+                          valorActual) => total + valorActual, 0) }}
+                      </span>
                     </button>
-                    <li class="snap-start-disabled"
-                      v-for="episode in Object.keys(animeMap[anime_id]?.season_with_episode_hits[selected_season])">
-                      <button @click="toggleEpisodeSelection(episode)" :class="{ 'bg-sgrayhover': isSelected(episode) }"
-                        class="flex border duration-300  hover:bg-sgrayhover items-center justify-between w-full px-4 py-2 text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span :class="{ '': isSelected(episode) }">Episodio {{ episode }}</span>
-                        <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
-                          {{ animeMap[anime_id]?.season_with_episode_hits[selected_season][episode] }}
-                        </span>
-                      </button>
-                    </li>
-                  </div>
-                  <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600"></div>
-                </ul>
-              </div>
+                  </li>
+                </div>
+                <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600"></div>
+              </ul>
+            </div>
+            <div v-if="animeMap[anime_id] && anime_id !== 0 && selected_season && filtersVisible">
+              <ul
+                class="z-20 divide-y  divide-gray-600 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 bg-white border border-gray-200 rounded-lg dark:bg-sgray dark:border-gray-600 dark:text-white">
+                <div
+                  class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg dark:border-gray-600">
+                  <span class="font-medium text-base">Episodios</span>
+                </div>
+                <div class="overflow-auto snap-y max-h-[26vh]">
+                  <button @click="toggleEpisodeSelection('all')"
+                    :class="{ 'bg-sgrayhover': selectedEpisodes.length === 0 }"
+                    class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+                    <span>{{ t('searchpage.main.labels.all') }}</span>
+                  </button>
+                  <li class="snap-start-disabled"
+                    v-for="episode in Object.keys(animeMap[anime_id]?.season_with_episode_hits[selected_season])">
+                    <button @click="toggleEpisodeSelection(episode)" :class="{ 'bg-sgrayhover': isSelected(episode) }"
+                      class="flex border duration-300  hover:bg-sgrayhover items-center justify-between w-full px-4 py-2 text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+                      <span :class="{ '': isSelected(episode) }">Episodio {{ episode }}</span>
+                      <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
+                        {{ animeMap[anime_id]?.season_with_episode_hits[selected_season][episode] }}
+                      </span>
+                    </button>
+                  </li>
+                </div>
+                <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600"></div>
+              </ul>
             </div>
           </div>
+
         </div>
       </div>
       <div class="lg:ml-20 lg:w-[400px]"
