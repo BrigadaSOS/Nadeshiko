@@ -18,6 +18,7 @@ export interface SearchAnimeSentencesStatistics {
     name_anime_en: string;
     name_anime_jp: string;
     amount_sentences_found: number;
+    season_with_episode_hits: { [season: number]: { [episode: number]: number } };
 }
 
 interface BasicInfoData {

@@ -21,6 +21,10 @@ export interface SearchAnimeSentencesRequest {
     // Previous cursor to use when doing paginated searches. Pass this value as it was returned from the previous
     // query, without making any changes
     readonly cursor?: any[];
+    // List of seasons to include
+    readonly season?: any[];
+    // List of episodes to include
+    readonly episode?: any[];
     // Filter by specific media
     readonly media: QuerySegmentsAnimeFilter[];
 }
