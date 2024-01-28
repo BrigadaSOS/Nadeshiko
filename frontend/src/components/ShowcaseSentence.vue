@@ -108,7 +108,7 @@ onBeforeRouteUpdate(async (to, from) => {
   exact_match.value = exactMatchFromStore.value !== null ? exactMatchFromStore.value : exactMatch === 'true'
 
   if (isMounted.value && searchTerm) {
-    await getSentences(searchTerm, null, animeId, '', selected_season.value, selectedEpisodes.value)
+    await getSentences(searchTerm, null, animeId, undefined, selected_season.value, selectedEpisodes.value)
   } else {
     querySearch.value = ''
     sentences.value = []
@@ -394,7 +394,7 @@ const animeMap = computed(() => {
 // Función para cargar más elementos al final de la página
 const loadMoreSentences = async (entries) => {
   if (entries[0].isIntersecting && next_cursor.value && !isLoading.value) {
-    await getSentences(querySearch.value, next_cursor.value, anime_id.value, '', selected_season.value, selectedEpisodes.value)
+    await getSentences(querySearch.value, next_cursor.value, anime_id.value, undefined, selected_season.value, selectedEpisodes.value)
   }
 }
 
@@ -503,7 +503,7 @@ const sortFilter = async (new_type) => {
     sentences.value = []
     random_seed.value = Math.floor(Math.random() * 65535)
     window.scrollTo(0, 0)
-    await getSentences(querySearch.value, next_cursor.value, anime_id.value, '', selected_season.value, selected_episode.value)
+    await getSentences(querySearch.value, next_cursor.value, anime_id.value, undefined, selected_season.value, selected_episode.value)
     return
   }
 
