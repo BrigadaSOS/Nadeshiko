@@ -34,6 +34,7 @@ export async function addBasicData(db: any) {
     { name: "REMOVE_ANIME" },
     { name: "UPDATE_ANIME" },
     { name: "RESYNC_DATABASE" },
+    { name: "CREATE_USER" }
   ]);
 
   const permissions = [
@@ -42,6 +43,7 @@ export async function addBasicData(db: any) {
     "REMOVE_ANIME",
     "UPDATE_ANIME",
     "RESYNC_DATABASE",
+    "CREATE_USER"
   ];
 
   const salt: string = await bcrypt.genSalt(10);

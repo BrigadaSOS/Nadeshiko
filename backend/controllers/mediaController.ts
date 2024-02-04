@@ -1,4 +1,4 @@
-import { BadRequest } from "../utils/error";
+import { BadRequest, NotFound } from "../utils/error";
 import { Request, Response, NextFunction } from "express";
 import { StatusCodes } from "http-status-codes";
 import { v3 as uuidv3 } from "uuid";
@@ -27,6 +27,7 @@ import {GetContextAnimeRequest} from "../models/controller/GetContextAnimeReques
 import {GetContextAnimeResponse} from "../models/controller/GetContextAnimeResponse";
 import { SaveUserSearchHistory } from "./databaseController";
 import { EventTypeHistory } from "../models/miscellaneous/userSearchHistory"
+import { Segment } from "../models/media/segment";
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
@@ -212,5 +213,50 @@ export const GetAllAnimes = async (
 
   } catch (error) {
     next(error);
+  }
+};
+
+export const updateSegment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+
+    const { content_en, content_es, content_jp, is_nsfw, segment_id } = req.body;
+
+    const segment = await Segment.findOne({
+      where: { id: segment_id },
+    });
+
+    if (!segment) {
+      throw new NotFound("Segment not found.");
+    }
+
+    if (content_en) {
+      segment.content_english = content_en;
+    }
+
+    if(content_es) {
+      segment.content_spanish = content_es
+    }
+
+    if(content_jp) {
+      segment.content = content_jp
+      segment.content_length = content_jp.length
+    }
+
+    if(is_nsfw) {
+      segment.is_nsfw = is_nsfw
+    }
+
+    await segment.save();
+
+    // Responder al cliente
+    return res.status(StatusCodes.OK).json({
+      message: "Segment updated successfully."
+    });
+  } catch (error) {
+    return next(error);
   }
 };
