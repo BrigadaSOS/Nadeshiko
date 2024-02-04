@@ -1,5 +1,4 @@
 // @ts-nocheck
-
 import express from "express";
 export const router = express.Router();
 import {
@@ -14,45 +13,45 @@ import {
   GetWordsMatched,
   GetAllAnimes
 } from "../controllers/mediaController";
+import { isAuth } from "../middleware/authorization";
+import { hasPermission } from "../middleware/permissionHandler";
+import { isAuthJWT, requireRole, ADMIN, MOD, USER } from "../middleware/isAuthJWT";
 import { signUp, logIn, logout, getUserInfo, loginGoogle, sendReportSegment } from "../controllers/userController";
 import { getFilesFromDirectory, createFolder, deleteFolderOrFile, compressDirectory, uploadFile, dynamicStorage, downloadFile } from "../controllers/explorerController"
-import { hasPermission } from "../middleware/permissionHandler";
-import { isAuth } from "../middleware/authorization";
-import { isAuthJWT, requireRole, ADMIN, MOD, USER } from "../middleware/isAuthJWT";
 
-// API Routes v1
-// isAuth is for authentication using keys
-// isAuthJWT is for authentication using JWT 
 
-////////// AUTH KEYS
-// Search
-router.post("/v1/search/anime/sentence", isAuth, hasPermission(['READ_ANIME']), SearchAnimeSentences);
-router.post("/v1/search/anime/context", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
-router.post("/v1/search/anime/info", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
-router.post('/v1/search/anime/words/match', isAuth, hasPermission(['READ_ANIME']), GetWordsMatched)
-router.get('/v1/search/anime/info', isAuth, hasPermission(['READ_ANIME']), GetAllAnimes)
-
-// Utility
-router.post("/v1/utility/merge/audio", isAuth, generateURLAudio);
-router.post("/v1/utility/report/segment", isAuthJWT, sendReportSegment)
-
-// Admin
-router.post("/v1/admin/database/resync/full", reSyncDatabase);
-router.post("/v1/admin/database/resync/partial", reSyncDatabasePartial);
-router.post("/v1/admin/database/sync/anime", isAuth, hasPermission(['READ_ANIME', 'ADD_ANIME', 'REMOVE_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
-
-////////// AUTH JWT
+/* --- JWT Endpoints --- */
 // User
-router.post("/v1/user/register", isAuth, signUp);
-router.post("/v1/user/login", isAuth, logIn);
-router.post("/v1/user/login/google", isAuth, isAuth, loginGoogle)
-router.post("/v1/user/logout", isAuth, logout);
-router.post('/v1/user/info', isAuthJWT, requireRole(ADMIN, MOD, USER), getUserInfo)
+router.post('/v1/jwt/user/info', isAuthJWT, requireRole(ADMIN, MOD, USER), getUserInfo)
+router.post('/v1/jwt/user/logout', isAuthJWT, requireRole(ADMIN, MOD, USER), logout)
 
-// Explorer
-router.get("/v1/files", isAuthJWT, getFilesFromDirectory)
-router.post("/v1/files/createFolder", isAuthJWT, createFolder)
-router.post("/v1/files/deleteFolderOrFile", isAuthJWT, deleteFolderOrFile)
-router.post("/v1/files/upload", isAuthJWT, dynamicStorage, uploadFile)
-router.get("/v1/files/download", downloadFile)
-router.get("/v1/files/compress", isAuthJWT, compressDirectory)
+// File Explorer
+router.post("/v1/jwt/files/createFolder", isAuthJWT, requireRole(ADMIN), createFolder)
+router.post("/v1/jwt/files/deleteFolderOrFile", isAuthJWT, requireRole(ADMIN), deleteFolderOrFile)
+router.post("/v1/jwt/files/upload", isAuthJWT, requireRole(ADMIN), dynamicStorage, uploadFile)
+router.get("/v1/jwt/files/compress", isAuthJWT, requireRole(ADMIN), compressDirectory)
+router.get("/v1/jwt/files", isAuthJWT, requireRole(ADMIN), getFilesFromDirectory)
+router.get("/v1/jwt/files/download", isAuthJWT, requireRole(ADMIN), downloadFile)
+
+// Misc
+router.post("/v1/jwt/utility/report/segment", isAuthJWT, requireRole(ADMIN, MOD, USER), sendReportSegment)
+
+/* --- API Key Endpoints --- */
+// Database
+router.post("/v1/api/admin/database/resync/full", isAuth, hasPermission(['RESYNC_DATABASE']), reSyncDatabase);
+router.post("/v1/api/admin/database/resync/partial", isAuth, hasPermission(['RESYNC_DATABASE']), reSyncDatabasePartial);
+router.post("/v1/api/admin/database/sync/anime", isAuth, hasPermission(['ADD_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
+
+// User
+router.post("/v1/api/user/login", isAuth, logIn);
+router.post("/v1/api/user/login/google", isAuth, loginGoogle)
+router.post("/v1/api/user/register", isAuth, hasPermission(['CREATE_USER']), signUp);
+
+// Search
+router.post("/v1/api/search/anime/sentence", isAuth, hasPermission(['READ_ANIME']), SearchAnimeSentences);
+router.post("/v1/api/search/anime/context", isAuth, hasPermission(['READ_ANIME']), GetContextAnime);
+router.post('/v1/api/search/anime/words/match', isAuth, hasPermission(['READ_ANIME']), GetWordsMatched)
+router.get('/v1/api/search/anime/info', isAuth, hasPermission(['READ_ANIME']), GetAllAnimes)
+
+// Misc
+router.post("/v1/api/utility/merge/audio", isAuth, generateURLAudio);
