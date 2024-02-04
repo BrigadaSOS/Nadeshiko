@@ -10,6 +10,7 @@ REMOVE_ANIME
 UPDATE_ANIME
 
 RESYNC_DATABASE
+CREATE_USER
 -----------------------
 */
 
