@@ -12,7 +12,7 @@ const base_hover = ref(null)
 
 const getLatestAnime = async () => {
   try {
-    let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/info?' + new URLSearchParams({
+    let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/search/anime/info?' + new URLSearchParams({
         sorted: true
       }), {
       method: 'GET',

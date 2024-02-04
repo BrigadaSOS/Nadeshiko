@@ -36,7 +36,7 @@ const getDirectoryTree = async (directory) => {
   // await delay(2000)
   try {
     const params = new URLSearchParams({ directory }).toString()
-    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `files?${params}`, {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `jwt/files?${params}`, {
       method: 'GET',
       mode: 'cors',
       withCredentials: true,
@@ -142,7 +142,7 @@ const submitFile = async () => {
   try {
     const response = await axios({
       method: 'post',
-      url: import.meta.env.VITE_APP_BASE_URL_BACKEND + 'files/upload',
+      url: import.meta.env.VITE_APP_BASE_URL_BACKEND + 'jwt/files/upload',
       data: formData,
       withCredentials: true,
       onUploadProgress: (progressEvent) => {
@@ -166,7 +166,7 @@ const downloadFile = async (item) => {
     try {
       const response = await axios({
         method: 'get',
-        url: import.meta.env.VITE_APP_BASE_URL_BACKEND + `files/download?directory=${currentDirectory.value}/${item.name}`,
+        url: import.meta.env.VITE_APP_BASE_URL_BACKEND + `jwt/files/download?directory=${currentDirectory.value}/${item.name}`,
         responseType: 'blob', 
         withCredentials: true,
       });
