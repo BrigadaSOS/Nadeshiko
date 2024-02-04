@@ -15,7 +15,7 @@ const createFolder = async () => {
   let response = null
 
   try {
-    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `files/deleteFolderOrFile`, {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `jwt/files/deleteFolderOrFile`, {
       method: 'POST',
       mode: 'cors',
       withCredentials: true,

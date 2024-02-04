@@ -30,7 +30,6 @@ import ReportModal from './Showcase/ReportModal.vue'
 import SidebarAnime from './Showcase/SidebarAnime.vue'
 import BatchSearchModal from './BatchSearchModal.vue'
 import EditSentenceModal from './Showcase/EditSentenceModal.vue'
-
 // Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
@@ -121,6 +120,7 @@ onBeforeRouteUpdate(async (to, from) => {
     isLoading.value = false
     no_results.value = false
     next_cursor.value = null
+    uuid.value = null
     anime_id.value = null
     selected_season.value = null
     selectedEpisodes.value = null
@@ -359,7 +359,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid, season, episodes)
   if (cursor) body.cursor = cursor
 
   try {
-    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/sentence', {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/search/anime/sentence', {
       method: 'POST',
       mode: 'cors',
       headers: {
@@ -1037,8 +1037,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         <SidebarAnime :list="statistics" :sentences="sentences" :type_sort="type_sort" @filter-anime="filterAnime"
           @filter-anime-length="sortFilter" />
       </div>
-
-      <div v-if="statistics.length > 1">
+      <div v-if="statistics.length > 1 && !uuid">
         <div id="search-anime-disabled"
           :class="{ 'xl:w-[21rem] xxl:w-[30rem]': filtersVisible, 'xl:w-[4rem] xxl:w-[10rem]': !filtersVisible }"
           class="hidden ml-6 xl:flex flex-col py-7"
@@ -1255,6 +1254,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
     </div>
   </div>
+<GoTopButton/>
 </template>
 
 <style>

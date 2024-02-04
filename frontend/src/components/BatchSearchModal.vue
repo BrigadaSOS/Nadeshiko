@@ -38,7 +38,7 @@ const sortedWordsMatch = computed(() => {
 
 const getWordMatch = async () => {
   isLoading.value = true
-  let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/anime/words/match', {
+  let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/search/anime/words/match', {
     method: 'POST',
     mode: 'cors',
     headers: {
