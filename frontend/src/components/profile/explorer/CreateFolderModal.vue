@@ -16,7 +16,7 @@ const createFolder = async () => {
   let response = null
 
   try {
-    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `files/createFolder`, {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + `jwt/files/createFolder`, {
       method: 'POST',
       mode: 'cors',
       withCredentials: true,

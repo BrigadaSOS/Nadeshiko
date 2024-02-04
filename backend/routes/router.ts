@@ -11,7 +11,8 @@ import {
   SearchAnimeSentences,
   generateURLAudio,
   GetWordsMatched,
-  GetAllAnimes
+  GetAllAnimes,
+  updateSegment
 } from "../controllers/mediaController";
 import { isAuth } from "../middleware/authorization";
 import { hasPermission } from "../middleware/permissionHandler";
@@ -33,7 +34,7 @@ router.get("/v1/jwt/files/compress", isAuthJWT, requireRole(ADMIN), compressDire
 router.get("/v1/jwt/files", isAuthJWT, requireRole(ADMIN), getFilesFromDirectory)
 router.get("/v1/jwt/files/download", isAuthJWT, requireRole(ADMIN), downloadFile)
 
-// Misc
+// Report
 router.post("/v1/jwt/utility/report/segment", isAuthJWT, requireRole(ADMIN, MOD, USER), sendReportSegment)
 
 /* --- API Key Endpoints --- */
@@ -53,5 +54,8 @@ router.post("/v1/api/search/anime/context", isAuth, hasPermission(['READ_ANIME']
 router.post('/v1/api/search/anime/words/match', isAuth, hasPermission(['READ_ANIME']), GetWordsMatched)
 router.get('/v1/api/search/anime/info', isAuth, hasPermission(['READ_ANIME']), GetAllAnimes)
 
-// Misc
+// Segment
+router.put("/v1/api/segment", isAuth, hasPermission(['UPDATE_ANIME']), updateSegment);
+
+// Miscelaneous
 router.post("/v1/api/utility/merge/audio", isAuth, generateURLAudio);

@@ -15,7 +15,7 @@ const getLatestAnime = async () => {
   try {
     let response = await fetch(
       import.meta.env.VITE_APP_BASE_URL_BACKEND +
-        'search/anime/info?' +
+        'api/search/anime/info?' +
         new URLSearchParams({
           size: 10,
           sorted: true

@@ -25,9 +25,17 @@ const props = defineProps({
     type: String,
     default: "currentColor"
   },
+  strokewidth: {
+    type: String,
+    default: ""
+  },
   verticalAlign: {
     type: String,
     default: "middle"
+  },
+  stroke: {
+    type: String,
+    default: ""
   }
 });
 const spanClass = computed(
@@ -44,7 +52,7 @@ const iconSize = computed(() => props.size ?? 16);
       class="inline-block"
       :style="{verticalAlign: props.verticalAlign}"
     >
-      <path :fill=fill :d="path" />
+      <path :fill=fill :d="path" :stroke-width=strokewidth :stroke="stroke" />
     </svg>
     <slot />
   </span>
