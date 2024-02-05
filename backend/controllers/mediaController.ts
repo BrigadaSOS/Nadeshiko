@@ -223,10 +223,10 @@ export const updateSegment = async (
 ) => {
   try {
 
-    const { content_en, content_es, content_jp, is_nsfw, segment_id } = req.body;
+    const { content_en, content_es, content_jp, isNSFW, uuid } = req.body;
 
     const segment = await Segment.findOne({
-      where: { id: segment_id },
+      where: { uuid: uuid },
     });
 
     if (!segment) {
@@ -246,8 +246,8 @@ export const updateSegment = async (
       segment.content_length = content_jp.length
     }
 
-    if(is_nsfw) {
-      segment.is_nsfw = is_nsfw
+    if(isNSFW) {
+      segment.is_nsfw = isNSFW
     }
 
     await segment.save();
