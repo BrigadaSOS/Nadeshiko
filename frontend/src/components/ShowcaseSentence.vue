@@ -1254,7 +1254,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       </div>
     </div>
   </div>
-<GoTopButton/>
 </template>
 
 <style>

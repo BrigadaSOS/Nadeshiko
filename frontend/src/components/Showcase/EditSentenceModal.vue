@@ -51,8 +51,31 @@ watch(
   { immediate: true }
 )
 
-const submitReport = () => {
-  console.log(selectedOption.value)
+const submitEdit = async () => {
+  let response = null
+  const body = {
+    uuid: props.item.segment_info.uuid, 
+    content_jp: sentence_jp.value,
+    content_en: sentence_en.value,
+    content_es: sentence_es.value,
+    isNSFW: isNSFW.value
+  }
+  try {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/segment', {
+      method: 'PUT',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    })
+    response = await response.json()
+    console.log(response)
+  } catch (error) {
+    console.log(error)
+    return
+  }
+  
 }
 </script>
 <template>
@@ -91,7 +114,7 @@ const submitReport = () => {
         </div>
 
         <div class="overflow-y-auto">
-          <div class="flex flex-col md:flex-row mx-auto">
+          <div class="flex flex-col lg:flex-row mx-auto">
             <div class="container overflow-hidden mx-auto flex flex-col">
               <div class="flex flex-row">
                 <div class="container border-t border-t-sgray2 flex overflow-hidden flex-col w-screen">
@@ -102,7 +125,7 @@ const submitReport = () => {
                     v-if="props.item"
                     :key="props.item.segment_info.position"
                     :id="props.item.segment_info.position"
-                    class="flex md:mx-5 flex-col overflow-hidden rounded-none  py-4 border-sgray2 p-2"
+                    class="flex mx-5 flex-col overflow-hidden rounded-none  py-4 border-sgray2 p-2"
                   >
                     <div class="h-64 w-auto">
                       <img
@@ -306,9 +329,8 @@ const submitReport = () => {
 
           <button
             type="button"
-            @click="submitReport"
+            @click="submitEdit"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-blue-500/70 text-gray-700 shadow-sm align-middle hover:bg-blue-500/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
-            data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
           >
             Editar
           </button>
