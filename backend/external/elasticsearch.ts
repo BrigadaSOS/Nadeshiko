@@ -550,7 +550,7 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
                 "analyze_wildcard": true,
                 "allow_leading_wildcard": false,
                 "fuzzy_transpositions": false,
-                "fields": (exact_match) ? ["content"] : ["content^3", "content.readingform", "content.baseform"],
+                "fields": (exact_match) ? ["content"] : ["content^3", "content.baseform"],
                 "default_operator": "AND",
                 "quote_analyzer": "ja_original_search_analyzer"
             }
