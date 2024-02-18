@@ -27,8 +27,8 @@ const router = createRouter({
       component: SearchView
     },
     {
-      path: '/anime/all',
-      name: 'anime-all',
+      path: '/content',
+      name: 'content',
       component: AllAnimeView
     },
     {
