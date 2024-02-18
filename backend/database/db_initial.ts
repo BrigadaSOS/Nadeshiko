@@ -239,7 +239,7 @@ export async function readAnimeDirectories(baseDir: string) {
         )
 
         // Refresh cache after modifying Media table
-        await refreshMediaInfoCache();
+        await refreshMediaInfoCache(0, 10);
       }
     } else {
       logger.error( `data.json file not found for %s. Skipping...`, animeDirPath);
@@ -449,7 +449,7 @@ async function fullSyncSpecificAnime(
   )
 
   // Refresh cache after modifying Media table
-  await refreshMediaInfoCache();
+  await refreshMediaInfoCache(0, 10);
 }
 
 // Funciones menores
