@@ -7,6 +7,7 @@ export interface MediaInfoStats {
     readonly total_animes: number;
     readonly total_segments: number;
     readonly full_total_animes: number;
+    readonly full_total_segments: number;
 }
 
 export interface MediaInfoData {

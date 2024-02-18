@@ -49,13 +49,14 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     ORDER BY me.created_at DESC
     LIMIT ${pageSize} OFFSET ${offset}`;
 
-  const sql_full =
-    'SELECT COUNT (*) FROM nadedb.public."Media" me';
+  const sql_full = 'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2'
 
   const queryResponse = await connection.query(sql);
   const queryResponseFull = await connection.query(sql_full);
   //@ts-ignore
-  const full_total_animes = parseInt(queryResponseFull[0][0].count, 10);
+  const full_total_animes = parseInt(queryResponseFull[0][0].count1, 10);
+  //@ts-ignore
+  const full_total_segments = parseInt(queryResponseFull[0][0].count2, 10);
 
   const results: { [key: number]: MediaInfoData } = {};
   let total_animes = 0;
@@ -85,6 +86,7 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     stats: {
       total_animes,
       full_total_animes,
+      full_total_segments,
       total_segments,
     },
     results,
