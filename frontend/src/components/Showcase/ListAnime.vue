@@ -17,7 +17,7 @@ const getLatestAnime = async () => {
       import.meta.env.VITE_APP_BASE_URL_BACKEND +
         'api/search/anime/info?' +
         new URLSearchParams({
-          size: 1000000000,
+          size: 10,
           sorted: true
         }),
       {
@@ -324,7 +324,7 @@ onMounted(() => {
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
             <h2 class="title-font font-medium text-3xl text-white">
-              +{{ Math.ceil(general_stats.total_segments / 100) * 100 }}
+              +{{ Math.ceil(general_stats.full_total_segments / 100) * 100 }}
             </h2>
             <p class="leading-relaxed">
               {{ t('home.stats.sentenceCount') }}
@@ -333,7 +333,7 @@ onMounted(() => {
         </div>
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">{{ general_stats.total_animes }}</h2>
+            <h2 class="title-font font-medium text-3xl text-white">{{ general_stats.full_total_animes }}</h2>
             <p class="leading-relaxed">
               {{ t('home.stats.mediaCount') }}
             </p>
