@@ -193,13 +193,15 @@ export const GetAllAnimes = async (
   next: NextFunction
 ) => {
   try {
-    const response: QueryMediaInfoResponse = await queryMediaInfo();
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.size as string) || 2;
 
-    let results = [];
+    const response: QueryMediaInfoResponse = await queryMediaInfo(page, pageSize);
+
+    let results = Object.values(response.results);
+
     if(req.query.sorted && req.query.sorted.toLowerCase() === "true") {
-      results = Object.values(response.results).sort((a, b) => {return Date.parse(b.created_at) - Date.parse(a.created_at) })
-    } else {
-      results = Object.values(response.results)
+      results = results.sort((a, b) => {return Date.parse(b.created_at) - Date.parse(a.created_at) });
     }
 
     if(req.query.size && Number(req.query.size) >= 0) {
@@ -208,7 +210,11 @@ export const GetAllAnimes = async (
 
     return res.status(StatusCodes.ACCEPTED).json({
       stats: response.stats,
-      results
+      results,
+      pagination: {
+        currentPage: page,
+        pageSize: pageSize,
+      }
     });
 
   } catch (error) {

@@ -196,7 +196,7 @@ onMounted(() => {
               <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">
                 {{ t('animeList.recentlyAddedTitle') }}
               </h1>
-              <router-link to="/anime/all">
+              <router-link to="/content">
                 <button
                   type="button"
                   class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"

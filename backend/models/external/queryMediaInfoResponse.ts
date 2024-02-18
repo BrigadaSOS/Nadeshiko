@@ -6,6 +6,7 @@ export interface QueryMediaInfoResponse {
 export interface MediaInfoStats {
     readonly total_animes: number;
     readonly total_segments: number;
+    readonly full_total_animes: number;
 }
 
 export interface MediaInfoData {
@@ -25,4 +26,9 @@ export interface MediaInfoData {
     num_segments: number,
     num_seasons: number,
     num_episodes: number
+}
+
+export interface Pagination {
+    currentPage: number,
+    pageSize: number
 }
