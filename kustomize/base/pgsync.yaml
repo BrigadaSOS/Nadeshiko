@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: pgsync
-          image: govpf/pgsync:latest
+          image: aaqaishtyaq/pgsync:latest
           command: [ "pgsync"]
           args: ["--config", "/data/schema.json", "--daemon"]
           # loop forever, outputting "yo" every 5 seconds
