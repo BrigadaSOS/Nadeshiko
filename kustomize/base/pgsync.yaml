@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: pgsync
-          image: kahidna/pgsync:2.5.0
+          image: ankane/pgsync:latest
           command: [ "pgsync"]
           args: ["--config", "/data/schema.json", "--daemon"]
           # loop forever, outputting "yo" every 5 seconds
