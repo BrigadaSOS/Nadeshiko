@@ -39,8 +39,8 @@ router.post("/v1/jwt/utility/report/segment", isAuthJWT, requireRole(ADMIN, MOD,
 
 /* --- API Key Endpoints --- */
 // Database
-router.post("/v1/api/admin/database/resync/full", isAuth, reSyncDatabase);
-router.post("/v1/api/admin/database/resync/partial", isAuth, reSyncDatabasePartial);
+router.post("/v1/api/admin/database/resync/full", reSyncDatabase);
+router.post("/v1/api/admin/database/resync/partial", reSyncDatabasePartial);
 router.post("/v1/api/admin/database/sync/anime", isAuth, hasPermission(['ADD_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
 
 // User
