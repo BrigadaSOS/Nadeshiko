@@ -81,7 +81,7 @@ services:
       - elasticsearch
 
   pgsync:
-    image: govpf/pgsync:latest
+    image: aaqaishtyaq/pgsync:latest
     networks:
     - nadedb-network
     depends_on:
