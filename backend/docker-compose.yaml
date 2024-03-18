@@ -81,7 +81,7 @@ services:
       - elasticsearch
 
   pgsync:
-    image: nexx458/pgsync:latest
+    image: natsume197/pgsync:3.1.0
     networks:
     - nadedb-network
     depends_on:
