@@ -32,7 +32,7 @@ spec:
         - name: pgsync
           image: ankane/pgsync:latest
           command: [ "pgsync"]
-          args: ["--config", "/data/schema.json", "--daemon"]
+          args: ["--config", "/data/schema.json", "--daemonize"]
           # loop forever, outputting "yo" every 5 seconds
           # command: [ "sh", "-c"]
           # args: ["while true; do echo 'yo' && sleep 5; done;"]
