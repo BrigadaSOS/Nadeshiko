@@ -28,6 +28,17 @@ spec:
       labels:
         app: pgsync
     spec:
+      initContainers:
+      - name: bootstrap
+        image: natsume197/pgsync:3.1.0
+          command: [ "bootstrap"]
+          args: ["--config", "/data/schema.json"]
+          envFrom:
+            - configMapRef:
+                name: pgsync-config
+        volumeMounts:
+        - name: pgsync-data
+          mountPath: /data
       containers:
         - name: pgsync
           image: natsume197/pgsync:3.1.0
