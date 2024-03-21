@@ -28,37 +28,26 @@ spec:
       labels:
         app: pgsync
     spec:
-      initContainers:
-      - name: bootstrap
-        image: natsume197/pgsync:3.1.0
-        command: ["bootstrap"]
-        args: ["--config", "/data/schema.json"]
-        envFrom:
-        - configMapRef:
-            name: pgsync-config
-        volumeMounts:
-        - name: pgsync-data
-          mountPath: /data
       containers:
-      - name: pgsync
-        image: natsume197/pgsync:3.1.0
-        command: ["pgsync"]
-        args: ["--config", "/data/schema.json", "--daemon"]
-        # loop forever, outputting "yo" every 5 seconds
-        # command: [ "sh", "-c"]
-        # args: ["while true; do echo 'yo' && sleep 5; done;"]
-        envFrom:
-        - configMapRef:
-            name: pgsync-config
-        volumeMounts:
-        - name: pgsync-data
-          mountPath: /data
+        - name: pgsync
+          image: natsume197/pgsync:3.1.0
+          command: [ "bootstrap"]
+          args: ["--config", "/data/schema.json"]
+          # loop forever, outputting "yo" every 5 seconds
+          # command: [ "sh", "-c"]
+          # args: ["while true; do echo 'yo' && sleep 5; done;"]
+          envFrom:
+            - configMapRef:
+                name: pgsync-config
+          volumeMounts:
+            - name: pgsync-data
+              mountPath: /data
   volumeClaimTemplates:
-  - metadata:
-      name: pgsync-data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      storageClassName: "local-storage"
-      resources:
-        requests:
-          storage: 100Mi
+    - metadata:
+        name: pgsync-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 100Mi
