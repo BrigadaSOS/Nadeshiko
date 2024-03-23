@@ -9,11 +9,11 @@ metadata:
 spec:
   storageClassName: manual
   capacity:
-    storage: 80Gi
+    storage: 200Gi
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "/mnt/nadedb/"
+    path: "/mnt/nvme01/nadedb/"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
