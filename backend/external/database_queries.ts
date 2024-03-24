@@ -22,9 +22,7 @@ export const queryMediaInfo = async (
 };
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
-  const safePage = Math.max(page, 1);
-  const offset = (safePage - 1) * pageSize;
-  
+  const offset = (page - 1) * pageSize;
   const sql = `SELECT 
   json_build_object(
     'media_id', me.id,
@@ -48,8 +46,7 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
       nadedb.public."Media" me
     GROUP BY 
       me.id, me.romaji_name, me.english_name, me.japanese_name
-    ORDER BY me.created_at DESC
-    LIMIT ${pageSize} OFFSET ${offset}`;
+    ORDER BY me.created_at DESC`;
 
   const sql_full = 'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2'
 
