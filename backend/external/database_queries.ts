@@ -22,7 +22,9 @@ export const queryMediaInfo = async (
 };
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
-  const offset = (page - 1) * pageSize;
+  const safePage = Math.max(page, 1);
+  const offset = (safePage - 1) * pageSize;
+  
   const sql = `SELECT 
   json_build_object(
     'media_id', me.id,
