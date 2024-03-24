@@ -299,7 +299,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         }
     });
 
-    const mediaInfo = queryMediaInfo();
+    const mediaInfo = queryMediaInfo(0, 10000000);
 
     return buildSearchAnimeSentencesResponse(await esResponse, await mediaInfo, await esNoHitsNoFiltersResponse);
 }
@@ -330,7 +330,7 @@ export const queryWordsMatched = async (words: string[], exact_match: boolean) :
         searches
     });
 
-    const mediaInfo = await queryMediaInfo();
+    const mediaInfo = await queryMediaInfo(0, 10000000);
     return buildQueryWordsMatchedResponse(words, esResponse, mediaInfo);
 }
 
@@ -378,7 +378,7 @@ export const querySurroundingSegments = async (request: QuerySurroundingSegments
         searches: contextSearches
     });
 
-    const mediaInfo = await queryMediaInfo();
+    const mediaInfo = await queryMediaInfo(0, 10000000);
 
     let previousSegments: SearchAnimeSentencesSegment[] = [];
     let nextSegments: SearchAnimeSentencesSegment[] = [];
