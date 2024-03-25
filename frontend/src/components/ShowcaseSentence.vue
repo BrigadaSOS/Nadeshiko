@@ -139,6 +139,7 @@ onMounted(async () => {
     selectedEpisodes.value = episodeParam.split(',').map(num => parseInt(num.trim()));
   }
   const exactMatch = urlParams.get('exact_match')
+  /*
   const metaTitle = computed(() => `${querySearch.value} - NadeDB`);
   const metaDescription = computed(() => `Viewing search results for ${querySearch.value} on NadeDB.`);
   useHead({
@@ -149,7 +150,7 @@ onMounted(async () => {
         content: metaDescription,
       },
     ],
-  });
+  });*/
   isBannerClosed = localStorage.getItem('isBannerClosed')
   let element = document.getElementById('drawer-button')
 
