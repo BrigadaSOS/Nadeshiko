@@ -22,7 +22,6 @@ export const queryMediaInfo = async (
 };
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
-  console.log(page, pageSize)
   let size_positino_filter = ''
   if(page == 0){
     size_positino_filter = `LIMIT ${pageSize}`
