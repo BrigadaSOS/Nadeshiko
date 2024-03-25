@@ -29,7 +29,7 @@
     <div id="tab-headers">
       <ul>
         <!-- this shows all of the titles --> 
-        <li v-for="(tab, index) in tabs" :key="index" :class="activeTabIndex == index ? 'active' : 'hover:bg-sgrayhover'" @click="changeTab(index)" ref="tabHeaders">{{ tab.title }}</li>
+        <li v-for="(tab, index) in tabs" :key="index" :class="activeTabIndex == index ? 'active' : ''" @click="changeTab(index)" ref="tabHeaders">{{ tab.title }}</li>
       </ul>
     </div>
     <!-- this is where the tabs go, in this slot -->
@@ -55,7 +55,6 @@
   #tab-headers ul li.active {
     color: rgb(251, 120, 120);
     font-weight: bold;
-    background-color: #2f2f31;
   }
   
   #tab-headers ul li.active:after {

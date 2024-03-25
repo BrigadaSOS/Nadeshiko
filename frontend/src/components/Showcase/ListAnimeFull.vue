@@ -14,7 +14,7 @@ const isLoading = ref(false)
 const error_connection = ref(false)
 
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(50)
 const totalItems = ref(0)
 
 const getLatestAnime = async (page = currentPage.value) => {
@@ -143,7 +143,7 @@ onMounted(() => {
         </form>
       </div>
 
-      <div v-if="latest_anime_list.length > 0" v-for="(media_info, index) in latest_anime_list" class="w-full relative">
+      <div v-if="latest_anime_list.length > 0" v-for="(media_info, index) in latest_anime_list" :key="media_info.id" class="w-full relative">
         <div
           class="flex flex-col items-center sm:items-start sm:flex-row bg-white rounded-lg dark:bg-sgray2/90 hover:dark:bg-sgray2/90 transition-all dark:border-white/10 border my-6"
         >
