@@ -2,7 +2,6 @@ kind: PersistentVolume
 apiVersion: v1
 metadata:
   name: brigadasos-db-pv
-  namespace: nadedb
   labels:
     type: local
     app: brigadasos-db
@@ -19,7 +18,6 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: brigadasos-db-pv-claim
-  namespace: nadedb
   labels:
     app: brigadasos-db
 spec:
@@ -34,7 +32,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: brigadasos-db
-  namespace: nadedb
 spec:
   replicas: 1
   revisionHistoryLimit: 1
@@ -68,7 +65,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: brigadasos-db-service
-  namespace: nadedb
   labels:
     app: brigadasos-db
 spec:
@@ -76,47 +72,3 @@ spec:
     app: brigadasos-db
   ports:
    - port: 5000
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: brigadasos-db-cert
-  namespace: nadedb
-spec:
-  secretName: certificate-brigadasos-db
-  dnsNames:
-    - api.brigadasos.xyz
-  issuerRef:
-    name: clusterissuer-le
-    kind: ClusterIssuer
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: brigadasos-db-ingress
-  namespace: nadedb
-  labels:
-    app: brigadasos-db
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/proxy-body-size: "10G"
-    nginx.org/client-max-body-size: "10G"
-    cert-manager.io/issuer: clusterissuer-le
-spec:
-  ingressClassName: nginx
-  tls:
-    - hosts:
-        - api.brigadasos.xyz
-      secretName: certificate-brigadasos-db
-  rules:
-    - host: api.brigadasos.xyz
-      http:
-        paths:
-          - pathType: Prefix
-            path: /
-            backend:
-              service:
-                name: brigadasos-db-service
-                port:
-                  number: 5000
