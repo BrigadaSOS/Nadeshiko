@@ -106,11 +106,6 @@ jobs:
     - name: Setup Kustomize
       uses: imranismail/setup-kustomize@v2
 
-    - name: Checkout to k3s-kustomize branch
-      run: |
-       git fetch --all
-       git checkout k3s-kustomize || git switch -c k3s-kustomize origin/k3s-kustomize
-
     - name: Update Kubernetes resources
       run: |
        cd kustomize/overlays/development
@@ -126,6 +121,6 @@ jobs:
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
-        force: true
+        branch: k3s-kustomize
         github_token: ${{ secrets.GITHUB_TOKEN }}
 
