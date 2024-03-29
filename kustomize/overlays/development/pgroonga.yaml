@@ -1,0 +1,73 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pgroonga-dev-pvolume
+  labels:
+    type: local
+    app: pgroonga-dev
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/data-dev"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pgroonga-dev-pvolume-claim
+  labels:
+    app: pgroonga-dev
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgroonga-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgroonga-dev
+  template:
+    metadata:
+      labels:
+        app: pgroonga-dev
+    spec:
+      containers:
+        - name: pgroonga-dev
+          image: groonga/pgroonga:latest
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: pgroonga-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: pgroongadb-dev
+      volumes:
+        - name: pgroongadb-dev
+          persistentVolumeClaim:
+            claimName: pgroonga-dev-pvolume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgroonga-dev-service
+  labels:
+    app: pgroonga-dev
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+  selector:
+    app: pgroonga-dev
