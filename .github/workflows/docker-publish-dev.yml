@@ -106,12 +106,17 @@ jobs:
     - name: Setup Kustomize
       uses: imranismail/setup-kustomize@v2
 
+    - name: Checkout to k3s-kustomize branch
+      run: |
+       git fetch --all
+       git checkout k3s-kustomize || git switch -c k3s-kustomize origin/k3s-kustomize
+
     - name: Update Kubernetes resources
       run: |
        cd kustomize/overlays/development
        kustomize edit set image brigadasos-dev-db=ghcr.io/brigadasos/brigadasos-db:$GITHUB_REF_NAME
        cat kustomization.yaml
-
+         
     - name: Commit files
       run: |
         git config --local user.email "action@github.com"
