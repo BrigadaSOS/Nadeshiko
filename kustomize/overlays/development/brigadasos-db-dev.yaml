@@ -1,0 +1,116 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: brigadasos-dev-db-pv
+  labels:
+    type: local
+    app: brigadasos-dev-db
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/nvme01/nadedb/"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: brigadasos-dev-db-pv-claim
+  labels:
+    app: brigadasos-dev-db
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: brigadasos-dev-db
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: brigadasos-dev-db
+  template:
+    metadata:
+      labels:
+        app: brigadasos-dev-db
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - image: brigadasos-dev-db
+          name: brigadasos-dev-db
+          envFrom:
+            - configMapRef:
+                name: brigadasos-dev-db-config
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - mountPath: /data/
+              name: brigadasos-dev-db-vol
+      volumes:
+        - name: brigadasos-dev-db-vol
+          persistentVolumeClaim:
+            claimName: brigadasos-dev-db-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: brigadasos-dev-db-service
+  labels:
+    app: brigadasos-dev-db
+spec:
+  selector:
+    app: brigadasos-dev-db
+  ports:
+   - port: 5000
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: brigadasos-dev-db-cert
+spec:
+  secretName: certificate-brigadasos-dev-db
+  dnsNames:
+    - api.dev.brigadasos.xyz
+  issuerRef:
+    name: clusterissuer-le
+    kind: ClusterIssuer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: brigadasos-dev-db-ingress
+  labels:
+    app: brigadasos-dev-db
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10G"
+    nginx.org/client-max-body-size: "10G"
+    cert-manager.io/issuer: clusterissuer-le
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.dev.brigadasos.xyz
+      secretName: certificate-brigadasos-dev-db
+  rules:
+    - host: api.dev.brigadasos.xyz
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: brigadasos-dev-db-service
+                port:
+                  number: 5000
