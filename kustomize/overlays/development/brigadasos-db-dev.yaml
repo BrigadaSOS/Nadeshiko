@@ -50,7 +50,7 @@ spec:
           name: brigadasos-dev-db
           envFrom:
             - configMapRef:
-                name: brigadasos-dev-db-config
+                name: brigadasos-db-config
           ports:
             - containerPort: 5000
           volumeMounts:
