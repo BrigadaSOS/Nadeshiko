@@ -7,7 +7,7 @@ name: Build Docker Dev Image and deploy to Server
 
 on:
   push:
-    branches: [ "development" ]
+    branches: [ "development", "k3s-kustomize" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
 
