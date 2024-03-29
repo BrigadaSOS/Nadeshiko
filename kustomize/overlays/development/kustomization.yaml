@@ -8,4 +8,4 @@ images:
     newName: ghcr.io/brigadasos/brigadasos-dev-db
     newTag: dev-latest
 patches:
-  - ingress-patch.yaml
+- path: ./ingress-patch.yaml
