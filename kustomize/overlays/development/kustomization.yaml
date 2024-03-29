@@ -7,5 +7,5 @@ images:
   - name: brigadasos-dev-db
     newName: ghcr.io/brigadasos/brigadasos-dev-db
     newTag: dev-latest
-patchesStrategicMerge:
+patches:
   - ingress-patch.yaml
