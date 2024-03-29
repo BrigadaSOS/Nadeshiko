@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: brigadasos-db-ingress
+  labels:
+    app: brigadasos-db
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10G"
+    nginx.org/client-max-body-size: "10G"
+    cert-manager.io/issuer: clusterissuer-le
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.brigadasos.xyz
+      secretName: certificate-brigadasos-db
+  rules:
+    - host: api.brigadasos.xyz
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: brigadasos-db-service
+                port:
+                  number: 5000
