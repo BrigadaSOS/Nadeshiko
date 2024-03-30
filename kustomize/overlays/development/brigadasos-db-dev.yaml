@@ -12,7 +12,7 @@ spec:
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "/mnt/nvme01/nadedb/"
+    path: "/mnt/nvme01/nadedb-dev/"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
