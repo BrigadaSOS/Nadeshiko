@@ -221,7 +221,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     const esNoHitsNoFiltersResponse = client.search({
         size: 0,
         sort,
-        index: "nadedb",
+        index: process.env.ELASTICSEARCH_INDEX,
         highlight: {
             fields: {
                 content: {
@@ -281,7 +281,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     const esResponse = client.search({
         size: request.limit,
         sort,
-        index: "nadedb",
+        index: process.env.ELASTICSEARCH_INDEX,
         highlight: {
             fields: {
                 content: {
@@ -342,7 +342,7 @@ export const queryWordsMatched = async (words: string[], exact_match: boolean) :
     }).flat();
 
     const esResponse = await client.msearch({
-        index: "nadedb",
+        index: process.env.ELASTICSEARCH_INDEX,
         searches
     });
 
@@ -390,7 +390,7 @@ export const querySurroundingSegments = async (request: QuerySurroundingSegments
         }];
 
     const esResponse = await client.msearch({
-        index: "nadedb",
+        index: process.env.ELASTICSEARCH_INDEX,
         searches: contextSearches
     });
 
