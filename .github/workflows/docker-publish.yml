@@ -16,9 +16,6 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-  # branch name 
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
-
 
 jobs:
   build:
@@ -104,6 +101,11 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v3
+
+    - name: Get branch name from tag
+      run: |
+       BRANCH_NAME=$(git branch --contains tags/${GITHUB_REF_NAME} | sed -n 2p | xargs)
+       echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
 
     - name: Setup Kustomize
       uses: imranismail/setup-kustomize@v2
