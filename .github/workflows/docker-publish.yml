@@ -19,6 +19,7 @@ env:
 
 jobs:
   check:
+    name: Check
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.check_step.outputs.branch }}
