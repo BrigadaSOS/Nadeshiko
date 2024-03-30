@@ -1,11 +1,10 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: brigadasos-db-pv
-  namespace: nadedb
+  name: brigadasos-dev-db-pv
   labels:
     type: local
-    app: brigadasos-db
+    app: brigadasos-dev-db
 spec:
   storageClassName: manual
   capacity:
@@ -13,15 +12,14 @@ spec:
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "/mnt/nvme01/nadedb/"
+    path: "/mnt/nvme01/nadedb-dev/"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: brigadasos-db-pv-claim
-  namespace: nadedb
+  name: brigadasos-dev-db-pv-claim
   labels:
-    app: brigadasos-db
+    app: brigadasos-dev-db
 spec:
   storageClassName: manual
   accessModes:
@@ -33,24 +31,23 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: brigadasos-db
-  namespace: nadedb
+  name: brigadasos-dev-db
 spec:
   replicas: 1
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: brigadasos-db
+      app: brigadasos-dev-db
   template:
     metadata:
       labels:
-        app: brigadasos-db
+        app: brigadasos-dev-db
     spec:
       imagePullSecrets:
         - name: regcred
       containers:
-        - image: brigadasos-db
-          name: brigadasos-db
+        - image: brigadasos-dev-db
+          name: brigadasos-dev-db
           envFrom:
             - configMapRef:
                 name: brigadasos-db-config
@@ -58,34 +55,32 @@ spec:
             - containerPort: 5000
           volumeMounts:
             - mountPath: /data/
-              name: brigadasos-db-vol
+              name: brigadasos-dev-db-vol
       volumes:
-        - name: brigadasos-db-vol
+        - name: brigadasos-dev-db-vol
           persistentVolumeClaim:
-            claimName: brigadasos-db-pv-claim
+            claimName: brigadasos-dev-db-pv-claim
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: brigadasos-db-service
-  namespace: nadedb
+  name: brigadasos-dev-db-service
   labels:
-    app: brigadasos-db
+    app: brigadasos-dev-db
 spec:
   selector:
-    app: brigadasos-db
+    app: brigadasos-dev-db
   ports:
    - port: 5000
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: brigadasos-db-cert
-  namespace: nadedb
+  name: brigadasos-dev-db-cert
 spec:
-  secretName: certificate-brigadasos-db
+  secretName: certificate-brigadasos-dev-db
   dnsNames:
-    - api.brigadasos.xyz
+    - api.dev.brigadasos.xyz
   issuerRef:
     name: clusterissuer-le
     kind: ClusterIssuer
@@ -93,10 +88,9 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: brigadasos-db-ingress
-  namespace: nadedb
+  name: brigadasos-dev-db-ingress
   labels:
-    app: brigadasos-db
+    app: brigadasos-dev-db
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/rewrite-target: /
@@ -107,16 +101,16 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - api.brigadasos.xyz
-      secretName: certificate-brigadasos-db
+        - api.dev.brigadasos.xyz
+      secretName: certificate-brigadasos-dev-db
   rules:
-    - host: api.brigadasos.xyz
+    - host: api.dev.brigadasos.xyz
       http:
         paths:
           - pathType: Prefix
             path: /
             backend:
               service:
-                name: brigadasos-db-service
+                name: brigadasos-dev-db-service
                 port:
                   number: 5000
