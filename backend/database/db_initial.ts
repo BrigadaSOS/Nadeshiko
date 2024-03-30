@@ -71,7 +71,6 @@ export async function addBasicData(db: any) {
     }
   );
 
-  logger.info(`This is your API key: "${api_key}". Please save it. You can only see it once.` );
   const apiAuth = newUser.apiAuth;
 
   const apiPermissions = await ApiPermission.findAll({
@@ -91,13 +90,21 @@ export async function addBasicData(db: any) {
 }
 
 // Función que lee todos los directorios y los mapea en la base de datos
-export async function readAnimeDirectories(baseDir: string) {
-  const animeDirectories = fs.readdirSync(baseDir);
+export async function readAnimeDirectories(baseDir: string, type: string) {
+  let globalPath = ''
+  if(type == 'anime'){
+    globalPath = path.join(baseDir, 'anime');
+  }else if(type == 'jdrama'){
+    globalPath = path.join(baseDir, 'jdrama');
+  }
+
+  const animeDirectories = fs.readdirSync(globalPath);
 
   for (const animeItem of animeDirectories) {
-    const animeDirPath = path.join(baseDir, animeItem);
+    
+    const mediaDirPath = path.join(globalPath, animeItem);
     // Antes de crear el MEDIA, debe verificar la existencia de un archivo JSON con la info
-    const dataJsonPath = path.join(animeDirPath, "info.json");
+    const dataJsonPath = path.join(mediaDirPath, "info.json");
     const dataJsonExists = fs.existsSync(dataJsonPath);
 
     let media_raw = null;
@@ -125,8 +132,9 @@ export async function readAnimeDirectories(baseDir: string) {
               cover: media_raw.cover,
               banner: media_raw.banner,
               version: media_raw.version,
-              category_type: CategoryType.ANIME,
-              id_category: 1,
+              category: type == 'anime' ? CategoryType.ANIME : CategoryType.JDRAMA,
+              release_date: media_raw.release_date,
+              id_category: type == 'anime' ? 1 : 3,
             }
         );
 
@@ -135,9 +143,9 @@ export async function readAnimeDirectories(baseDir: string) {
         logger.error( "Error creating media", error);
       }
 
-      if (fs.statSync(animeDirPath).isDirectory()) {
+      if (fs.statSync(mediaDirPath).isDirectory()) {
         const seasonDirectories = fs
-            .readdirSync(animeDirPath, {withFileTypes: true})
+            .readdirSync(mediaDirPath, {withFileTypes: true})
             .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
             .map((dirent: { name: any }) => dirent.name);
 
@@ -150,7 +158,7 @@ export async function readAnimeDirectories(baseDir: string) {
             continue;
           }
 
-          const tempDirPath = path.join(animeDirPath, seasonDirname);
+          const tempDirPath = path.join(mediaDirPath, seasonDirname);
           numSeasons += 1;
 
           let media = await Media.findOne({
@@ -172,7 +180,7 @@ export async function readAnimeDirectories(baseDir: string) {
               const dataTsvExists = fs.existsSync(dataTsvPath);
 
               if (dataTsvExists) {
-                logger.info( `Found anime data: %s`, dataTsvPath);
+                logger.info( `Found media data: %s`, dataTsvPath);
 
                 // Se lee cada linea mediante el stream del TSV y se usa la interfaz para manejarla despues
                 const rl = readline.createInterface({
@@ -242,7 +250,7 @@ export async function readAnimeDirectories(baseDir: string) {
         await refreshMediaInfoCache(0, 10);
       }
     } else {
-      logger.error( `data.json file not found for %s. Skipping...`, animeDirPath);
+      logger.error( `data.json file not found for %s. Skipping...`, mediaDirPath);
     }
   }
 }
@@ -253,17 +261,25 @@ export async function readSpecificDirectory(
   folder_name: string,
   season: string,
   episode: string,
-  force: boolean
+  force: boolean,
+  type: string
 ) {
-  // Define la busqueda del anime en la base de datos
-  const animeDirPath = path.join(baseDir, folder_name);
 
-  let animeFound = null;
+  let mediaDirPath = ''
+
+  if(type == 'anime'){
+    mediaDirPath = path.join(baseDir, 'anime', folder_name);
+  }else if(type == 'jdrama'){
+    mediaDirPath = path.join(baseDir, 'jdrama', folder_name);
+  }
+
+  // Define la busqueda del contenido en la base de datos
+  let mediaFound = null;
   // Verifica si el contenido multimedia existe en el backend
-  if (folderExists(animeDirPath)) {
-    // Verifica si existe el anime en la base de datos
+  if (folderExists(mediaDirPath)) {
+    // Verifica si existe el contenido en la base de datos
     // Verifica la existencia de un archivo JSON con la info
-    const dataJsonPath = path.join(animeDirPath, "info.json");
+    const dataJsonPath = path.join(mediaDirPath, "info.json");
     const dataJsonExists = fs.existsSync(dataJsonPath);
 
     let media_raw = null;
@@ -278,13 +294,13 @@ export async function readSpecificDirectory(
       }
     }
 
-    animeFound = await Media.findOne({
+    mediaFound = await Media.findOne({
       where: { folder_media_name: folder_name },
     });
 
     // Si encuentra el anime, empieza a actualizar de acuerdo a los parametros
     // Caso contrario, lo añade a la base de datos
-    if (animeFound) {
+    if (mediaFound) {
       if (force) {
         // Si solo se recibe la temporada, se fuerza la actualización en toda la temporada
         // Si se recibe la temporada y el episodio, se fuerza la actualización de un episodio en especifico de esa temporada
@@ -298,39 +314,41 @@ export async function readSpecificDirectory(
         } else if (!season && episode) {
           return "You must specify a season to delete an episode.";
         } else if (!season && !episode) {
-          await animeFound.destroy();
+          await mediaFound.destroy();
           try {
-            await fullSyncSpecificAnime(animeFound, media_raw, animeDirPath);
-            return "Anime has been added to the database.";
+              await fullSyncSpecificMedia(mediaFound, media_raw, mediaDirPath, type);
+              return "Media has been added to the database.";
           } catch (error) {
             return error;
           }
         }
       } else {
-        return "Anime already exists in the database. If you want to force an update, please check the force option.";
+        return "Media already exists in the database. If you want to force an update, please check the force option.";
       }
     } else {
       try {
-        await fullSyncSpecificAnime(animeFound, media_raw, animeDirPath);
-        return "Anime has been added to the database.";
+        await fullSyncSpecificMedia(mediaFound, media_raw, mediaDirPath, type);
+        return "Media has been added to the database.";
       } catch (error) {
         return error;
       }
     }
   } else {
-    return "Anime folder does not exist. Check the name of the folder and try again.";
+    return "Media folder does not exist. Check the name of the folder and try again.";
   }
 }
 
-async function fullSyncSpecificAnime(
-  animeFound: Media | null,
+async function fullSyncSpecificMedia(
+  mediaFound: Media | null,
   media_raw: any,
-  animeDirPath: string
+  mediaDirPath: string,
+  type: string
 ) {
   try {
-    animeFound = await Media.create(
+    mediaFound = await Media.create(
       {
-        id: media_raw.id,
+        id_anilist: media_raw.id_anilist ?? null,
+        id_tmdb: media_raw.id_tmdb ?? null,
         romaji_name: media_raw.romaji_name,
         english_name: media_raw.english_name,
         japanese_name: media_raw.japanese_name,
@@ -341,10 +359,11 @@ async function fullSyncSpecificAnime(
         cover: media_raw.cover,
         banner: media_raw.banner,
         version: media_raw.version,
-        category: CategoryType.ANIME,
+        release_date: media_raw.release_date,
+        category: type == 'anime' ? CategoryType.ANIME : CategoryType.JDRAMA,
       }
     );
-    await animeFound.save();
+    await mediaFound.save();
     logger.info( "Media info inserted into the database");
   } catch (error) {
     logger.error( "Error while inserting media info into the database", error);
@@ -352,7 +371,7 @@ async function fullSyncSpecificAnime(
 
   // Lee cada temporada y empieza a mapearla en la base de datos
   const seasonDirectories = fs
-    .readdirSync(animeDirPath, { withFileTypes: true })
+    .readdirSync(mediaDirPath, { withFileTypes: true })
     .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
     .map((dirent: { name: any }) => dirent.name);
 
@@ -369,7 +388,7 @@ async function fullSyncSpecificAnime(
     numSeasons += 1;
 
     // Una vez mapeada la temporada, mapea los episodios
-    const tempDirPath = path.join(animeDirPath, seasonDirname);
+    const tempDirPath = path.join(mediaDirPath, seasonDirname);
     if (fs.statSync(tempDirPath).isDirectory()) {
       const episodeDirectories = fs.readdirSync(tempDirPath);
       for (const episodeDirname of episodeDirectories) {
@@ -424,7 +443,7 @@ async function fullSyncSpecificAnime(
             const end = start + batchSize;
             const batchRows = rows.slice(start, end);
 
-            batchInsertPromises.push(insertSegments(batchRows, number_season, number_episode, animeFound!));
+            batchInsertPromises.push(insertSegments(batchRows, number_season, number_episode, mediaFound!));
           }
           await Promise.all(batchInsertPromises);
 
@@ -443,7 +462,7 @@ async function fullSyncSpecificAnime(
       },
       {
         where: {
-          id: animeFound?.id
+          id: mediaFound?.id
         }
       }
   )

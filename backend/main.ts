@@ -55,14 +55,14 @@ const fs = require("fs");
 
 if (process.env.ENVIRONMENT === "testing") {
   // Access media uploaded from outside localhost
-  app.use("/api/media/anime", (req, res, next) => {
+  app.use("/api/media", (req, res, next) => {
     const width = req.query.width ? Number(req.query.width) : null;
     const height = req.query.height ? Number(req.query.height) : null;
-    const imagePath = path.join(__dirname, "/media/anime", req.path);
+    const imagePath = path.join(__dirname, "/media", req.path);
 
     // If no resizing parameters are provided, serve the original image
     if (!width && !height) {
-      return express.static(path.join(__dirname, "/media/anime"))(
+      return express.static(path.join(__dirname, "/media"))(
         req,
         res,
         next
@@ -71,7 +71,7 @@ if (process.env.ENVIRONMENT === "testing") {
 
     const cacheDir = path.join(
       __dirname,
-      "media/tmp/cache/anime",
+      "media/tmp/cache",
       path.dirname(req.path)
     );
     const cachePath = path.join(
@@ -110,7 +110,7 @@ if (process.env.ENVIRONMENT === "testing") {
   const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
   const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
-  app.use("/api/media/anime", (req, res, next) => {
+  app.use("/api/media", (req, res, next) => {
     const width = req.query.width ? Number(req.query.width) : null;
     const height = req.query.height ? Number(req.query.height) : null;
     const imagePath = path.join(mediaDirectory, req.path);
@@ -125,7 +125,7 @@ if (process.env.ENVIRONMENT === "testing") {
 
     const cacheDir = path.join(
       mediaDirectory,
-      "media/tmp/cache/anime",
+      "media/tmp/cache",
       path.dirname(req.path)
     );
     const cachePath = path.join(

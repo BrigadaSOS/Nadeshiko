@@ -4,7 +4,7 @@ export const router = express.Router();
 import {
   reSyncDatabase,
   reSyncDatabasePartial,
-  SyncSpecificAnime,
+  SyncSpecificMedia,
 } from "../controllers/databaseController";
 import {
   GetContextAnime,
@@ -41,7 +41,7 @@ router.post("/v1/jwt/utility/report/segment", isAuthJWT, requireRole(ADMIN, MOD,
 // Database
 router.post("/v1/api/admin/database/resync/full", reSyncDatabase);
 router.post("/v1/api/admin/database/resync/partial", reSyncDatabasePartial);
-router.post("/v1/api/admin/database/sync/anime", isAuth, hasPermission(['ADD_ANIME', 'UPDATE_ANIME']), SyncSpecificAnime);
+router.post("/v1/api/admin/database/sync/media", isAuth, SyncSpecificMedia);
 
 // User
 router.post("/v1/api/user/login", isAuth, logIn);

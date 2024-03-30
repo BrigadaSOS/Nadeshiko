@@ -1,10 +1,14 @@
 <script setup>
-  import { ref, onMounted } from 'vue';
-  const props = defineProps([ 'active' ]);
+const props = defineProps({
+  title: String,
+  amount: Number,
+  active: Boolean
+});
+
 </script>
 
 <template>
-  <div class="tab" :class="(active == 'true') ? 'active' : ''" ref="tabs">
+  <div v-show="active" class="tab">
     <slot></slot>
   </div>
 </template>

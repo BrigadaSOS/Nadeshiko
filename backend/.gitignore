@@ -14,6 +14,7 @@ dist-ssr
 coverage
 *.local
 media/anime
+media/jdrama
 media/hidden
 media/tmp
 .env
