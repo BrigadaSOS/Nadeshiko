@@ -47,8 +47,8 @@ onMounted(() => {
     <!-- Grid -->
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
-        <div class="max-w-xl m-4">
-          <h2 class="text-3xl mt-5 sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
+        <div class="max-w-xl m-2 sm:m-4">
+          <h2 class="text-3xl mt-6 sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
           <p class="mt-1 text-xl md:block dark:text-white/80">
             {{ t('home.nadeDbDescription') }}
           </p>
@@ -322,7 +322,7 @@ onMounted(() => {
     <div class="mx-auto -mb-12">
       <div class="flex flex-wrap -m-4 text-center">
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
-          <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
+          <div class="bg-sgray2 px-4 py-6 rounded-lg">
             <h2 class="title-font font-medium text-3xl text-white">
               +{{ Math.ceil(general_stats.full_total_segments / 100) * 100 }}
             </h2>
@@ -332,7 +332,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
-          <div class="bg-sgray2/60 border-none px-4 py-6 rounded-lg">
+          <div class="bg-sgray2 px-4 py-6 rounded-lg">
             <h2 class="title-font font-medium text-3xl text-white">{{ general_stats.full_total_animes }}</h2>
             <p class="leading-relaxed">
               {{ t('home.stats.mediaCount') }}

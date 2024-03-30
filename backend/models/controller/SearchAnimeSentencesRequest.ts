@@ -25,6 +25,8 @@ export interface SearchAnimeSentencesRequest {
     readonly season?: any[];
     // List of episodes to include
     readonly episode?: any[];
+    // Filter by specific category
+    readonly category?: any[];
     // Filter by specific media
     readonly media: QuerySegmentsAnimeFilter[];
 }

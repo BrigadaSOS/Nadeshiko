@@ -4,6 +4,7 @@ import {FieldValue} from "@elastic/elasticsearch/lib/api/types";
 export interface QuerySegmentsResponse {
     statistics: SearchAnimeSentencesStatistics[];
     sentences: SearchAnimeSentencesSegment[];
+    categoryStatistics: any;
     cursor?: FieldValue[];
 }
 

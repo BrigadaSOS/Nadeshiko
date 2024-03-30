@@ -68,6 +68,7 @@ let searchBarHeight = ref(0)
 const user = computed(() => store.userInfo)
 let sentences = ref([])
 let statistics = ref([])
+let category_statistics = ref([])
 let next_cursor = ref(null)
 let isLoading = ref(false)
 let anime_id = ref(null)
@@ -88,6 +89,7 @@ let currentAudio = ref(null)
 let type_sort = ref(null)
 let metadata = ref(null)
 let random_seed = ref(null)
+let categorySelected = ref(0)
 const isMounted = ref(false)
 let selected_season = ref(null)
 let selected_episode = ref(null)
@@ -268,9 +270,22 @@ const isSelectedSeason = (season) => {
 
 const filteredAnimes = computed(() => {
   const filteredItems = statistics.value.filter((item) => {
-    return item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase())
+    const categoryFilter = categorySelected.value == 0 || item.category === categorySelected.value;
+    const nameFilterEnglish = item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase());
+    const nameFilterJapanese = item?.name_anime_jp?.toLowerCase().includes(querySearchAnime.value.toLowerCase());
+    const nameFilterRomaji= item?.name_anime_romaji?.toLowerCase().includes(querySearchAnime.value.toLowerCase());
+
+    return (categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji));
   })
 
+  if (categorySelected.value) {
+    filteredItems.unshift({
+      anime_id: 0,
+      name_anime_en: t('searchpage.main.labels.all'),
+      amount_sentences_found: filteredItems.reduce((a, b) => a + parseInt(b.amount_sentences_found), 0)
+    });
+  }
+  
   if (filteredItems.length === 0) {
     return [{ name_anime_en: t('searchpage.main.labels.noresults') }]
   }
@@ -354,6 +369,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid, season, episodes)
     random_seed: random_seed.value,
     season: selected_season.value ? [selected_season.value] : null,
     episode: selectedEpisodes.value.length > 0 ? selectedEpisodes.value : null,
+    category: categorySelected.value ? [categorySelected.value] : null
   }
 
   // Calls to backend fail if this is passed to the body when null or undefined
@@ -382,6 +398,8 @@ const getSentences = async (searchTerm, cursor, animeId, uuid, season, episodes)
   // Concatena los nuevos elementos solo si hay un cursor
   sentences.value = cursor ? sentences.value.concat(response.sentences) : response.sentences
   statistics.value = response.statistics
+  category_statistics = response.categoryStatistics
+  
   const default_row_statistics = {
     anime_id: 0,
     name_anime_en: t('searchpage.main.labels.all'),
@@ -508,6 +526,15 @@ const getSharingURL = async (sentence) => {
   }
 }
 
+const categoryFilter = async (category) => {
+    categorySelected.value = category
+    next_cursor.value = null
+    sentences.value = []
+    window.scrollTo(0, 0)
+    await getSentences(querySearch.value, next_cursor.value, anime_id.value, undefined, selected_season.value, selected_episode.value, categorySelected.value)
+}
+
+
 const sortFilter = async (new_type) => {
   if (new_type === type_sort.value) {
     next_cursor.value = null
@@ -601,10 +628,32 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       @searchBarHeight="setBarHeightValue" />
     <div class="flex flex-row lg:w-11/12 mx-auto mb-20" @scroll="loadMoreSentences">
       <div class="container sm:max-w-screen-lg md:max-w-full w-100 mx-auto flex flex-col">
-        <Tabs class="mt-2">
-          <Tab active="true" title="Todo"> </Tab>
-          <Tab title="Anime"> </Tab>
-        </Tabs>
+        <div v-if="category_statistics.length > 0">
+          <div id="tabs-container" class="mt-2">
+            <div id="tab-headers">
+              <ul class="tab-titles">
+                <li @click="categoryFilter(0)" :class="{ active: categorySelected === 0 }"  v-if="category_statistics.some(item => item.category === 1 && item.count > 0)">
+                  Todo 
+                  <span class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
+                    <span v-if="category_statistics.reduce((total, item) => total + item.count, 0)">{{ category_statistics.reduce((total, item) => total + item.count, 0) }}</span>
+                  </span>
+                </li>
+                <li @click="categoryFilter(1)" :class="{ active: categorySelected === 1 }" v-if="category_statistics.some(item => item.category === 1 && item.count > 0)">
+                  Anime 
+                  <span class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
+                    <span v-if="category_statistics.find(item => item.category === 1).count">{{ category_statistics.find(item => item.category === 1).count }}</span>
+                  </span>
+                </li>
+                <li @click="categoryFilter(3)" :class="{ active: categorySelected === 3 }" v-if="category_statistics.some(item => item.category === 3 && item.count > 0)">
+                  Jdrama 
+                  <span class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
+                    <span v-if="category_statistics.find(item => item.category === 3).count">{{ category_statistics.find(item => item.category === 3).count }}</span>
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
         <div class="">
           <div v-if="sentences.length > 0" v-for="(sentence, index) in sentences"
             class="flex group flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 w-100">
@@ -1300,4 +1349,40 @@ em {
   font-style: normal;
   color: rgb(251, 120, 120);
 }
+
+
+#tab-headers ul {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    border-bottom: 1px solid #dddddd21;
+  }
+  #tab-headers ul li {
+    list-style: none;
+    padding: 1rem 1.25rem;
+    position: relative;
+    cursor: pointer;
+  }
+  #tab-headers ul li.active {
+    color: rgb(251, 120, 120);
+    font-weight: bold;
+  }
+  
+  #tab-headers ul li.active:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background: rgb(251, 120, 120);
+  }
+  #active-tab, #tab-headers {
+    width: 100%;
+  }
+  
+  #active-tab {
+    padding: 0.75rem;
+  }
+
 </style>
