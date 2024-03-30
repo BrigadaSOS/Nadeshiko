@@ -4,7 +4,8 @@ import { Segment } from "./segment";
 
 export enum CategoryType {
   ANIME= 1,
-  BOOK=2
+  BOOK=2,
+  JDRAMA=3
 }
 
 @Table({
@@ -19,6 +20,19 @@ export class Media extends Model {
     autoIncrement: true
   })
   id!: number
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true
+  })
+  id_anilist!: number
+
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true
+  })
+  id_tmdb!: number
 
   @Column({
     type: DataType.DATE,
@@ -86,6 +100,12 @@ export class Media extends Model {
     allowNull: true,
   })
   banner!: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true
+  })
+  release_date!: string;
 
   @Column({
     type: DataType.STRING,

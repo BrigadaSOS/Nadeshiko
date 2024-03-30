@@ -15,7 +15,8 @@ export const reSyncDatabase = async (
     await connection.sync({ force: true }).then(async () => {
       const db = connection.models;
       await addBasicData(db);
-      await readAnimeDirectories(mediaDirectory);
+      await readAnimeDirectories(mediaDirectory, 'jdrama');
+      await readAnimeDirectories(mediaDirectory, 'anime');
     });
     res.status(StatusCodes.OK).json({ message: "Database re-synced" });
   } catch (error) {
@@ -37,14 +38,14 @@ export const reSyncDatabasePartial = async (
 };
 
 
-export const SyncSpecificAnime = async (
+export const SyncSpecificMedia = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { folder_name, season, episode, force } = req.body;
-    let message = await readSpecificDirectory(mediaDirectory, folder_name, season, episode, force);
+    const { folder_name, season, episode, force, type } = req.body;
+    let message = await readSpecificDirectory(mediaDirectory, folder_name, season, episode, force, type);
     res.status(StatusCodes.OK).json({ message: message });
   }catch (error) {
     next(error);

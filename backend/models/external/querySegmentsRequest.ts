@@ -13,6 +13,7 @@ export interface QuerySegmentsRequest {
     readonly anime_id?: number; // To be deprecated
     readonly season?: any[];
     readonly episode?: any[];
+    readonly category?: any[];
     readonly media?: QuerySegmentsAnimeFilter[];
 }
 

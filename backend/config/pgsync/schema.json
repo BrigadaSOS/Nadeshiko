@@ -820,8 +820,128 @@
                   "type": "integer"
                 }
               }
+            },
+      "children": [
+        {
+          "table": "Media",
+          "schema": "public",
+          "columns": [
+            "id",
+            "id_anilist",
+            "id_tmdb",
+            "created_at",
+            "updated_at",
+            "romaji_name",
+            "english_name",
+            "japanese_name",
+            "folder_media_name",
+            "airing_format",
+            "airing_status",
+            "genres",
+            "cover",
+            "banner",
+            "release_date",
+            "version",
+            "category",
+            "num_segments",
+            "num_seasons",
+            "num_episodes"
+          ],
+          "relationship": {
+            "variant": "object",
+            "type": "one_to_many",
+            "foreign_key": {
+              "child": [
+                "id"
+              ],
+              "parent": [
+                "media_id"
+              ]
             }
+          },
+          "transform": {
+            "mapping": {
+              "id": {
+                "type": "integer",
+                "index": false
+              },
+              "id_anilist": {
+                "type": "integer"
+              },
+              "id_tmdb": {
+                "type": "integer"
+              },
+              "created_at": {
+                "type": "date"
+              },
+              "updated_at": {
+                "type": "date"
+              },
+              "romaji_name": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "english_name": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "japanese_name": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "folder_media_name": {
+                "type": "keyword"
+              },
+              "airing_format": {
+                "type": "keyword"
+              },
+              "airing_status": {
+                "type": "keyword"
+              },
+              "genres": {
+                "type": "text",
+                "analyzer": "keyword"
+              },
+              "cover": {
+                "type": "keyword"
+              },
+              "banner": {
+                "type": "keyword"
+              },
+              "release_date": {
+                "type": "keyword"
+              },
+              "version": {
+                "type": "keyword"
+              },
+              "category": {
+                "type": "short"
+              },
+              "num_segments": {
+                "type": "integer"
+              },
+              "num_seasons": {
+                "type": "integer"
+              },
+              "num_episodes": {
+                "type": "integer"
+              }
+            }
+          }
         }
+      ]
     }
+  }
 ]
-

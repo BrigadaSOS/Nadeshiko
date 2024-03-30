@@ -142,7 +142,8 @@ export const SearchAnimeSentences = async (
       anime_id: req.body.anime_id,
       exact_match: req.body.exact_match,
       season: req.body.season,
-      episode: req.body.episode
+      episode: req.body.episode,
+      category: req.body.category || [1,2,3]
     });
 
     if(!req.body.cursor){

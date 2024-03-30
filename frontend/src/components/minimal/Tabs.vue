@@ -1,40 +1,49 @@
 <script setup>
-  import { ref, onMounted, reactive } from 'vue';
-  const props = defineProps([ 'customClass' ]);
-  let tabContainer = ref(null);
-  let tabHeaders = ref(null);
-  let tabs = ref(null);
-  let activeTabIndex = ref(0);
 
-  onMounted(() => {
-    tabs.value = [ ...tabContainer.value.querySelectorAll('.tab') ];
-		for(let x of tabs.value) {
-	    if(x.classList.contains('active')) {
-				activeTabIndex = tabs.value.indexOf(x);
-			}
-    }
-  })
-  const changeTab = (index) => {
-    activeTabIndex = index;
-    for(let x of [...tabs.value, ...tabHeaders.value]) {
-   		x.classList.remove('active')
-    }
-		tabs.value[activeTabIndex].classList.add('active')  
-		tabHeaders.value[activeTabIndex].classList.add('active')  
-  }
+import { ref, useSlots, computed } from 'vue';
+
+const slots = useSlots();
+
+const activeTabIndex = ref(0);
+
+const tabs = computed(() => {
+  return slots.default
+    ? slots.default().map((slot, index) => {
+        if (slot.props && slot.props.amount && slot.props.amount !== 0) {
+          const title = slot.props.title || 'No title';
+          const amount = slot.props.amount;
+          return {
+            title,
+            amount,
+            isActive: index === activeTabIndex.value,
+          };
+        }
+        return null;
+      }).filter(tab => tab !== null)
+    : [];
+});
+
+const selectTab = (tab, index) => {
+  activeTabIndex.value = index;
+  console.log(tab, index)
+};
+
+const tabClicked = (tab, index) => {
+  selectTab(tab, index);
+}
 </script>
 
 <template>
-  <div id="tabs-container" :class="customClass" ref="tabContainer">
+  <div id="tabs-container">
     <div id="tab-headers">
-      <ul>
-        <!-- this shows all of the titles --> 
-        <li v-for="(tab, index) in tabs" :key="index" :class="activeTabIndex == index ? 'active' : ''" @click="changeTab(index)" ref="tabHeaders">{{ tab.title }}</li>
+      <ul class="tab-titles">
+        <li v-for="(tab, index) in tabs" :key="index" :class="{ active: activeTabIndex === index }" @click="tabClicked(tab, index)">
+          {{ tab.title }} 
+          <span class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-gray-600/30 dark:text-gray-300">
+            <span v-if="tab.amount">{{ tab.amount }}</span>
+          </span>
+        </li>
       </ul>
-    </div>
-    <!-- this is where the tabs go, in this slot -->
-    <div id="active-tab">
-    	<slot></slot>
     </div>
   </div>
 </template>
@@ -73,4 +82,5 @@
   #active-tab {
     padding: 0.75rem;
   }
+  
 </style>

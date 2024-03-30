@@ -32,6 +32,7 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
   const sql = `SELECT 
   json_build_object(
     'media_id', me.id,
+    'category', me.category,
     'created_at', me.created_at,
     'updated_at', me.updated_at,
     'romaji_name', me.romaji_name,
@@ -43,6 +44,7 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     'genres', me.genres,
     'cover', me.cover,
     'banner', me.banner,
+    'release_date', me.release_date,
     'version', me.version,
     'num_segments', me.num_segments,
     'num_seasons', me.num_seasons,
@@ -74,11 +76,13 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
       return;
     }
 
-    result.media_info.cover = [getBaseUrlMedia(), result.media_info.cover].join(
+    let location_media = result.media_info.category == 1 ? 'anime' : 'jdrama'
+    result.media_info.cover = [getBaseUrlMedia(), location_media ,result.media_info.cover].join(
       "/"
     );
     result.media_info.banner = [
       getBaseUrlMedia(),
+      location_media,
       result.media_info.banner,
     ].join("/");
 

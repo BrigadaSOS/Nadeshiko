@@ -12,6 +12,7 @@ export interface MediaInfoStats {
 
 export interface MediaInfoData {
     media_id: number,
+    category: number,
     created_at: string,
     updated_at?: number,
     romaji_name: string,
@@ -19,6 +20,7 @@ export interface MediaInfoData {
     japanese_name: string,
     airing_format: string,
     airing_status: string,
+    release_date: Date,
     folder_media_name: string,
     genres: string[],
     cover: string,
