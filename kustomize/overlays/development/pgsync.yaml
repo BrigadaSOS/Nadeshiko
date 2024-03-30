@@ -30,7 +30,7 @@ spec:
         - name: pgsync
           image: natsume197/pgsync:3.1.0
           command: [ "pgsync"]
-          args: ["--config", "/data/schema.json", "--daemon"]
+          args: ["--config", "/data/schema-dev.json", "--daemon"]
           # loop forever, outputting "yo" every 5 seconds
           # command: [ "sh", "-c"]
           # args: ["while true; do echo 'yo' && sleep 5; done;"]
