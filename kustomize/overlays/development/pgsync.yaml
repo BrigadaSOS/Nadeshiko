@@ -39,7 +39,7 @@ spec:
                 name: pgsync-config
           volumeMounts:
             - name: pgsync-dev-data
-              mountPath: /data
+              mountPath: /data-dev
   volumeClaimTemplates:
     - metadata:
         name: pgsync-dev-data

@@ -52,7 +52,7 @@ spec:
             - configMapRef:
                 name: pgroonga-config
           volumeMounts:
-            - mountPath: /var/lib/postgresql/data
+            - mountPath: /var/lib/postgresql/data-dev
               name: pgroongadb-dev
       volumes:
         - name: pgroongadb-dev
