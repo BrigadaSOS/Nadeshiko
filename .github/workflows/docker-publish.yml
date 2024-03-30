@@ -128,14 +128,14 @@ jobs:
     - if: ${{ needs.check.outputs.branch == 'development' }}
       name: Update Kubernetes resources for development
       run: |
-       cd kustomize/base
+       cd kustomize/overlays/development
        kustomize edit set image brigadasos-dev-db=ghcr.io/brigadasos/brigadasos-db:$GITHUB_REF_NAME
        cat kustomization.yaml
 
     - if: ${{ needs.check.outputs.branch == 'production' }}
       name: Update Kubernetes resources for production
       run: |
-       cd kustomize/base
+       cd kustomize/overlays/development
        kustomize edit set image brigadasos-db=ghcr.io/brigadasos/brigadasos-db:$GITHUB_REF_NAME
        cat kustomization.yaml
 
