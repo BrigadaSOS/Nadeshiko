@@ -7,7 +7,7 @@ name: Build Docker Image and deploy to Server
 
 on:
   push:
-    branches: [ "prod" ]
+    branches: [ "development", "production", "!master" ]    
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
 
@@ -16,6 +16,8 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  # branch name 
+  BRANCH_NAME: ${{ github.ref_name }} 
 
 
 jobs:
@@ -106,7 +108,15 @@ jobs:
     - name: Setup Kustomize
       uses: imranismail/setup-kustomize@v2
 
-    - name: Update Kubernetes resources
+    - if: env.BRANCH_NAME == 'development'
+      name: Update Kubernetes resources for development
+      run: |
+       cd kustomize/base
+       kustomize edit set image brigadasos-dev-db=ghcr.io/brigadasos/brigadasos-db:$GITHUB_REF_NAME
+       cat kustomization.yaml
+
+    - if: env.BRANCH_NAME == 'production'
+      name: Update Kubernetes resources for production
       run: |
        cd kustomize/base
        kustomize edit set image brigadasos-db=ghcr.io/brigadasos/brigadasos-db:$GITHUB_REF_NAME
@@ -118,9 +128,18 @@ jobs:
         git config --local user.name "GitHub Action"
         git commit -am "Bump docker tag"
 
-    - name: Push changes
+    - if: env.BRANCH_NAME == 'development'
+      name: Push changes to development
       uses: ad-m/github-push-action@master
       with:
+        branch: development
         force: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
 
+    - if: env.BRANCH_NAME == 'production'
+      name: Push changes to production
+      uses: ad-m/github-push-action@master
+      with:
+        branch: production
+        force: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
