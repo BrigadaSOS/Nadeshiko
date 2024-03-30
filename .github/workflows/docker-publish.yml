@@ -18,6 +18,24 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.check_step.outputs.branch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Get current branch
+        id: check_step
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          branch=${raw##*/}
+          echo "{name}=branch" >> $GITHUB_OUTPUT
+          echo "Branch is $branch."
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -96,28 +114,23 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: build
+    needs: [check, build]
 
     steps:
     - name: Check out code
       uses: actions/checkout@v3
 
-    - name: Get branch name from tag
-      run: |
-       BRANCH_NAME=$(git branch --contains tags/${GITHUB_REF_NAME} | sed -n 2p | xargs)
-       echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
-
     - name: Setup Kustomize
       uses: imranismail/setup-kustomize@v2
 
-    - if: env.BRANCH_NAME == 'development'
+    - if: ${{ needs.check.outputs.branch == 'development' }}
       name: Update Kubernetes resources for development
       run: |
        cd kustomize/base
        kustomize edit set image brigadasos-dev-db=ghcr.io/brigadasos/brigadasos-db:$GITHUB_REF_NAME
        cat kustomization.yaml
 
-    - if: env.BRANCH_NAME == 'production'
+    - if: ${{ needs.check.outputs.branch == 'production' }}
       name: Update Kubernetes resources for production
       run: |
        cd kustomize/base
@@ -130,7 +143,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git commit -am "Bump docker tag"
 
-    - if: env.BRANCH_NAME == 'development'
+    - if: ${{ needs.check.outputs.branch == 'development' }}
       name: Push changes to development
       uses: ad-m/github-push-action@master
       with:
@@ -138,7 +151,7 @@ jobs:
         force: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
 
-    - if: env.BRANCH_NAME == 'production'
+    - if: ${{ needs.check.outputs.branch == 'production' }}
       name: Push changes to production
       uses: ad-m/github-push-action@master
       with:
