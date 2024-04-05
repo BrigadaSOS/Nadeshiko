@@ -45,7 +45,7 @@ const { t } = useI18n()
       <hr class="my-6 border-gray-200 md:my-8 dark:border-white/20" />
 
       <div class="flex text-center flex-col items-center sm:flex-row sm:justify-between">
-        <p class="text-sm mb-4 sm:mb-0 text-gray-500 text-center dark:text-gray-300">NadeDB - BrigadaSOS. 2023</p>
+        <p class="text-sm mb-4 sm:mb-0 text-gray-500 text-center dark:text-gray-300">NadeDB - BrigadaSOS. 2024</p>
 
         <div class="flex -mx-2">
           <a

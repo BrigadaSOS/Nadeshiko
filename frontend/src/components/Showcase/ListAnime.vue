@@ -60,35 +60,35 @@ onMounted(() => {
             <ul class="list-disc">
               <li class="mb-2">
                 {{ t('home.nadeDbDescriptionJpSearch') }}:
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=彼女">彼女</a>, 
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=食べる">食べる</a>
+                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=彼女">彼女</a>, 
+                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=食べる">食べる</a>
 
               </li>
               <li class="mb-2">
                 {{ t('home.nadeDbDescriptionOtherSearch') }}:
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Girlfriend"
+                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=Girlfriend"
                   >Girlfriend</a
                 >,
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=graduation">Graduación</a>
+                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=graduation">Graduación</a>
               </li>
               <li class="mb-2">
                 Busqueda excluyente:
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Girlfriend -Eat"
+                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=Girlfriend -Eat"
                   >Girlfriend -Eat</a
                 >,
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Graduation -girfriend">Graduation -girfriend</a>
+                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=Graduation -girfriend">Graduation -girfriend</a>
               </li>
               <li class="">
                 Busqueda exacta:
-                <a class="underline text-blue-500 underline-offset-4" href='search/sentences?query="かのじょ"'>"かのじょ"</a>, 
-                <a href='search/sentences?query="食べられない"' class="underline text-blue-500 underline-offset-4">"食べられない"</a>
+                <a class="underline text-blue-400/95 underline-offset-4" href='search/sentences?query="かのじょ"'>"かのじょ"</a>, 
+                <a href='search/sentences?query="食べられない"' class="underline text-blue-400/90 underline-offset-4">"食べられない"</a>
 
               </li>
             </ul>
           </div>
         </div>
         <div class="mb-5 border-b border-white/20" />
-        <h2 class="text-2xl my-4 font-bold md:text-xl md:leading-tight dark:text-white">
+        <h2 class="text-2xl font-bold md:text-2xl mb-4 md:leading-tight dark:text-white">
           {{ t('home.keyFeatures.title') }}
         </h2>
         <div class="grid gap-6 sm:grid-cols-2 text-base mb-8">
@@ -173,7 +173,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="mb-5 border-b border-white/20" />
-        <h2 class="text-2xl my-4 font-bold md:text-xl md:leading-tight dark:text-white">
+        <h2 class="text-2xl font-bold md:text-2xl mb-4 md:leading-tight dark:text-white">
           {{ t('home.otherFeatures.title') }}
         </h2>
 
@@ -334,7 +334,7 @@ onMounted(() => {
     <div class="my-10 border-b border-white/20" />
   </div>
   <section class="text-white p-4 lg:p-0 body-font">
-    <h2 class="text-2xl mb-4  -mt-8 font-bold md:text-xl md:leading-tight dark:text-white">
+    <h2 class="text-2xl font-bold md:text-2xl mb-4 md:leading-tight -mt-9 dark:text-white">
       {{ t('home.stats.title') }}
     </h2>
     <div class="mx-auto -mb-12">
@@ -360,12 +360,11 @@ onMounted(() => {
       </div>
     </div>
   </section>
-  <div class="mt-20 border-b border-white/20" />
-
-  <section class="pt-8">
+  <div class="pb-16 px-4 border-b border-white/20" />
+  <section class="pt-8 text-white p-4 lg:p-0 body-font">
     <div class="flex flex-col md:flex-row justify-between mx-2 md:mx-0">
-      <div class="md:flex-1">
-        <h2 class="text-2xl mb-4 font-bold md:text-xl md:leading-tight dark:text-white">¿Te gusta este proyecto?</h2>
+      <div class="md:flex-1 mt-5">
+        <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">¿Te gusta NadeDB?</h2>
         <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
           Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro desarrollo con una contribución en
           nuestro Github, una donación o compartiendo este sitio con otras personas.
