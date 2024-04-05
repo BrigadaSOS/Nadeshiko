@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { mdiStarShootingOutline, mdiTextSearch } from '@mdi/js'
 import BaseIcon from '../minimal/BaseIcon.vue'
 import BatchSearchModal from '../BatchSearchModal.vue'
+import AnkiInstallModal from '../AnkiInstallModal.vue'
 import Popper from 'vue3-popper'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
@@ -43,6 +44,7 @@ onMounted(() => {
 </script>
 <template>
   <BatchSearchModal />
+  <AnkiInstallModal />
   <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5">
     <!-- Grid -->
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
@@ -176,8 +178,7 @@ onMounted(() => {
 
         <button
           type="button"
-          disabled
-          data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
+          data-hs-overlay="#hs-vertically-centered-scrollable-ankiinstall"
           class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-[#149de144] focus:ring-blue-600 transition-all text-sm text-gray-900 rounded-lg focus:border-red-500 dark:bg-[#149de15d] dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
         >
           <BaseIcon :path="mdiStarShootingOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
@@ -291,7 +292,7 @@ onMounted(() => {
                 <div class="mt-2 text-center justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-semibold line-clamp-2">{{ media_info.english_name }}</h3>
                 </div>
-                <div class="text-center mt-1 justify-center flex flex-col items-center">
+                <div class="text-center mt-1 mb-2 justify-center flex flex-col items-center">
                   <h3 class="text-sm text-center font-medium line-clamp-2">
                     {{ media_info.num_segments }} {{ t('animeList.sentenceCount') }}
                   </h3>
@@ -304,7 +305,7 @@ onMounted(() => {
                 <div class="mt-2 text-center justify-center flex flex-col items-center">
                   <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-36 mt-2 mb-4"></div>
                 </div>
-                <div class="text-center mt-1 justify-center flex flex-col items-center">
+                <div class="text-center mt-1 mb-2 justify-center flex flex-col items-center">
                   <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-28 mb-4"></div>
                 </div>
               </div>
