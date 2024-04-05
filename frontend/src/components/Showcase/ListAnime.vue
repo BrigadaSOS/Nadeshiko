@@ -49,6 +49,7 @@ onMounted(() => {
       <div class="md:col-span-3 rounded-lg">
         <div class="max-w-xl m-2 sm:m-4">
           <h2 class="text-3xl mt-6 sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
+          <div class="w-36 h-2 bg-sred my-4"></div>
           <p class="mt-1 text-xl md:block dark:text-white/80">
             {{ t('home.nadeDbDescription') }}
           </p>
@@ -235,7 +236,9 @@ onMounted(() => {
                       class="w-full h-full object-cover absolute top-0 left-0"
                       :src="media_info.cover + '?width=230&height=326'"
                     />
-                    <span class="absolute bottom-1 left-1 rounded-md bg-sgray2/90 text-white font-bold text-xs px-2 py-1 ">
+                    <span
+                      class="absolute bottom-1 left-1 rounded-md bg-sgray2/90 text-white font-bold text-xs px-2 py-1"
+                    >
                       {{ media_info.airing_format }}
                     </span>
                   </div>
@@ -324,7 +327,7 @@ onMounted(() => {
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2 px-4 py-6 rounded-lg">
             <h2 class="title-font font-medium text-3xl text-white">
-              +{{ Math.ceil(general_stats.full_total_segments / 100) * 100 }}
+              +{{ Math.ceil(general_stats.full_total_segments / 100) * 100 || 0 }}
             </h2>
             <p class="leading-relaxed">
               {{ t('home.stats.sentenceCount') }}
@@ -333,11 +336,38 @@ onMounted(() => {
         </div>
         <div class="p-4 md:w-2/4 sm:w-1/2 w-full">
           <div class="bg-sgray2 px-4 py-6 rounded-lg">
-            <h2 class="title-font font-medium text-3xl text-white">{{ general_stats.full_total_animes }}</h2>
+            <h2 class="title-font font-medium text-3xl text-white">{{ general_stats.full_total_animes || 0 }}</h2>
             <p class="leading-relaxed">
               {{ t('home.stats.mediaCount') }}
             </p>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="mt-20 border-b border-white/20" />
+
+  <section class="pt-8">
+    <div class="flex flex-col md:flex-row justify-between mx-2 md:mx-0">
+      <div class="md:flex-1 md:ml-4">
+        <h2 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">¿Te gusta este proyecto?</h2>
+        <div class="w-[38vh] h-1 bg-sred my-4"></div>
+        <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
+          Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro desarrollo con una contribución en
+          nuestro Github, una donación o compartiendo este sitio con otras personas.
+        </p>
+      </div>
+
+      <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
+        <div class="mt-5 w-auto bg-white p-1">
+          <a href="https://github.com/BrigadaSOS">
+            <img class="h-12 object-contain" src="../../assets/github.png" alt="GitHub" />
+          </a>
+        </div>
+        <div class="mt-5 w-auto">
+          <a href="https://patreon.com/BrigadaSOS">
+            <img class="h-14 object-contain" src="../../assets/patreon.png" alt="Become a Patron" />
+          </a>
         </div>
       </div>
     </div>
