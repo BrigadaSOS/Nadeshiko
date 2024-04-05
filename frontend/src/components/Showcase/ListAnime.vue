@@ -49,32 +49,46 @@ onMounted(() => {
     <!-- Grid -->
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
-        <div class="max-w-xl m-2 sm:m-4">
-          <h2 class="text-3xl mt-6 sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
-          <div class="w-36 h-2 bg-sred my-4"></div>
-          <p class="mt-1 text-xl md:block dark:text-white/80">
+        <div class="max-w-2xl m-2 sm:my-4">
+          <h2 class="text-3xl underline underline-offset-8 mb-4 decoration-4  decoration-sred  mt-6 sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">NadeDB</h2>
+          <p class="mt-1 text-lg md:block dark:text-white/80">
             {{ t('home.nadeDbDescription') }}
           </p>
           <div
-            class="flex flex-col dark:text-white/80 first-letter:items-left px-5 py-4 text-lg mx-auto sm:px-6 lg:px-8"
+            class="flex flex-col dark:text-white/80 first-letter:items-left px-5 py-3 text-lg mx-auto sm:px-6 lg:px-8"
           >
             <ul class="list-disc">
               <li class="mb-2">
                 {{ t('home.nadeDbDescriptionJpSearch') }}:
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=彼女">彼女</a>
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=彼女">彼女</a>, 
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=食べる">食べる</a>
+
               </li>
-              <li>
+              <li class="mb-2">
                 {{ t('home.nadeDbDescriptionOtherSearch') }}:
                 <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Girlfriend"
                   >Girlfriend</a
                 >,
-                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Novia">Novia</a>
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=graduation">Graduación</a>
+              </li>
+              <li class="mb-2">
+                Busqueda excluyente:
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Girlfriend -Eat"
+                  >Girlfriend -Eat</a
+                >,
+                <a class="underline text-blue-500 underline-offset-4" href="search/sentences?query=Graduation -girfriend">Graduation -girfriend</a>
+              </li>
+              <li class="">
+                Busqueda exacta:
+                <a class="underline text-blue-500 underline-offset-4" href='search/sentences?query="かのじょ"'>"かのじょ"</a>, 
+                <a href='search/sentences?query="食べられない"' class="underline text-blue-500 underline-offset-4">"食べられない"</a>
+
               </li>
             </ul>
           </div>
         </div>
         <div class="mb-5 border-b border-white/20" />
-        <h2 class="text-2xl m-4 font-bold md:text-xl md:leading-tight dark:text-white">
+        <h2 class="text-2xl my-4 font-bold md:text-xl md:leading-tight dark:text-white">
           {{ t('home.keyFeatures.title') }}
         </h2>
         <div class="grid gap-6 sm:grid-cols-2 text-base mb-8">
@@ -159,7 +173,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="mb-5 border-b border-white/20" />
-        <h2 class="text-2xl m-4 font-bold md:text-xl md:leading-tight dark:text-white">
+        <h2 class="text-2xl my-4 font-bold md:text-xl md:leading-tight dark:text-white">
           {{ t('home.otherFeatures.title') }}
         </h2>
 
@@ -183,7 +197,7 @@ onMounted(() => {
         >
           <BaseIcon :path="mdiStarShootingOutline" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="mr-3" />
           <div class="mr-2">
-            {{ t('home.otherFeatures.ankiSupport') }}
+            {{ t('home.otherFeatures.ankiSupport') }} (Beta)
           </div>
         </button>
       </div>
@@ -320,7 +334,7 @@ onMounted(() => {
     <div class="my-10 border-b border-white/20" />
   </div>
   <section class="text-white p-4 lg:p-0 body-font">
-    <h2 class="text-2xl m-4 -mt-8 font-bold md:text-xl md:leading-tight dark:text-white">
+    <h2 class="text-2xl mb-4  -mt-8 font-bold md:text-xl md:leading-tight dark:text-white">
       {{ t('home.stats.title') }}
     </h2>
     <div class="mx-auto -mb-12">
@@ -350,9 +364,8 @@ onMounted(() => {
 
   <section class="pt-8">
     <div class="flex flex-col md:flex-row justify-between mx-2 md:mx-0">
-      <div class="md:flex-1 md:ml-4">
-        <h2 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">¿Te gusta este proyecto?</h2>
-        <div class="w-[38vh] h-1 bg-sred my-4"></div>
+      <div class="md:flex-1">
+        <h2 class="text-2xl mb-4 font-bold md:text-xl md:leading-tight dark:text-white">¿Te gusta este proyecto?</h2>
         <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
           Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro desarrollo con una contribución en
           nuestro Github, una donación o compartiendo este sitio con otras personas.
@@ -360,14 +373,14 @@ onMounted(() => {
       </div>
 
       <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
-        <div class="mt-5 w-auto bg-white p-1">
+        <div class="mt-5 w-auto bg-white p-1 rounded-md">
           <a href="https://github.com/BrigadaSOS">
-            <img class="h-12 object-contain" src="../../assets/github.png" alt="GitHub" />
+            <img class="h-12 object-contain " src="../../assets/github.png" alt="GitHub" />
           </a>
         </div>
-        <div class="mt-5 w-auto">
+        <div class="mt-5 w-auto ">
           <a href="https://patreon.com/BrigadaSOS">
-            <img class="h-14 object-contain" src="../../assets/patreon.png" alt="Become a Patron" />
+            <img class="h-14 object-contain rounded-md" src="../../assets/patreon.png" alt="Become a Patron" />
           </a>
         </div>
       </div>
