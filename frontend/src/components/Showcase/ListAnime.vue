@@ -45,7 +45,7 @@ onMounted(() => {
 <template>
   <BatchSearchModal />
   <AnkiInstallModal />
-  <div class="max-w-[185rem] px-4 sm:px-6 lg:px-0 lg:py-5">
+  <div class=" px-4 sm:px-6 lg:px-0 mt-5">
     <!-- Grid -->
     <div class="grid md:grid-cols-7 gap-10 mb-5 lg:mb-0">
       <div class="md:col-span-3 rounded-lg">
@@ -73,10 +73,7 @@ onMounted(() => {
               </li>
               <li class="mb-2">
                 Busqueda excluyente:
-                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=Girlfriend -Eat"
-                  >Girlfriend -Eat</a
-                >,
-                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=Graduation -girfriend">Graduation -girfriend</a>
+                <a class="underline text-blue-400/95 underline-offset-4" href="search/sentences?query=卒業 -みんな">卒業 -みんな</a>
               </li>
               <li class="">
                 Busqueda exacta:
@@ -237,7 +234,7 @@ onMounted(() => {
               </router-link>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
               <div
                 v-if="latest_anime_list.length > 0"
                 v-for="(media_info, index) in latest_anime_list"
@@ -252,7 +249,7 @@ onMounted(() => {
                       :src="media_info.cover + '?width=230&height=326'"
                     />
                     <span
-                      class="absolute bottom-1 left-1 rounded-md bg-sgray2/90 text-white font-bold text-xs px-2 py-1"
+                      class="absolute bottom-1 left-1 rounded-md bg-sgray text-white font-bold text-xs px-2 py-1"
                     >
                       {{ media_info.airing_format }}
                     </span>
@@ -333,7 +330,7 @@ onMounted(() => {
     <!-- End Grid -->
     <div class="my-10 border-b border-white/20" />
   </div>
-  <section class="text-white p-4 lg:p-0 body-font">
+  <section class="text-white p-4 mt-4 lg:p-0 body-font">
     <h2 class="text-2xl font-bold md:text-2xl mb-4 md:leading-tight -mt-9 dark:text-white">
       {{ t('home.stats.title') }}
     </h2>
@@ -360,10 +357,10 @@ onMounted(() => {
       </div>
     </div>
   </section>
-  <div class="pb-16 px-4 border-b border-white/20" />
-  <section class="pt-8 text-white p-4 lg:p-0 body-font">
+  <div class="pb-16 px-4 border-b  border-white/20" />
+  <section class="pt-8 text-white mt-3 px-4 lg:p-0 body-font">
     <div class="flex flex-col md:flex-row justify-between mx-2 md:mx-0">
-      <div class="md:flex-1 mt-5">
+      <div class="md:flex-1 mt-6">
         <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">¿Te gusta NadeDB?</h2>
         <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
           Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro desarrollo con una contribución en
@@ -374,12 +371,12 @@ onMounted(() => {
       <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
         <div class="mt-5 w-auto bg-white p-1 rounded-md">
           <a href="https://github.com/BrigadaSOS">
-            <img class="h-12 object-contain " src="../../assets/github.png" alt="GitHub" />
+            <img class="h-10 object-contain " src="../../assets/github.png" alt="GitHub" />
           </a>
         </div>
         <div class="mt-5 w-auto ">
           <a href="https://patreon.com/BrigadaSOS">
-            <img class="h-14 object-contain rounded-md" src="../../assets/patreon.png" alt="Become a Patron" />
+            <img class="h-12 object-contain rounded-md" src="../../assets/patreon.png" alt="Become a Patron" />
           </a>
         </div>
       </div>
