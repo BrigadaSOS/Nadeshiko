@@ -1,9 +1,10 @@
 <script setup>
 import router from '../../router/index'
 import { ref, onMounted, nextTick, watch, computed } from 'vue'
-import { mdiTuneVariant } from '@mdi/js'
+import { mdiTextSearch } from '@mdi/js'
 import BaseIcon from '../minimal/BaseIcon.vue'
 import SettingsSearchModal from '../Showcase/SettingsSearchModal.vue'
+import BatchSearchModal from '../BatchSearchModal.vue'
 
 // Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
@@ -120,6 +121,7 @@ watch(
 let placeholder_search1 = t('searchpage.main.labels.searchmain')
 </script>
 <template>
+  <BatchSearchModal />
   <div class="sticky z-30 top-0" id="search-bar" ref="searchBar">
     <form @submit="searchHandler">
       <label
@@ -179,10 +181,10 @@ let placeholder_search1 = t('searchpage.main.labels.searchmain')
             />
             <a
               @click="showModalSettingsSearch()"
-              data-hs-overlay="#hs-vertically-centered-scrollable-modal3"
+              data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
               class="text-white cursor-pointer absolute right-[94px] bottom-2.5 focus:outline-none focus:ring-blue-300 rounded-lg text-sm px-4 pt-2 pb-1 dark:bg-graypalid dark:hover:bg-gray-500"
             >
-              <BaseIcon :path="mdiTuneVariant" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
+              <BaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
             </a>
           </div>
           <button

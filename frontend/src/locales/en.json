@@ -40,7 +40,7 @@
     "stats": {
       "title": "General Stats",
       "sentenceCount": "Sentences",
-      "mediaCount": "Animes and Movies"
+      "mediaCount": "Total content"
     }
   },
   "batchSearch": {

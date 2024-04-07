@@ -4,8 +4,8 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <footer class="bg-white  dark:bg-sgray2/60">
-    <div class=" max-w-[195vh] px-6 py-4 md:py-6 mx-auto">
+  <footer class="bg-white dark:bg-sgray2/60">
+    <div class="max-w-[195vh] px-6 py-4 md:py-6 mx-auto">
       <div class="flex flex-col items-center text-center">
         <div class="flex flex-wrap justify-center mt-4 -mx-4">
           <a
@@ -13,7 +13,7 @@ const { t } = useI18n()
             class="mx-4 text-sm mb-2 sm:mb-0 text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Home"
           >
-            {{t("navbar.buttons.home")}}
+            {{ t('navbar.buttons.home') }}
           </a>
 
           <a
@@ -21,7 +21,7 @@ const { t } = useI18n()
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Privacy"
           >
-            {{t("navbar.buttons.privacy")}}
+            {{ t('navbar.buttons.privacy') }}
           </a>
 
           <a
@@ -29,7 +29,7 @@ const { t } = useI18n()
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="TermsAndConditions"
           >
-            {{t("navbar.buttons.terms")}}
+            {{ t('navbar.buttons.terms') }}
           </a>
 
           <a
@@ -37,7 +37,7 @@ const { t } = useI18n()
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Contact"
           >
-            {{t("navbar.buttons.contact")}}
+            {{ t('navbar.buttons.contact') }}
           </a>
         </div>
       </div>
@@ -50,7 +50,7 @@ const { t } = useI18n()
         <div class="flex -mx-2">
           <a
             href="https://discord.gg/ajWm26ADEj"
-            class="mx-2  text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+            class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
             target="_blank"
             aria-label="Discord"
           >
@@ -85,4 +85,11 @@ const { t } = useI18n()
       </div>
     </div>
   </footer>
+  <div class="bg-sgray2">
+    <div class="lg:w-11/12 w-full mx-auto px-4 py-3 items-start justify-between text-white sm:flex">
+      <div class="flex-1 justify-center flex items-start gap-x-4 sm:items-center">
+        <p class="py-2 font-medium">Versión en desarrollo de NadeDB, sujeta a posibles errores y mejoras continuas.</p>
+      </div>
+    </div>
+  </div>
 </template>
