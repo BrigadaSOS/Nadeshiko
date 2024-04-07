@@ -15,7 +15,7 @@ module.exports = {
       }
     },
     colors: {
-      sred: '#ef5552',
+      sred: '#CE4947',
       bgcolorcontext: '#1b1b1b',
       sgray: '#2f2f31',
       sgray2: '#252526',
