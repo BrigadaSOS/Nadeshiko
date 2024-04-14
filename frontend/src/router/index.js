@@ -42,8 +42,8 @@ const router = createRouter({
       component: NotFoundView
     },
     {
-      path: '/account',
-      name: 'account',
+      path: '/settings',
+      name: 'settings',
       component: AccountSummaryView,
       meta: { requireAuth: true }
     }
