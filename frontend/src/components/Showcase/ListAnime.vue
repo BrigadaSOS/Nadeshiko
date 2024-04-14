@@ -45,7 +45,7 @@ onMounted(() => {
 </script>
 <template>
   <AnkiInstallModal />
-  <div class="w-full py-4 sm:py-6">
+  <div class="w-full pt-4 sm:py-6">
     <section class="flex w-full flex-col items-center">
       <div class="flex flex-col w-11/12 gap-6 lg:gap-16 dark:text-white/80 lg:flex-row">
         <div class="flex-grow">
@@ -136,7 +136,7 @@ onMounted(() => {
 
           <div class="flex gap-4 text-center">
             <div class="md:w-2/4 sm:w-1/2 w-full">
-              <div class="bg-sgray2 px-4 py-4 rounded-lg">
+              <div class="bg-sgray2 border border-sgray border-1 px-4 py-4 rounded-lg">
                 <h2 class="title-font font-medium text-3xl text-white">
                   +{{ Math.ceil(general_stats.full_total_segments / 100) * 100 || 0 }}
                 </h2>
@@ -146,7 +146,7 @@ onMounted(() => {
               </div>
             </div>
             <div class="md:w-2/4 sm:w-1/2 w-full">
-              <div class="bg-sgray2 px-4 py-4 rounded-lg">
+              <div class="bg-sgray2 border border-sgray border-1 px-4 py-4 rounded-lg">
                 <h2 class="title-font font-medium text-3xl text-white">{{ general_stats.full_total_animes || 0 }}</h2>
                 <p class="leading-relaxed">
                   {{ t('home.stats.mediaCount') }}
@@ -155,7 +155,6 @@ onMounted(() => {
             </div>
           </div>
           <div class="mt-5 border-b border-white/10" />
-
         </div>
         <div class="flex-grow lg:max-w-[59rem]">
           <div class="md:col-span-4">
@@ -290,7 +289,7 @@ onMounted(() => {
     </section>
   </div>
 
-  <div class="w-11/12 mb-8 rounded-lg mx-auto dark:text-white/80 bg-sgray2 relative">
+  <div class="w-11/12 mb-14 rounded-lg mx-auto border border-sgray border-1 dark:text-white/80 bg-sgray2 relative">
     <section class="py-6 mx-6">
       <div class="flex mb-4 flex-col md:flex-row justify-top mx-2 md:mx-0">
         <div class="md:flex-1">
@@ -317,7 +316,6 @@ onMounted(() => {
     </section>
   </div>
 
-  
 </template>
 <style>
 :root {
