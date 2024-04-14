@@ -9,10 +9,10 @@ import Footer from '../components/Footer.vue'
 <template>
   <main>
     <NavBar />
-    <div class="min-h-screen flex flex-col">
+    <div class="">
         <Summary/>
     </div>
-    <div class="mt-auto">
+    <div class="">
       <StickyBanner />
       <Footer />
     </div>
