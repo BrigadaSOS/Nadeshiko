@@ -17,6 +17,7 @@ coverage
 
 /cypress/videos/
 /cypress/screenshots/
+/sudachi.rs/dictionaries
 
 # Editor directories and files
 .vscode/*
