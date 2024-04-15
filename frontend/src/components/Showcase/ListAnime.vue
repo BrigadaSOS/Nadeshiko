@@ -2,8 +2,6 @@
 import { onMounted, ref } from 'vue'
 import { mdiStarShootingOutline, mdiTextSearch, mdiSync, mdiDownload, mdiHistory, mdiCardMultiple } from '@mdi/js'
 import BaseIcon from '../minimal/BaseIcon.vue'
-import BatchSearchModal from '../BatchSearchModal.vue'
-import AnkiInstallModal from '../AnkiInstallModal.vue'
 import Popper from 'vue3-popper'
 
 import { useI18n } from 'vue-i18n'
@@ -44,7 +42,6 @@ onMounted(() => {
 })
 </script>
 <template>
-  <AnkiInstallModal />
   <div class="w-full pt-4 sm:py-6">
     <section class="flex w-full flex-col items-center">
       <div class="flex flex-col w-11/12 gap-6 lg:gap-16 dark:text-white/80 lg:flex-row">
