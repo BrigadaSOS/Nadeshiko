@@ -10,9 +10,11 @@ import BaseIcon from '../minimal/BaseIcon.vue'
 
 const { t, locale } = useI18n()
 
-const tabs = [
+const tabs_general = [
   { name: 'Cuenta', icon: mdiAccount },
   { name: 'Sincronización', icon: mdiSync },
+];
+const tabs_advanced = [
   { name: 'Desarrollador', icon: mdiCodeTags },
 ];
 
@@ -25,15 +27,25 @@ const activeTab = ref('#horizontal-scroll-tab-cuenta')
     <div class="flex flex-col md:flex-row">
       <!-- Vertical Tabs -->
       <div
-        class="hidden  mx-auto  shadow-md md:block md:sticky top-0 md:h-screen md:overflow-y-auto md:w-1/4 xl:w-3/12 px-4 ">
+        class="hidden  mx-auto  shadow-md md:block md:sticky top-0 md:h-screen md:overflow-y-auto md:w-1/4 xl:w-3/12 ">
         <nav aria-label="Tabs" class="flex flex-col bg-sgray2  rounded-lg p-6 my-10 space-y-2">
-          <h3 class="text-lg text-white/90 tracking-wide font-semibold">Ajustes</h3>
+          <h3 class="text-lg text-white/90 tracking-wide font-semibold">General</h3>
           <div class="border-b  border-white/10" />
-          <button v-for="tab in tabs" :key="tab.name"
-              :class="{ 'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}` }"
-              @click="activeTab = `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}`"
-              class="rounded-lg tab-title flex items-center align-middle gap-2 px-4 py-2 text-left">
-        <BaseIcon :path="tab.icon" size="20"/>
+          <button v-for="tab in tabs_general" :key="tab.name"
+            :class="{ 'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}` }"
+            @click="activeTab = `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}`"
+            class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left">
+            <BaseIcon :path="tab.icon" size="20" />
+            {{ tab.name }}
+          </button>
+
+          <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">Avanzado</h3>
+          <div class="border-b  border-white/10" />
+          <button v-for="tab in tabs_advanced" :key="tab.name"
+            :class="{ 'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}` }"
+            @click="activeTab = `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}`"
+            class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left">
+            <BaseIcon :path="tab.icon" size="20" />
             {{ tab.name }}
           </button>
         </nav>
@@ -72,19 +84,18 @@ const activeTab = ref('#horizontal-scroll-tab-cuenta')
 </template>
 
 <style>
-.tab-title:hover {
+.tab-title-settings:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.active {
-  color: rgb(253, 116, 116);
+.tab-title-settings.active {
   background: rgba(255, 255, 255, 0.1);
   font-weight: bold;
   font-weight: 600;
 
 }
 
-.active:after {
+.tab-title-settings.active:after {
   content: '';
   position: absolute;
   top: 0;
