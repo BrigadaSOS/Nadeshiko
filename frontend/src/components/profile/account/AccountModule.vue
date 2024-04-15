@@ -36,14 +36,14 @@ onMounted(async () => {
   <!-- Card -->
 
   <div class="bg-sgray2 p-6 my-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Información Básica</h3>
+    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Información</h3>
     <div class="border-b pt-4 border-white/10" />
     <div class="mt-4">
       <div class="flex justify-between items-center">
         <div>
           <p class="text-gray-400">Usuario</p>
           <div v-if="isLoading">
-            <div class="w-32 h-4 bg-gray-200 rounded-lg dark:bg-sgray"></div>
+            <div class="w-32 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
           </div>
           <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.username || 'No available' }}</p>
         </div>
@@ -58,7 +58,7 @@ onMounted(async () => {
         <div>
           <p class="text-gray-400">Correo</p>
           <div v-if="isLoading">
-            <div class="w-40 h-4 bg-gray-200 rounded-lg dark:bg-sgray"></div>
+            <div class="w-40 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
           </div>
           <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.email || 'No available' }}</p>
         </div>
