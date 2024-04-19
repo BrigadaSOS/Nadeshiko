@@ -117,7 +117,7 @@ watch(deckOptions, async (newValue, oldValue) => {
           <div class="w-full">
 
             <div v-if="isLoading" role="alert"
-              class="rounded border-s-4 border-blue-500 bg-blue-50 p-4 dark:border-blue-600 dark:bg-blue-900">
+              class="rounded border-s-4 border-blue-500 bg-blue-50 p-4 dark:border-blue-600 dark:bg-blue-900/60">
               <div class="flex items-center gap-2 text-blue-800 dark:text-blue-100">
                 <div role="status">
                   <svg aria-hidden="true"
@@ -152,7 +152,7 @@ watch(deckOptions, async (newValue, oldValue) => {
             </div>
 
             <div v-if="isError" role="alert"
-              class="rounded border-s-4 border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900">
+              class="rounded border-s-4 border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/70">
               <div class="flex items-center gap-2 text-red-800 dark:text-red-100">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
                   <path fill-rule="evenodd"

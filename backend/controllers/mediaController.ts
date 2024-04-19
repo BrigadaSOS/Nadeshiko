@@ -130,6 +130,9 @@ export const SearchAnimeSentences = async (
   next: NextFunction
 ) => {
   try {
+
+    if(!req.body.query) throw new BadRequest("Missing query")
+
     const response = await querySegments({
       query: req.body.query,
       uuid: req.body.uuid,
@@ -188,7 +191,7 @@ export const GetWordsMatched = async (
   }
 };
 
-export const GetAllAnimes = async (
+export const getAllMedia = async (
   req: ControllerRequest<void, GetAllAnimesRequest>,
   res: ControllerResponse<GetAllAnimesResponse>,
   next: NextFunction

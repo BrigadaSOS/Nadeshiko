@@ -1,6 +1,8 @@
 import url from "url";
 import {Request, Response } from "express";
 import {Send, Query, ParamsDictionary} from "express-serve-static-core";
+import { v4 as uuidv4 } from 'uuid';
+import crypto from "crypto";
 
 const PROTOCOL = (process.env.ENVIRONMENT === "production") ? "https" : "http";
 export const getBaseUrlMedia = () => {
@@ -17,8 +19,22 @@ export const getBaseUrlTmp = () => {
     });
 }
 
+export const generateApiKey = () => {
+    return uuidv4();
+}
 
-// Reference: https://javascript.plainenglish.io/typed-express-request-and-response-with-typescript-7277aea028c
+export const generateApiKeyHint = (apiKey: string) => {
+    const visibleCharacters = 4;
+    const maskedSection = '*'.repeat(10);
+    return `${apiKey.substring(0, visibleCharacters)}${maskedSection}${apiKey.substring(apiKey.length - visibleCharacters)}`;
+} 
+
+export const hashApiKey = (apiKey: string) => {
+    const hashedKey = crypto.createHash("sha256").update(apiKey).digest("hex");
+    return hashedKey;
+}
+
+// Reference: https://javascript.plainenglish.io/typed-express-request-and-response-with-typescript-7277aea028c
 export interface ControllerRequest<ReqBody, ReqQuery extends Query = Query> extends Request<ParamsDictionary, any, ReqBody, ReqQuery> {}
 
 export interface ControllerResponse<T> extends Response {
