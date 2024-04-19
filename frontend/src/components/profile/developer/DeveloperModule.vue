@@ -46,7 +46,7 @@ const quotaPercentage = computed(() => {
 
 <template>
     <!-- Card -->
-    <div class="bg-sgray2 p-6 my-6 mx-auto rounded-lg shadow-md">
+    <div class="bg-sgray2 p-6 mx-auto rounded-lg shadow-md">
         <h3 class="text-lg text-white/90 tracking-wide font-semibold">Consumo API</h3>
         <div class="border-b pt-4 border-white/10" />
         <div class="mt-4">

@@ -45,7 +45,7 @@ const navigateToTab = (path) => {
       <!-- Vertical Tabs -->
       <div
         class="hidden  mx-auto  md:block md:sticky top-0 md:h-screen md:overflow-y-auto md:w-1/4 xl:w-3/12 ">
-        <nav aria-label="Tabs" class="flex flex-col bg-sgray2 rounded-lg p-6 my-10 space-y-2">
+        <nav aria-label="Tabs" class="flex flex-col bg-sgray2 rounded-lg p-6 my-2 space-y-2">
           <h3 class="text-lg text-white/90 tracking-wide font-semibold">General</h3>
           <div class="border-b  border-white/10" />
           <button v-for="tab in tabs_general" :key="tab.name"
@@ -81,7 +81,7 @@ const navigateToTab = (path) => {
       </div>
 
       <!-- Tab Content -->
-      <div class="flex-grow p-4 overflow-y-auto  md:mx-auto">
+      <div class="flex-grow md:pl-6 overflow-y-auto my-2 md:mx-auto">
         <div v-if="activeTab === '#horizontal-scroll-tab-cuenta'">
           <AccountModule />
         </div>
@@ -92,6 +92,7 @@ const navigateToTab = (path) => {
           <DeveloperModule />
         </div>
       </div>
+
     </div>
   </div>
 </template>
