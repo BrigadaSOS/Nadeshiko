@@ -1355,7 +1355,7 @@ em {
     margin: 0;
     padding: 0;
     display: flex;
-    border-bottom: 1px solid #dddddd21;
+    border-bottom: 3px solid #dddddd21;
   }
   #tab-headers ul li {
     list-style: none;
