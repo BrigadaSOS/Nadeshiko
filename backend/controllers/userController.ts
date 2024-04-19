@@ -319,7 +319,4 @@ async function verifyCodeOAuth(code: any) {
   });
   return userinfo.data;
 }
-function hashApiKey(api_key: string): any {
-  throw new Error("Function not implemented.");
-}
 
