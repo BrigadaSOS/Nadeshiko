@@ -14,5 +14,5 @@ router.get('/v1/search/media/info', authenticate({ apiKey: true }), hasPermissio
 
 // Post
 router.post("/v1/search/media/sentence", searchFetchLimiter, authenticate({ apiKey: true }), hasPermissionAPI(['READ_MEDIA']), rateLimitApiQuota, SearchAnimeSentences);
-router.post("/v1/search/media/context", authenticate({ apiKey: true }), hasPermissionAPI(['READ_MEDIA']), GetContextAnime);
-router.post('/v1/search/media/match/words', authenticate({ apiKey: true }), hasPermissionAPI(['READ_MEDIA']), GetWordsMatched)
+router.post("/v1/search/media/context", searchFetchLimiter, authenticate({ apiKey: true }), hasPermissionAPI(['READ_MEDIA']), rateLimitApiQuota, GetContextAnime);
+router.post('/v1/search/media/match/words', searchFetchLimiter, authenticate({ apiKey: true }), hasPermissionAPI(['READ_MEDIA']), rateLimitApiQuota, GetWordsMatched)
