@@ -108,7 +108,7 @@ watch(deckOptions, async (newValue, oldValue) => {
 
   <div class="anki">
 
-    <div class="bg-sgray2 p-6 my-6 mx-auto rounded-lg shadow-md">
+    <div class="bg-sgray2 p-6 mx-auto rounded-lg shadow-md">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">Estado Sincronización</h3>
       <div class="border-b pt-4 border-white/10" />
       <div class="mt-4">

@@ -627,7 +627,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
     <SearchBarSentences :isLoading="isLoading" :error_connection="error_connection"
       @searchBarHeight="setBarHeightValue" />
     <div class="flex flex-row lg:w-11/12 mx-auto mb-20" @scroll="loadMoreSentences">
-      <div class="container sm:max-w-screen-lg md:max-w-full w-100 mx-auto flex flex-col">
+      <div class="container  sm:max-w-screen-lg md:max-w-full w-100 mx-auto flex flex-col">
         <div v-if="category_statistics.length > 0">
           <div id="tabs-container" class="mt-2">
             <div id="tab-headers">
@@ -656,8 +656,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
         </div>
         <div class="">
           <div v-if="sentences.length > 0" v-for="(sentence, index) in sentences"
-            class="flex group flex-col md:flex-row duration-300 sm:hover:bg-sgray2/50 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 w-100">
-            <div class="h-auto w-auto md:h-[16em] md:w-[30em] 2xl:h-[16em] 2xl:w-[41em] xxl:w-auto xxl:h-auto">
+            class="flex group  flex-col md:flex-row duration-300 sm:hover:bg-sgray2/30 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 w-100">
+            <div class="h-auto shrink-0 w-auto md:w-[26em] md:h-[15em]">
               <img class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
                 :src="sentence.media_info.path_image + '?width=960&height=540'" :key="sentence.media_info.path_image"
                 @click="ampliarImagen(sentence.media_info.path_image)" />
@@ -737,7 +737,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                       aria-labelledby="hs-dropdown-with-title">
                       <div class="py-2 first:pt-0 last:pb-0">
-                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
+                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-white/60">
                           {{ t('searchpage.main.labels.options') }}
                         </span>
                         <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
@@ -774,7 +774,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                       aria-labelledby="hs-dropdown-with-title">
                       <div class="py-2 first:pt-0 last:pb-0">
-                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
+                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-white/60">
                           {{ t('searchpage.main.labels.multimedia') }}
                         </span>
                         <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
@@ -858,7 +858,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       class="z-30 hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                       aria-labelledby="hs-dropdown-with-title">
                       <div class="py-2 first:pt-0 last:pb-0">
-                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
+                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-white/60">
                           Multimedia
                         </span>
                         <a @click="copyToClipboard(sentence.media_info.path_video)"
@@ -899,7 +899,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         </a>
                       </div>
                       <div class="py-2 first:pt-0 last:pb-0">
-                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
+                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-white/60">
                           {{ t('searchpage.main.labels.text') }}
                         </span>
                         <a @click="copyToClipboard(sentence.segment_info.content_jp)"
@@ -975,7 +975,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                       class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                       aria-labelledby="hs-dropdown-with-title">
                       <div class="py-2 first:pt-0 last:pb-0">
-                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-gray-500">
+                        <span class="block py-2 px-3 text-xs font-medium uppercase text-gray-400 dark:text-white/60">
                           {{ t('searchpage.main.labels.options') }}
                         </span>
                         <a v-if="user?.roles?.includes(1)" @click="currentSentence = sentence"
@@ -1202,7 +1202,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     class="block w-full p-4 pl-4 text-sm xxl:text-base xxm:text-2xl text-gray-900 border-none dark:bg-sgray dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
                     :placeholder="placeholder_search2" required />
                   <div class="absolute z-10 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
-                    <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none"
+                    <svg aria-hidden="true" class="w-5 h-5 text-white/60 dark:text-gray-400" fill="none"
                       stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
