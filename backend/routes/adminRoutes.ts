@@ -6,6 +6,6 @@ import { reSyncDatabase, reSyncDatabasePartial } from "../controllers/databaseCo
 import { authenticate } from "../middleware/authentication";
 
 // Get
-router.get("/v1/admin/database/sync/full", authenticate({ apiKey: true }), reSyncDatabase);
+router.get("/v1/admin/database/sync/full", reSyncDatabase);
 router.get("/v1/admin/database/sync/partial", authenticate({ apiKey: true }), reSyncDatabasePartial);
 
