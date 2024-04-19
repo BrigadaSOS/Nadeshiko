@@ -48,7 +48,7 @@ onMounted(() => {
         <div class="flex-grow">
           <div class="flex rounded-lg flex-col first-letter:items-left">
             <h2
-              class="text-3xl ml-2 underline underline-offset-8 decoration-4 decoration-sred sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white"
+              class="text-3xl ml-2 mt-3 md:mt-0 underline underline-offset-8 decoration-4 decoration-sred sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white"
             >
               NadeDB
             </h2>
@@ -273,7 +273,7 @@ onMounted(() => {
                     <div class="mt-2 text-center justify-center flex flex-col items-center">
                       <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-36 mt-2 mb-4"></div>
                     </div>
-                    <div class="text-center mt-1 mb-5 justify-center flex flex-col items-center">
+                    <div class="text-center mt-1 mb-4 justify-center flex flex-col items-center">
                       <div class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-28 mb-4"></div>
                     </div>
                   </div>
@@ -288,7 +288,7 @@ onMounted(() => {
 
   <div class="w-11/12 mb-14 rounded-lg mx-auto border border-sgray border-1 dark:text-white/80 bg-sgray2 relative">
     <section class="py-6 mx-6">
-      <div class="flex mb-4 flex-col md:flex-row justify-top mx-2 md:mx-0">
+      <div class="flex mb-2 flex-col md:flex-row justify-top mx-2 md:mx-0">
         <div class="md:flex-1">
           <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">¿Te gusta NadeDB?</h2>
           <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
