@@ -5,52 +5,51 @@ import { ApiAuth } from "../models/api/apiAuth";
 import { User } from "../models/user/user";
 import { ApiPermission } from "../models/api/apiPermission";
 import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
-import crypto from "crypto";
 import { UserRole } from "../models/user/userRole";
 import {refreshMediaInfoCache} from "../external/database_queries";
 import {logger} from "../utils/log";
+import { hashApiKey, generateApiKeyHint } from "../utils/utils";
 
 const bcrypt = require("bcrypt");
 const readline = require("readline");
 const stream = require("stream");
 const fs = require("fs");
 
-function hashApiKey(apiKey: string) {
-  const hashedKey = crypto.createHash("sha256").update(apiKey).digest("hex");
-  return hashedKey;
-}
-
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
   await db.Role.bulkCreate([
-    { id: 1, name: "ADMIN", description: "Administrator" },
-    { id: 2, name: "MOD", description: "Moderator"},
-    { id: 3, name: "USER", description: "User" },
+    { id: 1, name: "ADMIN", description: "Administrator", quotaLimit: -1 },
+    { id: 2, name: "MOD", description: "Moderator", quotaLimit: -1 },
+    { id: 3, name: "USER", description: "User", quotaLimit: 5000 },
+    { id: 5, name: "PATREON", description: "Patreon", quotaLimit: -1 },
   ]);
 
   await db.ApiPermission.bulkCreate([
-    { name: "ADD_ANIME" },
-    { name: "READ_ANIME" },
-    { name: "REMOVE_ANIME" },
-    { name: "UPDATE_ANIME" },
+    { name: "ADD_MEDIA" },
+    { name: "READ_MEDIA" },
+    { name: "REMOVE_MEDIA" },
+    { name: "UPDATE_MEDIA" },
     { name: "RESYNC_DATABASE" },
     { name: "CREATE_USER" }
   ]);
 
   const permissions = [
-    "ADD_ANIME",
-    "READ_ANIME",
-    "REMOVE_ANIME",
-    "UPDATE_ANIME",
+    "ADD_MEDIA",
+    "READ_MEDIA",
+    "REMOVE_MEDIA",
+    "UPDATE_MEDIA",
     "RESYNC_DATABASE",
     "CREATE_USER"
   ];
 
   const salt: string = await bcrypt.genSalt(10);
   const encryptedPassword: string = await bcrypt.hash(process.env.PASSWORD_API_NADEDB, salt);
-  const api_key = process.env.API_KEY_MASTER!;
   const roles = [1];
   const userRoles = roles.map((roleId) => ({ id_role: roleId }));
+
+  const api_key = process.env.API_KEY_MASTER!;
+  const api_key_hashed = hashApiKey(api_key);
+  const api_key_hint = generateApiKeyHint(api_key);
 
   const newUser = await User.create(
     {
@@ -60,7 +59,9 @@ export async function addBasicData(db: any) {
       is_active: true,
       is_verified: true,
       apiAuth: {
-        token: hashApiKey(api_key),
+        name: "Default",
+        hint: api_key_hint,
+        token: api_key_hashed,
         createdAt: new Date(),
         isActive: true,
       },

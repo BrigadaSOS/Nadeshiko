@@ -59,7 +59,7 @@ const playSound = (sound) => {
 async function getContextSentence(item) {
   finalsentences.value = []
   selectedCheckboxes.value = []
-  let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/search/anime/context', {
+  let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/media/context', {
     method: 'POST',
     mode: 'cors',
     headers: {
@@ -149,7 +149,7 @@ const getSelectedCheckboxes = async (type) => {
   })
   if (type === 1) {
     try {
-      response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/utility/merge/audio', {
+      response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'utility/merge/audio', {
         method: 'POST',
         mode: 'cors',
         headers: {

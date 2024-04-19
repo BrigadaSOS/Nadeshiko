@@ -7,7 +7,7 @@ import { User } from "../models/user/user";
 import { UserRole } from "../models/user/userRole";
 import { Role } from "../models/user/role";
 import { UserAuth } from "../models/user/userAuth"
-import { createToken, maxAge } from "../middleware/createTokenJWT";
+import { createToken, maxAgeJWT } from "../middleware/authentication";
 import { Report, ReportStatus, ReportType } from "../models/miscellaneous/report"
 
 const { OAuth2Client } = require("google-auth-library");
@@ -209,7 +209,7 @@ export const logIn = async (
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: true,
-      maxAge: maxAge * 1000,
+      maxAge: maxAgeJWT * 1000,
     });
 
     const data_user = {
@@ -236,7 +236,6 @@ export const loginGoogle = async (
 ) => {
   try {
     let userInfo = await verifyCodeOAuth(req.body.code);
-    console.log(userInfo);
 
     let user = await User.findOne({
       include: [{
@@ -249,10 +248,12 @@ export const loginGoogle = async (
     },);
 
     if (!user) {
+      // Definition of roles for a normal user
       // 3: Normal user
       const roles = [3];
       const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
+      // Create an user
       user = await User.create({
         username: userInfo.name,
         email: userInfo.email,
@@ -261,6 +262,7 @@ export const loginGoogle = async (
         UserRoles: userRoles,
       }, { include: UserRole });
 
+      // Create related data from oAUTH
       await UserAuth.create({
         userId: user.id,
         provider: 'google',
@@ -269,7 +271,7 @@ export const loginGoogle = async (
 
     }
 
-    // Create Token with role
+    // Create Token JWT with role
     const user_role = await UserRole.findAll({
       where: { id_user: user.id },
       include: [
@@ -287,7 +289,7 @@ export const loginGoogle = async (
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: true,
-      maxAge: maxAge * 1000,
+      maxAge: maxAgeJWT * 1000,
     });
 
     const data_user = {
@@ -317,3 +319,7 @@ async function verifyCodeOAuth(code: any) {
   });
   return userinfo.data;
 }
+function hashApiKey(api_key: string): any {
+  throw new Error("Function not implemented.");
+}
+

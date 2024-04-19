@@ -2,18 +2,6 @@ import { Table, Model, Column, DataType, HasMany, BelongsToMany } from "sequeliz
 import { ApiAuth } from "./apiAuth";
 import { ApiAuthPermission } from "./ApiAuthPermission";
 
-/*
-------PERMISSIONS------
-ADD_ANIME
-READ_ANIME
-REMOVE_ANIME
-UPDATE_ANIME
-
-RESYNC_DATABASE
-CREATE_USER
------------------------
-*/
-
 @Table({
   timestamps: false,
   tableName: "ApiPermission",

@@ -19,6 +19,14 @@ import { ApiAuth } from "./apiAuth";
     tableName: "ApiAuthPermission",
   })
   export class ApiAuthPermission extends Model {
+    @Column({
+      type: DataType.INTEGER,
+      allowNull: false,
+      primaryKey: true,
+      autoIncrement: true,
+    })
+    id!: number;
+    
     @ForeignKey(() => ApiAuth)
     @Column
     apiAuthId!: number;

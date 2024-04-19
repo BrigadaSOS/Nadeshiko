@@ -376,7 +376,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid, season, episodes)
   if (cursor) body.cursor = cursor
 
   try {
-    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/search/anime/sentence', {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'search/media/sentence', {
       method: 'POST',
       mode: 'cors',
       headers: {

@@ -23,6 +23,12 @@ export class Role extends Model {
   })
   description!: string
 
+  @Column({
+    type: DataType.INTEGER,
+    defaultValue: 2500 
+  })
+  quotaLimit!: number;
+
   @HasMany(() => UserRole)
   UserRoles!: UserRole[];
  
