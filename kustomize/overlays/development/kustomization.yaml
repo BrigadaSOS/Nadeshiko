@@ -8,5 +8,5 @@ resources:
 namespace: nadedb-dev
 images:
 - name: brigadasos-dev-db
-  newName: ghcr.io/brigadasos/brigadasos-db
-  newTag: v0.9.1-1
+  newName: ghcr.io/brigadasos/nadedb
+  newTag: v0.9.1-2
