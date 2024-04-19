@@ -48,8 +48,6 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.set('trust proxy', true);
-
 const sharp = require("sharp");
 const fs = require("fs");
 
