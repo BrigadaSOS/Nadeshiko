@@ -28,7 +28,7 @@ export const userStore = defineStore('user', {
   actions: {
     async login(email, password) {
       try {
-        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/user/login', {
+        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/login', {
           method: 'POST',
           mode: 'cors',
           headers: {
@@ -63,7 +63,7 @@ export const userStore = defineStore('user', {
     },   
     async loginGoogle(code) {
       try {
-        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/user/login/google', {
+        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/login/google', {
           method: 'POST',
           mode: 'cors',
           headers: {
@@ -98,7 +98,7 @@ export const userStore = defineStore('user', {
     },    
     async register(email, password) {
       try {
-        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/user/register', {
+        const response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/register', {
           method: 'POST',
           mode: 'cors',
           headers: {

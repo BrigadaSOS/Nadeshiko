@@ -1,8 +1,9 @@
 import { Authorized, BadRequest } from "../utils/error";
 import { Response, NextFunction, request } from "express";
 
-export const hasPermission = (permissions: string[]) => {
+export const hasPermissionAPI = (permissions: string[]) => {
   return async (req: any, res: Response, next: NextFunction) => {
+    // We check for permission if API key is used
     if (req.user) {
       const userPermissions = req.user.apiAuth.permissions.map(
         (permission: { name: string }) => permission.name
@@ -23,6 +24,7 @@ export const hasPermission = (permissions: string[]) => {
       }
       return next();
     }
+    // Otherwise, we skip permission verification
     return next();
   };
 };

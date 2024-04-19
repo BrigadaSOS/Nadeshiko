@@ -21,7 +21,7 @@ const getLatestAnime = async (page = currentPage.value) => {
   isLoading.value = true
   try {
     let response = await fetch(
-      `${import.meta.env.VITE_APP_BASE_URL_BACKEND}api/search/anime/info?` +
+      `${import.meta.env.VITE_APP_BASE_URL_BACKEND}search/media/info?` +
         new URLSearchParams({
           sorted: 'true',
           page: page.toString(),

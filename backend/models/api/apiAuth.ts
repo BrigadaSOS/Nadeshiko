@@ -29,6 +29,18 @@ export class ApiAuth extends Model {
 
   @Column({
     type: DataType.STRING,
+    allowNull: true,
+  })
+  name!: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  hint!: string;
+
+  @Column({
+    type: DataType.STRING,
     allowNull: false,
   })
   token!: string;
@@ -54,5 +66,8 @@ export class ApiAuth extends Model {
 
   @BelongsToMany(() => ApiPermission, () => ApiAuthPermission)
   permissions!: ApiPermission[];
+
+  @BelongsTo(() => User)
+  user!: User;
 
 }

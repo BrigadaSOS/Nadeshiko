@@ -61,7 +61,7 @@ const submitEdit = async () => {
     isNSFW: isNSFW.value
   }
   try {
-    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'api/segment', {
+    response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'segment', {
       method: 'PUT',
       mode: 'cors',
       headers: {

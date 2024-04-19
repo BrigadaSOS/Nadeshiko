@@ -46,7 +46,25 @@ const router = createRouter({
       name: 'settings',
       component: AccountSummaryView,
       meta: { requireAuth: true }
-    }
+    },
+    {
+      path: '/settings/account',
+      name: 'settings-account',
+      component: AccountSummaryView,
+      meta: { requireAuth: true }
+    },
+    {
+      path: '/settings/sync',
+      name: 'settings-sync',
+      component: AccountSummaryView,
+      meta: { requireAuth: true }
+    },
+    {
+      path: '/settings/developer',
+      name: 'settings-developer',
+      component: AccountSummaryView,
+      meta: { requireAuth: true }
+    },
   ]
 })
 
