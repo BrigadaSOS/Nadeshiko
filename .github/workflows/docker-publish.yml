@@ -136,7 +136,7 @@ jobs:
       name: Update Kubernetes resources for production
       run: |
        cd kustomize/overlays/production
-       kustomize edit set image nadedb=ghcr.io/brigadasos/nadedb:$GITHUB_REF_NAME
+       kustomize edit set image brigadasos-db=ghcr.io/brigadasos/nadedb:$GITHUB_REF_NAME
        cat kustomization.yaml
 
     - name: Commit files
