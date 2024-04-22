@@ -716,7 +716,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 <div>
                   <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                     <button id="hs-dropdown-with-title" type="button"
-                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white">
+                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white">
                       <svg class="flex-none" width="20" height="20" viewBox="0 0 24 24" fill-opacity="0"
                         stroke="currentColor">
                         <path xmlns="http://www.w3.org/2000/svg"
@@ -753,7 +753,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 <div>
                   <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                     <button id="hs-dropdown-with-title" type="button"
-                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white">
+                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white">
                       <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path fill-rule="evenodd"
                           d="M7.646 10.854a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 9.293V5.5a.5.5 0 0 0-1 0v3.793L6.354 8.146a.5.5 0 1 0-.708.708l2 2z" />
@@ -836,7 +836,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 <div>
                   <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                     <button id="hs-dropdown-with-title" type="button"
-                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
+                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
                       <svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"
                         focusable="false" class="rs-icon" aria-label="copy" data-category="action">
                         <path
@@ -941,7 +941,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <div class="relative inline-flex mb-2 mr-2">
                     <button @click="showModalContext(sentence)" data-hs-overlay="#hs-vertically-centered-scrollable-modal"
                       type="button"
-                      class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white">
+                      class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white">
                       <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"
                         class="rs-icon w-4 h-[22px]">
                         <path
@@ -959,7 +959,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                 <div>
                   <div class="hs-dropdown relative inline-flex mb-2 mr-2">
                     <button id="hs-dropdown-with-title" type="button"
-                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
+                      class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
                       <svg class="hs-dropdown-open:rotate-180 w-5 h-5 rotate-90 fill-white text-gray-300"
                         viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path

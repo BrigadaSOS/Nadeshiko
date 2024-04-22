@@ -29,7 +29,7 @@ const setOption = (option) => {
 <template>
 <div class="relative  text-base">
     <button
-    class="dark:bg-sgray w-full md:w-auto outline-none  dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
+    class="dark:bg-sgray w-full md:w-auto outline-none  dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:text-gray-200 dark:hover:text-white"
       @click="data.isOptionsExpanded = !data.isOptionsExpanded"
       @blur="data.isOptionsExpanded = false"
     >

@@ -32,6 +32,29 @@ export const apiStore = defineStore('api', {
             } catch (error) {
                 console.log(error)
             }
-        }
+        },
+        async createApiKeyGeneral(nameApiKey) {
+            try {
+                let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'user/createApiKey', {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    withCredentials: true,
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        name: nameApiKey
+                    })
+                })
+
+                if (response.status === 401) {
+                    this.logout();
+                }
+                return response
+            } catch (error) {
+                console.log(error)
+            }
+        },
     }
 })
