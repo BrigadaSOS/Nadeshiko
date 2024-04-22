@@ -251,7 +251,7 @@ const downloadFile = async (item) => {
       <button
         data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
         type="button"
-        class="dark:bg-sgray mr-2 outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+        class="dark:bg-sgray mr-2 outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white"
       >
         <BaseIcon display="flex" size="20" :path="mdiFolderPlusOutline" fill="#DDDF" />
         Nueva carpeta
@@ -261,7 +261,7 @@ const downloadFile = async (item) => {
         data-hs-overlay="#hs-vertically-centered-scrollable-uploadfile"
         type="button"
         @click="triggerFileInput"
-        class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+        class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white"
       >
         <BaseIcon  display="flex" size="20" :path="mdiUpload" fill="#DDDF" />
         Subir archivo

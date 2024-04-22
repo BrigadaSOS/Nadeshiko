@@ -37,6 +37,7 @@ export const createAPIKeyDefault = async (
       token: api_key_hashed,
       hint: api_key_hint,
       isActive: true,
+      createAt: Date.now(),
       userId: req.jwt.user_id,
     });
 

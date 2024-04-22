@@ -6,6 +6,7 @@ import {
     mdiPencilOutline,
     mdiPlus
 } from '@mdi/js'
+import AddApiKeyModal from './AddApiKeyModal.vue'
 
 const api_store = apiStore()
 
@@ -45,6 +46,8 @@ const quotaPercentage = computed(() => {
 </script>
 
 <template>
+    <AddApiKeyModal />
+
     <!-- Card -->
     <div class="bg-sgray2 p-6 mx-auto rounded-lg shadow-md">
         <h3 class="text-lg text-white/90 tracking-wide font-semibold">Consumo API</h3>
@@ -69,19 +72,18 @@ const quotaPercentage = computed(() => {
 
     <!-- Card -->
     <div class="bg-sgray2 p-6 my-6 mx-auto rounded-lg shadow-md">
-
         <div class="flex items-center">
             <div class="flex flex-col">
                 <h3 class="text-lg text-white/90 tracking-wide font-semibold">Gestión de llaves API</h3>
             </div>
             <div class="ml-auto">
-                <button
+                <button data-hs-overlay="#hs-vertically-centered-scrollable-addapikey"
                     class="bg-graypalid flex items-center text-center hover:bg-graypalid/60 text-white font-bold py-2 pl-4  pr-6 rounded">
                     <BaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"
                         class="text-center flex mr-2 " />
-                    <div class="align-middle mb-0.5 flex text-center items-centere">
+                    <button class="align-middle mb-0.5 flex text-center items-center">
                         Añadir llave API
-                    </div>
+                    </button>
 
                 </button>
             </div>
@@ -128,7 +130,7 @@ const quotaPercentage = computed(() => {
                                     <div class="inline-flex flex-wrap justify-center gap-2 w-full">
 
                                         <span v-for="(permission, index) in item?.permissions" :key="index"
-                                            class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-teal-500/10 dark:text-teal-500">
+                                            class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-blue-500/10 dark:text-blue-500">
                                             {{ permission.name }}
                                         </span>
                                     </div>
@@ -153,7 +155,7 @@ const quotaPercentage = computed(() => {
                                 <div class="flex justify-center items-center h-full">
                                     <div class="hs-dropdown relative mb-2 mx-auto">
                                         <button id="hs-dropdown-with-title" type="button"
-                                            class="border-transparent dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-lg border font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
+                                            class="border-transparent dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-lg border font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
                                             <svg class="hs-dropdown-open:rotate-180 w-5 h-5 rotate-180 fill-white text-gray-300"
                                                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path
@@ -218,7 +220,7 @@ const quotaPercentage = computed(() => {
                     </tbody>
                 </table>
                 <section v-if="isLoading" class="container border-sgray2 rounded-xl px-4 mx-auto">
-                    <div class="flex items-center my-6 text-center rounded-lg h-96">
+                    <div class="flex items-center my-6 text-center rounded-lg ">
                         <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
                             <div class="p-1.5 min-w-full inline-block align-middle">
                                 <span

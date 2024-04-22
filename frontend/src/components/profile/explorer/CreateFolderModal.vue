@@ -96,7 +96,7 @@ const createFolder = async () => {
 
           <button
             type="button"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
           >
             {{t("reportModal.close")}}
@@ -104,7 +104,7 @@ const createFolder = async () => {
           <button
             type="button"
             @click="createFolder"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:border-sgray2 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-createfolder"
           >
             Crear carpeta
