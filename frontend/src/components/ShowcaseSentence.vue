@@ -628,7 +628,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
       @searchBarHeight="setBarHeightValue" />
     <div class="flex flex-row lg:w-11/12 mx-auto mb-20" @scroll="loadMoreSentences">
       <div class="container  sm:max-w-screen-lg md:max-w-full w-100 mx-auto flex flex-col">
-        <div v-if="category_statistics.length > 0">
+        <div class="pb-4" v-if="category_statistics.length > 0">
           <div id="tabs-container" class="mt-2">
             <div id="tab-headers">
               <ul class="tab-titles">

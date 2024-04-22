@@ -85,11 +85,4 @@ const { t } = useI18n()
       </div>
     </div>
   </footer>
-  <div class="bg-sgray2">
-    <div class="lg:w-11/12 w-full mx-auto px-4 py-3 items-start justify-between text-white sm:flex">
-      <div class="flex-1 justify-center flex items-start gap-x-4 sm:items-center">
-        <p class="py-2 font-medium">Versión en desarrollo de NadeDB, sujeta a posibles errores y mejoras continuas.</p>
-      </div>
-    </div>
-  </div>
 </template>
