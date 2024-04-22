@@ -135,7 +135,7 @@ jobs:
     - if: ${{ needs.check.outputs.branch == 'production' }}
       name: Update Kubernetes resources for production
       run: |
-       cd kustomize/overlays/development
+       cd kustomize/overlays/production
        kustomize edit set image nadedb=ghcr.io/brigadasos/nadedb:$GITHUB_REF_NAME
        cat kustomization.yaml
 
