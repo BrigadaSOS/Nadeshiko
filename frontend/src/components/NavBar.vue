@@ -61,7 +61,7 @@ const redirectReload = () => {
         <div class="md:hidden">
           <button
             type="button"
-            class="hs-collapse-toggle p-2 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sred text-gray-700 align-middle hover:bg-sgray focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-collapse-toggle p-2 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sred text-gray-700 align-middle hover:bg-sgray focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:border-gray-700 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-collapse="#navbar-collapse-with-animation"
             aria-controls="navbar-collapse-with-animation"
             aria-label="Toggle navigation"
@@ -104,6 +104,7 @@ const redirectReload = () => {
         >
           {{t("navbar.buttons.discord")}}
       </a>
+      <!--
       <a
           :class="isActive('/guide').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
           class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
@@ -111,6 +112,15 @@ const redirectReload = () => {
         >
           {{t("navbar.buttons.guide")}}
         </a>
+        -->
+        <router-link to="/api/docs">
+        <button
+          :class="isActive('/api/docs').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
+          class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
+        >
+          API
+        </button>
+      </router-link>
         <router-link to="/about">
         <button
           :class="isActive('/about').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
@@ -128,7 +138,7 @@ const redirectReload = () => {
             <button
               v-if="!isAuth"
               data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
-              class="dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white"
+              class="dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:text-gray-200 dark:hover:text-white"
             >
               {{ t("navbar.buttons.login")}}
             </button>
@@ -137,7 +147,7 @@ const redirectReload = () => {
               <button
                 id="hs-dropdown-left-but-right-on-lg"
                 type="button"
-                class="hs-dropdown-toggle focus:outline-none dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-200 dark:hover:text-white0"
+                class="hs-dropdown-toggle focus:outline-none dark:bg-sgray w-full md:w-auto outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:text-gray-200 dark:hover:text-white0"
               >
                 {{ t("navbar.buttons.profile")}}
 

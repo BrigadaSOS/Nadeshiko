@@ -6,6 +6,7 @@ import AllAnimeView from '../views/AllAnimeView.vue'
 import AccountSummaryView from '../views/AccountSummaryView.vue'
 import AboutView from '../views/AboutView.vue'
 import { userStore } from '../stores/user'
+import ApiView from '../views/ApiView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -64,6 +65,11 @@ const router = createRouter({
       name: 'settings-developer',
       component: AccountSummaryView,
       meta: { requireAuth: true }
+    },
+    {
+      path: '/api/docs',
+      name: 'api-docs',
+      component: ApiView
     },
   ]
 })

@@ -328,7 +328,7 @@ const ampliarImagen = (url) => {
                         <button
                           id="hs-dropdown-with-title"
                           type="button"
-                          class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white"
+                          class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-sgray shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:border-sgrayhover dark:text-gray-300 dark:hover:text-white"
                         >
                           <svg class="flex-none" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                             <path
@@ -467,7 +467,7 @@ const ampliarImagen = (url) => {
                         <button
                           id="hs-dropdown-with-title"
                           type="button"
-                          class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                          class="border-transparent dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                         >
                           <svg
                             width="1em"
@@ -645,7 +645,7 @@ const ampliarImagen = (url) => {
                           <button
                             id="hs-dropdown-with-title"
                             type="button"
-                            class="border-transparent ml-2 dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                            class="border-transparent ml-2 dark:bg-sgray dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
                           >
                             <svg
                               class="hs-dropdown-open:rotate-180 w-3.5 h-3.5 rotate-90 fill-white text-gray-300"
@@ -786,7 +786,7 @@ const ampliarImagen = (url) => {
           <button
             type="button"
             @click="getSelectedCheckboxes(2)"
-            class="py-4 px-4 h-14 lg:h-12 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="py-4 px-4 h-14 lg:h-12 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
             <svg
               width="1em"
@@ -809,13 +809,13 @@ const ampliarImagen = (url) => {
           <button
             type="button"
             @click="getSelectedCheckboxes(1)"
-            class="hs-dropdown-toggle h-14 lg:h-12 mr-auto py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 mr-auto py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
           >
             {{ t('searchpage.modalcontext.buttons.downloadmultipleaudios') }}
           </button>
           <button
             type="button"
-            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-modal"
           >
             {{ t('searchpage.modalcontext.buttons.close') }}
