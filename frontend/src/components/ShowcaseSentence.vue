@@ -658,7 +658,7 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           <div v-if="sentences.length > 0" v-for="(sentence, index) in sentences"
             class="flex group  flex-col md:flex-row duration-300 sm:hover:bg-sgray2/30 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 w-100">
             <div class="h-auto shrink-0 w-auto md:w-[26em] md:h-[15em]">
-              <img class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+              <img loading="lazy" class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
                 :src="sentence.media_info.path_image + '?width=960&height=540'" :key="sentence.media_info.path_image"
                 @click="ampliarImagen(sentence.media_info.path_image)" />
             </div>
