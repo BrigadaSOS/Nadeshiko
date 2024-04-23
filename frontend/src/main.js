@@ -2,13 +2,14 @@ import('preline')
 import "vue-toastification/dist/index.css";
 
 import './assets/main.css'
-
+import VueVirtualScroller from 'vue-virtual-scroller'
 import { createHead } from '@unhead/vue'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { getStartingLocale } from './utils/i18n'
 
+import VueLazyLoad from 'vue3-lazyload'
 import App from './App.vue'
 import router from './router'
 import Toast from "vue-toastification";
@@ -49,5 +50,6 @@ app.use(Toast, options_toast)
 app.use(vue3GoogleLogin, {
   clientId: '467066531682-q8p3ve3pc59cqnfjqn9vftpbmplclum3.apps.googleusercontent.com'
 })
+app.use(VueLazyLoad)
 
 app.mount('#app')

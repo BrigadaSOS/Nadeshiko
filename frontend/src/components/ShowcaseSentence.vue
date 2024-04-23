@@ -2,18 +2,16 @@
 import { userStore } from '../stores/user'
 import {
   mdiArrowCollapseRight,
-  mdiTuneVariant,
   mdiTextSearch,
   mdiTranslate,
   mdiStarShootingOutline,
   mdiPencilOutline,
   mdiRefresh,
   mdiFileVideo,
-  mdiArrowCollapseLeft,
-  mdiSwapVertical
+  mdiArrowCollapseLeft
 } from '@mdi/js'
 import { useToast } from 'vue-toastification'
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { onBeforeRouteUpdate } from 'vue-router'
 import { normalizeSentence } from '../utils/misc'
 
@@ -22,8 +20,6 @@ import router from '../router/index'
 import NoResults from './NoResults.vue'
 import SearchBarSentences from './minimal/SearchBarSentences.vue'
 import BaseIcon from './minimal/BaseIcon.vue'
-import Tabs from './minimal/Tabs.vue'
-import Tab from './minimal/Tab.vue'
 import ErrorConnection from './ErrorConnection.vue'
 import ContextSentence from './ContextSentence.vue'
 import ReportModal from './Showcase/ReportModal.vue'
@@ -33,10 +29,6 @@ import EditSentenceModal from './Showcase/EditSentenceModal.vue'
 // Configuración de lenguaje
 import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
-
-// Configuracion metadata
-import { useHead } from '@unhead/vue'
-
 
 const orderedSegments = computed(() => {
   const segments = [
@@ -83,7 +75,6 @@ let status = ref()
 let error_connection = ref(false)
 let no_results = ref(false)
 let querySearchAnime = ref('')
-let isBannerClosed = ref(null)
 let uuid = ref(null)
 let currentAudio = ref(null)
 let type_sort = ref(null)
@@ -153,7 +144,6 @@ onMounted(async () => {
       },
     ],
   });*/
-  isBannerClosed = localStorage.getItem('isBannerClosed')
   let element = document.getElementById('drawer-button')
 
   uuid.value = urlParams.get('uuid')
@@ -658,8 +648,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           <div v-if="sentences.length > 0" v-for="(sentence, index) in sentences"
             class="flex group  flex-col md:flex-row duration-300 sm:hover:bg-sgray2/30 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 w-100">
             <div class="h-auto shrink-0 w-auto md:w-[26em] md:h-[15em]">
-              <img loading="lazy" class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
-                :src="sentence.media_info.path_image + '?width=960&height=540'" :key="sentence.media_info.path_image"
+              <img v-lazy="sentence.media_info.path_image + '?width=960&height=540'" class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+                 :key="sentence.media_info.path_image"
                 @click="ampliarImagen(sentence.media_info.path_image)" />
             </div>
             <div class="w-full py-6 sm:py-2 px-6 text-white flex flex-col justify-between">
