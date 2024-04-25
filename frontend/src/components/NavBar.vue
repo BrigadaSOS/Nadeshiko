@@ -52,7 +52,7 @@ const redirectReload = () => {
   <header
     class="flex flex-wrap md:justify-start md:flex-nowrap z-50 w-full bg-white border-b border-gray-200 text-sm py-3 md:py-0 dark:bg-sred  dark:border-gray-700"
   >
-    <nav class="relative lg:w-11/12 w-full mx-auto px-4 md:flex md:items-center md:justify-between" aria-label="Global">
+    <nav class="relative lg:w-11/12 w-full mx-auto md:flex md:items-center md:justify-between" aria-label="Global">
       <div class="flex items-center justify-between">
         <img src="../assets/logo.webp" class="h-8 mr-3 rounded-full" alt="Brigada SOS Logo" />
         <router-link to="/" class="flex-none text-base font-semibold dark:text-white" href="#" aria-label="Brand"
