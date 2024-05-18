@@ -212,6 +212,20 @@ const ampliarImagen = (url) => {
     document.body.removeChild(ampliada)
   }
 }
+
+function formatTime(time) {
+    const [hours, minutes, seconds] = time.split(':');
+    const [secs, millis = '000'] = seconds.split('.');
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(millis).padEnd(3, '0')}`;
+}
+
+function formatSubtitleTime(subtitleTime) {
+    return subtitleTime
+        .split(' -')
+        .map(time => formatTime(time.trim()))
+        .join(' --> ');
+}
+
 </script>
 
 <template>
@@ -744,8 +758,10 @@ const ampliarImagen = (url) => {
                     <template v-else>
                       {{ t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},
                       {{ t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
-                    </template>
+                    </template> 
+                    ({{ formatSubtitleTime(sentence.segment_info.start_time) }} - {{ formatSubtitleTime(sentence.segment_info.end_time) }})
                   </p>
+                  
                 </div>
               </div>
 
