@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+  }
+ 
+  .dark {
+    --background: #181a1b;
+    --header-background: #d74e4e;
+    --footer-background: #1f1f1f;
+    --button-color-primary: #2f2f2f;
+    --button-color-hover-primary: #333333;
+    --input-background: #2f2f31;
+    --card-background: #222222;
+    
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+}
+ 
