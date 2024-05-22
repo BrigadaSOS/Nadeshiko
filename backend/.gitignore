@@ -19,6 +19,7 @@ media/hidden
 media/tmp
 .env
 prod
+dictionaries/jmdict
 
 /cypress/videos/
 /cypress/screenshots/
