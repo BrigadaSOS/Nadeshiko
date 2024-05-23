@@ -5,7 +5,8 @@ module.exports = {
   darkMode: ["class"],
   safelist: ["dark"],
   prefix: "",
-  content: ['./node_modules/preline/preline.js',],
+  content: [
+    './node_modules/preline/preline.js',],
   theme: {
     container: {
       center: true,
