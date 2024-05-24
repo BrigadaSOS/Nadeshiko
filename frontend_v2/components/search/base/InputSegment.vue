@@ -1,6 +1,7 @@
 <script setup>
 import { mdiTextSearch } from '@mdi/js'
 
+const route = useRoute();
 let query = ref('')
 
 const navigateSearchSentence = async () => {
@@ -20,6 +21,7 @@ const handleKeyDown = (event) => {
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeyDown)
+    query.value = route.query.query
 })
 
 onBeforeUnmount(() => {
@@ -30,7 +32,7 @@ onBeforeUnmount(() => {
     <!-- Form -->
     <form @submit.prevent="navigateSearchSentence">
         <div
-            class="relative mt-2 z-20  flex space-x-3 p-2 bg-white border rounded-lg shadow-lg shadow-gray-100 dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-gray-900/20">
+            class="relative mt-2 z-20  flex space-x-3 py-2 rounded-lg shadow-gray-100  dark:border-neutral-700 dark:shadow-gray-900/20">
             <div class="flex-[1_0_0%] ">
                 <label for="hs-search-article-1" class="block text-sm text-gray-700 font-medium dark:text-white"><span
                         class="sr-only">Search anything!</span></label>

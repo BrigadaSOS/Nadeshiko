@@ -1,5 +1,11 @@
 <script setup>
-import { mdiStarShootingOutline, mdiTextSearch, mdiSync, mdiDownload, mdiHistory, mdiCardMultiple } from '@mdi/js'
+import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple } from '@mdi/js'
+
+useSeoMeta
+({
+  title: 'Nadeshiko',
+  ogTitle: 'Nadeshiko'
+})
 
 const apiSearch = useApiSearch();
 const media = ref(null);
