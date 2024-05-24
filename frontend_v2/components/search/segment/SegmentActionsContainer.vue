@@ -1,9 +1,16 @@
 <script setup>
-import { mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal   } from '@mdi/js'
+import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal, mdiVolumeHigh   } from '@mdi/js'
+
+defineProps({
+    content: {
+        type: Object,
+        required: true,
+    }
+});
 
 </script>
 <template>
-    <SearchDropdownContainer class="mr-2" dropdownId="hs-dropdown-with-header">
+    <SearchDropdownContainer class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
         <template #default>
             <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
                 <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
@@ -17,7 +24,7 @@ import { mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarS
         </template>
     </SearchDropdownContainer>
 
-    <SearchDropdownContainer class="mr-2" dropdownId="hs-dropdown-with-header">
+    <SearchDropdownContainer class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
         <template #default>
             <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
                 <UiBaseIcon :path="mdiTrayArrowDown" />
@@ -26,14 +33,14 @@ import { mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarS
         </template>
         <template #content>
             <SearchDropdownContent>
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.video')" :iconPath="mdiStarShootingOutline" />
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.image')" :iconPath="mdiStarShootingOutline" />
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiStarShootingOutline" />
+                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_video,content.media_info.path_video.split('/').pop())" :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
+                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_image,content.media_info.path_image.split('/').pop())" :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
+                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_audio,content.media_info.path_audio.split('/').pop())" :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
             </SearchDropdownContent>
         </template>
     </SearchDropdownContainer>
 
-    <SearchDropdownContainer class="mr-2" dropdownId="hs-dropdown-with-header">
+    <SearchDropdownContainer class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
         <template #default>
             <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
                 <UiBaseIcon :path="mdiContentCopy" />
@@ -42,24 +49,25 @@ import { mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarS
         </template>
         <template #content>
             <SearchDropdownContent>
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.video')" :iconPath="mdiFileVideo" />
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.image')" :iconPath="mdiStarShootingOutline" />
+                <SearchDropdownItem :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
+                <SearchDropdownItem :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
+                <div class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600"></div>
                 <SearchDropdownItem :text="$t('searchpage.main.buttons.jpsentence')"
-                    :iconPath="mdiStarShootingOutline" />
+                    :iconPath="mdiText" />
                 <SearchDropdownItem :text="$t('searchpage.main.buttons.ensentence')"
-                    :iconPath="mdiStarShootingOutline" />
+                    :iconPath="mdiText" />
                 <SearchDropdownItem :text="$t('searchpage.main.buttons.essentence')"
-                    :iconPath="mdiStarShootingOutline" />
+                    :iconPath="mdiText" />
             </SearchDropdownContent>
         </template>
     </SearchDropdownContainer>
 
-    <UiButtonPrimaryAction class="mr-2">
+    <UiButtonPrimaryAction class="mr-2 my-1">
         <UiBaseIcon :path="mdiPlusBoxOutline" />
         {{ $t('searchpage.main.buttons.context') }}
     </UiButtonPrimaryAction>
 
-    <SearchDropdownContainer class="mr-2" dropdownId="hs-dropdown-with-header">
+    <SearchDropdownContainer class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
         <template #default>
             <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
                 <UiBaseIcon :path="mdiDotsHorizontal" />
