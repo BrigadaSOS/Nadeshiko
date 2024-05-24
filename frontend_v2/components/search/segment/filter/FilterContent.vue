@@ -1,0 +1,110 @@
+<script setup>
+import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+const props = defineProps(['searchData', 'categorySelected']);
+let statistics = ref(props.searchData?.categoryStatistics || []);
+let querySearchMedia = ref('');
+let categorySelected = ref(props.categorySelected);
+
+// Watch for changes in props.searchData to update statistics
+watch(() => props.searchData, (newData) => {
+    if (newData && newData.categoryStatistics) {
+        statistics.value = newData.categoryStatistics;
+    } else {
+        statistics.value = [];
+    }
+}, { immediate: true });
+
+const filteredMedia = computed(() => {
+    const default_row_statistics = {
+        anime_id: 0,
+        name_anime_en: t('searchpage.main.labels.all'),
+        amount_sentences_found: statistics.value.reduce((a, b) => a + parseInt(b.amount_sentences_found), 0)
+    }
+
+    const filteredItems = statistics.value.filter((item) => {
+        const categoryFilter = categorySelected.value === 0 || item.category === categorySelected.value;
+        const nameFilterEnglish = item?.name_anime_en?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
+        const nameFilterJapanese = item?.name_anime_jp?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
+        const nameFilterRomaji = item?.name_anime_romaji?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
+
+        return (categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji));
+    });
+
+    if (categorySelected.value === 0) {
+        filteredItems.unshift({
+            anime_id: 0,
+            name_anime_en: t('searchpage.main.labels.all'),
+            amount_sentences_found: filteredItems.reduce((a, b) => a + parseInt(b.amount_sentences_found || 0), 0)
+        });
+    }
+
+    if (filteredItems.length === 0) {
+        return [{ name_anime_en: t('searchpage.main.labels.noresults') }];
+    }
+
+    const sortedItems = filteredItems.sort((a, b) => {
+        const nameA = a.name_anime_en?.toLowerCase() || '';
+        const nameB = b.name_anime_en?.toLowerCase() || '';
+
+        // If "Todo" is present, it should always appear at the top (index -1)
+        if (nameA === t('searchpage.main.labels.all').toLowerCase()) return -1;
+        if (nameB === t('searchpage.main.labels.all').toLowerCase()) return 1;
+
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+    });
+
+    return sortedItems;
+});
+
+const filterAnime = (anime_id, anime_name) => {
+    categorySelected.value = anime_id;
+    // Add any additional logic needed when an anime is selected
+};
+
+</script>
+
+<template>
+    <div class="relative">
+
+        <ul
+            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-card-background border dark:text-white">
+            <div class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg">
+                <span class="font-medium text-base">{{ $t('searchpage.main.labels.contentList') }}</span>
+            </div>
+            <div class="flex flex-inline">
+                <input type="search" v-model="querySearchMedia" id="default-search2" autocomplete="off"
+                    class="block w-full p-4 pl-4 text-sm xxl:text-base xxm:text-2xl text-gray-900 dark:bg-card-background dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+                    placeholder="Search here" required />
+                <div class="absolute z-10 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
+                    <svg aria-hidden="true" class="w-5 h-5 text-white/60 dark:text-gray-400" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="overflow-auto snap-y max-h-[50vh]">
+                <li class="snap-start" v-for="item in filteredMedia" :key="item.anime_id">
+                    <button @click="filterAnime(item.anime_id, item.name_anime_en)"
+                        :class="{ 'bg-sgrayhover': item.anime_id == categorySelected }"
+                        class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+                        <span>{{ item.name_anime_en }}</span>
+                        <span
+                            v-if="item.name_anime_en?.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
+                            class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
+                            {{ item.amount_sentences_found }}
+                        </span>
+                    </button>
+                </li>
+            </div>
+
+            <div class="flex items-center justify-between w-full px-4 py-3.5 text-left dark:border-gray-600">
+            </div>
+        </ul>
+    </div>
+</template>
