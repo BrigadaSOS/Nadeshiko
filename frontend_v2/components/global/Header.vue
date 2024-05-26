@@ -3,7 +3,7 @@
 </script>
 <template>
     <header class="bg-header-background inset-x-0 top-0 z-10 w-full shadow-md">
-        <div class="max-w-[88%] mx-auto ">
+        <div class="max-w-[92%] mx-auto ">
             <div class="flex items-center justify-between h-14">
                 <div class="flex mr-10">
                     <h1 class=" text-lg inline-flex items-center text-center align-middle font-semibold text-white">

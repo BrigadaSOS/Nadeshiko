@@ -1,36 +1,37 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const props = defineProps(['searchData', 'categorySelected']);
-let statistics = ref(props.searchData?.categoryStatistics || []);
-let querySearchMedia = ref('');
-let categorySelected = ref(props.categorySelected);
+const statistics = ref([]);
+const querySearchMedia = ref('');
+const categorySelected = ref(props.categorySelected);
 
-// Watch for changes in props.searchData to update statistics
 watch(() => props.searchData, (newData) => {
-    if (newData && newData.categoryStatistics) {
-        statistics.value = newData.categoryStatistics;
+    if (newData && newData.statistics) {
+        statistics.value = newData.statistics;
     } else {
         statistics.value = [];
     }
 }, { immediate: true });
 
-const filteredMedia = computed(() => {
-    const default_row_statistics = {
-        anime_id: 0,
-        name_anime_en: t('searchpage.main.labels.all'),
-        amount_sentences_found: statistics.value.reduce((a, b) => a + parseInt(b.amount_sentences_found), 0)
+watch(() => props.categorySelected, (newCategory) => {
+    if (newCategory !== null && newCategory !== undefined) {
+        categorySelected.value = newCategory;
+    } else {
+        categorySelected.value = 0;
     }
+}, { immediate: true });
 
+const filteredMedia = computed(() => {
     const filteredItems = statistics.value.filter((item) => {
+        console.log(categorySelected.value)
         const categoryFilter = categorySelected.value === 0 || item.category === categorySelected.value;
         const nameFilterEnglish = item?.name_anime_en?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
         const nameFilterJapanese = item?.name_anime_jp?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
         const nameFilterRomaji = item?.name_anime_romaji?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
 
-        return (categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji));
+        return categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji);
     });
 
     if (categorySelected.value === 0) {
@@ -62,15 +63,14 @@ const filteredMedia = computed(() => {
 });
 
 const filterAnime = (anime_id, anime_name) => {
-    categorySelected.value = anime_id;
-    // Add any additional logic needed when an anime is selected
+    console.log('Filtered Anime:', anime_id, anime_name);
+
 };
 
 </script>
 
 <template>
-    <div class="relative">
-
+    <div class="relative w-full">
         <ul
             class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-card-background border dark:text-white">
             <div class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg">
