@@ -1,9 +1,47 @@
 <template>
-    <div id="tabs-container" class="mt-2">
-      <slot></slot>
-    </div>
-  </template>
-  
-  <script setup>
-  </script>
-  
+  <div id="tabs-container" class="mt-2">
+    <slot></slot>
+  </div>
+</template>
+
+<script setup>
+</script>
+<style>
+#tab-headers ul {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  border-bottom: 1px solid #dddddd21;
+}
+
+#tab-headers ul li {
+  list-style: none;
+  padding: 1rem 1.25rem;
+  position: relative;
+  cursor: pointer;
+}
+
+#tab-headers ul li.active {
+  color: rgb(251, 120, 120);
+  font-weight: bold;
+}
+
+#tab-headers ul li.active:after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: rgb(251, 120, 120);
+}
+
+#active-tab,
+#tab-headers {
+  width: 100%;
+}
+
+#active-tab {
+  padding: 0.75rem;
+}
+</style>
