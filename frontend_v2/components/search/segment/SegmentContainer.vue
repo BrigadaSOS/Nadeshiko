@@ -29,7 +29,7 @@ const orderedSegments = computed(() => {
 <template>
     <div v-if="searchData?.sentences?.length > 0">
         <div v-for="(sentence, index) in searchData.sentences"
-            class="dark:hover:bg-neutral-800/20 items-center transition-all rounded-lg flex flex-col lg:flex-row py-2">
+            class="dark:hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2">
             <!-- Image -->
             <div class="h-auto shrink-0 w-auto lg:w-[28em]">
                 <img :src="sentence.media_info.path_image + '?width=960&height=540'"
@@ -128,7 +128,6 @@ const orderedSegments = computed(() => {
                         </p>
                     </div>
                 </div>
-
             </div>
             <!-- End Details -->
         </div>

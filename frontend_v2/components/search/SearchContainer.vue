@@ -129,58 +129,17 @@ onBeforeUnmount(() => {
             </GeneralTabsContainer>
         </div>
         <!-- End Tabs -->
-
         <div class="flex mx-auto w-full">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer :searchData="searchData" :categorySelected="category" />
             </div>
             <!-- End Segment-->
-
             <!-- Filters -->
             <div class="pl-4 mx-auto hidden 2xl:block">
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
             </div>
+            <!-- End Filters -->
         </div>
     </div>
 </template>
-
-<style>
-#tab-headers ul {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    border-bottom: 1px solid #dddddd21;
-}
-
-#tab-headers ul li {
-    list-style: none;
-    padding: 1rem 1.25rem;
-    position: relative;
-    cursor: pointer;
-}
-
-#tab-headers ul li.active {
-    color: rgb(251, 120, 120);
-    font-weight: bold;
-}
-
-#tab-headers ul li.active:after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    height: 2px;
-    width: 100%;
-    background: rgb(251, 120, 120);
-}
-
-#active-tab,
-#tab-headers {
-    width: 100%;
-}
-
-#active-tab {
-    padding: 0.75rem;
-}
-</style>
