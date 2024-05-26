@@ -6,18 +6,27 @@ const apiSearch = useApiSearch();
 const route = useRoute();
 
 let searchData = ref(null);
-let cursor = ref(null);
-let query = ref('彼女');
 let isLoading = ref(false);
-let categorySelected = ref(0)
 
-let querySearchMedia = ref('')
+// Available params for search
+let query = ref('');
+let category = ref(0)
+let cursor = ref(null);
+
+// Customization section 
+const categoryMapping = {
+    'all': 0,
+    'anime': 1,
+    'liveaction': 3
+}
+const reverseCategoryMapping = Object.fromEntries(Object.entries(categoryMapping).map(([key, value]) => [value, key]));
 
 onMounted(async () => {
     // 1. Get all params for make first search
     query.value = route.query.query;
+    category.value = categoryMapping[route.query.category] ?? null
 
-    // Finally get all sentences
+    // 2. Get all sentences
     await fetchSentences();
 
     // Logic for infinite scroll
@@ -44,13 +53,18 @@ const fetchSentences = async () => {
     try {
         isLoading.value = true;
 
+        // Initial query
         let body = {
             query: query.value,
             limit: 10
-        };
+        }
 
+        // Optional params
+        if (category.value !== null) {
+            body.category = [category.value]
+        }
         if (cursor.value) {
-            body.cursor = cursor.value;
+            body.cursor = cursor.value
         }
 
         const response = await apiSearch.getSentenceV1(body);
@@ -79,45 +93,49 @@ const handleScroll = () => {
 };
 
 const getCategoryCount = (category) => {
-  if (category === 0) {
-    return searchData.value.categoryStatistics.reduce((total, item) => total + item.count, 0);
-  }
-  const item = searchData.value.categoryStatistics.find(item => item.category === category);
-  return item ? item.count : 0;
+    if (category == 0) {
+        return searchData.value.categoryStatistics.reduce((total, item) => total + item.count, 0);
+    }
+    const item = searchData.value.categoryStatistics.find(item => item.category === category);
+    return item ? item.count : 0;
 };
+
+const categoryFilter = async (filter) => {
+    category.value = filter
+    window.scrollTo(0, 0)
+}
 
 </script>
 <template>
-    <!-- Tabs -->
-    <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
-        <GeneralTabsContainer>
-            <GeneralTabsHeader>
-                <GeneralTabsItem category="0" categoryName="Todo"
-                    :count="getCategoryCount(0)"
-                    :isActive="categorySelected === 0" @click="categoryFilter(0)" />
-                <GeneralTabsItem category="1" categoryName="Anime"
-                    :count="getCategoryCount(1)"
-                    :isActive="categorySelected === 1" @click="categoryFilter(1)" />
-                <GeneralTabsItem category="3" categoryName="Liveaction"
-                    :count="getCategoryCount(3)"
-                    :isActive="categorySelected === 3" @click="categoryFilter(3)" />
-            </GeneralTabsHeader>
-        </GeneralTabsContainer>
-    </div>
-    <!-- End Tabs -->
-
-    <div class="grid grid-cols-5">
-        <!-- Segment -->
-        <div class="col-span-4">
-            <SearchSegmentContainer :searchData="searchData" :categorySelected="categorySelected" />
+    <div class="flex-1 mx-auto">
+        <!-- Tabs -->
+        <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
+            <GeneralTabsContainer>
+                <GeneralTabsHeader>
+                    <GeneralTabsItem category="0" categoryName="Todo" :count="getCategoryCount(0)"
+                        :isActive="category === 0 || category == null " @click="categoryFilter(0)" />
+                    <GeneralTabsItem category="1" categoryName="Anime" :count="getCategoryCount(1)"
+                        :isActive="category === 1" @click="categoryFilter(1)" />
+                    <GeneralTabsItem category="3" categoryName="Liveaction" :count="getCategoryCount(3)"
+                        :isActive="category === 3" @click="categoryFilter(3)" />
+                </GeneralTabsHeader>
+            </GeneralTabsContainer>
         </div>
-        <!-- End Segment-->
+        <!-- End Tabs -->
 
-        <!-- Filters -->
-        <div class="pl-4">
-            <SearchSegmentFilterContent :searchData="searchData" :categorySelected="categorySelected" />
+        <div class="flex mx-auto w-full">
+            <!-- Segment -->
+            <div class="flex-1 mx-auto w-full">
+                <SearchSegmentContainer :searchData="searchData" :categorySelected="category" />
+            </div>
+            <!-- End Segment-->
+
+            <!-- Filters -->
+            <div class="pl-4 mx-auto hidden 2xl:block">
+                <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
+            </div>
+
         </div>
-
     </div>
 </template>
 

@@ -29,11 +29,11 @@ const orderedSegments = computed(() => {
 <template>
     <div v-if="searchData?.sentences?.length > 0">
         <div v-for="(sentence, index) in searchData.sentences"
-            class="dark:hover:bg-white/5 transition-all rounded-lg flex flex-col lg:flex-row py-2">
+            class="dark:hover:bg-neutral-800/20 items-center transition-all rounded-lg flex flex-col lg:flex-row py-2">
             <!-- Image -->
             <div class="h-auto shrink-0 w-auto lg:w-[28em]">
                 <img :src="sentence.media_info.path_image + '?width=960&height=540'"
-                    class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+                    class="inset-0 h-70 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
                     :key="sentence.media_info.path_image" />
             </div>
             <!-- End Image -->
@@ -118,7 +118,7 @@ const orderedSegments = computed(() => {
                         <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-2">
                             {{ sentence.basic_info.name_anime_en }} &bull;
                             <template v-if="sentence.basic_info.season === 0"> {{
-        t('searchpage.main.labels.movie')
+        $t('searchpage.main.labels.movie')
     }}
                             </template>
                             <template v-else>
