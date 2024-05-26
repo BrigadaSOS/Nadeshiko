@@ -3,8 +3,8 @@
     <NuxtLayout>
         <div class="mx-auto">
             <div class="relative text-white">
-                <div class="py-2">
-                    <div class="max-w-[88%] mx-auto">
+                <div class="pt-2">
+                    <div class="max-w-[92%] mx-auto">
                         <SearchBaseInputSegment />
                         <SearchContainer />
                     </div>

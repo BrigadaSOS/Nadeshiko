@@ -2,10 +2,10 @@
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple } from '@mdi/js'
 
 useSeoMeta
-({
-  title: 'Nadeshiko',
-  ogTitle: 'Nadeshiko'
-})
+    ({
+        title: 'Nadeshiko',
+        ogTitle: 'Nadeshiko'
+    })
 
 const apiSearch = useApiSearch();
 const media = ref(null);
@@ -25,11 +25,11 @@ onMounted(() => {
 
 <template>
     <NuxtLayout>
-        <div class="mx-auto">            
+        <div class="mx-auto">
             <div class="relative text-white">
                 <div class="py-2">
-                    <div class="max-w-[88%] mx-auto">
-                        <SearchBaseInputSegment/>
+                    <div class="max-w-[92%] mx-auto">
+                        <SearchBaseInputSegment />
                         <div class=" py-5">
                             <div class="flex dark:text-white/80 gap-10  flex-col xl:flex-row justify-between">
                                 <div class="flex-1 min-w-[30rem]">
@@ -206,25 +206,25 @@ onMounted(() => {
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            t('animeList.romajiName') }}:</span>
+                                            $t('animeList.romajiName') }}:</span>
                                                                             {{ media_info.romaji_name }}
                                                                         </p>
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            t('animeList.japaneseName') }}:</span>
+                                            $t('animeList.japaneseName') }}:</span>
                                                                             {{ media_info.japanese_name }}
                                                                         </p>
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            t('animeList.seasons') }}:</span>
+                                            $t('animeList.seasons') }}:</span>
                                                                             {{ media_info.num_seasons }}
                                                                         </p>
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            t('animeList.episodes') }}:
+                                            $t('animeList.episodes') }}:
                                                                             </span>
                                                                             {{ media_info.num_episodes }}
                                                                         </p>
@@ -281,8 +281,8 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
-                <div class="pb-10">
-                    <div class="rounded-lg mx-auto max-w-[88%] p-6 dark:text-white/80 dark:bg-card-background relative">
+                <div class="pb-8">
+                    <div class="rounded-lg mx-auto max-w-[92%] p-6   dark:text-white/80 dark:bg-card-background relative">
                         <section class="py-2">
                             <div class="flex mb-2 flex-col md:flex-row justify-top">
                                 <div class="md:flex-1">
