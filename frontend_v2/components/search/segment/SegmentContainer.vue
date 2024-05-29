@@ -66,7 +66,9 @@ const orderedSegments = computed(() => {
                     <!-- Second Row -->
                     <div class="items-start flex-1  justify-center">
                         <!-- Tag Translation -->
-
+                        <span
+                            class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium bg-red-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-400">{{
+        $t('searchpage.main.labels.translation') }}</span>
 
                         <!-- Tag NSFW -->
                         <span v-if="sentence.segment_info.is_nsfw"
