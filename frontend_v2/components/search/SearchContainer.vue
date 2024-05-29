@@ -14,6 +14,7 @@ let query = ref('');
 let category = ref(0);
 let cursor = ref(null);
 let media = ref(null);
+let sort = ref(null)
 
 // Category mapping
 const categoryMapping = {
@@ -40,6 +41,10 @@ const fetchSentences = async () => {
 
         if (media.value !== 0) {
             body.anime_id = media.value
+        }
+
+        if (sort.value && sort.value !== 'none') {
+            body.content_sort = sort.value;
         }
 
         if (cursor.value) {
@@ -94,6 +99,8 @@ const categoryFilter = (filter) => {
 onMounted(async () => {
     query.value = route.query.query;
     category.value = categoryMapping[route.query.category] ?? 0;
+    media.value = route.query.media;
+    sort.value = route.query.sort;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -109,6 +116,7 @@ onBeforeRouteUpdate(async (to, from) => {
     query.value = to.query.query;
     category.value = categoryMapping[to.query.category] ?? 0;
     media.value = to.query.media;
+    sort.value = to.query.sort;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -117,6 +125,7 @@ onBeforeRouteUpdate(async (to, from) => {
     cursor.value = null;
     await fetchSentences();
 });
+
 
 onBeforeUnmount(() => {
     window.removeEventListener('scroll', handleScroll);
