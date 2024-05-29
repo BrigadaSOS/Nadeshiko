@@ -262,13 +262,13 @@ onMounted(() => {
                                                     <div
                                                         class="mt-2 text-center justify-center flex flex-col items-center">
                                                         <div
-                                                            class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-36 mt-2 mb-4">
+                                                            class="h-2.5 bg-gray-200 rounded-full dark:bg-[rgba(255,255,255,0.1)] w-36 mt-2 mb-4">
                                                         </div>
                                                     </div>
                                                     <div
                                                         class="text-center mt-1 mb-4 justify-center flex flex-col items-center">
                                                         <div
-                                                            class="h-2.5 bg-gray-200 rounded-full dark:bg-sgray w-28 mb-4">
+                                                            class="h-2.5 bg-gray-200 rounded-full dark:bg-[rgba(255,255,255,0.1)] w-28 mb-4">
                                                         </div>
                                                     </div>
                                                 </div>

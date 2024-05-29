@@ -1,7 +1,9 @@
 <script setup>
-const { t } = useI18n()
+
+const { t } = useI18n();
 const apiSearch = useApiSearch();
 const route = useRoute();
+const router = useRouter();
 
 // Main variables
 let searchData = ref(null);
@@ -11,6 +13,7 @@ let isLoading = ref(false);
 let query = ref('');
 let category = ref(0);
 let cursor = ref(null);
+let media = ref(null);
 
 // Category mapping
 const categoryMapping = {
@@ -34,6 +37,11 @@ const fetchSentences = async () => {
         if (category.value !== 0) {
             body.category = [category.value];
         }
+
+        if (media.value !== 0) {
+            body.anime_id = media.value
+        }
+
         if (cursor.value) {
             body.cursor = cursor.value;
         }
@@ -73,11 +81,13 @@ const getCategoryCount = (category) => {
 };
 
 // Filter sentences by category
-const categoryFilter = async (filter) => {
-    category.value = filter;
-    cursor.value = null;
-    await fetchSentences();
-    window.scrollTo(0, 0);
+const categoryFilter = (filter) => {
+    router.push({
+        query: {
+            ...route.query,
+            category: Object.keys(categoryMapping).find(key => categoryMapping[key] === filter)
+        }
+    });
 };
 
 // Lifecycle hooks
@@ -98,6 +108,7 @@ onMounted(async () => {
 onBeforeRouteUpdate(async (to, from) => {
     query.value = to.query.query;
     category.value = categoryMapping[to.query.category] ?? 0;
+    media.value = to.query.media;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -110,7 +121,6 @@ onBeforeRouteUpdate(async (to, from) => {
 onBeforeUnmount(() => {
     window.removeEventListener('scroll', handleScroll);
 });
-
 </script>
 
 <template>
@@ -128,18 +138,15 @@ onBeforeUnmount(() => {
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
         </div>
-        <!-- End Tabs -->
         <div class="flex mx-auto w-full">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer :searchData="searchData" :categorySelected="category" />
             </div>
-            <!-- End Segment-->
             <!-- Filters -->
             <div class="pl-4 mx-auto hidden 2xl:block">
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
             </div>
-            <!-- End Filters -->
         </div>
     </div>
 </template>
