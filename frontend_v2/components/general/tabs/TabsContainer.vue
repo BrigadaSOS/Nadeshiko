@@ -33,7 +33,7 @@
   left: 0;
   height: 2px;
   width: 100%;
-  background: rgb(251, 120, 120);
+  background: #d74e67;
 }
 
 #active-tab,

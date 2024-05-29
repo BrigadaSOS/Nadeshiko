@@ -2,6 +2,8 @@
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+const router = useRouter();
+const route = useRoute();
 const props = defineProps(['searchData', 'categorySelected']);
 const statistics = ref([]);
 const querySearchMedia = ref('');
@@ -21,6 +23,7 @@ watch(() => props.categorySelected, (newCategory) => {
     } else {
         categorySelected.value = 0;
     }
+    
 }, { immediate: true });
 
 const filteredMedia = computed(() => {
@@ -64,7 +67,15 @@ const filteredMedia = computed(() => {
 
 const filterAnime = (anime_id, anime_name) => {
     console.log('Filtered Anime:', anime_id, anime_name);
-
+    const query = { ...route.query };
+    
+    if (anime_id === 0) {
+        delete query.media;
+    } else {
+        query.media = anime_id;
+    }
+    
+    router.push({ query });
 };
 
 </script>
