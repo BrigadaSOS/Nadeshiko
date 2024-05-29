@@ -2,7 +2,7 @@
     <button
         :id="dropdownId"
         type="button"
-        class="hs-dropdown-toggle py-2 px-2 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-300 dark:hover:text-neutral-300"
+        class="hs-dropdown-toggle py-2.5 px-3  inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-300 dark:hover:text-neutral-300"
     >
         <slot></slot>
         <svg class="hs-dropdown-open:rotate-180  size-4" xmlns="http://www.w3.org/2000/svg"

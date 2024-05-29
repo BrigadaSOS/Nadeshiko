@@ -28,10 +28,10 @@
                     </NuxtLink>
                 </nav>
 
-                <div class="lg:flex lg:items-center lg:justify-end lg:space-x-2 sm:ml-auto">
+                <div class="hidden lg:flex lg:items-center lg:justify-end lg:space-x-2 sm:ml-auto">
                     <div class="flex">
                         <a href="https://discord.gg/ajWm26ADEj"
-                            class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+                            class="mx-2 hidden md:flex text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                             target="_blank" aria-label="Discord">
                             <svg class="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg"
                                 xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 -25 260 260" version="1.1">
@@ -43,7 +43,7 @@
                             </svg>
                         </a>
                         <a href="https://github.com/BrigadaSOS/BrigadaSOS-db"
-                            class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+                            class="hidden lg:flex mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                             target="_blank" aria-label="Github">
                             <svg class="w-5 h-5 fill-white" viewBox="0 0 24 24" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
@@ -53,18 +53,18 @@
                             </svg>
                         </a>
                     </div>
-                    <GeneralLanguageSelector />
+                    <GeneralLanguageSelector class="hidden lg:flex" />
 
                     <a href="#"
-                        class="inline-flex items-center justify-center px-8 py-2 text-sm sm:text-sm font-semibold text-white border hover:bg-button-primary-hover rounded-lg transition-all duration-200  focus:outline-none">
+                        class=" hidden lg:flex items-center justify-center px-8 py-2 text-sm sm:text-sm font-semibold text-white border hover:bg-button-primary-hover rounded-lg transition-all duration-200  focus:outline-none">
                         Log in
                     </a>
                 </div>
 
-                <button type="button"
-                    class="inline-flex p-2 ml-1 text-white rounded-md sm:ml-4 lg:hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white hover:bg-gray-800">
+                <button type="button "
+                    class="inline-flex  p-2 ml-1 text-white rounded-md sm:ml-4 lg:hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white hover:bg-gray-800">
                     <!-- Menu open: "hidden", Menu closed: "block" -->
-                    <svg class="block w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    <svg class="block w-6 h-6 " xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 6h16M4 12h16m-7 6h7" />

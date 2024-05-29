@@ -145,7 +145,9 @@ onBeforeUnmount(() => {
             </div>
             <!-- Filters -->
             <div class="pl-4 mx-auto hidden 2xl:block">
+                <SearchSegmentFilterSortContent/>
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
+                
             </div>
         </div>
     </div>

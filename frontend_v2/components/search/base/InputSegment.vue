@@ -41,7 +41,7 @@ onBeforeUnmount(() => {
                     placeholder="Search anything!" />
                 <div class="absolute inset-y-0 end-0 flex items-center pointer-events-none z-20 pe-36">
                     <span
-                        class="flex flex-wrap items-center py-3 text-center gap-x-1 text-base text-gray-400 dark:text-white">
+                        class=" flex-wrap items-center hidden md:flex py-3 text-center gap-x-1 text-base text-gray-400 dark:text-white">
                         <kbd
                             class="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-white border border-gray-200 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
                             <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
