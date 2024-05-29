@@ -32,7 +32,7 @@ onMounted(() => {
                         <SearchBaseInputSegment />
                         <div class=" py-5">
                             <div class="flex dark:text-white/80 gap-10  flex-col xl:flex-row justify-between">
-                                <div class="flex-1 min-w-[30rem]">
+                                <div class="flex-1 md:min-w-[30rem]">
                                     <div class="flex  rounded-lg flex-col first-letter:items-left">
                                         <div class="inline-flex">
                                             <h2
