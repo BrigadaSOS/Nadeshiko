@@ -83,7 +83,7 @@ const filterAnime = (anime_id, anime_name) => {
 <template>
     <div class="relative w-full">
         <ul
-            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-card-background border dark:text-white">
+            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
             <div class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg">
                 <span class="font-medium text-base">{{ $t('searchpage.main.labels.contentList') }}</span>
             </div>
