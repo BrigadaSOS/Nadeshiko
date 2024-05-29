@@ -70,9 +70,11 @@ const fetchSentences = async () => {
 };
 
 // Handle scroll event for infinite scroll
-const handleScroll = () => {
+const handleScroll = async () => {
     if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight && !isLoading.value) {
-        fetchSentences();
+        await fetchSentences();
+        window.HSStaticMethods.autoInit();
+
     }
 };
 
@@ -124,6 +126,7 @@ onBeforeRouteUpdate(async (to, from) => {
 
     cursor.value = null;
     await fetchSentences();
+    window.HSStaticMethods.autoInit();
 });
 
 
