@@ -8,13 +8,17 @@
   }
  
   .dark {
-    --background: #171717;
-    --header-background: #ca4e4e;
+    --background: #181a1b;
+    --header-background: #b34550;
     --footer-background: #1f1f1f;
-    --button-color-primary: #2f2f2f;
+    --button-color-primary: #2c2c2c;
     --button-color-hover-primary: #333333;
     --input-background: #2f2f2f;
     --card-background: #212121;
+
+    --modal-background: #1b1b1b;
+    --modal-border: #2f2f2f;
+    --modal-input: #252526 ;
     
   }
 
