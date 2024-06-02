@@ -1,8 +1,8 @@
 <template>
     <NuxtLayout>
-        <div class="max-w-[92%] mx-auto">
+        <div class=" mx-auto">
             <div class=" px-4 pt-6 lg:pt-10 pb-6 lg:pb-10  mx-auto">
-                <div class="mx-auto max-w-4xl">
+                <div class="mx-auto max-w-6xl">
                     <div class="content-markdown bg-card-background rounded-lg">
                         <ContentDoc path="/about" />
                     </div>
