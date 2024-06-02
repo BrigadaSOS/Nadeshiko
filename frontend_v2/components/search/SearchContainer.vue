@@ -166,11 +166,22 @@ onBeforeUnmount(() => {
                 <SearchSegmentContainer :searchData="searchData" :categorySelected="category" />
             </div>
             <!-- Filters -->
-            <div class="pl-4 mx-auto hidden 2xl:block">
+            <div v-if="searchData?.sentences?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
                 <SearchSegmentFilterSortContent />
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
-
+            </div>
+            <div v-else>
+                <div class="pl-4 mx-auto hidden lg:block min-w-[340px]">
+                    <div role=" status" class="hidden w-11/12 lg:flex flex-col py-6 animate-pulse">
+                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
+                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
+                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                    <span class="sr-only">Cargando...</span>
+                </div>
             </div>
         </div>
+    </div>
     </div>
 </template>

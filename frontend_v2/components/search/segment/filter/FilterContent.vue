@@ -89,7 +89,7 @@ const filterAnime = (anime_id, anime_name) => {
             </div>
             <div class="flex flex-inline">
                 <input type="search" v-model="querySearchMedia" id="default-search2" autocomplete="off"
-                    class="block w-full p-4 pl-4 text-sm xxl:text-base xxm:text-2xl text-gray-900 dark:bg-neutral-800  dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+                    class="block w-full p-4 pl-4 text-sm xxl:text-base xxm:text-2xl text-gray-900 dark:bg-neutral-800  dark:placeholder-gray-400 dark:text-white/45 dark:focus:ring-gray-500 dark:focus:border-gray-500"
                     placeholder="Search here" required />
                 <div class="absolute z-10 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
                     <svg aria-hidden="true" class="w-5 h-5 text-white/60 dark:text-gray-400" fill="none"
@@ -107,7 +107,7 @@ const filterAnime = (anime_id, anime_name) => {
                         <span>{{ item.name_anime_en }}</span>
                         <span
                             v-if="item.name_anime_en?.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
-                            class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
+                            class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
                             {{ item.amount_sentences_found }}
                         </span>
                     </button>
