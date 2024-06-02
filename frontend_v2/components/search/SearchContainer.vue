@@ -4,6 +4,7 @@ const { t } = useI18n();
 const apiSearch = useApiSearch();
 const route = useRoute();
 const router = useRouter();
+const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 // Main variables
 let searchData = ref(null);
@@ -11,6 +12,7 @@ let isLoading = ref(false);
 
 // Available params for search
 let query = ref('');
+let previousQuery = ref('');
 let category = ref(0);
 let cursor = ref(null);
 let media = ref(null);
@@ -51,7 +53,20 @@ const fetchSentences = async () => {
             body.cursor = cursor.value;
         }
 
-        // Fetch data from API
+        // Define the behaviour of elements based on params
+        if (previousQuery.value == query.value) {
+            if (!cursor.value) {
+                if (searchData.value && searchData.value.sentences) {
+                    searchData.value.sentences = null;
+                    console.log(searchData.value)
+                }
+            }
+        } else {
+            searchData.value = null;
+        }
+
+        // Fetch data from API        
+        await delay(2000)
         const response = await apiSearch.getSentenceV1(body);
 
         // Update search data
@@ -62,6 +77,7 @@ const fetchSentences = async () => {
         }
 
         cursor.value = response.cursor;
+        previousQuery.value = query.value;
     } catch (error) {
         console.error('Error fetching sentences:', error);
     } finally {
@@ -136,7 +152,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <SearchSegmentSidebar :searchData="searchData"/>
+    <SearchSegmentSidebar :searchData="searchData" />
     <div class="flex-1 mx-auto">
         <!-- Tabs -->
         <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
@@ -167,22 +183,22 @@ onBeforeUnmount(() => {
                 <SearchSegmentContainer :searchData="searchData" :categorySelected="category" />
             </div>
             <!-- Filters -->
-            <div v-if="searchData?.sentences?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
+            <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
                 <SearchSegmentFilterSortContent />
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
             </div>
             <div v-else>
                 <div class="pl-4 mx-auto hidden lg:block min-w-[340px]">
                     <div role=" status" class="hidden w-11/12 lg:flex flex-col py-6 animate-pulse">
-                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
-                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
-                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-                    <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-                    <span class="sr-only">Cargando...</span>
+                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
+                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
+                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                        <span class="sr-only">Cargando...</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     </div>
 </template>
