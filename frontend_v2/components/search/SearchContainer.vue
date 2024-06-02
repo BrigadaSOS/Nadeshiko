@@ -150,16 +150,26 @@ onBeforeUnmount(() => {
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
         </div>
-        <div class="flex mx-auto w-full">
+        <div v-else class="w-full pb-4  animate-pulse">
+            <GeneralTabsContainer>
+                <GeneralTabsHeader>
+                    <div v-for="i in 3" :key="i" class="flex  flex-row space-x-10 gap-10 py-5">
+                        <p class="p-2 bg-gray-200 rounded-lg mr-6 dark:bg-neutral-700 px-16"></p>
+                    </div>
+                </GeneralTabsHeader>
+            </GeneralTabsContainer>
+
+        </div>
+        <div class="flex mx-auto w-full ">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer :searchData="searchData" :categorySelected="category" />
             </div>
             <!-- Filters -->
             <div class="pl-4 mx-auto hidden 2xl:block">
-                <SearchSegmentFilterSortContent/>
+                <SearchSegmentFilterSortContent />
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
-                
+
             </div>
         </div>
     </div>

@@ -33,6 +33,7 @@ const orderedSegments = computed(() => {
             <!-- Image -->
             <div class="h-auto shrink-0 w-auto lg:w-[28em]">
                 <img :src="sentence.media_info.path_image + '?width=960&height=540'"
+                @click="zoomImage(sentence.media_info.path_image)"
                     class="inset-0 h-70 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
                     :key="sentence.media_info.path_image" />
             </div>
@@ -64,10 +65,10 @@ const orderedSegments = computed(() => {
                     </div>
 
                     <!-- Second Row -->
-                    <div class="items-start flex-1  justify-center">
+                    <div class="items-start flex-1 pt-1  justify-center">
                         <!-- Tag Translation -->
                         <span
-                            class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium bg-red-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-400">{{
+                            class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-neutral-700 bg-red-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-400">{{
         $t('searchpage.main.labels.translation') }}</span>
 
                         <!-- Tag NSFW -->
@@ -133,4 +134,48 @@ const orderedSegments = computed(() => {
             <!-- End Details -->
         </div>
     </div>
+    <div v-else-if="!searchData">
+        <div v-for="i in 8" :key="i"
+            class="w-full">
+            <div role="status"
+                class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
+                <div
+                  class="flex mb-10 items-center justify-center bg-gray-300 rounded h-64 w-auto md:w-5/12 dark:bg-neutral-700">
+                
+                </div>
+                <div class="w-full">
+                  <div class="h-2.5 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[320px] mb-4"></div>
+                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[680px] mb-2.5"></div>
+                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[640px] mb-2.5"></div>
+                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[660px] mb-2.5"></div>
+                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[560px]"></div>
+                </div>
+                <span class="sr-only">Loading...</span>
+              </div>
+        </div>
+    </div>
 </template>
+<style>
+.ampliada {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.ampliada img {
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.image-container {
+  position: relative;
+}
+
+</style>

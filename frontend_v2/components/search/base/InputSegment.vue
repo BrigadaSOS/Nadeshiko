@@ -29,14 +29,17 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
+    <SearchModalBatch/>
+
     <!-- Form -->
-    <form @submit.prevent="navigateSearchSentence">
+    <div @submit.prevent="navigateSearchSentence">
         <div
             class="relative mt-2 z-20  flex space-x-3 py-2 rounded-lg shadow-gray-100  dark:border-neutral-500">
             <div class="flex-[1_0_0%] ">
                 <label for="hs-search-article-1" class="block text-sm text-gray-700 font-medium dark:text-white"><span
                         class="sr-only">Search anything!</span></label>
                 <input autofocus v-model="query"
+                @keydown.enter="navigateSearchSentence"
                     class=" dark:focus:ring-gray-500 border py-3 dark:focus:border-gray-500 h-full px-4 block w-full border-transparent rounded-lg  focus:outline-none dark:bg-input-background dark:border-neutral-600 dark:text-white/80 dark:placeholder-neutral-500"
                     placeholder="Search anything!" />
                 <div class="absolute inset-y-0 end-0 flex items-center pointer-events-none z-20 pe-36">
@@ -62,13 +65,13 @@ onBeforeUnmount(() => {
             </div>
             <div class="flex gap-2">
                 <button
-                    class="py-4 px-4 inline-flex justify-center items-center text-sm font-semibold rounded-lg  bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
-                    href="#">
+                    class="py-4 px-4 dark:border-neutral-700 border inline-flex justify-center items-center text-sm font-semibold rounded-lg  bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
+                    data-hs-overlay="#hs-vertically-centered-scrollable-batch">
                     <UiBaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
                 </button>
 
                 <button
-                    class="py-4 px-4 inline-flex justify-center items-center text-sm font-semibold rounded-lg  bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
+                    class="py-4 px-4 dark:border-neutral-700 border inline-flex justify-center items-center text-sm font-semibold rounded-lg  bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
                     @click="navigateSearchSentence">
                     <svg class="flex-shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -79,6 +82,6 @@ onBeforeUnmount(() => {
                 </button>
             </div>
         </div>
-    </form>
+    </div>
     <!-- End Form -->
 </template>

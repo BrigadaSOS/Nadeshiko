@@ -35,6 +35,11 @@ module.exports = {
         },
         card:{
           background: "var(--card-background)"
+        },
+        modal:{
+          background: "var(--modal-background)",
+          input: "var(--modal-input)",
+          border: "var(--modal-border)"
         }
       }
     },
