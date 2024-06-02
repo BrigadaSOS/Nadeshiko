@@ -134,7 +134,7 @@ const orderedSegments = computed(() => {
             <!-- End Details -->
         </div>
     </div>
-    <div v-else-if="!searchData">
+    <div v-else-if="!searchData?.sentences || searchData?.sentences?.length == 0">
         <div v-for="i in 8" :key="i"
             class="w-full">
             <div role="status"
