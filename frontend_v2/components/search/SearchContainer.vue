@@ -136,6 +136,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+    <SearchSegmentSidebar :searchData="searchData"/>
     <div class="flex-1 mx-auto">
         <!-- Tabs -->
         <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">

@@ -263,7 +263,7 @@ const filteredAnimes = computed(() => {
     const categoryFilter = categorySelected.value == 0 || item.category === categorySelected.value;
     const nameFilterEnglish = item.name_anime_en.toLowerCase().includes(querySearchAnime.value.toLowerCase());
     const nameFilterJapanese = item?.name_anime_jp?.toLowerCase().includes(querySearchAnime.value.toLowerCase());
-    const nameFilterRomaji= item?.name_anime_romaji?.toLowerCase().includes(querySearchAnime.value.toLowerCase());
+    const nameFilterRomaji = item?.name_anime_romaji?.toLowerCase().includes(querySearchAnime.value.toLowerCase());
 
     return (categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji));
   })
@@ -275,7 +275,7 @@ const filteredAnimes = computed(() => {
       amount_sentences_found: filteredItems.reduce((a, b) => a + parseInt(b.amount_sentences_found), 0)
     });
   }
-  
+
   if (filteredItems.length === 0) {
     return [{ name_anime_en: t('searchpage.main.labels.noresults') }]
   }
@@ -389,7 +389,7 @@ const getSentences = async (searchTerm, cursor, animeId, uuid, season, episodes)
   sentences.value = cursor ? sentences.value.concat(response.sentences) : response.sentences
   statistics.value = response.statistics
   category_statistics = response.categoryStatistics
-  
+
   const default_row_statistics = {
     anime_id: 0,
     name_anime_en: t('searchpage.main.labels.all'),
@@ -517,11 +517,11 @@ const getSharingURL = async (sentence) => {
 }
 
 const categoryFilter = async (category) => {
-    categorySelected.value = category
-    next_cursor.value = null
-    sentences.value = []
-    window.scrollTo(0, 0)
-    await getSentences(querySearch.value, next_cursor.value, anime_id.value, undefined, selected_season.value, selected_episode.value, categorySelected.value)
+  categorySelected.value = category
+  next_cursor.value = null
+  sentences.value = []
+  window.scrollTo(0, 0)
+  await getSentences(querySearch.value, next_cursor.value, anime_id.value, undefined, selected_season.value, selected_episode.value, categorySelected.value)
 }
 
 
@@ -622,22 +622,31 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           <div id="tabs-container" class="mt-2">
             <div id="tab-headers">
               <ul class="tab-titles">
-                <li @click="categoryFilter(0)" :class="{ active: categorySelected === 0 }"  v-if="category_statistics.some(item => item.category === 1 && item.count > 0)">
-                  Todo 
-                  <span class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
-                    <span v-if="category_statistics.reduce((total, item) => total + item.count, 0)">{{ category_statistics.reduce((total, item) => total + item.count, 0) }}</span>
+                <li @click="categoryFilter(0)" :class="{ active: categorySelected === 0 }"
+                  v-if="category_statistics.some(item => item.category === 1 && item.count > 0)">
+                  Todo
+                  <span
+                    class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
+                    <span v-if="category_statistics.reduce((total, item) => total + item.count, 0)">{{
+      category_statistics.reduce((total, item) => total + item.count, 0) }}</span>
                   </span>
                 </li>
-                <li @click="categoryFilter(1)" :class="{ active: categorySelected === 1 }" v-if="category_statistics.some(item => item.category === 1 && item.count > 0)">
-                  Anime 
-                  <span class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
-                    <span v-if="category_statistics.find(item => item.category === 1).count">{{ category_statistics.find(item => item.category === 1).count }}</span>
+                <li @click="categoryFilter(1)" :class="{ active: categorySelected === 1 }"
+                  v-if="category_statistics.some(item => item.category === 1 && item.count > 0)">
+                  Anime
+                  <span
+                    class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
+                    <span v-if="category_statistics.find(item => item.category === 1).count">{{
+      category_statistics.find(item => item.category === 1).count }}</span>
                   </span>
                 </li>
-                <li @click="categoryFilter(3)" :class="{ active: categorySelected === 3 }" v-if="category_statistics.some(item => item.category === 3 && item.count > 0)">
-                  Jdrama 
-                  <span class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
-                    <span v-if="category_statistics.find(item => item.category === 3).count">{{ category_statistics.find(item => item.category === 3).count }}</span>
+                <li @click="categoryFilter(3)" :class="{ active: categorySelected === 3 }"
+                  v-if="category_statistics.some(item => item.category === 3 && item.count > 0)">
+                  Jdrama
+                  <span
+                    class="ml-2.5 bg-gray-100 text-gray-800 text-sm  me-2 px-2.5 py-1 rounded-xl dark:bg-white/20 dark:text-gray-300">
+                    <span v-if="category_statistics.find(item => item.category === 3).count">{{
+      category_statistics.find(item => item.category === 3).count }}</span>
                   </span>
                 </li>
               </ul>
@@ -648,9 +657,9 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
           <div v-if="sentences.length > 0" v-for="(sentence, index) in sentences"
             class="flex group  flex-col md:flex-row duration-300 sm:hover:bg-sgray2/30 sm:px-4 overflow-hidden border-b py-6 mr-0 lg:mr-10 border-sgray2 w-100">
             <div class="h-auto shrink-0 w-auto md:w-[26em] md:h-[15em]">
-              <img v-lazy="sentence.media_info.path_image + '?width=960&height=540'" class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
-                 :key="sentence.media_info.path_image"
-                @click="ampliarImagen(sentence.media_info.path_image)" />
+              <img v-lazy="sentence.media_info.path_image + '?width=960&height=540'"
+                class="inset-0 h-full w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+                :key="sentence.media_info.path_image" @click="ampliarImagen(sentence.media_info.path_image)" />
             </div>
             <div class="w-full py-6 sm:py-2 px-6 text-white flex flex-col justify-between">
               <div className="inline-flex items-start justify-center">
@@ -667,9 +676,9 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <h3
                     class="font-semibold ml-2 items-start text-xl xxl:text-2xl xxl:font-normal xxm:text-3xl leading-tight">
                     <span v-html="sentence.segment_info.content_jp_highlight
-                      ? sentence.segment_info.content_jp_highlight
-                      : sentence.segment_info.content_jp
-                      "></span>
+      ? sentence.segment_info.content_jp_highlight
+      : sentence.segment_info.content_jp
+      "></span>
                   </h3>
                 </div>
               </div>
@@ -685,11 +694,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                   <li class="my-2 text-sm xxl:text-base xxm:text-2xl" v-for="segment in orderedSegments"
                     :key="segment.content">
                     <span v-html="normalizeSentence(
-                      sentence.segment_info[segment.highlight]
-                        ? sentence.segment_info[segment.highlight]
-                        : sentence.segment_info[segment.content]
-                    )
-                      "></span>
+      sentence.segment_info[segment.highlight]
+        ? sentence.segment_info[segment.highlight]
+        : sentence.segment_info[segment.content]
+    )
+      "></span>
                     <div v-if="sentence.segment_info[segment.mt]" class="hs-tooltip inline-block">
                       <BaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4"
                         h="h-4" size="19" class="ml-2 hs-tooltip-toggle" />
@@ -769,11 +778,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         </span>
                         <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                           @click="
-                            downloadAudioOrImage(
-                              sentence.media_info.path_video,
-                              sentence.media_info.path_video.split('/').pop()
-                            )
-                            ">
+      downloadAudioOrImage(
+        sentence.media_info.path_video,
+        sentence.media_info.path_video.split('/').pop()
+      )
+      ">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="-0.5 0 25 25"
                             fill="none">
                             <path :d="mdiFileVideo" stroke="white" stroke-miterlimit="10" stroke-linecap="round"
@@ -783,11 +792,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         </a>
                         <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                           @click="
-                            downloadAudioOrImage(
-                              sentence.media_info.path_image,
-                              sentence.media_info.path_image.split('/').pop()
-                            )
-                            ">
+      downloadAudioOrImage(
+        sentence.media_info.path_image,
+        sentence.media_info.path_image.split('/').pop()
+      )
+      ">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="-0.5 0 25 25"
                             fill="none">
                             <path
@@ -806,11 +815,11 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                         </a>
                         <a class="flex items-center cursor-pointer gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                           @click="
-                            downloadAudioOrImage(
-                              sentence.media_info.path_audio,
-                              sentence.media_info.path_audio.split('/').pop()
-                            )
-                            ">
+      downloadAudioOrImage(
+        sentence.media_info.path_audio,
+        sentence.media_info.path_audio.split('/').pop()
+      )
+      ">
                           <svg class="flex-none" width="16" height="16" viewBox="0 0 130 130" fill="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                               d="M111.85,108.77c-3.47,4.82-8.39,8.52-14.13,10.48c-0.26,0.12-0.55,0.18-0.84,0.18c-0.28,0-0.56-0.06-0.82-0.17v0.06 c0,1.96-1.6,3.56-3.57,3.56l-7.68,0c-1.96,0-3.57-1.6-3.57-3.56l0-55.13c0-1.96,1.6-3.57,3.57-3.57h7.68c1.96,0,3.57,1.6,3.57,3.57 v0.34c0.26-0.12,0.54-0.18,0.82-0.18c0.22,0,0.44,0.04,0.64,0.1l0,0.01c4.36,1.45,8.26,3.92,11.42,7.11V59.15 c0-14.89-4.99-27.63-13.81-36.6l-3.91,5.83c-7.95-8.75-19.4-14.27-32.08-14.27c-12.76,0-24.29,5.59-32.24,14.45l-4.73-5.78 C13.47,31.65,8.54,44.21,8.54,59.15V73.4c3.4-4.08,7.92-7.22,13.07-8.93l0-0.01c0.21-0.07,0.43-0.11,0.64-0.11 c0.28,0,0.57,0.06,0.82,0.17v-0.34c0-1.96,1.61-3.57,3.57-3.57l7.68,0c1.96,0,3.57,1.6,3.57,3.57v55.13c0,1.96-1.61,3.56-3.57,3.56 h-7.68c-1.96,0-3.57-1.6-3.57-3.56v-0.06c-0.25,0.11-0.53,0.17-0.82,0.17c-0.3,0-0.58-0.07-0.83-0.18 c-5.74-1.96-10.66-5.66-14.13-10.48c-1.82-2.52-3.24-5.34-4.17-8.37l-3.12,0V59.15c0-16.27,6.65-31.05,17.37-41.77 C28.09,6.66,42.88,0,59.14,0c16.27,0,31.06,6.66,41.77,17.37c10.72,10.72,17.37,25.5,17.37,41.77v41.25h-2.27 C115.1,103.39,113.68,106.23,111.85,108.77L111.85,108.77L111.85,108.77z">
@@ -929,8 +938,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 
                 <div>
                   <div class="relative inline-flex mb-2 mr-2">
-                    <button @click="showModalContext(sentence)" data-hs-overlay="#hs-vertically-centered-scrollable-modal"
-                      type="button"
+                    <button @click="showModalContext(sentence)"
+                      data-hs-overlay="#hs-vertically-centered-scrollable-modal" type="button"
                       class="dark:bg-sgray outline-none dark:hover:bg-sgrayhover hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white">
                       <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"
                         class="rs-icon w-4 h-[22px]">
@@ -1085,8 +1094,8 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
 
           <button type="button" @click="filtersVisible = !filtersVisible"
             class="py-3.5 duration-300 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-            <BaseIcon :path="filtersVisible ? mdiArrowCollapseRight : mdiArrowCollapseLeft" w="w-5 md:w-5" h="h-5 md:h-5"
-              size="20" :class="{ 'mr-3': filtersVisible, '': !filtersVisible }" />
+            <BaseIcon :path="filtersVisible ? mdiArrowCollapseRight : mdiArrowCollapseLeft" w="w-5 md:w-5"
+              h="h-5 md:h-5" size="20" :class="{ 'mr-3': filtersVisible, '': !filtersVisible }" />
 
             <div v-if="filtersVisible" class="mr-2">Ocultar Filtros</div>
           </button>
@@ -1101,13 +1110,14 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               <div class="hs-dropdown relative inline-block w-full z-20">
                 <button id="hs-dropdown-default" type="button"
                   class="hs-dropdown-toggle duration-300 py-3.5 px-4 mb-4 w-full inline-flex justify-center items-center gap-2 border font-medium bg-white shadow-sm align-middle dark:hover:bg-sgrayhover focus:ring-blue-600 transition-all text-sm xxl:text-base xxm:text-2xl text-gray-900 rounded-lg focus:border-red-500 dark:bg-sgray dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                    <svg aria-hidden="true" class="w-5 h-5 mx-2 fill-white text-white dark:text-white" viewBox="0 0 18 18"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path stroke-width="0.5" stroke="white"  xmlns="http://www.w3.org/2000/svg" id="Path_36" data-name="Path 36"
-                        d="M28.854,12.146a.5.5,0,0,1,0,.708l-3,3a.518.518,0,0,1-.163.109.5.5,0,0,1-.382,0,.518.518,0,0,1-.163-.109l-3-3a.5.5,0,0,1,.708-.708L25,14.293V.5a.5.5,0,0,1,1,0V14.293l2.146-2.147A.5.5,0,0,1,28.854,12.146Zm9-9-3-3a.518.518,0,0,0-.163-.109.505.505,0,0,0-.382,0,.518.518,0,0,0-.163.109l-3,3a.5.5,0,0,0,.708.708L34,1.707V15.5a.5.5,0,0,0,1,0V1.707l2.146,2.147a.5.5,0,1,0,.708-.708Z"
-                        transform="translate(-22)"/>
-                    </svg>
-                    
+                  <svg aria-hidden="true" class="w-5 h-5 mx-2 fill-white text-white dark:text-white" viewBox="0 0 18 18"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-width="0.5" stroke="white" xmlns="http://www.w3.org/2000/svg" id="Path_36"
+                      data-name="Path 36"
+                      d="M28.854,12.146a.5.5,0,0,1,0,.708l-3,3a.518.518,0,0,1-.163.109.5.5,0,0,1-.382,0,.518.518,0,0,1-.163-.109l-3-3a.5.5,0,0,1,.708-.708L25,14.293V.5a.5.5,0,0,1,1,0V14.293l2.146-2.147A.5.5,0,0,1,28.854,12.146Zm9-9-3-3a.518.518,0,0,0-.163-.109.505.505,0,0,0-.382,0,.518.518,0,0,0-.163.109l-3,3a.5.5,0,0,0,.708.708L34,1.707V15.5a.5.5,0,0,0,1,0V1.707l2.146,2.147a.5.5,0,1,0,.708-.708Z"
+                      transform="translate(-22)" />
+                  </svg>
+
                   <div v-if="filtersVisible">
                     {{ t('searchpage.main.buttons.sortmain') }}
                     <span v-if="type_sort === 'asc'">({{ t('searchpage.main.buttons.sortlengthmin') }})</span>
@@ -1226,13 +1236,15 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
                     class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                     <span>{{ t('searchpage.main.labels.all') }}</span>
                   </button>
-                  <li class="snap-start" v-for="season in Object.keys(animeMap[anime_id].season_with_episode_hits || {})">
-                    <button @click="toggleSeasonSelection(season)" :class="{ 'bg-sgrayhover': isSelectedSeason(season) }"
+                  <li class="snap-start"
+                    v-for="season in Object.keys(animeMap[anime_id].season_with_episode_hits || {})">
+                    <button @click="toggleSeasonSelection(season)"
+                      :class="{ 'bg-sgrayhover': isSelectedSeason(season) }"
                       class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                       <span :class="{ '': isSelectedSeason(season) }" class="">Temporada {{ season }}</span>
                       <span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">
                         {{ Object.values(animeMap[anime_id]?.season_with_episode_hits[season]).reduce((total,
-                          valorActual) => total + valorActual, 0) }}
+      valorActual) => total + valorActual, 0) }}
                       </span>
                     </button>
                   </li>
@@ -1268,7 +1280,6 @@ let placeholder_search2 = t('searchpage.main.labels.searchbar')
               </ul>
             </div>
           </div>
-
         </div>
       </div>
       <div class="lg:ml-20 lg:w-[400px]"
@@ -1334,37 +1345,40 @@ em {
 
 
 #tab-headers ul {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    border-bottom: 3px solid #dddddd21;
-  }
-  #tab-headers ul li {
-    list-style: none;
-    padding: 1rem 1.25rem;
-    position: relative;
-    cursor: pointer;
-  }
-  #tab-headers ul li.active {
-    color: rgb(251, 120, 120);
-    font-weight: bold;
-  }
-  
-  #tab-headers ul li.active:after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    height: 2px;
-    width: 100%;
-    background: rgb(251, 120, 120);
-  }
-  #active-tab, #tab-headers {
-    width: 100%;
-  }
-  
-  #active-tab {
-    padding: 0.75rem;
-  }
+  margin: 0;
+  padding: 0;
+  display: flex;
+  border-bottom: 3px solid #dddddd21;
+}
 
+#tab-headers ul li {
+  list-style: none;
+  padding: 1rem 1.25rem;
+  position: relative;
+  cursor: pointer;
+}
+
+#tab-headers ul li.active {
+  color: rgb(251, 120, 120);
+  font-weight: bold;
+}
+
+#tab-headers ul li.active:after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: rgb(251, 120, 120);
+}
+
+#active-tab,
+#tab-headers {
+  width: 100%;
+}
+
+#active-tab {
+  padding: 0.75rem;
+}
 </style>
