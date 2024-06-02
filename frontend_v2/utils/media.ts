@@ -25,3 +25,18 @@ export async function downloadAudioOrImage(url: string | URL | Request, filename
       window.URL.revokeObjectURL(url);
     });
 }
+
+export function zoomImage(url) {
+  var ampliada = document.createElement('div')
+  ampliada.className = 'ampliada'
+
+  var imgAmpliada = document.createElement('img')
+  imgAmpliada.src = url
+
+  ampliada.appendChild(imgAmpliada)
+  document.body.appendChild(ampliada)
+
+  ampliada.onclick = function () {
+    document.body.removeChild(ampliada)
+  }
+}

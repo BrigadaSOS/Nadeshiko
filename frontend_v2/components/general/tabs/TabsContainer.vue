@@ -11,7 +11,7 @@
   margin: 0;
   padding: 0;
   display: flex;
-  border-bottom: 1px solid #dddddd21;
+  border-bottom: 2px solid #dddddd21;
 }
 
 #tab-headers ul li {
@@ -23,7 +23,6 @@
 
 #tab-headers ul li.active {
   color: rgb(251, 120, 120);
-  font-weight: bold;
 }
 
 #tab-headers ul li.active:after {

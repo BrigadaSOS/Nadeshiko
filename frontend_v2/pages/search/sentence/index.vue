@@ -18,6 +18,6 @@ em {
     text-decoration: underline;
     text-underline-offset: 0.2em;
     font-style: normal;
-    color: rgb(251, 120, 120);
+    color: #df848d;
 }
 </style>
