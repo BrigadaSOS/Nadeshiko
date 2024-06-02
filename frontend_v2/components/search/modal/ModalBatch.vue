@@ -263,7 +263,7 @@ watch(inputText, (newValue) => {
                         >
                           <a
                             v-if="item.is_match"
-                            :href="'search/sentences?query=' + item.word + '&exact_match=true'"
+                            :href="'search/sentence?query=' + item.word + '&exact_match=true'"
                             class="text-blue-500 underline-offset-2 underline"
                             target="_blank"
                           >

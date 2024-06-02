@@ -49,23 +49,23 @@ onMounted(() => {
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
                                                 <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentences?query=彼女">彼女</a>
+                                                    href="search/sentence?query=彼女">彼女</a>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionOtherSearch') }}:
                                                 <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentences?query=school">School</a>,
+                                                    href="search/sentence?query=school">School</a>,
                                                 <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentences?query=escuela">Escuela</a>
+                                                    href="search/sentence?query=escuela">Escuela</a>
                                             </li>
                                             <li class="mb-4">
                                                 Busqueda excluyente:
                                                 <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentences?query=卒業 -みんな">卒業 -みんな</a>
+                                                    href="search/sentence?query=卒業 -みんな">卒業 -みんな</a>
                                             </li>
                                             <li class="">
                                                 Busqueda exacta:
-                                                <a href='search/sentences?query="食べられない"'
+                                                <a href='search/sentence?query="食べられない"'
                                                     class="underline text-blue-400/90 underline-offset-4">"食べられない"</a>
                                             </li>
                                         </ul>
