@@ -66,7 +66,6 @@ const fetchSentences = async () => {
         }
 
         // Fetch data from API        
-        await delay(2000)
         const response = await apiSearch.getSentenceV1(body);
 
         // Update search data
