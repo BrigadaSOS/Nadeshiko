@@ -7,7 +7,7 @@
             <div class="flex items-center justify-between h-14">
                 <div class="flex mr-10">
                     <h1 class=" text-lg inline-flex items-center text-center align-middle font-semibold text-white">
-                        <img src="/assets/public/logo.webp" class="h-8 mr-3 rounded-full" />
+                        <NuxtImg format="webp" src="/logo.webp"  class="h-8 mr-3 rounded-full" />
                         Nadeshiko
                     </h1>
                 </div>
