@@ -28,7 +28,6 @@ watch(() => props.categorySelected, (newCategory) => {
 
 const filteredMedia = computed(() => {
     const filteredItems = statistics.value.filter((item) => {
-        console.log(categorySelected.value)
         const categoryFilter = categorySelected.value === 0 || item.category === categorySelected.value;
         const nameFilterEnglish = item?.name_anime_en?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
         const nameFilterJapanese = item?.name_anime_jp?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
