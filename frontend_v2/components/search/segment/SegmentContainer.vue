@@ -1,6 +1,6 @@
 <script setup>
 import { mdiTranslate, mdiVolumeHigh } from '@mdi/js'
-const props = defineProps(['searchData']);
+const props = defineProps(['searchData', 'isLoading']);
 let locale = ref('en');
 
 // Order segment according to website language
@@ -133,6 +133,13 @@ const orderedSegments = computed(() => {
             </div>
             <!-- End Details -->
         </div>
+        <div v-if="isLoading && searchData?.sentences.length > 0" class="text-center">
+            <div
+              class="animate-spin inline-block w-6 h-6 my-5 border-[3px] border-current border-t-transparent text-white rounded-full"
+              role="status" aria-label="loading">
+              <span class="sr-only">Loading...</span>
+            </div>
+          </div>
     </div>
     <div v-else-if="!searchData?.sentences || searchData?.sentences?.length == 0">
         <div v-for="i in 8" :key="i"

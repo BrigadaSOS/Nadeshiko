@@ -43,5 +43,22 @@ export const useApiSearch = defineStore("search", {
       );
       return data;
     },
+    async getMultipleSearch(body:any) {
+      const config = useRuntimeConfig();
+      const data = await $fetch(
+        `${config.public.baseURLBackend}search/media/match/words`,
+        {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body:{
+            words: body.words,  
+          }
+        }
+      );
+      return data;
+    },
   },
 });

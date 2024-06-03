@@ -2,7 +2,7 @@
 import { mdiArrowUp } from '@mdi/js'
 const showScrollButton = ref(false);
 
-const props = defineProps(['searchData']);
+const props = defineProps(['searchData', 'categorySelected']);
 
 
 const handleScroll = () => {
@@ -54,7 +54,7 @@ onUnmounted(() => {
 
             <div v-if="searchData?.sentences?.length > 0" class=" mx-auto   ">
                 <SearchSegmentFilterSortContent />
-                <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
+                <SearchSegmentFilterContent :searchData="searchData" :categorySelected="categorySelected" />
             </div>
             <div v-else>
                 <div class="pl-4 mx-auto hidden lg:block min-w-[340px]">

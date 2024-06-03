@@ -9,6 +9,7 @@ const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 // Main variables
 let searchData = ref(null);
 let isLoading = ref(false);
+let endOfResults = ref(false);
 
 // Available params for search
 let query = ref('');
@@ -28,6 +29,8 @@ const categoryMapping = {
 // Fetch sentences with an infinite scroll
 const fetchSentences = async () => {
     try {
+        if (endOfResults.value) return;
+
         isLoading.value = true;
 
         // Build request body
@@ -59,13 +62,14 @@ const fetchSentences = async () => {
                 if (searchData.value && searchData.value.sentences) {
                     searchData.value.sentences = null;
                     console.log(searchData.value)
+                    console.log(body)
                 }
             }
         } else {
             searchData.value = null;
         }
 
-        // Fetch data from API        
+        // Fetch data from API      
         const response = await apiSearch.getSentenceV1(body);
 
         // Update search data
@@ -73,6 +77,10 @@ const fetchSentences = async () => {
             searchData.value = response;
         } else {
             searchData.value.sentences.push(...response.sentences);
+        }
+
+        if (response.sentences.length < body.limit) {
+            endOfResults.value = true;
         }
 
         cursor.value = response.cursor;
@@ -86,10 +94,10 @@ const fetchSentences = async () => {
 
 // Handle scroll event for infinite scroll
 const handleScroll = async () => {
-    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight && !isLoading.value) {
+    const scrollThreshold = 1000;
+    if ((window.innerHeight + window.scrollY + scrollThreshold) >= document.body.offsetHeight && !isLoading.value) {
         await fetchSentences();
         window.HSStaticMethods.autoInit();
-
     }
 };
 
@@ -140,6 +148,7 @@ onBeforeRouteUpdate(async (to, from) => {
     }
 
     cursor.value = null;
+    endOfResults.value = false;
     await fetchSentences();
     window.HSStaticMethods.autoInit();
 });
@@ -151,7 +160,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <SearchSegmentSidebar :searchData="searchData" />
+    <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" />
     <div class="flex-1 mx-auto">
         <!-- Tabs -->
         <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
@@ -179,7 +188,7 @@ onBeforeUnmount(() => {
         <div class="flex mx-auto w-full ">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
-                <SearchSegmentContainer :searchData="searchData" :categorySelected="category" />
+                <SearchSegmentContainer :searchData="searchData" :categorySelected="category" :isLoading="isLoading" />
             </div>
             <!-- Filters -->
             <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
@@ -187,8 +196,8 @@ onBeforeUnmount(() => {
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
             </div>
             <div v-else>
-                <div class="pl-4 mx-auto hidden lg:block min-w-[340px]">
-                    <div role=" status" class="hidden w-11/12 lg:flex flex-col py-6 animate-pulse">
+                <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">
+                    <div role=" status" class="hidden w-11/12 2xl:flex flex-col py-6 animate-pulse">
                         <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
                         <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
                         <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
