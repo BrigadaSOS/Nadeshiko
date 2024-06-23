@@ -408,7 +408,7 @@ export const querySurroundingSegments = async (request: QuerySurroundingSegments
     let sortedSegments = [...previousSegments, ...nextSegments].sort((a , b) => (a.segment_info.position - b.segment_info.position));
 
     return {
-        context: sortedSegments
+        sentences: sortedSegments
     }
 }
 
