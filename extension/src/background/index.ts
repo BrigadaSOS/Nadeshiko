@@ -44,20 +44,32 @@ async function checkBasicSettings(settings: any) {
   }
 }
 
-async function updateAnkiCard(settings: any, sentence: any) {
-  // Obtiene las notas más reciente
-  let notes = await findNotes(
-    settings.ankiPreferences.settings.current.deck,
-    settings.ankiPreferences.settings.current.model
-  )
-  const latestCard = notes.reduce((a, b) => Math.max(a, b), -1)
-  if (!latestCard || latestCard === -1)
-    throw new Error('No anki card to export to. Please add a card first.')
+// id can be number or null
+async function updateAnkiCard(settings: any, sentence: any, id: number | null = null) {
 
-  console.log(notes, latestCard)
+  let cardID = id;
+
+  if (!id) {
+    // Obtiene las notas más reciente
+    let noteIDs = await findNotes(
+      settings.ankiPreferences.settings.current.deck,
+      settings.ankiPreferences.settings.current.model,
+      "added:2 is:new"
+    )
+    const latestCard = noteIDs.reduce((a, b) => Math.max(a, b), -1)
+    if (!latestCard || latestCard === -1) {
+      throw new Error('No anki card to export to. Please add a card first.')
+    }
+    console.log(noteIDs, latestCard)
+    cardID = latestCard;
+  } else {
+    console.log('Updating card with ID:', cardID)
+    // checkear si la tarjeta con ese id existe
+  }
+
 
   // Extrae la información de la nota
-  let infoCard = await notesInfo([latestCard])
+  let infoCard = await notesInfo([cardID])
   console.log(infoCard)
 
   // Almacena el contenido multimedia en Anki
@@ -66,9 +78,10 @@ async function updateAnkiCard(settings: any, sentence: any) {
 
   // Realiza una busqueda en la interfaz de Anki para cambiar a una tarjeta generica
   // Y evitar problemas al actualizar
+  // TODO: manejar el error
   await guiBrowse('nid:1 nid:2')
 
-  // Actualiza la ultima tarjeta insertada
+  // Actualiza la tarjeta correspondiente
   let resultUpdate = await updateMediaFields(
     infoCard,
     mediaStored,
@@ -86,7 +99,7 @@ async function handleRequest(request) {
     if (request.action === 'updateAnkiCard') {
       console.log(request)
       await checkBasicSettings(request.settings)
-      await updateAnkiCard(request.settings, request.sentence)
+      await updateAnkiCard(request.settings, request.sentence, request.id)
       return { status: 200, message: 'Success' }
     } else {
       return { status: 400, error: 'Unrecognized action' }
