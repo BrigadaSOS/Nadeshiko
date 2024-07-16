@@ -100,7 +100,7 @@ const redirectReload = () => {
         <a
           :class="isActive('/discord').value ? 'border-b-2 font-bold text-white border-white/80': 'bg-transparent text-white'"
           class="font-bold text-white md:py-3 px-4 border-b-2 transition  border-transparent hover:border-white"
-          href="https://discord.gg/ajWm26ADEj"
+          href="https://discord.gg/4fDyU5S8hw"
         >
           {{t("navbar.buttons.discord")}}
       </a>
