@@ -127,7 +127,7 @@ onMounted(async () => {
             <li>Nuestro correo: <p class="inline text-sred">brigadasosjapones@gmail.com</p>
             </li>
             <li>En Discord a través del <a class="inline dark:hover:text-gray-300 text-sred underline"
-                    href="https://discord.gg/ajWm26ADEj">servidor</a> de la Brigada SOS.</li>
+                    href="https://discord.gg/4fDyU5S8hw">servidor</a> de la Brigada SOS.</li>
         </ul>
         </p>
         <p class="mt-3 text-gray-700 dark:text-gray-200">
