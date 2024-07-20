@@ -38,7 +38,6 @@
 #active-tab,
 #tab-headers {
   width: 100%;
-  overflow-x: auto;
 }
 
 #active-tab {

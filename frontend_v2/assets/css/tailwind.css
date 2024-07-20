@@ -3,18 +3,17 @@
 @tailwind utilities;
  
 @layer base {
-  
   :root {
     --background: 0 0% 100%;
   }
  
   .dark {
     --background: #181a1b;
-    --header-background: #b75151;
+    --header-background: #b34550;
     --footer-background: #1f1f1f;
     --button-color-primary: #2c2c2c;
     --button-color-hover-primary: #333333;
-    --input-background: #2f2f2f;  
+    --input-background: #2f2f2f;
     --card-background: #212121;
 
     --modal-background: #1b1b1b;
@@ -27,38 +26,11 @@
     display: none;
 }
 
-*,
-*::before,
-*::after {
-  font-weight: normal;
-}
-
-body {
-  transition: color 0.5s, background-color 0.5s;
-  font-family: 'Segoe UI';
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 /* For IE, Edge and Firefox */
 .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
 }
-
-
-::-webkit-scrollbar {
-  background-color: #202324;
-  color: #aba499;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: #454a4d;
-  
-}
-
-
 
 }
  

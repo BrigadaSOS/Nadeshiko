@@ -1,30 +1,12 @@
 <script setup>
 import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal, mdiVolumeHigh   } from '@mdi/js'
 
-let contextactive = ref()
-let isModalContextActive = ref(false)
-let currentSentence = ref()
-
-const showModalContext = async (item) => {
-  isModalContextActive.value = true
-  currentSentence.value = item
-  contextactive.value.getContextSentence(currentSentence.value)
-}
-
-// NO QUITAR, inicializa el componente para que no falle
-try {
-  contextactive.value.getContextSentence(currentSentence.value)
-} catch (error) {
-  isModalContextActive.value = true
-}
-
-let props = defineProps({
+defineProps({
     content: {
         type: Object,
-        required: false,
+        required: true,
     }
 });
-
 
 </script>
 <template>
@@ -80,7 +62,7 @@ let props = defineProps({
         </template>
     </SearchDropdownContainer>
 
-    <UiButtonPrimaryAction @click="showModalContext(content)" data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 my-1">
+    <UiButtonPrimaryAction class="mr-2 my-1">
         <UiBaseIcon :path="mdiPlusBoxOutline" />
         {{ $t('searchpage.main.buttons.context') }}
     </UiButtonPrimaryAction>
