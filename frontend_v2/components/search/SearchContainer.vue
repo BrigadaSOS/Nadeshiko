@@ -26,13 +26,6 @@ const categoryMapping = {
     'liveaction': 3
 };
 
-// SEO Meta
-const seoTitle = computed(() => `${query.value} - Nadeshiko`);
-useSeoMeta({
-    title: seoTitle,
-    ogTitle: 'Nadeshiko'
-});
-
 // Fetch sentences with an infinite scroll
 const fetchSentences = async () => {
     try {
@@ -127,7 +120,6 @@ const categoryFilter = (filter) => {
     });
 };
 
-
 // Lifecycle hooks
 onMounted(async () => {
     query.value = route.query.query;
@@ -169,9 +161,6 @@ onBeforeUnmount(() => {
 
 <template>
     <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" />
-    <template v-if="content">
-        <SearchModalContext ref="contextactive" :content="content"/>
-    </template>
     <div class="flex-1 mx-auto">
         <!-- Tabs -->
         <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
@@ -189,16 +178,17 @@ onBeforeUnmount(() => {
         <div v-else class="w-full pb-4  animate-pulse">
             <GeneralTabsContainer>
                 <GeneralTabsHeader>
-                    <div v-for="i in 3" :key="i" class="flex flex-row space-x-10 gap-10 py-5">
+                    <div v-for="i in 3" :key="i" class="flex  flex-row space-x-10 gap-10 py-5">
                         <p class="p-2 bg-gray-200 rounded-lg mr-6 dark:bg-neutral-700 px-16"></p>
                     </div>
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
+
         </div>
         <div class="flex mx-auto w-full ">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
-                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" />
+                <SearchSegmentContainer :searchData="searchData" :categorySelected="category" :isLoading="isLoading" />
             </div>
             <!-- Filters -->
             <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">

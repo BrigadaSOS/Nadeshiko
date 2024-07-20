@@ -1,5 +1,5 @@
 import { SearchAnimeSentencesSegment } from "./querySegmentsResponse";
 
 export interface QuerySurroundingSegmentsResponse {
-    readonly sentences: SearchAnimeSentencesSegment[];
+    readonly context: SearchAnimeSentencesSegment[];
 }

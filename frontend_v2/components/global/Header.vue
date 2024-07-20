@@ -2,7 +2,7 @@
 
 </script>
 <template>
-    <header class="bg-header-background border-b border-neutral-700 py-1 inset-x-0 top-0 z-10 w-full">
+    <header class="bg-header-background inset-x-0 top-0 z-10 w-full shadow-md">
         <div class="max-w-[92%] mx-auto ">
             <div class="flex items-center justify-between h-14">
                 <div class="flex mr-10">
@@ -13,17 +13,17 @@
                 </div>
 
                 <nav class="hidden lg:flex lg:items-center font-bold lg:justify-center lg:space-x-10">
-                    <NuxtLink to="/" class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                    <NuxtLink to="/" class="text-sm text-white transition-all duration-200 hover:text-opacity-80">
                         Home
                     </NuxtLink>
-                    <NuxtLink to="/search/sentence" class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                    <NuxtLink to="/search/sentence" class="text-sm text-white transition-all duration-200 hover:text-opacity-80">
                         Search
                     </NuxtLink>
                     <NuxtLink to="/api/v1/docs"
-                        class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                        class="text-sm text-white transition-all duration-200 hover:text-opacity-80">
                         API
                     </NuxtLink>
-                    <NuxtLink to="/about" class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                    <NuxtLink to="/about" class="text-sm text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.about") }}
                     </NuxtLink>
                 </nav>
