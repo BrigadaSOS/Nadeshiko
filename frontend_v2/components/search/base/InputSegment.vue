@@ -34,7 +34,7 @@ onBeforeUnmount(() => {
     <!-- Form -->
     <div @submit.prevent="navigateSearchSentence">
         <div
-            class="relative mt-2 z-20  flex space-x-3 rounded-lg shadow-gray-100  dark:border-neutral-500">
+            class="relative mt-2 z-20  flex space-x-3 py-2 rounded-lg shadow-gray-100  dark:border-neutral-500">
             <div class="flex-[1_0_0%] ">
                 <label for="hs-search-article-1" class="block text-sm text-gray-700 font-medium dark:text-white"><span
                         class="sr-only">Search anything!</span></label>

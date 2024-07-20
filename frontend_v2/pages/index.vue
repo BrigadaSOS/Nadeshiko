@@ -36,7 +36,7 @@ onMounted(() => {
                                     <div class="flex  rounded-lg flex-col first-letter:items-left">
                                         <div class="inline-flex">
                                             <h2
-                                                class="text-3xl ml-2 mt-3 md:mt-0 underline underline-offset-8 decoration-4 decoration-[#cb515d] sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">
+                                                class="text-3xl ml-2 mt-3 md:mt-0 underline underline-offset-8 decoration-4 decoration-header-background sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">
                                                 Nadeshiko
                                             </h2>
                                             <h3
@@ -45,7 +45,6 @@ onMounted(() => {
                                         </div>
 
                                         <p class="ml-2 pt-5 text-lg">{{ $t('home.nadeDbDescription') }}</p>
-                                        
                                         <ul class="list-disc ml-8 py-4 font-normal">
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
