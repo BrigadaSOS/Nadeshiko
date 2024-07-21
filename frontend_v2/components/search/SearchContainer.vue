@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
         </div>
-        <div v-else class="w-full pb-4  animate-pulse">
+        <div v-else-if="isLoading && !searchData?.sentences?.length" class="w-full pb-4  animate-pulse">
             <GeneralTabsContainer>
                 <GeneralTabsHeader>
                     <div v-for="i in 3" :key="i" class="flex  flex-row space-x-10 gap-10 py-5">
@@ -188,14 +188,14 @@ onBeforeUnmount(() => {
         <div class="flex mx-auto w-full ">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
-                <SearchSegmentContainer :searchData="searchData" :categorySelected="category" :isLoading="isLoading" />
+                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" />
             </div>
             <!-- Filters -->
             <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
                 <SearchSegmentFilterSortContent />
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
             </div>
-            <div v-else>
+            <div v-else-if="isLoading == true">
                 <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">
                     <div role=" status" class="hidden w-11/12 2xl:flex flex-col py-6 animate-pulse">
                         <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
