@@ -168,9 +168,9 @@ onBeforeUnmount(() => {
                 <GeneralTabsHeader>
                     <GeneralTabsItem category="0" categoryName="Todo" :count="getCategoryCount(0)"
                         :isActive="category === 0" @click="categoryFilter(0)" />
-                    <GeneralTabsItem category="1" categoryName="Anime" :count="getCategoryCount(1)"
+                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 1)"  category="1" categoryName="Anime" :count="getCategoryCount(1)"
                         :isActive="category === 1" @click="categoryFilter(1)" />
-                    <GeneralTabsItem category="3" categoryName="Liveaction" :count="getCategoryCount(3)"
+                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 3)"  category="3" categoryName="Liveaction" :count="getCategoryCount(3)"
                         :isActive="category === 3" @click="categoryFilter(3)" />
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
