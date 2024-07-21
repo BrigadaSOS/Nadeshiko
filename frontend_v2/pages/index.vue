@@ -20,7 +20,16 @@ const fetchMedia = async () => {
 
 onMounted(() => {
     fetchMedia();
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
 });
+
+const isSmallScreen = ref(false);
+
+const checkScreenSize = () => {
+  isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280; 
+};
+watch(() => window.innerWidth, checkScreenSize);
 </script>
 
 <template>
@@ -174,6 +183,7 @@ onMounted(() => {
                                                 class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
                                                 <div v-if="media?.results.length > 0"
                                                     v-for="(media_info, index) in media.results"
+                                                    v-show="!isSmallScreen || index < (media.results.length - 2)"
                                                     class="w-full relative">
                                                     <Popper class="w-full" zIndex="50" arrow v-bind="$attrs" hover
                                                         openDelay="0" closeDelay="100">
