@@ -24,13 +24,20 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
-}
+  }
 
-/* For IE, Edge and Firefox */
-.scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-}
+  /* For IE, Edge and Firefox */
+  .scrollbar-hide {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+  }
+
+  body {
+    font-family: 'Roboto', 'Segoe UI';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
 }
  
