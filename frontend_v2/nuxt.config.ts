@@ -15,7 +15,14 @@ export default defineNuxtConfig({
     "@nuxtjs/i18n",
     "@nuxt/content",
     "@scalar/nuxt",
-    "@nuxt/image"
+    "@nuxt/image",
+    ['@nuxtjs/google-fonts', {
+      families: {
+        'Noto Sans JP': true,
+        download: true,
+        inject: true
+      }
+    }]
   ],
   plugins: ['~/plugins/preline.client.ts'],
 });
