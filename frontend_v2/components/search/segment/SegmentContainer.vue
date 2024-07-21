@@ -27,13 +27,13 @@ const orderedSegments = computed(() => {
 
 </script>
 <template>
-    <div v-if="searchData?.sentences?.length > 0">
+    <div v-if="searchData?.sentences?.length > 0 && searchData">
         <div v-for="(sentence, index) in searchData.sentences"
             class="dark:hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2">
             <!-- Image -->
             <div class="h-auto shrink-0 w-auto lg:w-[28em]">
                 <img :src="sentence.media_info.path_image + '?width=960&height=540'"
-                @click="zoomImage(sentence.media_info.path_image)"
+                    @click="zoomImage(sentence.media_info.path_image)"
                     class="inset-0 h-70 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
                     :key="sentence.media_info.path_image" />
             </div>
@@ -60,12 +60,12 @@ const orderedSegments = computed(() => {
         "></span>
                             </h3>
                         </div>
-                        
+
                         <!-- End Japanese Sentence -->
                     </div>
 
                     <!-- Second Row -->
-                    <div class="items-start flex-1 pt-1  justify-center">
+                    <div class="items-start flex-1 pt-1 justify-center">
                         <!-- Tag Translation -->
                         <span
                             class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-neutral-700 bg-red-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-400">{{
@@ -77,8 +77,7 @@ const orderedSegments = computed(() => {
                             NSFW
                         </span>
 
-                        <div class="font-normal  flex-1 text-sm xxl:text-base xxm:text-2xl leading-tight mt-3">
-
+                        <div class="font-normal flex-1 text-sm xxl:text-base xxm:text-2xl leading-tight mt-3">
                         </div>
                     </div>
 
@@ -106,23 +105,20 @@ const orderedSegments = computed(() => {
                         <!-- End Spanish and English Sentences -->
                     </div>
 
-                    <!-- Four Row -->
+                    <!-- Fourth Row -->
                     <!-- Buttons  -->
                     <div class="flex-1 pb-2">
-
                         <SearchSegmentActionsContainer :content="sentence" />
                     </div>
                     <!-- End Buttons  -->
 
-                    <!-- Five Row -->
+                    <!-- Fifth Row -->
                     <!-- Media details  -->
                     <div class="flex-1 pb-2 justify-left">
                         <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-2">
                             {{ sentence.basic_info.name_anime_en }} &bull;
-                            <template v-if="sentence.basic_info.season === 0"> {{
-        $t('searchpage.main.labels.movie')
-    }}
-                            </template>
+                            <template v-if="sentence.basic_info.season === 0">{{ $t('searchpage.main.labels.movie')
+                                }}</template>
                             <template v-else>
                                 {{ $t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},
                                 {{ $t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
@@ -133,55 +129,66 @@ const orderedSegments = computed(() => {
             </div>
             <!-- End Details -->
         </div>
-        <div v-if="isLoading && searchData?.sentences.length > 0" class="text-center">
-            <div
-              class="animate-spin inline-block w-6 h-6 my-5 border-[3px] border-current border-t-transparent text-white rounded-full"
-              role="status" aria-label="loading">
-              <span class="sr-only">Loading...</span>
-            </div>
-          </div>
-    </div>
-    <div v-else-if="!searchData?.sentences || searchData?.sentences?.length == 0">
-        <div v-for="i in 8" :key="i"
-            class="w-full">
-            <div role="status"
-                class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
-                <div
-                  class="flex mb-10 items-center justify-center bg-gray-300 rounded h-64 w-auto md:w-5/12 dark:bg-neutral-700">
-                </div>
-                <div class="w-full">
-                  <div class="h-2.5 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[320px] mb-4"></div>
-                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[680px] mb-2.5"></div>
-                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[640px] mb-2.5"></div>
-                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[660px] mb-2.5"></div>
-                  <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[560px]"></div>
-                </div>
+        <div v-if="isLoading" class="text-center">
+            <div class="animate-spin inline-block w-6 h-6 my-5 border-[3px] border-current border-t-transparent text-white rounded-full"
+                role="status" aria-label="loading">
                 <span class="sr-only">Loading...</span>
-              </div>
+            </div>
         </div>
+    </div>
+    <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData" class="w-full">
+        <div v-for="i in 8" :key="i"
+            class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
+            <div
+                class="flex mb-10 items-center justify-center bg-gray-300 rounded h-64 w-auto md:w-5/12 dark:bg-neutral-700">
+            </div>
+            <div class="w-full">
+                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[320px] mb-4"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[680px] mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[640px] mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[660px] mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[560px]"></div>
+            </div>
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+    <div v-else-if="!isLoading && searchData?.sentences?.length === 0">
+        <section class=" ">
+            <div class="container flex items-center min-h-[50rem] px-6 mx-auto">
+                <div class="w-full align-top items-center">
+                    <div class="flex flex-col items-center max-w-lg mx-auto text-center">
+                        <img class="mb-6" src="https://animeforums.net/uploads/monthly_2022_03/haruhi-suzumiya-kyon-computer-haruhi-suzumiya.gif.be78c7de58e641e3701a97a85d01a059.gif"/>
+                        <h2 class="font-bold text-red-400 text-3xl">404</h2>
+                        <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">No encontramos
+                            resultados</h1>
+                        <p class="mt-4 text-gray-500 dark:text-gray-400">Buscamos de arriba a abajo, pero no pudimos
+                            encontrar lo que buscas. Intenta con una nueva busqueda diferente.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 </template>
 <style>
 .ampliada {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
 }
 
 .ampliada img {
-  max-width: 90%;
-  max-height: 90%;
+    max-width: 90%;
+    max-height: 90%;
 }
 
 .image-container {
-  position: relative;
+    position: relative;
 }
-
 </style>
