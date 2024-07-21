@@ -49,14 +49,15 @@ defineProps({
         </template>
         <template #content>
             <SearchDropdownContent>
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
+                <SearchDropdownItem @click="copyToClipboard(content.media_info.path_video)" :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
+                <SearchDropdownItem @click="copyToClipboard(content.media_info.path_image)" :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
+                <SearchDropdownItem @click="copyToClipboard(content.media_info.path_audio)" :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
                 <div class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600"></div>
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.jpsentence')"
+                <SearchDropdownItem @click="copyToClipboard(content.segment_info.content_jp)" :text="$t('searchpage.main.buttons.jpsentence')"
                     :iconPath="mdiText" />
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.ensentence')"
+                <SearchDropdownItem @click="copyToClipboard(content.segment_info.content_en)" :text="$t('searchpage.main.buttons.ensentence')"
                     :iconPath="mdiText" />
-                <SearchDropdownItem :text="$t('searchpage.main.buttons.essentence')"
+                <SearchDropdownItem @click="copyToClipboard(content.segment_info.content_es)" :text="$t('searchpage.main.buttons.essentence')"
                     :iconPath="mdiText" />
             </SearchDropdownContent>
         </template>

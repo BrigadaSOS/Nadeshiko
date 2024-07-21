@@ -26,7 +26,7 @@ export async function downloadAudioOrImage(url: string | URL | Request, filename
     });
 }
 
-export function zoomImage(url) {
+export function zoomImage(url: string) {
   var ampliada = document.createElement('div')
   ampliada.className = 'ampliada'
 
@@ -39,4 +39,8 @@ export function zoomImage(url) {
   ampliada.onclick = function () {
     document.body.removeChild(ampliada)
   }
+}
+
+export async function copyToClipboard(item: any){
+  await navigator.clipboard.writeText(item)
 }
