@@ -47,7 +47,6 @@ onMounted(() => {
         rootMargin: '2000px'
     });
     observer.observe(lazyElement.value);
-
     onUnmounted(() => {
         observer.disconnect();
         clearTimeout(renderTimer.value);
