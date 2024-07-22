@@ -7,21 +7,21 @@
     <div class="max-w-[92%] px-6 py-4 md:py-6 mx-auto">
       <div class="flex flex-col items-center ">
         <div class="flex flex-wrap  mt-4 -mx-4">
-          <a
-            href="#"
+          <NuxtLink
+            to="/"
             class="mx-4 text-sm mb-2 sm:mb-0 text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Home"
           >
             {{ $t('navbar.buttons.home') }}
-          </a>
+          </NuxtLink>
 
-          <a
-            href="#"
+          <NuxtLink
+            to="/privacy"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Privacy"
           >
             {{ $t('navbar.buttons.privacy') }}
-          </a>
+          </NuxtLink>
 
           <a
             href="#"
