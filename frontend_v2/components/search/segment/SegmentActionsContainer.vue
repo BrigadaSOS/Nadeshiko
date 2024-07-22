@@ -1,12 +1,18 @@
 <script setup>
 import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal, mdiVolumeHigh   } from '@mdi/js'
 
-defineProps({
+let props = defineProps({
     content: {
         type: Object,
         required: true,
     }
 });
+
+const emit = defineEmits(['open-context-modal']);
+
+const openContextModal = () => {
+    emit('open-context-modal', props.content);
+};
 
 </script>
 <template>
@@ -63,7 +69,7 @@ defineProps({
         </template>
     </SearchDropdownContainer>
 
-    <UiButtonPrimaryAction class="mr-2 my-1">
+    <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 my-1" @click="openContextModal">
         <UiBaseIcon :path="mdiPlusBoxOutline" />
         {{ $t('searchpage.main.buttons.context') }}
     </UiButtonPrimaryAction>

@@ -60,5 +60,26 @@ export const useApiSearch = defineStore("search", {
       );
       return data;
     },
+    async getContextSentence(body:any) {
+      const config = useRuntimeConfig();
+      const data = await $fetch(
+        `${config.public.baseURLBackend}search/media/context`,
+        {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body:{
+            media_id: body.media_id,
+            season: body.season,
+            episode: body.episode,
+            segment_position: body.segment_position,
+            limit: body.limit
+          }
+        }
+      );
+      return data;
+    },
   },
 });
