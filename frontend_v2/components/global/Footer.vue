@@ -23,21 +23,21 @@
             {{ $t('navbar.buttons.privacy') }}
           </NuxtLink>
 
-          <a
-            href="#"
+          <NuxtLink
+            to="/terms-and-conditions"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="TermsAndConditions"
           >
             {{ $t('navbar.buttons.terms') }}
-          </a>
+          </NuxtLink>
 
-          <a
-            href="#"
+          <NuxtLink
+            to="/about"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="Contact"
+            aria-label="About"
           >
-            {{ $t('navbar.buttons.contact') }}
-          </a>
+            {{ $t('navbar.buttons.about') }}
+          </NuxtLink>
         </div>
       </div>
 
