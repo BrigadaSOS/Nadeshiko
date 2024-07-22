@@ -22,13 +22,12 @@
     "lucide-vue-next": "^0.378.0",
     "nuxt": "^3.11.2",
     "pinia": "^2.1.7",
-    "preline": "^2.1.0",
+    "preline": "^2.4.0",
     "radix-vue": "^1.7.4",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "vue": "^3.4.27",
-    "vue-router": "^4.3.2",
-    "vue-virtual-scroller": "^2.0.0-beta.8"
+    "vue-router": "^4.3.2"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.0",
