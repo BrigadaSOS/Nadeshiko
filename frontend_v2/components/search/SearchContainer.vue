@@ -10,6 +10,7 @@ const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 let searchData = ref(null);
 let isLoading = ref(false);
 let endOfResults = ref(false);
+const hasMoreResults = ref(true)
 
 // Available params for search
 let query = ref('');
@@ -29,7 +30,7 @@ const categoryMapping = {
 // Fetch sentences with an infinite scroll
 const fetchSentences = async () => {
     try {
-        if (endOfResults.value) return;
+        if (endOfResults.value || isLoading.value) return;
 
         isLoading.value = true;
 
@@ -61,8 +62,6 @@ const fetchSentences = async () => {
             if (!cursor.value) {
                 if (searchData.value && searchData.value.sentences) {
                     searchData.value.sentences = null;
-                    console.log(searchData.value)
-                    console.log(body)
                 }
             }
         } else {
@@ -81,25 +80,22 @@ const fetchSentences = async () => {
 
         if (response.sentences.length < body.limit) {
             endOfResults.value = true;
+            hasMoreResults.value = false;
+        } else {
+            hasMoreResults.value = true;
         }
 
         cursor.value = response.cursor;
         previousQuery.value = query.value;
     } catch (error) {
         console.error('Error fetching sentences:', error);
+        hasMoreResults.value = false;
     } finally {
         isLoading.value = false;
     }
 };
 
-// Handle scroll event for infinite scroll
-const handleScroll = async () => {
-    const scrollThreshold = 1000;
-    if ((window.innerHeight + window.scrollY + scrollThreshold) >= document.body.offsetHeight && !isLoading.value) {
-        await fetchSentences();
-        window.HSStaticMethods.autoInit();
-    }
-};
+
 
 // Get count of sentences for a specific category
 const getCategoryCount = (category) => {
@@ -133,7 +129,6 @@ onMounted(async () => {
 
     await fetchSentences();
 
-    window.addEventListener('scroll', handleScroll);
     window.HSStaticMethods.autoInit();
 });
 
@@ -155,7 +150,14 @@ onBeforeRouteUpdate(async (to, from) => {
 
 
 onBeforeUnmount(() => {
-    window.removeEventListener('scroll', handleScroll);
+
+});
+
+// SEO Meta
+const seoTitle = computed(() => `${query.value ? query.value + ' - Nadeshiko' : 'Nadeshiko'}`);
+useSeoMeta({
+    title: seoTitle,
+    ogTitle: 'Nadeshiko'
 });
 </script>
 
@@ -188,6 +190,7 @@ onBeforeUnmount(() => {
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" />
+                <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults"/>
             </div>
             <!-- Filters -->
             <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">

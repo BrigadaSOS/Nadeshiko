@@ -6,18 +6,20 @@
 
 <script setup>
 </script>
+
 <style>
 #tab-headers ul {
   margin: 0;
   padding: 0;
   display: flex;
   border-bottom: 2px solid #dddddd21;
+  list-style: none;
 }
 
 #tab-headers ul li {
-  list-style: none;
   padding: 1rem 1.25rem;
   position: relative;
+  display: inline-flex;
   cursor: pointer;
 }
 
@@ -38,6 +40,7 @@
 #active-tab,
 #tab-headers {
   width: 100%;
+  overflow-x: auto;
 }
 
 #active-tab {

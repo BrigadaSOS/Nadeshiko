@@ -2,6 +2,7 @@
 import { mdiTranslate, mdiVolumeHigh } from '@mdi/js'
 const props = defineProps(['searchData', 'isLoading']);
 let locale = ref('en');
+let selectedSentence = ref(null);
 
 // Order segment according to website language
 const orderedSegments = computed(() => {
@@ -24,11 +25,19 @@ const orderedSegments = computed(() => {
     return segments;
 });
 
+const openModal = (content) => {
+    selectedSentence.value = content;
+};
 
 </script>
 <template>
     <div v-if="searchData?.sentences?.length > 0 && searchData">
-        <div v-for="(sentence, index) in searchData.sentences"
+        <SearchModalContext :sentence="selectedSentence" />
+        <GeneralLazy v-for="(sentence, index) in searchData.sentences"
+            :key="sentence.segment_info.position"
+            :id="sentence.segment_info.position"
+            :unrender="true"
+            :min-height="300"
             class="dark:hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2">
             <!-- Image -->
             <div class="h-auto shrink-0 w-auto lg:w-[28em]">
@@ -108,7 +117,7 @@ const orderedSegments = computed(() => {
                     <!-- Fourth Row -->
                     <!-- Buttons  -->
                     <div class="flex-1 pb-2">
-                        <SearchSegmentActionsContainer :content="sentence" />
+                        <SearchSegmentActionsContainer :content="sentence" @open-context-modal="openModal"/>
                     </div>
                     <!-- End Buttons  -->
 
@@ -128,7 +137,7 @@ const orderedSegments = computed(() => {
                 </div>
             </div>
             <!-- End Details -->
-        </div>
+        </GeneralLazy>
         <div v-if="isLoading" class="text-center">
             <div class="animate-spin inline-block w-6 h-6 my-5 border-[3px] border-current border-t-transparent text-white rounded-full"
                 role="status" aria-label="loading">
