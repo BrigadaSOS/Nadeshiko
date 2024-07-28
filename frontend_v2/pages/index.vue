@@ -185,8 +185,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                     v-for="(media_info, index) in media.results"
                                                     v-show="!isSmallScreen || index < (media.results.length - 2)"
                                                     class="w-full relative">
-                                                    <Popper class="w-full" zIndex="50" arrow v-bind="$attrs" hover
-                                                        openDelay="0" closeDelay="100">
+                                                    <div class="w-full">
                                                         <div
                                                             class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
                                                             <img class="w-full h-full object-cover absolute top-0 left-0"
@@ -199,7 +198,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                 </span>
                                                                 -->
                                                         </div>
-                                                        <template #content>
+                                                        <template>
                                                             <div
                                                                 class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
                                                                 <span
@@ -249,7 +248,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                 </div>
                                                             </div>
                                                         </template>
-                                                    </Popper>
+                                                    </div>
 
                                                     <div
                                                         class="mt-2 text-center justify-center flex flex-col items-center">
