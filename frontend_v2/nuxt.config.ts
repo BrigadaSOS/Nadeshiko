@@ -17,5 +17,41 @@ export default defineNuxtConfig({
     "@scalar/nuxt",
     "@nuxt/image"
   ],
-  plugins: ['~/plugins/preline.client.ts']
+  plugins: ['~/plugins/preline.client.ts'],
+  vite: {
+    // Prevent reload by optimizing dependency before discovery
+    optimizeDeps: {
+      include: ['@unhead/vue']
+    }
+  },
+  i18n: {
+    experimental: {
+      localeDetector: './localeDetector.ts',
+    },
+    langDir: 'locales',
+    lazy: true,
+    locales: [
+      {
+        code: 'en',
+        iso: 'en-US',
+        file: 'en.json',
+        name: 'English'
+      },
+      {
+        code: 'es',
+        iso: 'es-US',
+        file: 'es.json',
+        name: 'Spanish'
+      }
+    ],
+    defaultLocale: 'en',
+    strategy: "no_prefix",
+     detectBrowserLanguage: {
+       useCookie: true,
+       alwaysRedirect: true,
+       cookieKey: 'i18n_redirected',
+       redirectOn: 'root'
+     }
+   // vueI18n: './vue-i18n.options.ts'
+  }
 });
