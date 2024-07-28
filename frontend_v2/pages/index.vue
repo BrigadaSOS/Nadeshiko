@@ -68,12 +68,12 @@ watch(() => window.innerWidth, checkScreenSize);
                                                     href="search/sentence?query=escuela">Escuela</a>
                                             </li>
                                             <li class="mb-4">
-                                                Busqueda excluyente:
+                                                {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:
                                                 <a class="underline text-blue-400/95 underline-offset-4"
                                                     href="search/sentence?query=卒業 -みんな">卒業 -みんな</a>
                                             </li>
                                             <li class="">
-                                                Busqueda exacta:
+                                                {{ $t('home.nadeDbDescriptionExactSearch') }}:
                                                 <a href='search/sentence?query="食べられない"'
                                                     class="underline text-blue-400/90 underline-offset-4">"食べられない"</a>
                                             </li>
@@ -88,9 +88,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                                 class="rotate-90" />
                                         </div>
                                         <div class="">
-                                            <p class="mb-2">Compatible con Anki</p>
-                                            <span class="font-normal dark:text-white/60">Guarda cualquier oración en
-                                                Anki incluyendo imagen, audio y múltiples idiomas.</span>
+                                            <p class="mb-2">{{ $t('home.keyFeatures.feature1.title') }}</p>
+                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature1.description') }}</span>
                                         </div>
                                     </div>
 
@@ -100,9 +99,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                                 class="" />
                                         </div>
                                         <div class="">
-                                            <p class="mb-2">Descarga cualquier oración</p>
-                                            <span class="font-normal dark:text-white/60">Descarga las oraciones en
-                                                múltiples formatos como imágenes, audios y videos.</span>
+                                            <p class="mb-2">{{ $t('home.keyFeatures.feature2.title') }}</p>
+                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature2.description') }}</span>
                                         </div>
                                     </div>
 
@@ -112,9 +110,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                                 class="" />
                                         </div>
                                         <div class="">
-                                            <p class="mb-2">Visualiza el contexto de lo que encuentres</p>
-                                            <span class="font-normal dark:text-white/60">Mira lo que ocurrió antes o
-                                                después de una oración.</span>
+                                            <p class="mb-2">{{ $t('home.keyFeatures.feature3.title') }}</p>
+                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature3.description') }}</span>
                                         </div>
                                     </div>
 
@@ -124,9 +121,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                                 size="30" class="" />
                                         </div>
                                         <div class="">
-                                            <p class="mb-2">Contenido variado</p>
-                                            <span class="font-normal dark:text-white/60">Disfruta de diferentes generos,
-                                                diferentes medios, diferentes voces.</span>
+                                            <p class="mb-2">{{ $t('home.keyFeatures.feature4.title') }}</p>
+                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature4.description') }}</span>
                                         </div>
                                     </div>
 
@@ -295,14 +291,10 @@ watch(() => window.innerWidth, checkScreenSize);
                         <section class="py-2">
                             <div class="flex mb-2 flex-col md:flex-row justify-top">
                                 <div class="md:flex-1">
-                                    <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">¿Te
-                                        gusta Nadeshiko?
+                                    <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">{{ $t('home.support.title') }}
                                     </h2>
                                     <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
-                                        Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro
-                                        desarrollo con una
-                                        contribución en nuestro Github, una donación o compartiendo este sitio con otras
-                                        personas.
+                                        {{ $t('home.support.description') }}
                                     </p>
                                 </div>
                                 <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">

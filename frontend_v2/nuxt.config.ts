@@ -3,12 +3,15 @@ import Components from 'unplugin-vue-components/vite'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
+
   runtimeConfig: {
     public: {
       baseURLBackend: process.env.NUXT_APP_BASE_URL_BACKEND,
     },
   },
+
   pages: true,
+
   modules: [
     "@nuxtjs/tailwindcss",
     "@pinia/nuxt",
@@ -17,13 +20,16 @@ export default defineNuxtConfig({
     "@scalar/nuxt",
     "@nuxt/image"
   ],
+
   plugins: ['~/plugins/preline.client.ts'],
+
   vite: {
     // Prevent reload by optimizing dependency before discovery
     optimizeDeps: {
       include: ['@unhead/vue']
     }
   },
+
   i18n: {
     experimental: {
       localeDetector: './localeDetector.ts',
@@ -53,5 +59,7 @@ export default defineNuxtConfig({
        redirectOn: 'root'
      }
    // vueI18n: './vue-i18n.options.ts'
-  }
+  },
+
+  compatibilityDate: '2024-07-28'
 });

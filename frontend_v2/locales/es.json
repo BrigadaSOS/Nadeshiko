@@ -24,18 +24,29 @@
     "nadeDbDescription": "Una herramienta para buscar oraciones en japonés desde multiples contextos.",
     "nadeDbDescriptionJpSearch": "Búsqueda en Japonés",
     "nadeDbDescriptionOtherSearch": "Búsqueda en Inglés o Español",
+    "nadeDbDescriptionExclusiveSearch": "Busqueda excluyente",
+    "nadeDbDescriptionExactSearch": "Busqueda exacta",
     "keyFeatures": {
-      "title": "Características",
-      "feature1": "Contenido reciente",
-      "feature2": "Disponible en Español e Inglés",
-      "feature3": "Descarga de contenido",
-      "feature4": "Soporte para unir múltiples audios",
-      "feature5": "Contexto de una oración",
-      "feature6": "API pública (próximamente)"
+      "feature1": {
+        "title": "Compatible con Anki",
+        "description": "Guarda cualquier oración en Anki incluyendo imagen, audio y múltiples idiomas."
+      },
+      "feature2": {
+        "title": "Descarga cualquier oración",
+        "description": "Descarga las oraciones en múltiples formatos como imágenes, audios y videos."
+      },
+      "feature3": {
+        "title": "Visualiza el contexto de lo que encuentres",
+        "description": "Mira lo que ocurrió antes o después de una oración."
+      },
+      "feature4": {
+        "title": "Contenido variado",
+        "description": "Disfruta de diferentes generos, diferentes medios, diferentes voces."
+      }
     },
-    "otherFeatures": {
-      "title": "Funcionalidad adicional",
-      "ankiSupport": "Integración con Anki"
+    "support":{
+      "title": "¿Te gusta Nadeshiko?",
+      "description": " Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro desarrollo con una contribución en nuestro Github, una donación o compartiendo este sitio con otras personas."
     },
     "stats": {
       "title": "Estadísticas generales",
