@@ -14,10 +14,7 @@
 
                 <nav class="hidden lg:flex lg:items-center font-bold lg:justify-center lg:space-x-10">
                     <NuxtLink to="/" class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
-                        Home
-                    </NuxtLink>
-                    <NuxtLink to="/search/sentence" class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
-                        Search
+                        {{ $t("navbar.buttons.home") }}
                     </NuxtLink>
                     <NuxtLink to="/api/v1/docs"
                         class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">

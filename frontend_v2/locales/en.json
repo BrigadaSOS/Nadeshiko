@@ -24,18 +24,29 @@
     "nadeDbDescription": "A tool for searching japanese sentences from multiple contexts.",
     "nadeDbDescriptionJpSearch": "Search in Japanese",
     "nadeDbDescriptionOtherSearch": "Search in English or Spanish",
+    "nadeDbDescriptionExclusiveSearch": "Exclusive search",
+    "nadeDbDescriptionExactSearch": "Exact search",
     "keyFeatures": {
-      "title": "Key Features",
-      "feature1": "Recent content",
-      "feature2": "Available in English and Spanish",
-      "feature3": "Download content",
-      "feature4": "Merge multiple audio sentences",
-      "feature5": "Get context of a sentence",
-      "feature6": "Public API (WIP)"
+      "feature1": {
+        "title": "Compatible with Anki",
+        "description": "Save any sentence in Anki including image, audio, and multiple languages."
+      },
+      "feature2": {
+        "title": "Download any sentence",
+        "description": "Download sentences in multiple formats such as images, audios, and videos."
+      },
+      "feature3": {
+        "title": "View the context of what you find",
+        "description": "See what happened before or after a sentence."
+      },
+      "feature4": {
+        "title": "Rich and diverse content",
+        "description": "Enjoy different genres, different media, different voices."
+      }
     },
-    "otherFeatures": {
-      "title": "Extra Features",
-      "ankiSupport": "Anki integration"
+    "support": {
+      "title": "Do you like Nadeshiko?",
+      "description": "If you find this site useful, you can support our work and future development with a contribution on our GitHub, a donation, or by sharing this site with others."
     },
     "stats": {
       "title": "General Stats",
