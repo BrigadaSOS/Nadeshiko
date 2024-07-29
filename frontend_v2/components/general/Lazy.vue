@@ -30,7 +30,7 @@ const handleIntersection = (entries, observer) => {
             clearTimeout(unrenderTimer.value);
             renderTimer.value = setTimeout(() => {
                 shouldRender.value = true;
-            }, 200);
+            }, 0);
         } else {
             if (props.unrender) {
                 clearTimeout(renderTimer.value);
