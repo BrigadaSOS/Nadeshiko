@@ -30,11 +30,15 @@ const checkScreenSize = () => {
     isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280;
 };
 watch(() => window.innerWidth, checkScreenSize);
+
+definePageMeta({
+  middleware: 'auth'
+})
+
 </script>
 
 <template>
     <NuxtLayout>
-        <GeneralAuthModalLoginSignUp/>
         <div class="mx-auto">
             <div class="relative text-white">
                 <div class="py-2">
@@ -58,25 +62,25 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <ul class="list-disc ml-8 py-4 font-normal">
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
-                                                <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentence?query=彼女">彼女</a>
+                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                    to="search/sentence?query=彼女">彼女</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionOtherSearch') }}:
-                                                <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentence?query=school">School</a>,
-                                                <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentence?query=escuela">Escuela</a>
+                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                    to="search/sentence?query=school">School</NuxtLink>,
+                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                    to="search/sentence?query=escuela">Escuela</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:
-                                                <a class="underline text-blue-400/95 underline-offset-4"
-                                                    href="search/sentence?query=卒業 -みんな">卒業 -みんな</a>
+                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                    to="search/sentence?query=卒業 -みんな">卒業 -みんな</NuxtLink>
                                             </li>
                                             <li class="">
                                                 {{ $t('home.nadeDbDescriptionExactSearch') }}:
-                                                <a href='search/sentence?query="食べられない"'
-                                                    class="underline text-blue-400/90 underline-offset-4">"食べられない"</a>
+                                                <NuxtLink to='search/sentence?query="食べられない"'
+                                                    class="underline text-blue-400/90 underline-offset-4">"食べられない"</NuxtLink>
                                             </li>
                                         </ul>
                                     </div>

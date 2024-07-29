@@ -73,8 +73,16 @@ export const isAuthJWT = (req: any, _: Response, next: NextFunction): void => {
 };
 
 function extractTokenFromCookie(req: any): string | null {
-  const authHeader: string | undefined = req.headers["cookie"];
-  return authHeader ? authHeader.split("=")[1] : null;
+  const cookies: string | undefined = req.headers["cookie"];
+  if (!cookies) return null;
+  const cookieArray = cookies.split(';');
+  for (const cookie of cookieArray) {
+    const [name, value] = cookie.split('=').map(c => c.trim());
+    if (name === 'access_token') {
+      return value;
+    }
+  }
+  return null;
 }
 
 function getJwtSecretKey(): string {
