@@ -27,13 +27,14 @@ onMounted(() => {
 const isSmallScreen = ref(false);
 
 const checkScreenSize = () => {
-  isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280; 
+    isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280;
 };
 watch(() => window.innerWidth, checkScreenSize);
 </script>
 
 <template>
     <NuxtLayout>
+        <GeneralAuthModalLoginSignUp/>
         <div class="mx-auto">
             <div class="relative text-white">
                 <div class="py-2">
@@ -89,7 +90,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </div>
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature1.title') }}</p>
-                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature1.description') }}</span>
+                                            <span class="font-normal dark:text-white/60">{{
+                        $t('home.keyFeatures.feature1.description') }}</span>
                                         </div>
                                     </div>
 
@@ -100,7 +102,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </div>
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature2.title') }}</p>
-                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature2.description') }}</span>
+                                            <span class="font-normal dark:text-white/60">{{
+                        $t('home.keyFeatures.feature2.description') }}</span>
                                         </div>
                                     </div>
 
@@ -111,7 +114,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </div>
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature3.title') }}</p>
-                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature3.description') }}</span>
+                                            <span class="font-normal dark:text-white/60">{{
+                        $t('home.keyFeatures.feature3.description') }}</span>
                                         </div>
                                     </div>
 
@@ -122,7 +126,8 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </div>
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature4.title') }}</p>
-                                            <span class="font-normal dark:text-white/60">{{ $t('home.keyFeatures.feature4.description') }}</span>
+                                            <span class="font-normal dark:text-white/60">{{
+                        $t('home.keyFeatures.feature4.description') }}</span>
                                         </div>
                                     </div>
 
@@ -142,7 +147,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <div class="md:w-2/4 sm:w-1/2 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
                                                 <h2 class="title-font font-medium text-3xl text-white">{{
-                                            media?.stats?.full_total_animes || 0 }}</h2>
+                        media?.stats?.full_total_animes || 0 }}</h2>
                                                 <p class="leading-relaxed">
                                                     {{ $t('home.stats.mediaCount') }}
                                                 </p>
@@ -199,7 +204,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                 class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
                                                                 <span
                                                                     class="mx-auto object-center mt-2 text-center px-2 text-lg font-bold text-gray-800 dark:text-white">{{
-                                            media_info.english_name }}</span>
+                        media_info.english_name }}</span>
                                                                 <div
                                                                     class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
                                                                     <div
@@ -211,32 +216,32 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.romajiName') }}:</span>
+                        $t('animeList.romajiName') }}:</span>
                                                                             {{ media_info.romaji_name }}
                                                                         </p>
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.japaneseName') }}:</span>
+                        $t('animeList.japaneseName') }}:</span>
                                                                             {{ media_info.japanese_name }}
                                                                         </p>
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.seasons') }}:</span>
+                        $t('animeList.seasons') }}:</span>
                                                                             {{ media_info.num_seasons }}
                                                                         </p>
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.episodes') }}:
+                        $t('animeList.episodes') }}:
                                                                             </span>
                                                                             {{ media_info.num_episodes }}
                                                                         </p>
                                                                         <p>
                                                                             <span
                                                                                 class="font-bold pt-3 first:pt-0 dark:text-white break-words">{{
-                                            $t('animeList.genres') }}:
+                        $t('animeList.genres') }}:
                                                                             </span>
                                                                             {{ media_info.genres.toString() }}
                                                                         </p>
@@ -287,11 +292,13 @@ watch(() => window.innerWidth, checkScreenSize);
                     </div>
                 </div>
                 <div class="pb-8">
-                    <div class="rounded-lg mx-auto max-w-[92%] p-6   dark:text-white/80 dark:bg-card-background relative">
+                    <div
+                        class="rounded-lg mx-auto max-w-[92%] p-6   dark:text-white/80 dark:bg-card-background relative">
                         <section class="py-2">
                             <div class="flex mb-2 flex-col md:flex-row justify-top">
                                 <div class="md:flex-1">
-                                    <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">{{ $t('home.support.title') }}
+                                    <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">{{
+                                        $t('home.support.title') }}
                                     </h2>
                                     <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
                                         {{ $t('home.support.description') }}
@@ -300,14 +307,13 @@ watch(() => window.innerWidth, checkScreenSize);
                                 <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
                                     <div class="mt-5 w-auto bg-white p-1 rounded-md">
                                         <a href="https://github.com/BrigadaSOS">
-                                            <NuxtImg class="h-10 object-contain" src="/github.png"
-                                                alt="GitHub" />
+                                            <NuxtImg class="h-10 object-contain" src="/github.png" alt="GitHub" />
                                         </a>
                                     </div>
                                     <div class="mt-5 w-auto">
                                         <a href="https://patreon.com/BrigadaSOS">
-                                            <NuxtImg class="h-12 object-contain rounded-md"
-                                                src="/patreon.png" alt="Become a Patron" />
+                                            <NuxtImg class="h-12 object-contain rounded-md" src="/patreon.png"
+                                                alt="Become a Patron" />
                                         </a>
                                     </div>
                                 </div>

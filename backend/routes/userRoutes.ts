@@ -9,9 +9,12 @@ import { listAPIKeysByUser, createAPIKeyDefault } from '../controllers/apiContro
 
 // Post
 router.post('/v1/jwt/user/info', authenticate({ jwt: true }), getUserInfo)
-router.post('/v1/jwt/user/logout', authenticate({ jwt: true }), logout)
 router.post("/v1/user/getApiKeys", authenticate({ jwt: true }), listAPIKeysByUser);
 router.post("/v1/user/createApiKey", authenticate({ jwt: true }), createAPIKeyDefault);
-router.post("/v1/user/login", authenticate({ apiKey: true }), logIn);
-router.post("/v1/user/login/google", authenticate({ apiKey: true }), loginGoogle)
-router.post("/v1/user/register", authenticate({ apiKey: true }), hasPermissionAPI(['CREATE_USER']), signUp);
+
+
+router.post("/v1/auth/login", authenticate({ apiKey: true }), logIn);
+router.post("/v1/auth/google", authenticate({ apiKey: true }), loginGoogle)
+router.post("/v1/auth/register", authenticate({ apiKey: true }), hasPermissionAPI(['CREATE_USER']), signUp);
+router.post('/v1/auth/logout', authenticate({ jwt: true }), logout)
+router.get('/v1/auth/identity/me', authenticate({ jwt: true }), getUserInfo)

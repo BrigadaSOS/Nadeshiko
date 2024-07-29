@@ -1,5 +1,6 @@
 <script setup>
-
+const store = userStore()
+const isAuth = computed(() => store.isLoggedIn)
 </script>
 <template>
     <header class="bg-header-background border-b border-neutral-700 inset-x-0 top-0 z-10 w-full">
@@ -7,20 +8,22 @@
             <div class="flex items-center justify-between h-14">
                 <div class="flex mr-10">
                     <h1 class=" text-lg inline-flex items-center text-center align-middle font-semibold text-white">
-                        <NuxtImg format="webp" src="/logo.webp"  class="h-8 mr-3 rounded-full" />
+                        <NuxtImg format="webp" src="/logo.webp" class="h-8 mr-3 rounded-full" />
                         Nadeshiko
                     </h1>
                 </div>
 
                 <nav class="hidden lg:flex lg:items-center font-bold lg:justify-center lg:space-x-10">
-                    <NuxtLink to="/" class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                    <NuxtLink to="/"
+                        class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.home") }}
                     </NuxtLink>
                     <NuxtLink to="/api/v1/docs"
                         class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
                         API
                     </NuxtLink>
-                    <NuxtLink to="/about" class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                    <NuxtLink to="/about"
+                        class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.about") }}
                     </NuxtLink>
                 </nav>
@@ -51,11 +54,25 @@
                         </a>
                     </div>
                     <GeneralLanguageSelector class="hidden lg:flex" />
-                    <!--                    <a href="#"
-                        class=" hidden lg:flex items-center justify-center px-8 py-2 text-sm sm:text-sm font-semibold text-white border hover:bg-button-primary-hover rounded-lg transition-all duration-200  focus:outline-none">
+                    <button v-if="!isAuth" data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
+                        class=" py-2.5 px-5 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white">
                         Log in
-                    </a>
-                    -->
+                    </button>
+                    <SearchDropdownContainer v-else class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
+                        <template #default>
+                            <SearchDropdownMainButton
+                                dropdownButtonClass="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
+                                dropdownId="hs-dropdown-with-header">
+                                {{ $t("navbar.buttons.profile")}}
+                            </SearchDropdownMainButton>
+                        </template>
+                        <template #content>
+                            <SearchDropdownContent>
+                                <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
+                                <SearchDropdownItem @click="store.logout()" :text="$t('navbar.buttons.logout')" />
+                            </SearchDropdownContent>
+                        </template>
+                    </SearchDropdownContainer>
                 </div>
 
                 <button type="button "
