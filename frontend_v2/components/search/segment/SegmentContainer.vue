@@ -41,7 +41,7 @@ const openModal = (content) => {
             class="dark:hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2">
             <!-- Image -->
             <div class="h-auto shrink-0 w-auto lg:w-[28em]">
-                <NuxtImg  :placeholder="[50, 25, 75, 5]" :src="sentence.media_info.path_image + '?width=960&height=540'"
+                <img :src="sentence.media_info.path_image + '?width=960&height=540'"
                     @click="zoomImage(sentence.media_info.path_image)"
                     class="inset-0 h-70 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
                     :key="sentence.media_info.path_image" />
@@ -166,7 +166,7 @@ const openModal = (content) => {
             <div class="container flex items-center min-h-[50rem] px-6 mx-auto">
                 <div class="w-full align-top items-center">
                     <div class="flex flex-col items-center max-w-lg mx-auto text-center">
-                        <NuxtImg :placeholder="[50, 25, 75, 5]" class="mb-6" src="https://animeforums.net/uploads/monthly_2022_03/haruhi-suzumiya-kyon-computer-haruhi-suzumiya.gif.be78c7de58e641e3701a97a85d01a059.gif"/>
+                        <img :placeholder="[50, 25, 75, 5]" class="mb-6" src="https://animeforums.net/uploads/monthly_2022_03/haruhi-suzumiya-kyon-computer-haruhi-suzumiya.gif.be78c7de58e641e3701a97a85d01a059.gif"/>
                         <h2 class="font-bold text-red-400 text-3xl">404</h2>
                         <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">No encontramos
                             resultados</h1>
