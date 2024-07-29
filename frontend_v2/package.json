@@ -26,10 +26,12 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "vue": "^3.4.27",
-    "vue-router": "^4.3.2"
+    "vue-router": "^4.3.2",
+    "vue3-google-login": "^2.0.29"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.0",
+    "@pinia-plugin-persistedstate/nuxt": "^1.2.1",
     "nuxt": "^3.12.4",
     "typescript": "^5.4.5",
     "unplugin-auto-import": "^0.17.6",
