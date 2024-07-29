@@ -1,6 +1,8 @@
 <script setup>
+
 const store = userStore()
 const isAuth = computed(() => store.isLoggedIn)
+
 </script>
 <template>
     <header class="bg-header-background border-b border-neutral-700 inset-x-0 top-0 z-10 w-full">
@@ -54,7 +56,7 @@ const isAuth = computed(() => store.isLoggedIn)
                         </a>
                     </div>
                     <GeneralLanguageSelector class="hidden lg:flex" />
-                    <button v-if="!isAuth" data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
+                    <button v-if="!isAuth || isAuth == null" data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
                         class=" py-2.5 px-5 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white">
                         Log in
                     </button>

@@ -10,7 +10,7 @@ export const userStore = defineStore('user', {
   }),
   persist: {
     key: 'info',
-    storage: typeof window !== 'undefined' ? window.localStorage : null,
+    storage: persistedState.localStorage,
     paths: ['isLoggedIn', 'filterPreferences', 'userInfo']
   },
   actions: {
@@ -110,7 +110,7 @@ export const userStore = defineStore('user', {
         console.log(error);
       }
     },    
-    async logout(msg) {
+    async logout(msg: string) {
       const config = useRuntimeConfig();
       const router = useRouter();
       try {
@@ -135,23 +135,35 @@ export const userStore = defineStore('user', {
     },
     async getBasicInfo() {
       try {
-        let response = await fetch(import.meta.env.VITE_APP_BASE_URL_BACKEND + 'jwt/user/info', {
-          method: 'POST',
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.baseURLBackend}auth/identity/me`, {
+          method: 'GET',
           mode: 'cors',
           headers: {
             'Content-Type': 'application/json'
           },
           withCredentials: true,
           credentials: 'include'
-        })
-
-        response = await response.json()
-        if (response.status === 401) {
-          this.logout();
+        });
+    
+        if (response.ok) {
+          const responseData = await response.json();
+          this.$patch((state) => {
+            state.isLoggedIn = true;
+            state.userInfo = {
+              roles: responseData?.user?.roles.map((role: any) => role.id_role)
+            };
+          });
+          return responseData; // Devuelve los datos de la respuesta en caso de éxito
+        } else {
+          this.isLoggedIn = false
+          if (response.status === 401) {
+            this.logout();
+          }
         }
-        return response
       } catch (error) {
-        console.log(error)
+        console.error("Network error:", error);
+        this.isLoggedIn = false
       }
     }
   }
