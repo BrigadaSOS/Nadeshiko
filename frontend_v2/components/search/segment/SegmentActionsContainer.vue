@@ -1,12 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal, mdiVolumeHigh   } from '@mdi/js'
 
-let props = defineProps({
-    content: {
-        type: Object,
-        required: true,
-    }
-});
+import type {Sentence} from "@/stores/search";
+
+type Props = {
+    content: Sentence;
+}
+
+let props = defineProps<Props>();
 
 const emit = defineEmits(['open-context-modal']);
 
@@ -25,7 +26,12 @@ const openContextModal = () => {
         </template>
         <template #content>
             <SearchDropdownContent>
-                <SearchDropdownItem text="Añadir a Anki (Guardado Rápido)" :iconPath="mdiStarShootingOutline" />
+                <SearchDropdownItem
+                  text="Añadir a Anki (Ultima carta añadida)" 
+                 :iconPath="mdiStarShootingOutline"
+                 @click="() => console.log(content.basic_info)"
+                />
+                <SearchDropdownItem text="Añadir a Anki (Por note ID)" :iconPath="mdiStarShootingOutline" />
             </SearchDropdownContent>
         </template>
     </SearchDropdownContainer>
@@ -39,9 +45,9 @@ const openContextModal = () => {
         </template>
         <template #content>
             <SearchDropdownContent>
-                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_video,content.media_info.path_video.split('/').pop())" :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
-                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_image,content.media_info.path_image.split('/').pop())" :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
-                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_audio,content.media_info.path_audio.split('/').pop())" :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
+                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_video,content.media_info.path_video.split('/').pop()!)" :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
+                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_image,content.media_info.path_image.split('/').pop()!)" :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
+                <SearchDropdownItem @click="downloadAudioOrImage(content.media_info.path_audio,content.media_info.path_audio.split('/').pop()!)" :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
             </SearchDropdownContent>
         </template>
     </SearchDropdownContainer>

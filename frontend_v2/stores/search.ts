@@ -1,3 +1,73 @@
+export type ResponseV1 = {
+  statistics: Statistic[];
+  categoryStatistics: CategoryStatistic[];
+  sentences: Sentence[];
+  cursor: number[];
+}
+
+export type CategoryStatistic = {
+  category: number;
+  count: number;
+}
+
+export type Sentence = {
+  basic_info: BasicInfo;
+  segment_info: SegmentInfo;
+  media_info: MediaInfo;
+}
+
+export type BasicInfo = {
+  id_anime: number;
+  name_anime_romaji: string;
+  name_anime_en: string;
+  name_anime_jp: string;
+  cover: string;
+  banner: string;
+  episode: number;
+  season: number;
+  category: number;
+}
+
+export type MediaInfo = {
+  path_image: string;
+  path_audio: string;
+  path_video: string;
+}
+
+export type SegmentInfo = {
+  status: number;
+  uid: string;
+  position: number;
+  start_time: string;
+  end_time: string;
+  content_jp: string;
+  content_jp_highlight: string;
+  content_en: string;
+  content_en_highlight: string;
+  content_en_mt: boolean;
+  content_es: string;
+  content_es_highlight: string;
+  content_es_mt: boolean;
+  is_nsfw: boolean;
+  actor_ja: string;
+  actor_en: string;
+  actor_es: string;
+}
+
+export type Statistic = {
+  anime_id: number;
+  category: number;
+  name_anime_romaji: string;
+  name_anime_en: string;
+  name_anime_jp: string;
+  amount_sentences_found: number;
+  season_with_episode_hits: SeasonWithEpisodeHits;
+}
+
+export type SeasonWithEpisodeHits = {
+  "1": { [key: string]: number };
+}
+
 
 export const useApiSearch = defineStore("search", {
   actions: {
@@ -17,7 +87,7 @@ export const useApiSearch = defineStore("search", {
       );
       return data;
     },
-    async getSentenceV1(body:any) {
+    async getSentenceV1(body: any): Promise<ResponseV1> {
       const config = useRuntimeConfig();
       const data = await $fetch(
         `${config.public.baseURLBackend}search/media/sentence`,
@@ -27,7 +97,7 @@ export const useApiSearch = defineStore("search", {
           headers: {
             "Content-Type": "application/json",
           },
-          body:{
+          body: {
             query: body.query,                         // Text or sentence to search 
             limit: body.limit,                         // Max amount of entries by response
             uuid: body.uuid,                           // Unique ID from sentence (Useful to get a specific sentence)
@@ -41,9 +111,11 @@ export const useApiSearch = defineStore("search", {
           }
         }
       );
+      // @ts-ignore 
+      // we should return a ResponseV1 object
       return data;
     },
-    async getMultipleSearch(body:any) {
+    async getMultipleSearch(body: any) {
       const config = useRuntimeConfig();
       const data = await $fetch(
         `${config.public.baseURLBackend}search/media/match/words`,
@@ -53,14 +125,14 @@ export const useApiSearch = defineStore("search", {
           headers: {
             "Content-Type": "application/json",
           },
-          body:{
-            words: body.words,  
+          body: {
+            words: body.words,
           }
         }
       );
       return data;
     },
-    async getContextSentence(body:any) {
+    async getContextSentence(body: any) {
       const config = useRuntimeConfig();
       const data = await $fetch(
         `${config.public.baseURLBackend}search/media/context`,
@@ -70,7 +142,7 @@ export const useApiSearch = defineStore("search", {
           headers: {
             "Content-Type": "application/json",
           },
-          body:{
+          body: {
             media_id: body.media_id,
             season: body.season,
             episode: body.episode,
