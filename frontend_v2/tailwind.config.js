@@ -10,7 +10,6 @@ module.exports = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
       screens: {
         "2xl": "1400px",
       },
@@ -28,6 +27,10 @@ module.exports = {
           primary: {
             main: "var(--button-color-primary)",
             hover: "var(--button-color-hover-primary)"
+          },
+          danger:{
+            main: "var(--button-color-danger)",
+            hover: "var(--button-color-danger-hover)"
           }
         },
         input:{
