@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       baseURLBackend: process.env.NUXT_APP_BASE_URL_BACKEND,
+      NUXT_APP_EXTENSION_KEY: process.env.NUXT_APP_EXTENSION_KEY,
     },
   },
   pages: true,
