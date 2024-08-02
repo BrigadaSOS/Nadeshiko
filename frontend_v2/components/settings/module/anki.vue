@@ -177,7 +177,6 @@ watch(deckOptions, async (newValue, oldValue) => {
         </div>
       </div>
     </div>
-
     <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">Configuración Anki</h3>
       <div class="border-b pt-4 border-white/10" />
