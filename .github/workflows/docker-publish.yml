@@ -129,14 +129,14 @@ jobs:
       name: Update Kubernetes resources for development
       run: |
        cd kustomize/overlays/development
-       kustomize edit set image brigadasos-dev-db=ghcr.io/brigadasos/nadedb:$GITHUB_REF_NAME
+       kustomize edit set image brigadasos-dev-db=ghcr.io/brigadasos/nadeshiko:$GITHUB_REF_NAME
        cat kustomization.yaml
 
     - if: ${{ needs.check.outputs.branch == 'production' }}
       name: Update Kubernetes resources for production
       run: |
        cd kustomize/overlays/production
-       kustomize edit set image brigadasos-db=ghcr.io/brigadasos/nadedb:$GITHUB_REF_NAME
+       kustomize edit set image brigadasos-db=ghcr.io/brigadasos/nadeshiko:$GITHUB_REF_NAME
        cat kustomization.yaml
 
     - name: Commit files
