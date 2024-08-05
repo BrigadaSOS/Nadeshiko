@@ -80,7 +80,7 @@ const filterAnime = (anime_id, anime_name) => {
 </script>
 
 <template>
-    <div class="relative w-full">
+    <div class="relative w-[20rem]">
         <ul
             class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
             <div class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg">
@@ -102,7 +102,7 @@ const filterAnime = (anime_id, anime_name) => {
                 <li class="snap-start" v-for="item in filteredMedia" :key="item.anime_id">
                     <button @click="filterAnime(item.anime_id, item.name_anime_en)"
                         :class="{ 'bg-sgrayhover': item.anime_id == categorySelected }"
-                        class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+                        class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span>{{ item.name_anime_en }}</span>
                         <span
                             v-if="item.name_anime_en?.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
