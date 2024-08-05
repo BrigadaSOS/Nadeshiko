@@ -12,6 +12,7 @@ let currentSentenceIndex = ref(null)
 const getContextSentence = async () => {
   if (!props.sentence || isLoading.value) return;
   isLoading.value = true;
+  finalsentences.value = []
 
   try {
     const response = await apiSearch.getContextSentence({
@@ -21,7 +22,7 @@ const getContextSentence = async () => {
       segment_position: props.sentence.segment_info.position,
       limit: 15
     });
-    
+
     finalsentences.value = response;
     currentSentenceIndex.value = props.sentence.segment_info.position;
   } catch (error) {
@@ -66,16 +67,10 @@ onMounted(() => {
         </button>
       </div>
       <div class="overflow-y-auto">
-        <div v-if="isLoading" class="text-center my-6">
-            <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-white rounded-full"
-                role="status" aria-label="loading">
-                <span class="sr-only">Loading...</span>
-            </div>
-        </div>
-        <div v-else>
+        <div>
           <div class="flex flex-row mx-auto">
             <div class=" mx-auto flex flex-col">
-              <div class="p-6 space-y-6 flex flex-col">
+              <div class="p-6 space-y-6 flex min-w-[100vh] flex-col">
                 <template v-if="finalsentences">
                   <SearchSegmentContainer :searchData="finalsentences" :isLoading="isLoading" />
                 </template>
