@@ -47,10 +47,11 @@ const openAnkiModal = (sentence: Sentence) => {
   searchNoteSentence.value = sentence;
 };
 
+
 </script>
 <template>
   <div v-if="searchData?.sentences?.length > 0 && searchData">
-
+    
     <SearchModalContext :sentence="selectedSentence" />
 
     <ModalAnkiNotes v-if="showNotesSearch" :sentence="searchNoteSentence" :onClose="() => showNotesSearch = false"
@@ -171,7 +172,7 @@ const openAnkiModal = (sentence: Sentence) => {
     <div v-for="i in 8" :key="i" class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
       <div class="flex mb-10 items-center justify-center bg-gray-300 rounded h-64 w-auto md:w-5/12 dark:bg-neutral-700">
       </div>
-      <div class="w-full">
+      <div class="w-full ">
         <div class="h-2.5 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[320px] mb-4"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[680px] mb-2.5"></div>
         <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[640px] mb-2.5"></div>
@@ -182,11 +183,11 @@ const openAnkiModal = (sentence: Sentence) => {
     </div>
   </div>
   <div v-else-if="!isLoading && searchData?.sentences?.length === 0">
-    <section class=" ">
-      <div class="container flex items-center min-h-[50rem] px-6 mx-auto">
+    <section class="w-full">
+      <div class="container flex items-center px-6 mx-auto">
         <div class="w-full align-top items-center">
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
-            <img :placeholder="[50, 25, 75, 5]" class="mb-6"
+            <img class="mb-6"
               src="https://animeforums.net/uploads/monthly_2022_03/haruhi-suzumiya-kyon-computer-haruhi-suzumiya.gif.be78c7de58e641e3701a97a85d01a059.gif" />
             <h2 class="font-bold text-red-400 text-3xl">404</h2>
             <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">No encontramos
