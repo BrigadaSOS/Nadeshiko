@@ -22,7 +22,6 @@ const getContextSentence = async () => {
       segment_position: props.sentence.segment_info.position,
       limit: 15
     });
-
     finalsentences.value = response;
     currentSentenceIndex.value = props.sentence.segment_info.position;
   } catch (error) {
@@ -70,7 +69,7 @@ onMounted(() => {
         <div>
           <div class="flex flex-row mx-auto">
             <div class=" mx-auto flex flex-col">
-              <div class="p-6 space-y-6 flex min-w-[100vh] flex-col">
+              <div class="p-6 space-y-6 flex lg:min-w-[100vh] flex-col">
                 <template v-if="finalsentences">
                   <SearchSegmentContainer :searchData="finalsentences" :isLoading="isLoading" />
                 </template>
