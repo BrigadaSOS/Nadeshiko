@@ -51,5 +51,8 @@ export default defineNuxtConfig({
        redirectOn: 'root'
      }
   },
-  compatibilityDate: '2024-07-28'
+  compatibilityDate: '2024-07-28',
+  build: {
+    transpile: ['vue-toastification'],
+  }
 });
