@@ -1,19 +1,18 @@
-import { useToast } from "vue-toastification";
-const toast = useToast();
+import { useToast } from 'vue-toastification'
 
 export function useToastSuccess(msg: string) {
-    toast.success(msg)
+    useToast().success(msg)
 }
 
 export function useToastError(msg: string) {
-    toast.error(msg)
+    useToast().error(msg)
 }
 
 export function useToastInfo(msg: string) {
-    toast.info(msg)
+    useToast().info(msg)
 }
 
 export function useToastWarning(msg: string) {
-    toast.warning(msg)
+    useToast().warning(msg)
 }
 
