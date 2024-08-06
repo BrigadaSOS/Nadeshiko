@@ -197,6 +197,15 @@ app.use(function (err: any, _req: any, _res: any, next: (arg0: any) => void) {
   next(err);
 });
 
+// Ultra error handler
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception: ", error);
+});
+
+process.on("unhandledRejection", (error) => {
+  console.error("Unhandled Rejection: ", error);
+});
+
 // Starting the Server
 app.listen(process.env.PORT || 5000, async () => {
   console.log("===================================");
