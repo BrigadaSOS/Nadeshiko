@@ -205,7 +205,7 @@ watch(deckOptions, async (newValue, oldValue) => {
         </div>
       </div>
 
-      <div class="border rounded-lg overflow-hidden dark:border-modal-border mb-10">
+      <div class="border rounded-lg overflow-hidden dark:border-modal-border">
         <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
           <thead>
             <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
