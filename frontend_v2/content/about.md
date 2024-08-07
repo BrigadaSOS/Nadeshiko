@@ -12,7 +12,7 @@
     </td>
     <td align="center">
         <a href="https://github.com/davafons">
-            <img src="https://avatars.githubusercontent.com/u/29177698?v=4" width="150;" alt="m-edlund"/>
+            <img src="https://avatars.githubusercontent.com/u/29177698?v=4" width="150;" alt="Davafons"/>
             <br />
             <p>Davafons</p>
         </a>

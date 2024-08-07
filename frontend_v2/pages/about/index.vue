@@ -14,6 +14,41 @@
 
 <style>
 
+.content-markdown ol, .content-markdown ul {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+    color: #e5e7eb;
+}
+
+.content-markdown ol {
+    list-style-type: decimal;
+}
+
+.content-markdown ul {
+    list-style-type: disc;
+}
+
+.content-markdown li {
+    margin-bottom: 0.5rem;
+}
+
+.content-markdown h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+
+@media (min-width: 768px) {
+    .content-markdown h3 {
+        font-size: 1.275rem;
+    }
+}
+
+.content-markdown h3 {
+    color: white;
+}
+
 .content-markdown h2 {
     font-size: 1.5rem;
     font-weight: 700;
@@ -24,6 +59,23 @@
 @media (min-width: 768px) {
     .content-markdown h2 {
         font-size: 1.875rem;
+    }
+}
+
+.content-markdown h1 {
+    color: white;
+}
+
+.content-markdown h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+
+@media (min-width: 768px) {
+    .content-markdown h1 {
+        font-size: 2 rem;
     }
 }
 
