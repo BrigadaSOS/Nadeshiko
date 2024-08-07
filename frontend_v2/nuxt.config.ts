@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     "@nuxt/image",
     '@pinia-plugin-persistedstate/nuxt'
   ],
+  
   plugins: ['~/plugins/preline.client.ts'],
   vite: {
     optimizeDeps: {
