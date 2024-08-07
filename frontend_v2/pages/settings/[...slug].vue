@@ -87,6 +87,7 @@ definePageMeta({
             <div class="flex-grow md:pl-6 overflow-y-auto my-2 md:mx-auto">
                 <SettingsModuleAccount v-if="activeTab === '#horizontal-scroll-tab-cuenta'" />
                 <SettingsModuleAnki v-if="activeTab === '#horizontal-scroll-tab-sincronización'" />
+                <SettingsModuleDeveloper v-if="activeTab === '#horizontal-scroll-tab-desarrollador'" />
             </div>
         </div>
     </div>
