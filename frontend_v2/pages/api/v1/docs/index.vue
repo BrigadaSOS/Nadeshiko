@@ -1,14 +1,30 @@
 <script setup>
-import { ApiReference } from '@scalar/api-reference'
+import { ref, computed, onMounted } from 'vue';
+import { ApiReference } from '@scalar/api-reference';
 
+const baseUrl = ref('');
+
+onMounted(() => {
+    if (import.meta.client) {
+        baseUrl.value = window.location.origin;
+    }
+});
+
+const apiSpecUrl = computed(() => {
+    return `${baseUrl.value}/nadeshikoapi.yaml`;
+});
 </script>
+
 <template>
-    <ApiReference :configuration="{
-        spec: {
-            url: 'https://cdn.discordapp.com/attachments/800067393665761310/1270598228710265003/Nadeshiko.yaml?ex=66b44850&is=66b2f6d0&hm=14feafef2845de2d832140fe87179cf33b504c254b7f5ed615ac2b7549041f02&',
-        },
-    }" />
+    <ClientOnly>
+        <ApiReference :configuration="{
+            spec: {
+                url: apiSpecUrl,
+            },
+        }" />
+    </ClientOnly>
 </template>
+
 <style>
 .dark-mode {
     --scalar-background-1: #1d1d1d;
