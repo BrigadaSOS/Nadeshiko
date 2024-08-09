@@ -14,7 +14,8 @@ export default defineNuxtConfig({
     "@nuxt/content",
     "@scalar/nuxt",
     "@nuxt/image",
-    '@pinia-plugin-persistedstate/nuxt'
+    '@pinia-plugin-persistedstate/nuxt',
+    '@vueuse/nuxt'
   ],
   
   plugins: ['~/plugins/preline.client.ts'],

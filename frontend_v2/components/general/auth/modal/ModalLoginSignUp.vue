@@ -1,4 +1,9 @@
-<script setup>
+<script setup lang="ts">
+// Fix for random focus when pressing tab
+import { useFocusTrap } from '@vueuse/integrations/useFocusTrap'
+const target = ref()
+const { hasFocus, activate, deactivate } = useFocusTrap(target)
+
 const store = userStore()
 const isAuth = computed(() => store.isLoggedIn)
 
@@ -8,6 +13,15 @@ const passwordRepeat = ref('')
 let activeTab = ref(0)
 
 onMounted(() => {
+  const modalObserver = useElementObserver(
+    'hs-vertically-centered-scrollable-loginsignup-modal-backdrop',
+    () => activate(),
+    () => deactivate()
+  );
+  onBeforeUnmount(() => {
+    modalObserver.disconnect();
+  });
+
   watch(isAuth, async (newVal) => {
     if (newVal) {
       await nextTick()
@@ -20,16 +34,16 @@ onMounted(() => {
     }
   })
 })
+
 const callback = (response) => {
   store.loginGoogle(response.code)
 }
-
 </script>
 
 <template>
   <div id="hs-vertically-centered-scrollable-loginsignup-modal"
-    class="hs-overlay-open:mt-7 hs-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
-    <div
+    class="hs-overlay-open:mt-7 hs-overlay-backdrop-open:bg-neutral-900/40 [--tab-accessibility-limited:false] hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+    <div ref="target"
       class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center">
       <div
         class="max-h-full l flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border">
