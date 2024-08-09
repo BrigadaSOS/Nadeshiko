@@ -24,6 +24,9 @@ const getContextSentence = async () => {
     });
     finalsentences.value = response;
     currentSentenceIndex.value = props.sentence.segment_info.position;
+    await nextTick()
+    scrollToElement(currentSentenceIndex.value)
+
   } catch (error) {
     console.error('Error fetching context sentences:', error);
   } finally {
@@ -37,9 +40,14 @@ watch(() => props.sentence, (newVal) => {
   }
 });
 
-onMounted(() => {
-  window.HSStaticMethods.autoInit();
-})
+const scrollToElement = (pos) => {
+  nextTick(() => {
+    const el = document.getElementById(pos)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
+}
 </script>
 
 <template>
@@ -71,7 +79,7 @@ onMounted(() => {
             <div class=" mx-auto flex flex-col">
               <div class="p-6 space-y-6 flex lg:min-w-[100vh] flex-col">
                 <template v-if="finalsentences">
-                  <SearchSegmentContainer :searchData="finalsentences" :isLoading="isLoading" />
+                  <SearchSegmentContainer :searchData="finalsentences" :isLoading="isLoading" :currentSentenceIndex="currentSentenceIndex" />
                 </template>
               </div>
             </div>
