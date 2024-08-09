@@ -206,10 +206,10 @@ export const logIn = async (
 
     const token = createToken(user.id, list_roles);
 
-    res.cookie("access_token", token, {
+    res.cookie('access_token', token, {
+      expires: new Date(Date.now() + (maxAgeJWT * 1000)),
       httpOnly: true,
-      secure: true,
-      maxAge: maxAgeJWT,
+      secure: true
     });
 
     const data_user = {
@@ -286,10 +286,10 @@ export const loginGoogle = async (
 
     const token = createToken(user.id, list_roles);
 
-    res.cookie("access_token", token, {
+    res.cookie('access_token', token, {
+      expires: new Date(Date.now() + (maxAgeJWT * 1000)),
       httpOnly: true,
-      secure: true,
-      maxAge: maxAgeJWT,
+      secure: true
     });
 
     const data_user = {
