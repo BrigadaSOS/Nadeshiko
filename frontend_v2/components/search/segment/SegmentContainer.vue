@@ -5,6 +5,7 @@ import ModalAnkiNotes from '../modal/ModalAnkiNotes.vue';
 type Props = {
   searchData: any;
   isLoading: boolean;
+  currentSentenceIndex: any;
 };
 
 // const props = defineProps(['searchData', 'ankiNotesQuery', 'isLoading']);
@@ -58,8 +59,9 @@ const openAnkiModal = (sentence: Sentence) => {
       :onClick="(sentence: Sentence, id: number) => addSentenceToAnki(sentence, id)" />
 
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
-      :id="sentence.segment_info.position" :unrender="true" :min-height="300"
-      class="dark:hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2">
+      :id="sentence.segment_info.position" :unrender="true" :min-height="300" 
+      class="hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2"
+      :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === currentSentenceIndex }">
       <!-- Image -->
       <div class="h-auto shrink-0 w-auto lg:w-[28em]">
         <img :src="sentence.media_info.path_image + '?width=960&height=540'"
