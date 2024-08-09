@@ -1,5 +1,6 @@
 import {FieldValue, SortOrder} from "@elastic/elasticsearch/lib/api/types";
 import {SegmentStatus} from "../media/segment";
+import { SearchAnimeSentencesRequest } from "models/controller/SearchAnimeSentencesRequest";
 
 export interface QuerySegmentsRequest {
     readonly query?: string;
@@ -15,6 +16,7 @@ export interface QuerySegmentsRequest {
     readonly episode?: any[];
     readonly category?: any[];
     readonly media?: QuerySegmentsAnimeFilter[];
+    readonly extra?: boolean;
 }
 
 export interface QuerySegmentsAnimeFilter {

@@ -107,7 +107,8 @@ export const useApiSearch = defineStore("search", {
             episode: body.episode,                     // Array of episodes to get
             random_seed: body.random_seed,             // A value from 0 to 1 
             content_sort: body.content_sort,           // Order by amount of characters (ASC, DESC)
-            cursor: body.cursor                        // Current page of search   
+            cursor: body.cursor,                       // Current page of search  
+            extra: body.extra                          // Stats information 
           }
         }
       );
