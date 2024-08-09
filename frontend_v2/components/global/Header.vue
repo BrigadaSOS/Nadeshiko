@@ -3,37 +3,70 @@
 const store = userStore()
 const isAuth = computed(() => store.isLoggedIn)
 
+const isMobileMenuOpen = ref(false)
+
+const toggleMobileMenu = () => {
+    isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
 </script>
 <template>
-    <header class="bg-header-background border-b border-neutral-700 inset-x-0 top-0 z-10 w-full">
-        <div class="max-w-[92%] mx-auto ">
-            <div class="flex items-center justify-between h-14">
-                <div class="flex mr-10">
-                    <h1 class=" text-lg inline-flex items-center text-center align-middle font-semibold text-white">
-                        <NuxtImg format="webp" src="/logo.webp" class="h-8 mr-3 rounded-full" />
+    <header
+        class="relative flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-sm py-2 dark:bg-header-background">
+        <nav class="max-w-[92%] w-full mx-auto sm:flex sm:items-center sm:justify-between">
+            <div class="flex items-center justify-between">
+                <div class="flex mr-7">
+                    <NuxtLink to="/"
+                        class="text-lg inline-flex items-center text-center align-middle font-semibold text-white">
+                        <NuxtImg format="webp" src="/logo.webp" class="h-8 mr-3 rounded-full" alt="Nadeshiko Logo" />
                         Nadeshiko
-                    </h1>
+                    </NuxtLink>
                 </div>
 
-                <nav class="hidden lg:flex lg:items-center font-bold lg:justify-center lg:space-x-10">
-                    <NuxtLink to="/"
-                        class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
-                        {{ $t("navbar.buttons.home") }}
-                    </NuxtLink>
-                    <NuxtLink to="/api/v1/docs"
-                        class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
-                        API
-                    </NuxtLink>
-                    <NuxtLink to="/about"
-                        class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
-                        {{ $t("navbar.buttons.about") }}
-                    </NuxtLink>
-                </nav>
-
-                <div class="hidden lg:flex lg:items-center lg:justify-end lg:space-x-2 sm:ml-auto">
-                    <div class="flex">
+                <div class="sm:hidden">
+                    <button type="button"
+                        class="hs-collapse-toggle relative size-7 flex justify-center items-center gap-x-2 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-transparent dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
+                        id="hs-navbar-example-collapse" aria-expanded="false" aria-controls="hs-navbar-example"
+                        aria-label="Toggle navigation" data-hs-collapse="#hs-navbar-example">
+                        <svg class="hs-collapse-open:hidden shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
+                            width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" x2="21" y1="6" y2="6" />
+                            <line x1="3" x2="21" y1="12" y2="12" />
+                            <line x1="3" x2="21" y1="18" y2="18" />
+                        </svg>
+                        <svg class="hs-collapse-open:block hidden shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
+                            width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                        <span class="sr-only">Toggle navigation</span>
+                    </button>
+                </div>
+            </div>
+            <div id="hs-navbar-example"
+                class="hidden hs-collapse overflow-hidden transition-all duration-300 basis-full grow sm:block"
+                aria-labelledby="hs-navbar-example-collapse">
+                <div class="flex flex-col  mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
+                    <div class="gap-6 flex flex-col sm:flex-row mr-auto">
+                        <NuxtLink to="/"
+                            class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                            {{ $t("navbar.buttons.home") }}
+                        </NuxtLink>
+                        <NuxtLink to="/api/v1/docs"
+                            class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                            API
+                        </NuxtLink>
+                        <NuxtLink to="/about"
+                            class="text-sm font-bold mr-auto text-white transition-all duration-200 hover:text-opacity-80">
+                            {{ $t("navbar.buttons.about") }}
+                        </NuxtLink>
+                    </div>
+                    <div class="gap-2 flex flex-col sm:flex-row">
+                        <div class="flex items-center">
                         <a href="https://discord.gg/ajWm26ADEj"
-                            class="mx-2 hidden md:flex text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+                            class="mx-2 hidden lg:flex text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                             target="_blank" aria-label="Discord">
                             <svg class="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg"
                                 xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 -25 260 260" version="1.1">
@@ -55,48 +88,34 @@ const isAuth = computed(() => store.isLoggedIn)
                             </svg>
                         </a>
                     </div>
-                    <GeneralLanguageSelector class="hidden lg:flex" />
-                    <button v-if="!isAuth || isAuth == null"
-                        data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
-                        class=" py-2.5 px-5 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white">
-                        Log in
-                    </button>
-                    <SearchDropdownContainer v-else class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
-                        <template #default>
-                            <SearchDropdownMainButton
-                                dropdownButtonClass="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
-                                dropdownId="hs-dropdown-with-header">
-                                {{ $t("navbar.buttons.profile") }}
-                            </SearchDropdownMainButton>
-                        </template>
-                        <template #content>
-                            <SearchDropdownContent>
-                                <NuxtLink to="/settings">
-                                    <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
-                                </NuxtLink>
-                                <SearchDropdownItem @click="store.logout()" :text="$t('navbar.buttons.logout')" />
-                            </SearchDropdownContent>
-                        </template>
-                    </SearchDropdownContainer>
+                    <GeneralLanguageSelector />
+
+                        <button v-if="!isAuth || isAuth == null"
+                            data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
+                            class=" py-2.5 px-5 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white">
+                            Log in
+                        </button>
+                        <SearchDropdownContainer v-else dropdownId="hs-dropdown-with-header">
+                            <template #default>
+                                <SearchDropdownMainButton
+                                    dropdownButtonClass="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
+                                    dropdownId="hs-dropdown-with-header">
+                                    {{ $t("navbar.buttons.profile") }}
+                                </SearchDropdownMainButton>
+                            </template>
+                            <template #content>
+                                <SearchDropdownContent>
+                                    <NuxtLink to="/settings">
+                                        <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
+                                    </NuxtLink>
+                                    <SearchDropdownItem @click="store.logout()" :text="$t('navbar.buttons.logout')" />
+                                </SearchDropdownContent>
+                            </template>
+                        </SearchDropdownContainer>
+                    </div>
                 </div>
-
-                <button type="button "
-                    class="inline-flex  p-2 ml-1 text-white rounded-md sm:ml-4 lg:hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white hover:bg-gray-800">
-                    <!-- Menu open: "hidden", Menu closed: "block" -->
-                    <svg class="block w-6 h-6 " xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16m-7 6h7" />
-                    </svg>
-                    <!-- Menu open: "block", Menu closed: "hidden" -->
-                    <svg class="hidden w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-
             </div>
-        </div>
+        </nav>
     </header>
+
 </template>
