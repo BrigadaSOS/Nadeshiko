@@ -5,7 +5,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   if (import.meta.server) return;
   if (!isAuth.value) return;
   try {
-    await store.getBasicInfo();
     if (!isAuth.value) {
       return navigateTo("/");
     }
