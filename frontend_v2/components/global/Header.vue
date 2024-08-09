@@ -12,7 +12,7 @@ const toggleMobileMenu = () => {
 </script>
 <template>
     <header
-        class="relative flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-sm py-2 dark:bg-header-background">
+        class="relative flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-sm py-3 lg:py-2 dark:bg-header-background">
         <nav class="max-w-[92%] w-full mx-auto sm:flex sm:items-center sm:justify-between">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
@@ -25,18 +25,18 @@ const toggleMobileMenu = () => {
 
                 <div class="sm:hidden">
                     <button type="button"
-                        class="hs-collapse-toggle relative size-7 flex justify-center items-center gap-x-2 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-transparent dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
+                        class="hs-collapse-toggle relative size-7 flex justify-center items-center gap-x-2 rounded-lg   bg-white text-gray-800  hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-transparent dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
                         id="hs-navbar-example-collapse" aria-expanded="false" aria-controls="hs-navbar-example"
                         aria-label="Toggle navigation" data-hs-collapse="#hs-navbar-example">
                         <svg class="hs-collapse-open:hidden shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
-                            width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="3" x2="21" y1="6" y2="6" />
                             <line x1="3" x2="21" y1="12" y2="12" />
                             <line x1="3" x2="21" y1="18" y2="18" />
                         </svg>
                         <svg class="hs-collapse-open:block hidden shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
-                            width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M18 6 6 18" />
                             <path d="m6 6 12 12" />
@@ -63,6 +63,7 @@ const toggleMobileMenu = () => {
                             {{ $t("navbar.buttons.about") }}
                         </NuxtLink>
                     </div>
+                    <hr class="border-none my-1">
                     <div class="gap-2 flex flex-col sm:flex-row">
                         <div class="flex items-center">
                         <a href="https://discord.gg/ajWm26ADEj"

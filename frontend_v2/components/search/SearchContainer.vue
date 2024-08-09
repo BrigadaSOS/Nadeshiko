@@ -123,6 +123,13 @@ const categoryFilter = (filter) => {
     });
 };
 
+const handleRandomLogic = () => {
+    cursor.value = null;
+    endOfResults.value = false;
+    searchData.value.sentences = null;
+    fetchSentences();
+}
+
 // Lifecycle hooks
 onMounted(async () => {
     query.value = route.query.query;
@@ -197,14 +204,14 @@ useSeoMeta({
                 <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults" />
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">
-                        <UiBaseIcon :path="mdiRefresh " />
+                        <UiBaseIcon :path="mdiRefresh" />
                         Load more sentences
                     </UiButtonPrimaryAction>
                 </div>
             </div>
             <!-- Filters -->
             <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
-                <SearchSegmentFilterSortContent />
+                <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                 <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
             </div>
             <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData">

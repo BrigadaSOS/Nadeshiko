@@ -1,31 +1,49 @@
 <script setup>
 const { t } = useI18n();
-import { mdiDice2, mdiSortAscending, mdiSortDescending, mdiSort, mdiFilterOutline } from '@mdi/js';
+import { mdiDice2, mdiSortAscending, mdiRefresh, mdiSortDescending, mdiSort, mdiFilterOutline } from '@mdi/js';
 const router = useRouter();
 const route = useRoute();
 const sortType = ref(route.query.sort);
+const emit = defineEmits(['randomSortSelected']);
 
-const sortContent = (type) => {
+const previousSort = ref(route.query.sort || 'none');
+
+const sortContent = async (type) => {
     const query = { ...route.query };
-
     if (type === 'none') {
         delete query.sort;
     } else {
         query.sort = type;
     }
 
-    router.push({ query });
-    sortType.value = type;
+    if (type !== previousSort.value) {
+        sortType.value = type;
+        await router.push({ query });        
+    } else if (type === 'random') {
+        // El sort no ha cambiado, pero es 'random', emitimos el evento
+        emit('randomSortSelected');
+    }
+    previousSort.value = type;
 };
+
+watch(() => route.query.sort, (newSort) => {
+    previousSort.value = newSort || 'none';
+}, { immediate: true });
 
 </script>
 <template>
-    <SearchDropdownContainer class="mr-2 mb-4 w-full flex" dropdownId="hs-dropdown-with-header">
+    <SearchDropdownContainer class="gap-2 mb-4 w-full flex" dropdownId="hs-dropdown-with-header">
         <template #default>
+            <UiButtonPrimaryAction v-if="sortType === 'random'" @click="sortContent('random')">
+                <UiBaseIcon size="20" :path="mdiRefresh" />
+            </UiButtonPrimaryAction>
             <SearchDropdownMainButton class="w-full items-center text-center align-middle flex"
                 dropdownId="hs-dropdown-with-header">
                 <UiBaseIcon :path="mdiFilterOutline" />
                 {{ t('searchpage.main.buttons.sortmain') }}
+                <span v-if="sortType && sortType !== 'none'">
+                    ({{ t(`searchpage.main.buttons.sort${sortType}`) }})
+                </span>
             </SearchDropdownMainButton>
         </template>
         <template #content>
