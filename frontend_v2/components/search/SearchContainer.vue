@@ -1,4 +1,5 @@
 <script setup>
+import { mdiRefresh } from '@mdi/js'
 
 const { t } = useI18n();
 const apiSearch = useApiSearch();
@@ -11,6 +12,7 @@ let searchData = ref(null);
 let isLoading = ref(false);
 let endOfResults = ref(false);
 const hasMoreResults = ref(true)
+const showLoadMoreButton = ref(false)
 
 // Available params for search
 let query = ref('');
@@ -28,11 +30,12 @@ const categoryMapping = {
 };
 
 // Fetch sentences with an infinite scroll
-const fetchSentences = async () => {
+const fetchSentences = async (fromButton = false) => {
     try {
         if (endOfResults.value || isLoading.value) return;
 
         isLoading.value = true;
+        showLoadMoreButton.value = false;
 
         // Build request body
         let body = {
@@ -91,12 +94,15 @@ const fetchSentences = async () => {
     } catch (error) {
         console.error('Error fetching sentences:', error);
         hasMoreResults.value = false;
+        showLoadMoreButton.value = true;
     } finally {
         isLoading.value = false;
     }
 };
 
-
+const loadMore = () => {
+    fetchSentences(true);
+};
 
 // Get count of sentences for a specific category
 const getCategoryCount = (category) => {
@@ -149,11 +155,6 @@ onBeforeRouteUpdate(async (to, from) => {
     window.HSStaticMethods.autoInit();
 });
 
-
-onBeforeUnmount(() => {
-
-});
-
 // SEO Meta
 const seoTitle = computed(() => `${query.value ? query.value + ' - Nadeshiko' : 'Nadeshiko'}`);
 useSeoMeta({
@@ -171,13 +172,15 @@ useSeoMeta({
                 <GeneralTabsHeader>
                     <GeneralTabsItem category="0" categoryName="Todo" :count="getCategoryCount(0)"
                         :isActive="category === 0" @click="categoryFilter(0)" />
-                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 1)"  category="1" categoryName="Anime" :count="getCategoryCount(1)"
-                        :isActive="category === 1" @click="categoryFilter(1)" />
-                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 3)"  category="3" categoryName="Liveaction" :count="getCategoryCount(3)"
-                        :isActive="category === 3" @click="categoryFilter(3)" />
+                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 1)"
+                        category="1" categoryName="Anime" :count="getCategoryCount(1)" :isActive="category === 1"
+                        @click="categoryFilter(1)" />
+                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 3)"
+                        category="3" categoryName="Liveaction" :count="getCategoryCount(3)" :isActive="category === 3"
+                        @click="categoryFilter(3)" />
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
-        </div> 
+        </div>
         <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData" class="w-full pb-4  animate-pulse">
             <GeneralTabsContainer>
                 <GeneralTabsHeader>
@@ -191,7 +194,13 @@ useSeoMeta({
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" />
-                <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults"/>
+                <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults" />
+                <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
+                    <UiButtonPrimaryAction class="my-1" @click="loadMore">
+                        <UiBaseIcon :path="mdiRefresh " />
+                        Load more sentences
+                    </UiButtonPrimaryAction>
+                </div>
             </div>
             <!-- Filters -->
             <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
