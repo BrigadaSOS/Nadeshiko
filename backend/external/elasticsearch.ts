@@ -22,7 +22,7 @@ import {logger} from "../utils/log";
 import {QuerySegmentsRequest} from "../models/external/querySegmentsRequest";
 import {QuerySurroundingSegmentsRequest} from "../models/external/querySurroundingSegmentsRequest";
 import {QuerySurroundingSegmentsResponse} from "../models/external/querySurroundingSegmentsResponse";
-import { CategoryType } from '../models/media/media';
+import { SearchAnimeSentencesRequest } from 'models/controller/SearchAnimeSentencesRequest';
 
 export const client = new Client({
     node: process.env.ELASTICSEARCH_HOST,
@@ -317,7 +317,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
 
     const mediaInfo = queryMediaInfo(0, 10000000);
 
-    return buildSearchAnimeSentencesResponse(await esResponse, await mediaInfo, await esNoHitsNoFiltersResponse);
+    return buildSearchAnimeSentencesResponse(await esResponse, await mediaInfo, await esNoHitsNoFiltersResponse, request);
 }
 
 
@@ -412,7 +412,7 @@ export const querySurroundingSegments = async (request: QuerySurroundingSegments
     }
 }
 
-const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfoResponse: QueryMediaInfoResponse, esNoHitsNoFiltersResponse: SearchResponse): QuerySegmentsResponse => {
+const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfoResponse: QueryMediaInfoResponse, esNoHitsNoFiltersResponse: SearchResponse, request: QuerySegmentsRequest): QuerySegmentsResponse => {
     const sentences: SearchAnimeSentencesSegment[] = buildSearchAnimeSentencesSegments(esResponse, mediaInfoResponse);
 
     let categoryStatistics = [];
@@ -464,11 +464,20 @@ const buildSearchAnimeSentencesResponse = (esResponse: SearchResponse, mediaInfo
         cursor = esResponse.hits.hits[esResponse.hits.hits.length - 1]["sort"];
     }
 
-    return {
-        statistics: statistics,
-        categoryStatistics: categoryStatistics,
-        sentences,
-        cursor
+    if(!request?.extra){
+        return {
+            statistics: [],
+            categoryStatistics: [],
+            sentences,
+            cursor
+        }  
+    }else{
+        return {
+            statistics: statistics,
+            categoryStatistics: categoryStatistics,
+            sentences,
+            cursor
+        }
     }
 }
 

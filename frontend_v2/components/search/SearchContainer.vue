@@ -37,7 +37,8 @@ const fetchSentences = async () => {
         // Build request body
         let body = {
             query: query.value,
-            limit: 10
+            limit: 10,
+            extra: true
         };
 
         // Add optional parameters, omit category if it is 'all'
