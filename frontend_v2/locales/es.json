@@ -129,7 +129,9 @@
         "sortlengthmin": "Más cortas",
         "sortlengthmax": "Más largas",
         "sortrandom": "Aleatorio",
-        "search": "Buscar"
+        "search": "Buscar",
+        "sortasc": "Más cortas",
+        "sortdesc": "Más largas"
       },
       "labels": {
         "errorMessage1": "Algo ha ocurrido y no ha sido posible obtener una respuesta satisfactoria por parte del servidor.",
