@@ -209,7 +209,7 @@ export const logIn = async (
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: true,
-      maxAge: maxAgeJWT * 1000,
+      maxAge: maxAgeJWT,
     });
 
     const data_user = {
@@ -289,7 +289,7 @@ export const loginGoogle = async (
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: true,
-      maxAge: maxAgeJWT * 1000,
+      maxAge: maxAgeJWT,
     });
 
     const data_user = {
