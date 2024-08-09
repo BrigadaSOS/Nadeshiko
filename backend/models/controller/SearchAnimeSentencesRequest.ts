@@ -29,6 +29,8 @@ export interface SearchAnimeSentencesRequest {
     readonly category?: any[];
     // Filter by specific media
     readonly media: QuerySegmentsAnimeFilter[];
+    // Extra information as stats for sentences
+    readonly extra?: boolean;
 }
 
 export interface QuerySegmentsAnimeFilter {

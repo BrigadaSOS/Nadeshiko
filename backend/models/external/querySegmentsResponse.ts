@@ -1,4 +1,5 @@
 import {FieldValue} from "@elastic/elasticsearch/lib/api/types";
+import { SearchAnimeSentencesRequest } from "models/controller/SearchAnimeSentencesRequest";
 
 
 export interface QuerySegmentsResponse {
