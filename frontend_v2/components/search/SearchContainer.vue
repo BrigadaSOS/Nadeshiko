@@ -168,11 +168,34 @@ onBeforeRouteUpdate(async (to, from) => {
 });
 
 // SEO Meta
-const seoTitle = computed(() => `${query.value ? query.value + ' - Nadeshiko' : 'Nadeshiko'}`);
-useSeoMeta({
-    title: seoTitle,
-    ogTitle: 'Nadeshiko'
-});
+const dynamicTitle = computed(() => {
+  return route.query.query 
+    ? `${route.query.query} - Búsqueda en Nadeshiko` 
+    : 'Nadeshiko - Búsqueda'
+})
+
+const dynamicDescription = computed(() => {
+  return route.query.query 
+    ? `Resultados de búsqueda para "${route.query.query}" en Nadeshiko` 
+    : 'Busca frases de anime y live action en Nadeshiko'
+})
+
+const updateMetadata = () => {
+  useSeoMeta({
+    title: dynamicTitle.value,
+    ogTitle: dynamicTitle.value,
+    description: dynamicDescription.value,
+    ogDescription: dynamicDescription.value
+  })
+}
+
+onMounted(() => {
+  updateMetadata()
+})
+
+watch(() => route.fullPath, () => {
+  updateMetadata()
+})
 </script>
 
 <template>
