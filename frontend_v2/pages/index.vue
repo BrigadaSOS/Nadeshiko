@@ -36,10 +36,6 @@ const checkScreenSize = () => {
     isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280;
 };
 watch(() => window.innerWidth, checkScreenSize);
-
-definePageMeta({
-    middleware: 'auth'
-})
 </script>
 
 <template>
