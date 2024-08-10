@@ -9,7 +9,7 @@ import { Role } from "../models/user/role";
 import { UserAuth } from "../models/user/userAuth"
 import { createToken, maxAgeJWT } from "../middleware/authentication";
 import { Report, ReportStatus, ReportType } from "../models/miscellaneous/report"
-
+import DiscordOauth2 from "discord-oauth2";
 const { OAuth2Client } = require("google-auth-library");
 const bcrypt = require("bcrypt");
 
@@ -17,6 +17,12 @@ const client = new OAuth2Client({
   clientId: process.env.ID_OAUTH_GOOGLE,
   clientSecret: process.env.SECRET_OAUTH_GOOGLE,
   redirectUri: process.env.URI_ALLOWED_GOOGLE
+});
+
+const clientDiscord = new DiscordOauth2({
+  clientId: process.env.DISCORD_CLIENT_ID,
+  clientSecret: process.env.DISCORD_CLIENT_SECRET,
+  redirectUri: process.env.DISCORD_REDIRECT_URI,
 });
 
 export const logout = (_req: Request, res: Response, _next: NextFunction) => {
@@ -307,6 +313,108 @@ export const loginGoogle = async (
 
   } catch (error) {
     console.log(error)
+    return next(error);
+  }
+};
+
+export const getDiscordAuthUrl = (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    const redirectUri = encodeURIComponent(process.env.DISCORD_REDIRECT_URI || '');
+    const scope = encodeURIComponent("identify email");
+    const responseType = "code";
+    
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`;
+
+    return res.status(StatusCodes.OK).json({
+      url: discordAuthUrl,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const loginDiscord = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+
+    const { code } = req.body;
+
+    if (!code) {
+      throw new Error('Authorization code not provided');
+    }
+
+    // Obtener el token de Discord
+    const tokenResponse = await clientDiscord.tokenRequest({
+      code: code as string,
+      scope: "identify email",
+      grantType: "authorization_code",
+    });
+
+    // Obtener información del usuario de Discord
+    const discordUser = await clientDiscord.getUser(tokenResponse.access_token);
+
+    let user = await User.findOne({
+      include: [{
+        model: UserAuth, 
+        where: { providerUserId: discordUser.id, provider: 'discord' }
+      },{
+        model: UserRole
+      }]
+    });
+
+    if (!user) {
+      // Crear un nuevo usuario si no existe
+      const roles = [3]; // Rol de usuario normal
+      const userRoles = roles.map((roleId) => ({ id_role: roleId }));
+
+      user = await User.create({
+        username: discordUser.username,
+        email: discordUser.email,
+        is_verified: true,
+        is_active: true,
+        UserRoles: userRoles,
+      }, { include: UserRole });
+
+      await UserAuth.create({
+        userId: user.id,
+        provider: 'discord',
+        providerUserId: discordUser.id
+      });
+    }
+
+    // Crear token JWT
+    const user_role = await UserRole.findAll({
+      where: { id_user: user.id },
+      include: [{ model: Role, required: true }],
+    });
+
+    const list_roles = user_role.map((user_role) => user_role.id_role);
+    const token = createToken(user.id, list_roles);
+
+    res.cookie('access_token', token, {
+      expires: new Date(Date.now() + (maxAgeJWT * 1000)),
+      httpOnly: true,
+      secure: true
+    });
+
+    const data_user = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      roles: user?.UserRoles,
+    };
+
+    return res.status(StatusCodes.OK).json({
+      message: `Successful login, ${user.username}`,
+      user: data_user,
+      token: token,
+    })
+
+  } catch (error) {
     return next(error);
   }
 };

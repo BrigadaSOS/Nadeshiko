@@ -80,8 +80,67 @@ export const userStore = defineStore("user", {
         // Si la respuesta es exitosa, extrae el JSON
         if (response.ok) {
           const responseData = await response.json();
-          console.log(responseData);
+          this.$patch((state) => {
+            state.isLoggedIn = true;
+            state.userInfo = {
+              roles: responseData.user.roles.map((roles: any) => roles.id_role),
+            };
+          });
+          const message = $i18n.t("modalauth.labels.successfullogin");
+          useToastSuccess(message);
+        } else {
+          const message = $i18n.t("modalauth.labels.errorlogin400");
+          useToastError(message);
+        }
+      } catch (error) {
+        const message = $i18n.t("modalauth.labels.errorlogin400");
+        useToastError(message);
+        console.log(error);
+      }
+    },
+    async redirectToDiscordLogin() {
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(
+          `${config.public.baseURLBackend}auth/discord/url`,
+          {
+            method: "GET",
+          }
+        );
 
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data && data.url) {
+            window.location.href = data.url
+          }  
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    async loginDiscord(code: string) {
+      const { $i18n } = useNuxtApp();
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(
+          `${config.public.baseURLBackend}auth/discord`,
+          {
+            method: "POST",
+            mode: "cors",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            withCredentials: true,
+            credentials: "include",
+            body: JSON.stringify({
+              code: code,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const responseData = await response.json();
           this.$patch((state) => {
             state.isLoggedIn = true;
             state.userInfo = {
@@ -151,8 +210,8 @@ export const userStore = defineStore("user", {
             state.userInfo = null;
           });
           router.push("/");
-          const message = msg ? msg : $i18n.t('modalauth.labels.logout')
-          useToastSuccess(message)
+          const message = msg ? msg : $i18n.t("modalauth.labels.logout");
+          useToastSuccess(message);
         });
       } catch (error) {
         console.log(error);
