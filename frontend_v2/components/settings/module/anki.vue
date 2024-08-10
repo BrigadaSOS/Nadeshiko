@@ -165,7 +165,7 @@ watch(deckOptions, async (newValue, oldValue) => {
                   instalado.
                 </li>
                 <li>
-                  Verifique que "https://db.brigadasos.xyz" este en el webCorsOriginList de las configuraciones de
+                  Verifique que "https://nadeshiko.co" este en el webCorsOriginList de las configuraciones de
                   AnkiConnect.
                 </li>
                 <li>
