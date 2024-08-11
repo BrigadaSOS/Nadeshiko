@@ -22,6 +22,7 @@ let category = ref(0);
 let cursor = ref(null);
 let media = ref(null);
 let sort = ref(null)
+let uuid = ref(null);
 
 // Category mapping
 const categoryMapping = {
@@ -60,6 +61,10 @@ const fetchSentences = async (fromButton = false) => {
 
         if (cursor.value) {
             body.cursor = cursor.value;
+        }
+
+        if(uuid.value){
+            body.uuid = uuid.value;
         }
 
         // Define the behaviour of elements based on params
@@ -141,6 +146,7 @@ onMounted(async () => {
     category.value = categoryMapping[route.query.category] ?? 0;
     media.value = route.query.media;
     sort.value = route.query.sort;
+    uuid.value = route.query.uuid;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -156,6 +162,7 @@ onBeforeRouteUpdate(async (to, from) => {
     category.value = categoryMapping[to.query.category] ?? 0;
     media.value = to.query.media;
     sort.value = to.query.sort;
+    uuid.value = route.query.uuid;
 
     if (category.value === undefined) {
         category.value = 0;
