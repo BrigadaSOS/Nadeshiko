@@ -17,7 +17,9 @@ export default defineNuxtConfig({
     '@pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt'
   ],
-  
+  image: {
+    domains: ['localhost', 'https://dev.nadeshiko.co']
+  },
   plugins: ['~/plugins/preline.client.ts'],
   vite: {
     optimizeDeps: {
