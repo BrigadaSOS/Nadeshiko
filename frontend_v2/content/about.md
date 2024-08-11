@@ -4,9 +4,9 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
   <div
-    class="border flex flex-col sm:flex-row dark:bg-neutral-900 dark:border-neutral-700 w-full"
+    class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-44 h-44 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
       <img
         class="h-full w-full object-contain"
         src="../github/natsume_pfp.jpg"
@@ -35,7 +35,7 @@
           </a>
         </div>
       </div>
-      <div class="mt-3 text-gray-500 dark:text-neutral-400">
+      <div class="mt-1 text-gray-500 dark:text-neutral-400">
         Desarrollador encargado de la parte visual y backend como el
         mantenimiento.
       </div>
@@ -48,9 +48,9 @@
   </div>
 
   <div
-    class="border flex flex-col sm:flex-row dark:bg-neutral-900 dark:border-neutral-700 w-full"
+    class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-44 h-44 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
       <img
         class="h-full w-full object-contain"
         src="../github/davafons_pfp.jpg"
@@ -79,9 +79,8 @@
           </a>
         </div>
       </div>
-      <div class="mt-3 text-gray-500 dark:text-neutral-400">
-        Desarrollador encargado de la parte visual y backend como el
-        mantenimiento.
+      <div class="mt-1 text-gray-500 dark:text-neutral-400">
+        Desarrollador encargado del despliegue de Nadeshiko y de la configuración con Elasticsearch.
       </div>
       <div class="mt-5 sm:mt-auto">
         <div class="text-xs mt-2 text-gray-500 dark:text-neutral-500">
@@ -92,9 +91,9 @@
   </div>
 
   <div
-    class="border flex flex-col sm:flex-row dark:bg-neutral-900 dark:border-neutral-700 w-full"
+    class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-44 h-44 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
       <img
         class="h-full w-full object-contain"
         src="../github/xyaman_pfp.jpg"
@@ -136,9 +135,8 @@
           </a>-->
         </div>
       </div>
-      <div class="mt-3 text-gray-500 dark:text-neutral-400">
-        Desarrollador encargado de la parte visual y backend como el
-        mantenimiento.
+      <div class="mt-1 text-gray-500 dark:text-neutral-400">
+        Contribuidor en la implementación de Anki con Nadeshiko.
       </div>
       <div class="mt-5 sm:mt-auto">
         <div class="text-xs mt-2 text-gray-500 dark:text-neutral-500">
