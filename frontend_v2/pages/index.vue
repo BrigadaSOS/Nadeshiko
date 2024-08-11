@@ -356,12 +356,12 @@ watch(() => window.innerWidth, checkScreenSize);
                                 <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
                                     <div class="mt-5 w-auto bg-white p-1 rounded-md">
                                         <a href="https://github.com/BrigadaSOS">
-                                            <NuxtImg class="h-10 object-contain" src="/github.png" alt="GitHub" />
+                                            <img class="h-10 object-contain" src="/github.png" alt="GitHub" />
                                         </a>
                                     </div>
                                     <div class="mt-5 w-auto">
                                         <a href="https://patreon.com/BrigadaSOS">
-                                            <NuxtImg class="h-12 object-contain rounded-md" src="/patreon.png"
+                                            <img class="h-12 object-contain rounded-md" src="/patreon.png"
                                                 alt="Become a Patron" />
                                         </a>
                                     </div>
