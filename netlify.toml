@@ -7,3 +7,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[images]
+  remote_images = ["https://avatars.githubusercontent.com/u/.*"]

@@ -5,14 +5,14 @@
 <tr>
     <td align="center">
         <a href="https://github.com/Natsume-197">
-            <img src="https://avatars.githubusercontent.com/u/36428207?v=4" width="150;" alt="Natsume-197"/>
+            <img src="../assets/github/natsume_pfp.jpg" width="150;" alt="Natsume-197"/>
             <br />
             <p>Natsume-197</p>
         </a>
     </td>
     <td align="center">
         <a href="https://github.com/davafons">
-            <img src="https://avatars.githubusercontent.com/u/29177698?v=4" width="150;" alt="Davafons"/>
+            <img src="../assets/github/davafons_pfp.jpg" width="150;" alt="Davafons"/>
             <br />
             <p>Davafons</p>
         </a>
