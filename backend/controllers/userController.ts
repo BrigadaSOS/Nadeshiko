@@ -10,6 +10,7 @@ import { UserAuth } from "../models/user/userAuth"
 import { createToken, maxAgeJWT } from "../middleware/authentication";
 import { Report, ReportStatus, ReportType } from "../models/miscellaneous/report"
 import DiscordOauth2 from "discord-oauth2";
+import { sendConfirmationEmail } from "../utils/email";
 const { OAuth2Client } = require("google-auth-library");
 const bcrypt = require("bcrypt");
 
@@ -116,13 +117,27 @@ export const signUp = async (
     // read from body
     const { username, email, password } = req.body;
 
+    if (!username || !email || !password) {
+      throw new BadRequest("Username, email, and password are required.");
+    }    
+
     // check if user already exists
     const oldUser = await User.findOne({
       where: { email: email },
+      include: [{
+        model: UserAuth,
+        required: false
+      }]
     });
 
     if (oldUser) {
-      throw new Conflict("This email has been used. Please try another email.");
+      if (oldUser.userAuths && oldUser.userAuths.length > 0) {
+        return res.status(StatusCodes.CONFLICT).json({
+          message: `Este correo electrónico ya está registrado con ${oldUser.userAuths[0].provider}. Por favor, inicia sesión usando ${oldUser.userAuths[0].provider}.`
+        });
+      } else {
+        throw new Conflict("Este correo ya ha sido usado. Por favor, intenta con otro correo.");
+      }
     } else {
       // encrypt the password
       const salt: string = await bcrypt.genSalt(10);
@@ -155,10 +170,9 @@ export const signUp = async (
       );
 
       // Send verification email to user
-      // await sendConfirmationEmail(name, email.toLowerCase(), randomTokenEmail);
+      await sendConfirmationEmail(username, email.toLowerCase(), randomTokenEmail);
       await user.save();
 
-      // Response
       return res.status(StatusCodes.CREATED).json({
         message: `Se ha creado el usuario: '${req.body.username}' de forma exitosa.`,
         user: user,
@@ -178,11 +192,23 @@ export const logIn = async (
     // Check if user already exists
     const user = await User.findOne({
       where: { email: req.body.email },
-      include: UserRole,
+      include: [{
+        model: UserAuth,
+        required: false
+      }, {
+        model: UserRole,
+        required: false
+      }]
     });
 
     if (!user) throw new NotFound("This email has not been found.");
     if (!user.is_active) throw new NotFound("This user is not active.");
+
+    if (user.userAuths && user.userAuths.length > 0) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        message: `Este correo está registrado con ${user.userAuths[0].provider}. Por favor, inicia sesión usando ${user.userAuths[0].provider}.`
+      });
+    }
 
     // Compare the passwords
     const password: boolean = await bcrypt.compare(
@@ -244,14 +270,21 @@ export const loginGoogle = async (
     let userInfo = await verifyCodeOAuth(req.body.code);
 
     let user = await User.findOne({
+      where: { email: userInfo.email },
       include: [{
         model: UserAuth, 
-        where: { providerUserId: userInfo.sub, provider: 'google' }
+        where: { providerUserId: userInfo.sub, provider: 'google' },
+        required: false 
       },{
         model: UserRole
-      }
-    ]
-    },);
+      }]
+    });
+
+    if (user && (!user.userAuths || user.userAuths.length === 0)) {
+      return res.status(StatusCodes.CONFLICT).json({
+        message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`
+      });
+    }
 
     if (!user) {
       // Definition of roles for a normal user
@@ -356,15 +389,23 @@ export const loginDiscord = async (
 
     // Obtener información del usuario de Discord
     const discordUser = await clientDiscord.getUser(tokenResponse.access_token);
-
+    
     let user = await User.findOne({
+      where: { email: discordUser.email },
       include: [{
-        model: UserAuth, 
-        where: { providerUserId: discordUser.id, provider: 'discord' }
+        model: UserAuth,
+        where: { providerUserId: discordUser.id, provider: 'discord' },
+        required: false
       },{
         model: UserRole
       }]
     });
+
+    if (user && (!user.userAuths || user.userAuths.length === 0)) {
+      return res.status(StatusCodes.CONFLICT).json({
+        message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`
+      });
+    }
 
     if (!user) {
       // Crear un nuevo usuario si no existe
