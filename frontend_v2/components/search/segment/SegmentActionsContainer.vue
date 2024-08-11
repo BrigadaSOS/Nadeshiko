@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal, mdiVolumeHigh } from '@mdi/js'
+import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiShare, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal, mdiVolumeHigh } from '@mdi/js'
 
 import type { Sentence } from "@/stores/search";
 
@@ -111,7 +111,7 @@ const openAnkiModal = () => {
     </template>
     <template #content>
       <SearchDropdownContent>
-        <SearchDropdownItem :text="$t('searchpage.main.buttons.video')" :iconPath="mdiFileVideo" />
+        <SearchDropdownItem :text="$t('searchpage.main.buttons.share')" :iconPath="mdiShare" @click="getSharingURL(content.segment_info.uuid)" />
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>
