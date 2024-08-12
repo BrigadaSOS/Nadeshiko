@@ -44,3 +44,15 @@ export async function copyToClipboard(item: any) {
   await navigator.clipboard.writeText(item)
   useToastSuccess(message)
 }
+
+export async function getSharingURL(uuid: any){
+  const { $i18n } = useNuxtApp()
+  try {
+    await navigator.clipboard.writeText(`${window.location.origin}/search/sentence?uuid=${uuid}`)
+    const message = $i18n.t('searchpage.main.labels.copiedsharingurl')
+    useToastSuccess(message)
+  } catch (error) {
+    const message = $i18n.t('searchpage.main.labels.errorcopiedsharingurl')
+    useToastError(message)
+  }
+}

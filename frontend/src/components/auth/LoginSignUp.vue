@@ -101,6 +101,7 @@ const callback = (response) => {
               <div class="mt-3">
                 <div id="bar-with-underline-1" role="tabpanel" aria-labelledby="bar-with-underline-item-1">
                   <div class="p-4 sm:px-7 mb-3">
+                    <!--
                     <div class="text-center">
                       <p class="text-sm text-gray-600 dark:text-gray-400">
                         ¿No tienes una cuenta?
@@ -116,6 +117,7 @@ const callback = (response) => {
                         </button>
                       </p>
                     </div>
+                     -->
                     <div class="mt-5 flex flex-col">
                       <GoogleLogin :callback="callback">
                         <a
@@ -380,13 +382,14 @@ const callback = (response) => {
                               <!-- Checkbox -->
 
                               <!-- End Checkbox -->
-
+                              <!--
                               <button
                                 type="submit"
                                 class="py-3 mt-1 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-sgray text-white hover:bg-sgray2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
                               >
                                 Registrarse
                               </button>
+                              -->
                             </div>
                           </form>
                           <!-- End Form -->
