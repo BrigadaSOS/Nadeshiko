@@ -1,5 +1,5 @@
-# NadeDB
-NadeDB is an online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.
+# Nadeshiko
+Nadeshiko is an online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.
 
 ## Features
 - **Multilingual Search:** Search for Japanese sentences using Japanese characters, English, or Spanish terms.
@@ -24,6 +24,13 @@ NadeDB is an online sentence search engine designed to display content from a wi
             <img src="https://avatars.githubusercontent.com/u/29177698?v=4" width="100;" alt="m-edlund"/>
             <br />
             <sub><b>Davafons</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/xyaman">
+            <img src="https://avatars.githubusercontent.com/u/32078353?v=4" width="100;" alt="m-edlund"/>
+            <br />
+            <sub><b>Xyaman</b></sub>
         </a>
     </td>
 </tr>
