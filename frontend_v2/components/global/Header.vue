@@ -10,7 +10,7 @@ const toggleMobileMenu = () => {
 }
 
 </script>
-<template>
+<template>    
     <header
         class="relative flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-sm py-3 lg:py-2 dark:bg-header-background">
         <nav class="max-w-[92%] w-full mx-auto sm:flex sm:items-center sm:justify-between">
@@ -46,7 +46,7 @@ const toggleMobileMenu = () => {
                 </div>
             </div>
             <div id="hs-navbar-example"
-                class="hidden hs-collapse overflow-hidden transition-all duration-300 basis-full grow sm:block"
+                class="hidden hs-collapse transition-all duration-300 basis-full grow sm:block"
                 aria-labelledby="hs-navbar-example-collapse">
                 <div class="flex flex-col  mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
                     <div class="gap-6 flex flex-col sm:flex-row mr-auto">
