@@ -1,5 +1,5 @@
 <template>
-    <div class="hs-dropdown relative inline-flex">
+    <div class="hs-dropdown [--strategy:absolute] relative inline-flex">
         <slot></slot>
         <div
             :class="dropdownContainerClass"
