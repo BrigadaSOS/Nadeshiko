@@ -241,7 +241,8 @@ export const logIn = async (
     res.cookie('access_token', token, {
       expires: new Date(Date.now() + (maxAgeJWT * 1000)),
       httpOnly: true,
-      secure: true
+      secure: true,
+      sameSite: 'none'
     });
 
     const data_user = {
@@ -328,7 +329,8 @@ export const loginGoogle = async (
     res.cookie('access_token', token, {
       expires: new Date(Date.now() + (maxAgeJWT * 1000)),
       httpOnly: true,
-      secure: true
+      secure: true,
+      sameSite: 'none'
     });
 
     const data_user = {
@@ -439,7 +441,8 @@ export const loginDiscord = async (
     res.cookie('access_token', token, {
       expires: new Date(Date.now() + (maxAgeJWT * 1000)),
       httpOnly: true,
-      secure: true
+      secure: true,
+      sameSite: 'none'
     });
 
     const data_user = {
