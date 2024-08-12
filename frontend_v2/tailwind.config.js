@@ -6,7 +6,8 @@ module.exports = {
   safelist: ["dark"],
   prefix: "",
   content: [
-    './node_modules/preline/preline.js',],
+    './node_modules/preline/preline.js',
+    './content/**/*.md'],
   theme: {
     container: {
       center: true,
