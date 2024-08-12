@@ -159,11 +159,12 @@ export const userStore = defineStore("user", {
         console.log(error);
       }
     },
-    async register(email: string, password: string) {
+    async signUp(username: string, email: string, password: string) {
       const { $i18n } = useNuxtApp();
+      const config = useRuntimeConfig();
       try {
         const response = await fetch(
-          import.meta.env.VITE_APP_BASE_URL_BACKEND + "user/register",
+          `${config.public.baseURLBackend}auth/register`,
           {
             method: "POST",
             mode: "cors",
@@ -173,6 +174,7 @@ export const userStore = defineStore("user", {
             withCredentials: true,
             credentials: "include",
             body: JSON.stringify({
+              username: username,
               email: email,
               password: password,
             }),
