@@ -61,7 +61,6 @@ const updateMetadata = () => {
       { property: 'og:title', content: dynamicTitle.value },
       { property: 'og:description', content: dynamicDescription.value },
       { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: `https://dev.nadeshiko.co${route.fullPath}` },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: dynamicTitle.value },
       { name: 'twitter:description', content: dynamicDescription.value },
@@ -70,10 +69,31 @@ const updateMetadata = () => {
 
   if (uuid.value && searchData.value?.sentences?.length > 0) {
     const sentence = searchData.value.sentences[0];
+    
     metaData.meta.push(
       { property: 'og:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
-      { name: 'twitter:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
-      { property: 'og:audio', content: sentence.media_info.path_audio },
+      { name: 'twitter:image', content: sentence.media_info.path_image + '?width=1200&height=630' }
+    )
+
+    if (sentence.media_info.path_audio) {
+      const mp4Url = sentence.media_info.path_video;
+      
+      metaData.meta.push(
+        { property: 'og:video', content: mp4Url },
+        { property: 'og:video:type', content: 'video/mp4' },
+        { property: 'og:video:width', content: '1280' },  
+        { property: 'og:video:height', content: '720' }  
+      )
+
+      metaData.meta.push(
+        { name: 'twitter:card', content: 'player' },
+        { name: 'twitter:player', content: `https://dev.nadeshiko.co/embed/player?url=${encodeURIComponent(mp4Url)}` },
+        { name: 'twitter:player:width', content: '1280' },
+        { name: 'twitter:player:height', content: '720' }
+      )
+    }
+
+    metaData.meta.push(
       { property: 'og:locale', content: 'ja_JP' },
       { property: 'og:locale:alternate', content: 'es_ES' },
       { property: 'og:locale:alternate', content: 'en_US' }
