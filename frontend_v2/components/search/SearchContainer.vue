@@ -33,43 +33,57 @@ const categoryMapping = {
 
 // SEO Meta
 
-definePageMeta({
-  title: 'Nadeshiko - Búsqueda',
-  description: 'Busca frases de anime y live action en Nadeshiko'
-})
-
 const dynamicTitle = computed(() => {
+  if (uuid.value && searchData.value?.sentences?.length > 0) {
+    const sentence = searchData.value.sentences[0];
+    return `${sentence.basic_info.name_anime_en} | Nadeshiko`;
+  }
   return route.query.query 
     ? `${route.query.query} - Búsqueda en Nadeshiko` 
-    : 'Nadeshiko - Búsqueda'
+    : 'Nadeshiko - Búsqueda';
 })
 
 const dynamicDescription = computed(() => {
+  if (uuid.value && searchData.value?.sentences?.length > 0) {
+    const sentence = searchData.value.sentences[0];
+    return `${sentence.segment_info.content_jp} De ${sentence.basic_info.name_anime_en}, ${sentence.basic_info.season === 0 ? 'Película' : `Temporada ${sentence.basic_info.season}, Episodio ${sentence.basic_info.episode}`}`;
+  }
   return route.query.query 
     ? `Resultados de búsqueda para "${route.query.query}" en Nadeshiko` 
-    : 'Busca frases de anime y live action en Nadeshiko'
+    : 'Busca frases de anime y live action en Nadeshiko';
 })
 
 const updateMetadata = () => {
-  useHead({
+  const metaData = {
     title: dynamicTitle.value,
     meta: [
       { name: 'description', content: dynamicDescription.value },
       { property: 'og:title', content: dynamicTitle.value },
-      { property: 'og:description', content: dynamicDescription.value }
+      { property: 'og:description', content: dynamicDescription.value },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: `https://dev.nadeshiko.co${route.fullPath}` },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: dynamicTitle.value },
+      { name: 'twitter:description', content: dynamicDescription.value },
     ]
-  })
+  }
+
+  if (uuid.value && searchData.value?.sentences?.length > 0) {
+    const sentence = searchData.value.sentences[0];
+    metaData.meta.push(
+      { property: 'og:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
+      { name: 'twitter:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
+      { property: 'og:audio', content: sentence.media_info.path_audio },
+      { property: 'og:locale', content: 'ja_JP' },
+      { property: 'og:locale:alternate', content: 'es_ES' },
+      { property: 'og:locale:alternate', content: 'en_US' }
+    )
+  }
+
+  useHead(metaData)
 }
 
 onBeforeMount(() => {
-  updateMetadata()
-})
-
-onMounted(() => {
-  updateMetadata()
-})
-
-watch(() => route.fullPath, () => {
   updateMetadata()
 })
 
@@ -197,8 +211,7 @@ onMounted(async () => {
     }
 
     await fetchSentences();
-
-    window.HSStaticMethods.autoInit();
+    updateMetadata();
 });
 
 onBeforeRouteUpdate(async (to, from) => {
@@ -215,7 +228,7 @@ onBeforeRouteUpdate(async (to, from) => {
     cursor.value = null;
     endOfResults.value = false;
     await fetchSentences();
-    window.HSStaticMethods.autoInit();
+    updateMetadata();
 });
 
 </script>
