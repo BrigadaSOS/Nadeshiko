@@ -64,6 +64,14 @@ const updateMetadata = () => {
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: dynamicTitle.value },
       { name: 'twitter:description', content: dynamicDescription.value },
+    ],
+    link: [
+      {
+        rel: 'alternate',
+        type: 'application/json+oembed',
+        href: `https://dev.nadeshiko.co/api/oembed?desc=${encodeURIComponent(dynamicDescription.value)}&link=${encodeURIComponent(route.fullPath)}&ttype=video`,
+        title: dynamicTitle.value
+      }
     ]
   }
 
