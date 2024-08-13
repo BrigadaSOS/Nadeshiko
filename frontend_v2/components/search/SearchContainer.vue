@@ -98,6 +98,11 @@ const updateMetadata = () => {
       { property: 'og:locale:alternate', content: 'es_ES' },
       { property: 'og:locale:alternate', content: 'en_US' }
     )
+
+    metaData.meta.push(
+        { property: 'og:site_name', content: `Nadeshiko - ${sentence.basic_info.name_anime_en}` }
+    )
+
   }
 
   useHead(metaData)
