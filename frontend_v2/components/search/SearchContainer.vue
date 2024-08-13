@@ -31,6 +31,50 @@ const categoryMapping = {
     'liveaction': 3
 };
 
+// SEO Meta
+
+definePageMeta({
+  title: 'Nadeshiko - Búsqueda',
+  description: 'Busca frases de anime y live action en Nadeshiko'
+})
+
+const dynamicTitle = computed(() => {
+  return route.query.query 
+    ? `${route.query.query} - Búsqueda en Nadeshiko` 
+    : 'Nadeshiko - Búsqueda'
+})
+
+const dynamicDescription = computed(() => {
+  return route.query.query 
+    ? `Resultados de búsqueda para "${route.query.query}" en Nadeshiko` 
+    : 'Busca frases de anime y live action en Nadeshiko'
+})
+
+const updateMetadata = () => {
+  useHead({
+    title: dynamicTitle.value,
+    meta: [
+      { name: 'description', content: dynamicDescription.value },
+      { property: 'og:title', content: dynamicTitle.value },
+      { property: 'og:description', content: dynamicDescription.value }
+    ]
+  })
+}
+
+onBeforeMount(() => {
+  updateMetadata()
+})
+
+onMounted(() => {
+  updateMetadata()
+})
+
+watch(() => route.fullPath, () => {
+  updateMetadata()
+})
+
+////////////////////////////////
+
 // Fetch sentences with an infinite scroll
 const fetchSentences = async (fromButton = false) => {
     try {
@@ -174,35 +218,6 @@ onBeforeRouteUpdate(async (to, from) => {
     window.HSStaticMethods.autoInit();
 });
 
-// SEO Meta
-const dynamicTitle = computed(() => {
-  return route.query.query 
-    ? `${route.query.query} - Búsqueda en Nadeshiko` 
-    : 'Nadeshiko - Búsqueda'
-})
-
-const dynamicDescription = computed(() => {
-  return route.query.query 
-    ? `Resultados de búsqueda para "${route.query.query}" en Nadeshiko` 
-    : 'Busca frases de anime y live action en Nadeshiko'
-})
-
-const updateMetadata = () => {
-  useSeoMeta({
-    title: dynamicTitle.value,
-    ogTitle: dynamicTitle.value,
-    description: dynamicDescription.value,
-    ogDescription: dynamicDescription.value
-  })
-}
-
-onMounted(() => {
-  updateMetadata()
-})
-
-watch(() => route.fullPath, () => {
-  updateMetadata()
-})
 </script>
 
 <template>
