@@ -7,6 +7,7 @@ export default defineNuxtConfig({
     },
   },
   pages: true,
+  ssr: true,
   modules: [
     "@nuxtjs/tailwindcss",
     "@pinia/nuxt",
