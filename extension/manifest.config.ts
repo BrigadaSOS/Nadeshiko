@@ -25,12 +25,12 @@ export default defineManifest(async (env) => ({
   background: {
     service_worker: 'src/background/index.ts',
   },
-  host_permissions: ['*://*.brigadasos.xyz/*'],
+  host_permissions: ['*://*.brigadasos.xyz/*', '*://*.nadeshiko.co/*'],
   options_page: 'src/options/index.html',
   permissions: [],
   web_accessible_resources: [],
   externally_connectable: {
-    matches: ['https://*.brigadasos.xyz/*', '*://localhost/*']
+    matches: ['https://*.brigadasos.xyz/*', 'https://*.nadeshiko.co/*', '*://localhost/*']
   },
   "icons": {
     "16": "src/assets/16x16.png",
