@@ -44,32 +44,46 @@ async function checkBasicSettings(settings: any) {
   }
 }
 
-async function updateAnkiCard(settings: any, sentence: any) {
-  // Obtiene las notas más reciente
-  let notes = await findNotes(
-    settings.ankiPreferences.settings.current.deck,
-    settings.ankiPreferences.settings.current.model
-  )
-  const latestCard = notes.reduce((a, b) => Math.max(a, b), -1)
-  if (!latestCard || latestCard === -1)
-    throw new Error('No anki card to export to. Please add a card first.')
+async function updateAnkiCard(settings: any, sentence: any, id: number | null = null) {
+  let cardID = id;
 
-  console.log(notes, latestCard)
+  // Significa que actualizaremos la ultima carta
+  if (!id) {
+    // Obtiene las notas más reciente
+    const noteIDs = await findNotes(
+      settings.ankiPreferences.settings.current.deck,
+      settings.ankiPreferences.settings.current.model,
+      "added:2 is:new"
+    )
+    const latestCard = noteIDs.reduce((a, b) => Math.max(a, b), -1)
+    if (!latestCard || latestCard === -1) {
+      throw new Error('No anki card to export to. Please add a card first.')
+    }
+    console.log(noteIDs, latestCard)
+    cardID = latestCard;
+
+    // Actualizaremos la carta con el id del parametro
+  } else {
+    console.log('Updating card with ID:', cardID)
+    // TODO: checkear si la tarjeta con ese id existe
+  }
+
 
   // Extrae la información de la nota
-  let infoCard = await notesInfo([latestCard])
+  const infoCard = await notesInfo([cardID])
   console.log(infoCard)
 
   // Almacena el contenido multimedia en Anki
-  let mediaStored = await storeMediaFile(sentence)
+  const mediaStored = await storeMediaFile(sentence)
   console.log(mediaStored)
 
   // Realiza una busqueda en la interfaz de Anki para cambiar a una tarjeta generica
   // Y evitar problemas al actualizar
+  // TODO: manejar el error
   await guiBrowse('nid:1 nid:2')
 
-  // Actualiza la ultima tarjeta insertada
-  let resultUpdate = await updateMediaFields(
+  // Actualiza la tarjeta correspondiente
+  const resultUpdate = await updateMediaFields(
     infoCard,
     mediaStored,
     settings.ankiPreferences.settings.current.fields,
@@ -86,7 +100,7 @@ async function handleRequest(request) {
     if (request.action === 'updateAnkiCard') {
       console.log(request)
       await checkBasicSettings(request.settings)
-      await updateAnkiCard(request.settings, request.sentence)
+      await updateAnkiCard(request.settings, request.sentence, request.id)
       return { status: 200, message: 'Success' }
     } else {
       return { status: 400, error: 'Unrecognized action' }
