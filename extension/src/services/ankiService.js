@@ -29,14 +29,15 @@ export async function requestPermission() {
   return response.result.permission
 }
 
-export async function findNotes(deck, noteType) {
+// findNotes looks for notes in the deck with the given note type and query.
+// The default query is 'is:new' to prevent making a big request in case is not specified.
+export async function findNotes(deck, noteType, query = 'is:new') {
   let queryParts = []
   let queryString = ''
 
   queryParts.push(`"deck:${deck}"`)
   queryParts.push(`"note:${noteType}"`)
-  queryParts.push(`added:2`)
-  queryParts.push('is:new')
+  queryParts.push(query)
 
   queryString = queryParts.join(' ')
 
