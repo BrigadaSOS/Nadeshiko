@@ -1,16 +1,56 @@
 import { ref } from 'vue'
 
-let currentAudio = ref<HTMLAudioElement | null>(null);
+let currentAudio: HTMLAudioElement | null = null;
+export const isAudioPlaying: Record<string, boolean> = reactive({});
 
-export async function playAudio(sound: string) {
-  // If there is an audio currently playing, it stops
-  if (currentAudio.value) {
-    currentAudio.value.pause();
-    currentAudio.value.currentTime = 0;
+export async function playAudio(url: string, uuid: string, nextUrl?: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    
+    // Detener el audio actual si se está reproduciendo
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      const playingUuid = Object.keys(isAudioPlaying).find(key => isAudioPlaying[key]);
+      if (playingUuid) {
+        delete isAudioPlaying[playingUuid]; // Limpiar el estado del audio que se detuvo
+      }
+    }
+
+    console.log(uuid)
+
+    currentAudio = new Audio(url);
+    currentAudio.play();
+    isAudioPlaying[uuid] = true;
+
+    // Precargar el siguiente audio si está disponible
+    if (nextUrl) {
+      const nextAudio = new Audio(nextUrl);
+      nextAudio.preload = 'auto';
+    }
+
+    currentAudio.onended = () => {
+      currentAudio = null;
+      isAudioPlaying[uuid] = false;
+      delete isAudioPlaying[uuid]; 
+      resolve();
+    };
+
+    currentAudio.onerror = (error) => {
+      currentAudio = null;
+      isAudioPlaying[uuid] = false;
+      delete isAudioPlaying[uuid]; 
+      reject(error);
+    };
+  });
+}
+
+
+export async function playSequentialAudio(audioUrls: string[], sentenceUuid: string) {
+  for (let i = 0; i < audioUrls.length; i++) {
+    const currentUrl = audioUrls[i];
+    const nextUrl = audioUrls[i + 1]; // Precarga el siguiente si existe
+    await playAudio(currentUrl, sentenceUuid, nextUrl);
   }
-  const audio = new Audio(sound);
-  currentAudio.value = audio;
-  await audio.play();
 }
 
 export async function downloadAudioOrImage(url: string | URL | Request, filename: string) {
@@ -38,10 +78,16 @@ export function zoomImage(url: string) {
   }
 }
 
+const stripHTMLTags = (html: string): string => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+};
+
 export async function copyToClipboard(item: any) {
   const { $i18n } = useNuxtApp()
   const message = $i18n.t('searchpage.main.labels.copiedcontent')
-  await navigator.clipboard.writeText(item)
+  await navigator.clipboard.writeText(stripHTMLTags(item))
   useToastSuccess(message)
 }
 
@@ -56,3 +102,4 @@ export async function getSharingURL(uuid: any){
     useToastError(message)
   }
 }
+
