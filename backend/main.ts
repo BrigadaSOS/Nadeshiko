@@ -17,14 +17,15 @@ newrelic.instrumentLoadedModule("express", express);
 
 const app: Application = express();
 
-const allowedOrigins = ["http://localhost:5173", "https://db.brigadasos.xyz", "https://db.dev.brigadasos.xyz", "https://nadeshiko.co", "https://dev.nadeshiko.co", "http://localhost:3000"];
+const allowedOrigins = process.env.ALLOWED_WEBSITE_URLS || '';
+const netlifyPattern = /^https:\/\/deploy-preview-\d+--nadeshiko\.netlify\.app$/;
 
 app.use(function (req, res, next) {
   // Obtiene el origen de la solicitud
   const origin: string | undefined = req.headers.origin;
 
   // Si el origen de la solicitud está en la lista de origines permitidos, establece el encabezado Access-Control-Allow-Origin
-  if (allowedOrigins.includes(origin as string)) {
+  if (allowedOrigins.includes(origin as string) || netlifyPattern.test(origin as string)) {
     res.setHeader("Access-Control-Allow-Origin", origin as string);
   }
 
