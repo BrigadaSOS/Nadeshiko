@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiTranslate, mdiVolumeHigh } from '@mdi/js'
+import { mdiTranslate, mdiVolumeHigh,mdiChevronRight, mdiClose } from '@mdi/js'
 import ModalAnkiNotes from '../modal/ModalAnkiNotes.vue';
 
 type Props = {
@@ -48,6 +48,84 @@ const openAnkiModal = (sentence: Sentence) => {
   searchNoteSentence.value = sentence;
 };
 
+const apiSearch = useApiSearch();
+
+
+let isLoading = ref(false);
+
+let activeConcatenation: { sentence: Sentence | null; originalContent: any } = {
+  sentence: null,
+  originalContent: null,
+};
+
+const revertActiveConcatenation = () => {
+  if (activeConcatenation.sentence && activeConcatenation.originalContent) {
+    // Revertir la oración al contenido original
+    activeConcatenation.sentence.segment_info = { 
+      ...activeConcatenation.sentence.segment_info, 
+      ...activeConcatenation.originalContent 
+    };
+    activeConcatenation = { sentence: null, originalContent: null };
+  }
+};
+
+const isConcatenated = (sentence: Sentence) => {
+  return activeConcatenation.sentence === sentence;
+};
+
+const loadNextSentence = async (sentence: Sentence) => {
+  isLoading.value = true;
+
+  // Revertir cualquier concatenación activa antes de proceder
+  revertActiveConcatenation();
+
+  const audioUrls: string[] = [sentence.media_info.path_audio];
+
+  try {
+    const response = await apiSearch.getContextSentence({
+      media_id: sentence.basic_info.id_anime,
+      season: sentence.basic_info.season,
+      episode: sentence.basic_info.episode,
+      segment_position: sentence.segment_info.position,
+      limit: 1,
+    });
+
+    if (response && response.sentences.length > 0) {
+      const lastSentence = response.sentences[response.sentences.length - 1];
+
+      // Guardar el contenido original antes de concatenar
+      activeConcatenation = {
+        sentence,
+        originalContent: {
+          content_jp: sentence.segment_info.content_jp,
+          content_en: sentence.segment_info.content_en,
+          content_es: sentence.segment_info.content_es,
+          content_jp_highlight: sentence.segment_info.content_jp_highlight,
+          content_en_highlight: sentence.segment_info.content_en_highlight,
+          content_es_highlight: sentence.segment_info.content_es_highlight,
+        },
+      };
+
+      // Actualizar el contenido con la concatenación
+      audioUrls.push(lastSentence.media_info.path_audio);
+      sentence.segment_info = {
+        ...sentence.segment_info,
+        content_jp: `${sentence.segment_info.content_jp} <span class="text-orange-300">${lastSentence.segment_info.content_jp}</span>`,
+        content_en: `${sentence.segment_info.content_en} <span class="text-orange-300">${lastSentence.segment_info.content_en}</span>`,
+        content_es: `${sentence.segment_info.content_es} <span class="text-orange-300">${lastSentence.segment_info.content_es}</span>`,
+        content_jp_highlight: `${sentence.segment_info.content_jp_highlight || sentence.segment_info.content_jp} <span class="text-orange-300">${lastSentence.segment_info.content_jp_highlight || lastSentence.segment_info.content_jp}</span>`,
+        content_en_highlight: `${sentence.segment_info.content_en_highlight || sentence.segment_info.content_en} <span class="text-orange-300">${lastSentence.segment_info.content_en_highlight || lastSentence.segment_info.content_en}</span>`,
+        content_es_highlight: `${sentence.segment_info.content_es_highlight || sentence.segment_info.content_es} <span class="text-orange-300">${lastSentence.segment_info.content_es_highlight || lastSentence.segment_info.content_es}</span>`,
+        concatenated_audio: audioUrls
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching context sentences:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 
 </script>
 <template>
@@ -60,8 +138,8 @@ const openAnkiModal = (sentence: Sentence) => {
 
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
       :id="sentence.segment_info.position" :unrender="true" :min-height="300" 
-      class="hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2"
-      :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === currentSentenceIndex }">
+      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
+      :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
       <!-- Image -->
       <div class="h-auto shrink-0 w-auto lg:w-[28em]">
         <img :src="sentence.media_info.path_image + '?width=960&height=540'"
@@ -77,9 +155,16 @@ const openAnkiModal = (sentence: Sentence) => {
           <!-- First Row -->
           <div class="inline-flex items-center py-2 align-middle justify-center">
             <!-- Audio button -->
-            <button @click="playAudio(sentence.media_info.path_audio)"
+            <button 
+              @click="playSequentialAudio(sentence.segment_info.concatenated_audio?.length ? sentence.segment_info.concatenated_audio : [sentence.media_info.path_audio], sentence.segment_info.uuid)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
-              <UiBaseIcon w="w-10 md:w-5" h="h-10 md:h-5" size="24" class="" :path="mdiVolumeHigh" />
+              <UiBaseIcon v-if="!isAudioPlaying[sentence.segment_info.uuid]" w="w-10 md:w-5" h="h-10 md:h-5" size="24" class="" :path="mdiVolumeHigh" />
+              <span
+                v-else="isAudioPlaying"
+                class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
+                role="status"
+                aria-label="loading"
+              ></span>
             </button>
 
             <!-- Japanese Sentence -->
@@ -90,8 +175,27 @@ const openAnkiModal = (sentence: Sentence) => {
                   : sentence.segment_info.content_jp
                   "></span>
               </h3>
-            </div>
 
+              <div class="absolute top-0 right-0">
+
+              </div>
+              <UiButtonPrimaryAction
+                class="ml-3 lg:hidden group-hover:flex transition duration-300"
+                @click="loadNextSentence(sentence)"
+                v-if="!isConcatenated(sentence)"
+              >
+                <UiBaseIcon :path="mdiChevronRight" />
+              </UiButtonPrimaryAction>
+
+              <UiButtonPrimaryAction
+                class="ml-3 lg:hidden group-hover:flex transition duration-300"
+                @click="revertActiveConcatenation"
+                v-if="isConcatenated(sentence)"
+              >
+                <UiBaseIcon :path="mdiClose" />
+              </UiButtonPrimaryAction>
+
+            </div>
             <!-- End Japanese Sentence -->
           </div>
 
