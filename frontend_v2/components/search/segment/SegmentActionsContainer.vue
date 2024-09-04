@@ -41,7 +41,7 @@ const openAnkiModal = () => {
         <SearchDropdownItem 
           text="Añadir a Anki (Busca en tu collección)"
           :iconPath="mdiStarShootingOutline" 
-          @click="openAnkiModal"
+          data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection"
         />
       </SearchDropdownContent>
     </template>

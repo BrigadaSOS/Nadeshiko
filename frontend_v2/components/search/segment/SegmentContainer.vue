@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { mdiTranslate, mdiVolumeHigh } from '@mdi/js'
-import ModalAnkiNotes from '../modal/ModalAnkiNotes.vue';
 
 type Props = {
   searchData: any;
@@ -55,9 +54,11 @@ const openAnkiModal = (sentence: Sentence) => {
     
     <SearchModalContext :sentence="selectedSentence" />
 
-    <ModalAnkiNotes v-if="showNotesSearch" :sentence="searchNoteSentence" :onClose="() => showNotesSearch = false"
-      :onClick="(sentence: Sentence, id: number) => addSentenceToAnki(sentence, id)" />
-
+    <!--
+      <ModalAnkiNotes v-if="showNotesSearch" :sentence="searchNoteSentence" :onClose="() => showNotesSearch = false"  :onClick="(sentence: Sentence, id: number) => addSentenceToAnki(sentence, id)" />
+    -->   
+     
+    <SearchModalAnkiNotes/>
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
       :id="sentence.segment_info.position" :unrender="true" :min-height="300" 
       class="hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2"
