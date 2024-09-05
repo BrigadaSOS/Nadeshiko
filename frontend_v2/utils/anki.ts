@@ -2,10 +2,12 @@
 // It sends a message to the background script with the sentence and the id of the note to update.
 // If the id is null, it will use the id of the last note added.
 export const addSentenceToAnki = (sentence: Sentence, id: number | null = null) => {
- // const toastOptions = {
- //   timeout: 3000,
- //   position: 'bottom-right'
- // };
+  // const toastOptions = {
+  //   timeout: 3000,
+  //   position: 'bottom-right'
+  // };
+
+  console.log(sentence);
 
   const localSettings = localStorage.getItem('settings');
   if (!localSettings) {
