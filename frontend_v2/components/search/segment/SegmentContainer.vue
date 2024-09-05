@@ -38,11 +38,9 @@ const orderedSegments = computed(() => {
 // @ts-ignore
 const openModal = (content) => {
   selectedSentence.value = content;
-  console.log(content);
 };
 
 const openAnkiModal = (sentence: Sentence) => {
-  console.log("openAnkiModal:", sentence);
   searchNoteSentence.value = sentence;
 };
 
