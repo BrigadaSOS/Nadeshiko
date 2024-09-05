@@ -68,7 +68,7 @@ const getNotesFromQuery = async () => {
       ? store.ankiPreferences.settings.current.key : "";
 
     const currentDeck = store.ankiPreferences.settings.current.deck
-      ? `deck:${store.ankiPreferences.settings.current.deck}` : "";
+      ? `"deck:${store.ankiPreferences.settings.current.deck}"` : "";
 
     const query = `${currentDeck} ${currentKey}:*${inputVal.value}*`;
 
