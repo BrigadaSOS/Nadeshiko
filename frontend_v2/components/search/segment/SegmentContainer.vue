@@ -12,7 +12,6 @@ const props = defineProps<Props>();
 let locale = ref('en');
 
 let selectedSentence = ref(null);
-let showNotesSearch = ref(false);
 let searchNoteSentence: Ref<Sentence | null> = ref(null);
 
 // Order segment according to website language
@@ -43,7 +42,7 @@ const openModal = (content) => {
 };
 
 const openAnkiModal = (sentence: Sentence) => {
-  showNotesSearch.value = true;
+  console.log("openAnkiModal:", sentence);
   searchNoteSentence.value = sentence;
 };
 
@@ -51,16 +50,14 @@ const openAnkiModal = (sentence: Sentence) => {
 </script>
 <template>
   <div v-if="searchData?.sentences?.length > 0 && searchData">
-    
+
     <SearchModalContext :sentence="selectedSentence" />
 
-    <!--
-      <ModalAnkiNotes v-if="showNotesSearch" :sentence="searchNoteSentence" :onClose="() => showNotesSearch = false"  :onClick="(sentence: Sentence, id: number) => addSentenceToAnki(sentence, id)" />
-    -->   
-     
-    <SearchModalAnkiNotes/>
+    <SearchModalAnkiNotes :sentence="searchNoteSentence"
+      :onClick="(sentence: Sentence, id: number) => addSentenceToAnki(sentence, id)" />
+
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
-      :id="sentence.segment_info.position" :unrender="true" :min-height="300" 
+      :id="sentence.segment_info.position" :unrender="true" :min-height="300"
       class="hover:bg-neutral-800/20 items-center b-2 transition-all rounded-lg flex flex-col lg:flex-row py-2"
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === currentSentenceIndex }">
       <!-- Image -->
