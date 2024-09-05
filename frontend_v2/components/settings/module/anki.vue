@@ -18,6 +18,7 @@ let modelOptions = ref([])
 let selectedModel = ref('')
 let fieldOptions = ref([])
 let isSuccess = ref(false)
+let modelKey = ref(null);
 
 const loadDeckOptions = () => {
   settings = localStorage.getItem('settings')
@@ -26,6 +27,7 @@ const loadDeckOptions = () => {
 
     if (settings.ankiPreferences.settings.current.deck) {
       selectedDeck.value = store.ankiPreferences.settings.current.deck
+      console.log(selectedDeck.value);
     }
 
     if (settings.ankiPreferences.availableDecks) {
@@ -42,6 +44,10 @@ const loadDeckOptions = () => {
 
     if (settings.ankiPreferences.availableModels) {
       modelOptions.value = settings.ankiPreferences.availableModels
+    }
+
+    if (settings.ankiPreferences.settings.current.key) {
+      modelKey.value = settings.ankiPreferences.settings.current.key;
     }
   }
 }
@@ -91,12 +97,16 @@ watch(selectedModel, async (newValue, oldValue) => {
   }
 })
 
-watch(selectedDeck, async (newValue, oldValue) => {
-  store.ankiPreferences.settings.current.deck = newValue
+watch(selectedDeck, async (newValue) => {
+  store.ankiPreferences.settings.current.deck = newValue;
 })
 
-watch(deckOptions, async (newValue, oldValue) => {
-  store.ankiPreferences.settings.current.fields = newValue
+watch(modelKey, async (newValue) => {
+  store.ankiPreferences.settings.current.key = newValue;
+});
+
+watch(deckOptions, async (newValue) => {
+  store.ankiPreferences.settings.current.fields = newValue;
 })
 
 </script>
@@ -136,7 +146,7 @@ watch(deckOptions, async (newValue, oldValue) => {
             <div v-if="isSuccess" role="alert"
               class="rounded border-s-4 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
               <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
-                <UiBaseIcon :path="mdiCheckBold" size="20"/>
+                <UiBaseIcon :path="mdiCheckBold" size="20" />
 
                 <strong class="block font-medium">Conexión establecida</strong>
               </div>
@@ -204,6 +214,22 @@ watch(deckOptions, async (newValue, oldValue) => {
           </div>
         </div>
       </div>
+
+      <div class="mt-4">
+        <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
+          <div class="flex-grow">
+            <label class="block text-lg mb-1 font-medium text-white"> Deck </label>
+            <select v-model="modelKey"
+              class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
+              <option value="">Selecciona el field que corresponde al ID de tu deck</option>
+              <option v-for="(option, index) in fieldOptions" :key="index" :value="option.key">
+                {{ option.key }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
 
       <div class="border rounded-lg overflow-hidden dark:border-modal-border">
         <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">

@@ -45,7 +45,7 @@
         "description": "Disfruta de diferentes generos, diferentes medios, diferentes voces."
       }
     },
-    "support":{
+    "support": {
       "title": "¿Te gusta Nadeshiko?",
       "description": " Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro desarrollo con una contribución en nuestro Github, una donación o compartiendo este sitio con otras personas."
     },
@@ -79,6 +79,10 @@
       "searching": "Realizando búsqueda...",
       "return": "Regresar"
     }
+  },
+  "ankiSearch": {
+    "title": "Busca en tu coleccion",
+    "description": "Busca una carta que tienes en anki y agregale imagen y audio. Es necesario que este configurado el 'Key Field' dentro de la pesta;a de ajustes."
   },
   "animeList": {
     "recentlyAddedTitle": "Recién añadidos",
@@ -173,7 +177,7 @@
       "googlelogin": "Inicia sesión con Google",
       "register": "Registrarse"
     },
-    "labels":{
+    "labels": {
       "questionaccount": "¿No tienes una cuenta?",
       "answerquestionaccount": "Registrate aquí",
       "conditionalor": "O",
