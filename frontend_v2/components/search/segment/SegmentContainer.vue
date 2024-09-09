@@ -52,7 +52,7 @@ const openAnkiModal = (sentence: Sentence) => {
     <SearchModalContext :sentence="selectedSentence" />
 
     <SearchModalAnkiNotes :sentence="searchNoteSentence"
-      :onClick="(sentence: Sentence, id: number) => addSentenceToAnki(sentence, id)" />
+      :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
 
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
       :id="sentence.segment_info.position" :unrender="true" :min-height="300"
