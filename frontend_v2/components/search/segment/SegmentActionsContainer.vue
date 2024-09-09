@@ -32,7 +32,7 @@ const openAnkiModal = () => {
       <SearchDropdownContent>
         <!-- Anki by last added -->
         <SearchDropdownItem text="Añadir a Anki (Ultima carta añadida)" :iconPath="mdiStarShootingOutline"
-          @click="addSentenceToAnki(content)" />
+          @click="ankiStore().addSentenceToAnki(content)" />
 
         <!-- Anki by ID -->
         <SearchDropdownItem text="Añadir a Anki (Busca en tu colección)" @click="openAnkiModal()"
