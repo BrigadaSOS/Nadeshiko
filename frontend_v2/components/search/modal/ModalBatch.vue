@@ -217,10 +217,14 @@ watch(inputText, (newValue) => {
                       <tr v-for="(item, index) in sortedWordsMatch">
                         <td
                           class="y-4 whitespace-nowrap text-base text-center font-medium text-gray-800 dark:text-gray-200">
-                          <a v-if="item.is_match" :href="'search/sentence?query=' + item.word + '&exact_match=true'"
+                          <NuxtLink v-if="item.is_match" 
+                          :to="{
+                            path: '/search/sentence',
+                            query: { query: item.word }
+                          }"
                             class="text-blue-500 underline-offset-2 underline" target="_blank">
                             {{ item.word }}
-                          </a>
+                          </NuxtLink>
                           <span v-else>
                             {{ item.word }}
                           </span>
