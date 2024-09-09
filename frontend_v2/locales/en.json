@@ -80,6 +80,10 @@
       "return": "Return"
     }
   },
+  "ankiSearch": {
+    "title": "Search in your collection",
+    "description": "Look for a card that you have in Anki and add an image and audio to it. It is necessary that the 'Key Field' is configured in the settings tab."
+  },
   "animeList": {
     "recentlyAddedTitle": "Recently Added",
     "fullListTitle": "All Content",
@@ -173,7 +177,7 @@
       "googlelogin": "Login with Google",
       "register": "Register"
     },
-    "labels":{
+    "labels": {
       "questionaccount": "Don't have an account?",
       "answerquestionaccount": "Sign up here",
       "conditionalor": "Or",
