@@ -70,7 +70,7 @@ const getNotesFromQuery = async () => {
     const currentDeck = store.ankiPreferences.settings.current.deck
       ? `"deck:${store.ankiPreferences.settings.current.deck}"` : "";
 
-    const query = `${currentDeck} ${currentKey}:*${inputVal.value}*`;
+    const query = `${currentDeck} ${currentKey}:\*${inputVal.value}*`;
 
     const response = await executeAction("findNotes", { query: query });
 
@@ -128,20 +128,20 @@ const getNotesFromQuery = async () => {
             <div class="sm:mx-4 mx-auto flex flex-col">
               <div class="p-6 space-y-6 flex flex-col">
                 <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                  {{ t("ankiSearch.description") }}.
+                  {{ t("ankiSearch.description") }}
                   <br />
                 </p>
 
                 <input :value="inputVal" @input="(e: any) => { inputVal = e.target.value; getNotesFromQuery(); }"
                   autocomplete="off"
                   class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
-                  placeholder="...."></input>
+                  placeholder="女"></input>
 
                 <div class="mt-6">
-                  <div class="border rounded-lg overflow-hidden dark:border-modal-border">
-                    <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
+                  <div class="border rounded-lg h-96 overflow-hidden dark:border-modal-border">
+                    <table class="w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
                       <thead>
-                        <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
+                        <tr class=" bg-input-background divide-gray-200 dark:divide-white/30">
                           <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">ID
                           </th>
                           <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
@@ -154,7 +154,7 @@ const getNotesFromQuery = async () => {
                       </thead>
 
                       <tbody class="divide-y divide-gray-200 dark:divide-white/20">
-                        <tr v-for="note in notes" class="divide-x divide-gray-200 text-center dark:divide-white/20">
+                        <tr v-for="note in notes" class="divide-gray-200 text-center dark:divide-white/20">
                           <td
                             class="w-2/12 py-4 whitespace-nowrap text-base text-center px-2 font-medium text-gray-800 dark:text-gray-200">
                             {{ note.noteId }}
@@ -164,11 +164,10 @@ const getNotesFromQuery = async () => {
                             {{ note.value }}
                           </td>
                           <td class="w-1/12">
-                            <UiButtonPrimaryAction class="my-0.5 "
+                            <UiButtonPrimaryAction 
                               data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection"
                               @click="props.onClick(sentence!, note.noteId)">
                               <UiBaseIcon :path="mdiPlus" />
-
                             </UiButtonPrimaryAction>
                           </td>
                         </tr>
@@ -178,7 +177,7 @@ const getNotesFromQuery = async () => {
                     <section v-if="notes.length === 0" class="rounded-xl mx-auto">
                       <div class="flex items-center text-center h-96 dark:border-gray-700 bg-sgrayhover">
                         <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
-                          <div class="p-3 mx-auto text-sred bg-blue-100 rounded-full dark:bg-sgray">
+                          <div class="p-3 mx-auto bg-blue-100 rounded-full dark:bg-card-background">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                               stroke="currentColor" class="w-6 h-6">
                               <path stroke-linecap="round" stroke-linejoin="round"
