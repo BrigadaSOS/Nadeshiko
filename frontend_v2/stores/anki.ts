@@ -9,6 +9,7 @@ export const ankiStore = defineStore("anki", {
           deck: null,
           model: null,
           fields: [],
+          key: null,
         },
       },
     },
