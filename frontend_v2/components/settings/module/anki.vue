@@ -221,7 +221,7 @@ watch(deckOptions, async (newValue) => {
             <label class="block text-lg mb-1 font-medium text-white"> Key Field </label>
             <select v-model="modelKey"
               class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
-              <option value="">Selecciona el field que corresponde al ID de tu deck</option>
+              <option :value="null">Selecciona el field que corresponde al ID de tu deck</option>
               <option v-for="(option, index) in fieldOptions" :key="index" :value="option.key">
                 {{ option.key }}
               </option>
