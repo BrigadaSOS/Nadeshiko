@@ -9,7 +9,7 @@ namespace: nadedb-dev
 images:
 - name: brigadasos-dev-db
   newName: ghcr.io/brigadasos/nadeshiko
-  newTag: v0.9.9-dev
+  newTag: v0.9.9.1-dev
 - name: nadedb
   newName: ghcr.io/brigadasos/nadedb
   newTag: v0.9.1-4
