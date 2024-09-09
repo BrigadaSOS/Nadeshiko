@@ -2,7 +2,7 @@
 
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
-import { mdiPlus } from '@mdi/js'
+import { mdiPlus, mdiCheckBold } from '@mdi/js'
 
 type Props = {
   sentence: Sentence | null;
@@ -17,6 +17,9 @@ const notes = ref([]);
 
 const store = ankiStore()
 
+let isLoading = ref(false);
+let isConfigValid = ref(false);
+let isError = ref(false); 
 
 watch(() => props.sentence, async () => {
   const regex = /<em>(.*?)<\/em>/;
@@ -34,6 +37,19 @@ watch(() => props.sentence, async () => {
 // if (keyValueStorage) {
 //   keyValue.value = keyValueStorage;
 // }
+
+const validateAnkiConfig = () => {
+  if (store.ankiPreferences.settings.current.key) {
+    isConfigValid.value = true;
+  } else {
+    isConfigValid.value = false;
+    isError.value = true;
+  }
+};
+
+onMounted(() => {
+  validateAnkiConfig();
+});
 
 const executeAction = async (action: string, params: Object) => {
   try {
@@ -63,6 +79,7 @@ const executeAction = async (action: string, params: Object) => {
 
 
 const getNotesFromQuery = async () => {
+  if (!isConfigValid.value) return;
   try {
     const currentKey = store.ankiPreferences.settings.current.key
       ? store.ankiPreferences.settings.current.key : "";
@@ -131,7 +148,66 @@ const getNotesFromQuery = async () => {
                   {{ t("ankiSearch.description") }}
                   <br />
                 </p>
+                <div class="mt-4">
+                    <div class="flex justify-between items-center">
+                      <div class="w-full">
+                        <div v-if="isLoading" role="alert"
+                          class="rounded border-s-4 border-blue-500 bg-blue-50 p-4 dark:border-blue-600 dark:bg-blue-900/60">
+                          <div class="flex items-center gap-2 text-blue-800 dark:text-blue-100">
+                            <div role="status">
+                              <svg aria-hidden="true"
+                                class="inline w-5 h-5 text-gray-200 animate-spin dark:text-gray-400 fill-gray-500 dark:fill-gray-200"
+                                viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                  fill="currentColor" />
+                                <path
+                                  d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                  fill="currentFill" />
+                              </svg>
+                              <span class="sr-only">Loading...</span>
+                            </div>
+                            <strong class="block font-medium">Cargando...</strong>
+                          </div>
+                          <p class="mt-2 text-sm text-blue-700 dark:text-blue-200">
+                            Por favor, espere mientras se valida.
+                          </p>
+                        </div>
 
+                        <div v-if="isConfigValid" role="alert"
+                          class="rounded border-s-4 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
+                          <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
+                            <UiBaseIcon :path="mdiCheckBold" size="20" />
+
+                            <strong class="block font-medium">Validación exitosa</strong>
+                          </div>
+                          <p class="mt-2 text-sm text-green-700 dark:text-green-200">
+                            ¡El keyfield está configurado!
+                          </p>
+                        </div>
+
+                        <div v-if="isError" role="alert"
+                          class="rounded border-s-4 border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/70">
+                          <div class="flex items-center gap-2 text-red-800 dark:text-red-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
+                              <path fill-rule="evenodd"
+                                d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
+                                clip-rule="evenodd" />
+                            </svg>
+                            <strong class="block font-medium"> Algo ha fallado</strong>
+                          </div>
+                          <p class="mt-2 text-sm text-red-700 dark:text-red-200">
+                            No se ha definido un keyfield.
+                          </p>
+                          <ol class="pl-5 text-sm dark:text-red-200 list-disc">
+                            <li>
+                              Verifique que el keyfield este definido dentro de los ajustes de Nadeshiko.
+                            </li>
+                          </ol>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 <input :value="inputVal" @input="(e: any) => { inputVal = e.target.value; getNotesFromQuery(); }"
                   autocomplete="off"
                   class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
