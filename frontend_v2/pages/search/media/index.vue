@@ -15,7 +15,7 @@ const filterType = ref("");
 // Pagination variables
 const currentView = ref("grid");
 const page = ref(1);
-const pageSize = 28;
+const pageSize = ref(28);
 const hasMore = ref(false);
 
 // States and misc variables
@@ -29,7 +29,7 @@ const fetchMedia = async () => {
 
   try {
     const response = await apiSearch.getRecentMedia({
-      cursor: (page.value - 1) * pageSize,
+      cursor: (page.value - 1) * pageSize.value,
       query: searchQuery.value,
       size: pageSize.value,
       type: filterType.value,
