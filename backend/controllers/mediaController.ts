@@ -28,6 +28,8 @@ import {GetContextAnimeResponse} from "../models/controller/GetContextAnimeRespo
 import { SaveUserSearchHistory } from "./databaseController";
 import { EventTypeHistory } from "../models/miscellaneous/userSearchHistory"
 import { Segment } from "../models/media/segment";
+import { CategoryType } from "../models/media/media"
+
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
@@ -198,30 +200,44 @@ export const getAllMedia = async (
   next: NextFunction
 ) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const pageSize = parseInt(req.query.size as string) || 2;
+    const pageSize = parseInt(req.query.size as string) || 20;
+    const searchQuery = typeof req.query.query === 'string' ? req.query.query : '';
+    const cursor = req.query.cursor ? parseInt(req.query.cursor as string) : 0;
+    const type = typeof req.query.type === 'string' ? req.query.type.toLowerCase() : ''; 
 
-    const response: QueryMediaInfoResponse = await queryMediaInfo(page, pageSize);
+    const response: QueryMediaInfoResponse = await queryMediaInfo();
 
     let results = Object.values(response.results);
 
-    if(req.query.sorted && req.query.sorted.toLowerCase() === "true") {
-      results = results.sort((a, b) => {return Date.parse(b.created_at) - Date.parse(a.created_at) });
+    const categoryMap: Record<string, CategoryType> = {
+      anime: CategoryType.ANIME,
+      liveaction: CategoryType.JDRAMA,
+    };
+
+    if (type && categoryMap[type]) {
+      const selectedCategory = categoryMap[type];
+      results = results.filter((media) => media.category === selectedCategory);
     }
 
-    if(req.query.size && Number(req.query.size) >= 0) {
-      results = results.slice(0, Number(req.query.size));
+    if (searchQuery) {
+      results = results.filter(
+        (media) =>
+          media.english_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          media.japanese_name.includes(searchQuery)
+      );
     }
 
-    return res.status(StatusCodes.ACCEPTED).json({
+    const paginatedResults = results.slice(cursor, cursor + pageSize);
+    const nextCursor = cursor + pageSize;
+    const hasMoreResults = nextCursor < results.length;
+
+    return res.status(StatusCodes.OK).json({
       stats: response.stats,
-      results,
-      pagination: {
-        currentPage: page,
-        pageSize: pageSize,
-      }
+      results: paginatedResults,
+      cursor: hasMoreResults ? nextCursor : null,
+      hasMoreResults: hasMoreResults
     });
-
+    
   } catch (error) {
     next(error);
   }
