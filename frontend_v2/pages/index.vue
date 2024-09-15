@@ -14,7 +14,9 @@ let isLoading = ref(false)
 const fetchMedia = async () => {
     try {
         isLoading.value = true
-        media.value = await apiSearch.getRecentMedia();
+        media.value = await apiSearch.getRecentMedia({
+            size: 10
+        });
         mediaError.value = false;
     } catch (error) {
         console.error('Error fetching media:', error);
