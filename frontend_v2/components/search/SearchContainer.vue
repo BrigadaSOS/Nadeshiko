@@ -341,6 +341,11 @@ onBeforeRouteUpdate(async (to, from) => {
                         Load more sentences
                     </UiButtonPrimaryAction>
                 </div>
+                <div v-if="endOfResults && !hasMoreResults && searchData?.sentences?.length > 0" class="text-center mt-4 mb-8">
+                    <p class="text-gray-500 dark:text-gray-400">
+                        ¡Has llegado al final!
+                    </p>
+                </div>
             </div>
             <!-- Filters -->
             <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">

@@ -5,6 +5,13 @@ export type ResponseV1 = {
   cursor: number[];
 }
 
+export type ResponseV2 = {
+  readonly stats: MediaInfoStats;
+  readonly results: MediaInfoData[];
+  readonly cursor: number | null;
+  readonly hasMoreResults: boolean; 
+}
+
 export type CategoryStatistic = {
   category: number;
   count: number;
@@ -68,16 +75,49 @@ export type SeasonWithEpisodeHits = {
   "1": { [key: string]: number };
 }
 
+export interface MediaInfoStats {
+  readonly total_animes: number;
+  readonly total_segments: number;
+  readonly full_total_animes: number;
+  readonly full_total_segments: number;
+}
+
+export interface MediaInfoData {
+  media_id: number,
+  category: number,
+  created_at: string,
+  updated_at?: number,
+  romaji_name: string,
+  english_name: string,
+  japanese_name: string,
+  airing_format: string,
+  airing_status: string,
+  release_date: Date,
+  folder_media_name: string,
+  genres: string[],
+  cover: string,
+  banner: string,
+  version: string,
+  num_segments: number,
+  num_seasons: number,
+  num_episodes: number
+}
 
 export const useApiSearch = defineStore("search", {
   actions: {
-    async getRecentMedia() {
+    async getRecentMedia(params: { size?: number; query?: string; cursor?: number; type?: string }): Promise<ResponseV2> {
       const config = useRuntimeConfig();
-      const data = await $fetch(
+      const data = await $fetch<ResponseV2>(
         `${config.public.baseURLBackend}search/media/info`,
         {
           method: "GET",
-          params: { size: "10", sorted: true },
+          params: {
+            size: params.size,
+            sorted: true,
+            query: params.query || '',
+            cursor: params.cursor || 0,
+            type: params.type || '', 
+          },
           mode: "cors",
           headers: {
             "Content-Type": "application/json",
