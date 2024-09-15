@@ -74,11 +74,16 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     total_animes += 1;
   });
 
+    const sql_full = 'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2'
+    const queryResponseFull = await connection.query(sql_full);
+    //@ts-ignore
+    const full_total_segments = parseInt(queryResponseFull[0][0].count2, 10);
+
   MEDIA_TABLE_CACHE = {
     stats: {
       total_animes,
       full_total_animes: counts,
-      full_total_segments: counts[1] || 0,
+      full_total_segments: full_total_segments,
       total_segments,
     },
     results,
