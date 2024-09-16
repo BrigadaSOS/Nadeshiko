@@ -148,6 +148,13 @@ watch([page, currentView, searchQuery], () => {
         v-if="currentView === 'grid'"
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5 xl:gap-6"
       >
+        <!-- Loading Placeholder for Grid -->
+        <div v-if="loading" v-for="i in pageSize" :key="i" class="flex flex-col items-center animate-pulse">
+          <div class="relative w-full overflow-hidden rounded-lg bg-[rgba(255,255,255,0.06)] aspect-[2/3]"></div>
+          <div class="mt-2 w-full h-4  rounded"></div>
+        </div>
+
+        <!-- Media Content -->
         <div
           v-for="(media_info, index) in media"
           :key="media_info.title"
@@ -171,6 +178,22 @@ watch([page, currentView, searchQuery], () => {
         </div>
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
+        <!-- Loading Placeholder for List -->
+        <div v-if="loading" v-for="i in pageSize" :key="i" class="w-full relative mb-4 animate-pulse">
+          <div
+            class="relative flex flex-col z-20 items-center sm:items-start sm:flex-row rounded-lg bg-[rgba(255,255,255,0.06)] transition-all"
+          >
+            <div class="relative flex-none w-[16em] h-[21em] bg-[rgba(255,255,255,0.06)] rounded-lg"></div>
+
+            <div class="relative flex-auto p-6 z-10">
+              <div class="h-6 bg-[rgba(255,255,255,0.06)] rounded mb-2"></div>
+              <div class="h-4 bg-[rgba(255,255,255,0.06)] rounded w-3/4 mb-2"></div>
+              <div class="h-4 bg-[rgba(255,255,255,0.06)] rounded w-1/2 mb-2"></div>
+              <div class="h-4 bg-[rgba(255,255,255,0.06)] rounded w-1/4"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Media Content -->
         <div
           v-if="media.length > 0"
           v-for="(media_info, index) in media"
@@ -344,9 +367,6 @@ watch([page, currentView, searchQuery], () => {
         >
           Página Siguiente
         </button>
-      </div>
-      <div v-if="loading" class="flex justify-center mt-4">
-        <span>Cargando...</span>
       </div>
     </div>
   </NuxtLayout>
