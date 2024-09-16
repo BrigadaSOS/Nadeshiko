@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter, useRoute } from "vue-router";
-import { mdiGrid, mdiFormatListBulletedSquare } from "@mdi/js";
+import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight } from "@mdi/js";
 
 const apiSearch = useApiSearch();
 const media = ref([]);
@@ -314,7 +314,7 @@ watch([page, currentView, searchQuery], () => {
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-blue-500/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-blue-400 dark:placeholder-gray-400 dark:text-blue-400"
                   >
                     <div>Vocabulario</div>
-                    <BaseIcon
+                    <UiBaseIcon
                       :path="mdiArrowRight"
                       w="w-5 md:w-5"
                       h="h-5 md:h-5"
