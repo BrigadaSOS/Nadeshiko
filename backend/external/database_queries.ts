@@ -14,10 +14,10 @@ export const queryMediaInfo = async (
   pageSize: number = 10
 ): Promise<QueryMediaInfoResponse> => {
   // TODO: Fix cache
-  //if(MEDIA_TABLE_CACHE === undefined) {
-  //}
-  await refreshMediaInfoCache(page, pageSize);
-
+  if(MEDIA_TABLE_CACHE === undefined) {
+    pageSize = 10000000
+    await refreshMediaInfoCache(page, pageSize);
+  }
   return MEDIA_TABLE_CACHE!;
 };
 
