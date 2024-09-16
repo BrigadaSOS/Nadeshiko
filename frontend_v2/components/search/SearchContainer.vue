@@ -170,15 +170,15 @@ const fetchSentences = async (fromButton = false) => {
         } else {
             searchData.value.sentences.push(...response.sentences);
         }
+        cursor.value = response.cursor || null;
 
-        if (response.sentences.length < body.limit) {
+        if (!response.cursor) {
             endOfResults.value = true;
             hasMoreResults.value = false;
         } else {
             hasMoreResults.value = true;
         }
 
-        cursor.value = response.cursor;
         previousQuery.value = query.value;
         initialError.value = false;
     } catch (error) {
@@ -333,7 +333,7 @@ onBeforeRouteUpdate(async (to, from) => {
         <div class="flex mx-auto w-full ">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
-                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" />
+                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" currentSentenceIndex="" />
                 <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults" />
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">

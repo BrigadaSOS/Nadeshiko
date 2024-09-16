@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter, useRoute } from "vue-router";
-import { mdiGrid, mdiFormatListBulletedSquare } from "@mdi/js";
+import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight } from "@mdi/js";
 
 const apiSearch = useApiSearch();
 const media = ref([]);
@@ -15,7 +15,7 @@ const filterType = ref("");
 // Pagination variables
 const currentView = ref("grid");
 const page = ref(1);
-const pageSize = 20;
+const pageSize = ref(28);
 const hasMore = ref(false);
 
 // States and misc variables
@@ -24,22 +24,22 @@ let debounceTimeout = null;
 
 // Fetch media function
 const fetchMedia = async () => {
-  if (loading.value) return;
   loading.value = true;
 
   try {
     const response = await apiSearch.getRecentMedia({
-      cursor: (page.value - 1) * pageSize,
+      cursor: (page.value - 1) * pageSize.value,
       query: searchQuery.value,
-      size: 18,
+      size: pageSize.value,
       type: filterType.value,
     });
     media.value = response.results || [];
-    hasMore.value = response.hasMore && response.results.length > 0;
+    hasMore.value = response.hasMoreResults && response.results.length > 0;
   } catch (error) {
     console.error("Error fetching media:", error);
   } finally {
     loading.value = false;
+    scrollToTop();
   }
 };
 
@@ -50,6 +50,21 @@ const setGridView = () => {
 
 const setListView = () => {
   currentView.value = "list";
+};
+
+const nextPage = () => {
+  page.value++;
+};
+
+const beforePage = () => {
+  page.value--;
+};
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
 };
 
 // Filter handling
@@ -72,6 +87,7 @@ const updateUrl = () => {
 
 // Lifecycle
 onMounted(() => {
+  loading.value = true;
   page.value = parseInt(route.query.page) || 1;
   currentView.value = route.query.view === "list" ? "list" : "grid";
   query.value = route.query.query || "";
@@ -97,7 +113,7 @@ watch([page, currentView, searchQuery], () => {
 
 <template>
   <NuxtLayout>
-    <div class="min-h-screen mx-auto lg:max-w-[80%]  py-6">
+    <div class="min-h-screen max-w-[92%] mx-auto lg:max-w-[80%]  py-6">
       <div class="inline-flex justify-between items-center w-full mb-6">
         <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">
           {{ $t('animeList.fullListTitle') }}
@@ -148,17 +164,23 @@ watch([page, currentView, searchQuery], () => {
         v-if="currentView === 'grid'"
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5 xl:gap-6"
       >
-        <div
+        <!-- Loading Placeholder for Grid -->
+        <div v-if="loading" v-for="i in pageSize" :key="i" class="flex flex-col items-center animate-pulse">
+          <div class="relative w-full overflow-hidden rounded-lg bg-[rgba(255,255,255,0.06)] aspect-[2/3]"></div>
+          <div class="mt-2 w-full h-4  rounded"></div>
+        </div>
+
+        <!-- Media Content -->
+        <div v-else
           v-for="(media_info, index) in media"
-          :key="media_info.title"
           class="flex flex-col items-center"
         >
           <div
-            class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-black aspect-[2/3]"
+            class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
             <img
               :src="media_info.cover"
-              :key="media_info.media_id"
+              :key="media_info.id"
               :alt="media_info.title"
               class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
             />
@@ -171,6 +193,22 @@ watch([page, currentView, searchQuery], () => {
         </div>
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
+        <!-- Loading Placeholder for List -->
+        <div v-if="loading" v-for="i in pageSize" :key="i" class="w-full relative mb-4 animate-pulse">
+          <div
+            class="relative flex flex-col z-20 items-center sm:items-start sm:flex-row rounded-lg bg-[rgba(255,255,255,0.06)] transition-all"
+          >
+            <div class="relative flex-none w-[16em] h-[21em] bg-[rgba(255,255,255,0.06)] rounded-lg"></div>
+
+            <div class="relative flex-auto p-6 z-10">
+              <div class="h-6 bg-[rgba(255,255,255,0.06)] rounded mb-2"></div>
+              <div class="h-4 bg-[rgba(255,255,255,0.06)] rounded w-3/4 mb-2"></div>
+              <div class="h-4 bg-[rgba(255,255,255,0.06)] rounded w-1/2 mb-2"></div>
+              <div class="h-4 bg-[rgba(255,255,255,0.06)] rounded w-1/4"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Media Content -->
         <div
           v-if="media.length > 0"
           v-for="(media_info, index) in media"
@@ -314,7 +352,7 @@ watch([page, currentView, searchQuery], () => {
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-blue-500/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-blue-400 dark:placeholder-gray-400 dark:text-blue-400"
                   >
                     <div>Vocabulario</div>
-                    <BaseIcon
+                    <UiBaseIcon
                       :path="mdiArrowRight"
                       w="w-5 md:w-5"
                       h="h-5 md:h-5"
@@ -331,7 +369,7 @@ watch([page, currentView, searchQuery], () => {
       <div v-if="media.length > 0" class="flex flex-1 py-6">
         <button
           v-if="page > 1"
-          @click="page--"
+          @click="beforePage()"
           class="border-b-2 border-red-500 p-2 left-0 px-4 py-2 text-white transition-transform transform"
         >
           Página Anterior
@@ -339,14 +377,11 @@ watch([page, currentView, searchQuery], () => {
 
         <button
           v-if="hasMore"
-          @click="page++"
+          @click="nextPage()"
           class="ml-auto border-b-2 border-red-500 p-2 right-0 px-4 py-2 text-white transition-transform transform"
         >
           Página Siguiente
         </button>
-      </div>
-      <div v-if="loading" class="flex justify-center mt-4">
-        <span>Cargando...</span>
       </div>
     </div>
   </NuxtLayout>
