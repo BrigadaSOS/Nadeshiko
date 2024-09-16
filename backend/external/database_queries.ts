@@ -4,7 +4,6 @@ import {
   QueryMediaInfoResponse,
 } from "../models/external/queryMediaInfoResponse";
 import { getBaseUrlMedia } from "../utils/utils";
-import { Media } from '../models/media/media'
 
 let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
 
@@ -14,76 +13,94 @@ export const queryMediaInfo = async (
   page: number = 1,
   pageSize: number = 10
 ): Promise<QueryMediaInfoResponse> => {
-  if (MEDIA_TABLE_CACHE === undefined) {
-    await refreshMediaInfoCache(page, pageSize);
-  }
+  // TODO: Fix cache
+  //if(MEDIA_TABLE_CACHE === undefined) {
+  //}
+  await refreshMediaInfoCache(page, pageSize);
+
   return MEDIA_TABLE_CACHE!;
 };
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
-  const offset = (page - 1) * pageSize;
+  let size_position_filter = "";
+  if (page === 0) {
+    size_position_filter = `LIMIT ${pageSize}`;
+  } else {
+    const offset = (page - 1) * pageSize;
+    size_position_filter = `LIMIT ${pageSize} OFFSET ${offset}`;
+  }
 
-  const [mediaResults, counts] = await Promise.all([
-    Media.findAll({
-      attributes: [
-        'id', 'category', 'created_at', 'updated_at', 'romaji_name', 'english_name', 
-        'japanese_name', 'airing_format', 'airing_status', 'folder_media_name', 
-        'genres', 'cover', 'banner', 'release_date', 'version', 
-        'num_segments', 'num_seasons', 'num_episodes'
-      ],
-      order: [['created_at', 'DESC']],
-      limit: pageSize,
-      offset: offset
-    }),
-    Media.count(),
-    Media.sum('num_segments')
-  ]);
+  const sql = `SELECT 
+  json_build_object(
+    'media_id', me.id,
+    'category', me.category,
+    'created_at', me.created_at,
+    'updated_at', me.updated_at,
+    'romaji_name', me.romaji_name,
+    'english_name', me.english_name, 
+    'japanese_name', me.japanese_name,
+    'airing_format', me.airing_format,
+    'airing_status', me.airing_status,
+    'folder_media_name', me.folder_media_name,
+    'genres', me.genres,
+    'cover', me.cover,
+    'banner', me.banner,
+    'release_date', me.release_date,
+    'version', me.version,
+    'num_segments', me.num_segments,
+    'num_seasons', me.num_seasons,
+    'num_episodes', me.num_episodes
+  ) AS media_info
+    FROM 
+      nadedb.public."Media" me
+    GROUP BY 
+      me.id, me.romaji_name, me.english_name, me.japanese_name
+    ORDER BY me.created_at DESC
+    ${size_position_filter}`;
+
+  const sql_full =
+    'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2';
+
+  const queryResponse = await connection.query(sql);
+  const queryResponseFull = await connection.query(sql_full);
+  //@ts-ignore
+  const full_total_animes = parseInt(queryResponseFull[0][0].count1, 10);
+  //@ts-ignore
+  const full_total_segments = parseInt(queryResponseFull[0][0].count2, 10);
 
   const results: { [key: number]: MediaInfoData } = {};
   let total_animes = 0;
   let total_segments = 0;
 
-  mediaResults.forEach((media: any) => {
-    const mediaInfo: MediaInfoData = {
-      media_id: media.id,
-      category: media.category,
-      created_at: media.created_at.toISOString(),
-      updated_at: media.updated_at ? Math.floor(media.updated_at.getTime() / 1000) : undefined,
-      romaji_name: media.romaji_name,
-      english_name: media.english_name,
-      japanese_name: media.japanese_name,
-      airing_format: media.airing_format,
-      airing_status: media.airing_status,
-      folder_media_name: media.folder_media_name,
-      genres: media.genres,
-      cover: media.cover,
-      banner: media.banner,
-      release_date: media.release_date,
-      version: media.version,
-      num_segments: media.num_segments,
-      num_seasons: media.num_seasons,
-      num_episodes: media.num_episodes
-    };
+  queryResponse[0].forEach((result: any) => {
+    if (!("media_id" in result.media_info)) {
+      console.log("WARN: Invalid query, media_id not found");
+      return;
+    }
 
-    let location_media = mediaInfo.category == 1 ? 'anime' : 'jdrama';
-    mediaInfo.cover = [getBaseUrlMedia(), location_media, mediaInfo.cover].join("/");
-    mediaInfo.banner = [getBaseUrlMedia(), location_media, mediaInfo.banner].join("/");
+    let location_media = result.media_info.category == 1 ? "anime" : "jdrama";
+    result.media_info.cover = [
+      getBaseUrlMedia(),
+      location_media,
+      result.media_info.cover,
+    ].join("/");
+    result.media_info.banner = [
+      getBaseUrlMedia(),
+      location_media,
+      result.media_info.banner,
+    ].join("/");
 
-    results[mediaInfo.media_id] = mediaInfo;
-    total_segments += mediaInfo.num_segments;
+    results[Number(result.media_info["media_id"])] = result.media_info;
+
+    total_segments += result.media_info.num_segments;
     total_animes += 1;
   });
-
-    const sql_full = 'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2'
-    const queryResponseFull = await connection.query(sql_full);
-    //@ts-ignore
-    const full_total_segments = parseInt(queryResponseFull[0][0].count2, 10);
 
   MEDIA_TABLE_CACHE = {
     stats: {
       total_animes,
-      full_total_animes: counts,
-      full_total_segments: full_total_segments,
+      full_total_animes,
+      full_total_segments,
       total_segments,
     },
     results,
