@@ -155,7 +155,7 @@ watch([page, currentView, searchQuery], () => {
         </div>
 
         <!-- Media Content -->
-        <div
+        <div v-else
           v-for="(media_info, index) in media"
           :key="media_info.title"
           class="flex flex-col items-center"
