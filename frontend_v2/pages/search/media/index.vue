@@ -24,7 +24,6 @@ let debounceTimeout = null;
 
 // Fetch media function
 const fetchMedia = async () => {
-  if (loading.value) return;
   loading.value = true;
 
   try {
@@ -52,6 +51,23 @@ const setListView = () => {
   currentView.value = "list";
 };
 
+const nextPage = () => {
+  page.value++;
+  scrollToTop()
+};
+
+const beforePage = () => {
+  page.value--;
+  scrollToTop()
+};
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+};
+
 // Filter handling
 const handleFilterChange = (type) => {
   page.value = 1;
@@ -72,6 +88,7 @@ const updateUrl = () => {
 
 // Lifecycle
 onMounted(() => {
+  loading.value = true;
   page.value = parseInt(route.query.page) || 1;
   currentView.value = route.query.view === "list" ? "list" : "grid";
   query.value = route.query.query || "";
@@ -157,15 +174,14 @@ watch([page, currentView, searchQuery], () => {
         <!-- Media Content -->
         <div v-else
           v-for="(media_info, index) in media"
-          :key="media_info.title"
           class="flex flex-col items-center"
         >
           <div
-            class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-black aspect-[2/3]"
+            class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
             <img
               :src="media_info.cover"
-              :key="media_info.media_id"
+              :key="media_info.id"
               :alt="media_info.title"
               class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
             />
@@ -354,7 +370,7 @@ watch([page, currentView, searchQuery], () => {
       <div v-if="media.length > 0" class="flex flex-1 py-6">
         <button
           v-if="page > 1"
-          @click="page--"
+          @click="beforePage()"
           class="border-b-2 border-red-500 p-2 left-0 px-4 py-2 text-white transition-transform transform"
         >
           Página Anterior
@@ -362,7 +378,7 @@ watch([page, currentView, searchQuery], () => {
 
         <button
           v-if="hasMore"
-          @click="page++"
+          @click="nextPage()"
           class="ml-auto border-b-2 border-red-500 p-2 right-0 px-4 py-2 text-white transition-transform transform"
         >
           Página Siguiente
