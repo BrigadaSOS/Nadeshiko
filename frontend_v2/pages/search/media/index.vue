@@ -39,6 +39,7 @@ const fetchMedia = async () => {
     console.error("Error fetching media:", error);
   } finally {
     loading.value = false;
+    scrollToTop();
   }
 };
 
@@ -53,12 +54,10 @@ const setListView = () => {
 
 const nextPage = () => {
   page.value++;
-  scrollToTop()
 };
 
 const beforePage = () => {
   page.value--;
-  scrollToTop()
 };
 
 const scrollToTop = () => {
@@ -114,7 +113,7 @@ watch([page, currentView, searchQuery], () => {
 
 <template>
   <NuxtLayout>
-    <div class="min-h-screen mx-auto lg:max-w-[80%]  py-6">
+    <div class="min-h-screen max-w-[92%] mx-auto lg:max-w-[80%]  py-6">
       <div class="inline-flex justify-between items-center w-full mb-6">
         <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">
           {{ $t('animeList.fullListTitle') }}
