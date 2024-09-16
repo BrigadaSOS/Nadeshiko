@@ -198,7 +198,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                         class="w-full relative">
                                                         <div class="w-full">
                                                             <div
-                                                                class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
+                                                                class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.06)] block">
                                                                 <img class="w-full h-full object-cover absolute top-0 left-0"
                                                                     :src="media_info.cover + '?width=460&height=652'" />
                                                             </div>
@@ -211,7 +211,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                     <div
                                                                         class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
                                                                         <div
-                                                                            class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
+                                                                            class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.06)] block">
                                                                             <img class="object-cover absolute top-0 left-0"
                                                                                 :src="media_info.banner" />
                                                                         </div>
@@ -273,18 +273,18 @@ watch(() => window.innerWidth, checkScreenSize);
                                                     <div v-else role="status" v-for="i in 10"
                                                         class="animate-pulse relative">
                                                         <div
-                                                            class="w-full pb-[145%] rounded-lg items-center overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
+                                                            class="w-full pb-[145%] rounded-lg items-center overflow-hidden relative bg-[rgba(255,255,255,0.06)] block">
                                                         </div>
                                                         <div
                                                             class="mt-2 text-center justify-center flex flex-col items-center">
                                                             <div
-                                                                class="h-2.5 bg-gray-200 rounded-full dark:bg-[rgba(255,255,255,0.1)] w-36 mt-2 mb-4">
+                                                                class="h-2.5 bg-gray-200 rounded-full dark:bg-[rgba(255,255,255,0.06)] w-36 mt-2 mb-4">
                                                             </div>
                                                         </div>
                                                         <div
                                                             class="text-center mt-1 mb-4 justify-center flex flex-col items-center">
                                                             <div
-                                                                class="h-2.5 bg-gray-200 rounded-full dark:bg-[rgba(255,255,255,0.1)] w-28 mb-4">
+                                                                class="h-2.5 bg-gray-200 rounded-full dark:bg-[rgba(255,255,255,0.06)] w-28 mb-4">
                                                             </div>
                                                         </div>
                                                     </div>
