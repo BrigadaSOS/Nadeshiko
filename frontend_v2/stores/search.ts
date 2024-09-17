@@ -36,7 +36,7 @@ export type MediaInfo = {
 
 export type SegmentInfo = {
   status: number;
-  uid: string;
+  uuid: string;
   position: number;
   start_time: string;
   end_time: string;

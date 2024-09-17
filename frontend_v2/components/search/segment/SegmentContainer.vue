@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
 import { mdiTranslate, mdiVolumeHigh,mdiChevronRight, mdiClose, mdiChevronLeft, mdiArrowExpandHorizontal } from '@mdi/js'
 import ModalAnkiNotes from '../modal/ModalAnkiNotes.vue';
 
@@ -13,7 +14,6 @@ const props = defineProps<Props>();
 let locale = ref('en');
 
 let selectedSentence = ref(null);
-let showNotesSearch = ref(false);
 let searchNoteSentence: Ref<Sentence | null> = ref(null);
 
 // Order segment according to website language
@@ -40,11 +40,9 @@ const orderedSegments = computed(() => {
 // @ts-ignore
 const openModal = (content) => {
   selectedSentence.value = content;
-  console.log(content);
 };
 
 const openAnkiModal = (sentence: Sentence) => {
-  showNotesSearch.value = true;
   searchNoteSentence.value = sentence;
 };
 
@@ -169,11 +167,11 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 </script>
 <template>
   <div v-if="searchData?.sentences?.length > 0 && searchData">
-    
+
     <SearchModalContext :sentence="selectedSentence" />
 
-    <ModalAnkiNotes v-if="showNotesSearch" :sentence="searchNoteSentence" :onClose="() => showNotesSearch = false"
-      :onClick="(sentence: Sentence, id: number) => addSentenceToAnki(sentence, id)" />
+    <SearchModalAnkiNotes :sentence="searchNoteSentence"
+      :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
 
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
       :id="sentence.segment_info.position" :unrender="true" :min-height="300" 
