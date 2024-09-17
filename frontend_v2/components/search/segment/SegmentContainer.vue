@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiTranslate, mdiVolumeHigh,mdiChevronRight, mdiClose } from '@mdi/js'
+import { mdiTranslate, mdiVolumeHigh,mdiChevronRight, mdiClose, mdiChevronLeft, mdiArrowExpandHorizontal } from '@mdi/js'
 import ModalAnkiNotes from '../modal/ModalAnkiNotes.vue';
 
 type Props = {
@@ -50,7 +50,6 @@ const openAnkiModal = (sentence: Sentence) => {
 
 const apiSearch = useApiSearch();
 
-
 let isLoading = ref(false);
 
 let activeConcatenation: { sentence: Sentence | null; originalContent: any } = {
@@ -61,9 +60,15 @@ let activeConcatenation: { sentence: Sentence | null; originalContent: any } = {
 const revertActiveConcatenation = () => {
   if (activeConcatenation.sentence && activeConcatenation.originalContent) {
     // Revertir la oración al contenido original
-    activeConcatenation.sentence.segment_info = { 
-      ...activeConcatenation.sentence.segment_info, 
-      ...activeConcatenation.originalContent 
+    activeConcatenation.sentence.segment_info = {
+      ...activeConcatenation.sentence.segment_info,
+      content_jp: activeConcatenation.originalContent.content_jp,
+      content_en: activeConcatenation.originalContent.content_en,
+      content_es: activeConcatenation.originalContent.content_es,
+      content_jp_highlight: activeConcatenation.originalContent.content_jp_highlight,
+      content_en_highlight: activeConcatenation.originalContent.content_en_highlight,
+      content_es_highlight: activeConcatenation.originalContent.content_es_highlight,
+      concatenated_audio: [activeConcatenation.sentence.media_info.path_audio]
     };
     activeConcatenation = { sentence: null, originalContent: null };
   }
@@ -73,7 +78,12 @@ const isConcatenated = (sentence: Sentence) => {
   return activeConcatenation.sentence === sentence;
 };
 
-const loadNextSentence = async (sentence: Sentence) => {
+const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'backward' | 'both') => {
+
+  if (isLoading.value) {
+    return;
+  }
+
   isLoading.value = true;
 
   // Revertir cualquier concatenación activa antes de proceder
@@ -87,11 +97,13 @@ const loadNextSentence = async (sentence: Sentence) => {
       season: sentence.basic_info.season,
       episode: sentence.basic_info.episode,
       segment_position: sentence.segment_info.position,
-      limit: 1,
+      limit: 1, // Traer tres oraciones: anterior, actual y siguiente
     });
 
     if (response && response.sentences.length > 0) {
-      const lastSentence = response.sentences[response.sentences.length - 1];
+      const previousSentence = response.sentences[0];
+      const currentSentence = response.sentences[1]; // La oración actual
+      const nextSentence = response.sentences[2];
 
       // Guardar el contenido original antes de concatenar
       activeConcatenation = {
@@ -106,18 +118,45 @@ const loadNextSentence = async (sentence: Sentence) => {
         },
       };
 
-      // Actualizar el contenido con la concatenación
-      audioUrls.push(lastSentence.media_info.path_audio);
-      sentence.segment_info = {
-        ...sentence.segment_info,
-        content_jp: `${sentence.segment_info.content_jp} <span class="text-orange-300">${lastSentence.segment_info.content_jp}</span>`,
-        content_en: `${sentence.segment_info.content_en} <span class="text-orange-300">${lastSentence.segment_info.content_en}</span>`,
-        content_es: `${sentence.segment_info.content_es} <span class="text-orange-300">${lastSentence.segment_info.content_es}</span>`,
-        content_jp_highlight: `${sentence.segment_info.content_jp_highlight || sentence.segment_info.content_jp} <span class="text-orange-300">${lastSentence.segment_info.content_jp_highlight || lastSentence.segment_info.content_jp}</span>`,
-        content_en_highlight: `${sentence.segment_info.content_en_highlight || sentence.segment_info.content_en} <span class="text-orange-300">${lastSentence.segment_info.content_en_highlight || lastSentence.segment_info.content_en}</span>`,
-        content_es_highlight: `${sentence.segment_info.content_es_highlight || sentence.segment_info.content_es} <span class="text-orange-300">${lastSentence.segment_info.content_es_highlight || lastSentence.segment_info.content_es}</span>`,
-        concatenated_audio: audioUrls
-      };
+      // Concatenar según la dirección especificada
+      if (direction === 'forward') {
+        audioUrls.push(nextSentence.media_info.path_audio);
+        sentence.segment_info = {
+          ...sentence.segment_info,
+          content_jp: `${sentence.segment_info.content_jp} <span class="text-cyan-200">${nextSentence.segment_info.content_jp}</span>`,
+          content_en: `${sentence.segment_info.content_en} <span class="text-cyan-200">${nextSentence.segment_info.content_en}</span>`,
+          content_es: `${sentence.segment_info.content_es} <span class="text-cyan-200">${nextSentence.segment_info.content_es}</span>`,
+          content_jp_highlight: `${sentence.segment_info.content_jp_highlight || sentence.segment_info.content_jp} <span class="text-cyan-200">${nextSentence.segment_info.content_jp_highlight || nextSentence.segment_info.content_jp}</span>`,
+          content_en_highlight: `${sentence.segment_info.content_en_highlight || sentence.segment_info.content_en} <span class="text-cyan-200">${nextSentence.segment_info.content_en_highlight || nextSentence.segment_info.content_en}</span>`,
+          content_es_highlight: `${sentence.segment_info.content_es_highlight || sentence.segment_info.content_es} <span class="text-cyan-200">${nextSentence.segment_info.content_es_highlight || nextSentence.segment_info.content_es}</span>`,
+        };
+      } else if (direction === 'backward') {
+        audioUrls.unshift(previousSentence.media_info.path_audio);
+        sentence.segment_info = {
+          ...sentence.segment_info,
+          content_jp: `<span class="text-cyan-200">${previousSentence.segment_info.content_jp}</span> ${sentence.segment_info.content_jp}`,
+          content_en: `<span class="text-cyan-200">${previousSentence.segment_info.content_en}</span> ${sentence.segment_info.content_en}`,
+          content_es: `<span class="text-cyan-200">${previousSentence.segment_info.content_es}</span> ${sentence.segment_info.content_es}`,
+          content_jp_highlight: `<span class="text-cyan-200">${previousSentence.segment_info.content_jp_highlight || previousSentence.segment_info.content_jp}</span> ${sentence.segment_info.content_jp_highlight || sentence.segment_info.content_jp}`,
+          content_en_highlight: `<span class="text-cyan-200">${previousSentence.segment_info.content_en_highlight || previousSentence.segment_info.content_en}</span> ${sentence.segment_info.content_en_highlight || sentence.segment_info.content_en}`,
+          content_es_highlight: `<span class="text-cyan-200">${previousSentence.segment_info.content_es_highlight || previousSentence.segment_info.content_es}</span> ${sentence.segment_info.content_es_highlight || sentence.segment_info.content_es}`,
+        };
+      } else if (direction === 'both') {
+        // Expandir en ambas direcciones
+        audioUrls.unshift(previousSentence.media_info.path_audio);
+        audioUrls.push(nextSentence.media_info.path_audio);
+        sentence.segment_info = {
+          ...sentence.segment_info,
+          content_jp: `<span class="text-cyan-200">${previousSentence.segment_info.content_jp}</span> ${sentence.segment_info.content_jp} <span class="text-cyan-200">${nextSentence.segment_info.content_jp}</span>`,
+          content_en: `<span class="text-cyan-200">${previousSentence.segment_info.content_en}</span> ${sentence.segment_info.content_en} <span class="text-cyan-200">${nextSentence.segment_info.content_en}</span>`,
+          content_es: `<span class="text-cyan-200">${previousSentence.segment_info.content_es}</span> ${sentence.segment_info.content_es} <span class="text-cyan-200">${nextSentence.segment_info.content_es}</span>`,
+          content_jp_highlight: `<span class="text-cyan-200">${previousSentence.segment_info.content_jp}</span>  ${sentence.segment_info.content_jp_highlight || sentence.segment_info.content_jp} <span class="text-cyan-200">${nextSentence.segment_info.content_jp_highlight || nextSentence.segment_info.content_jp}</span>`,
+          content_en_highlight: `<span class="text-cyan-200">${previousSentence.segment_info.content_en}</span> ${sentence.segment_info.content_en_highlight || sentence.segment_info.content_en} <span class="text-cyan-200">${nextSentence.segment_info.content_en_highlight || nextSentence.segment_info.content_en}</span>`,
+          content_es_highlight: `<span class="text-cyan-200">${previousSentence.segment_info.content_es}</span> ${sentence.segment_info.content_es_highlight || sentence.segment_info.content_es} <span class="text-cyan-200">${nextSentence.segment_info.content_es_highlight || nextSentence.segment_info.content_es}</span>`,
+        };
+      }
+
+      sentence.segment_info.concatenated_audio = audioUrls;
     }
   } catch (error) {
     console.error('Error fetching context sentences:', error);
@@ -176,29 +215,42 @@ const loadNextSentence = async (sentence: Sentence) => {
                   "></span>
               </h3>
 
-              <div class="absolute top-0 right-0">
+              <div class="flex ml-auto">
+                <UiButtonPrimaryAction
+                class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                @click="loadNextSentence(sentence,'backward')"
+                v-if="!isConcatenated(sentence)"
+              >
+                <UiBaseIcon :path="mdiChevronLeft" />
+              </UiButtonPrimaryAction>
 
-              </div>
               <UiButtonPrimaryAction
-                class="ml-3 lg:hidden group-hover:flex transition duration-300"
-                @click="loadNextSentence(sentence)"
+                class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                @click="loadNextSentence(sentence,'both')"
+                v-if="!isConcatenated(sentence)"
+              >
+                <UiBaseIcon :path="mdiArrowExpandHorizontal"/>
+              </UiButtonPrimaryAction>
+
+              <UiButtonPrimaryAction
+                class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                @click="loadNextSentence(sentence,'forward')"
                 v-if="!isConcatenated(sentence)"
               >
                 <UiBaseIcon :path="mdiChevronRight" />
               </UiButtonPrimaryAction>
 
               <UiButtonPrimaryAction
-                class="ml-3 lg:hidden group-hover:flex transition duration-300"
+                class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
                 @click="revertActiveConcatenation"
                 v-if="isConcatenated(sentence)"
               >
                 <UiBaseIcon :path="mdiClose" />
               </UiButtonPrimaryAction>
-
+              </div>
             </div>
             <!-- End Japanese Sentence -->
           </div>
-
           <!-- Second Row -->
           <div class="items-start flex-1 pt-1 justify-center">
             <!-- Tag Translation -->
