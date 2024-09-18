@@ -8,11 +8,11 @@ const { t, locale } = useI18n()
 
 const store = ankiStore()
 const user_store = userStore()
+
 const user = computed(() => user_store.userInfo)
 
 let isError = ref(false)
 let isLoading = ref(false)
-let settings = ref(null)
 let deckOptions = ref([])
 let selectedDeck = ref('')
 let modelOptions = ref([])
@@ -21,34 +21,43 @@ let fieldOptions = ref([])
 let isSuccess = ref(false)
 let modelKey = ref(null);
 
-const loadDeckOptions = () => {
-  settings = localStorage.getItem('settings')
+// advanced settings
+let ankiconnectAddress = ref("http://127.0.0.1:8765");
+
+const loadSettings = (loadDeckInfo = false) => {
+  let settings = localStorage.getItem('settings')
   if (settings) {
     settings = JSON.parse(settings)
 
-    if (settings.ankiPreferences.settings.current.deck) {
-      selectedDeck.value = store.ankiPreferences.settings.current.deck
-      console.log(selectedDeck.value);
+    if (loadDeckInfo) {
+
+      if (settings.ankiPreferences.settings.current.deck) {
+        selectedDeck.value = store.ankiPreferences.settings.current.deck
+      }
+
+      if (settings.ankiPreferences.availableDecks) {
+        deckOptions.value = settings.ankiPreferences.availableDecks
+      }
+
+      if (settings.ankiPreferences.settings.current.fields) {
+        fieldOptions.value = settings.ankiPreferences.settings.current.fields
+      }
+
+      if (settings.ankiPreferences.settings.current.model) {
+        selectedModel.value = settings.ankiPreferences.settings.current.model
+      }
+
+      if (settings.ankiPreferences.availableModels) {
+        modelOptions.value = settings.ankiPreferences.availableModels
+      }
+
+      if (settings.ankiPreferences.settings.current.key) {
+        modelKey.value = settings.ankiPreferences.settings.current.key;
+      }
     }
 
-    if (settings.ankiPreferences.availableDecks) {
-      deckOptions.value = settings.ankiPreferences.availableDecks
-    }
-
-    if (settings.ankiPreferences.settings.current.fields) {
-      fieldOptions.value = settings.ankiPreferences.settings.current.fields
-    }
-
-    if (settings.ankiPreferences.settings.current.model) {
-      selectedModel.value = settings.ankiPreferences.settings.current.model
-    }
-
-    if (settings.ankiPreferences.availableModels) {
-      modelOptions.value = settings.ankiPreferences.availableModels
-    }
-
-    if (settings.ankiPreferences.settings.current.key) {
-      modelKey.value = settings.ankiPreferences.settings.current.key;
+    if (settings.ankiPreferences.serverAddress) {
+      ankiconnectAddress.value = settings.ankiPreferences.serverAddress;
     }
   }
 }
@@ -61,12 +70,18 @@ const setKeyValueField = (fieldName, value) => {
 }
 
 onMounted(async () => {
+  loadSettings();
+  await fetchAndLoad();
+});
+
+const fetchAndLoad = async () => {
   isError.value = false
   isSuccess.value = false
   isLoading.value = true
   try {
     await store.loadAnkiData()
-    loadDeckOptions()
+    // true parameter means we also load the deck info
+    loadSettings(true)
     isSuccess.value = true
   } catch (error) {
     isError.value = true
@@ -74,7 +89,7 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
-})
+};
 
 watch(selectedModel, async (newValue, oldValue) => {
   if (newValue !== oldValue) {
@@ -108,7 +123,17 @@ watch(modelKey, async (newValue) => {
 
 watch(deckOptions, async (newValue) => {
   store.ankiPreferences.settings.current.fields = newValue;
-})
+});
+
+// Every time the address change, we try to connect to anki
+watch(ankiconnectAddress, (newValue) => {
+  store.ankiPreferences.serverAddress = newValue;
+
+  // Before loading, we clear fieldOptions to hide the table
+  fieldOptions.value = [];
+
+  fetchAndLoad();
+});
 
 </script>
 <template>
@@ -254,8 +279,7 @@ watch(deckOptions, async (newValue) => {
                         class="w-full p-0 bg-transparent border-0 text-gray-800 focus:ring-0 dark:text-white"
                         type="text" />
                     </div>
-                    <div
-                      class="flex flex-col divide-y text-left border-s border-s-neutral-600">
+                    <div class="flex flex-col divide-y text-left border-s border-s-neutral-600">
                       <div>
                         <SearchDropdownContainer dropdownId="hs-dropdown-with-header">
                           <template #default>
@@ -320,6 +344,25 @@ watch(deckOptions, async (newValue) => {
             </div>
           </div>
         </section>
+      </div>
+    </div>
+
+    <!-- Advanced Settings -->
+    <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Configuración Avanzada</h3>
+      <div class="border-b pt-4 border-white/10" />
+
+
+      <!-- Anki Connect Address -->
+      <div class="mt-4">
+        <div class="gap-4 lg:gap-8 mb-5">
+          <div class="flex-grow flex flex-row">
+            <label class="block text-sm mb-1 pr-5 font-medium text-white"> AnkiConnect server address</label>
+            <input v-model="ankiconnectAddress"
+              class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
+            </input>
+          </div>
+        </div>
       </div>
     </div>
   </div>
