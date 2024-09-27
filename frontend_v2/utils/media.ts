@@ -112,6 +112,13 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   let audioBuffers = []
   if (!audioContext) {
     audioContext = new AudioContext();
+
+    const firstResponse = await fetch(urls[0]);
+    const firstBuffer = await firstResponse.arrayBuffer();
+    const firstAudioData = await new AudioContext().decodeAudioData(firstBuffer);
+
+    // Create the AudioContext with the sample rate of the first audio to apply it to the others samples
+    audioContext = new AudioContext({ sampleRate: firstAudioData.sampleRate });
   }
 
   for (const url of urls) {
@@ -122,8 +129,9 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   // Should always be 2, but just in case
   const channels = Math.max(...audioBuffers.map(b => b.numberOfChannels));
   const length = audioBuffers.map(b => b.length).reduce((a, c) => a + c, 0);
+  const sampleRate = audioBuffers[0].sampleRate;
 
-  let output = audioContext.createBuffer(channels, length, 44100);
+  let output = audioContext.createBuffer(channels, length, sampleRate);
 
   let offset = 0;
 
@@ -144,7 +152,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     }
   }
 
-  const blob = new Blob([encodeWAV(interleaved, channels, 44100)], { type: "audio/mp3" });
+  const blob = new Blob([encodeWAV(interleaved, channels, sampleRate)], { type: "audio/mp3" });
   const blobUrl = window.URL.createObjectURL(blob);
 
   return {
