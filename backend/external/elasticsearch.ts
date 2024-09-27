@@ -28,8 +28,7 @@ export const client = new Client({
     node: process.env.ELASTICSEARCH_HOST,
     auth: {
         username: 'elastic',
-        password: process.env.ELASTICSEARCH_PASSWORD || "",
-        apiKey: process.env.ELASTICSEARCH_APIKEY || ""
+        password: process.env.ELASTICSEARCH_PASSWORD || ""
     }
 });
 
