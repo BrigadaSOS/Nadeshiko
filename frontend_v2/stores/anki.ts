@@ -142,10 +142,30 @@ export const ankiStore = defineStore("anki", {
           url: sentence.media_info.path_image,
         })
 
-        let audioRequest = this.executeAction('storeMediaFile', {
-          filename: sentence.segment_info.uuid + '.mp3',
-          url: sentence.media_info.path_audio,
-        })
+        // We add blob audio if it exists (concatenated audio) otherwise, 
+        // original audio
+
+
+        let audioRequest;
+        if (sentence.media_info.blob_audio_url && sentence.media_info.blob_audio) {
+          const blob64 = await blobToBase64(sentence.media_info.blob_audio);
+          // Note: The blob's result cannot be directly decoded as Base64 without 
+          // first removing the Data-URL declaration preceding the Base64-encoded 
+          // data. To retrieve only the Base64 encoded string, first remove 
+          // data:/;base64, from the result.
+          const raw = blob64.substring(blob64.indexOf(',') + 1);
+
+          audioRequest = this.executeAction('storeMediaFile', {
+            filename: sentence.segment_info.uuid + '.mp3',
+            data: raw,
+          });
+
+        } else {
+          audioRequest = this.executeAction('storeMediaFile', {
+            filename: sentence.segment_info.uuid + '.mp3',
+            url: sentence.media_info.path_audio,
+          })
+        }
 
         let [imageResult, audioResult] = await Promise.all([imageRequest, audioRequest]);
 
@@ -237,3 +257,13 @@ export const ankiStore = defineStore("anki", {
     }
   },
 });
+
+// util functions
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, _) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}
