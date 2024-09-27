@@ -32,7 +32,7 @@ const openAnkiModal = () => {
       <SearchDropdownContent>
         <!-- Anki by last added -->
         <SearchDropdownItem text="Añadir a Anki (Ultima carta añadida)" :iconPath="mdiStarShootingOutline"
-          @click="addSentenceToAnki(content)" />
+          @click="ankiStore().addSentenceToAnki(content)" />
 
         <!-- Anki by ID -->
         <SearchDropdownItem text="Añadir a Anki (Busca en tu colección)" @click="openAnkiModal()"
@@ -91,7 +91,7 @@ const openAnkiModal = () => {
     </template>
   </SearchDropdownContainer>
 
-  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 my-1"
+  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
     {{ $t('searchpage.main.buttons.context') }}
