@@ -91,7 +91,7 @@ const openAnkiModal = () => {
     </template>
   </SearchDropdownContainer>
 
-  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 my-1"
+  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
     {{ $t('searchpage.main.buttons.context') }}

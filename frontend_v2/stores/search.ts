@@ -5,6 +5,10 @@ export type ResponseV1 = {
   cursor: number[];
 }
 
+export type ContextResponse = {
+  sentences: Sentence[];
+}
+
 export type CategoryStatistic = {
   category: number;
   count: number;
@@ -32,6 +36,11 @@ export type MediaInfo = {
   path_image: string;
   path_audio: string;
   path_video: string;
+
+  // Used when concatenated audios
+  // It will always be null in api responses
+  blob_audio: Blob | null;
+  blob_audio_url: string | null;
 }
 
 export type SegmentInfo = {
@@ -133,7 +142,7 @@ export const useApiSearch = defineStore("search", {
       );
       return data;
     },
-    async getContextSentence(body: any) {
+    async getContextSentence(body: any): Promise<ContextResponse> {
       const config = useRuntimeConfig();
       const data = await $fetch(
         `${config.public.baseURLBackend}search/media/context`,
@@ -152,6 +161,8 @@ export const useApiSearch = defineStore("search", {
           }
         }
       );
+
+      // @ts-ignore 
       return data;
     },
   },
