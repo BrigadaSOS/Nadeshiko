@@ -36,6 +36,11 @@ export type MediaInfo = {
   path_image: string;
   path_audio: string;
   path_video: string;
+
+  // Used when concatenated audios
+  // It will always be null in api responses
+  blob_audio: Blob | null;
+  blob_audio_url: string | null;
 }
 
 export type SegmentInfo = {

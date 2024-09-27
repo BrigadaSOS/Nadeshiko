@@ -1,7 +1,6 @@
 <script setup lang="ts">
 
-import { mdiTranslate, mdiVolumeHigh,mdiChevronRight, mdiClose, mdiChevronLeft, mdiArrowExpandHorizontal } from '@mdi/js'
-import ModalAnkiNotes from '../modal/ModalAnkiNotes.vue';
+import { mdiTranslate, mdiVolumeHigh, mdiChevronRight, mdiClose, mdiChevronLeft, mdiArrowExpandHorizontal } from '@mdi/js'
 
 type Props = {
   searchData: any;
@@ -57,7 +56,15 @@ let activeConcatenation: { sentence: Sentence | null; originalContent: any } = {
 
 const revertActiveConcatenation = () => {
   if (activeConcatenation.sentence && activeConcatenation.originalContent) {
-    // Revertir la oración al contenido original
+    // We free the current url/blob
+    if (activeConcatenation.sentence.media_info.blob_audio_url) {
+      window.URL.revokeObjectURL(activeConcatenation.sentence.media_info.blob_audio_url);
+    }
+
+    // Revert the sentence info to the original
+    activeConcatenation.sentence.media_info.blob_audio_url = null;
+    activeConcatenation.sentence.media_info.blob_audio = null;
+
     activeConcatenation.sentence.segment_info = {
       ...activeConcatenation.sentence.segment_info,
       content_jp: activeConcatenation.originalContent.content_jp,
@@ -66,8 +73,8 @@ const revertActiveConcatenation = () => {
       content_jp_highlight: activeConcatenation.originalContent.content_jp_highlight,
       content_en_highlight: activeConcatenation.originalContent.content_en_highlight,
       content_es_highlight: activeConcatenation.originalContent.content_es_highlight,
-      concatenated_audio: [activeConcatenation.sentence.media_info.path_audio]
     };
+
     activeConcatenation = { sentence: null, originalContent: null };
   }
 };
@@ -100,7 +107,6 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 
     if (response && response.sentences.length > 0) {
       const previousSentence = response.sentences[0];
-      const currentSentence = response.sentences[1]; // La oración actual
       const nextSentence = response.sentences[2];
 
       // Guardar el contenido original antes de concatenar
@@ -154,7 +160,10 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
         };
       }
 
-      sentence.segment_info.concatenated_audio = audioUrls;
+      const concatenatedAudio = await concatenateAudios(audioUrls);
+
+      sentence.media_info.blob_audio_url = concatenatedAudio.blob_url;
+      sentence.media_info.blob_audio = concatenatedAudio.blob;
     }
   } catch (error) {
     console.error('Error fetching context sentences:', error);
@@ -174,7 +183,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
 
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
-      :id="sentence.segment_info.position" :unrender="true" :min-height="300" 
+      :id="sentence.segment_info.position" :unrender="true" :min-height="300"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
       <!-- Image -->
@@ -192,16 +201,14 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <!-- First Row -->
           <div class="inline-flex items-center py-2 align-middle justify-center">
             <!-- Audio button -->
-            <button 
-              @click="playSequentialAudio(sentence.segment_info.concatenated_audio?.length ? sentence.segment_info.concatenated_audio : [sentence.media_info.path_audio], sentence.segment_info.uuid)"
+            <button
+              @click="playAudio(sentence.media_info.blob_audio_url ? sentence.media_info.blob_audio_url : sentence.media_info.path_audio, sentence.segment_info.uuid)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
-              <UiBaseIcon v-if="!isAudioPlaying[sentence.segment_info.uuid]" w="w-10 md:w-5" h="h-10 md:h-5" size="24" class="" :path="mdiVolumeHigh" />
-              <span
-                v-else="isAudioPlaying"
+              <UiBaseIcon v-if="!isAudioPlaying[sentence.segment_info.uuid]" w="w-10 md:w-5" h="h-10 md:h-5" size="24"
+                class="" :path="mdiVolumeHigh" />
+              <span v-else="isAudioPlaying"
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
-                role="status"
-                aria-label="loading"
-              ></span>
+                role="status" aria-label="loading"></span>
             </button>
 
             <!-- Japanese Sentence -->
@@ -214,37 +221,25 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
               </h3>
 
               <div class="flex ml-auto">
-                <UiButtonPrimaryAction
-                class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                @click="loadNextSentence(sentence,'backward')"
-                v-if="!isConcatenated(sentence)"
-              >
-                <UiBaseIcon :path="mdiChevronLeft" />
-              </UiButtonPrimaryAction>
+                <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                  @click="loadNextSentence(sentence, 'backward')" v-if="!isConcatenated(sentence)">
+                  <UiBaseIcon :path="mdiChevronLeft" />
+                </UiButtonPrimaryAction>
 
-              <UiButtonPrimaryAction
-                class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                @click="loadNextSentence(sentence,'both')"
-                v-if="!isConcatenated(sentence)"
-              >
-                <UiBaseIcon :path="mdiArrowExpandHorizontal"/>
-              </UiButtonPrimaryAction>
+                <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                  @click="loadNextSentence(sentence, 'both')" v-if="!isConcatenated(sentence)">
+                  <UiBaseIcon :path="mdiArrowExpandHorizontal" />
+                </UiButtonPrimaryAction>
 
-              <UiButtonPrimaryAction
-                class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                @click="loadNextSentence(sentence,'forward')"
-                v-if="!isConcatenated(sentence)"
-              >
-                <UiBaseIcon :path="mdiChevronRight" />
-              </UiButtonPrimaryAction>
+                <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                  @click="loadNextSentence(sentence, 'forward')" v-if="!isConcatenated(sentence)">
+                  <UiBaseIcon :path="mdiChevronRight" />
+                </UiButtonPrimaryAction>
 
-              <UiButtonPrimaryAction
-                class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                @click="revertActiveConcatenation"
-                v-if="isConcatenated(sentence)"
-              >
-                <UiBaseIcon :path="mdiClose" />
-              </UiButtonPrimaryAction>
+                <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                  @click="revertActiveConcatenation" v-if="isConcatenated(sentence)">
+                  <UiBaseIcon :path="mdiClose" />
+                </UiButtonPrimaryAction>
               </div>
             </div>
             <!-- End Japanese Sentence -->
