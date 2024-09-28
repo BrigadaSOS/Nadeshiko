@@ -112,13 +112,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   let audioBuffers = []
   if (!audioContext) {
     audioContext = new AudioContext();
-
-    const firstResponse = await fetch(urls[0]);
-    const firstBuffer = await firstResponse.arrayBuffer();
-    const firstAudioData = await new AudioContext().decodeAudioData(firstBuffer);
-
-    // Create the AudioContext with the sample rate of the first audio to apply it to the others samples
-    audioContext = new AudioContext({ sampleRate: firstAudioData.sampleRate });
+    console.log(`[Creation] AudioContext with Sample Rate of ${audioContext.sampleRate}`);
   }
 
   for (const url of urls) {
@@ -132,6 +126,8 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   const sampleRate = audioBuffers[0].sampleRate;
 
   let output = audioContext.createBuffer(channels, length, sampleRate);
+  console.log(`AudioContext Sample Rate: ${audioContext.sampleRate}`);
+  console.log(`Output Sample Rate: ${sampleRate}`);
 
   let offset = 0;
 
