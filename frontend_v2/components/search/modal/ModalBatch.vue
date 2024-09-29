@@ -89,7 +89,7 @@ watch(inputText, (newValue) => {
           <h3 class="font-bold text-gray-800 dark:text-white">{{ t("batchSearch.title") }}</h3>
           <button type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
-            data-hs-overlay-close>
+            data-hs-overlay="#hs-vertically-centered-scrollable-batch">
             <span class="sr-only">Close</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
               xmlns="http://www.w3.org/2000/svg">
@@ -157,7 +157,7 @@ watch(inputText, (newValue) => {
           </button>
           <button type="button"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
-            data-hs-overlay-close>
+            data-hs-overlay="#hs-vertically-centered-scrollable-batch">
             {{ t("batchSearch.close") }}
           </button>
         </div>
@@ -166,7 +166,7 @@ watch(inputText, (newValue) => {
   </div>
 
   <div id="hs-vertically-centered-scrollable-batch2"
-    class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+    class="hs-overlay hs-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
     <div
       class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto flex flex-col h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)]">
       <div
@@ -175,7 +175,7 @@ watch(inputText, (newValue) => {
           <h3 class="font-bold text-gray-800 dark:text-white">{{ t("batchSearch.results.title") }}</h3>
           <button type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
-            data-hs-overlay="#hs-vertically-centered-scrollable-batch2" data-hs-overlay-close>
+            data-hs-overlay="#hs-vertically-centered-scrollable-batch2">
             <span class="sr-only">Close</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
               xmlns="http://www.w3.org/2000/svg">
@@ -217,10 +217,14 @@ watch(inputText, (newValue) => {
                       <tr v-for="(item, index) in sortedWordsMatch">
                         <td
                           class="y-4 whitespace-nowrap text-base text-center font-medium text-gray-800 dark:text-gray-200">
-                          <a v-if="item.is_match" :href="'search/sentence?query=' + item.word + '&exact_match=true'"
+                          <NuxtLink v-if="item.is_match" 
+                          :to="{
+                            path: '/search/sentence',
+                            query: { query: item.word }
+                          }"
                             class="text-blue-500 underline-offset-2 underline" target="_blank">
                             {{ item.word }}
-                          </a>
+                          </NuxtLink>
                           <span v-else>
                             {{ item.word }}
                           </span>
