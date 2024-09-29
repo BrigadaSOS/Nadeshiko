@@ -1,6 +1,8 @@
 # Nadeshiko
 Nadeshiko is an online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.
 
+![2024-09-15-22-54-38](https://github.com/user-attachments/assets/6e2dd891-5d39-46a3-adcb-85c590c17cce)
+
 ## Features
 - **Multilingual Search:** Search for Japanese sentences using Japanese characters, English, or Spanish terms.
 - **Simultaneous Search:** Search for multiple terms with a single click.
