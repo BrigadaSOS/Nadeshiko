@@ -170,15 +170,15 @@ const fetchSentences = async (fromButton = false) => {
         } else {
             searchData.value.sentences.push(...response.sentences);
         }
+        cursor.value = response.cursor || null;
 
-        if (response.sentences.length < body.limit) {
+        if (!response.cursor) {
             endOfResults.value = true;
             hasMoreResults.value = false;
         } else {
             hasMoreResults.value = true;
         }
 
-        cursor.value = response.cursor;
         previousQuery.value = query.value;
         initialError.value = false;
     } catch (error) {
@@ -340,6 +340,11 @@ onBeforeRouteUpdate(async (to, from) => {
                         <UiBaseIcon :path="mdiRefresh" />
                         Load more sentences
                     </UiButtonPrimaryAction>
+                </div>
+                <div v-if="endOfResults && !hasMoreResults && searchData?.sentences?.length > 0" class="text-center mt-4 mb-8">
+                    <p class="text-gray-500 dark:text-gray-400">
+                        ¡Has llegado al final!
+                    </p>
                 </div>
             </div>
             <!-- Filters -->

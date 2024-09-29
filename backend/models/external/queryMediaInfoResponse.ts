@@ -30,8 +30,3 @@ export interface MediaInfoData {
     num_seasons: number,
     num_episodes: number
 }
-
-export interface Pagination {
-    currentPage: number,
-    pageSize: number
-}
