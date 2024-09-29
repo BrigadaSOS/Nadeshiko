@@ -31,18 +31,12 @@ const openAnkiModal = () => {
     <template #content>
       <SearchDropdownContent>
         <!-- Anki by last added -->
-        <SearchDropdownItem
-          text="Añadir a Anki (Ultima carta añadida)" 
-          :iconPath="mdiStarShootingOutline"
-          @click="addSentenceToAnki(content)"
-        />
+        <SearchDropdownItem text="Añadir a Anki (Ultima carta añadida)" :iconPath="mdiStarShootingOutline"
+          @click="ankiStore().addSentenceToAnki(content)" />
 
         <!-- Anki by ID -->
-        <SearchDropdownItem 
-          text="Añadir a Anki (Busca en tu collección)"
-          :iconPath="mdiStarShootingOutline" 
-          @click="openAnkiModal"
-        />
+        <SearchDropdownItem text="Añadir a Anki (Busca en tu colección)" @click="openAnkiModal()"
+          :iconPath="mdiStarShootingOutline" data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection" />
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>
@@ -97,7 +91,7 @@ const openAnkiModal = () => {
     </template>
   </SearchDropdownContainer>
 
-  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 my-1"
+  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
     {{ $t('searchpage.main.buttons.context') }}
@@ -111,7 +105,8 @@ const openAnkiModal = () => {
     </template>
     <template #content>
       <SearchDropdownContent>
-        <SearchDropdownItem :text="$t('searchpage.main.buttons.share')" :iconPath="mdiShare" @click="getSharingURL(content.segment_info.uuid)" />
+        <SearchDropdownItem :text="$t('searchpage.main.buttons.share')" :iconPath="mdiShare"
+          @click="getSharingURL(content.segment_info.uuid)" />
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>

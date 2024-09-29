@@ -333,7 +333,7 @@ onBeforeRouteUpdate(async (to, from) => {
         <div class="flex mx-auto w-full ">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
-                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" currentSentenceIndex="" />
+                <SearchSegmentContainer current-sentence-index="" :searchData="searchData" :isLoading="isLoading" />
                 <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults" />
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">
