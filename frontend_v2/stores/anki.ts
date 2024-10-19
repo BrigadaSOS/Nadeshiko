@@ -1,10 +1,62 @@
+// Types
+interface IAnkiState {
+  ankiPreferences: {
+    serverAddress: string;
+    availableDecks: string[];
+    availableModels: string[];
+    settings: IAnkiSettings;
+  }
+}
+
+interface IField {
+  key: string;
+  value: string;
+}
+
+interface IAnkiSettings {
+  current: {
+    deck: string | null;
+    model: string | null;
+    fields: IField[];
+    key: string | null;
+  }
+}
+
+interface PermissionResponse {
+  result: {
+    permission: string;
+    requireApiKey: boolean;
+    version: number;
+  },
+  error: string;
+}
+
+interface DeckNamesResponse {
+  result: string[];
+  error: string;
+}
+
+interface ModelNamesResponse {
+  result: string[];
+  error: string;
+}
+
+interface ModelFieldNamesResponse {
+  result: string[];
+  error: string;
+}
+
+interface GuiBrowseResponse {
+  result: number[];
+  error: string;
+}
+
 export const ankiStore = defineStore("anki", {
-  state: () => ({
+  state: (): IAnkiState => ({
     ankiPreferences: {
       serverAddress: "http://127.0.0.1:8765",
       availableDecks: [],
       availableModels: [],
-      // TODO: define structure type
       settings: {
         current: {
           deck: null,
@@ -67,34 +119,37 @@ export const ankiStore = defineStore("anki", {
       }
     },
 
-    async requestPermission() {
-      let response = await this.executeAction("requestPermission");
+    async requestPermission(): Promise<string> {
+      let response = await this.executeAction("requestPermission") as PermissionResponse;
       return response.result.permission;
     },
 
-    async getAllDeckNames() {
-      let response = await this.executeAction("deckNames");
+    async getAllDeckNames(): Promise<string[]> {
+      let response = await this.executeAction("deckNames") as DeckNamesResponse;
       return response.result;
     },
 
-    async getAllModels() {
-      let response = await this.executeAction("modelNames");
+    // Gets the complete list of model names for the current user.
+    async getAllModels(): Promise<string[]> {
+      let response = await this.executeAction("modelNames") as ModelNamesResponse;
       return response.result;
     },
 
-    async getAllModelFieldNames(modelName: string) {
+    // Gets the complete list of field names for the provided model name.
+    async getAllModelFieldNames(modelName: string): Promise<string[]> {
       let response = await this.executeAction("modelFieldNames", {
         modelName: modelName,
-      });
-      return response;
+      }) as ModelFieldNamesResponse;
+
+      return response.result;
     },
 
     async addSentenceToAnki(sentence: Sentence, id?: number) {
-      // TODO: use local store
-      // como solucion temporal funciona bien.
+      // TODO: creo que podriamos usar this.$state o this.ankiPreferences (revisar)
       const localSettings = localStorage.getItem('settings');
 
       if (!localSettings) {
+        // TODO: localizacion (idioma)
         const message = 'No se han encontrado ajustes. Por favor, vaya a la página de ajustes y configure la extensión.'
         useToastError(message);
         return;
@@ -173,7 +228,7 @@ export const ankiStore = defineStore("anki", {
         // Y evitar problemas al actualizar
         await this.guiBrowse('nid:1 nid:2')
 
-        let allowedFields = [
+        const allowedFields = [
           'sentence-jp',
           'content_jp_highlight',
           'sentence-es',
@@ -190,7 +245,7 @@ export const ankiStore = defineStore("anki", {
             const match = field.value.match(regex)
 
             if (match) {
-              const key = match[1]
+              const key = match[1];
 
               switch (key) {
                 case 'empty':
@@ -231,6 +286,7 @@ export const ankiStore = defineStore("anki", {
           }
         })
 
+        // TODO: handle error
         await this.executeAction('updateNoteFields', {
           note: {
             fields: fieldsNew,
@@ -251,8 +307,8 @@ export const ankiStore = defineStore("anki", {
       }
     },
 
-    async guiBrowse(query: string) {
-      let response = await this.executeAction('guiBrowse', { query: query });
+    async guiBrowse(query: string): Promise<number[]> {
+      let response = await this.executeAction('guiBrowse', { query: query }) as GuiBrowseResponse;
       return response.result
     }
   },
