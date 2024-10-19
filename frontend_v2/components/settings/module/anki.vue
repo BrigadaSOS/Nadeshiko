@@ -96,8 +96,8 @@ watch(selectedModel, async (newValue, oldValue) => {
     try {
       store.ankiPreferences.settings.current.model = newValue
       const data = await store.getAllModelFieldNames(newValue)
-      if (data && data.result) {
-        const newFields = data.result.map((field) => {
+      if (data) {
+        const newFields = data.map((field) => {
           const existingField = fieldOptions.value.find((f) => f.key === field)
           return {
             key: field,
