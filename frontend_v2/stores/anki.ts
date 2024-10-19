@@ -1,4 +1,15 @@
 // Types
+
+interface AnkiNote {
+  cards: number[];
+  fields: { [key: string]: any };
+  mod: number;
+  modelName: string;
+  noteId: number;
+  profile: string;
+  tags: string[];
+}
+
 interface IAnkiState {
   ankiPreferences: {
     serverAddress: string;
@@ -48,6 +59,16 @@ interface ModelFieldNamesResponse {
 
 interface GuiBrowseResponse {
   result: number[];
+  error: string;
+}
+
+interface FindNotesResponse {
+  result: number[];
+  error: string;
+}
+
+interface NotesInfoResponse {
+  result: AnkiNote[];
   error: string;
 }
 
@@ -142,6 +163,44 @@ export const ankiStore = defineStore("anki", {
       }) as ModelFieldNamesResponse;
 
       return response.result;
+    },
+
+    // Gets n notes (depends on anki) where the ankiPreferences.current.key
+    // matches the query
+    async getNotesWithCurrentKey(query: string, n: number = 5): Promise<Array<{ noteId: number, value: string }>> {
+
+      try {
+        const currentKey = this.ankiPreferences.settings.current.key
+          ? this.ankiPreferences.settings.current.key : "";
+
+        // TODO: Define type
+        const response = await this.executeAction("findNotes", { query: query }) as FindNotesResponse;
+
+        if (response.result && response.result.length === 0) {
+          return [];
+        }
+
+        // response.result -> number[]
+
+        const notesRes = await this.executeAction("notesInfo", {
+          notes: response.result.slice(0, n),
+        }) as NotesInfoResponse;
+
+        const notesInfo = notesRes.result.map((note) => {
+          if (!note.fields[currentKey]) {
+            return { noteId: note.noteId, value: "None" };
+          }
+          return { noteId: note.noteId, value: note.fields[currentKey].value };
+        });
+
+        return notesInfo;
+
+        // notes.value = notesInfo;
+      } catch (error) {
+        console.error("Error while fetching notes:", error);
+      }
+
+      return [];
     },
 
     async addSentenceToAnki(sentence: Sentence, id?: number) {
@@ -312,7 +371,8 @@ export const ankiStore = defineStore("anki", {
       return response.result
     }
   },
-});
+}
+);
 
 // util functions
 
