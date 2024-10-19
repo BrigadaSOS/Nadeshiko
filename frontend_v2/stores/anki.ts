@@ -156,7 +156,7 @@ export const ankiStore = defineStore("anki", {
           const raw = blob64.substring(blob64.indexOf(',') + 1);
 
           audioRequest = this.executeAction('storeMediaFile', {
-            filename: sentence.segment_info.uuid + '.mp3',
+            filename: sentence.segment_info.uuid + '.wav',
             data: raw,
           });
 

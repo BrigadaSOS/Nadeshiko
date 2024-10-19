@@ -139,7 +139,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     offset += buffer.length;
   });
 
-  // AudioArray/Audiobuffer -> mp3
+  // AudioArray/Audiobuffer -> wav
   const interleaved = new Float32Array(length * channels);
   for (let channel = 0; channel < channels; channel++) {
     const channelData = output.getChannelData(channel);
@@ -148,7 +148,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     }
   }
 
-  const blob = new Blob([encodeWAV(interleaved, channels, sampleRate)], { type: "audio/mp3" });
+  const blob = new Blob([encodeWAV(interleaved, channels, sampleRate)], { type: "audio/wav" });
   const blobUrl = window.URL.createObjectURL(blob);
 
   return {
