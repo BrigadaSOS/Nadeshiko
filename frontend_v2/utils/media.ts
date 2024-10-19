@@ -1,4 +1,6 @@
 let currentAudio: HTMLAudioElement | null = null;
+
+// TODO: Find a better way to do this
 export const isAudioPlaying: Record<string, boolean> = reactive({});
 
 export async function playAudio(url: string, uuid: string): Promise<void> {
@@ -171,9 +173,9 @@ export async function downloadAudioOrImage(url: string | URL | Request, filename
 }
 
 export function zoomImage(url: string) {
-  var ampliada = document.createElement('div')
+  let ampliada = document.createElement('div')
   ampliada.className = 'ampliada'
-  var imgAmpliada = document.createElement('img')
+  let imgAmpliada = document.createElement('img')
   imgAmpliada.src = url
   ampliada.appendChild(imgAmpliada)
   document.body.appendChild(ampliada)
