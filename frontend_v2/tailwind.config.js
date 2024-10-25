@@ -1,7 +1,7 @@
-const animate = require("tailwindcss-animate")
-
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+import preline from 'preline/plugin';
+
+export default {
   darkMode: ["class"],
   safelist: ["dark"],
   prefix: "",
@@ -48,5 +48,5 @@ module.exports = {
       }
     },
   },
-  plugins: [animate, require('preline/plugin')],
+  plugins: [preline]
 }

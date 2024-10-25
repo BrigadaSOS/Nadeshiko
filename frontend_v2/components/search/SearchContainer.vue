@@ -125,7 +125,7 @@ const fetchSentences = async (fromButton = false) => {
         // Build request body
         let body = {
             query: query.value,
-            limit: 10,
+            limit: 20,
             extra: true
         };
 
