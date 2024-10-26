@@ -163,6 +163,7 @@ const fetchSentences = async (fromButton = false) => {
 
         // Fetch data from API      
         const response = await apiSearch.getSentenceV1(body);
+        // await delay(5000)
 
         // Update search data
         if (cursor.value === null) {
@@ -334,7 +335,7 @@ onBeforeRouteUpdate(async (to, from) => {
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer current-sentence-index="" :searchData="searchData" :isLoading="isLoading" />
-                <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults" />
+                <GeneralInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults && !isLoading" />
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">
                         <UiBaseIcon :path="mdiRefresh" />

@@ -47,8 +47,6 @@ const openAnkiModal = (sentence: Sentence) => {
 
 const apiSearch = useApiSearch();
 
-let isLoading = ref(false);
-
 let activeConcatenation: { sentence: Sentence | null; originalContent: any } = {
   sentence: null,
   originalContent: null,
@@ -85,11 +83,9 @@ const isConcatenated = (sentence: Sentence) => {
 
 const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'backward' | 'both') => {
 
-  if (isLoading.value) {
+  if (props.isLoading) {
     return;
   }
-
-  isLoading.value = true;
 
   // Revertir cualquier concatenación activa antes de proceder
   revertActiveConcatenation();
@@ -168,7 +164,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
   } catch (error) {
     console.error('Error fetching context sentences:', error);
   } finally {
-    isLoading.value = false;
+    isLoading = false;
   }
 };
 
@@ -188,7 +184,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
       <!-- Image -->
       <div class="h-auto shrink-0 w-auto lg:w-[28em]">
-        <img :src="sentence.media_info.path_image + '?width=960&height=540'"
+        <img loading="lazy" :src="sentence.media_info.path_image + '?width=960&height=540'"
           @click="zoomImage(sentence.media_info.path_image)"
           class="inset-0 h-70 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
           :key="sentence.media_info.path_image" />
@@ -320,7 +316,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     </div>
   </div>
   <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData" class="w-full">
-    <div v-for="i in 8" :key="i" class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
+    <div v-for="i in 10" :key="i" class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
       <div class="flex mb-10 items-center justify-center bg-gray-300 rounded h-64 w-auto md:w-5/12 dark:bg-neutral-700">
       </div>
       <div class="w-full ">
@@ -334,7 +330,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     </div>
   </div>
   <div v-else-if="!isLoading && searchData?.sentences?.length === 0">
-    <section class="w-full">
+    <section class="w-full py-10">
       <div class="container flex items-center px-6 mx-auto">
         <div class="w-full align-top items-center">
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
