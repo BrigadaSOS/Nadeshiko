@@ -3,27 +3,48 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-
 const observer = ref(null)
 const emit = defineEmits(['intersect'])
+const intersectionObserver = ref(null)
 
-onMounted(() => {
-  const intersectionObserver = new IntersectionObserver(([entry]) => {
+const checkInitialIntersection = () => {
+  if (!observer.value) return
+  
+  const rect = observer.value.getBoundingClientRect()
+  const windowHeight = window.innerHeight
+  
+  if (rect.top < windowHeight) {
+    emit('intersect')
+  }
+}
+
+onMounted(async () => {
+  await nextTick()
+  
+  intersectionObserver.value = new IntersectionObserver(([entry]) => {
     if (entry && entry.isIntersecting) {
       emit('intersect')
     }
   }, {
-    rootMargin: '200px',
+    rootMargin: '1200px',
     threshold: 0.1
   })
 
   if (observer.value) {
-    intersectionObserver.observe(observer.value)
-  }
+    intersectionObserver.value.observe(observer.value)
+    
+    setTimeout(() => {
+      checkInitialIntersection()
+    }, 100)
 
-  onUnmounted(() => {
-    intersectionObserver.disconnect()
-  })
+    window.addEventListener('scroll', checkInitialIntersection, { passive: true })
+  }
+})
+
+onUnmounted(() => {
+  if (intersectionObserver.value) {
+    intersectionObserver.value.disconnect()
+  }
+  window.removeEventListener('scroll', checkInitialIntersection)
 })
 </script>
