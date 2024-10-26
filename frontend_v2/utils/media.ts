@@ -1,4 +1,6 @@
 let currentAudio: HTMLAudioElement | null = null;
+
+// TODO: Find a better way to do this
 export const isAudioPlaying: Record<string, boolean> = reactive({});
 
 export async function playAudio(url: string, uuid: string): Promise<void> {
@@ -112,13 +114,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   let audioBuffers = []
   if (!audioContext) {
     audioContext = new AudioContext();
-
-    const firstResponse = await fetch(urls[0]);
-    const firstBuffer = await firstResponse.arrayBuffer();
-    const firstAudioData = await new AudioContext().decodeAudioData(firstBuffer);
-
-    // Create the AudioContext with the sample rate of the first audio to apply it to the others samples
-    audioContext = new AudioContext({ sampleRate: firstAudioData.sampleRate });
+    console.log(`[Creation] AudioContext with Sample Rate of ${audioContext.sampleRate}`);
   }
 
   for (const url of urls) {
@@ -132,6 +128,8 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   const sampleRate = audioBuffers[0].sampleRate;
 
   let output = audioContext.createBuffer(channels, length, sampleRate);
+  console.log(`AudioContext Sample Rate: ${audioContext.sampleRate}`);
+  console.log(`Output Sample Rate: ${sampleRate}`);
 
   let offset = 0;
 
@@ -143,7 +141,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     offset += buffer.length;
   });
 
-  // AudioArray/Audiobuffer -> mp3
+  // AudioArray/Audiobuffer -> wav
   const interleaved = new Float32Array(length * channels);
   for (let channel = 0; channel < channels; channel++) {
     const channelData = output.getChannelData(channel);
@@ -152,7 +150,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     }
   }
 
-  const blob = new Blob([encodeWAV(interleaved, channels, sampleRate)], { type: "audio/mp3" });
+  const blob = new Blob([encodeWAV(interleaved, channels, sampleRate)], { type: "audio/wav" });
   const blobUrl = window.URL.createObjectURL(blob);
 
   return {
@@ -175,9 +173,9 @@ export async function downloadAudioOrImage(url: string | URL | Request, filename
 }
 
 export function zoomImage(url: string) {
-  var ampliada = document.createElement('div')
+  let ampliada = document.createElement('div')
   ampliada.className = 'ampliada'
-  var imgAmpliada = document.createElement('img')
+  let imgAmpliada = document.createElement('img')
   imgAmpliada.src = url
   ampliada.appendChild(imgAmpliada)
   document.body.appendChild(ampliada)
