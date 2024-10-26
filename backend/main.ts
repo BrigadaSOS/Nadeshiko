@@ -19,6 +19,7 @@ const app: Application = express();
 
 const allowedOrigins = ["http://localhost:5173", "https://db.brigadasos.xyz", "https://db.dev.brigadasos.xyz", "https://nadeshiko.co", "https://dev.nadeshiko.co", "http://localhost:3000"];
 
+// @ts-ignore
 app.use(function (req, res, next) {
   // Obtiene el origen de la solicitud
   const origin: string | undefined = req.headers.origin;
