@@ -21,7 +21,7 @@ defineProps({
     },
     dropdownButtonClass:{
         type: String,
-        default: "hs-dropdown-toggle py-2.5 px-3 text-center flex justify-center items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent  hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-400 dark:hover:text-neutral-300"
+        default: "hs-dropdown-toggle py-2.5 px-3 text-center flex justify-center items-center gap-x-2 font-semibold rounded-lg border border-transparent  hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-400 dark:hover:text-neutral-300"
     }
 });
 </script>

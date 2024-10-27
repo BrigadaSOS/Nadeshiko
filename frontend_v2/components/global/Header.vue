@@ -12,7 +12,7 @@ const toggleMobileMenu = () => {
 </script>
 <template>    
     <header
-        class="relative flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-sm py-3 lg:py-2 dark:bg-header-background">
+        class="relative flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-xs py-3 lg:py-2 dark:bg-header-background">
         <nav class="max-w-[92%] w-full mx-auto sm:flex sm:items-center sm:justify-between">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
@@ -51,15 +51,15 @@ const toggleMobileMenu = () => {
                 <div class="flex flex-col  mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
                     <div class="gap-6 flex flex-col sm:flex-row mr-auto">
                         <NuxtLink to="/"
-                            class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                            class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
                             {{ $t("navbar.buttons.home") }}
                         </NuxtLink>
                         <NuxtLink to="/api/v1/docs"
-                            class="text-sm font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                            class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
                             API
                         </NuxtLink>
                         <NuxtLink to="/about"
-                            class="text-sm font-bold mr-auto text-white transition-all duration-200 hover:text-opacity-80">
+                            class="text-xs font-bold mr-auto text-white transition-all duration-200 hover:text-opacity-80">
                             {{ $t("navbar.buttons.about") }}
                         </NuxtLink>
                     </div>
@@ -93,13 +93,13 @@ const toggleMobileMenu = () => {
 
                         <button v-if="!isAuth || isAuth == null"
                             data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
-                            class=" py-2.5 px-5 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white">
+                            class=" py-2.5 px-5 inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white">
                             Log in
                         </button>
                         <SearchDropdownContainer v-else dropdownId="hs-dropdown-with-header">
                             <template #default>
                                 <SearchDropdownMainButton
-                                    dropdownButtonClass="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
+                                    dropdownButtonClass="py-2.5 px-4 inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
                                     dropdownId="hs-dropdown-with-header">
                                     {{ $t("navbar.buttons.profile") }}
                                 </SearchDropdownMainButton>

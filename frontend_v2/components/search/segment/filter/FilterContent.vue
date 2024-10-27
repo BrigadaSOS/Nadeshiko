@@ -84,11 +84,11 @@ const filterAnime = (anime_id, anime_name) => {
         <ul
             class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
             <div class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg">
-                <span class="font-medium text-base">{{ $t('searchpage.main.labels.contentList') }}</span>
+                <span class="font-medium text-sm">{{ $t('searchpage.main.labels.contentList') }}</span>
             </div>
             <div class="flex flex-inline">
                 <input type="search" v-model="querySearchMedia" id="default-search2" autocomplete="off"
-                    class="block w-full p-4 pl-4 text-sm xxl:text-base xxm:text-2xl text-gray-900 dark:bg-neutral-800  dark:placeholder-gray-400 dark:text-white/45 dark:focus:ring-gray-500 dark:focus:border-gray-500"
+                    class="block w-full p-4 pl-4 text-xs xxl:text-sm xxm:text-xl text-gray-900 dark:bg-neutral-800  dark:placeholder-gray-400 dark:text-white/45 dark:focus:ring-gray-500 dark:focus:border-gray-500"
                     placeholder="Search here" required />
                 <div class="absolute z-10 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
                     <svg aria-hidden="true" class="w-5 h-5 text-white/60 dark:text-gray-400" fill="none"
@@ -102,7 +102,7 @@ const filterAnime = (anime_id, anime_name) => {
                 <li class="snap-start" v-for="item in filteredMedia" :key="item.anime_id">
                     <button @click="filterAnime(item.anime_id, item.name_anime_en)"
                         :class="{ 'bg-sgrayhover': item.anime_id == categorySelected }"
-                        class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-sm xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+                        class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span>{{ item.name_anime_en }}</span>
                         <span
                             v-if="item.name_anime_en?.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
