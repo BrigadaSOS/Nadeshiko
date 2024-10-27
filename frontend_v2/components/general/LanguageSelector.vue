@@ -23,7 +23,7 @@ const availableLocales = computed(() => {
   <SearchDropdownContainer dropdownId="hs-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton
-        dropdownButtonClass="py-2 px-4 w-full inline-flex items-center gap-x-2 text-sm sm:text-sm font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
+        dropdownButtonClass="py-2 px-4 w-full inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
         dropdownId="hs-dropdown-with-header">
         <UiBaseIcon :path="mdiTranslate" />
         {{ getLocaleName(locale) }}

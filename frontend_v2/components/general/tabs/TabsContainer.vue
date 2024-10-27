@@ -14,6 +14,8 @@
   display: flex;
   border-bottom: 2px solid #dddddd21;
   list-style: none;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 #tab-headers ul li {
@@ -21,6 +23,7 @@
   position: relative;
   display: inline-flex;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 #tab-headers ul li.active {
@@ -41,6 +44,7 @@
 #tab-headers {
   width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 #active-tab {

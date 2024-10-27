@@ -56,12 +56,12 @@ watch(() => window.innerWidth, checkScreenSize);
                                             </h2>
                                             <h3
                                                 class="inline-flex ml-2 rounded-full items-end text-base font-medium text-white/80">
-                                                v1.0.0
+                                                v1.0.2
                                             </h3>
                                         </div>
 
-                                        <p class="ml-2 pt-5 text-lg">{{ $t('home.nadeDbDescription') }}</p>
-                                        <ul class="list-disc ml-8 py-4 font-normal">
+                                        <p class="ml-2 pt-5 text-base">{{ $t('home.nadeDbDescription') }}</p>
+                                        <ul class="list-disc ml-8 py-4 text-sm font-normal">
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
                                                 <NuxtLink class="underline text-blue-400/95 underline-offset-4"
@@ -90,7 +90,7 @@ watch(() => window.innerWidth, checkScreenSize);
 
                                     <div class="border-b pt-2 border-white/10" />
 
-                                    <div class="my-4 flex font-medium">
+                                    <div class="my-4 flex text-sm font-medium">
                                         <div class="mr-4">
                                             <UiBaseIcon :path="mdiSync" w="w-12 md:w-12" h="h-12 md:h-12" size="30"
                                                 class="rotate-90" />
@@ -102,7 +102,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </div>
                                     </div>
 
-                                    <div class="mb-5 flex font-medium">
+                                    <div class="mb-5 flex text-sm font-medium">
                                         <div class="mr-4">
                                             <UiBaseIcon :path="mdiDownload" w="w-12 md:w-12" h="h-12 md:h-12" size="30"
                                                 class="" />
@@ -114,7 +114,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </div>
                                     </div>
 
-                                    <div class="mb-5 flex font-medium">
+                                    <div class="mb-5 flex text-sm font-medium">
                                         <div class="mr-4">
                                             <UiBaseIcon :path="mdiHistory" w="w-12 md:w-12" h="h-12 md:h-12" size="30"
                                                 class="" />
@@ -126,7 +126,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </div>
                                     </div>
 
-                                    <div class="mb-5 flex font-medium">
+                                    <div class="mb-5 flex text-sm font-medium">
                                         <div class="mr-4">
                                             <UiBaseIcon :path="mdiCardMultiple" w="w-12 md:w-12" h="h-12 md:h-12"
                                                 size="30" class="" />
@@ -143,19 +143,19 @@ watch(() => window.innerWidth, checkScreenSize);
                                     <div class="flex gap-4 text-center">
                                         <div class="md:w-2/4 sm:w-1/2 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
-                                                <h2 class="title-font font-medium text-3xl text-white">
+                                                <h2 class="title-font font-medium text-2xl text-white">
                                                     +{{ Math.ceil(media?.stats?.full_total_segments / 100) * 100 || 0 }}
                                                 </h2>
-                                                <p class="leading-relaxed">
+                                                <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.sentenceCount') }}
                                                 </p>
                                             </div>
                                         </div>
                                         <div class="md:w-2/4 sm:w-1/2 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
-                                                <h2 class="title-font font-medium text-3xl text-white">{{
+                                                <h2 class="title-font font-medium text-2xl text-white">{{
                                             media?.stats?.full_total_animes || 0 }}</h2>
-                                                <p class="leading-relaxed">
+                                                <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.mediaCount') }}
                                                 </p>
                                             </div>
@@ -169,12 +169,12 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <div class="tab-content md:mx-2 flex-grow w-full">
                                             <div class="inline-flex justify-between items-center w-full mb-4">
                                                 <h1
-                                                    class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">
+                                                    class="text-2xl font-bold md:text-2xl md:leading-tight dark:text-white">
                                                     {{ $t('animeList.recentlyAddedTitle') }}
                                                 </h1>
                                                 <NuxtLink to="/search/media">
                                                     <button type="button"
-                                                        class="py-3 px-4 inline-flex justify-center rounded-lg items-center gap-4 transition-all font-medium dark:hover:bg-button-primary-hover align-middle text-base ">
+                                                        class="py-3 px-4 inline-flex justify-center rounded-lg items-center gap-4 transition-all font-medium dark:hover:bg-button-primary-hover align-middle text-sm ">
                                                         {{ $t('animeList.seeAll') }}
                                                         <svg class="w-2.5 h-auto" width="17" height="16"
                                                             viewBox="0 0 17 16" fill="none"
@@ -204,7 +204,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                 <div
                                                                     class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
                                                                     <span
-                                                                        class="mx-auto object-center mt-2 text-center px-2 text-lg font-bold text-gray-800 dark:text-white">{{
+                                                                        class="mx-auto object-center mt-2 text-center px-2 text-base font-bold text-gray-800 dark:text-white">{{
                                             media_info.english_name }}</span>
                                                                     <div
                                                                         class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
@@ -346,10 +346,10 @@ watch(() => window.innerWidth, checkScreenSize);
                         <section class="py-2">
                             <div class="flex mb-2 flex-col md:flex-row justify-top">
                                 <div class="md:flex-1">
-                                    <h2 class="text-2xl font-bold md:text-2xl mb-3 md:leading-tight dark:text-white">{{
+                                    <h2 class="text-xl font-bold md:text-xl mb-3 md:leading-tight dark:text-white">{{
                                         $t('home.support.title') }}
                                     </h2>
-                                    <p class="text-md max-w-2xl text-gray-800 dark:text-gray-200">
+                                    <p class="text-sm max-w-2xl text-gray-800 dark:text-gray-200">
                                         {{ $t('home.support.description') }}
                                     </p>
                                 </div>
