@@ -164,7 +164,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
   } catch (error) {
     console.error('Error fetching context sentences:', error);
   } finally {
-    isLoading = false;
+    // isLoading = false;
   }
 };
 
@@ -179,23 +179,23 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
 
     <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
-      :id="sentence.segment_info.position" :unrender="true" :min-height="300"
+      :id="sentence.segment_info.position" :unrender="true" :min-height="250"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
       <!-- Image -->
-      <div class="h-auto shrink-0 w-auto lg:w-[28em]">
+      <div class="h-auto shrink-0 w-auto lg:w-[26em]">
         <img loading="lazy" :src="sentence.media_info.path_image + '?width=960&height=540'"
           @click="zoomImage(sentence.media_info.path_image)"
-          class="inset-0 h-70 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+          class="inset-0 h-56 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
           :key="sentence.media_info.path_image" />
       </div>
       <!-- End Image -->
 
       <!-- Details -->
-      <div class="w-full py-6 sm:py-2 px-6 rounded-e-lg text-white flex flex-col justify-between">
+      <div class="w-full py-3 sm:py-2 px-4 rounded-e-lg text-white flex flex-col justify-between">
         <div>
           <!-- First Row -->
-          <div class="inline-flex items-center py-2 align-middle justify-center">
+          <div class="flex items-center justify-between py-1">
             <!-- Audio button -->
             <button
               @click="playAudio(sentence.media_info.blob_audio_url ? sentence.media_info.blob_audio_url : sentence.media_info.path_audio, sentence.segment_info.uuid)"
@@ -209,14 +209,14 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
-              <h3 class=" ml-2 items-start text-xl xxl:text-2xl xxl:font-normal xxm:text-3xl leading-tight">
+              <h3 class=" ml-2 items-start text-xl xxl:text-lg leading-snug">
                 <span v-html="sentence.segment_info.content_jp_highlight
                   ? sentence.segment_info.content_jp_highlight
                   : sentence.segment_info.content_jp
                   "></span>
               </h3>
 
-              <div class="flex ml-auto">
+              <div class="hidden sm:flex ml-auto">
                 <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
                   @click="loadNextSentence(sentence, 'backward')" v-if="!isConcatenated(sentence)">
                   <UiBaseIcon :path="mdiChevronLeft" />
@@ -253,7 +253,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
               NSFW
             </span>
 
-            <div class="font-normal flex-1 text-sm xxl:text-base xxm:text-2xl leading-tight mt-3">
+            <div class="font-normal flex-1 text-sm xxl:text-base xxm:text-2xl leading-snug mt-3">
             </div>
           </div>
 
@@ -291,8 +291,8 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 
           <!-- Fifth Row -->
           <!-- Media details  -->
-          <div class="flex-1 pb-2 justify-left">
-            <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-2">
+          <div class="flex-1 justify-left">
+            <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold my-2">
               {{ sentence.basic_info.name_anime_en }} &bull;
               <template v-if="sentence.basic_info.season === 0">{{ $t('searchpage.main.labels.movie')
                 }}</template>
@@ -317,7 +317,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
   </div>
   <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData" class="w-full">
     <div v-for="i in 10" :key="i" class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
-      <div class="flex mb-10 items-center justify-center bg-gray-300 rounded h-64 w-auto md:w-5/12 dark:bg-neutral-700">
+      <div class="flex mb-10 items-center justify-center bg-gray-300 rounded h-56 w-auto h-auto shrink-0 w-auto lg:w-[26em] dark:bg-neutral-700">
       </div>
       <div class="w-full ">
         <div class="h-2.5 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[320px] mb-4"></div>
@@ -331,7 +331,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
   </div>
   <div v-else-if="!isLoading && searchData?.sentences?.length === 0">
     <section class="w-full py-10">
-      <div class="container flex items-center px-6 mx-auto">
+      <div class="container flex items-center px-4 mx-auto">
         <div class="w-full align-top items-center">
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
             <img class="mb-6"

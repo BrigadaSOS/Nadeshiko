@@ -32,7 +32,7 @@ watch(() => route.query.sort, (newSort) => {
 
 </script>
 <template>
-    <SearchDropdownContainer class="gap-2 mb-4 w-full flex" dropdownId="hs-dropdown-with-header">
+    <SearchDropdownContainer class="gap-2 mb-4 text-xs w-full flex" dropdownId="hs-dropdown-with-header">
         <template #default>
             <UiButtonPrimaryAction v-if="sortType === 'random'" @click="sortContent('random')">
                 <UiBaseIcon size="20" :path="mdiRefresh" />
