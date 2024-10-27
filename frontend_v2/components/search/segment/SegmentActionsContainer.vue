@@ -21,7 +21,7 @@ const openAnkiModal = () => {
 
 </script>
 <template>
-  <SearchDropdownContainer class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
+  <SearchDropdownContainer class="mr-2 my-1 text-xs" dropdownId="hs-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
         <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
@@ -41,7 +41,7 @@ const openAnkiModal = () => {
     </template>
   </SearchDropdownContainer>
 
-  <SearchDropdownContainer class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
+  <SearchDropdownContainer class="mr-2 my-1 text-xs" dropdownId="hs-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
         <UiBaseIcon :path="mdiTrayArrowDown" />
@@ -63,7 +63,7 @@ const openAnkiModal = () => {
     </template>
   </SearchDropdownContainer>
 
-  <SearchDropdownContainer class="mr-2 my-1" dropdownId="hs-dropdown-with-header">
+  <SearchDropdownContainer class="mr-2 my-1 text-xs" dropdownId="hs-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
         <UiBaseIcon :path="mdiContentCopy" />
@@ -91,7 +91,7 @@ const openAnkiModal = () => {
     </template>
   </SearchDropdownContainer>
 
-  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 py-2.5 px-3"
+  <UiButtonPrimaryAction data-hs-overlay="#hs-vertically-centered-scrollable-context" class="mr-2 text-xs py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
     {{ $t('searchpage.main.buttons.context') }}
