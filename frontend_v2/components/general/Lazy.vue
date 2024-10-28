@@ -1,4 +1,5 @@
 <!-- Component related to guide https://medium.com/js-dojo/lazy-rendering-in-vue-to-improve-performance-dcccd445d5f-->
+<!--Disabled due to render problems in context modal-->
 <template>
     <div :style="{ minHeight: `${minHeight}px` }" ref="lazyElement">
         <slot v-if="shouldRender"></slot>
