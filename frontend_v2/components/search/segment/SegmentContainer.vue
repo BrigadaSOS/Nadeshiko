@@ -178,8 +178,8 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     <SearchModalAnkiNotes :sentence="searchNoteSentence"
       :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
 
-    <GeneralLazy v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
-      :id="sentence.segment_info.position" :unrender="true" :min-height="250"
+    <div v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
+      :id="sentence.segment_info.position"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
       <!-- Image -->
@@ -305,7 +305,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
         </div>
       </div>
       <!-- End Details -->
-    </GeneralLazy>
+    </div>
 
     <div v-if="isLoading" class="text-center">
       <div
@@ -316,17 +316,38 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     </div>
   </div>
   <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData" class="w-full">
-    <div v-for="i in 10" :key="i" class="space-y-2 mt-6 animate-pulse md:space-y-0 md:space-x-8 md:flex md:items-center">
-      <div class="flex mb-10 items-center justify-center bg-gray-300 rounded h-56 w-auto h-auto shrink-0 w-auto lg:w-[26em] dark:bg-neutral-700">
+    <div v-for="i in 10" :key="i" 
+      class="hover:bg-neutral-800/20 mb-11 animate-pulse items-stretch b-2 rounded-lg group transition-all flex flex-col lg:flex-row py-2">
+      <!-- Image placeholder  -->
+      <div class="h-auto shrink-0 w-auto lg:w-[26em]">
+        <div class="h-56 w-full bg-gray-300 dark:bg-neutral-700"></div>
       </div>
-      <div class="w-full ">
-        <div class="h-2.5 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[320px] mb-4"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[680px] mb-2.5"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[640px] mb-2.5"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[660px] mb-2.5"></div>
-        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[560px]"></div>
+
+      <!-- Content placeholders  -->
+      <div class="w-full py-3 sm:py-2 px-4 rounded-e-md flex flex-col justify-between">
+        <div class="flex items-center space-x-2 py-1">
+          <div class="h-6 bg-gray-300 dark:bg-neutral-700 rounded-full w-5/6"></div>
+        </div>
+
+        <!-- Spanish and English translations -->
+        <div class="mt-4 space-y-4">
+          <div class="h-4 bg-gray-300 dark:bg-neutral-700 rounded-full w-3/4"></div>
+          <div class="h-4 bg-gray-300 dark:bg-neutral-700 rounded-full w-3/4"></div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex space-x-2 mt-4">
+          <div class="w-24 h-8 bg-gray-300 dark:bg-neutral-700 rounded-md"></div>
+          <div class="w-24 h-8 bg-gray-300 dark:bg-neutral-700 rounded-md"></div>
+          <div class="w-24 h-8 bg-gray-300 dark:bg-neutral-700 rounded-md"></div>
+          <div class="w-24 h-8 bg-gray-300 dark:bg-neutral-700 rounded-md"></div>
+        </div>
+
+        <!-- Media details -->
+        <div class="mt-4">
+          <div class="h-4 bg-gray-300 dark:bg-neutral-700 rounded-full w-2/4"></div>
+        </div>
       </div>
-      <span class="sr-only">Loading...</span>
     </div>
   </div>
   <div v-else-if="!isLoading && searchData?.sentences?.length === 0">
