@@ -1,11 +1,11 @@
 <script setup>
+
 const selectedOption = ref('')
 let words = ref('')
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import { mdiTagSearchOutline } from '@mdi/js'
 const apiSearch = useApiSearch();
-
 
 const inputText = ref('')
 const wordCount = ref(0)
@@ -33,19 +33,27 @@ const sortedWordsMatch = computed(() => {
 })
 
 const getWordMatch = async () => {
+  if (words.value.length === 0) {
+    return;
+  }
+
   isLoading.value = true
+  HSOverlay.open(document.querySelector("#hs-vertically-centered-scrollable-batch2"));
 
   let body = {
     words: words.value
   };
 
   // Fetch data from API      
-  const response = await apiSearch.getMultipleSearch(body);
-
-  wordsMatch.value = response.results
-  totalWordsSearched.value = words.value.length
-  isLoading.value = false
-  return data
+  try {
+    const response = await apiSearch.getMultipleSearch(body);
+    wordsMatch.value = response.results
+    totalWordsSearched.value = words.value.length
+  } catch (e) {
+    useToastError(e);
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const percentageMatched = computed(() => {
@@ -109,8 +117,8 @@ watch(inputText, (newValue) => {
                   <br />
                   {{ t("batchSearch.description2") }}.
                   <span class="underline underline-offset-4">{{ t("batchSearch.description3") }}</span>.
-                  {{ t("batchSearch.description4") }}<span
-                    class="underline underline-offset-4">{{ t("batchSearch.description5") }}</span>.
+                  {{ t("batchSearch.description4") }}<span class="underline underline-offset-4">{{
+                    t("batchSearch.description5") }}</span>.
                 </p>
 
                 <textarea v-model="inputText" autocomplete="off" rows="10"
@@ -129,7 +137,7 @@ watch(inputText, (newValue) => {
                         <UiBaseIcon :path="mdiTagSearchOutline" w="w-5 md:w-5" h="h-5 md:h-5" size=25 class="mt-1" />
                         <span class="ml-5">
                           <span class="block font-medium text-gray-800 dark:text-gray-200">{{
-            t("searchSettingsModal.exactMatchTitle") }}</span>
+                            t("searchSettingsModal.exactMatchTitle") }}</span>
                           <span class="block text-sm text-gray-500">{{ t("searchSettingsModal.exactMatchDescription")
                             }}</span>
                         </span>
@@ -151,7 +159,7 @@ watch(inputText, (newValue) => {
           </div>
         </div>
         <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
-          <button type="button" @click="getWordMatch" data-hs-overlay="#hs-vertically-centered-scrollable-batch2"
+          <button type="button" @click="getWordMatch"
             class="hs-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800">
             {{ t("batchSearch.search") }}
           </button>
@@ -217,12 +225,10 @@ watch(inputText, (newValue) => {
                       <tr v-for="(item, index) in sortedWordsMatch">
                         <td
                           class="y-4 whitespace-nowrap text-base text-center font-medium text-gray-800 dark:text-gray-200">
-                          <NuxtLink v-if="item.is_match" 
-                          :to="{
+                          <NuxtLink v-if="item.is_match" :to="{
                             path: '/search/sentence',
                             query: { query: item.word }
-                          }"
-                            class="text-blue-500 underline-offset-2 underline" target="_blank">
+                          }" class="text-blue-500 underline-offset-2 underline" target="_blank">
                             {{ item.word }}
                           </NuxtLink>
                           <span v-else>
@@ -233,9 +239,9 @@ watch(inputText, (newValue) => {
                         <td
                           class="py-4 whitespace-nowrap text-base font-medium text-gray-800 dark:text-gray-200 flex justify-center items-center">
                           <span :class="{
-            'bg-green-500/20 text-white': item.is_match,
-            'bg-red-500/20 text-white': !item.is_match
-          }"
+                            'bg-green-500/20 text-white': item.is_match,
+                            'bg-red-500/20 text-white': !item.is_match
+                          }"
                             class="bg-gray-100 mb-1 text-gray-800 text-xs font-medium flex justify-center items-center px-2.5 py-0.5 rounded w-full border dark:border-modal-border text-center">
                             {{ item.is_match ? t("batchSearch.results.true") : t("batchSearch.results.false") }}
                           </span>
