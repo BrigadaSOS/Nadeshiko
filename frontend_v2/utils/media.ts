@@ -117,9 +117,9 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     console.log(`[Creation] AudioContext with Sample Rate of ${audioContext.sampleRate}`);
   }
 
-  for (const url of urls) {
-    const response = await fetch(url);
-    audioBuffers.push(await audioContext.decodeAudioData(await response.arrayBuffer()));
+  const audioRes = await Promise.all(urls.map(url => fetch(url)));
+  for (const res of audioRes) {
+    audioBuffers.push(await audioContext.decodeAudioData(await res.arrayBuffer()));
   }
 
   // Should always be 2, but just in case
