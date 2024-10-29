@@ -118,9 +118,13 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
         },
       };
 
+      let concatenatedAudio;
+
       // Concatenar según la dirección especificada
       if (direction === 'forward') {
         audioUrls.push(nextSentence.media_info.path_audio);
+        concatenatedAudio = await concatenateAudios(audioUrls);
+
         sentence.segment_info = {
           ...sentence.segment_info,
           content_jp: `${sentence.segment_info.content_jp} <span class="text-cyan-200">${nextSentence.segment_info.content_jp}</span>`,
@@ -132,6 +136,8 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
         };
       } else if (direction === 'backward') {
         audioUrls.unshift(previousSentence.media_info.path_audio);
+        concatenatedAudio = await concatenateAudios(audioUrls);
+
         sentence.segment_info = {
           ...sentence.segment_info,
           content_jp: `<span class="text-cyan-200">${previousSentence.segment_info.content_jp}</span> ${sentence.segment_info.content_jp}`,
@@ -145,6 +151,8 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
         // Expandir en ambas direcciones
         audioUrls.unshift(previousSentence.media_info.path_audio);
         audioUrls.push(nextSentence.media_info.path_audio);
+
+        concatenatedAudio = await concatenateAudios(audioUrls);
         sentence.segment_info = {
           ...sentence.segment_info,
           content_jp: `<span class="text-cyan-200">${previousSentence.segment_info.content_jp}</span> ${sentence.segment_info.content_jp} <span class="text-cyan-200">${nextSentence.segment_info.content_jp}</span>`,
@@ -156,9 +164,10 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
         };
       }
 
-      const concatenatedAudio = await concatenateAudios(audioUrls);
 
+      // @ts-ignore
       sentence.media_info.blob_audio_url = concatenatedAudio.blob_url;
+      // @ts-ignore
       sentence.media_info.blob_audio = concatenatedAudio.blob;
     }
   } catch (error) {
@@ -316,7 +325,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     </div>
   </div>
   <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData" class="w-full">
-    <div v-for="i in 10" :key="i" 
+    <div v-for="i in 10" :key="i"
       class="hover:bg-neutral-800/20 mb-11 animate-pulse items-stretch b-2 rounded-lg group transition-all flex flex-col lg:flex-row py-2">
       <!-- Image placeholder  -->
       <div class="h-auto shrink-0 w-auto lg:w-[26em]">
