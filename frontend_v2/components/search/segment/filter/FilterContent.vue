@@ -103,7 +103,7 @@ const filterAnime = (anime_id, anime_name) => {
                     <button @click="filterAnime(item.anime_id, item.name_anime_en)"
                         :class="{ 'bg-sgrayhover': item.anime_id == categorySelected }"
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span>{{ item.name_anime_en }}</span>
+                        <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.name_anime_en }}</span>
                         <span
                             v-if="item.name_anime_en?.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
                             class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
