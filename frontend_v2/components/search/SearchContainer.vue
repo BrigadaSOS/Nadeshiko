@@ -296,12 +296,8 @@ onBeforeRouteUpdate(async (to, from) => {
                                 <UiBaseIcon :path="mdiRefresh" @click="fetchSentences()" />
                                 Reintentar conexión
                             </template>
-
                         </UiButtonPrimaryAction>
                     </div>
-
-
-
                 </div>
             </div>
         </section>

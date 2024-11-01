@@ -192,7 +192,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
       <!-- Image -->
-      <div class="h-auto shrink-0 w-auto lg:w-[26em]">
+      <div class="h-auto shrink-0 w-auto lg:w-[25m]">
         <img loading="lazy" :src="sentence.media_info.path_image + '?width=960&height=540'"
           @click="zoomImage(sentence.media_info.path_image)"
           class="inset-0 h-56 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
