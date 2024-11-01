@@ -1,16 +1,44 @@
+<script setup lang="ts">
+const route = useRoute()
+const { locale } = useI18n()
+
+/**
+ * @docs queryContent https://content.nuxt.com/composables/query-content
+ */
+async function fetchContent() {
+	try {
+		return await queryContent(locale.value.toLowerCase(), route.path).findOne()
+	} catch (err: any) {
+		return await queryContent(route.path).findOne()
+	}
+}
+
+/**
+ * @docs https://nuxt.com/docs/api/composables/use-async-data
+ */
+const { data } = await useAsyncData('content', () => fetchContent(), {
+	watch: [locale],
+})
+</script>
+
 <template>
     <NuxtLayout>
         <div class=" mx-auto">
             <div class=" px-4 pt-6 lg:pt-10 pb-6 lg:pb-10  mx-auto">
                 <div class="mx-auto max-w-6xl">
                     <div class="content-markdown bg-card-background rounded-lg">
-                        <ContentDoc path="/terms-and-conditions" />
+						<ContentRenderer class="prose prose-zinc" :value="data">
+							<template #empty>
+								<p>Stay tuned; it will be added later 😉</p>
+							</template>
+						</ContentRenderer>
                     </div>
                 </div>
             </div>
         </div>
     </NuxtLayout>
 </template>
+
 
 <style>
 .content-markdown ol, .content-markdown ul {
