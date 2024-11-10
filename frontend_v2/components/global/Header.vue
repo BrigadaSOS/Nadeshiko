@@ -18,7 +18,7 @@ const toggleMobileMenu = () => {
                 <div class="flex mr-7">
                     <NuxtLink to="/"
                         class="text-lg inline-flex items-center text-center align-middle font-semibold text-white">
-                        <img format="webp" src="/logo.webp" class="h-8 mr-3 rounded-full" alt="Nadeshiko Logo" />
+                        <img format="ico" src="/favicon.ico" class="h-8 mr-3 rounded-semi" alt="Nadeshiko Logo" />
                         Nadeshiko
                     </NuxtLink>
                 </div>

@@ -360,10 +360,12 @@ watch(() => window.innerWidth, checkScreenSize);
                                         </a>
                                     </div>
                                     <div class="mt-5 w-auto">
+                                        <!--
                                         <a href="https://patreon.com/BrigadaSOS">
                                             <img class="h-12 object-contain rounded-md" src="/patreon.png"
                                                 alt="Become a Patron" />
                                         </a>
+                                        -->
                                     </div>
                                 </div>
                             </div>

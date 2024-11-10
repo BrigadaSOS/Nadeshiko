@@ -16,8 +16,9 @@ const bodyParser = require('body-parser');
 newrelic.instrumentLoadedModule("express", express);
 
 const app: Application = express();
+app.set('trust proxy', 1); 
 
-const allowedOrigins = ["http://localhost:5173", "https://db.brigadasos.xyz", "https://db.dev.brigadasos.xyz", "https://nadeshiko.co", "https://dev.nadeshiko.co", "http://localhost:3000"];
+const allowedOrigins = process.env.ALLOWED_WEBSITE_URLS ? process.env.ALLOWED_WEBSITE_URLS.split(',') : [];
 
 // @ts-ignore
 app.use(function (req, res, next) {
