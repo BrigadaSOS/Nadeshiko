@@ -54,10 +54,6 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: pgroongadb
-          securityContext:
-            runAsUser: 999
-            runAsGroup: 999
-            fsGroup: 999
       volumes:
         - name: pgroongadb
           persistentVolumeClaim:
