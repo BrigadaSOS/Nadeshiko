@@ -9,7 +9,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/mnt/pgsync/"
+    path: "/mnt/nvme1/nadedb/pgsync/"
 ---
 apiVersion: apps/v1
 kind: StatefulSet
