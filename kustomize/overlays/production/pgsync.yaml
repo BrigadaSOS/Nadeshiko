@@ -30,7 +30,7 @@ spec:
         - name: pgsync
           image: natsume197/pgsync:3.2.1
           # bootstrap 
-          command: [ "bootstrap"]
+          command: [ "pgsync"]
           args: ["--config", "/data/schema.json", "--daemon"]
           # loop forever, outputting "yo" every 5 seconds
           # command: [ "sh", "-c"]
