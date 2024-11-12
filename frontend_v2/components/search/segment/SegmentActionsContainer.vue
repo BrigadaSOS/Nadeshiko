@@ -8,6 +8,11 @@ type Props = {
 }
 
 let props = defineProps<Props>();
+const anki = ankiStore();
+const isAnkiConfigured = computed(() => {
+  const current = anki.ankiPreferences.settings.current;
+  return current.deck !== null && current.model !== null && current.fields.length > 0;
+});
 
 const emit = defineEmits(['open-context-modal', 'open-anki-modal']);
 
@@ -31,12 +36,13 @@ const openAnkiModal = () => {
     <template #content>
       <SearchDropdownContent>
         <!-- Anki by last added -->
-        <SearchDropdownItem text="Añadir a Anki (Ultima carta añadida)" :iconPath="mdiStarShootingOutline"
-          @click="ankiStore().addSentenceToAnki(content)" />
+        <SearchDropdownItem :is-disabled="!isAnkiConfigured" text="Añadir a Anki (Ultima carta añadida)"
+          :iconPath="mdiStarShootingOutline" @click="ankiStore().addSentenceToAnki(content)" />
 
         <!-- Anki by ID -->
-        <SearchDropdownItem text="Añadir a Anki (Busca en tu colección)" @click="openAnkiModal()"
-          :iconPath="mdiStarShootingOutline" data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection" />
+        <SearchDropdownItem :is-disabled="!isAnkiConfigured" text="Añadir a Anki (Busca en tu colección)"
+          @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
+          data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection" />
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>
