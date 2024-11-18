@@ -14,7 +14,9 @@ let isLoading = ref(false)
 const fetchMedia = async () => {
   try {
     isLoading.value = true
-    media.value = await apiSearch.getRecentMedia();
+    media.value = await apiSearch.getRecentMedia({
+      size: 10
+    });
     mediaError.value = false;
   } catch (error) {
     console.error('Error fetching media:', error);
@@ -55,7 +57,7 @@ watch(() => window.innerWidth, checkScreenSize);
                         Nadeshiko
                       </h2>
                       <h3 class="inline-flex ml-2 rounded-full items-end text-base font-medium text-white/80">
-                        v1.0.2
+                        v1.0.3
                       </h3>
                     </div>
 
