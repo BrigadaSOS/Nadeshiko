@@ -250,7 +250,7 @@ watch(() => window.innerWidth, checkScreenSize);
                               </h3>
                             </div>
                           </div>
-                          <div v-else role="status" v-for="i in 8" class="animate-pulse relative">
+                          <div v-else role="status" v-for="i in 10" class="animate-pulse relative">
                             <div
                               class="w-full pb-[145%] rounded-lg items-center overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
                             </div>
