@@ -29,9 +29,10 @@ spec:
       containers:
         - name: pgsync
           image: natsume197/pgsync:3.2.1
-          # bootstrap 
+          # bootstrap / pgsync
           command: [ "pgsync"]
           args: ["--config", "/data/schema.json", "--daemon"]
+          #args: ["--config", "/data/schema.json"]
           # loop forever, outputting "yo" every 5 seconds
           # command: [ "sh", "-c"]
           # args: ["while true; do echo 'yo' && sleep 5; done;"]
