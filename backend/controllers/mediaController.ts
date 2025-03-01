@@ -15,7 +15,7 @@ const requestIp = require('request-ip');
 
 import {querySegments, querySurroundingSegments, queryWordsMatched} from "../external/elasticsearch";
 import {queryMediaInfo} from "../external/database_queries";
-import {QueryMediaInfoResponse} from "../models/external/queryMediaInfoResponse";
+import {MediaInfoStats} from "../models/external/queryMediaInfoResponse";
 import {GetAllAnimesResponse} from "../models/controller/GetAllAnimesResponse";
 import {SearchAnimeSentencesRequest} from "../models/controller/SearchAnimeSentencesRequest";
 import {ControllerRequest, ControllerResponse, getBaseUrlMedia, getBaseUrlTmp} from "../utils/utils";
@@ -28,6 +28,9 @@ import {GetContextAnimeResponse} from "../models/controller/GetContextAnimeRespo
 import { SaveUserSearchHistory } from "./databaseController";
 import { EventTypeHistory } from "../models/miscellaneous/userSearchHistory"
 import { Segment } from "../models/media/segment";
+import { CategoryType,Media } from "../models/media/media"
+import { Op } from 'sequelize';
+
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
 /**
@@ -198,30 +201,66 @@ export const getAllMedia = async (
   next: NextFunction
 ) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const pageSize = parseInt(req.query.size as string) || 2;
+    const pageSize = parseInt(req.query.size as string) || 20;
+    const searchQuery = typeof req.query.query === 'string' ? req.query.query : '';
+    const cursor = req.query.cursor ? parseInt(req.query.cursor as string) : 0;
+    const type = typeof req.query.type === 'string' ? req.query.type.toLowerCase() : '';
 
-    const response: QueryMediaInfoResponse = await queryMediaInfo(page, pageSize);
+    const page = Math.floor(cursor / pageSize) + 1;
 
-    let results = Object.values(response.results);
+    const categoryMap: Record<string, CategoryType> = {
+      anime: CategoryType.ANIME,
+      liveaction: CategoryType.JDRAMA,
+    };
 
-    if(req.query.sorted && req.query.sorted.toLowerCase() === "true") {
-      results = results.sort((a, b) => {return Date.parse(b.created_at) - Date.parse(a.created_at) });
+    const whereClause: any = {};
+    if (type && categoryMap[type]) {
+      whereClause.category = categoryMap[type];
     }
 
-    if(req.query.size && Number(req.query.size) >= 0) {
-      results = results.slice(0, Number(req.query.size));
+    if (searchQuery) {
+      whereClause[Op.or] = [
+        { english_name: { [Op.iLike]: `%${searchQuery}%` } },
+        { japanese_name: { [Op.iLike]: `%${searchQuery}%` } },
+        { romaji_name: { [Op.iLike]: `%${searchQuery}%` } }
+      ];
     }
 
-    return res.status(StatusCodes.ACCEPTED).json({
-      stats: response.stats,
-      results,
-      pagination: {
-        currentPage: page,
-        pageSize: pageSize,
-      }
+    const { count, rows } = await Media.findAndCountAll({
+      where: whereClause,
+      order: [['created_at', 'DESC']],
+      limit: pageSize,
+      offset: cursor
     });
 
+    const mediaInfo = await queryMediaInfo(page, pageSize);
+
+    const paginatedResults = rows.map(media => {
+      const mediaData = media.toJSON();
+      const location_media = mediaData.category === CategoryType.ANIME ? 'anime' : 'jdrama';
+      mediaData.cover = [getBaseUrlMedia(), location_media, mediaData.cover].join("/");
+      mediaData.banner = [getBaseUrlMedia(), location_media, mediaData.banner].join("/");
+      return mediaData;
+    });
+
+    const nextCursor = cursor + paginatedResults.length;
+    const hasMoreResults = nextCursor < count;
+
+    const stats: MediaInfoStats = {
+      total_animes: count,
+      total_segments: paginatedResults.reduce((sum, media) => sum + media.num_segments, 0),
+      full_total_animes: mediaInfo.stats.full_total_animes,
+      full_total_segments: mediaInfo.stats.full_total_segments,
+    };
+
+    const response: GetAllAnimesResponse = {
+      stats,
+      results: paginatedResults,
+      cursor: hasMoreResults ? nextCursor : null,
+      hasMoreResults
+    };
+
+    return res.status(StatusCodes.OK).json(response);
   } catch (error) {
     next(error);
   }
