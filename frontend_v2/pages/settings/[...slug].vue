@@ -9,7 +9,7 @@ const router = useRouter()
 
 const tabs_general = [
     { name: 'Cuenta', icon: mdiAccount, route: '/settings/account' },
-    { name: 'Sincronización', icon: mdiSync, route: '/settings/sync' },
+    { name: 'Sincronización Anki', icon: mdiSync, route: '/settings/sync' },
 ]
 const tabs_advanced = [
     { name: 'Desarrollador', icon: mdiCodeTags, route: '/settings/developer' },

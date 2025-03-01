@@ -347,7 +347,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
                 <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData">
                     <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">
-                        <div role=" status" class="hidden w-11/12 2xl:flex flex-col py-6 animate-pulse">
+                        <div role=" status" class="hidden w-10/12 2xl:flex flex-col py-6 animate-pulse">
                             <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
                             <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
                             <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
