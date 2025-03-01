@@ -192,7 +192,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
       <!-- Image -->
-      <div class="h-auto shrink-0 w-auto lg:w-[25m]">
+      <div class="h-auto shrink-0 w-auto lg:w-[25rem] min-w-[200px] min-h-[140px] flex justify-center">
         <img loading="lazy" :src="sentence.media_info.path_image + '?width=960&height=540'"
           @click="zoomImage(sentence.media_info.path_image)"
           class="inset-0 h-56 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
@@ -209,7 +209,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
             <button
               @click="playAudio(sentence.media_info.blob_audio_url ? sentence.media_info.blob_audio_url : sentence.media_info.path_audio, sentence.segment_info.uuid)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
-              <UiBaseIcon v-if="!isAudioPlaying[sentence.segment_info.uuid]" w="w-10 md:w-5" h="h-10 md:h-5" size="24"
+              <UiBaseIcon v-if="!isAudioPlaying[sentence.segment_info.uuid]" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
               <span v-else="isAudioPlaying"
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"

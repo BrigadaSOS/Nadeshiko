@@ -80,7 +80,7 @@ const filterAnime = (anime_id, anime_name) => {
 </script>
 
 <template>
-    <div class="relative max-w-xs mx-auto">
+    <div class="relative mx-auto">
         <ul
             class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
             <div class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg">
