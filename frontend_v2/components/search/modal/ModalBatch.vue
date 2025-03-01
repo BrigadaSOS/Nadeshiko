@@ -33,7 +33,7 @@ const sortedWordsMatch = computed(() => {
 })
 
 const getWordMatch = async () => {
-  if (words.value.length === 0) {
+  if (words.value.length === 0 || words.value.length > 500) {
     return;
   }
 
@@ -73,8 +73,8 @@ watch(inputText, (newValue) => {
     .map((word) => word.trim())
     .filter((word) => word !== '')
 
-  if (words.value.length > 200) {
-    errorMessage.value = `Se ha excedido el límite de palabras permitidas: ${words.value.length} / 200`
+  if (words.value.length > 500) {
+    errorMessage.value = `Se ha excedido el límite de palabras permitidas: ${words.value.length} / 500`
     wordCount.value = words.value.length
   } else if (newValue.includes(',') && newValue.includes('\n')) {
     errorMessage.value = 'El formato de entrada es incorrecto. Verifique si hay comas y saltos de línea simultáneos.'
@@ -153,7 +153,7 @@ watch(inputText, (newValue) => {
               </div>
               <div v-if="errorMessage" class="p-4 sm:p-6 ml-auto text-red-500">{{ errorMessage }}</div>
               <div v-if="!errorMessage" class="p-4 sm:p-6  leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
-                {{ t("batchSearch.totalWords") }}: {{ wordCount }} / 200
+                {{ t("batchSearch.totalWords") }}: {{ wordCount }} / 500
               </div>
             </div>
           </div>
