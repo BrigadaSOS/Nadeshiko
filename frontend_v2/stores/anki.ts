@@ -116,7 +116,7 @@ export const ankiStore = defineStore("anki", {
         return await response.json();
       } catch (error) {
         console.error(`Error while requesting ${action}:`, error);
-        throw error;
+        // throw error;
       }
     },
 
@@ -127,7 +127,7 @@ export const ankiStore = defineStore("anki", {
         let models = await this.getAllModels();
 
         if (permission !== "granted") {
-          throw new Error("Permission was denied.");
+          console.log("Permission was denied.");
         }
         if (decks && Array.isArray(decks)) {
           this.ankiPreferences.availableDecks = decks;
