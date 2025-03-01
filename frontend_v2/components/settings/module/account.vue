@@ -42,10 +42,12 @@ onMounted(async () => {
           </div>
           <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.username || 'No available' }}</p>
         </div>
+        <!--
         <button data-hs-overlay="#hs-vertically-centered-scrollable-editusername"
           class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded">
           Cambiar
         </button>
+        -->
       </div>
       <div class="flex justify-between items-center mt-3">
         <div>
@@ -55,13 +57,16 @@ onMounted(async () => {
           </div>
           <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.email || 'No available' }}</p>
         </div>
+        <!--
         <button
           class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded">Cambiar</button>
+          -->
       </div>
     </div>
   </div>
 
   <!-- Card -->
+  <!--
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
     <h3 class="text-lg text-white/90 tracking-wide font-semibold">Seguridad</h3>
     <div class="border-b pt-4 border-white/10" />
@@ -76,7 +81,7 @@ onMounted(async () => {
       </div>
     </div>
   </div>
-
+  -->
   <!-- Card -->
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
     <h3 class="text-lg text-white/90 tracking-wide font-semibold">Adicional</h3>

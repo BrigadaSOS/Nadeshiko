@@ -108,38 +108,6 @@ const redirectToDiscordAuth = async () => {
                 aria-label="Tabs"
                 role="tablist"
               >
-                <button
-                  type="button"
-                  class="relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:hover:bg-neutral-800 dark:border-l-gray-700 dark:hover:text-gray-400 active"
-                  id="bar-with-underline-item-1"
-                  data-hs-tab="#bar-with-underline-1"
-                  aria-controls="bar-with-underline-1"
-                  role="tab"
-                  @click="activeTab = 0"
-                  :class="{
-                    'border-b-header-background dark:border-b-header-background text-white':
-                      activeTab == 0,
-                    'dark:border-b-white/30': activeTab != 0,
-                  }"
-                >
-                  Inciar sesión
-                </button>
-                <button
-                  type="button"
-                  class="relative min-w-0 flex-1 first:border-l-0 border-b-2 py-4 px-4 text-gray-500 hover:text-gray-700 text-sm font-medium text-center overflow-hidden hover:bg-gray-50 focus:z-10 dark:border-l-gray-700 dark:hover:bg-neutral-800 dark:hover:text-gray-400 dark:hover:text-gray-300"
-                  id="bar-with-underline-item-2"
-                  data-hs-tab="#bar-with-underline-2"
-                  aria-controls="bar-with-underline-2"
-                  role="tab"
-                  :class="{
-                    'border-b-header-background dark:border-b-header-background text-white':
-                      activeTab == 1,
-                    'dark:border-b-white/30': activeTab != 1,
-                  }"
-                  @click="activeTab = 1"
-                >
-                  Registrarse
-                </button>
               </nav>
               <div class="">
                 <div
@@ -148,22 +116,7 @@ const redirectToDiscordAuth = async () => {
                   aria-labelledby="bar-with-underline-item-1"
                 >
                   <div class="p-4 sm:px-7 mb-3">
-                    <div class="text-center">
-                      <p class="text-sm text-gray-600 dark:text-gray-400">
-                        ¿No tienes una cuenta?
-                        <button
-                          class="text-blue-600 decoration-2 hover:underline font-medium"
-                          data-hs-tab="#bar-with-underline-2"
-                          aria-controls="bar-with-underline-2"
-                          id="bar-with-underline-item-2"
-                          role="tab"
-                          @click="activeTab = 1"
-                        >
-                          Registrate aquí
-                        </button>
-                      </p>
-                    </div>
-                    <div class="mt-5 flex flex-col">
+                    <div class="flex flex-col">
                       <ClientOnly>
                         <GoogleLogin :callback="callbackGoogle">
                           <UiButtonPrimaryAction
@@ -217,139 +170,6 @@ const redirectToDiscordAuth = async () => {
                         </svg>
                         Iniciar con Discord
                       </UiButtonPrimaryAction>
-                      <div
-                        class="py-3 flex items-center text-xs text-gray-400 uppercase before:flex-[1_1_0%] before:border-t before:border-gray-200 before:mr-6 after:flex-[1_1_0%] after:border-t after:border-gray-200 after:ml-6 dark:text-gray-500 dark:before:border-gray-600 dark:after:border-gray-600"
-                      >
-                        O
-                      </div>
-
-                      <!-- Form -->
-                      <form>
-                        <div class="grid gap-y-4">
-                          <!-- Form Group -->
-                          <div>
-                            <div class="relative">
-                              <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                v-model="email"
-                                placeholder="Email..."
-                                class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 text-gray-600 dark:text-gray-400 dark:focus:ring-white/10 dark:focus:border-white/10"
-                                required
-                                aria-describedby="email-error"
-                              />
-                              <div
-                                class="hidden absolute inset-y-0 right-0 flex items-center pointer-events-none pr-3"
-                              >
-                                <svg
-                                  class="h-5 w-5 text-red-500"
-                                  width="16"
-                                  height="16"
-                                  fill="currentColor"
-                                  viewBox="0 0 16 16"
-                                  aria-hidden="true"
-                                >
-                                  <path
-                                    d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                            <p
-                              class="hidden text-xs text-red-600 mt-2"
-                              id="email-error"
-                            >
-                              Please include a valid email address so we can get
-                              back to you
-                            </p>
-                          </div>
-                          <!-- End Form Group -->
-
-                          <!-- Form Group -->
-                          <div>
-                            <div class="relative">
-                              <input
-                                type="password"
-                                id="password"
-                                v-model="password"
-                                name="password"
-                                placeholder="Password..."
-                                class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 text-gray-600 dark:text-gray-400 dark:focus:ring-white/10 dark:focus:border-white/10"
-                                required
-                                aria-describedby="password-error"
-                              />
-                              <div
-                                class="hidden absolute inset-y-0 right-0 flex items-center pointer-events-none pr-3"
-                              >
-                                <svg
-                                  class="h-5 w-5 text-red-500"
-                                  width="16"
-                                  height="16"
-                                  fill="currentColor"
-                                  viewBox="0 0 16 16"
-                                  aria-hidden="true"
-                                >
-                                  <path
-                                    d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                            <p
-                              class="hidden text-xs text-red-600 mt-2"
-                              id="password-error"
-                            >
-                              8+ characters required
-                            </p>
-                          </div>
-                          <!-- End Form Group -->
-
-                          <!-- Checkbox -->
-                          <!--
-                          <div class="flex items-center">
-                            <div class="flex">
-                              <input id="remember-me" name="remember-me" type="checkbox"
-                                class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 pointer-events-none focus:ring-blue-500 dark:bg-sgray dark:border-gray-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800" />
-                            </div>
-                            
-                            <div class="ml-3">
-                              <label for="remember-me" class="text-sm text-gray-600 dark:text-gray-400">Recuerda mi inicio de
-                                sesión</label>
-                            </div>
-                          
-                          </div>
-                          -->
-                          <!-- End Checkbox -->
-                          <p
-                            class="text-sm text-gray-600 text-center dark:text-gray-400"
-                          >
-                            By using this website you agree to our
-                            <a
-                              href="/terms-and-conditions"
-                              class="text-blue-500"
-                              aria-label="TermsAndConditions"
-                            >
-                              {{ $t("navbar.buttons.terms") }}
-                            </a>
-                            and to our
-                            <a
-                              href="/privacy"
-                              class="text-blue-500"
-                              aria-label="Privacy"
-                            >
-                              {{ $t("navbar.buttons.privacy") }}
-                            </a>
-                          </p>
-                          <UiButtonPrimaryAction
-                            @click="store.login(email, password)"
-                            class="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-sgray text-white hover:bg-sgray2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
-                          >
-                            Iniciar sesión
-                          </UiButtonPrimaryAction>
-                        </div>
-                      </form>
-                      <!-- End Form -->
                     </div>
                   </div>
                 </div>
