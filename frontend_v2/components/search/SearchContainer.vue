@@ -340,7 +340,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
             <!-- Filters -->
-            <div class="2xl:min-w-[18rem]">
+            <div class="2xl:min-w-[18rem] 2xl:max-w-[18rem]">
                 <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
