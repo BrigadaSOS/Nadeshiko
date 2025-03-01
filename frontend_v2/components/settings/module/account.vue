@@ -5,15 +5,16 @@ import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 
 const user_store = userStore()
-const user = computed(() => user_store)
 let dataUser = ref(null)
 let isLoading = ref(false)
 let error = ref(null)
+let userInfo = ref(null) 
+let isAuth = computed(() => user_store.isLoggedIn)
 
 const getUserInfo = async () => {
   isLoading.value = true
   try {
-    const userInfo = await user_store.getBasicInfo()
+    userInfo = await user_store.getBasicInfo()
     dataUser.value = userInfo
     error.value = null
   } catch (e) {
@@ -25,7 +26,9 @@ const getUserInfo = async () => {
 }
 
 onMounted(async () => {
-  await getUserInfo()
+  if(isAuth.value && isAuth.value != null){
+    await getUserInfo()
+  }
 })
 </script>
 <template>
