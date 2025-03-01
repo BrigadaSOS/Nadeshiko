@@ -14,21 +14,22 @@ export const queryMediaInfo = async (
   pageSize: number = 10
 ): Promise<QueryMediaInfoResponse> => {
   // TODO: Fix cache
-  //if(MEDIA_TABLE_CACHE === undefined) {
-  //}
-  await refreshMediaInfoCache(page, pageSize);
-
+  if(MEDIA_TABLE_CACHE === undefined) {
+    pageSize = 10000000
+    await refreshMediaInfoCache(page, pageSize);
+  }
   return MEDIA_TABLE_CACHE!;
 };
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
-  let size_positino_filter = ''
-  if(page == 0){
-    size_positino_filter = `LIMIT ${pageSize}`
-  }else{
+  let size_position_filter = "";
+  if (page === 0) {
+    size_position_filter = `LIMIT ${pageSize}`;
+  } else {
     const offset = (page - 1) * pageSize;
-    size_positino_filter = `LIMIT ${pageSize} OFFSET ${offset}`
+    size_position_filter = `LIMIT ${pageSize} OFFSET ${offset}`;
   }
+
   const sql = `SELECT 
   json_build_object(
     'media_id', me.id,
@@ -55,9 +56,10 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     GROUP BY 
       me.id, me.romaji_name, me.english_name, me.japanese_name
     ORDER BY me.created_at DESC
-    ${size_positino_filter}`;
+    ${size_position_filter}`;
 
-  const sql_full = 'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2'
+  const sql_full =
+    'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2';
 
   const queryResponse = await connection.query(sql);
   const queryResponseFull = await connection.query(sql_full);
@@ -76,10 +78,12 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
       return;
     }
 
-    let location_media = result.media_info.category == 1 ? 'anime' : 'jdrama'
-    result.media_info.cover = [getBaseUrlMedia(), location_media ,result.media_info.cover].join(
-      "/"
-    );
+    let location_media = result.media_info.category == 1 ? "anime" : "jdrama";
+    result.media_info.cover = [
+      getBaseUrlMedia(),
+      location_media,
+      result.media_info.cover,
+    ].join("/");
     result.media_info.banner = [
       getBaseUrlMedia(),
       location_media,
