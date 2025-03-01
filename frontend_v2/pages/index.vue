@@ -2,8 +2,8 @@
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js'
 
 useSeoMeta({
-  title: 'Nadeshiko',
-  ogTitle: 'Nadeshiko'
+    title: 'Nadeshiko',
+    ogTitle: 'Nadeshiko'
 })
 
 const apiSearch = useApiSearch();
@@ -27,15 +27,15 @@ const fetchMedia = async () => {
 };
 
 onMounted(() => {
-  fetchMedia();
-  checkScreenSize();
-  window.addEventListener('resize', checkScreenSize);
+    fetchMedia();
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
 });
 
 const isSmallScreen = ref(false);
 
 const checkScreenSize = () => {
-  isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280;
+    isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280;
 };
 watch(() => window.innerWidth, checkScreenSize);
 </script>
@@ -342,147 +342,24 @@ watch(() => window.innerWidth, checkScreenSize);
                             </div>
                         </div>
                     </div>
-
-                    <p class="ml-2 pt-5 text-base">{{ $t('home.nadeDbDescription') }}</p>
-                    <ul class="list-disc ml-8 py-4 text-sm font-normal">
-                      <li class="mb-4">
-                        {{ $t('home.nadeDbDescriptionJpSearch') }}:
-                        <NuxtLink class="underline text-blue-400/95 underline-offset-4" to="search/sentence?query=彼女">彼女
-                        </NuxtLink>
-                      </li>
-                      <li class="mb-4">
-                        {{ $t('home.nadeDbDescriptionOtherSearch') }}:
-                        <NuxtLink class="underline text-blue-400/95 underline-offset-4"
-                          to="search/sentence?query=school">School</NuxtLink>,
-                        <NuxtLink class="underline text-blue-400/95 underline-offset-4"
-                          to="search/sentence?query=escuela">Escuela</NuxtLink>
-                      </li>
-                      <li class="mb-4">
-                        {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:
-                        <NuxtLink class="underline text-blue-400/95 underline-offset-4"
-                          to="search/sentence?query=卒業 -みんな">卒業 -みんな</NuxtLink>
-                      </li>
-                      <li class="">
-                        {{ $t('home.nadeDbDescriptionExactSearch') }}:
-                        <NuxtLink to='search/sentence?query="食べられない"'
-                          class="underline text-blue-400/90 underline-offset-4">"食べられない"
-                        </NuxtLink>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div class="border-b pt-2 border-white/10" />
-
-                  <div class="my-4 flex text-sm font-medium">
-                    <div class="mr-4">
-                      <UiBaseIcon :path="mdiSync" w="w-12 md:w-12" h="h-12 md:h-12" size="30" class="rotate-90" />
-                    </div>
-                    <div class="">
-                      <p class="mb-2">{{ $t('home.keyFeatures.feature1.title') }}</p>
-                      <span class="font-normal dark:text-white/60">{{
-                        $t('home.keyFeatures.feature1.description') }}</span>
-                    </div>
-                  </div>
-
-                  <div class="mb-5 flex text-sm font-medium">
-                    <div class="mr-4">
-                      <UiBaseIcon :path="mdiDownload" w="w-12 md:w-12" h="h-12 md:h-12" size="30" class="" />
-                    </div>
-                    <div class="">
-                      <p class="mb-2">{{ $t('home.keyFeatures.feature2.title') }}</p>
-                      <span class="font-normal dark:text-white/60">{{
-                        $t('home.keyFeatures.feature2.description') }}</span>
-                    </div>
-                  </div>
-
-                  <div class="mb-5 flex text-sm font-medium">
-                    <div class="mr-4">
-                      <UiBaseIcon :path="mdiHistory" w="w-12 md:w-12" h="h-12 md:h-12" size="30" class="" />
-                    </div>
-                    <div class="">
-                      <p class="mb-2">{{ $t('home.keyFeatures.feature3.title') }}</p>
-                      <span class="font-normal dark:text-white/60">{{
-                        $t('home.keyFeatures.feature3.description') }}</span>
-                    </div>
-                  </div>
-
-                  <div class="mb-5 flex text-sm font-medium">
-                    <div class="mr-4">
-                      <UiBaseIcon :path="mdiCardMultiple" w="w-12 md:w-12" h="h-12 md:h-12" size="30" class="" />
-                    </div>
-                    <div class="">
-                      <p class="mb-2">{{ $t('home.keyFeatures.feature4.title') }}</p>
-                      <span class="font-normal dark:text-white/60">{{
-                        $t('home.keyFeatures.feature4.description') }}</span>
-                    </div>
-                  </div>
-
-                  <div class="mb-5 border-b border-white/10" />
-
-                  <div class="flex gap-4 text-center">
-                    <div class="md:w-2/4 sm:w-1/2 w-full">
-                      <div class="dark:bg-card-background px-4 py-4 rounded-lg">
-                        <h2 class="title-font font-medium text-2xl text-white">
-                          +{{ Math.ceil(media?.stats?.full_total_segments / 100) * 100 || 0 }}
-                        </h2>
-                        <p class="leading-relaxed text-sm">
-                          {{ $t('home.stats.sentenceCount') }}
-                        </p>
-                      </div>
-                    </div>
-                    <div class="md:w-2/4 sm:w-1/2 w-full">
-                      <div class="dark:bg-card-background px-4 py-4 rounded-lg">
-                        <h2 class="title-font font-medium text-2xl text-white">{{
-                          media?.stats?.full_total_animes || 0 }}</h2>
-                        <p class="leading-relaxed text-sm">
-                          {{ $t('home.stats.mediaCount') }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="mt-5 border-b border-white/10" />
                 </div>
-
-                <div class="flex-grow xl:max-w-[60rem]">
-                  <section class="w-full rounded-lg">
-                    <div class="tab-content md:mx-2 flex-grow w-full">
-                      <div class="inline-flex justify-between items-center w-full mb-4">
-                        <h1 class="text-2xl font-bold md:text-2xl md:leading-tight dark:text-white">
-                          {{ $t('animeList.recentlyAddedTitle') }}
-                        </h1>
-                        <NuxtLink to="/search/media">
-                          <button type="button"
-                            class="py-3 px-4 inline-flex justify-center rounded-lg items-center gap-4 transition-all font-medium dark:hover:bg-button-primary-hover align-middle text-sm ">
-                            {{ $t('animeList.seeAll') }}
-                            <svg class="w-2.5 h-auto" width="17" height="16" viewBox="0 0 17 16" fill="none"
-                              xmlns="http://www.w3.org/2000/svg">
-                              <path fill-rule="evenodd" clip-rule="evenodd"
-                                d="M1 7C0.447715 7 -3.73832e-07 7.44771 -3.49691e-07 8C-3.2555e-07 8.55228 0.447715 9 1 9L13.0858 9L7.79289 14.2929C7.40237 14.6834 7.40237 15.3166 7.79289 15.7071C8.18342 16.0976 8.81658 16.0976 9.20711 15.7071L16.0303 8.88388C16.5185 8.39573 16.5185 7.60427 16.0303 7.11612L9.20711 0.292893C8.81658 -0.0976318 8.18342 -0.0976318 7.79289 0.292893C7.40237 0.683417 7.40237 1.31658 7.79289 1.70711L13.0858 7L1 7Z"
-                                fill="currentColor" />
-                            </svg>
-                          </button>
-                        </NuxtLink>
-                      </div>
-
-                      <div class="relative">
-                        <div
-                          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
-                          <div v-if="media?.results.length > 0" v-for="(media_info, index) in media.results"
-                            v-show="!isSmallScreen || index < (media.results.length - 2)" class="w-full relative">
-                            <div class="w-full">
-                              <div
-                                class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                                <img class="w-full h-full object-cover absolute top-0 left-0"
-                                  :src="media_info.cover + '?width=460&height=652'" />
-                              </div>
-                              <template>
-                                <div class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
-                                  <span
-                                    class="mx-auto object-center mt-2 text-center px-2 text-base font-bold text-gray-800 dark:text-white">{{
-                                      media_info.english_name }}</span>
-                                  <div class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
-                                    <div class="pb-[20%] overflow-hidden relative bg-[rgba(255,255,255,0.1)] block">
-                                      <img class="object-cover absolute top-0 left-0" :src="media_info.banner" />
+                <div class="pb-8">
+                    <div class="rounded-lg mx-auto max-w-[92%] p-6 dark:text-white/80 dark:bg-card-background relative">
+                        <section class="py-2">
+                            <div class="flex mb-2 flex-col md:flex-row justify-top">
+                                <div class="md:flex-1">
+                                    <h2 class="text-xl font-bold md:text-xl mb-3 md:leading-tight dark:text-white">{{
+                                        $t('home.support.title') }}
+                                    </h2>
+                                    <p class="text-sm max-w-2xl text-gray-800 dark:text-gray-200">
+                                        {{ $t('home.support.description') }}
+                                    </p>
+                                </div>
+                                <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
+                                    <div class="mt-5 w-auto bg-white p-1 rounded-md">
+                                        <a href="https://github.com/BrigadaSOS">
+                                            <img class="h-10 object-contain" src="/github.png" alt="GitHub" />
+                                        </a>
                                     </div>
                                     <div class="mt-5 w-auto">
                                         <a href="https://patreon.com/BrigadaSOS">
@@ -495,11 +372,7 @@ watch(() => window.innerWidth, checkScreenSize);
                         </section>
                     </div>
                 </div>
-              </div>
-            </section>
-          </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </NuxtLayout>
+    </NuxtLayout>
 </template>
