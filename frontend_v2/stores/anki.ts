@@ -126,7 +126,7 @@ export const ankiStore = defineStore("anki", {
         let decks = await this.getAllDeckNames();
         let models = await this.getAllModels();
 
-        if (permission !== "granted") {
+        if (permission && permission !== "granted") {
           console.log("Permission was denied.");
         }
         if (decks && Array.isArray(decks)) {
@@ -142,7 +142,7 @@ export const ankiStore = defineStore("anki", {
 
     async requestPermission(): Promise<string> {
       let response = await this.executeAction("requestPermission") as PermissionResponse;
-      return response.result.permission;
+      return response?.result?.permission ?? null;;
     },
 
     async getAllDeckNames(): Promise<string[]> {
