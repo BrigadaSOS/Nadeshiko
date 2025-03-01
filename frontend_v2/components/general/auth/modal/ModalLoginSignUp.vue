@@ -5,17 +5,11 @@ const target = ref();
 const { hasFocus, activate, deactivate } = useFocusTrap(target);
 
 const store = userStore();
-
-const route = useRoute();
-const email = ref("");
-const password = ref("");
-
 let passwordR = ref("");
 let passwordR2 = ref("");
 let emailR = ref("");
 let usernameR = ref("");
 
-let activeTab = ref(0);
 
 onMounted(() => {
   const modalObserver = useElementObserver(
@@ -64,10 +58,8 @@ const redirectToDiscordAuth = async () => {
 </script>
 
 <template>
-  <div
-    id="hs-vertically-centered-scrollable-loginsignup-modal"
-    class="hs-overlay-open:mt-7 hs-overlay-backdrop-open:bg-neutral-900/40 [--tab-accessibility-limited:false] hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
-  >
+  <div id="hs-vertically-centered-scrollable-loginsignup-modal"
+    class="hs-overlay hs-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
     <div
       ref="target"
       class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
@@ -105,15 +97,11 @@ const redirectToDiscordAuth = async () => {
             <div class="mx-4 sm:w-[60vh] w-full flex flex-col">
               <nav
                 class="relative mt-2 z-0 flex border overflow-hidden border-none"
-                aria-label="Tabs"
-                role="tablist"
               >
               </nav>
               <div class="">
                 <div
                   id="bar-with-underline-1"
-                  role="tabpanel"
-                  aria-labelledby="bar-with-underline-item-1"
                 >
                   <div class="p-4 sm:px-7 mb-3">
                     <div class="flex flex-col">
@@ -176,14 +164,9 @@ const redirectToDiscordAuth = async () => {
                 <div
                   id="bar-with-underline-2"
                   class="hidden"
-                  role="tabpanel"
-                  aria-labelledby="bar-with-underline-item-2"
                 >
                   <div class="mt-3">
                     <div
-                      id="bar-with-underline-1"
-                      role="tabpanel"
-                      aria-labelledby="bar-with-underline-item-1"
                     >
                       <div class="p-4 sm:px-7 mb-3">
                         <div class="-mt-4">
