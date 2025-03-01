@@ -1,0 +1,196 @@
+{
+    "navbar": {
+      "languages": {
+        "english": "英語",
+        "spanish": "スペイン語",
+        "japanese": "日本語"
+      },
+      "buttons": {
+        "home": "ホーム",
+        "faq": "よくある質問",
+        "about": "概要",
+        "discord": "ディスコード",
+        "guide": "メインページ",
+        "login": "ログイン / サインアップ",
+        "profile": "プロフィール",
+        "seeProfile": "設定",
+        "logout": "ログアウト",
+        "privacy": "プライバシー",
+        "terms": "利用規約",
+        "contact": "お問い合わせ",
+        "settings": "設定"
+      }
+    },
+    "home": {
+      "version": "バージョン",
+      "nadeDbDescription": "さまざまな文脈から日本語の文を検索できるツール。",
+      "nadeDbDescriptionJpSearch": "日本語で検索",
+      "nadeDbDescriptionOtherSearch": "英語またはスペイン語で検索",
+      "nadeDbDescriptionExclusiveSearch": "限定検索",
+      "nadeDbDescriptionExactSearch": "完全一致検索",
+      "keyFeatures": {
+        "feature1": {
+          "title": "Ankiと互換性あり",
+          "description": "画像、音声、複数の言語を含む文をAnkiに保存できます。"
+        },
+        "feature2": {
+          "title": "文をダウンロード",
+          "description": "画像、音声、動画などの形式で文をダウンロードできます。"
+        },
+        "feature3": {
+          "title": "文の前後の文脈を確認",
+          "description": "文の前後の流れを確認できます。"
+        },
+        "feature4": {
+          "title": "多様で豊富なコンテンツ",
+          "description": "さまざまなジャンル、メディア、声を楽しめます。"
+        }
+      },
+      "support": {
+        "title": "Nadeshikoを応援しませんか？",
+        "description": "このサイトが役に立った場合は、GitHubでの支援、寄付、またはこのサイトを共有することで、今後の開発をサポートできます。"
+      },
+      "stats": {
+        "title": "全体統計",
+        "sentenceCount": "文の数",
+        "mediaCount": "総コンテンツ数"
+      }
+    },
+    "batchSearch": {
+      "button": "同時検索",
+      "title": "同時検索",
+      "description1": "この機能を使うと、複数の単語を一度に検索できます。データベース内で見つかった単語のリストと、その検索へのリンクが表示されます。",
+      "description2": "まずは下のボックスに単語を入力してください。",
+      "description3": "1行に1単語、またはカンマ区切りで入力してください。",
+      "description4": "最大検索数：",
+      "description5": "500単語まで",
+      "totalWords": "合計単語数",
+      "search": "検索",
+      "close": "閉じる",
+      "results": {
+        "title": "同時検索 - 結果",
+        "words": "検索した単語",
+        "wordsWithMatch": "一致した単語",
+        "percentageMatched": "一致率",
+        "wordColumn": "単語",
+        "match": "一致？",
+        "matchesCount": "一致数",
+        "true": "はい",
+        "false": "いいえ",
+        "searching": "検索中...",
+        "return": "戻る"
+      }
+    },
+    "ankiSearch": {
+      "title": "コレクション内を検索",
+      "description": "Ankiにあるカードを検索し、画像や音声を追加できます。「キー フィールド」が設定タブで設定されている必要があります。"
+    },
+    "animeList": {
+      "recentlyAddedTitle": "最近追加されたもの",
+      "fullListTitle": "コンテンツ一覧",
+      "seeAll": "すべて見る",
+      "sentenceCount": "文の数",
+      "romajiName": "名前（ローマ字）",
+      "japaneseName": "日本語名",
+      "seasons": "シーズン",
+      "episodes": "エピソード",
+      "genres": "ジャンル"
+    },
+    "searchSettingsModal": {
+      "title": "検索設定",
+      "exactMatchTitle": "完全一致検索",
+      "exactMatchDescription": "活用形やその他の結果を含めずに、完全一致の検索を行います。",
+      "close": "閉じる"
+    },
+    "reportModal": {
+      "title": "問題を報告",
+      "description1": "このページに掲載されている文は、いくつかの自動ツールを使用して取得されたものです。アップロード前に品質管理を行っていますが、時折問題が発生することがあります。",
+      "description2": "エラーを見つけた場合は、以下のフォームから報告してください。ご協力に感謝します。",
+      "reportQuestion": "問題の内容は？",
+      "reason1": "音声と文が一致しない",
+      "reason2": "音声が文とずれている",
+      "reason3": "文に音声または画像がない",
+      "reason4": "画像・文・音声が不適切（NSFW）",
+      "send": "報告を送信",
+      "close": "閉じる"
+    },
+    "searchpage": {
+      "main": {
+        "buttons": {
+          "download": "ダウンロード",
+          "add": "追加",
+          "video": "画像 + 音声",
+          "image": "画像",
+          "audio": "音声",
+          "copyclipboard": "コピー",
+          "jpsentence": "日本語の文",
+          "ensentence": "英語の文",
+          "essentence": "スペイン語の文",
+          "context": "文脈",
+          "report": "報告",
+          "share": "共有",
+          "sortmain": "文を並び替え",
+          "sortlengthnone": "なし",
+          "sortlengthmin": "最短",
+          "sortlengthmax": "最長",
+          "sortasc": "最短",
+          "sortdesc": "最長",
+          "sortrandom": "ランダム",
+          "search": "検索"
+        },
+        "labels": {
+          "errorMessage1": "検索中にエラーが発生しました。",
+          "errorMessage2": "しばらくしてから再試行してください。",
+          "contentList": "コンテンツ一覧",
+          "noresults": "結果が見つかりませんでした...",
+          "season": "シーズン",
+          "episode": "エピソード",
+          "translation": "翻訳（EN/ES）",
+          "movie": "映画",
+          "searchmain": "ここで単語を検索！",
+          "searchbar": "アニメを検索...",
+          "multimedia": "マルチメディア",
+          "text": "テキスト",
+          "options": "オプション",
+          "all": "すべて",
+          "copiedcontent": "内容がクリップボードにコピーされました。",
+          "errorcopiedcontent": "コピーエラー。再試行してください。",
+          "copiedsharingurl": "URLがクリップボードにコピーされました。",
+          "errorcopiedsharingurl": "URLのコピーに失敗しました。再試行してください。",
+          "mtTooltip": "この文は機械翻訳されたため、正確ではない可能性があります。"
+        }
+      },
+      "modalcontext": {
+        "buttons": {
+          "close": "閉じる",
+          "downloadmultipleaudios": "選択した音声をダウンロード"
+        },
+        "labels": {
+          "context": "文脈",
+          "errordownloadmultipleaudios": "音声のダウンロードエラー。再試行してください。",
+          "errorconnection": "サーバー接続エラー。"
+        }
+      }
+    },
+    "modalauth": {
+      "buttons": {
+        "login": "ログイン",
+        "googlelogin": "Googleでログイン",
+        "register": "登録"
+      },
+      "labels": {
+        "questionaccount": "アカウントをお持ちでないですか？",
+        "answerquestionaccount": "ここで登録",
+        "conditionalor": "または",
+        "email": "メール",
+        "password": "パスワード",
+        "repeatpassword": "パスワードを再入力",
+        "rememberme": "30日間ログインを保持",
+        "forgottenpassword": "パスワードを忘れましたか？",
+        "successfullogin": "ログイン成功！",
+        "logout": "ログアウトしました。",
+        "errorlogin400": "メールアドレス/パスワードを確認して再試行してください。"
+      }
+    }
+  }
+  
