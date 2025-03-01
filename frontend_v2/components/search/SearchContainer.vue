@@ -327,7 +327,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
         </div>
-        <div class="flex mx-auto w-full ">
+        <div class="flex mx-auto w-full">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer current-sentence-index="" :searchData="searchData" :isLoading="isLoading" />
@@ -340,19 +340,21 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
             <!-- Filters -->
-            <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
-                <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
-                <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
-            </div>
-            <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData">
-                <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">
-                    <div role=" status" class="hidden w-11/12 2xl:flex flex-col py-6 animate-pulse">
-                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
-                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
-                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-                        <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-                        <span class="sr-only">Cargando...</span>
+            <div class="2xl:min-w-[18rem]">
+                <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
+                    <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
+                    <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
+                </div>
+                <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData">
+                    <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">
+                        <div role=" status" class="hidden w-11/12 2xl:flex flex-col py-6 animate-pulse">
+                            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
+                            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
+                            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
+                            <span class="sr-only">Cargando...</span>
+                        </div>
                     </div>
                 </div>
             </div>
