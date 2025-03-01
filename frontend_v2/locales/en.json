@@ -2,7 +2,8 @@
   "navbar": {
     "languages": {
       "english": "English",
-      "spanish": "Spanish"
+      "spanish": "Spanish",
+      "japanese": "Japanese"
     },
     "buttons": {
       "home": "Home",
