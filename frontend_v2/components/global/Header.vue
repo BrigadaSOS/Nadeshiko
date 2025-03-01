@@ -3,12 +3,6 @@
 const store = userStore()
 const isAuth = computed(() => store.isLoggedIn)
 
-const isMobileMenuOpen = ref(false)
-
-const toggleMobileMenu = () => {
-    isMobileMenuOpen.value = !isMobileMenuOpen.value
-}
-
 </script>
 <template>    
     <header
@@ -90,13 +84,7 @@ const toggleMobileMenu = () => {
                         </a>
                     </div>
                     <GeneralLanguageSelector />
-
-                        <button v-if="!isAuth || isAuth == null"
-                            data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
-                            class=" py-2.5 px-5 inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white">
-                            Log in
-                        </button>
-                        <SearchDropdownContainer v-else dropdownId="hs-dropdown-with-header">
+                        <SearchDropdownContainer dropdownId="hs-dropdown-with-header">
                             <template #default>
                                 <SearchDropdownMainButton
                                     dropdownButtonClass="py-2.5 px-4 inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
@@ -109,7 +97,8 @@ const toggleMobileMenu = () => {
                                     <NuxtLink to="/settings">
                                         <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                     </NuxtLink>
-                                    <SearchDropdownItem @click="store.logout()" :text="$t('navbar.buttons.logout')" />
+                                    <SearchDropdownItem v-if="!isAuth || isAuth == null" data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal" :text="$t('navbar.buttons.login')" />
+                                    <SearchDropdownItem v-else @click="store.logout()" :text="$t('navbar.buttons.logout')" />
                                 </SearchDropdownContent>
                             </template>
                         </SearchDropdownContainer>

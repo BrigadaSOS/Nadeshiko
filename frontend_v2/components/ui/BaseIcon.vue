@@ -3,7 +3,7 @@ import { computed } from "vue";
 const props = defineProps({
   path: {
     type: String,
-    required: true,
+    required: false,
   },
   w: {
     type: String,

@@ -1,15 +1,18 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { mdiAccount, mdiEmail, mdiSync, mdiCodeTags } from '@mdi/js'
+import { mdiAccount, mdiSync, mdiCodeTags } from '@mdi/js'
 
 const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
+const store = userStore()
+const isAuth = computed(() => store.isLoggedIn)
+
 const tabs_general = [
     { name: 'Cuenta', icon: mdiAccount, route: '/settings/account' },
-    { name: 'Sincronización', icon: mdiSync, route: '/settings/sync' },
+    { name: 'Sincronización Anki', icon: mdiSync, route: '/settings/sync' },
 ]
 const tabs_advanced = [
     { name: 'Desarrollador', icon: mdiCodeTags, route: '/settings/developer' },
@@ -21,7 +24,7 @@ watch(() => route.path, (newPath) => {
     if (newPath === '/settings' || newPath.startsWith('/settings/account')) {
         activeTab.value = '#horizontal-scroll-tab-cuenta'
     } else if (newPath.startsWith('/settings/sync')) {
-        activeTab.value = '#horizontal-scroll-tab-sincronización'
+        activeTab.value = '#horizontal-scroll-tab-sincronización-anki'
     } else if (newPath.startsWith('/settings/developer')) {
         activeTab.value = '#horizontal-scroll-tab-desarrollador'
     }
@@ -32,13 +35,17 @@ const navigateToTab = (path) => {
 }
 
 // Redirigir a /settings/account si estamos en /settings
-if (route.path === '/settings') {
+if (route.path === '/settings' && isAuth.value) {
     router.push('/settings/account')
+}else if(route.path === '/settings' && !isAuth.value){
+    router.push('/settings/sync')
 }
 
+/* Block access page for not authenticated users 
 definePageMeta({
     middleware: 'auth'
-})
+})*/
+
 </script>
 
 <template>
@@ -51,8 +58,12 @@ definePageMeta({
                     <h3 class="text-lg text-white/90 tracking-wide font-semibold">General</h3>
                     <div class="border-b border-white/10" />
                     <button v-for="tab in tabs_general" :key="tab.name"
-                        :class="{ 'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}` }"
-                        @click="navigateToTab(tab.route)"
+                        :class="{ 
+                            'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}`,
+                            'opacity-50 cursor-not-allowed': !isAuth && tab.name === 'Cuenta' 
+                        }"
+                        :disabled="!isAuth && tab.name === 'Cuenta'"
+                        @click="isAuth ? navigateToTab(tab.route) : null"
                         class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left">
                         <UiBaseIcon :path="tab.icon" size="20" />
                         {{ tab.name }}
@@ -61,8 +72,12 @@ definePageMeta({
                     <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">Avanzado</h3>
                     <div class="border-b border-white/10" />
                     <button v-for="tab in tabs_advanced" :key="tab.name"
-                        :class="{ 'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}` }"
-                        @click="navigateToTab(tab.route)"
+                        :class="{ 
+                            'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}`,
+                            'opacity-50 cursor-not-allowed': !isAuth
+                        }"
+                        :disabled="!isAuth"
+                        @click="isAuth ? navigateToTab(tab.route) : null"
                         class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left">
                         <UiBaseIcon :path="tab.icon" size="20" />
                         {{ tab.name }}
@@ -86,7 +101,7 @@ definePageMeta({
             
             <div class="flex-grow md:pl-6 overflow-y-auto my-2 md:mx-auto">
                 <SettingsModuleAccount v-if="activeTab === '#horizontal-scroll-tab-cuenta'" />
-                <SettingsModuleAnki v-if="activeTab === '#horizontal-scroll-tab-sincronización'" />
+                <SettingsModuleAnki v-if="activeTab === '#horizontal-scroll-tab-sincronización-anki'" />
                 <SettingsModuleDeveloper v-if="activeTab === '#horizontal-scroll-tab-desarrollador'" />
             </div>
         </div>

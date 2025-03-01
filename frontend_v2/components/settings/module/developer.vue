@@ -1,7 +1,8 @@
 <script setup>
 import {
     mdiPencilOutline,
-    mdiPlus
+    mdiPlus,
+    mdiCheckBold
 } from '@mdi/js'
 
 const api_store = apiStore()
@@ -9,6 +10,31 @@ let isLoading = ref(false)
 let isError = ref(false)
 let isSuccess = ref(false)
 let fieldOptions = []
+let generatedApiKey = ref(null);
+
+const createApiKey = async () => {
+isLoading.value = true;
+isError.value = false;
+isSuccess.value = false;
+generatedApiKey.value = null;
+try {
+    const response = await api_store.createApiKeyGeneral('default');
+    if (response && response.key) {
+        generatedApiKey.value = response.key;
+        isSuccess.value = true;
+      isLoading.value = false;
+    } else {
+        isError.value = true;
+      isLoading.value = false;
+    }
+} catch (error) {
+    isError.value = true;
+    isLoading.value = false;
+    console.error(error);
+} finally {
+    isLoading.value = false;
+}
+};
 
 onMounted(async () => {
     isError.value = false
@@ -71,17 +97,26 @@ const quotaPercentage = computed(() => {
             </div>
             <div class="ml-auto">
                 <button data-hs-overlay="#hs-vertically-centered-scrollable-addapikey"
-                    class="bg-graypalid flex items-center text-center hover:bg-graypalid/60 text-white font-bold py-2 pl-4  pr-6 rounded">
-                    <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"
-                        class="text-center flex mr-2 " />
-                    <button class="align-middle mb-0.5 flex text-center items-center">
+                    class="bg-graypalid flex items-center text-center hover:bg-graypalid/60 text-white font-bold py-2 pl-4  rounded">
+                    <button data-hs-overlay="#hs-vertically-centered-scrollable-editusername"
+                        class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" @click="createApiKey">
+                        <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
                         Añadir llave API
                     </button>
-
                 </button>
             </div>
         </div>
-
+        <div v-if="generatedApiKey" role="alert"
+            class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
+            <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
+                <UiBaseIcon :path="mdiCheckBold" size="20" />
+                <strong class="block font-medium">Llave creada</strong>
+            </div>
+                <p class="mt-2 text-sm text-green-700 dark:text-green-200">
+                    <b>{{ generatedApiKey }}</b>. Guarda la llave, no se volverá a mostrar.
+                </p>
+            </div>
+        
         <div class="border-b pt-4 border-white/10" />
 
         <div class="mt-6">

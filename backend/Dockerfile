@@ -3,7 +3,7 @@ FROM node:20.5.1-bullseye AS builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y nscd
+RUN apt-get update
 
 COPY package*.json ./
 RUN npm install
