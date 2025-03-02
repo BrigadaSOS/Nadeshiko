@@ -1,6 +1,5 @@
 // Must be called before all imports
 require("dotenv").config();
-const newrelic = require("newrelic");
 
 import "./external/elasticsearch"; // Initialize client
 import path from "path";
@@ -12,8 +11,6 @@ import winston, {log} from 'winston';
 import expressWinston from 'express-winston';
 import {expressWinstonErrorLogger, expressWinstonLogger} from "./utils/log";
 const bodyParser = require('body-parser');
-
-newrelic.instrumentLoadedModule("express", express);
 
 const app: Application = express();
 app.set('trust proxy', 1); 
@@ -39,7 +36,7 @@ app.use(function (req, res, next) {
   // Request headers you wish to allow
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-Requested-With,content-type,newrelic,traceparent,tracestate,x-api-key,Authorization"
+    "X-Requested-With,content-type,traceparent,tracestate,x-api-key,Authorization"
   );
 
   // Set to true if you need the website to include cookies in the requests sent

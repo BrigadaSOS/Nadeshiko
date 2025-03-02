@@ -7,7 +7,7 @@
     "dev": "ts-node-dev --respawn --pretty --transpile-only main.ts",
     "build": "rm -rf ./prod && tsc --build --pretty",
     "buildwin": "rmdir /s /q prod && tsc --build --pretty",
-    "start": "node -r newrelic prod/main.js",
+    "start": "node prod/main.js",
     "start:local": "node prod/main.js"
   },
   "author": "",
@@ -33,7 +33,6 @@
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "newrelic": "^12.5.2",
     "nodemailer": "^6.9.15",
     "pg": "^8.13.1",
     "recursive-readdir": "^2.2.3",
