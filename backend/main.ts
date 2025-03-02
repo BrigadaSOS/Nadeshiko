@@ -10,12 +10,14 @@ import { handleErrors } from "./middleware/errorHandler";
 import winston, {log} from 'winston';
 import expressWinston from 'express-winston';
 import {expressWinstonErrorLogger, expressWinstonLogger} from "./utils/log";
-import { collectDefaultMetrics, register } from 'prom-client';
+
 const bodyParser = require('body-parser');
-
+const promBundle = require("express-prom-bundle");
+const metricsMiddleware = promBundle({includeMethod: true});
 const app: Application = express();
-app.set('trust proxy', 1); 
 
+app.set('trust proxy', 1); 
+app.use(metricsMiddleware);
 const allowedOrigins = process.env.ALLOWED_WEBSITE_URLS ? process.env.ALLOWED_WEBSITE_URLS.split(',') : [];
 
 // @ts-ignore
@@ -184,17 +186,6 @@ app.use(expressWinston.errorLogger({
       winston.format.prettyPrint()
   )
 }));
-
-// Metrics
-collectDefaultMetrics();
-app.get('/metrics', async (_req, res) => {
-  try {
-    res.set('Content-Type', register.contentType);
-    res.end(await register.metrics());
-  } catch (err) {
-    res.status(500).end(err);
-  }
-});
 
 // @ts-ignore
 app.use(handleErrors);
