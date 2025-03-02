@@ -24,9 +24,8 @@ const metricsMiddleware = promBundle({
 });
 
 const app: Application = express();
-
 app.set('trust proxy', 1); 
-app.use(metricsMiddleware);
+app.use("/((?!app/media))*", metricsMiddleware);
 const allowedOrigins = process.env.ALLOWED_WEBSITE_URLS ? process.env.ALLOWED_WEBSITE_URLS.split(',') : [];
 
 // @ts-ignore
