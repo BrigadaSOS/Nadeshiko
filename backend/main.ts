@@ -170,7 +170,6 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Must go before router
 app.use(expressWinstonLogger);
-
 app.use("/api", router);
 
 // Must go after router
