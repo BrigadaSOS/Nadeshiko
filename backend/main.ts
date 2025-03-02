@@ -13,7 +13,16 @@ import {expressWinstonErrorLogger, expressWinstonLogger} from "./utils/log";
 
 const bodyParser = require('body-parser');
 const promBundle = require("express-prom-bundle");
-const metricsMiddleware = promBundle({includeMethod: true});
+const metricsMiddleware = promBundle({
+  includeMethod: true,
+  includePath: true,
+  includeStatusCode: true,
+  includeUp: true,
+  promClient: {
+    collectDefaultMetrics: {},
+  }
+});
+
 const app: Application = express();
 
 app.set('trust proxy', 1); 
