@@ -25,7 +25,6 @@ const metricsMiddleware = promBundle({
 
 const app: Application = express();
 app.set('trust proxy', 1); 
-app.use("/((?!app/media))*", metricsMiddleware);
 const allowedOrigins = process.env.ALLOWED_WEBSITE_URLS ? process.env.ALLOWED_WEBSITE_URLS.split(',') : [];
 
 // @ts-ignore
@@ -178,6 +177,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Must go before router
 app.use(expressWinstonLogger);
+app.use(metricsMiddleware);
 app.use("/api", router);
 
 // Must go after router
