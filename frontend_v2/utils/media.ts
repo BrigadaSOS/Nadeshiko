@@ -19,8 +19,13 @@ export async function playAudio(url: string, uuid: string): Promise<void> {
     }
 
     currentAudio = new Audio(url);
-    currentAudio.play();
     isAudioPlaying[uuid] = true;
+    
+    currentAudio.play().then(resolve).catch(error => {
+      isAudioPlaying[uuid] = false;
+      delete isAudioPlaying[uuid];
+      reject(error);
+    });
 
     currentAudio.onended = () => {
       isAudioPlaying[uuid] = false;
