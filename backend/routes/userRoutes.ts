@@ -13,7 +13,6 @@ router.post("/v1/user/getApiKeys", authenticate({ jwt: true }), listAPIKeysByUse
 router.post("/v1/user/createApiKey", authenticate({ jwt: true }), createAPIKeyDefault);
 router.post("/v1/user/deactivateApiKey", authenticate({ jwt: true }), deactivateAPIKey);
 
-
 router.post("/v1/auth/login", authenticate({ apiKey: true }), logIn);
 router.post("/v1/auth/google", authenticate({ apiKey: true }), loginGoogle)
 
