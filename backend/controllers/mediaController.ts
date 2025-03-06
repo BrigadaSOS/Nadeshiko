@@ -165,6 +165,38 @@ export const SearchAnimeSentences = async (
   }
 };
 
+export const SearchAnimeSentencesHealth = async (
+  req: ControllerRequest<SearchAnimeSentencesRequest>,
+  res: ControllerResponse<SearchAnimeSentencesResponse>,
+  next: NextFunction
+) => {
+  try {
+
+    const response = await querySegments({
+      query: "あ",
+      uuid: req.body.uuid,
+      length_sort_order: req.body.content_sort || "none",
+      limit: req.body.limit || 10,
+      status: req.body.status || [1],
+      cursor: req.body.cursor,
+      random_seed: req.body.random_seed,
+      media: req.body.media,
+      anime_id: req.body.anime_id,
+      exact_match: req.body.exact_match,
+      season: req.body.season,
+      episode: req.body.episode,
+      category: req.body.category || [1,2,3],
+      extra: req.body.extra || false
+    });
+
+    return res.status(StatusCodes.OK).json(response);
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 export const GetContextAnime = async (
   req: ControllerRequest<GetContextAnimeRequest>,
   res: ControllerResponse<GetContextAnimeResponse>,
