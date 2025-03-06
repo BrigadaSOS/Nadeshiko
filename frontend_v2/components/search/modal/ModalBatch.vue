@@ -41,7 +41,8 @@ const getWordMatch = async () => {
   HSOverlay.open(document.querySelector("#hs-vertically-centered-scrollable-batch2"));
 
   let body = {
-    words: words.value
+    words: words.value,
+    exact_match: checkExactSearch.value 
   };
 
   // Fetch data from API      
