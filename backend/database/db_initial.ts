@@ -20,7 +20,7 @@ export async function addBasicData(db: any) {
   await db.Role.bulkCreate([
     { id: 1, name: "ADMIN", description: "Administrator", quotaLimit: -1 },
     { id: 2, name: "MOD", description: "Moderator", quotaLimit: -1 },
-    { id: 3, name: "USER", description: "User", quotaLimit: 5000 },
+    { id: 3, name: "USER", description: "User", quotaLimit: 20000 },
     { id: 5, name: "PATREON", description: "Patreon", quotaLimit: -1 },
   ]);
 
