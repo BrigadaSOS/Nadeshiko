@@ -47,13 +47,28 @@ const openAnkiModal = (sentence: Sentence) => {
 
 const apiSearch = useApiSearch();
 
-let activeConcatenation: { sentence: Sentence | null; originalContent: any } = {
+interface IORiginalContent {
+  content_jp: string;
+  content_en: string;
+  content_es: string;
+  content_jp_highlight: string;
+  content_en_highlight: string;
+  content_es_highlight: string;
+}
+
+interface IConcatenation {
+  sentence: Sentence | null;
+  originalContent: IORiginalContent | null;
+};
+
+let activeConcatenation: IConcatenation = {
   sentence: null,
   originalContent: null,
 };
 
 const revertActiveConcatenation = () => {
   if (activeConcatenation.sentence && activeConcatenation.originalContent) {
+
     // We free the current url/blob
     if (activeConcatenation.sentence.media_info.blob_audio_url) {
       window.URL.revokeObjectURL(activeConcatenation.sentence.media_info.blob_audio_url);
@@ -89,6 +104,8 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 
   // Revertir cualquier concatenación activa antes de proceder
   revertActiveConcatenation();
+
+  document.querySelectorAll("#concatenate-button").forEach( e => (e as HTMLButtonElement).disabled = true );
 
   const audioUrls: string[] = [sentence.media_info.path_audio];
 
@@ -164,16 +181,17 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
         };
       }
 
-
       // @ts-ignore
       sentence.media_info.blob_audio_url = concatenatedAudio.blob_url;
       // @ts-ignore
       sentence.media_info.blob_audio = concatenatedAudio.blob;
     }
   } catch (error) {
+     // Reset active concatenation
+    activeConcatenation = { sentence: null, originalContent: null };
     console.error('Error fetching context sentences:', error);
   } finally {
-    // isLoading = false;
+    document.querySelectorAll("#concatenate-button").forEach( e => (e as HTMLButtonElement).disabled = false );
   }
 };
 
@@ -227,16 +245,19 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 
               <div class="hidden sm:flex ml-auto">
                 <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                  id="concatenate-button"
                   @click="loadNextSentence(sentence, 'backward')" v-if="!isConcatenated(sentence)">
                   <UiBaseIcon :path="mdiChevronLeft" />
                 </UiButtonPrimaryAction>
 
                 <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                  id="concatenate-button"
                   @click="loadNextSentence(sentence, 'both')" v-if="!isConcatenated(sentence)">
                   <UiBaseIcon :path="mdiArrowExpandHorizontal" />
                 </UiButtonPrimaryAction>
 
                 <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
+                  id="concatenate-button"
                   @click="loadNextSentence(sentence, 'forward')" v-if="!isConcatenated(sentence)">
                   <UiBaseIcon :path="mdiChevronRight" />
                 </UiButtonPrimaryAction>
