@@ -65,6 +65,10 @@ const openAnkiModal = () => {
         <SearchDropdownItem
           @click="downloadAudioOrImage(content.media_info.path_audio, content.media_info.path_audio.split('/').pop()!)"
           :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
+        <SearchDropdownItem
+          v-if="content.media_info.blob_audio_url"
+          @click="downloadAudioOrImage(content.media_info.blob_audio_url, 'expanded_'+content.media_info.path_audio.split('/').pop()!, true)"
+          :text="$t('searchpage.main.buttons.dl-expanded')" :iconPath="mdiVolumeHigh" />
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>

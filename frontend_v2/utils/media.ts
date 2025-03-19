@@ -159,14 +159,23 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   };
 }
 
-export async function downloadAudioOrImage(url: string | URL | Request, filename: string) {
+export function downloadAudioOrImage(url: string | URL | Request, filename: string, isBlobUrl = false) {
+
+  if (isBlobUrl) {
+      const a = document.createElement("a");
+      a.href = url as string;
+      a.download = filename.replace("mp3", "wav");
+      a.click();
+      return;
+  }
+
   fetch(url)
     .then((response) => response.blob())
     .then((blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
       a.download = filename;
+      a.href = url;
       a.click();
       window.URL.revokeObjectURL(url);
     });
