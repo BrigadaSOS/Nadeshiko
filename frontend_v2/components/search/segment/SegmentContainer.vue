@@ -96,6 +96,7 @@ const isConcatenated = (sentence: Sentence) => {
   return activeConcatenation.sentence === sentence;
 };
 
+/// This function is called when the user wants to expand the current sentence
 const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'backward' | 'both') => {
 
   if (props.isLoading) {
