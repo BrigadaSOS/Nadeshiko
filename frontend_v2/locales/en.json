@@ -118,6 +118,7 @@
     "main": {
       "buttons": {
         "download": "Download",
+        "dl-expanded": "Expanded audio",
         "add": "Add",
         "video": "Image + Audio",
         "image": "Image",
