@@ -118,6 +118,7 @@
       "main": {
         "buttons": {
           "download": "ダウンロード",
+          "dl-expanded": "コンテクストオーディオ",
           "add": "追加",
           "video": "画像 + 音声",
           "image": "画像",
