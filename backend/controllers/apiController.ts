@@ -37,8 +37,8 @@ export const createAPIKeyDefault = async (
       token: api_key_hashed,
       hint: api_key_hint,
       isActive: true,
-      createAt: Date.now(),
-      userId: req.jwt.user_id,
+      createdAt: new Date().toISOString(),
+      userId: user_id,
     });
 
     // Set default permissions for API Key
@@ -72,20 +72,23 @@ export const deactivateAPIKey = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { api_key } = req.body;
+  const { user_id } = req.jwt;
+  const { api_key_id } = req.body;
 
-  if (!api_key) {
-    return next(new BadRequest("API Key token must be provided."));
+  if (!api_key_id) {
+    return next(new BadRequest("ID of the API Key must be provided."));
   }
-
-  const api_key_hashed = hashApiKey(api_key);
 
   try {
     const apiKey = await ApiAuth.findOne({
-      where: { token: api_key_hashed },
+      where: { id: api_key_id },
     });
 
     if (!apiKey) {
+      throw new NotFound("API Key not found.");
+    }
+
+    if(apiKey.userId != user_id) {
       throw new NotFound("API Key not found.");
     }
 
@@ -111,12 +114,12 @@ export const listAPIKeysByUser = async (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.jwt.user_id;
+  const { user_id } = req.jwt;
 
   try {
     // Fetching API keys owned by the user
     const apiKeys = await ApiAuth.findAll({
-      where: { userId: userId },
+      where: { userId: user_id },
       attributes: ["id", "name", "isActive", "createdAt", "hint"],
       include: [
         {
@@ -149,7 +152,7 @@ export const listAPIKeysByUser = async (
         {
           model: User,
           attributes: [],
-          where: { id: userId },
+          where: { id: user_id },
         },
         {
           model: Role,
