@@ -229,6 +229,7 @@ const quotaPercentage = computed(() => {
                                                     </svg>
                                                     Desactivar
                                                 </a>
+                                                <!--
                                                 <a @click="currentSentence = sentence"
                                                     data-hs-overlay="#hs-vertically-centered-scrollable-editsentencemodal"
                                                     type="button"
@@ -238,7 +239,7 @@ const quotaPercentage = computed(() => {
                                                         class="text-center" />
                                                     Cambiar nombre
                                                 </a>
-
+                                                -->
                                             </div>
                                         </div>
                                     </div>
