@@ -75,11 +75,30 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
                 },
             })
         } else {
-            must.push({
+            const baseQuery = {
                 bool: {
                     should: buildMultiLanguageQuery(request.query, request.exact_match || false)
                 }
-            })
+            };
+
+            // Boost score for sentences with at least 5 characters if no min_length specified
+            if (request.min_length === undefined) {
+                must.push({
+                    function_score: {
+                        query: baseQuery,
+                        functions: [
+                            {
+                                filter: { range: { content_length: { gte: 5 } } },
+                                weight: 1.5  // 50% boost
+                            }
+                        ],
+                        score_mode: "sum",
+                        boost_mode: "multiply"
+                    }
+                });
+            } else {
+                must.push(baseQuery);
+            }
         }
 
         filter.push({
