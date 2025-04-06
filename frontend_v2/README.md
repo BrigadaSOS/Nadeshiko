@@ -1,75 +1,93 @@
-# Nuxt 3 Minimal Starter
+# NadeDB Frontend (Nuxt 3)
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+## Development Setup
 
-## Setup
+### Prerequisites
+- Node.js 18+
+- Backend API running (see backend README)
+- npm 9+ (comes with Node 18+)
 
-Make sure to install the dependencies:
-
+### 1. Clone the Repository
 ```bash
-# npm
+git clone https://github.com/your-repo/nadedb.git
+cd nadedb/frontend_v2
+```
+
+### 2. Install Dependencies
+```bash
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
+### 3. Configure Environment
+Create `.env` file from example:
 ```bash
-# npm
+cp .env.example .env
+```
+
+Key environment variables:
+```bash
+# Backend API URL
+NUXT_PUBLIC_API_BASE_URL=http://localhost:5000
+
+# Google OAuth (optional)
+NUXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+
+# Other feature flags
+NUXT_PUBLIC_ENABLE_ANALYTICS=false
+```
+
+### 4. Start Development Server
+```bash
 npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
+App will be available at: `http://localhost:3000`
 
-## Production
+## Key Features
+- **State Management**: Pinia stores
+- **Styling**: TailwindCSS with custom animations
+- **UI Components**: Radix Vue + Lucide icons
+- **Internationalization**: Nuxt i18n
+- **Image Optimization**: Nuxt Image
+- **API Documentation**: Scalar integration
 
-Build the application for production:
-
+## Development Scripts
 ```bash
-# npm
+# Lint code
+npm run lint
+
+# Build for production
 npm run build
 
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
+# Preview production build
 npm run preview
 
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+# Generate static site
+npm run generate
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Recommended VS Code Extensions
+- [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) - Vue 3 support
+- [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
+- [i18n Ally](https://marketplace.visualstudio.com/items?itemName=lokalise.i18n-ally)
+- [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
+
+## Project Structure
+```
+frontend_v2/
+├── assets/       # Global assets
+├── components/   # Vue components
+├── composables/  # Composable functions
+├── layouts/      # Layout components  
+├── pages/        # Route pages
+├── public/       # Static files
+├── server/       # API routes
+├── stores/       # Pinia stores
+└── utils/        # Utility functions
+```
+
+## Deployment
+See [Nuxt Deployment Docs](https://nuxt.com/docs/getting-started/deployment) for:
+- Node.js hosting
+- Static site hosting
+- Serverless deployment
+- Docker containers
