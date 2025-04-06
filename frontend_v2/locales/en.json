@@ -114,9 +114,33 @@
     "send": "Send report",
     "close": "Close"
   },
+  "anki": {
+    "modal": {
+      "title": "Search your collection",
+      "description": "Find a card in your Anki collection and add image/audio to it. Requires 'Key Field' to be configured in settings.",
+      "idColumn": "ID",
+      "keyColumn": "Key",
+      "noCardsFound": "No cards found",
+      "noCardsMessage": "Try a different query or mine the sentence first",
+      "validationSuccess": "Validation successful",
+      "validationMessage": "Key field is configured!",
+      "validationError": "Something went wrong",
+      "errorMessage": "No key field has been defined",
+      "errorTip": "Verify the key field is defined in Nadeshiko settings"
+    },
+    "toast": {
+      "noSettings": "No settings found. Please go to settings page and configure the extension.",
+      "miningCard": "Mining the card...",
+      "noCardToExport": "No Anki card to export to. Please add a card first.",
+      "cardAdded": "Card has been successfully added to Anki",
+      "cardAddError": "Could not add card to Anki. Error: {error}"
+    }
+  },
   "searchpage": {
     "main": {
       "buttons": {
+        "addToAnkiLast": "Add to Anki (Last added card)",
+        "addToAnkiSearch": "Add to Anki (Search your collection)",
         "download": "Download",
         "dl-expanded": "Expanded audio",
         "add": "Add",
@@ -173,11 +197,107 @@
       }
     }
   },
+  "accountSettings": {
+    "menu": {
+      "generalTitle": "General",
+      "advancedTitle": "Advanced"
+    },
+    "tabs": {
+      "account": "Account",
+      "sync": "Anki Sync",
+      "developer": "Developer"
+    },
+    "developer": {
+      "apiUsageTitle": "API Usage",
+      "apiUsageRemaining": "Remaining requests: {used} / {limit}",
+      "apiKeyManagement": "API Key Management",
+      "addApiKey": "Add API Key",
+      "keyCreated": "Key created",
+      "keyCreatedMessage": "Save this key, it won't be shown again.",
+      "keyDeactivated": "Key deactivated",
+      "noKeysFound": "No API keys found",
+      "noKeysMessage": "Create a new one for your apps or projects!",
+      "tableHeaders": {
+        "name": "Name",
+        "key": "Key",
+        "permissions": "Permissions",
+        "createdAt": "Created",
+        "status": "Status"
+      },
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "options": "Options",
+      "deactivate": "Deactivate"
+    },
+    "account": {
+      "infoTitle": "Information",
+      "usernameLabel": "Username",
+      "emailLabel": "Email",
+      "notAvailable": "No available",
+      "securityTitle": "Security",
+      "passwordLabel": "Password",
+      "additionalTitle": "Additional",
+      "deleteAccount": "Delete account (Irreversible action)"
+    },
+    "anki": {
+      "syncStatus": "Sync Status",
+      "loading": "Loading...",
+      "loadingMessage": "Please wait while connecting",
+      "connectionSuccess": "Connection established",
+      "successMessage": "Connection with Anki has been successfully established",
+      "connectionError": "Something went wrong",
+      "errorMessage": "Could not establish connection with Anki",
+      "troubleshootingTips": {
+        "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
+        "webCors": "Make sure 'https://nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
+        "adBlock": "Disable any AdBlock extensions for this domain"
+      },
+      "ankiConfig": "Anki Configuration",
+      "deckLabel": "Deck",
+      "selectDeck": "Select a deck",
+      "modelLabel": "Model",
+      "selectModel": "Select a model",
+      "keyFieldLabel": "Key Field",
+      "selectKeyField": "Select the field that corresponds to your deck ID",
+      "fieldColumn": "Field",
+      "contentColumn": "Content",
+      "noFieldsFound": "No fields found",
+      "noFieldsMessage": "Please try again or check your AnkiConnect connection",
+      "advancedSettings": "Advanced Settings",
+      "serverAddressLabel": "AnkiConnect server address"
+    }
+  },
+  "contentPage": {
+    "emptyMessage": "Stay tuned; it will be added later 😉"
+  },
+  "segment": {
+    "noResultsTitle": "404",
+    "noResultsMessage": "We searched high and low but couldn't find what you're looking for. Try a different search.",
+    "nsfwTag": "NSFW",
+    "expandLeft": "Expand left",
+    "expandBoth": "Expand both sides",
+    "expandRight": "Expand right",
+    "revert": "Revert"
+  },
+  "searchContainer": {
+    "errorTitle": "502",
+    "errorMessage1": "An error occurred",
+    "errorMessage2": "Try searching again with the button below.",
+    "retryButton": "Retry connection",
+    "retrying": "Retrying...",
+    "endOfResults": "You've reached the end!",
+    "loadMore": "Load more sentences"
+  },
   "modalauth": {
+    "headers": {
+      "auth": "Authentication"
+    },
     "buttons": {
       "login": "Login",
-      "googlelogin": "Login with Google",
-      "register": "Register"
+      "googlelogin": "Login with Google", 
+      "register": "Register",
+      "google": "Login with Google",
+      "discord": "Login with Discord"
     },
     "labels": {
       "questionaccount": "Don't have an account?",
@@ -190,7 +310,10 @@
       "forgottenpassword": "Forgotten password?",
       "successfullogin": "Succesful login!",
       "logout": "You are now logged out.",
-      "errorlogin400": "Please check your email/password and try again."
+      "errorlogin400": "Please check your email/password and try again.",
+      "username": "Username",
+      "terms": "By using this website you agree to our {terms} and to our {privacy}",
+      "registerButton": "Register"
     }
   }
 }

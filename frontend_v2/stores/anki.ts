@@ -1,5 +1,4 @@
 // Types
-
 interface AnkiNote {
   cards: number[];
   fields: { [key: string]: any };
@@ -205,17 +204,17 @@ export const ankiStore = defineStore("anki", {
 
     async addSentenceToAnki(sentence: Sentence, id?: number) {
       // TODO: creo que podriamos usar this.$state o this.ankiPreferences (revisar)
+      const { $i18n } = useNuxtApp();
+
       const localSettings = localStorage.getItem('settings');
 
       if (!localSettings) {
-        // TODO: localizacion (idioma)
-        const message = 'No se han encontrado ajustes. Por favor, vaya a la página de ajustes y configure la extensión.'
-        useToastError(message);
+        useToastError($i18n.t('anki.toast.noSettings'));
         return;
       }
 
       try {
-        useToastInfo("Minando la carta...");
+        useToastInfo($i18n.t('anki.toast.miningCard'));
 
         let cardID = id;
 
@@ -238,7 +237,7 @@ export const ankiStore = defineStore("anki", {
           const latestCard = noteIDs.reduce((a, b) => Math.max(a, b), -1)
 
           if (!latestCard || latestCard === -1) {
-            useToastError('No anki card to export to. Please add a card first.');
+            useToastError($i18n.t('anki.toast.noCardToExport'));
             return;
           }
 
@@ -356,13 +355,11 @@ export const ankiStore = defineStore("anki", {
         // Busca la ultima tarjeta insertada
         await this.guiBrowse(`nid:${infoCard[0].noteId}`)
 
-        const message = 'La tarjeta ha sido añadida en Anki exitosamente.'
-        useToastSuccess(message);
+        useToastSuccess($i18n.t('anki.toast.cardAdded'));
 
       } catch (error) {
         console.log(error);
-        const message = 'No se ha podido añadir la tarjeta en Anki. Error: ' + error;
-        useToastError(message);
+        useToastError($i18n.t('anki.toast.cardAddError', { error: error }));
       }
     },
 

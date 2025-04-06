@@ -11,11 +11,11 @@ const store = userStore()
 const isAuth = computed(() => store.isLoggedIn)
 
 const tabs_general = [
-    { name: 'Cuenta', icon: mdiAccount, route: '/settings/account' },
-    { name: 'Sincronización Anki', icon: mdiSync, route: '/settings/sync' },
+    { name: t('accountSettings.tabs.account'), icon: mdiAccount, route: '/settings/account' },
+    { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/settings/sync' },
 ]
 const tabs_advanced = [
-    { name: 'Desarrollador', icon: mdiCodeTags, route: '/settings/developer' },
+    { name: t('accountSettings.tabs.developer'), icon: mdiCodeTags, route: '/settings/developer' },
 ]
 
 const activeTab = ref('')
@@ -55,21 +55,21 @@ definePageMeta({
             <!-- Vertical Tabs -->
             <div class="hidden mx-auto md:block md:sticky top-0 md:h-screen md:overflow-y-auto md:w-1/4 xl:w-3/12">
                 <nav aria-label="Tabs" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">
-                    <h3 class="text-lg text-white/90 tracking-wide font-semibold">General</h3>
+                    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.generalTitle") }}</h3>
                     <div class="border-b border-white/10" />
                     <button v-for="tab in tabs_general" :key="tab.name"
                         :class="{ 
                             'active': activeTab === `#horizontal-scroll-tab-${tab.name.toLowerCase().replaceAll(' ', '-')}`,
-                            'opacity-50 cursor-not-allowed': !isAuth && tab.name === 'Cuenta' 
+                            'opacity-50 cursor-not-allowed': !isAuth && tab.name === $t('accountSettings.tabs.account') 
                         }"
-                        :disabled="!isAuth && tab.name === 'Cuenta'"
+                        :disabled="!isAuth && tab.name === $t('accountSettings.tabs.account')"
                         @click="isAuth ? navigateToTab(tab.route) : null"
                         class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left">
                         <UiBaseIcon :path="tab.icon" size="20" />
                         {{ tab.name }}
                     </button>
 
-                    <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">Avanzado</h3>
+                    <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.advancedTitle") }}</h3>
                     <div class="border-b border-white/10" />
                     <button v-for="tab in tabs_advanced" :key="tab.name"
                         :class="{ 
@@ -88,7 +88,7 @@ definePageMeta({
             <!-- Horizontal Tabs for smaller screens -->
             <div class="block md:hidden p-4">
                 <nav aria-label="Tabs" class="flex overflow-x-auto">
-                    <button v-for="tab in ['Cuenta', 'Sincronización', 'Desarrollador']" :key="tab"
+                    <button v-for="tab in [t('accountSettings.tabs.account'), t('accountSettings.tabs.sync'), t('accountSettings.tabs.developer')]" :key="tab"
                         :class="{ 'active': activeTab === `#horizontal-scroll-tab-${tab.toLowerCase().replace(' ', '-')}` }"
                         @click="activeTab = `#horizontal-scroll-tab-${tab.toLowerCase().replace(' ', '-')}`"
                         class="rounded-lg px-4 py-2 text-left text-nowrap">

@@ -36,11 +36,11 @@ const openAnkiModal = () => {
     <template #content>
       <SearchDropdownContent>
         <!-- Anki by last added -->
-        <SearchDropdownItem :is-disabled="!isAnkiConfigured" text="Añadir a Anki (Ultima carta añadida)"
+        <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
           :iconPath="mdiStarShootingOutline" @click="ankiStore().addSentenceToAnki(content)" />
 
         <!-- Anki by ID -->
-        <SearchDropdownItem :is-disabled="!isAnkiConfigured" text="Añadir a Anki (Busca en tu colección)"
+        <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
           @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
           data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection" />
       </SearchDropdownContent>
