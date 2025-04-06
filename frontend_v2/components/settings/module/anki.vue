@@ -141,7 +141,7 @@ watch(ankiconnectAddress, (newValue) => {
   <div class="anki">
 
     <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Estado Sincronización</h3>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.syncStatus') }}</h3>
       <div class="border-b pt-4 border-white/10" />
       <div class="mt-4">
         <div class="flex justify-between items-center">
@@ -162,10 +162,10 @@ watch(ankiconnectAddress, (newValue) => {
                   </svg>
                   <span class="sr-only">Loading...</span>
                 </div>
-                <strong class="block font-medium">Cargando...</strong>
+                <strong class="block font-medium">{{ $t('accountSettings.anki.loading') }}</strong>
               </div>
               <p class="mt-2 text-sm text-blue-700 dark:text-blue-200">
-                Por favor, espere mientras se establece la conexión.
+                {{ $t('accountSettings.anki.loadingMessage') }}
               </p>
             </div>
 
@@ -174,10 +174,10 @@ watch(ankiconnectAddress, (newValue) => {
               <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
                 <UiBaseIcon :path="mdiCheckBold" size="20" />
 
-                <strong class="block font-medium">Conexión establecida</strong>
+                <strong class="block font-medium">{{ $t('accountSettings.anki.connectionSuccess') }}</strong>
               </div>
               <p class="mt-2 text-sm text-green-700 dark:text-green-200">
-                La conexión con Anki se ha establecido de forma correcta.
+                {{ $t('accountSettings.anki.successMessage') }}
               </p>
             </div>
 
@@ -189,23 +189,21 @@ watch(ankiconnectAddress, (newValue) => {
                     d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
                     clip-rule="evenodd" />
                 </svg>
-                <strong class="block font-medium"> Algo ha fallado</strong>
+                <strong class="block font-medium">{{ $t('accountSettings.anki.connectionError') }}</strong>
               </div>
               <p class="mt-2 text-sm text-red-700 dark:text-red-200">
-                No se ha podido establecer conexión con Anki.
+                {{ $t('accountSettings.anki.errorMessage') }}
               </p>
               <ol class="pl-5 text-sm dark:text-red-200 list-disc">
                 <li>
-                  Verifique que la aplicación de Anki este abierta y el addon
+                  {{ $t('accountSettings.anki.troubleshootingTips.ankiRunning') }}
                   <a class="underline text-blue-400" href="https://ankiweb.net/shared/info/2055492159">Ankiconnect</a>
-                  instalado.
                 </li>
                 <li>
-                  Verifique que "https://nadeshiko.co" este en el webCorsOriginList de las configuraciones de
-                  AnkiConnect.
+                  {{ $t('accountSettings.anki.troubleshootingTips.webCors') }}
                 </li>
                 <li>
-                  Deshabilite cualquier Adblock que tenga instalado en su navegador para este dominio.
+                  {{ $t('accountSettings.anki.troubleshootingTips.adBlock') }}
                 </li>
               </ol>
             </div>
@@ -214,25 +212,25 @@ watch(ankiconnectAddress, (newValue) => {
       </div>
     </div>
     <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Configuración Anki</h3>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.ankiConfig') }}</h3>
       <div class="border-b pt-4 border-white/10" />
       <div class="mt-4">
         <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
           <div class="flex-grow">
-            <label class="block text-lg mb-1 font-medium text-white"> Deck </label>
+            <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
             <select v-model="selectedDeck"
               class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
-              <option value="">Selecciona un deck</option>
+              <option value="">{{ $t('accountSettings.anki.selectDeck') }}</option>
               <option v-for="(option, index) in deckOptions" :key="index" :value="option">
                 {{ option }}
               </option>
             </select>
           </div>
           <div class="flex-grow">
-            <label class="block text-lg mb-1 font-medium text-white"> Modelo </label>
+            <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
             <select v-model="selectedModel"
               class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
-              <option value="">Selecciona un modelo</option>
+              <option value="">{{ $t('accountSettings.anki.selectModel') }}</option>
               <option v-for="(option, index) in modelOptions" :key="index" :value="option">
                 {{ option }}
               </option>
@@ -244,10 +242,10 @@ watch(ankiconnectAddress, (newValue) => {
       <div class="mt-4">
         <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
           <div class="flex-grow">
-            <label class="block text-lg mb-1 font-medium text-white"> Key Field </label>
+            <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
             <select v-model="modelKey"
               class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
-              <option :value="null">Selecciona el field que corresponde al ID de tu deck</option>
+              <option :value="null">{{ $t('accountSettings.anki.selectKeyField') }}</option>
               <option v-for="(option, index) in fieldOptions" :key="index" :value="option.key">
                 {{ option.key }}
               </option>
@@ -261,8 +259,8 @@ watch(ankiconnectAddress, (newValue) => {
         <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
           <thead>
             <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
-              <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">Campo</th>
-              <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">Contenido</th>
+              <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.anki.fieldColumn') }}</th>
+              <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.anki.contentColumn') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-white/20">
@@ -337,9 +335,9 @@ watch(ankiconnectAddress, (newValue) => {
                     d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
               </div>
-              <h1 class="mt-3 text-lg text-gray-800 dark:text-white">No se han encontrado campos</h1>
+              <h1 class="mt-3 text-lg text-gray-800 dark:text-white">{{ $t('accountSettings.anki.noFieldsFound') }}</h1>
               <p class="mt-2 text-gray-500 dark:text-gray-400">
-                Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect.
+                {{ $t('accountSettings.anki.noFieldsMessage') }}
               </p>
             </div>
           </div>
@@ -349,7 +347,7 @@ watch(ankiconnectAddress, (newValue) => {
 
     <!-- Advanced Settings -->
     <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Configuración Avanzada</h3>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.advancedSettings') }}</h3>
       <div class="border-b pt-4 border-white/10" />
 
 
@@ -357,7 +355,7 @@ watch(ankiconnectAddress, (newValue) => {
       <div class="mt-4">
         <div class="gap-4 lg:gap-8 mb-5">
           <div class="flex-grow flex flex-row">
-            <label class="block text-sm mb-1 pr-5 font-medium text-white"> AnkiConnect server address</label>
+            <label class="block text-sm mb-1 pr-5 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
             <input v-model="ankiconnectAddress"
               class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
             </input>

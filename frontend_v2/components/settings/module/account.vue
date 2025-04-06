@@ -34,16 +34,16 @@ onMounted(async () => {
 <template>
   <!-- Card -->
   <div class="dark:bg-card-background p-6  mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Información</h3>
+    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.infoTitle') }}</h3>
     <div class="border-b pt-4 border-white/10" />
     <div class="mt-4">
       <div class="flex justify-between items-center">
         <div>
-          <p class="text-gray-400">Usuario</p>
+          <p class="text-gray-400">{{ $t('accountSettings.account.usernameLabel') }}</p>
           <div v-if="isLoading">
             <div class="w-32 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
           </div>
-          <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.username || 'No available' }}</p>
+          <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.username || $t('accountSettings.account.notAvailable') }}</p>
         </div>
         <!--
         <button data-hs-overlay="#hs-vertically-centered-scrollable-editusername"
@@ -54,11 +54,11 @@ onMounted(async () => {
       </div>
       <div class="flex justify-between items-center mt-3">
         <div>
-          <p class="text-gray-400">Correo</p>
+          <p class="text-gray-400">{{ $t('accountSettings.account.emailLabel') }}</p>
           <div v-if="isLoading">
             <div class="w-40 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
           </div>
-          <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.email || 'No available' }}</p>
+          <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.email || $t('accountSettings.account.notAvailable') }}</p>
         </div>
         <!--
         <button
@@ -87,12 +87,12 @@ onMounted(async () => {
   -->
   <!-- Card -->
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Adicional</h3>
+    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.additionalTitle') }}</h3>
     <div class="border-b pt-4 border-white/10" />
     <div class="mt-4">
       <div class="flex justify-between items-center mt-3">
         <div>
-          <p class="text-white">Eliminar cuenta (Acción irreversible)</p>
+          <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
           class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-2 px-4 rounded">Eliminar</button>

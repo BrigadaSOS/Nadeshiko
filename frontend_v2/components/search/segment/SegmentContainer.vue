@@ -247,24 +247,28 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
               <div class="hidden sm:flex ml-auto">
                 <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
                   id="concatenate-button"
-                  @click="loadNextSentence(sentence, 'backward')" v-if="!isConcatenated(sentence)">
+                  @click="loadNextSentence(sentence, 'backward')" v-if="!isConcatenated(sentence)"
+                  :title="$t('segment.expandLeft')">
                   <UiBaseIcon :path="mdiChevronLeft" />
                 </UiButtonPrimaryAction>
 
                 <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
                   id="concatenate-button"
-                  @click="loadNextSentence(sentence, 'both')" v-if="!isConcatenated(sentence)">
+                  @click="loadNextSentence(sentence, 'both')" v-if="!isConcatenated(sentence)"
+                  :title="$t('segment.expandBoth')">
                   <UiBaseIcon :path="mdiArrowExpandHorizontal" />
                 </UiButtonPrimaryAction>
 
                 <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
                   id="concatenate-button"
-                  @click="loadNextSentence(sentence, 'forward')" v-if="!isConcatenated(sentence)">
+                  @click="loadNextSentence(sentence, 'forward')" v-if="!isConcatenated(sentence)"
+                  :title="$t('segment.expandRight')">
                   <UiBaseIcon :path="mdiChevronRight" />
                 </UiButtonPrimaryAction>
 
                 <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                  @click="revertActiveConcatenation" v-if="isConcatenated(sentence)">
+                  @click="revertActiveConcatenation" v-if="isConcatenated(sentence)"
+                  :title="$t('segment.revert')">
                   <UiBaseIcon :path="mdiClose" />
                 </UiButtonPrimaryAction>
               </div>
@@ -281,7 +285,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
             <!-- Tag NSFW -->
             <span v-if="sentence.segment_info.is_nsfw"
               class="bg-gray-100 mb-1 text-gray-800 text-xs xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/30 dark:text-gray-400 border border-gray-700">
-              NSFW
+              {{ $t('segment.nsfwTag') }}
             </span>
 
             <div class="font-normal flex-1 text-sm xxl:text-base xxm:text-2xl leading-snug mt-3">
@@ -388,11 +392,9 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
             <img class="mb-6"
               src="https://animeforums.net/uploads/monthly_2022_03/haruhi-suzumiya-kyon-computer-haruhi-suzumiya.gif.be78c7de58e641e3701a97a85d01a059.gif" />
-            <h2 class="font-bold text-red-400 text-3xl">404</h2>
-            <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">No encontramos
-              resultados</h1>
-            <p class="mt-4 text-gray-500 dark:text-gray-400">Buscamos de arriba a abajo, pero no pudimos
-              encontrar lo que buscas. Intenta con una nueva busqueda diferente.</p>
+            <h2 class="font-bold text-red-400 text-3xl">{{ $t('segment.noResultsTitle') }}</h2>
+            <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchpage.main.labels.noresults') }}</h1>
+            <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('segment.noResultsMessage') }}</p>
           </div>
         </div>
       </div>

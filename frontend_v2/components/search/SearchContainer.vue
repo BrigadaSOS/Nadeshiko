@@ -268,15 +268,14 @@ onBeforeRouteUpdate(async (to, from) => {
                     <div class="flex flex-col items-center max-w-lg mx-auto text-center">
                         <img class="mb-6"
                             src="https://animeforums.net/uploads/monthly_2022_03/haruhi-suzumiya-kyon-computer-haruhi-suzumiya.gif.be78c7de58e641e3701a97a85d01a059.gif" />
-                        <h2 class="font-bold text-red-400 text-3xl">502</h2>
-                        <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">Se produjo un
-                            error</h1>
-                        <p class="mt-4 text-gray-500 dark:text-gray-400">Reintenta la busqueda con el boton de abajo.
+                        <h2 class="font-bold text-red-400 text-3xl">{{ $t('searchContainer.errorTitle') }}</h2>
+                        <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchContainer.errorMessage1') }}</h1>
+                        <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.errorMessage2') }}
                         </p>
 
                         <UiButtonPrimaryAction class="my-4" @click="fetchSentences()">
                             <template v-if="isLoading">
-                                Reintentando...
+                                {{ $t('searchContainer.retrying') }}
                                 <div role="status">
                                     <svg aria-hidden="true"
                                         class="inline w-5 h-5 text-gray-200 animate-spin dark:text-gray-400 fill-gray-500 dark:fill-gray-200"
@@ -294,7 +293,7 @@ onBeforeRouteUpdate(async (to, from) => {
                             </template>
                             <template v-else>
                                 <UiBaseIcon :path="mdiRefresh" @click="fetchSentences()" />
-                                Reintentar conexión
+                                {{ $t('searchContainer.retryButton') }}
                             </template>
                         </UiButtonPrimaryAction>
                     </div>
@@ -335,12 +334,12 @@ onBeforeRouteUpdate(async (to, from) => {
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">
                         <UiBaseIcon :path="mdiRefresh" />
-                        Load more sentences
+                        {{ $t('searchContainer.loadMore') }}
                     </UiButtonPrimaryAction>
                 </div>
                 <div v-if="endOfResults && !hasMoreResults && searchData?.sentences?.length > 0" class="text-center mt-4 mb-8">
                     <p class="text-gray-500 dark:text-gray-400">
-                        ¡Has llegado al final!
+                        {{ $t('searchContainer.endOfResults') }}
                     </p>
                 </div>
             </div>

@@ -114,9 +114,33 @@
     "send": "Enviar reporte",
     "close": "Cerrar"
   },
+  "anki": {
+    "modal": {
+      "title": "Busca en tu colección",
+      "description": "Busca una carta en tu colección de Anki y añádele imagen/audio. Requiere que el 'Key Field' esté configurado en ajustes.",
+      "idColumn": "ID",
+      "keyColumn": "Clave",
+      "noCardsFound": "No se encontraron cartas",
+      "noCardsMessage": "Prueba con otro query o mina la oración primero",
+      "validationSuccess": "Validación exitosa",
+      "validationMessage": "¡El keyfield está configurado!",
+      "validationError": "Algo ha fallado",
+      "errorMessage": "No se ha definido un keyfield",
+      "errorTip": "Verifique que el keyfield esté definido en los ajustes de Nadeshiko"
+    },
+    "toast": {
+      "noSettings": "No se han encontrado ajustes. Por favor, vaya a la página de ajustes y configure la extensión.",
+      "miningCard": "Minando la carta...",
+      "noCardToExport": "No hay carta de Anki para exportar. Por favor, añada una carta primero.",
+      "cardAdded": "La tarjeta ha sido añadida en Anki exitosamente",
+      "cardAddError": "No se ha podido añadir la tarjeta en Anki. Error: {error}"
+    }
+  },
   "searchpage": {
     "main": {
       "buttons": {
+        "addToAnkiLast": "Añadir a Anki (Ultima carta añadida)",
+        "addToAnkiSearch": "Añadir a Anki (Busca en tu colección)",
         "download": "Descargar",
         "dl-expanded": "Audio expandido",
         "add": "Añadir",
@@ -173,11 +197,107 @@
       }
     }
   },
+  "accountSettings": {
+    "menu": {
+      "generalTitle": "General",
+      "advancedTitle": "Avanzado"
+    },
+    "tabs": {
+      "account": "Cuenta",
+      "sync": "Sincronización Anki",
+      "developer": "Desarrollador"
+    },
+    "developer": {
+      "apiUsageTitle": "Consumo API",
+      "apiUsageRemaining": "Peticiones restantes: {used} / {limit}",
+      "apiKeyManagement": "Gestión de llaves API",
+      "addApiKey": "Añadir llave API",
+      "keyCreated": "Llave creada",
+      "keyCreatedMessage": "Guarda la llave, no se volverá a mostrar.",
+      "keyDeactivated": "Llave desactivada",
+      "noKeysFound": "No se han encontrado llaves API",
+      "noKeysMessage": "¡Crea una nueva para tus aplicaciones o proyectos!",
+      "tableHeaders": {
+        "name": "Nombre",
+        "key": "Clave",
+        "permissions": "Permisos",
+        "createdAt": "Creación",
+        "status": "Estado"
+      },
+      "statusActive": "Activa",
+      "statusInactive": "Inactiva",
+      "options": "Opciones",
+      "deactivate": "Desactivar"
+    },
+    "account": {
+      "infoTitle": "Información",
+      "usernameLabel": "Usuario",
+      "emailLabel": "Correo",
+      "notAvailable": "No disponible",
+      "securityTitle": "Seguridad",
+      "passwordLabel": "Contraseña",
+      "additionalTitle": "Adicional",
+      "deleteAccount": "Eliminar cuenta (Acción irreversible)"
+    },
+    "anki": {
+      "syncStatus": "Estado Sincronización",
+      "loading": "Cargando...",
+      "loadingMessage": "Por favor, espere mientras se establece la conexión",
+      "connectionSuccess": "Conexión establecida",
+      "successMessage": "La conexión con Anki se ha establecido de forma correcta",
+      "connectionError": "Algo ha fallado",
+      "errorMessage": "No se ha podido establecer conexión con Anki",
+      "troubleshootingTips": {
+        "ankiRunning": "Verifique que la aplicación de Anki este abierta y el addon Ankiconnect instalado",
+        "webCors": "Verifique que 'https://nadeshiko.co' este en el webCorsOriginList de las configuraciones de AnkiConnect",
+        "adBlock": "Deshabilite cualquier Adblock que tenga instalado en su navegador para este dominio"
+      },
+      "ankiConfig": "Configuración Anki",
+      "deckLabel": "Deck",
+      "selectDeck": "Selecciona un deck",
+      "modelLabel": "Modelo",
+      "selectModel": "Selecciona un modelo",
+      "keyFieldLabel": "Key Field",
+      "selectKeyField": "Selecciona el field que corresponde al ID de tu deck",
+      "fieldColumn": "Campo",
+      "contentColumn": "Contenido",
+      "noFieldsFound": "No se han encontrado campos",
+      "noFieldsMessage": "Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect",
+      "advancedSettings": "Configuración Avanzada",
+      "serverAddressLabel": "AnkiConnect server address"
+    }
+  },
+  "contentPage": {
+    "emptyMessage": "Próximamente disponible 😉"
+  },
+  "segment": {
+    "noResultsTitle": "404",
+    "noResultsMessage": "Buscamos de arriba a abajo, pero no pudimos encontrar lo que buscas. Intenta con una nueva búsqueda diferente.",
+    "nsfwTag": "NSFW",
+    "expandLeft": "Expandir izquierda",
+    "expandBoth": "Expandir ambos lados",
+    "expandRight": "Expandir derecha",
+    "revert": "Revertir"
+  },
+  "searchContainer": {
+    "errorTitle": "502",
+    "errorMessage1": "Se produjo un error",
+    "errorMessage2": "Reintenta la búsqueda con el botón de abajo.",
+    "retryButton": "Reintentar conexión",
+    "retrying": "Reintentando...",
+    "endOfResults": "¡Has llegado al final!",
+    "loadMore": "Cargar más oraciones"
+  },
   "modalauth": {
+    "headers": {
+      "auth": "Autenticación"
+    },
     "buttons": {
       "login": "Inciar sesión",
       "googlelogin": "Inicia sesión con Google",
-      "register": "Registrarse"
+      "register": "Registrarse",
+      "google": "Iniciar con Google",
+      "discord": "Iniciar con Discord"
     },
     "labels": {
       "questionaccount": "¿No tienes una cuenta?",
@@ -190,7 +310,10 @@
       "forgottenpassword": "Contraseña olvidada?",
       "successfullogin": "Inicio de sesión exitoso!",
       "logout": "Se ha cerrado la sesión.",
-      "errorlogin400": "Por favor, revisa tu correo/contraseña e intenta de nuevo."
+      "errorlogin400": "Por favor, revisa tu correo/contraseña e intenta de nuevo.",
+      "username": "Usuario",
+      "terms": "By using this website you agree to our {terms} and to our {privacy}",
+      "registerButton": "Registrarse"
     }
   }
 }

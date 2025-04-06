@@ -89,7 +89,7 @@ onMounted(async () => {
 <template>
     <!-- Card -->
     <div class="bg-card-background p-6 mx-auto rounded-lg shadow-md">
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">Consumo API</h3>
+        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.developer.apiUsageTitle') }}</h3>
         <div class="border-b pt-4 border-white/10" />
         <div class="mt-4">
             <!-- Progress -->
@@ -105,15 +105,17 @@ onMounted(async () => {
             </div>
             <!-- End Progress -->
         </div>
-        <p class="mt-3 text-gray-300">Peticiones restantes: {{ fieldOptions.quota?.quotaUsed }} / {{
-                            fieldOptions.quota?.quotaLimit == 'NO_LIMIT' ? 'Ilimitado' : fieldOptions.quota?.quotaLimit }}</p>
+        <p class="mt-3 text-gray-300">{{ $t('accountSettings.developer.apiUsageRemaining', {
+          used: fieldOptions.quota?.quotaUsed,
+          limit: fieldOptions.quota?.quotaLimit == 'NO_LIMIT' ? $t('accountSettings.developer.unlimited') : fieldOptions.quota?.quotaLimit
+        }) }}</p>
     </div>
 
     <!-- Card -->
     <div class="bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
         <div class="flex items-center">
             <div class="flex flex-col">
-                <h3 class="text-lg text-white/90 tracking-wide font-semibold">Gestión de llaves API</h3>
+                <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.developer.apiKeyManagement') }}</h3>
             </div>
             <div class="ml-auto">
                 <button data-hs-overlay="#hs-vertically-centered-scrollable-addapikey"
@@ -121,7 +123,7 @@ onMounted(async () => {
                     <button data-hs-overlay="#hs-vertically-centered-scrollable-editusername"
                         class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" @click="createApiKey">
                         <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
-                        Añadir llave API
+                        {{ $t('accountSettings.developer.addApiKey') }}
                     </button>
                 </button>
             </div>
@@ -130,10 +132,10 @@ onMounted(async () => {
             class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
             <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
                 <UiBaseIcon :path="mdiCheckBold" size="20" />
-                <strong class="block font-medium">Llave creada</strong>
+                <strong class="block font-medium">{{ $t('accountSettings.developer.keyCreated') }}: {{ generatedApiKey}}</strong>
             </div>
                 <p class="mt-2 text-sm text-green-700 dark:text-green-200">
-                    <b>{{ generatedApiKey }}</b>. Guarda la llave, no se volverá a mostrar.
+                  {{$t('accountSettings.developer.keyCreatedMessage', { key: generatedApiKey }) }}
                 </p>
             </div>
 
@@ -141,7 +143,7 @@ onMounted(async () => {
             class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
             <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
                 <UiBaseIcon :path="mdiCheckBold" size="20" />
-                <strong class="block font-medium">Llave desactivada</strong>
+                <strong class="block font-medium">{{ $t('accountSettings.developer.keyDeactivated') }}</strong>
             </div>
         </div>
         
@@ -152,21 +154,12 @@ onMounted(async () => {
                 <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
                     <thead>
                         <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
-                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">Nombre
-                            </th>
-                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
-                                Clave
-                            </th>
-                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
-                                Permisos
-                            </th>
-                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
-                                Creación
-                            </th>
-                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">Estado
-                            </th>
-                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
-                            </th>
+                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.name') }}</th>
+                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.key') }}</th>
+                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.permissions') }}</th>
+                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.createdAt') }}</th>
+                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.status') }}</th>
+                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-white/20">
@@ -201,10 +194,10 @@ onMounted(async () => {
                             <td
                                 class="w-1/12 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
                                 <span v-if="!item.isActive"
-                                    class="bg-gray-100 mb-1 text-gray-800 text-sm xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/50 dark:text-white/90 border border-gray-700">Inactiva
+                                    class="bg-gray-100 mb-1 text-gray-800 text-sm xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/50 dark:text-white/90 border border-gray-700">{{ $t('accountSettings.developer.statusInactive') }}
                                 </span>
                                 <span v-if="item.isActive"
-                                    class="bg-gray-100 mb-1 text-gray-800 text-sm xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-green-500/50 dark:text-white/90 border border-gray-700">Activa
+                                    class="bg-gray-100 mb-1 text-gray-800 text-sm xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-green-500/50 dark:text-white/90 border border-gray-700">{{ $t('accountSettings.developer.statusActive') }}
                                 </span>
                             </td>
                             <td
@@ -227,9 +220,8 @@ onMounted(async () => {
                                         <div class="hs-dropdown-menu z-30 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                                             aria-labelledby="hs-dropdown-with-title">
                                             <div class="py-2 first:pt-0 last:pb-0">
-                                                <span
-                                                    class="block py-2 px-3 text-xs font-medium item uppercase text-gray-400 dark:text-gray-500">
-                                                    Opciones
+                                                <span class="block py-2 px-3 text-xs font-medium item uppercase text-gray-400 dark:text-gray-500">
+                                                    {{ $t('accountSettings.developer.options') }}
                                                 </span>
                                                 <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
                                                     @click="deactivateApiKey(item)">
@@ -256,7 +248,7 @@ onMounted(async () => {
                                                             </g>
                                                         </g>
                                                     </svg>
-                                                    Desactivar
+                                                    {{ $t('accountSettings.developer.deactivate') }}
                                                 </a>
                                                 <!--
                                                 <a @click="currentSentence = sentence"
