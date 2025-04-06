@@ -1,23 +1,23 @@
-var jwt = require("jsonwebtoken");
-import { Authorized, BadRequest, Conflict, NotFound } from "../utils/error";
-import { Request, Response, NextFunction } from "express";
-import { StatusCodes } from "http-status-codes";
+const jwt = require('jsonwebtoken');
+import { Authorized, BadRequest, Conflict, NotFound } from '../utils/error';
+import { Request, Response, NextFunction } from 'express';
+import { StatusCodes } from 'http-status-codes';
 
-import { User } from "../models/user/user";
-import { UserRole } from "../models/user/userRole";
-import { Role } from "../models/user/role";
-import { UserAuth } from "../models/user/userAuth"
-import { createToken, maxAgeJWT } from "../middleware/authentication";
-import { Report, ReportStatus, ReportType } from "../models/miscellaneous/report"
-import DiscordOauth2 from "discord-oauth2";
-import { sendConfirmationEmail } from "../utils/email";
-const { OAuth2Client } = require("google-auth-library");
-const bcrypt = require("bcrypt");
+import { User } from '../models/user/user';
+import { UserRole } from '../models/user/userRole';
+import { Role } from '../models/user/role';
+import { UserAuth } from '../models/user/userAuth';
+import { createToken, maxAgeJWT } from '../middleware/authentication';
+import { Report, ReportStatus, ReportType } from '../models/miscellaneous/report';
+import DiscordOauth2 from 'discord-oauth2';
+import { sendConfirmationEmail } from '../utils/email';
+const { OAuth2Client } = require('google-auth-library');
+const bcrypt = require('bcrypt');
 
 const client = new OAuth2Client({
   clientId: process.env.ID_OAUTH_GOOGLE,
   clientSecret: process.env.SECRET_OAUTH_GOOGLE,
-  redirectUri: process.env.URI_ALLOWED_GOOGLE
+  redirectUri: process.env.URI_ALLOWED_GOOGLE,
 });
 
 const clientDiscord = new DiscordOauth2({
@@ -27,29 +27,25 @@ const clientDiscord = new DiscordOauth2({
 });
 
 export const logout = (_req: Request, res: Response, _next: NextFunction) => {
-  return res.clearCookie("access_token").status(StatusCodes.OK).json({
+  return res.clearCookie('access_token').status(StatusCodes.OK).json({
     status: res.status,
-    message: "Logout successfully.",
+    message: 'Logout successfully.',
   });
 };
 
-declare module "express" {
+declare module 'express' {
   export interface Request {
     jwt: any;
   }
 }
 
-export const getUserInfo = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getUserInfo = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await User.findOne({
       where: { id: req.jwt.user_id },
     });
 
-    if (!user) throw new NotFound("This user has not been found.");
+    if (!user) throw new NotFound('This user has not been found.');
 
     const info_user = {
       username: user.username,
@@ -65,14 +61,8 @@ export const getUserInfo = async (
   }
 };
 
-
-export const sendReportSegment = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const sendReportSegment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
     const segment = req.body.segment;
     const report_type = req.body.report_type;
 
@@ -80,75 +70,65 @@ export const sendReportSegment = async (
       where: { id: req.jwt.user_id },
     });
 
-    if (!user) throw new NotFound("This user has not been found.");
+    if (!user) throw new NotFound('This user has not been found.');
 
     const reportTypeValue = Number(report_type);
     if (!(reportTypeValue in ReportType)) {
-      throw new Error("Invalid report_type value");
+      throw new Error('Invalid report_type value');
     }
 
-    const report = await Report.create(
-      {
-        segment_id: segment.segment_id,
-        segment_uuid: segment.segment_uuid,
-        report_type: reportTypeValue,
-        user_id: user.id,
-        status: ReportStatus.REPORTED
-      },
-    );
+    const report = await Report.create({
+      segment_id: segment.segment_id,
+      segment_uuid: segment.segment_uuid,
+      report_type: reportTypeValue,
+      user_id: user.id,
+      status: ReportStatus.REPORTED,
+    });
 
     await report.save();
 
     return res.status(StatusCodes.OK).json({
-      status: res.status
+      status: res.status,
     });
   } catch (error) {
     return next(error);
   }
 };
 
-
-export const signUp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const signUp = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // read from body
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      throw new BadRequest("Username, email, and password are required.");
-    }    
+      throw new BadRequest('Username, email, and password are required.');
+    }
 
     // check if user already exists
     const oldUser = await User.findOne({
       where: { email: email },
-      include: [{
-        model: UserAuth,
-        required: false
-      }]
+      include: [
+        {
+          model: UserAuth,
+          required: false,
+        },
+      ],
     });
 
     if (oldUser) {
       if (oldUser.userAuths && oldUser.userAuths.length > 0) {
         return res.status(StatusCodes.CONFLICT).json({
-          message: `Este correo electrónico ya está registrado con ${oldUser.userAuths[0].provider}. Por favor, inicia sesión usando ${oldUser.userAuths[0].provider}.`
+          message: `Este correo electrónico ya está registrado con ${oldUser.userAuths[0].provider}. Por favor, inicia sesión usando ${oldUser.userAuths[0].provider}.`,
         });
       } else {
-        throw new Conflict("Este correo ya ha sido usado. Por favor, intenta con otro correo.");
+        throw new Conflict('Este correo ya ha sido usado. Por favor, intenta con otro correo.');
       }
     } else {
       // encrypt the password
       const salt: string = await bcrypt.genSalt(10);
-      const encryptedPassword: string = await bcrypt.hash(
-        password.toString(),
-        salt
-      );
+      const encryptedPassword: string = await bcrypt.hash(password.toString(), salt);
       // Generate random email verification token
-      const jwtSecretKey: string = process.env.SECRET_KEY_JWT
-        ? process.env.SECRET_KEY_JWT
-        : "";
+      const jwtSecretKey: string = process.env.SECRET_KEY_JWT ? process.env.SECRET_KEY_JWT : '';
       const randomTokenEmail: string = jwt.sign({ email: email }, jwtSecretKey);
 
       // 3: Normal user
@@ -164,9 +144,9 @@ export const signUp = async (
           email_token: randomTokenEmail,
           is_verified: false,
           is_active: true,
-          UserRoles: userRoles
+          UserRoles: userRoles,
         },
-        { include: UserRole }
+        { include: UserRole },
       );
 
       // Send verification email to user
@@ -183,45 +163,38 @@ export const signUp = async (
   }
 };
 
-export const logIn = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const logIn = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Check if user already exists
     const user = await User.findOne({
       where: { email: req.body.email },
-      include: [{
-        model: UserAuth,
-        required: false
-      }, {
-        model: UserRole,
-        required: false
-      }]
+      include: [
+        {
+          model: UserAuth,
+          required: false,
+        },
+        {
+          model: UserRole,
+          required: false,
+        },
+      ],
     });
 
-    if (!user) throw new NotFound("This email has not been found.");
-    if (!user.is_active) throw new NotFound("This user is not active.");
+    if (!user) throw new NotFound('This email has not been found.');
+    if (!user.is_active) throw new NotFound('This user is not active.');
 
     if (user.userAuths && user.userAuths.length > 0) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
-        message: `Este correo está registrado con ${user.userAuths[0].provider}. Por favor, inicia sesión usando ${user.userAuths[0].provider}.`
+        message: `Este correo está registrado con ${user.userAuths[0].provider}. Por favor, inicia sesión usando ${user.userAuths[0].provider}.`,
       });
     }
 
     // Compare the passwords
-    const password: boolean = await bcrypt.compare(
-      req.body.password.toString(),
-      user.password
-    );
-    if (!password)
-      throw new BadRequest("Wrong email or password. Please try again.");
+    const password: boolean = await bcrypt.compare(req.body.password.toString(), user.password);
+    if (!password) throw new BadRequest('Wrong email or password. Please try again.');
 
     if (user.is_verified === false)
-      throw new Authorized(
-        "The email has not been verified. Please check your email again."
-      );
+      throw new Authorized('The email has not been verified. Please check your email again.');
 
     // Create Token with role
     const user_role = await UserRole.findAll({
@@ -239,10 +212,10 @@ export const logIn = async (
     const token = createToken(user.id, list_roles);
 
     res.cookie('access_token', token, {
-      expires: new Date(Date.now() + (maxAgeJWT * 1000)),
+      expires: new Date(Date.now() + maxAgeJWT * 1000),
       httpOnly: true,
       secure: true,
-      sameSite: 'none'
+      sameSite: 'none',
     });
 
     const data_user = {
@@ -262,28 +235,27 @@ export const logIn = async (
   }
 };
 
-export const loginGoogle = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const loginGoogle = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let userInfo = await verifyCodeOAuth(req.body.code);
+    const userInfo = await verifyCodeOAuth(req.body.code);
 
     let user = await User.findOne({
       where: { email: userInfo.email },
-      include: [{
-        model: UserAuth, 
-        where: { providerUserId: userInfo.sub, provider: 'google' },
-        required: false 
-      },{
-        model: UserRole
-      }]
+      include: [
+        {
+          model: UserAuth,
+          where: { providerUserId: userInfo.sub, provider: 'google' },
+          required: false,
+        },
+        {
+          model: UserRole,
+        },
+      ],
     });
 
     if (user && (!user.userAuths || user.userAuths.length === 0)) {
       return res.status(StatusCodes.CONFLICT).json({
-        message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`
+        message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`,
       });
     }
 
@@ -294,21 +266,23 @@ export const loginGoogle = async (
       const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
       // Create an user
-      user = await User.create({
-        username: userInfo.name,
-        email: userInfo.email,
-        is_verified: true,
-        is_active: true,
-        UserRoles: userRoles,
-      }, { include: UserRole });
+      user = await User.create(
+        {
+          username: userInfo.name,
+          email: userInfo.email,
+          is_verified: true,
+          is_active: true,
+          UserRoles: userRoles,
+        },
+        { include: UserRole },
+      );
 
       // Create related data from oAUTH
       await UserAuth.create({
         userId: user.id,
         provider: 'google',
-        providerUserId: userInfo.sub
+        providerUserId: userInfo.sub,
       });
-
     }
 
     // Create Token JWT with role
@@ -327,10 +301,10 @@ export const loginGoogle = async (
     const token = createToken(user.id, list_roles);
 
     res.cookie('access_token', token, {
-      expires: new Date(Date.now() + (maxAgeJWT * 1000)),
+      expires: new Date(Date.now() + maxAgeJWT * 1000),
       httpOnly: true,
       secure: true,
-      sameSite: 'none'
+      sameSite: 'none',
     });
 
     const data_user = {
@@ -345,9 +319,8 @@ export const loginGoogle = async (
       user: data_user,
       token: token,
     });
-
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return next(error);
   }
 };
@@ -356,9 +329,9 @@ export const getDiscordAuthUrl = (_req: Request, res: Response, next: NextFuncti
   try {
     const clientId = process.env.DISCORD_CLIENT_ID;
     const redirectUri = encodeURIComponent(process.env.DISCORD_REDIRECT_URI || '');
-    const scope = encodeURIComponent("identify email");
-    const responseType = "code";
-    
+    const scope = encodeURIComponent('identify email');
+    const responseType = 'code';
+
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`;
 
     return res.status(StatusCodes.OK).json({
@@ -369,13 +342,8 @@ export const getDiscordAuthUrl = (_req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const loginDiscord = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const loginDiscord = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
     const { code } = req.body;
 
     if (!code) {
@@ -385,27 +353,30 @@ export const loginDiscord = async (
     // Obtener el token de Discord
     const tokenResponse = await clientDiscord.tokenRequest({
       code: code as string,
-      scope: "identify email",
-      grantType: "authorization_code",
+      scope: 'identify email',
+      grantType: 'authorization_code',
     });
 
     // Obtener información del usuario de Discord
     const discordUser = await clientDiscord.getUser(tokenResponse.access_token);
-    
+
     let user = await User.findOne({
       where: { email: discordUser.email },
-      include: [{
-        model: UserAuth,
-        where: { providerUserId: discordUser.id, provider: 'discord' },
-        required: false
-      },{
-        model: UserRole
-      }]
+      include: [
+        {
+          model: UserAuth,
+          where: { providerUserId: discordUser.id, provider: 'discord' },
+          required: false,
+        },
+        {
+          model: UserRole,
+        },
+      ],
     });
 
     if (user && (!user.userAuths || user.userAuths.length === 0)) {
       return res.status(StatusCodes.CONFLICT).json({
-        message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`
+        message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`,
       });
     }
 
@@ -414,18 +385,21 @@ export const loginDiscord = async (
       const roles = [3]; // Rol de usuario normal
       const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
-      user = await User.create({
-        username: discordUser.username,
-        email: discordUser.email,
-        is_verified: true,
-        is_active: true,
-        UserRoles: userRoles,
-      }, { include: UserRole });
+      user = await User.create(
+        {
+          username: discordUser.username,
+          email: discordUser.email,
+          is_verified: true,
+          is_active: true,
+          UserRoles: userRoles,
+        },
+        { include: UserRole },
+      );
 
       await UserAuth.create({
         userId: user.id,
         provider: 'discord',
-        providerUserId: discordUser.id
+        providerUserId: discordUser.id,
       });
     }
 
@@ -439,10 +413,10 @@ export const loginDiscord = async (
     const token = createToken(user.id, list_roles);
 
     res.cookie('access_token', token, {
-      expires: new Date(Date.now() + (maxAgeJWT * 1000)),
+      expires: new Date(Date.now() + maxAgeJWT * 1000),
       httpOnly: true,
       secure: true,
-      sameSite: 'none'
+      sameSite: 'none',
     });
 
     const data_user = {
@@ -456,19 +430,17 @@ export const loginDiscord = async (
       message: `Successful login, ${user.username}`,
       user: data_user,
       token: token,
-    })
-
+    });
   } catch (error) {
     return next(error);
   }
 };
 
 async function verifyCodeOAuth(code: any) {
-  let { tokens } = await client.getToken(code);
+  const { tokens } = await client.getToken(code);
   client.setCredentials({ access_token: tokens.access_token });
   const userinfo = await client.request({
-    url: "https://www.googleapis.com/oauth2/v3/userinfo",
+    url: 'https://www.googleapis.com/oauth2/v3/userinfo',
   });
   return userinfo.data;
 }
-

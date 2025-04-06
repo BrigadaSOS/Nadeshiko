@@ -1,23 +1,15 @@
-import {
-  Table,
-  Model,
-  Column,
-  DataType,
-  HasMany,
-  BelongsTo,
-  ForeignKey,
-} from "sequelize-typescript";
-import { User } from "../user/user";
-import { ApiAuth } from "./apiAuth";
+import { Table, Model, Column, DataType, HasMany, BelongsTo, ForeignKey } from 'sequelize-typescript';
+import { User } from '../user/user';
+import { ApiAuth } from './apiAuth';
 @Table({
   timestamps: false,
-  tableName: "ApiUsageHistory",
+  tableName: 'ApiUsageHistory',
   indexes: [
     {
-      fields: ["apiAuthId", "used_at"],
+      fields: ['apiAuthId', 'used_at'],
     },
     {
-      fields: ["user_id"],
+      fields: ['user_id'],
     },
   ],
 })

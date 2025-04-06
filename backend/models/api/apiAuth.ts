@@ -8,15 +8,15 @@ import {
   BelongsToMany,
   ForeignKey,
   HasOne,
-} from "sequelize-typescript";
-import { ApiPermission } from "./apiPermission";
-import { User } from "../user/user";
-import { ApiUsageHistory } from "./apiUsageHistory";
-import { ApiAuthPermission } from "./ApiAuthPermission";
+} from 'sequelize-typescript';
+import { ApiPermission } from './apiPermission';
+import { User } from '../user/user';
+import { ApiUsageHistory } from './apiUsageHistory';
+import { ApiAuthPermission } from './ApiAuthPermission';
 
 @Table({
   timestamps: false,
-  tableName: "ApiAuth",
+  tableName: 'ApiAuth',
 })
 export class ApiAuth extends Model {
   @Column({
@@ -69,5 +69,4 @@ export class ApiAuth extends Model {
 
   @BelongsTo(() => User)
   user!: User;
-
 }

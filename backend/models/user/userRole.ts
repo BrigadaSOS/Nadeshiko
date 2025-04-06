@@ -1,25 +1,25 @@
-import { Table, Model, Column, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { User } from './user'
-import { Role } from './role'
+import { Table, Model, Column, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { User } from './user';
+import { Role } from './role';
 
 @Table({
   timestamps: false,
-  tableName: 'UserRole'
+  tableName: 'UserRole',
 })
 export class UserRole extends Model {
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
     primaryKey: true,
-    autoIncrement: true
+    autoIncrement: true,
   })
-  id!: number
+  id!: number;
 
   @ForeignKey(() => User)
   @Column({
     type: DataType.INTEGER,
   })
-  id_user!: number
+  id_user!: number;
 
   @BelongsTo(() => User)
   user!: User;
@@ -28,9 +28,8 @@ export class UserRole extends Model {
   @Column({
     type: DataType.INTEGER,
   })
-  id_role!: number  
+  id_role!: number;
 
   @BelongsTo(() => Role)
   role!: Role;
-
 }

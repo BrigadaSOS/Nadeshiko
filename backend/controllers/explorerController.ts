@@ -1,18 +1,18 @@
-import { StatusCodes } from "http-status-codes";
-import connection from "../database/db_posgres";
-import { Request, Response, NextFunction } from "express";
-import fs from "fs";
-import path from "path";
+import { StatusCodes } from 'http-status-codes';
+import connection from '../database/db_posgres';
+import { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 import multer from 'multer';
 import archiver from 'archiver';
 import recursive from 'recursive-readdir';
 
 export const getFilesFromDirectory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // TEMPORAL 
-    let MEDIA_DIRECTORY = ''
+    // TEMPORAL
+    let MEDIA_DIRECTORY = '';
 
-    if (process.env.ENVIRONMENT === "testing") {
+    if (process.env.ENVIRONMENT === 'testing') {
       MEDIA_DIRECTORY = path.resolve(__dirname, '../media');
     } else if (process.env.ENVIRONMENT === 'production') {
       MEDIA_DIRECTORY = path.resolve(__dirname, '/data/media');
@@ -23,7 +23,7 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
     const sortBy = req.query.sortBy;
 
     if (!directory) {
-      return res.status(400).json({ error: "Directorio no especificado" });
+      return res.status(400).json({ error: 'Directorio no especificado' });
     }
 
     directory = path.normalize(directory).replace(/^(\.\.[\/\\])+/, '');
@@ -41,28 +41,30 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
 
     fs.readdir(requestedPath, { withFileTypes: true }, async (err, files) => {
       if (err) {
-        res.status(500).send("Error al leer el directorio");
+        res.status(500).send('Error al leer el directorio');
         return;
       }
 
-      let fileList = await Promise.all(files.map(async (dirent) => {
-        const filePath = path.join(requestedPath, dirent.name);
-        try {
-          const stats = await fs.promises.stat(filePath);
-          return {
-            name: dirent.name,
-            type: dirent.isFile() ? 'file' : 'directory',
-            size: stats.size,
-            createdDate: stats.birthtime.toISOString(),
-            lastModified: stats.mtime.toISOString(),
-          };
-        } catch (error) {
-          console.error(`Error al obtener estadísticas para ${filePath}:`, error);
-          return null;
-        }
-      }));
+      let fileList = await Promise.all(
+        files.map(async (dirent) => {
+          const filePath = path.join(requestedPath, dirent.name);
+          try {
+            const stats = await fs.promises.stat(filePath);
+            return {
+              name: dirent.name,
+              type: dirent.isFile() ? 'file' : 'directory',
+              size: stats.size,
+              createdDate: stats.birthtime.toISOString(),
+              lastModified: stats.mtime.toISOString(),
+            };
+          } catch (error) {
+            console.error(`Error al obtener estadísticas para ${filePath}:`, error);
+            return null;
+          }
+        }),
+      );
 
-      fileList = fileList.filter(item => item !== null);
+      fileList = fileList.filter((item) => item !== null);
 
       res.status(StatusCodes.OK).json(fileList);
     });
@@ -70,7 +72,6 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
     next(error);
   }
 };
-
 
 export const createFolder = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -158,7 +159,6 @@ export const deleteFolderOrFile = async (req: Request, res: Response, next: Next
   }
 };
 
-
 export const dynamicStorage = async (req: Request, res: Response, next: NextFunction) => {
   const storage = multer.diskStorage({
     destination: function (req: Request, _file: any, cb: any) {
@@ -186,11 +186,11 @@ export const dynamicStorage = async (req: Request, res: Response, next: NextFunc
     },
     filename: function (_req: Request, file: any, cb: any) {
       cb(null, file.originalname);
-    }
+    },
   });
 
   const upload = multer({ storage: storage, limits: { fileSize: 10737418240 } }).fields([
-    { name: 'file', maxCount: 1 }
+    { name: 'file', maxCount: 1 },
   ]);
 
   upload(req, res, function (err) {
@@ -201,12 +201,11 @@ export const dynamicStorage = async (req: Request, res: Response, next: NextFunc
     }
     next();
   });
-
 };
 
 export const uploadFile = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    res.status(200).json({ message: "Archivo subido con éxito" });
+    res.status(200).json({ message: 'Archivo subido con éxito' });
   } catch (error) {
     next(error);
   }
@@ -248,13 +247,13 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
 
       const output = fs.createWriteStream(outputZipPath);
       const archive = archiver('zip', {
-        zlib: { level: 9 } 
+        zlib: { level: 9 },
       });
 
       archive.pipe(output);
 
       archive.on('error', (err) => {
-        console.log(err)
+        console.log(err);
         res.status(500).json({ error: 'Error al comprimir el directorio' });
       });
 
@@ -273,26 +272,26 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
 
       let start, end;
       if (req.headers.range) {
-        const parts = req.headers.range.replace(/bytes=/, "").split("-");
+        const parts = req.headers.range.replace(/bytes=/, '').split('-');
         start = parseInt(parts[0], 10);
         end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
       } else {
         start = 0;
         end = fileSize - 1;
       }
-    
-      if(start >= fileSize) {
+
+      if (start >= fileSize) {
         res.status(416).send('Requested Range Not Satisfiable');
         return;
       }
-    
+
       res.setHeader('Content-Disposition', `attachment; filename="${path.basename(fullPath)}"`);
       res.setHeader('Content-Type', 'application/octet-stream');
       res.setHeader('Content-Length', end - start + 1);
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
       res.status(206);
-    
+
       const fileStream = fs.createReadStream(fullPath, { start, end });
       fileStream.on('error', (error) => {
         console.error('Error al leer el archivo:', error);
@@ -301,7 +300,7 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
       req.on('close', () => {
         fileStream.destroy();
       });
-      fileStream.pipe(res);    
+      fileStream.pipe(res);
     }
   } catch (error) {
     console.error('Error al descargar el archivo:', error);
@@ -334,13 +333,11 @@ export const compressDirectory = async (req: Request, res: Response, _next: Next
     const outputZipPath = path.join(MEDIA_DIRECTORY, 'compressed.zip');
     const pathToZip = path.join(MEDIA_DIRECTORY, directory);
 
-
     // Crear un archivo zip
     const output = fs.createWriteStream(outputZipPath);
     const archive = archiver('zip', {
       zlib: { level: 9 }, // Nivel de compresión
     });
-
 
     archive.on('error', (err) => {
       throw err;
@@ -369,7 +366,7 @@ export const compressDirectory = async (req: Request, res: Response, _next: Next
 
     archive.on('progress', (progress) => {
       const newProgress = (progress.fs.processedBytes / totalSize) * 100;
-      console.log(progress.fs.processedBytes, totalSize)
+      console.log(progress.fs.processedBytes, totalSize);
       res.write(`data: {"progress": ${newProgress.toFixed(2)}}\n\n`);
     });
 
@@ -382,4 +379,4 @@ export const compressDirectory = async (req: Request, res: Response, _next: Next
     console.error('Error al comprimir el directorio:', error);
     res.status(500).json({ error: 'Error al comprimir el directorio' });
   }
-}
+};
