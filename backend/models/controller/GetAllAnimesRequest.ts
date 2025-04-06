@@ -1,6 +1,6 @@
-import {Query} from "express-serve-static-core";
+import { Query } from 'express-serve-static-core';
 
 export interface GetAllAnimesRequest extends Query {
-    readonly size?: string;
-    readonly sorted?: string;
+  readonly size?: string;
+  readonly sorted?: string;
 }

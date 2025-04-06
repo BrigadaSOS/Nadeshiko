@@ -1,21 +1,17 @@
-import { Authorized, BadRequest, Conflict, NotFound } from "../utils/error";
-import { Request, Response, NextFunction } from "express";
-import { StatusCodes } from "http-status-codes";
-import { User } from "../models/user/user";
-import { ApiAuth } from "../models/api/apiAuth";
-import { generateApiKey, generateApiKeyHint, hashApiKey } from "../utils/utils";
-import { ApiPermission } from "../models/api/apiPermission";
-import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
-import { ApiUsageHistory } from "../models/api/apiUsageHistory";
-import { Role } from "../models/user/role";
-import { UserRole } from "../models/user/userRole";
-import { Op } from "sequelize";
+import { Authorized, BadRequest, Conflict, NotFound } from '../utils/error';
+import { Request, Response, NextFunction } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import { User } from '../models/user/user';
+import { ApiAuth } from '../models/api/apiAuth';
+import { generateApiKey, generateApiKeyHint, hashApiKey } from '../utils/utils';
+import { ApiPermission } from '../models/api/apiPermission';
+import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
+import { ApiUsageHistory } from '../models/api/apiUsageHistory';
+import { Role } from '../models/user/role';
+import { UserRole } from '../models/user/userRole';
+import { Op } from 'sequelize';
 
-export const createAPIKeyDefault = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const createAPIKeyDefault = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { user_id } = req.jwt;
     const { name } = req.body;
@@ -24,8 +20,8 @@ export const createAPIKeyDefault = async (
       where: { id: user_id },
     });
 
-    if (!name) throw new NotFound("Name for API key not found.");
-    if (!user) throw new NotFound("User not found.");
+    if (!name) throw new NotFound('Name for API key not found.');
+    if (!user) throw new NotFound('User not found.');
 
     // Create a default API Key
     const api_key = generateApiKey();
@@ -42,7 +38,7 @@ export const createAPIKeyDefault = async (
     });
 
     // Set default permissions for API Key
-    const permissions = ["READ_MEDIA"];
+    const permissions = ['READ_MEDIA'];
     const apiPermissions = await ApiPermission.findAll({
       where: {
         name: permissions,
@@ -55,28 +51,22 @@ export const createAPIKeyDefault = async (
           apiAuthId: api_auth_object.id,
           apiPermissionId: permission.id,
         });
-      })
+      }),
     );
 
     // Return final response
-    res
-      .status(StatusCodes.CREATED)
-      .json({ message: "API Key created successfully", key: api_key });
+    res.status(StatusCodes.CREATED).json({ message: 'API Key created successfully', key: api_key });
   } catch (error) {
     next(error);
   }
 };
 
-export const deactivateAPIKey = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const deactivateAPIKey = async (req: Request, res: Response, next: NextFunction) => {
   const { user_id } = req.jwt;
   const { api_key_id } = req.body;
 
   if (!api_key_id) {
-    return next(new BadRequest("ID of the API Key must be provided."));
+    return next(new BadRequest('ID of the API Key must be provided.'));
   }
 
   try {
@@ -85,16 +75,16 @@ export const deactivateAPIKey = async (
     });
 
     if (!apiKey) {
-      throw new NotFound("API Key not found.");
+      throw new NotFound('API Key not found.');
     }
 
-    if(apiKey.userId != user_id) {
-      throw new NotFound("API Key not found.");
+    if (apiKey.userId != user_id) {
+      throw new NotFound('API Key not found.');
     }
 
     if (!apiKey.isActive) {
       return res.status(StatusCodes.OK).json({
-        message: "API Key is already inactive.",
+        message: 'API Key is already inactive.',
       });
     }
 
@@ -102,35 +92,31 @@ export const deactivateAPIKey = async (
     await apiKey.save();
 
     res.status(StatusCodes.OK).json({
-      message: "API Key has been deactivated.",
+      message: 'API Key has been deactivated.',
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const listAPIKeysByUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const listAPIKeysByUser = async (req: Request, res: Response, next: NextFunction) => {
   const { user_id } = req.jwt;
 
   try {
     // Fetching API keys owned by the user
     const apiKeys = await ApiAuth.findAll({
       where: { userId: user_id },
-      attributes: ["id", "name", "isActive", "createdAt", "hint"],
+      attributes: ['id', 'name', 'isActive', 'createdAt', 'hint'],
       include: [
         {
           model: ApiPermission,
-          attributes: ["id", "name"],
+          attributes: ['id', 'name'],
           through: {
             attributes: [],
           },
         },
       ],
-      order: [["createdAt", "DESC"]],
+      order: [['createdAt', 'DESC']],
     });
 
     // Calculate the start of the month for usage calculations
@@ -156,17 +142,13 @@ export const listAPIKeysByUser = async (
         },
         {
           model: Role,
-          attributes: ["quotaLimit"],
+          attributes: ['quotaLimit'],
         },
       ],
     });
 
-    const hasUnlimitedQuota = userRoles.some(
-      (role) => role.role.quotaLimit === -1
-    );
-    const highestQuotaLimit = hasUnlimitedQuota
-      ? -1
-      : Math.max(...userRoles.map((role) => role.role.quotaLimit));
+    const hasUnlimitedQuota = userRoles.some((role) => role.role.quotaLimit === -1);
+    const highestQuotaLimit = hasUnlimitedQuota ? -1 : Math.max(...userRoles.map((role) => role.role.quotaLimit));
 
     const keys = apiKeys.map((apiKey) => ({
       id: apiKey.id,
@@ -174,7 +156,8 @@ export const listAPIKeysByUser = async (
       isActive: apiKey.isActive,
       createdAt: apiKey.createdAt,
       hint: apiKey.hint,
-      permissions: apiKey.permissions.sort((a, b) => a.id - b.id)
+      permissions: apiKey.permissions
+        .sort((a, b) => a.id - b.id)
         .map((permission) => ({
           id: permission.id,
           name: permission.name,
@@ -185,11 +168,11 @@ export const listAPIKeysByUser = async (
       keys: keys,
       quota: {
         quotaUsed: totalQuotaUsed,
-        quotaLimit: highestQuotaLimit === -1 ? "NO_LIMIT" : highestQuotaLimit,
+        quotaLimit: highestQuotaLimit === -1 ? 'NO_LIMIT' : highestQuotaLimit,
       },
     });
   } catch (error) {
-    console.error("Error listing API keys:", error);
+    console.error('Error listing API keys:', error);
     next(error);
   }
 };

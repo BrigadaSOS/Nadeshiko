@@ -1,3 +1,3 @@
-import {QueryWordsMatchedResponse} from "../external/queryWordsMatchedResponse";
+import { QueryWordsMatchedResponse } from '../external/queryWordsMatchedResponse';
 
 export interface GetWordsMatchedResponse extends QueryWordsMatchedResponse {}

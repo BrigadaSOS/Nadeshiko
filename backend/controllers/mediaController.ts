@@ -1,34 +1,34 @@
-import { BadRequest, NotFound } from "../utils/error";
-import { Request, Response, NextFunction } from "express";
-import { StatusCodes } from "http-status-codes";
-import { v3 as uuidv3 } from "uuid";
-import connection from "../database/db_posgres";
+import { BadRequest, NotFound } from '../utils/error';
+import { Request, Response, NextFunction } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import { v3 as uuidv3 } from 'uuid';
+import connection from '../database/db_posgres';
 
-import path from "path";
-import fs from "fs";
+import path from 'path';
+import fs from 'fs';
 
-const { exec } = require("child_process");
-const util = require("util");
+const { exec } = require('child_process');
+const util = require('util');
 const execPromisified = util.promisify(exec);
 const ffmpegStatic = require('ffmpeg-static');
 const requestIp = require('request-ip');
 
-import {querySegments, querySurroundingSegments, queryWordsMatched} from "../external/elasticsearch";
-import {queryMediaInfo} from "../external/database_queries";
-import {MediaInfoStats} from "../models/external/queryMediaInfoResponse";
-import {GetAllAnimesResponse} from "../models/controller/GetAllAnimesResponse";
-import {SearchAnimeSentencesRequest} from "../models/controller/SearchAnimeSentencesRequest";
-import {ControllerRequest, ControllerResponse, getBaseUrlMedia, getBaseUrlTmp} from "../utils/utils";
-import {SearchAnimeSentencesResponse} from "../models/controller/SearchAnimeSentencesResponse";
-import {GetWordsMatchedRequest} from "../models/controller/GetWordsMatchedRequest";
-import {GetWordsMatchedResponse} from "../models/controller/GetWordsMatchedResponse";
-import {GetAllAnimesRequest} from "../models/controller/GetAllAnimesRequest";
-import {GetContextAnimeRequest} from "../models/controller/GetContextAnimeRequest";
-import {GetContextAnimeResponse} from "../models/controller/GetContextAnimeResponse";
-import { SaveUserSearchHistory } from "./databaseController";
-import { EventTypeHistory } from "../models/miscellaneous/userSearchHistory"
-import { Segment } from "../models/media/segment";
-import { CategoryType,Media } from "../models/media/media"
+import { querySegments, querySurroundingSegments, queryWordsMatched } from '../external/elasticsearch';
+import { queryMediaInfo } from '../external/database_queries';
+import { MediaInfoStats } from '../models/external/queryMediaInfoResponse';
+import { GetAllAnimesResponse } from '../models/controller/GetAllAnimesResponse';
+import { SearchAnimeSentencesRequest } from '../models/controller/SearchAnimeSentencesRequest';
+import { ControllerRequest, ControllerResponse, getBaseUrlMedia, getBaseUrlTmp } from '../utils/utils';
+import { SearchAnimeSentencesResponse } from '../models/controller/SearchAnimeSentencesResponse';
+import { GetWordsMatchedRequest } from '../models/controller/GetWordsMatchedRequest';
+import { GetWordsMatchedResponse } from '../models/controller/GetWordsMatchedResponse';
+import { GetAllAnimesRequest } from '../models/controller/GetAllAnimesRequest';
+import { GetContextAnimeRequest } from '../models/controller/GetContextAnimeRequest';
+import { GetContextAnimeResponse } from '../models/controller/GetContextAnimeResponse';
+import { SaveUserSearchHistory } from './databaseController';
+import { EventTypeHistory } from '../models/miscellaneous/userSearchHistory';
+import { Segment } from '../models/media/segment';
+import { CategoryType, Media } from '../models/media/media';
 import { Op } from 'sequelize';
 
 const tmpDirectory: string = process.env.TMP_DIRECTORY!;
@@ -43,36 +43,29 @@ const tmpDirectory: string = process.env.TMP_DIRECTORY!;
  * @param  {NextFunction} next - NextFunction
  * @returns {Promise<Response>} - Devuelve la URL del archivo MP3 generado/encontrado.
  */
-export const generateURLAudio = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const generateURLAudio = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const urls: string[] = req.body.urls;
 
     if (!Array.isArray(urls) || urls.length === 0) {
-      throw new BadRequest("Debe ingresar una lista de URLs MP3.");
+      throw new BadRequest('Debe ingresar una lista de URLs MP3.');
     }
 
-    let protocol: string = "";
-    if (process.env.ENVIRONMENT == "production") {
-      protocol = "https";
-    } else if (process.env.ENVIRONMENT == "testing") {
-      protocol = "http";
+    let protocol: string = '';
+    if (process.env.ENVIRONMENT == 'production') {
+      protocol = 'https';
+    } else if (process.env.ENVIRONMENT == 'testing') {
+      protocol = 'http';
     }
 
-    const urlHash = urls.join("");
+    const urlHash = urls.join('');
 
-    const randomFilename = `${uuidv3(
-      urlHash,
-      process.env.UUID_NAMESPACE!
-    )}.mp3`;
+    const randomFilename = `${uuidv3(urlHash, process.env.UUID_NAMESPACE!)}.mp3`;
 
-    let outputUrl = "";
+    const outputUrl = '';
     // Verifica si el archivo ya existe en la carpeta temporal
-    const filePathAPI = [getBaseUrlTmp(), randomFilename].join("/");
-    const filePath = [tmpDirectory, randomFilename].join("/");
+    const filePathAPI = [getBaseUrlTmp(), randomFilename].join('/');
+    const filePath = [tmpDirectory, randomFilename].join('/');
     if (fs.existsSync(filePath)) {
       return res.status(StatusCodes.OK).json({
         filename: randomFilename,
@@ -88,7 +81,7 @@ export const generateURLAudio = async (
           url: filePathAPI,
         });
       } else {
-        throw new Error("No se pudo generar el archivo MP3.");
+        throw new Error('No se pudo generar el archivo MP3.');
       }
     }
   } catch (error) {
@@ -109,8 +102,7 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
 
   let command = urls.reduce((acc, file) => `${acc} -i "${file}"`, `${ffmpegStatic}`);
 
-  const filter =
-    urls.length > 1 ? `-filter_complex concat=n=${urls.length}:v=0:a=1` : "";
+  const filter = urls.length > 1 ? `-filter_complex concat=n=${urls.length}:v=0:a=1` : '';
 
   command += ` ${filter} "${outputFilePath}"`;
 
@@ -120,7 +112,7 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
     if (stderr) {
       console.error(`Error: ${stderr}`);
     } else {
-      console.log("Files merged successfully!");
+      console.log('Files merged successfully!');
     }
   } catch (error) {
     console.error(`Error merging files: ${error}`);
@@ -130,16 +122,15 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
 export const SearchAnimeSentences = async (
   req: ControllerRequest<SearchAnimeSentencesRequest>,
   res: ControllerResponse<SearchAnimeSentencesResponse>,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-
-    if(!req.body.query && !req.body.uuid) throw new BadRequest("Missing query")
+    if (!req.body.query && !req.body.uuid) throw new BadRequest('Missing query');
 
     const response = await querySegments({
       query: req.body.query,
       uuid: req.body.uuid,
-      length_sort_order: req.body.content_sort || "none",
+      length_sort_order: req.body.content_sort || 'none',
       limit: req.body.limit || 10,
       status: req.body.status || [1],
       cursor: req.body.cursor,
@@ -149,19 +140,25 @@ export const SearchAnimeSentences = async (
       exact_match: req.body.exact_match,
       season: req.body.season,
       episode: req.body.episode,
-      category: req.body.category || [1,2,3],
+      category: req.body.category || [1, 2, 3],
       extra: req.body.extra || false,
       min_length: req.body.min_length,
-      max_length: req.body.max_length
+      max_length: req.body.max_length,
     });
 
-    if(!req.body.cursor){
-      const hits = response.statistics.reduce((total, item) => { return total + item.amount_sentences_found;}, 0);
-      await SaveUserSearchHistory(EventTypeHistory.SEARCH_MAIN_QUERY_TEXT, req.body.query, requestIp.getClientIp(req), hits);
+    if (!req.body.cursor) {
+      const hits = response.statistics.reduce((total, item) => {
+        return total + item.amount_sentences_found;
+      }, 0);
+      await SaveUserSearchHistory(
+        EventTypeHistory.SEARCH_MAIN_QUERY_TEXT,
+        req.body.query,
+        requestIp.getClientIp(req),
+        hits,
+      );
     }
 
     return res.status(StatusCodes.OK).json(response);
-
   } catch (error) {
     next(error);
   }
@@ -170,13 +167,13 @@ export const SearchAnimeSentences = async (
 export const SearchAnimeSentencesHealth = async (
   req: ControllerRequest<SearchAnimeSentencesRequest>,
   res: ControllerResponse<SearchAnimeSentencesResponse>,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const response = await querySegments({
-      query: "あ",
+      query: 'あ',
       uuid: req.body.uuid,
-      length_sort_order: req.body.content_sort || "none",
+      length_sort_order: req.body.content_sort || 'none',
       limit: req.body.limit || 10,
       status: req.body.status || [1],
       cursor: req.body.cursor,
@@ -186,24 +183,22 @@ export const SearchAnimeSentencesHealth = async (
       exact_match: req.body.exact_match,
       season: req.body.season,
       episode: req.body.episode,
-      category: req.body.category || [1,2,3],
+      category: req.body.category || [1, 2, 3],
       extra: req.body.extra || false,
       min_length: req.body.min_length,
-      max_length: req.body.max_length
+      max_length: req.body.max_length,
     });
 
     return res.status(StatusCodes.OK).json(response);
-
   } catch (error) {
     next(error);
   }
 };
 
-
 export const GetContextAnime = async (
   req: ControllerRequest<GetContextAnimeRequest>,
   res: ControllerResponse<GetContextAnimeResponse>,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const response = await querySurroundingSegments(req.body);
@@ -217,14 +212,13 @@ export const GetContextAnime = async (
 export const GetWordsMatched = async (
   req: ControllerRequest<GetWordsMatchedRequest>,
   res: ControllerResponse<GetWordsMatchedResponse>,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { words, exact_match } = req.body;
 
     const response = await queryWordsMatched(words, exact_match);
     return res.status(StatusCodes.OK).json(response);
-
   } catch (error) {
     next(error);
   }
@@ -233,7 +227,7 @@ export const GetWordsMatched = async (
 export const getAllMedia = async (
   req: ControllerRequest<void, GetAllAnimesRequest>,
   res: ControllerResponse<GetAllAnimesResponse>,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const pageSize = parseInt(req.query.size as string) || 20;
@@ -257,7 +251,7 @@ export const getAllMedia = async (
       whereClause[Op.or] = [
         { english_name: { [Op.iLike]: `%${searchQuery}%` } },
         { japanese_name: { [Op.iLike]: `%${searchQuery}%` } },
-        { romaji_name: { [Op.iLike]: `%${searchQuery}%` } }
+        { romaji_name: { [Op.iLike]: `%${searchQuery}%` } },
       ];
     }
 
@@ -265,16 +259,16 @@ export const getAllMedia = async (
       where: whereClause,
       order: [['created_at', 'DESC']],
       limit: pageSize,
-      offset: cursor
+      offset: cursor,
     });
 
     const mediaInfo = await queryMediaInfo(page, pageSize);
 
-    const paginatedResults = rows.map(media => {
+    const paginatedResults = rows.map((media) => {
       const mediaData = media.toJSON();
       const location_media = mediaData.category === CategoryType.ANIME ? 'anime' : 'jdrama';
-      mediaData.cover = [getBaseUrlMedia(), location_media, mediaData.cover].join("/");
-      mediaData.banner = [getBaseUrlMedia(), location_media, mediaData.banner].join("/");
+      mediaData.cover = [getBaseUrlMedia(), location_media, mediaData.cover].join('/');
+      mediaData.banner = [getBaseUrlMedia(), location_media, mediaData.banner].join('/');
       return mediaData;
     });
 
@@ -292,7 +286,7 @@ export const getAllMedia = async (
       stats,
       results: paginatedResults,
       cursor: hasMoreResults ? nextCursor : null,
-      hasMoreResults
+      hasMoreResults,
     };
 
     return res.status(StatusCodes.OK).json(response);
@@ -301,13 +295,8 @@ export const getAllMedia = async (
   }
 };
 
-export const updateSegment = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const updateSegment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
     const { content_en, content_es, content_jp, isNSFW, uuid } = req.body;
 
     const segment = await Segment.findOne({
@@ -315,31 +304,31 @@ export const updateSegment = async (
     });
 
     if (!segment) {
-      throw new NotFound("Segment not found.");
+      throw new NotFound('Segment not found.');
     }
 
     if (content_en) {
       segment.content_english = content_en;
     }
 
-    if(content_es) {
-      segment.content_spanish = content_es
+    if (content_es) {
+      segment.content_spanish = content_es;
     }
 
-    if(content_jp) {
-      segment.content = content_jp
-      segment.content_length = content_jp.length
+    if (content_jp) {
+      segment.content = content_jp;
+      segment.content_length = content_jp.length;
     }
 
-    if(isNSFW) {
-      segment.is_nsfw = isNSFW
+    if (isNSFW) {
+      segment.is_nsfw = isNSFW;
     }
 
     await segment.save();
 
     // Responder al cliente
     return res.status(StatusCodes.OK).json({
-      message: "Segment updated successfully."
+      message: 'Segment updated successfully.',
     });
   } catch (error) {
     return next(error);

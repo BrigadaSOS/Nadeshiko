@@ -1,18 +1,12 @@
-import connection from "../database/db_posgres";
-import {
-  MediaInfoData,
-  QueryMediaInfoResponse,
-} from "../models/external/queryMediaInfoResponse";
-import { getBaseUrlMedia } from "../utils/utils";
+import connection from '../database/db_posgres';
+import { MediaInfoData, QueryMediaInfoResponse } from '../models/external/queryMediaInfoResponse';
+import { getBaseUrlMedia } from '../utils/utils';
 
 let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
 
 // Return data from Media table. This table almost never changes and is quite small, so we can cache it on memory to
 // save extra calls to the DB
-export const queryMediaInfo = async (
-  page: number = 1,
-  pageSize: number = 10
-): Promise<QueryMediaInfoResponse> => {
+export const queryMediaInfo = async (page: number = 1, pageSize: number = 10): Promise<QueryMediaInfoResponse> => {
   // TODO: Fix cache
   //if(MEDIA_TABLE_CACHE === undefined) {
   //}
@@ -21,7 +15,7 @@ export const queryMediaInfo = async (
 };
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
-  let size_position_filter = "";
+  let size_position_filter = '';
   if (page === 0) {
     size_position_filter = `LIMIT ${pageSize}`;
   } else {
@@ -72,24 +66,16 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
   let total_segments = 0;
 
   queryResponse[0].forEach((result: any) => {
-    if (!("media_id" in result.media_info)) {
-      console.log("WARN: Invalid query, media_id not found");
+    if (!('media_id' in result.media_info)) {
+      console.log('WARN: Invalid query, media_id not found');
       return;
     }
 
-    let location_media = result.media_info.category == 1 ? "anime" : "jdrama";
-    result.media_info.cover = [
-      getBaseUrlMedia(),
-      location_media,
-      result.media_info.cover,
-    ].join("/");
-    result.media_info.banner = [
-      getBaseUrlMedia(),
-      location_media,
-      result.media_info.banner,
-    ].join("/");
+    const location_media = result.media_info.category == 1 ? 'anime' : 'jdrama';
+    result.media_info.cover = [getBaseUrlMedia(), location_media, result.media_info.cover].join('/');
+    result.media_info.banner = [getBaseUrlMedia(), location_media, result.media_info.banner].join('/');
 
-    results[Number(result.media_info["media_id"])] = result.media_info;
+    results[Number(result.media_info['media_id'])] = result.media_info;
 
     total_segments += result.media_info.num_segments;
     total_animes += 1;

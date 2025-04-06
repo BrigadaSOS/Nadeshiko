@@ -1,13 +1,13 @@
-import { Table, Model, Column, DataType, HasMany, ForeignKey, BelongsTo, HasOne } from "sequelize-typescript";
-import { ApiAuth } from "../api/apiAuth";
-import { ApiUsageHistory } from "../api/apiUsageHistory";
-import { DataTypes } from "sequelize";
-import { UserRole } from './userRole'
-import { UserAuth } from './userAuth'
+import { Table, Model, Column, DataType, HasMany, ForeignKey, BelongsTo, HasOne } from 'sequelize-typescript';
+import { ApiAuth } from '../api/apiAuth';
+import { ApiUsageHistory } from '../api/apiUsageHistory';
+import { DataTypes } from 'sequelize';
+import { UserRole } from './userRole';
+import { UserAuth } from './userAuth';
 
 @Table({
   timestamps: false,
-  tableName: "User",
+  tableName: 'User',
 })
 export class User extends Model {
   @Column({
@@ -34,7 +34,7 @@ export class User extends Model {
   @Column({
     type: DataType.DATE,
     allowNull: false,
-    defaultValue: DataTypes.NOW
+    defaultValue: DataTypes.NOW,
   })
   created_at!: Date;
 
@@ -53,16 +53,16 @@ export class User extends Model {
   @Column({
     type: DataType.BOOLEAN,
     allowNull: false,
-    defaultValue: false
+    defaultValue: false,
   })
-  is_verified!: Boolean;
+  is_verified!: boolean;
 
   @Column({
     type: DataType.BOOLEAN,
     allowNull: false,
-    defaultValue: false
+    defaultValue: false,
   })
-  is_active!: Boolean;
+  is_active!: boolean;
 
   // Fields for local auth
   @Column({
@@ -82,5 +82,4 @@ export class User extends Model {
 
   @HasMany(() => UserAuth)
   userAuths!: UserAuth[];
-
 }

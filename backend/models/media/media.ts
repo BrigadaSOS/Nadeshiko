@@ -1,52 +1,51 @@
-import { Table, Model, Column, DataType, HasMany } from "sequelize-typescript";
+import { Table, Model, Column, DataType, HasMany } from 'sequelize-typescript';
 
-import { Segment } from "./segment";
+import { Segment } from './segment';
 
 export enum CategoryType {
-  ANIME= 1,
-  BOOK=2,
-  JDRAMA=3
+  ANIME = 1,
+  BOOK = 2,
+  JDRAMA = 3,
 }
 
 @Table({
   timestamps: false,
-  tableName: "Media",
+  tableName: 'Media',
 })
 export class Media extends Model {
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
     primaryKey: true,
-    autoIncrement: true
+    autoIncrement: true,
   })
-  id!: number
+  id!: number;
 
   @Column({
     type: DataType.INTEGER,
-    allowNull: true
+    allowNull: true,
   })
-  id_anilist!: number
-
+  id_anilist!: number;
 
   @Column({
     type: DataType.INTEGER,
-    allowNull: true
+    allowNull: true,
   })
-  id_tmdb!: number
+  id_tmdb!: number;
 
   @Column({
     type: DataType.DATE,
     allowNull: false,
-    defaultValue: DataType.NOW
+    defaultValue: DataType.NOW,
   })
   created_at!: Date;
 
   @Column({
     type: DataType.DATE,
-    allowNull: true
+    allowNull: true,
   })
   updated_at!: Date;
-  
+
   @Column({
     type: DataType.STRING,
     allowNull: false,
@@ -64,7 +63,7 @@ export class Media extends Model {
     allowNull: true,
   })
   japanese_name!: string;
-  
+
   @Column({
     type: DataType.STRING,
     allowNull: true,
@@ -103,7 +102,7 @@ export class Media extends Model {
 
   @Column({
     type: DataType.STRING,
-    allowNull: true
+    allowNull: true,
   })
   release_date!: string;
 
@@ -116,32 +115,31 @@ export class Media extends Model {
   @Column({
     type: DataType.SMALLINT,
     allowNull: false,
-    defaultValue: CategoryType.ANIME
+    defaultValue: CategoryType.ANIME,
   })
   category!: number;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 0,
   })
   num_segments!: number;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 0,
   })
   num_seasons!: number;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 0,
   })
   num_episodes!: number;
 
   @HasMany(() => Segment)
   segments!: Segment[];
-
 }
