@@ -11,8 +11,7 @@ import { listAPIKeysByUser, createAPIKeyDefault, deactivateAPIKey } from '../con
 router.post('/v1/jwt/user/info', authenticate({ jwt: true }), getUserInfo)
 router.post("/v1/user/getApiKeys", authenticate({ jwt: true }), listAPIKeysByUser);
 router.post("/v1/user/createApiKey", authenticate({ jwt: true }), createAPIKeyDefault);
-router.post("/v1/user/deactivateAPIKey", authenticate({ jwt: true }), deactivateAPIKey);
-
+router.post("/v1/user/deactivateApiKey", authenticate({ jwt: true }), deactivateAPIKey);
 
 router.post("/v1/auth/login", authenticate({ apiKey: true }), logIn);
 router.post("/v1/auth/google", authenticate({ apiKey: true }), loginGoogle)
