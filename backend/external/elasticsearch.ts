@@ -81,15 +81,15 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
                 }
             };
 
-            // Boost score for sentences with at least 5 characters if no min_length specified
+            // Boost score for sentences with at least 7 characters if no min_length specified
             if (request.min_length === undefined) {
                 must.push({
                     function_score: {
                         query: baseQuery,
                         functions: [
                             {
-                                filter: { range: { content_length: { gte: 5 } } },
-                                weight: 1.5  // 50% boost
+                                filter: { range: { content_length: { gte: 7 } } },
+                                weight: 1.3  // 30% boost
                             }
                         ],
                         score_mode: "sum",
