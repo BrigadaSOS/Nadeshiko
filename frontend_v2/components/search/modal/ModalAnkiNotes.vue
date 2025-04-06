@@ -74,7 +74,7 @@ const getNotesFromQuery = async () => {
         class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border">
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
           <h3 class="font-bold text-gray-800 dark:text-white">
-            {{ t("ankiSearch.title") }}
+            {{ $t('anki.modal.title') }}
           </h3>
           <button type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
@@ -94,7 +94,7 @@ const getNotesFromQuery = async () => {
             <div class="sm:mx-4 mx-auto flex flex-col">
               <div class="p-6 space-y-6 flex flex-col">
                 <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-                  {{ t("ankiSearch.description") }}
+                  {{ $t('anki.modal.description') }}
                   <br />
                 </p>
                 <div class="mt-4">
@@ -128,10 +128,10 @@ const getNotesFromQuery = async () => {
                         <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
                           <UiBaseIcon :path="mdiCheckBold" size="20" />
 
-                          <strong class="block font-medium">Validación exitosa</strong>
+                          <strong class="block font-medium">{{ $t('anki.modal.validationSuccess') }}</strong>
                         </div>
                         <p class="mt-2 text-sm text-green-700 dark:text-green-200">
-                          ¡El keyfield está configurado!
+                          {{ $t('anki.modal.validationMessage') }}
                         </p>
                       </div>
 
@@ -144,14 +144,14 @@ const getNotesFromQuery = async () => {
                               d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
                               clip-rule="evenodd" />
                           </svg>
-                          <strong class="block font-medium"> Algo ha fallado</strong>
+                          <strong class="block font-medium">{{ $t('anki.modal.validationError') }}</strong>
                         </div>
                         <p class="mt-2 text-sm text-red-700 dark:text-red-200">
-                          No se ha definido un keyfield.
+                          {{ $t('anki.modal.errorMessage') }}
                         </p>
                         <ol class="pl-5 text-sm dark:text-red-200 list-disc">
                           <li>
-                            Verifique que el keyfield este definido dentro de los ajustes de Nadeshiko.
+                            {{ $t('anki.modal.errorTip') }}
                           </li>
                         </ol>
                       </div>
@@ -168,11 +168,11 @@ const getNotesFromQuery = async () => {
                     <table class="w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
                       <thead>
                         <tr class=" bg-input-background divide-gray-200 dark:divide-white/30">
-                          <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">ID
+                          <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
+                            {{ $t('anki.modal.idColumn') }}
                           </th>
                           <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
-                            {{ store.ankiPreferences.settings.current.key ? store.ankiPreferences.settings.current.key :
-                              "Key" }}
+                            {{ store.ankiPreferences.settings.current.key || $t('anki.modal.keyColumn') }}
                           </th>
                           <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
                           </th>
@@ -209,9 +209,9 @@ const getNotesFromQuery = async () => {
                                 d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                             </svg>
                           </div>
-                          <h1 class="mt-3 text-lg text-gray-800 dark:text-white">No se ha encontrado ninguna carta</h1>
+                          <h1 class="mt-3 text-lg text-gray-800 dark:text-white">{{ $t('anki.modal.noCardsFound') }}</h1>
                           <p class="mt-2 text-gray-500 dark:text-gray-400">
-                            Prueba usando otro query o mina la oracion antes.
+                            {{ $t('anki.modal.noCardsMessage') }}
                           </p>
                         </div>
                       </div>

@@ -29,7 +29,7 @@ const { data } = await useAsyncData('content', () => fetchContent(), {
                     <div class="content-markdown bg-card-background rounded-lg">
 						<ContentRenderer class="prose prose-zinc" :value="data">
 							<template #empty>
-								<p>Stay tuned; it will be added later 😉</p>
+								<p>{{ $t('contentPage.emptyMessage') }}</p>
 							</template>
 						</ContentRenderer>
                     </div>

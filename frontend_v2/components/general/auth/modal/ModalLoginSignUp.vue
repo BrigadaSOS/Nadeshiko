@@ -70,7 +70,7 @@ const redirectToDiscordAuth = async () => {
         <div
           class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
         >
-          <h3 class="font-bold text-gray-800 text-gray-600 dark:text-gray-400">Autenticación</h3>
+          <h3 class="font-bold text-gray-800 text-gray-600 dark:text-gray-400">{{ $t('modalauth.headers.auth') }}</h3>
           <button
             type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
@@ -134,7 +134,7 @@ const redirectToDiscordAuth = async () => {
                                 fill="#EB4335"
                               />
                             </svg>
-                            Iniciar con Google
+                            {{ $t('modalauth.buttons.google') }}
                           </UiButtonPrimaryAction>
                         </GoogleLogin>
                       </ClientOnly>
@@ -156,7 +156,7 @@ const redirectToDiscordAuth = async () => {
                             ></path>
                           </g>
                         </svg>
-                        Iniciar con Discord
+                        {{ $t('modalauth.buttons.discord') }}
                       </UiButtonPrimaryAction>
                     </div>
                   </div>
@@ -179,7 +179,7 @@ const redirectToDiscordAuth = async () => {
                                   <input
                                     type="username"
                                     v-model="usernameR"
-                                    placeholder="Username..."
+                                    :placeholder="$t('modalauth.labels.username')"
                                     class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 text-gray-600 dark:text-gray-400 dark:focus:ring-white/10 dark:focus:border-white/10"
                                     required
                                   />
@@ -215,7 +215,7 @@ const redirectToDiscordAuth = async () => {
                                   <input
                                     type="email"
                                     v-model="emailR"
-                                    placeholder="Email..."
+                                    :placeholder="$t('modalauth.labels.email')"
                                     class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 text-gray-600 dark:text-gray-400 dark:focus:ring-white/10 dark:focus:border-white/10"
                                     required
                                   />
@@ -258,7 +258,7 @@ const redirectToDiscordAuth = async () => {
                                     <input
                                       type="password"
                                       v-model="passwordR"
-                                      placeholder="Password..."
+                                      :placeholder="$t('modalauth.labels.password')"
                                       class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 text-gray-600 dark:text-gray-400 dark:focus:ring-white/10 dark:focus:border-white/10"
                                       required
                                     />
@@ -297,7 +297,7 @@ const redirectToDiscordAuth = async () => {
                                     <input
                                       type="password"
                                       v-model="passwordR2"
-                                      placeholder="Repeat password..."
+                                      :placeholder="$t('modalauth.labels.repeatpassword')"
                                       class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 text-gray-600 dark:text-gray-400 dark:focus:ring-white/10 dark:focus:border-white/10"
                                       required
                                     />
@@ -336,29 +336,17 @@ const redirectToDiscordAuth = async () => {
                               <p
                                 class="text-sm text-gray-600 text-center dark:text-gray-400"
                               >
-                                By using this website you agree to our
-                                <a
-                                  href="/terms-and-conditions"
-                                  class="text-blue-500"
-                                  aria-label="TermsAndConditions"
-                                >
-                                  {{ $t("navbar.buttons.terms") }}
-                                </a>
-                                and to our
-                                <a
-                                  href="/privacy"
-                                  class="text-blue-500"
-                                  aria-label="Privacy"
-                                >
-                                  {{ $t("navbar.buttons.privacy") }}
-                                </a>
+                                {{ $t('modalauth.labels.terms', {
+                                  terms: `<a href="/terms-and-conditions" class="text-blue-500" aria-label="TermsAndConditions">${$t('navbar.buttons.terms')}</a>`,
+                                  privacy: `<a href="/privacy" class="text-blue-500" aria-label="Privacy">${$t('navbar.buttons.privacy')}</a>`
+                                }) }}
                               </p>
 
                               <UiButtonPrimaryAction
                                 @click="store.signUp(usernameR,emailR, passwordR)"
                                 class="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-sgray text-white hover:bg-sgray2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
                               >
-                                Registrarse
+                                {{ $t('modalauth.labels.registerButton') }}
                               </UiButtonPrimaryAction>
                             </div>
                           </form>
