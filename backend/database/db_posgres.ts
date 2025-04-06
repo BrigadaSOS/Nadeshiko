@@ -1,22 +1,22 @@
-import { Sequelize } from "sequelize-typescript";
-import { Media } from "../models/media/media";
-import { Segment } from "../models/media/segment";
-import { ApiAuth } from "../models/api/apiAuth";
-import { ApiPermission } from "../models/api/apiPermission";
-import { ApiUsageHistory } from "../models/api/apiUsageHistory";
-import { ApiAuthPermission } from "../models/api/ApiAuthPermission";
-import { User } from "../models/user/user";
-import { UserRole } from "../models/user/userRole";
-import { Role } from "../models/user/role";
-import { UserSearchHistory } from "../models/miscellaneous/userSearchHistory"
-import { UserAuth } from "../models/user/userAuth";
-import { UserToken } from "../models/user/userToken";
-import { Report } from "../models/miscellaneous/report"
+import { Sequelize } from 'sequelize-typescript';
+import { Media } from '../models/media/media';
+import { Segment } from '../models/media/segment';
+import { ApiAuth } from '../models/api/apiAuth';
+import { ApiPermission } from '../models/api/apiPermission';
+import { ApiUsageHistory } from '../models/api/apiUsageHistory';
+import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
+import { User } from '../models/user/user';
+import { UserRole } from '../models/user/userRole';
+import { Role } from '../models/user/role';
+import { UserSearchHistory } from '../models/miscellaneous/userSearchHistory';
+import { UserAuth } from '../models/user/userAuth';
+import { UserToken } from '../models/user/userToken';
+import { Report } from '../models/miscellaneous/report';
 
-require("dotenv").config();
+require('dotenv').config();
 
 const connection = new Sequelize({
-  dialect: "postgres",
+  dialect: 'postgres',
   /*
   dialectOptions: {
     ssl: {
@@ -42,7 +42,7 @@ const connection = new Sequelize({
     UserSearchHistory,
     UserAuth,
     UserToken,
-    Report
+    Report,
   ],
   logging: false,
   pool: {

@@ -1,17 +1,13 @@
-import { Request, Response, NextFunction } from "express";
-import { Op } from "sequelize";
-import { ApiAuth } from "../models/api/apiAuth";
-import { ApiUsageHistory } from "../models/api/apiUsageHistory";
-import { User } from "../models/user/user";
-import { UserRole } from "../models/user/userRole";
-import { Role } from "../models/user/role";
-import { hashApiKey } from "../utils/utils";
+import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
+import { ApiAuth } from '../models/api/apiAuth';
+import { ApiUsageHistory } from '../models/api/apiUsageHistory';
+import { User } from '../models/user/user';
+import { UserRole } from '../models/user/userRole';
+import { Role } from '../models/user/role';
+import { hashApiKey } from '../utils/utils';
 
-export const rateLimitApiQuota = async (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
+export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunction) => {
   if (req.apiKey) {
     try {
       const apiAuth = await ApiAuth.findOne({
@@ -30,7 +26,7 @@ export const rateLimitApiQuota = async (
       });
 
       if (!apiAuth || !apiAuth.user) {
-        return res.status(401).json({ message: "Invalid API Key." });
+        return res.status(401).json({ message: 'Invalid API Key.' });
       }
 
       const roles = apiAuth.user.UserRoles.map((ur) => ur.role);
@@ -56,19 +52,17 @@ export const rateLimitApiQuota = async (
       });
 
       if (usageCount >= maxQuota) {
-        return res
-          .status(429)
-          .json({ message: "API Key quota exceeded for this month." });
+        return res.status(429).json({ message: 'API Key quota exceeded for this month.' });
       }
 
       await logApiUsage(req, apiAuth);
       next();
     } catch (error) {
-      console.error("Rate Limit Error:", error);
+      console.error('Rate Limit Error:', error);
       next(error);
     }
-  }else{
-    next()
+  } else {
+    next();
   }
 };
 

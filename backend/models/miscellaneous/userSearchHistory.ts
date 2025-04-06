@@ -1,5 +1,5 @@
-import { Table, Model, Column, DataType } from "sequelize-typescript";
-import { DataTypes } from "sequelize";
+import { Table, Model, Column, DataType } from 'sequelize-typescript';
+import { DataTypes } from 'sequelize';
 
 export enum EventTypeHistory {
   SEARCH_MAIN_QUERY_TEXT = 600,
@@ -8,7 +8,7 @@ export enum EventTypeHistory {
 
 @Table({
   timestamps: false,
-  tableName: "UserSearchHistory",
+  tableName: 'UserSearchHistory',
 })
 export class UserSearchHistory extends Model {
   @Column({
