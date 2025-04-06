@@ -1,6 +1,7 @@
 // Must be called before all imports
 require('dotenv').config();
 
+import swaggerUi from 'swagger-ui-express';
 import './external/elasticsearch'; // Initialize client
 import path from 'path';
 import { router } from './routes/router';
@@ -154,6 +155,20 @@ app.use('/api', router);
 
 // Must go after router
 app.use(expressWinstonErrorLogger);
+
+// Swagger setup
+if (process.env.ENVIRONMENT === 'testing') {
+  app.use(
+    '/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(undefined, {
+      swaggerOptions: {
+        url: '/swagger.json',
+      },
+    }),
+  );
+  app.use(express.static('public'));
+}
 
 app.use(
   expressWinston.errorLogger({

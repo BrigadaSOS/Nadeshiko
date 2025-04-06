@@ -1,0 +1,6 @@
+{
+  "exec": "ts-node main.ts",
+  "watch": ["controllers", "database", "middleware", "models", "routes", "utils", "external"],
+  "ext": "ts",
+  "ignore": ["prod", "dist", "node_modules"]
+}

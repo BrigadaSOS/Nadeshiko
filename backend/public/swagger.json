@@ -1,0 +1,220 @@
+{
+	"openapi": "3.0.0",
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {
+			"CreateApiKeyDefaultResponse": {
+				"properties": {
+					"message": {
+						"type": "string"
+					},
+					"key": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"message",
+					"key"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateApKeyDefaultRequest": {
+				"properties": {
+					"name": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			}
+		},
+		"securitySchemes": {
+			"api_key": {
+				"name": "x-api-key",
+				"description": "API Key",
+				"in": "header",
+				"type": "apiKey"
+			}
+		}
+	},
+	"info": {
+		"title": "backend",
+		"version": "1.0.0",
+		"license": {
+			"name": "ISC"
+		},
+		"contact": {}
+	},
+	"paths": {
+		"/v1/user/createApiKey": {
+			"post": {
+				"operationId": "CreateAPIKeyDefault",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CreateApiKeyDefaultResponse"
+								}
+							}
+						}
+					}
+				},
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateApKeyDefaultRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/user/getApiKeys": {
+			"post": {
+				"operationId": "GetApiKeys",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"quota": {
+											"properties": {
+												"quotaLimit": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "number",
+															"format": "double"
+														}
+													]
+												},
+												"quotaUsed": {
+													"type": "number",
+													"format": "double"
+												}
+											},
+											"required": [
+												"quotaLimit",
+												"quotaUsed"
+											],
+											"type": "object"
+										},
+										"keys": {
+											"items": {
+												"properties": {
+													"permissions": {
+														"items": {
+															"properties": {
+																"name": {
+																	"type": "string"
+																},
+																"id": {
+																	"type": "number",
+																	"format": "double"
+																}
+															},
+															"required": [
+																"name",
+																"id"
+															],
+															"type": "object"
+														},
+														"type": "array"
+													},
+													"hint": {
+														"type": "string"
+													},
+													"createdAt": {
+														"type": "string",
+														"format": "date-time"
+													},
+													"isActive": {
+														"type": "boolean"
+													},
+													"name": {
+														"type": "string"
+													},
+													"id": {
+														"type": "number",
+														"format": "double"
+													}
+												},
+												"required": [
+													"permissions",
+													"hint",
+													"createdAt",
+													"isActive",
+													"name",
+													"id"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										}
+									},
+									"required": [
+										"quota",
+										"keys"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/v1/user/deactivateApiKey": {
+			"post": {
+				"operationId": "DeactivateAPIKey",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"security": [],
+				"parameters": []
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/"
+		}
+	]
+}

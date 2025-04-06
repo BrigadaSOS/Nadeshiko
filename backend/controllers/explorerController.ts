@@ -1,5 +1,4 @@
 import { StatusCodes } from 'http-status-codes';
-import connection from '../database/db_posgres';
 import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -19,8 +18,6 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
     }
 
     let directory = typeof req.query.directory === 'string' ? req.query.directory : 'media';
-    const order = req.query.order;
-    const sortBy = req.query.sortBy;
 
     if (!directory) {
       return res.status(400).json({ error: 'Directorio no especificado' });
