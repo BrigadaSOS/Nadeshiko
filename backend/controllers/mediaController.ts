@@ -150,7 +150,9 @@ export const SearchAnimeSentences = async (
       season: req.body.season,
       episode: req.body.episode,
       category: req.body.category || [1,2,3],
-      extra: req.body.extra || false
+      extra: req.body.extra || false,
+      min_length: req.body.min_length,
+      max_length: req.body.max_length
     });
 
     if(!req.body.cursor){
@@ -171,7 +173,6 @@ export const SearchAnimeSentencesHealth = async (
   next: NextFunction
 ) => {
   try {
-
     const response = await querySegments({
       query: "あ",
       uuid: req.body.uuid,
@@ -186,7 +187,9 @@ export const SearchAnimeSentencesHealth = async (
       season: req.body.season,
       episode: req.body.episode,
       category: req.body.category || [1,2,3],
-      extra: req.body.extra || false
+      extra: req.body.extra || false,
+      min_length: req.body.min_length,
+      max_length: req.body.max_length
     });
 
     return res.status(StatusCodes.OK).json(response);

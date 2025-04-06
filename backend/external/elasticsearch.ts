@@ -47,6 +47,11 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     }
 
     // Search by query, optionally filtering by media_id to only return results from an specific anime
+    // Validate length range if provided
+    if (request.min_length !== undefined && request.max_length !== undefined && request.min_length > request.max_length) {
+        throw new Error("min_length cannot be greater than max_length");
+    }
+
     if(request.query && !request.uuid) {
         if(request.length_sort_order && request.length_sort_order.toLowerCase() === "random") {
             const seed = request.random_seed || undefined;
@@ -81,7 +86,23 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
             terms: {
                 status: request.status
             }
-        })
+        });
+
+        // Add length range filter if specified
+        if (request.min_length !== undefined || request.max_length !== undefined) {
+            const rangeFilter: any = {};
+            if (request.min_length !== undefined) {
+                rangeFilter.gte = request.min_length;
+            }
+            if (request.max_length !== undefined) {
+                rangeFilter.lte = request.max_length;
+            }
+            filter.push({
+                range: {
+                    content_length: rangeFilter
+                }
+            });
+        }
 
         if(request.anime_id) {
             filter.push(
