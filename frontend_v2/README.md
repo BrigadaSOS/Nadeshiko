@@ -1,75 +1,46 @@
-# Nuxt 3 Minimal Starter
+# NadeDB Frontend (Nuxt 3)
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+## Development Setup
 
-## Setup
+### Prerequisites
+- node
+- npm
+- Backend API running (see backend README)
 
-Make sure to install the dependencies:
-
+### 1. Clone the Repository
 ```bash
-# npm
+git clone https://github.com/your-repo/nadedb.git
+cd nadedb/frontend_v2
+```
+
+### 2. Install Dependencies
+```bash
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
+### 3. Configure Environment
+Create `.env` file from example:
 ```bash
-# npm
+cp .env.example .env
+```
+
+### 4. Start Development Server
+```bash
 npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
+App will be available at: `http://localhost:3000`
 
-## Production
-
-Build the application for production:
-
+## Development Scripts
 ```bash
-# npm
+# Lint code
+npm run lint
+
+# Build for production
 npm run build
 
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
+# Preview production build
 npm run preview
 
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+# Generate static site
+npm run generate
 ```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.

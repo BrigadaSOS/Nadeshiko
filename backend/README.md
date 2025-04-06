@@ -1,29 +1,60 @@
 # NadeDB Backend
 
-## Setup
+## Development Setup
 
-### Node
+### Prerequisites
+- node
+- npm
+- Docker and Docker Compose
 
-* Clone the repository
-* Run `docker-compose up` to start the PostgreDB database
-* Run `npm install`
-* Create a new `.env` file from `.env.example` and set the required values
-* Run:
-    * `npm run dev` for a hot-reloading development version.
-    * `npm run build && npm run start` to compile the Typescript code and run the
-        application from the generated `prod/` folder
-* The application will be available in `localhost:5000`
+### 1. Clone the Repository
+```bash
+git clone https://github.com/your-repo/nadedb.git
+cd nadedb/backend
+```
 
-### Docker
+### 2. Setup Environment Variables
+Copy the example env file and update the values:
+```bash
+cp .env.example .env
+```
 
-* Clone the repository
-* Run `docker-compose up` to start the PostgreDB database
-* Run `docker build -t nadedb-backend .` to build a new image. This command has to be
-    executed every time a code change is made.
-* Run `docker run --rm -p 5000:5000 --network host -v ./media:/app/media --name nadedb-backend nadedb-backend`
-* The application will be available in `localhost:5000`
+### 3. Start Services with Docker
+```bash
+docker-compose up -d
+```
 
-### Extra: Elasticsearch / Kibanna
+### 4. Install Dependencies
+```bash
+npm install
+```
 
-* After running `docker-compose up`, the Kibana dashboard should be available in
-    `localhost:5601`
+### 5. Run the Application
+For development (hot reloading):
+```bash
+npm run dev
+```
+
+For production:
+```bash
+npm run build
+npm run start
+```
+
+The API will be available at `http://localhost:5000`
+
+### 6. Initial Data Setup
+After starting services, run these commands:
+
+1. Verify Elasticsearch indices are created by:
+- Checking Kibana at http://localhost:5601
+
+### 7. Testing
+To run tests:
+```bash
+npm test
+```
+
+## Monitoring Tools
+- Kibana: `http://localhost:5601`
+- PGAdmin: `http://localhost:15400` (credentials in docker-compose.yaml)
