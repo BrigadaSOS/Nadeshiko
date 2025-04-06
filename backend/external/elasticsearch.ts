@@ -475,7 +475,7 @@ const buildSearchAnimeSentencesResponse = (
     statistics = esNoHitsNoFiltersResponse.aggregations['group_by_category'].buckets.flatMap((categoryBucket) => {
       // @ts-ignore
       return categoryBucket.group_by_media_id.buckets
-        .map((mediaBucket) => {
+        .map((mediaBucket: { [x: string]: any }) => {
           const mediaInfo = mediaInfoResponse.results[Number(mediaBucket['key'])];
           if (!mediaInfo || !Object.keys(mediaInfo).length) {
             return undefined;
