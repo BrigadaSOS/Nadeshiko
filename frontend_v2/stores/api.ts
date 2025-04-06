@@ -25,6 +25,26 @@ export const apiStore = defineStore('api', {
                 console.error(error);
             }
         },
+        async deactivateApiKey(apiKeyId: string): Promise<ApiResponse | void> {
+            const config = useRuntimeConfig();
+            try {
+                const response = await fetch(`${config.public.baseURLBackend}user/deactivateApiKey`, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                      api_key_id: apiKeyId
+                    }),
+                    credentials: "include"
+                });
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error(error);
+            }
+        },
         async createApiKeyGeneral(nameApiKey: string): Promise<ApiResponse | void> {
             const config = useRuntimeConfig();
             try {
