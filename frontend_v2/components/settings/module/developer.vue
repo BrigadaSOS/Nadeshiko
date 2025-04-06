@@ -63,6 +63,8 @@ onMounted(async () => {
     try {
         let response = await api_store.getApiKeysByUser()
         fieldOptions =  response
+        fieldOptions.keys = fieldOptions.keys.filter((key) => key.isActive);
+
         if (response.status == 404) {
             isSuccess.value = false
         } else {
@@ -192,7 +194,8 @@ onMounted(async () => {
                             </td>
                             <td
                                 class="w-2/12 py-4 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
-                                {{ new Date(item.createdAt).toISOString().split('T')[0].replaceAll('-', '/') }}
+                              <!-- For a while some db items didn't have createdAt date, so as a placeholder we show this date -->
+                              {{ new Date(item.createdAt || '2025-03-01').toISOString().split('T')[0].replaceAll('-', '/') }}
                             </td>
 
                             <td
