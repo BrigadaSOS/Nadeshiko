@@ -11,6 +11,8 @@ let isError = ref(false)
 let isSuccess = ref(false)
 let fieldOptions = []
 let generatedApiKey = ref(null);
+let deactivatedApiKey = ref(null);
+let quotaPercentage = 0;
 
 const createApiKey = async () => {
 isLoading.value = true;
@@ -36,6 +38,24 @@ try {
 }
 };
 
+const deactivateApiKey = async (item) => {
+  try {
+    isLoading.value = true;
+
+    let response = await api_store.deactivateApiKey(item.id);
+    isSuccess.value = true;
+    isLoading.value = false;
+    deactivatedApiKey = true;
+
+  } catch (error) {
+    isError.value = true;
+    console.error(error)
+
+  } finally {
+    isLoading.value = false;
+  }
+}
+
 onMounted(async () => {
     isError.value = false
     isSuccess.value = false
@@ -48,6 +68,9 @@ onMounted(async () => {
         } else {
             isSuccess.value = true
         }
+      const quotaUsed = fieldOptions.quota?.quotaUsed || 0;
+      const quotaLimit = fieldOptions.quota?.quotaLimit || 1;
+      quotaPercentage = (quotaUsed / quotaLimit) * 100;
 
     } catch (error) {
         isError.value = true
@@ -57,11 +80,6 @@ onMounted(async () => {
     }
 })
 
-const quotaPercentage = computed(() => {
-    const quotaUsed = fieldOptions.quota?.quotaUsed || 0;
-    const quotaLimit = fieldOptions.quota?.quotaLimit || 1;
-    return (quotaUsed / quotaLimit) * 100;
-});
 
 
 </script>
@@ -116,6 +134,14 @@ const quotaPercentage = computed(() => {
                     <b>{{ generatedApiKey }}</b>. Guarda la llave, no se volverá a mostrar.
                 </p>
             </div>
+
+        <div v-if="deactivatedApiKey" role="alert"
+            class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
+            <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
+                <UiBaseIcon :path="mdiCheckBold" size="20" />
+                <strong class="block font-medium">Llave desactivada</strong>
+            </div>
+        </div>
         
         <div class="border-b pt-4 border-white/10" />
 
@@ -203,7 +229,7 @@ const quotaPercentage = computed(() => {
                                                     Opciones
                                                 </span>
                                                 <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
-                                                    @click="showModalReport(sentence)">
+                                                    @click="deactivateApiKey(item)">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                         xmlns:xlink="http://www.w3.org/1999/xlink" width="20"
                                                         height="20" class="fill-white" version="1.1" id="Layer_1"
