@@ -13,10 +13,15 @@ dist
 dist-ssr
 coverage
 *.local
-media/anime
-media/jdrama
-media/hidden
-media/tmp
+media/anime/*
+!media/anime/.gitkeep
+media/jdrama/*
+!media/jdrama/.gitkeep
+media/tmp/*
+# media/anime
+# media/jdrama
+# media/hidden
+# media/tmp
 .env
 prod
 dictionaries/jmdict
