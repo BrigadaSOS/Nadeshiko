@@ -47,6 +47,11 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     }
 
     // Search by query, optionally filtering by media_id to only return results from an specific anime
+    // Validate length range if provided
+    if (request.min_length !== undefined && request.max_length !== undefined && request.min_length > request.max_length) {
+        throw new Error("min_length cannot be greater than max_length");
+    }
+
     if(request.query && !request.uuid) {
         if(request.length_sort_order && request.length_sort_order.toLowerCase() === "random") {
             const seed = request.random_seed || undefined;
@@ -70,18 +75,53 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
                 },
             })
         } else {
-            must.push({
+            const baseQuery = {
                 bool: {
                     should: buildMultiLanguageQuery(request.query, request.exact_match || false)
                 }
-            })
+            };
+
+            // Boost score for sentences with at least 7 characters if no min_length specified
+            if (request.min_length === undefined) {
+                must.push({
+                    function_score: {
+                        query: baseQuery,
+                        functions: [
+                            {
+                                filter: { range: { content_length: { gte: 7 } } },
+                                weight: 1.3  // 30% boost
+                            }
+                        ],
+                        score_mode: "sum",
+                        boost_mode: "multiply"
+                    }
+                });
+            } else {
+                must.push(baseQuery);
+            }
         }
 
         filter.push({
             terms: {
                 status: request.status
             }
-        })
+        });
+
+        // Add length range filter if specified
+        if (request.min_length !== undefined || request.max_length !== undefined) {
+            const rangeFilter: any = {};
+            if (request.min_length !== undefined) {
+                rangeFilter.gte = request.min_length;
+            }
+            if (request.max_length !== undefined) {
+                rangeFilter.lte = request.max_length;
+            }
+            filter.push({
+                range: {
+                    content_length: rangeFilter
+                }
+            });
+        }
 
         if(request.anime_id) {
             filter.push(

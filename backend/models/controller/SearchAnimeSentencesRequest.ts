@@ -4,6 +4,10 @@ import {SegmentStatus} from "../media/segment";
 export interface SearchAnimeSentencesRequest {
     // String query including the keyword to search
     readonly query?: string;
+    // Minimum length of sentences to return (in characters)
+    readonly min_length?: number;
+    // Maximum length of sentences to return (in characters)
+    readonly max_length?: number;
     // Specific uuid of a segment to search
     readonly uuid?: string;
     // Max number of segments to return
