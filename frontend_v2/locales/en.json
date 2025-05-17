@@ -147,6 +147,7 @@
         "video": "Image + Audio",
         "image": "Image",
         "audio": "Audio",
+        "info": "Episode Info",
         "copyclipboard": "Copy",
         "jpsentence": "Japanese sentence",
         "ensentence": "English sentence",
