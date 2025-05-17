@@ -179,8 +179,6 @@ export const ankiStore = defineStore("anki", {
           return [];
         }
 
-        // response.result -> number[]
-
         const notesRes = await this.executeAction("notesInfo", {
           notes: response.result.slice(0, n),
         }) as NotesInfoResponse;
@@ -293,6 +291,7 @@ export const ankiStore = defineStore("anki", {
           'sentence-en',
           'image',
           'sentence-audio',
+          'sentence-info',
           'empty',
         ]
         let fieldsNew = {}
@@ -337,6 +336,12 @@ export const ankiStore = defineStore("anki", {
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
                     `[sound:${audioResult.result}]`
+                  )
+                  break
+                case 'sentence-info':
+                  fieldsNew[field.key] = field.value.replace(
+                    `{${key}}`,
+                    `${sentence.basic_info.name_anime_en}・Season ${sentence.basic_info.season}, Episode ${sentence.basic_info.episode}`
                   )
                   break
               }
