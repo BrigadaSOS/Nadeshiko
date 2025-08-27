@@ -248,7 +248,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                                     class="font-bold pt-3 first:pt-0 dark:text-white break-words">{{
                                             $t('animeList.genres') }}:
                                                                                 </span>
-                                                                                {{ media_info.genres.toString() }}
+                                                                                {{ media_info?.genres?.toString() }}
                                                                             </p>
                                                                         </div>
                                                                     </div>

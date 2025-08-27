@@ -329,7 +329,8 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <div class="flex-1 justify-left">
             <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold my-2">
               {{ sentence.basic_info.name_anime_en }} &bull;
-              <template v-if="sentence.basic_info.season === 0">{{ $t('searchpage.main.labels.movie')
+              <template v-if="sentence.basic_info.category === 4">{{ $t('searchpage.main.labels.audiobook') }}</template>
+                <template v-else-if="sentence.basic_info.season === 0 ">{{ $t('searchpage.main.labels.movie')
                 }}</template>
               <template v-else>
                 {{ $t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},

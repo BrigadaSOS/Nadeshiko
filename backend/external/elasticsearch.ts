@@ -549,7 +549,10 @@ const buildSearchAnimeSentencesSegments = (
         logger.error('Media Info not found for anime with id %s', data['media_id']);
         return;
       }
-      const location_media = mediaInfo.category == 1 ? 'anime' : 'jdrama';
+      let location_media = mediaInfo.category == 1 ? 'anime' : mediaInfo.category == 3 ? 'jdrama' : 'audiobook';
+      const coverPath = data['path_image']
+        ? [getBaseUrlMedia(), location_media, seriesNamePath, seasonNumberPath, episodeNumberPath, data['path_image']].join('/')
+        : mediaInfo.cover || '';
 
       return {
         basic_info: {
@@ -583,14 +586,8 @@ const buildSearchAnimeSentencesSegments = (
           actor_es: data['actor_es'],
         },
         media_info: {
-          path_image: [
-            getBaseUrlMedia(),
-            location_media,
-            seriesNamePath,
-            seasonNumberPath,
-            episodeNumberPath,
-            data['path_image'],
-          ].join('/'),
+          path_image: 
+           coverPath,
           path_audio: [
             getBaseUrlMedia(),
             location_media,

@@ -13,6 +13,7 @@ export const reSyncDatabase = async (_req: Request, res: Response, next: NextFun
       await addBasicData(db);
       await readAnimeDirectories(mediaDirectory, 'jdrama');
       await readAnimeDirectories(mediaDirectory, 'anime');
+      await readAnimeDirectories(mediaDirectory, 'audiobook');
     });
     res.status(StatusCodes.OK).json({ message: 'Database re-synced' });
   } catch (error) {
