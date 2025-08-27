@@ -90,6 +90,8 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
     globalPath = path.join(baseDir, 'anime');
   } else if (type == 'jdrama') {
     globalPath = path.join(baseDir, 'jdrama');
+  }else if(type == 'audiobook') {
+    globalPath = path.join(baseDir, 'audiobook');
   }
 
   const animeDirectories = fs.readdirSync(globalPath);
@@ -124,9 +126,9 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
           cover: media_raw.cover,
           banner: media_raw.banner,
           version: media_raw.version,
-          category: type == 'anime' ? CategoryType.ANIME : CategoryType.JDRAMA,
+          category: type == 'anime' ? CategoryType.ANIME : type == 'jdrama' ? CategoryType.JDRAMA : CategoryType.AUDIOBOOK,
           release_date: media_raw.release_date,
-          id_category: type == 'anime' ? 1 : 3,
+          id_category: type == 'anime' ? 1 : type == 'jdrama' ? 3 : 4
         });
 
         await media.save();
@@ -258,6 +260,8 @@ export async function readSpecificDirectory(
     mediaDirPath = path.join(baseDir, 'anime', folder_name);
   } else if (type == 'jdrama') {
     mediaDirPath = path.join(baseDir, 'jdrama', folder_name);
+  } else if (type == 'audiobook') {
+    mediaDirPath = path.join(baseDir, 'audiobook', folder_name);
   }
 
   // Define la busqueda del contenido en la base de datos
@@ -328,8 +332,8 @@ export async function readSpecificDirectory(
 async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, mediaDirPath: string, type: string) {
   try {
     mediaFound = await Media.create({
-      id_anilist: media_raw.id_anilist ?? null,
-      id_tmdb: media_raw.id_tmdb ?? null,
+      id_anilist: media_raw?.id_anilist ?? null,
+      id_tmdb: media_raw?.id_tmdb ?? null,
       romaji_name: media_raw.romaji_name,
       english_name: media_raw.english_name,
       japanese_name: media_raw.japanese_name,
@@ -341,8 +345,8 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
       banner: media_raw.banner,
       version: media_raw.version,
       release_date: media_raw.release_date,
-      category: type == 'anime' ? CategoryType.ANIME : CategoryType.JDRAMA,
-    });
+      category: type == 'anime' ? CategoryType.ANIME : type == 'jdrama' ? CategoryType.JDRAMA : CategoryType.AUDIOBOOK
+    });     
     await mediaFound.save();
     logger.info('Media info inserted into the database');
   } catch (error) {

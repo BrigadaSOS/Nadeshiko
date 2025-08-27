@@ -148,6 +148,11 @@ watch([page, currentView, searchQuery], () => {
                 @click="handleFilterChange('liveaction')"
                 :selected="filterType === 'liveaction'"
               />
+              <SearchDropdownItem
+                text="Audiobook"
+                @click="handleFilterChange('audiobook')"
+                :selected="filterType === 'audiobook'"
+              />
             </SearchDropdownContent>
           </template>
         </SearchDropdownContainer>
