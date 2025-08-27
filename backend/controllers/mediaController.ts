@@ -140,7 +140,7 @@ export const SearchAnimeSentences = async (
       exact_match: req.body.exact_match,
       season: req.body.season,
       episode: req.body.episode,
-      category: req.body.category || [1, 2, 3],
+      category: req.body.category || [1, 2, 3, 4],
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
@@ -183,7 +183,7 @@ export const SearchAnimeSentencesHealth = async (
       exact_match: req.body.exact_match,
       season: req.body.season,
       episode: req.body.episode,
-      category: req.body.category || [1, 2, 3],
+      category: req.body.category || [1, 2, 3, 4],
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
@@ -240,6 +240,7 @@ export const getAllMedia = async (
     const categoryMap: Record<string, CategoryType> = {
       anime: CategoryType.ANIME,
       liveaction: CategoryType.JDRAMA,
+      audiobook: CategoryType.AUDIOBOOK
     };
 
     const whereClause: any = {};
@@ -266,7 +267,7 @@ export const getAllMedia = async (
 
     const paginatedResults = rows.map((media) => {
       const mediaData = media.toJSON();
-      const location_media = mediaData.category === CategoryType.ANIME ? 'anime' : 'jdrama';
+      const location_media = mediaData.category === CategoryType.ANIME ? 'anime' : mediaData.category === CategoryType.JDRAMA ? 'jdrama' : 'audiobook';
       mediaData.cover = [getBaseUrlMedia(), location_media, mediaData.cover].join('/');
       mediaData.banner = [getBaseUrlMedia(), location_media, mediaData.banner].join('/');
       return mediaData;

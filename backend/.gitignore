@@ -18,6 +18,8 @@ media/anime/*
 media/jdrama/*
 !media/jdrama/.gitkeep
 media/tmp/*
+media/audiobook/*
+!media/audiobook/.gitkeep
 # media/anime
 # media/jdrama
 # media/hidden

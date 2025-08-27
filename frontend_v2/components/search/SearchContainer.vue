@@ -28,7 +28,8 @@ let uuid = ref(null);
 const categoryMapping = {
     'all': 0,
     'anime': 1,
-    'liveaction': 3
+    'liveaction': 3,
+    'audiobook': 4
 };
 
 // SEO Meta
@@ -314,6 +315,9 @@ onBeforeRouteUpdate(async (to, from) => {
                     <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 3)"
                         category="3" categoryName="Liveaction" :count="getCategoryCount(3)" :isActive="category === 3"
                         @click="categoryFilter(3)" />
+                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 4)"
+                        category="4" categoryName="Audiobook" :count="getCategoryCount(4)" :isActive="category === 4"
+                        @click="categoryFilter(4)" />
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
         </div>

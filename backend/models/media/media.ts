@@ -6,6 +6,7 @@ export enum CategoryType {
   ANIME = 1,
   BOOK = 2,
   JDRAMA = 3,
+  AUDIOBOOK = 4
 }
 
 @Table({
