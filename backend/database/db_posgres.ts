@@ -46,7 +46,7 @@ const connection = new Sequelize({
   ],
   logging: false,
   pool: {
-    max: 5,
+    max: 10,
     min: 0,
     acquire: 60000,
     idle: 5000,
