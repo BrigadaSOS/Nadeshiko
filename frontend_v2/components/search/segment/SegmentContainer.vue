@@ -244,34 +244,6 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
                   "></span>
               </h3>
 
-              <div class="hidden sm:flex ml-auto">
-                <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                  id="concatenate-button"
-                  @click="loadNextSentence(sentence, 'backward')" v-if="!isConcatenated(sentence)"
-                  :title="$t('segment.expandLeft')">
-                  <UiBaseIcon :path="mdiChevronLeft" />
-                </UiButtonPrimaryAction>
-
-                <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                  id="concatenate-button"
-                  @click="loadNextSentence(sentence, 'both')" v-if="!isConcatenated(sentence)"
-                  :title="$t('segment.expandBoth')">
-                  <UiBaseIcon :path="mdiArrowExpandHorizontal" />
-                </UiButtonPrimaryAction>
-
-                <UiButtonPrimaryAction class="ml-2 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                  id="concatenate-button"
-                  @click="loadNextSentence(sentence, 'forward')" v-if="!isConcatenated(sentence)"
-                  :title="$t('segment.expandRight')">
-                  <UiBaseIcon :path="mdiChevronRight" />
-                </UiButtonPrimaryAction>
-
-                <UiButtonPrimaryAction class="ml-4 p-0.5 lg:hidden group-hover:flex transition duration-300"
-                  @click="revertActiveConcatenation" v-if="isConcatenated(sentence)"
-                  :title="$t('segment.revert')">
-                  <UiBaseIcon :path="mdiClose" />
-                </UiButtonPrimaryAction>
-              </div>
             </div>
             <!-- End Japanese Sentence -->
           </div>
@@ -320,7 +292,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <!-- Buttons  -->
           <div class="flex-1 pb-2">
             <SearchSegmentActionsContainer :content="sentence" @open-context-modal="openModal"
-              @open-anki-modal="openAnkiModal(sentence)" />
+              @open-anki-modal="openAnkiModal(sentence)" @concat-sentence="(s, dir) => loadNextSentence(s, dir)" @revert-concat="() => revertActiveConcatenation()" />
           </div>
           <!-- End Buttons  -->
 
