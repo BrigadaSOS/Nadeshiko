@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiShare, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown, mdiFileVideo, mdiDotsHorizontal, mdiVolumeHigh } from '@mdi/js'
+import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiClose, mdiShareVariantOutline, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown,mdiArrowExpandHorizontal,mdiTransferLeft , mdiDotsHorizontal, mdiVolumeHigh, mdiTransferRight } from '@mdi/js'
 
 import type { Sentence } from "@/stores/search";
 
@@ -14,7 +14,15 @@ const isAnkiConfigured = computed(() => {
   return current.deck !== null && current.model !== null && current.fields.length > 0;
 });
 
-const emit = defineEmits(['open-context-modal', 'open-anki-modal']);
+const emit = defineEmits(['open-context-modal', 'open-anki-modal', 'concat-sentence', 'revert-concat']);
+
+const concatSentence = (direction: 'forward' | 'backward' | 'both') => {
+  emit('concat-sentence', props.content, direction);
+};
+
+const revertConcat = () => {
+  emit('revert-concat', props.content);
+};
 
 const openContextModal = () => {
   emit('open-context-modal', props.content);
@@ -115,8 +123,16 @@ const openAnkiModal = () => {
     </template>
     <template #content>
       <SearchDropdownContent>
-        <SearchDropdownItem :text="$t('searchpage.main.buttons.share')" :iconPath="mdiShare"
+        <SearchDropdownItem :text="$t('searchpage.main.buttons.share')" :iconPath="mdiShareVariantOutline"
           @click="getSharingURL(content.segment_info.uuid)" />
+        <SearchDropdownItem v-if="content.media_info.blob_audio_url" :text="$t('segment.revert')" :iconPath="mdiClose"
+          @click="revertConcat" />
+        <SearchDropdownItem :text="$t('searchpage.main.buttons.expandLeft')" :iconPath="mdiTransferLeft"
+          @click="concatSentence('backward')" />
+        <SearchDropdownItem :text="$t('searchpage.main.buttons.expandBoth')" :iconPath="mdiArrowExpandHorizontal"
+          @click="concatSentence('both')" />
+        <SearchDropdownItem :text="$t('searchpage.main.buttons.expandRight')" :iconPath="mdiTransferRight"
+          @click="concatSentence('forward')" />
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>
