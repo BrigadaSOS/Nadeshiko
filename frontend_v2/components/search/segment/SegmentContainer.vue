@@ -308,6 +308,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
                 {{ $t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},
                 {{ $t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
               </template>
+              &bull; {{ sentence.segment_info.start_time.split('.')[0] }}
             </p>
           </div>
         </div>
