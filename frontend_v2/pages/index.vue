@@ -58,7 +58,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                             </h2>
                                             <h3
                                                 class="inline-flex ml-2 rounded-full items-end text-base font-medium text-white/80">
-                                                v1.0.5
+                                                v1.1.0
                                             </h3>
                                         </div>
 
