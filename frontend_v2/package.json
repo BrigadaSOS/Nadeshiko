@@ -43,5 +43,8 @@
     "typescript": "^5.9.2",
     "unplugin-auto-import": "^20.1.0",
     "unplugin-vue-components": "^29.0.0"
+  },
+  "resolutions": {
+    "vite": "^6.3.2"
   }
 }
