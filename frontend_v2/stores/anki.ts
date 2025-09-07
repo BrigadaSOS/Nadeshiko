@@ -71,6 +71,8 @@ interface NotesInfoResponse {
   error: string;
 }
 
+import { defineStore } from 'pinia'
+
 export const ankiStore = defineStore("anki", {
   state: (): IAnkiState => ({
     ankiPreferences: {
@@ -89,7 +91,7 @@ export const ankiStore = defineStore("anki", {
   }),
   persist: {
     key: "settings",
-    storage: persistedState.localStorage,
+    storage: piniaPluginPersistedstate.localStorage(),
     paths: ["ankiPreferences"],
   },
   actions: {
