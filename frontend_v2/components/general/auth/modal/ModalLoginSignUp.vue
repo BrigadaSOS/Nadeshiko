@@ -12,14 +12,6 @@ let usernameR = ref("");
 
 
 onMounted(() => {
-  const modalObserver = useElementObserver(
-    "hs-vertically-centered-scrollable-loginsignup-modal-backdrop",
-    () => activate(),
-    () => deactivate()
-  );
-  onBeforeUnmount(() => {
-    modalObserver.disconnect();
-  });
 
   const query = new URLSearchParams(window.location.search);
   const code = query.get("code");
