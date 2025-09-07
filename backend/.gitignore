@@ -25,6 +25,7 @@ media/audiobook/*
 # media/hidden
 # media/tmp
 .env
+.env.production
 prod
 dictionaries/jmdict
 ~/

@@ -37,6 +37,8 @@ export const client = new Client({
 export const querySegments = async (request: QuerySegmentsRequest): Promise<QuerySegmentsResponse> => {
   const must: QueryDslQueryContainer[] = [];
   const filter: QueryDslQueryContainer[] = [];
+  const must_not: QueryDslQueryContainer[] = [];
+  
   let sort: Sort = [];
 
   // Match only by uuid and return 1 result. This takes precedence over other queries
@@ -129,6 +131,14 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
       filter.push({
         term: {
           media_id: request.anime_id,
+        },
+      });
+    }
+
+    if (request.excluded_anime_ids && request.excluded_anime_ids.length > 0) {
+      must_not.push({
+        terms: {
+          media_id: request.excluded_anime_ids,
         },
       });
     }
@@ -273,6 +283,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     query: {
       bool: {
         must,
+        must_not
       },
     },
     search_after: request.cursor,
@@ -334,6 +345,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
       bool: {
         filter,
         must,
+        must_not
       },
     },
     search_after: request.cursor,
