@@ -27,7 +27,6 @@ export default defineNuxtConfig({
     experimental: {
       localeDetector: './localeDetector.ts',
     },
-    langDir: 'locales',
     lazy: true,
     locales: [
       {
