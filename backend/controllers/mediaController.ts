@@ -144,6 +144,7 @@ export const SearchAnimeSentences = async (
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
+      excluded_anime_ids: req.body.excluded_anime_ids || []
     });
 
     if (!req.body.cursor) {
@@ -187,6 +188,7 @@ export const SearchAnimeSentencesHealth = async (
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
+      excluded_anime_ids: req.body.excluded_anime_ids || []
     });
 
     return res.status(StatusCodes.OK).json(response);
