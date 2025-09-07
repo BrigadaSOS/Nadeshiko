@@ -1,4 +1,5 @@
 import { useNuxtApp } from "#app";
+import { defineStore } from 'pinia'
 
 export const userStore = defineStore("user", {
   state: () => ({
@@ -12,7 +13,7 @@ export const userStore = defineStore("user", {
   }),
   persist: {
     key: "info",
-    storage: persistedState.localStorage,
+    storage: piniaPluginPersistedstate.localStorage(),
     paths: ["isLoggedIn", "filterPreferences", "userInfo"],
   },
   actions: {
