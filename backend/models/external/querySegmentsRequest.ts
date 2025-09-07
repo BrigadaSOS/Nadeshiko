@@ -19,6 +19,7 @@ export interface QuerySegmentsRequest {
   readonly category?: any[];
   readonly media?: QuerySegmentsAnimeFilter[];
   readonly extra?: boolean;
+  readonly excluded_anime_ids?: number[];
 }
 
 export interface QuerySegmentsAnimeFilter {
