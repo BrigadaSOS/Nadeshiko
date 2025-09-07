@@ -147,17 +147,18 @@ export const useApiSearch = defineStore("search", {
             "Content-Type": "application/json",
           },
           body: {
-            query: body.query,                         // Text or sentence to search 
-            limit: body.limit,                         // Max amount of entries by response
-            uuid: body.uuid,                           // Unique ID from sentence (Useful to get a specific sentence)
-            category: body.category,                   // Anime, Liveaction
-            anime_id: body.anime_id,                   // Unique ID from media
-            season: body.season,                       // Array of seasons to get
-            episode: body.episode,                     // Array of episodes to get
-            random_seed: body.random_seed,             // A value from 0 to 1 
-            content_sort: body.content_sort,           // Order by amount of characters (ASC, DESC)
-            cursor: body.cursor,                       // Current page of search  
-            extra: body.extra                          // Stats information 
+            query: body.query,                          // Text or sentence to search
+            limit: body.limit,                          // Max amount of entries by response
+            uuid: body.uuid,                            // Unique ID from sentence (Useful to get a specific sentence)
+            category: body.category,                    // Anime, Liveaction
+            anime_id: body.anime_id,                    // Unique ID from media
+            season: body.season,                        // Array of seasons to get
+            episode: body.episode,                      // Array of episodes to get
+            random_seed: body.random_seed,              // A value from 0 to 1
+            content_sort: body.content_sort,            // Order by amount of characters (ASC, DESC)
+            cursor: body.cursor,                        // Current page of search
+            extra: body.extra,                          // Stats information
+            excluded_anime_ids: body.excluded_anime_ids // Array of excluded anime IDs
           }
         }
       );
