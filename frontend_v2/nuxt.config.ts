@@ -14,7 +14,7 @@ export default defineNuxtConfig({
     "@nuxtjs/i18n",
     "@nuxt/content",
     "@scalar/nuxt",
-    '@pinia-plugin-persistedstate/nuxt',
+    'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt'
   ],
   plugins: ['~/plugins/preline.client.ts'],
