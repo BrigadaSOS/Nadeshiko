@@ -7,9 +7,9 @@ import connection from '../database/db_posgres';
 import path from 'path';
 import fs from 'fs';
 
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const util = require('util');
-const execPromisified = util.promisify(exec);
+// execPromisified no longer needed
 const ffmpegStatic = require('ffmpeg-static');
 const requestIp = require('request-ip');
 
@@ -100,20 +100,35 @@ export const generateURLAudio = async (req: Request, res: Response, next: NextFu
 async function mergeAudioFiles(urls: string[], randomFilename: string) {
   const outputFilePath = path.join(tmpDirectory, randomFilename);
 
-  let command = urls.reduce((acc, file) => `${acc} -i "${file}"`, `${ffmpegStatic}`);
+  // Build ffmpeg arguments as array.
+  const ffmpegArgs: string[] = [];
 
-  const filter = urls.length > 1 ? `-filter_complex concat=n=${urls.length}:v=0:a=1` : '';
+  // Add each input as a separate -i argument
+  for (const file of urls) {
+    ffmpegArgs.push('-i', file);
+  }
 
-  command += ` ${filter} "${outputFilePath}"`;
+  if (urls.length > 1) {
+    ffmpegArgs.push('-filter_complex', `concat=n=${urls.length}:v=0:a=1`);
+  }
+
+  ffmpegArgs.push(outputFilePath);
 
   try {
-    const { stdout, stderr } = await execPromisified(command);
-
-    if (stderr) {
-      console.error(`Error: ${stderr}`);
-    } else {
-      console.log('Files merged successfully!');
-    }
+    await new Promise<void>((resolve, reject) => {
+      const ffmpeg = spawn(ffmpegStatic, ffmpegArgs, { stdio: 'inherit' });
+      ffmpeg.on('close', (code: number) => {
+        if (code === 0) {
+          console.log('Files merged successfully!');
+          resolve();
+        } else {
+          reject(new Error(`ffmpeg exited with code ${code}`));
+        }
+      });
+      ffmpeg.on('error', (error: Error) => {
+        reject(error);
+      });
+    });
   } catch (error) {
     console.error(`Error merging files: ${error}`);
   }
