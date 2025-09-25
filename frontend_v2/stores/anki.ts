@@ -343,7 +343,7 @@ export const ankiStore = defineStore("anki", {
                 case 'sentence-info':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `${sentence.basic_info.name_anime_en}・Season ${sentence.basic_info.season}, Episode ${sentence.basic_info.episode}`
+                    `${sentence.basic_info.name_anime_en}・Season ${sentence.basic_info.season}, Episode ${sentence.basic_info.episode}, Timestamp: ${sentence.segment_info.start_time.split('.')[0]}`
                   )
                   break
               }
