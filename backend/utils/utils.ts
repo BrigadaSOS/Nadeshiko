@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { Send, Query, ParamsDictionary } from 'express-serve-static-core';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 
 const PROTOCOL = process.env.ENVIRONMENT === 'production' ? 'https' : 'http';
 export const getBaseUrlMedia = () => {
@@ -31,9 +30,8 @@ export const generateApiKeyHint = (apiKey: string) => {
 };
 
 export const hashApiKey = (apiKey: string) => {
-  // Use bcrypt with 12 salt rounds (change if you want a different strength)
-  const saltRounds = 12;
-  return bcrypt.hashSync(apiKey, saltRounds);
+  const hashedKey = crypto.createHash('sha256').update(apiKey).digest('hex');
+  return hashedKey;
 };
 
 // Reference: https://javascript.plainenglish.io/typed-express-request-and-response-with-typescript-7277aea028c
