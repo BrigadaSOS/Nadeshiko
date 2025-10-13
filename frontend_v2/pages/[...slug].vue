@@ -14,9 +14,11 @@ async function fetchContent() {
 }/**
  * @docs https://nuxt.com/docs/api/composables/use-async-data
  */
-const { data } = await useAsyncData('content', () => fetchContent(), {
-	watch: [locale],
-})
+const { data } = await useAsyncData(
+  () => `content-${locale.value}-${route.path}`,
+  () => fetchContent(),
+  { watch: [() => route.path, locale] }
+)
 </script>
 
 <template>
