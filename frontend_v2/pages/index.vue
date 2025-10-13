@@ -13,7 +13,7 @@ const {
     pending: isLoading,
     error: mediaError,
     refresh: fetchMedia
-} = await useFetch(
+} = await useAsyncData(
     'recentMedia',
     () => apiSearch.getRecentMedia({ size: 10 }),
     {
