@@ -7,13 +7,11 @@ const { locale } = useI18n()
  */
 async function fetchContent() {
 	try {
-		return await queryContent(locale.value.toLowerCase(), route.path).findOne()
+		return await queryCollection('content').path(`/${locale.value.toLowerCase()}${route.path}`).first()
 	} catch (err: any) {
-		return await queryContent(route.path).findOne()
+		return await queryCollection('content').path(`/${route.path}`).first()
 	}
-}
-
-/**
+}/**
  * @docs https://nuxt.com/docs/api/composables/use-async-data
  */
 const { data } = await useAsyncData('content', () => fetchContent(), {
