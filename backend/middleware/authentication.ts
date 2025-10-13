@@ -21,7 +21,13 @@ export const authenticate = (options: { jwt: boolean; apiKey: boolean }) => {
     }
 
     const requestUrl = parse(req.headers.referer || '');
+    const userAgent = req.headers['user-agent'] || '';
+    const isSSRRequest = userAgent.includes('node') || userAgent.includes('nuxt');
 
+    if (isSSRRequest) {
+      return next();
+    }
+    
     const requestFromAllowedUrl = allowedUrls.some((url) => {
       const parsedUrl = parse(url);
       return parsedUrl.host === requestUrl.host && parsedUrl.protocol === requestUrl.protocol;

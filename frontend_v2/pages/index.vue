@@ -3,41 +3,23 @@ import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@
 
 useSeoMeta({
     title: 'Nadeshiko',
-    ogTitle: 'Nadeshiko'
+    ogTitle: 'Nadeshiko',
+    ogDescription: 'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!'
 })
 
 const apiSearch = useApiSearch();
-const media = ref(null);
-const mediaError = ref(false);
-let isLoading = ref(false)
-
-const fetchMedia = async () => {
-    try {
-        isLoading.value = true
-        media.value = await apiSearch.getRecentMedia({
-            size: 10
-        });
-        mediaError.value = false;
-    } catch (error) {
-        console.error('Error fetching media:', error);
-        mediaError.value = true;
-    } finally {
-        isLoading.value = false
+const {
+    data: media,
+    pending: isLoading,
+    error: mediaError,
+    refresh: fetchMedia
+} = await useAsyncData(
+    'recentMedia',
+    () => apiSearch.getRecentMedia({ size: 10 }),
+    {
+        default: () => null
     }
-};
-
-onMounted(() => {
-    fetchMedia();
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-});
-
-const isSmallScreen = ref(false);
-
-const checkScreenSize = () => {
-    isSmallScreen.value = window.innerWidth >= 1280 && window.innerWidth <= 1535 || window.innerWidth < 1280;
-};
-watch(() => window.innerWidth, checkScreenSize);
+);
 </script>
 
 <template>
@@ -100,7 +82,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature1.title') }}</p>
                                             <span class="font-normal dark:text-white/60">{{
-                                            $t('home.keyFeatures.feature1.description') }}</span>
+                                                $t('home.keyFeatures.feature1.description') }}</span>
                                         </div>
                                     </div>
 
@@ -112,7 +94,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature2.title') }}</p>
                                             <span class="font-normal dark:text-white/60">{{
-                                            $t('home.keyFeatures.feature2.description') }}</span>
+                                                $t('home.keyFeatures.feature2.description') }}</span>
                                         </div>
                                     </div>
 
@@ -124,7 +106,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature3.title') }}</p>
                                             <span class="font-normal dark:text-white/60">{{
-                                            $t('home.keyFeatures.feature3.description') }}</span>
+                                                $t('home.keyFeatures.feature3.description') }}</span>
                                         </div>
                                     </div>
 
@@ -136,7 +118,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <div class="">
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature4.title') }}</p>
                                             <span class="font-normal dark:text-white/60">{{
-                                            $t('home.keyFeatures.feature4.description') }}</span>
+                                                $t('home.keyFeatures.feature4.description') }}</span>
                                         </div>
                                     </div>
 
@@ -156,7 +138,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                         <div class="md:w-2/4 sm:w-1/2 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
                                                 <h2 class="title-font font-medium text-2xl text-white">{{
-                                            media?.stats?.full_total_animes || 0 }}</h2>
+                                                    media?.stats?.full_total_animes || 0 }}</h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.mediaCount') }}
                                                 </p>
@@ -194,7 +176,6 @@ watch(() => window.innerWidth, checkScreenSize);
                                                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
                                                     <div v-if="media?.results.length > 0"
                                                         v-for="(media_info, index) in media.results"
-                                                        v-show="!isSmallScreen || index < (media.results.length - 2)"
                                                         class="w-full relative">
                                                         <div class="w-full">
                                                             <div
@@ -207,7 +188,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                     class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
                                                                     <span
                                                                         class="mx-auto object-center mt-2 text-center px-2 text-base font-bold text-gray-800 dark:text-white">{{
-                                            media_info.english_name }}</span>
+                                                                            media_info.english_name }}</span>
                                                                     <div
                                                                         class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[400px]">
                                                                         <div
@@ -219,34 +200,34 @@ watch(() => window.innerWidth, checkScreenSize);
                                                                             <p>
                                                                                 <span
                                                                                     class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.romajiName')
-                                        }}:</span>
+                                                                                        $t('animeList.romajiName')
+                                                                                    }}:</span>
                                                                                 {{ media_info.romaji_name }}
                                                                             </p>
                                                                             <p>
                                                                                 <span
                                                                                     class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.japaneseName')
-                                        }}:</span>
+                                                                                        $t('animeList.japaneseName')
+                                                                                    }}:</span>
                                                                                 {{ media_info.japanese_name }}
                                                                             </p>
                                                                             <p>
                                                                                 <span
                                                                                     class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.seasons') }}:</span>
+                                                                                        $t('animeList.seasons') }}:</span>
                                                                                 {{ media_info.num_seasons }}
                                                                             </p>
                                                                             <p>
                                                                                 <span
                                                                                     class="font-bold pt-3 first:pt-0 dark:text-white">{{
-                                            $t('animeList.episodes') }}:
+                                                                                        $t('animeList.episodes') }}:
                                                                                 </span>
                                                                                 {{ media_info.num_episodes }}
                                                                             </p>
                                                                             <p>
                                                                                 <span
                                                                                     class="font-bold pt-3 first:pt-0 dark:text-white break-words">{{
-                                            $t('animeList.genres') }}:
+                                                                                        $t('animeList.genres') }}:
                                                                                 </span>
                                                                                 {{ media_info?.genres?.toString() }}
                                                                             </p>
@@ -266,7 +247,7 @@ watch(() => window.innerWidth, checkScreenSize);
                                                             class="text-center mt-1 mb-5 justify-center flex flex-col items-center">
                                                             <h3 class="text-sm text-center font-medium line-clamp-2">
                                                                 {{ media_info.num_segments }} {{
-                                                                $t('animeList.sentenceCount') }}
+                                                                    $t('animeList.sentenceCount') }}
                                                             </h3>
                                                         </div>
                                                     </div>
@@ -288,50 +269,42 @@ watch(() => window.innerWidth, checkScreenSize);
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </div>
 
-                                                    <!-- Retry button centered -->
-                                                    <div v-if="mediaError"
-                                                        class="absolute px-6 py-2 rounded-lg shadow-lg inset-0 flex items-center justify-center">
-
-                                                        <div class=" rounded-lg">
-                                                            <div role="alert"
-                                                                class="rounded-lg flex items-center flex-col border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/80">
-                                                                <div
-                                                                    class="flex items-center gap-2 mb-2 text-red-800 dark:text-red-100">
-
-                                                                    <strong class="block font-medium">La conexión ha
-                                                                        fallado </strong>
-                                                                </div>
-
-                                                                <UiButtonPrimaryAction @click="fetchMedia">
-                                                                    <template v-if="isLoading">
-                                                                        Reintentando...
-                                                                        <div role="status">
-                                                                            <svg aria-hidden="true"
-                                                                                class="inline w-5 h-5 text-gray-200 animate-spin dark:text-gray-400 fill-gray-500 dark:fill-gray-200"
-                                                                                viewBox="0 0 100 101" fill="none"
-                                                                                xmlns="http://www.w3.org/2000/svg">
-                                                                                <path
-                                                                                    d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                                                                                    fill="currentColor" />
-                                                                                <path
-                                                                                    d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                                                                                    fill="currentFill" />
-                                                                            </svg>
-                                                                            <span class="sr-only">Loading...</span>
-                                                                        </div>
-
-                                                                    </template>
-                                                                    <template v-else>
+                                                <div v-if="mediaError"
+                                                    class="absolute px-6 py-2 rounded-lg shadow-lg inset-0 flex items-center justify-center">
+                                                    <div class=" rounded-lg">
+                                                        <div role="alert"
+                                                            class="rounded-lg flex items-center flex-col border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/80">
+                                                            <div
+                                                                class="flex items-center gap-2 mb-2 text-red-800 dark:text-red-100">
+                                                                <strong class="block font-medium">La conexión ha
+                                                                    fallado </strong>
+                                                            </div>
+                                                            <UiButtonPrimaryAction @click="fetchMedia">
+                                                                <template v-if="isLoading">
+                                                                    Reintentando...
+                                                                    <div role="status">
+                                                                        <svg aria-hidden="true"
+                                                                            class="inline w-5 h-5 text-gray-200 animate-spin dark:text-gray-400 fill-gray-500 dark:fill-gray-200"
+                                                                            viewBox="0 0 100 101" fill="none"
+                                                                            xmlns="http://www.w3.org/2000/svg">
+                                                                            <path
+                                                                                d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                                                                fill="currentColor" />
+                                                                            <path
+                                                                                d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                                                                fill="currentFill" />
+                                                                        </svg>
+                                                                        <span class="sr-only">Loading...</span>
+                                                                    </div>
+                                                                </template>
+                                                                <template v-else>
                                                                         <UiBaseIcon :path="mdiRefresh"
                                                                             @click="fetchMedia" />
-                                                                        Reintentar conexión
-                                                                    </template>
-
-                                                                </UiButtonPrimaryAction>
-                                                            </div>
-
-
+                                                                    Reintentar conexión
+                                                                </template>
+                                                            </UiButtonPrimaryAction>
                                                         </div>
                                                     </div>
                                                 </div>
