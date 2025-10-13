@@ -183,6 +183,7 @@ const {
                                                                 <img class="w-full h-full object-cover absolute top-0 left-0"
                                                                     :src="media_info.cover + '?width=460&height=652'" />
                                                             </div>
+                                                            <!--
                                                             <template>
                                                                 <div
                                                                     class="w-full backdrop-blur-sm bg-sgray2/90 flex flex-col max-w-[400px]">
@@ -235,6 +236,7 @@ const {
                                                                     </div>
                                                                 </div>
                                                             </template>
+                                                            -->
                                                         </div>
 
                                                         <div
