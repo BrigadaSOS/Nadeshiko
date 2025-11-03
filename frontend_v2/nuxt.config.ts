@@ -61,23 +61,4 @@ export default defineNuxtConfig({
   build: {
     transpile: ['vue-toastification'],
   },
-  app: {
-    head: {
-      script: [
-        {
-          src: 'https://www.googletagmanager.com/gtag/js?id=AW-897537072',
-          async: true,
-        },
-        {
-          children: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'AW-897537072');
-          `,
-          type: 'text/javascript'
-        }
-      ],
-    },
-  },
 });
