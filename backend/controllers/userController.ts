@@ -11,6 +11,7 @@ import { createToken, maxAgeJWT } from '../middleware/authentication';
 import { Report, ReportStatus, ReportType } from '../models/miscellaneous/report';
 import DiscordOauth2 from 'discord-oauth2';
 import { sendConfirmationEmail } from '../utils/email';
+import { RequestWithJWT } from 'types/RequestWithJWT';
 const { OAuth2Client } = require('google-auth-library');
 const bcrypt = require('bcrypt');
 
@@ -33,13 +34,7 @@ export const logout = (_req: Request, res: Response, _next: NextFunction) => {
   });
 };
 
-declare module 'express' {
-  export interface Request {
-    jwt: any;
-  }
-}
-
-export const getUserInfo = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserInfo = async (req: RequestWithJWT, res: Response, next: NextFunction) => {
   try {
     const user = await User.findOne({
       where: { id: req.jwt.user_id },
@@ -61,7 +56,7 @@ export const getUserInfo = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const sendReportSegment = async (req: Request, res: Response, next: NextFunction) => {
+export const sendReportSegment = async (req: RequestWithJWT, res: Response, next: NextFunction) => {
   try {
     const segment = req.body.segment;
     const report_type = req.body.report_type;

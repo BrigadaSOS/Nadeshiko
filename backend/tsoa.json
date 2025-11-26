@@ -1,0 +1,20 @@
+{
+  "entryFile": "main.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": ["controllers/*Controller.ts"],
+  "spec": {
+    "outputDirectory": "public",
+    "specVersion": 3,
+    "securityDefinitions": {
+      "api_key": {
+        "name": "x-api-key",
+        "description": "API Key",
+        "in": "header",
+        "type": "apiKey"
+      }
+    }
+  },
+  "routes": {
+    "routesDir": "src/routes/_tsoa/"
+  }
+}
