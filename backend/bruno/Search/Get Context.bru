@@ -1,0 +1,26 @@
+meta {
+  name: Get Context
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/search/media/context
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "media_id": 1,
+    "season": 1,
+    "episode": 1,
+    "segment_position": 100,
+    "limit": 5
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

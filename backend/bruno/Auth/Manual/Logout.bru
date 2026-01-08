@@ -1,0 +1,27 @@
+meta {
+  name: Logout
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/logout
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{jwtToken}}
+}
+
+script:post-response {
+  // Clear JWT token after logout
+  if (res.status === 200) {
+    bru.setEnvVar("jwtToken", "");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

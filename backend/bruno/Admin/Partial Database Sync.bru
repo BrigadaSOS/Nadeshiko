@@ -1,0 +1,16 @@
+meta {
+  name: Partial Database Sync
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/database/sync/partial
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

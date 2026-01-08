@@ -1,0 +1,38 @@
+meta {
+  name: Register
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/register
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}
+
+body:json {
+  {
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "password": "secure-password"
+  }
+}
+
+script:post-response {
+  // Extract JWT token from response
+  if (res.status === 200 || res.status === 201) {
+    const body = res.responseJSON;
+    if (body && body.token) {
+      bru.setEnvVar("jwtToken", body.token);
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
