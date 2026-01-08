@@ -1,0 +1,27 @@
+meta {
+  name: Match Words
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v1/search/media/match/words
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}
+
+body:json {
+  {
+    "words": ["word1", "word2", "word3"],
+    "exact_match": true
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
