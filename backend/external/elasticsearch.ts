@@ -25,6 +25,55 @@ import { QuerySegmentsRequest } from '../models/external/querySegmentsRequest';
 import { QuerySurroundingSegmentsRequest } from '../models/external/querySurroundingSegmentsRequest';
 import { QuerySurroundingSegmentsResponse } from '../models/external/querySurroundingSegmentsResponse';
 import { SearchAnimeSentencesRequest } from 'models/controller/SearchAnimeSentencesRequest';
+import elasticsearchSchema from '../config/elasticsearch-schema.json';
+
+/**
+ * =============================================================================
+ * ELASTICSEARCH SEARCH ARCHITECTURE
+ * =============================================================================
+ *
+ * JAPANESE CONTENT FIELDS (3 fields for different matching strategies)
+ * -----------------------------------------------------------------------------
+ * | Field            | Purpose                    | Example: "食べました"       |
+ * |------------------|----------------------------|----------------------------|
+ * | content          | Exact text matching        | Tokens: 食べ, ました        |
+ * | content.baseform | Dictionary form matching   | Tokens: 食べる, ます        |
+ * | content.kana     | Pronunciation/romaji match | Tokens: タベ, マシタ        |
+ * -----------------------------------------------------------------------------
+ *
+ * FIELD SELECTION BY INPUT TYPE
+ * -----------------------------------------------------------------------------
+ * | Input Type       | Fields (with boosts)                    | Rationale    |
+ * |------------------|----------------------------------------|--------------|
+ * | Romaji (go)      | EN/ES^10, kana^3, content^2, base^1    | Prefer EN/ES |
+ * | Kanji (食べる)    | content^10, baseform^5 (NO kana)       | Exact match  |
+ * | Kana (たべる)     | content^10, baseform^5, kana^3         | Standard     |
+ * -----------------------------------------------------------------------------
+ * Note: Kanji queries exclude kana field to avoid homophone noise
+ *
+ * SCORING (boost_mode: replace - ignores term frequency)
+ * -----------------------------------------------------------------------------
+ * Length tiers (highest to lowest priority):
+ *   Tier 1: 25-30 chars → score 100 (ideal example sentences)
+ *   Tier 2: 30-35 chars → score 90
+ *   Tier 3: 20-25 chars → score 80
+ *   Tier 4: 35-40 chars → score 70
+ *   Tier 5: 10-20 chars → score 60
+ *   Tier 6: 40+ chars   → score 50
+ *   Tier 7: 7-10 chars  → score 40
+ *   Tier 8: <7 chars    → score 10 (penalized)
+ *
+ * Language selection (dis_max with tie_breaker: 0.3):
+ *   - Picks best matching language, 30% contribution from others
+ *
+ * QUERY SYNTAX (supported via query_string)
+ * -----------------------------------------------------------------------------
+ * - AND, OR, NOT operators: "cat AND dog", "cat OR dog"
+ * - Required/excluded: "+required -excluded"
+ * - Phrase search: "exact phrase"
+ * - Wildcards: "te*t" (no leading wildcards)
+ * =============================================================================
+ */
 
 export const client = new Client({
   node: process.env.ELASTICSEARCH_HOST,
@@ -33,6 +82,27 @@ export const client = new Client({
     password: process.env.ELASTICSEARCH_PASSWORD || '',
   },
 });
+
+const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
+
+export async function initializeElasticsearchIndex(): Promise<void> {
+  const indexExists = await client.indices.exists({ index: INDEX_NAME });
+
+  if (indexExists) {
+    logger.info(`Elasticsearch index '${INDEX_NAME}' already exists`);
+    return;
+  }
+
+  logger.info(`Creating Elasticsearch index '${INDEX_NAME}' with mappings from config/elasticsearch-schema.json`);
+
+  await client.indices.create({
+    index: INDEX_NAME,
+    settings: elasticsearchSchema.settings,
+    mappings: elasticsearchSchema.mappings,
+  });
+
+  logger.info(`Elasticsearch index '${INDEX_NAME}' created successfully from config/elasticsearch-schema.json`);
+}
 
 export const querySegments = async (request: QuerySegmentsRequest): Promise<QuerySegmentsResponse> => {
   const must: QueryDslQueryContainer[] = [];
@@ -73,9 +143,20 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
                 field: '_seq_no',
                 seed: seed,
               },
+              weight: 1, // Small random factor
             },
+            // Length tiers (same as non-random)
+            { filter: { range: { content_length: { gte: 25, lt: 30 } } }, weight: 100 },
+            { filter: { range: { content_length: { gte: 30, lt: 35 } } }, weight: 90 },
+            { filter: { range: { content_length: { gte: 20, lt: 25 } } }, weight: 80 },
+            { filter: { range: { content_length: { gte: 35, lt: 40 } } }, weight: 70 },
+            { filter: { range: { content_length: { gte: 10, lt: 20 } } }, weight: 60 },
+            { filter: { range: { content_length: { gte: 40 } } }, weight: 50 },
+            { filter: { range: { content_length: { gte: 7, lt: 10 } } }, weight: 40 },
+            { filter: { range: { content_length: { lt: 7 } } }, weight: 10 },
           ],
-          boost_mode: 'multiply',
+          score_mode: 'sum', // Add random + length tier
+          boost_mode: 'replace',
         },
       });
     } else {
@@ -85,24 +166,34 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
         },
       };
 
-      // Boost score for sentences with at least 7 characters if no min_length specified
-      if (request.min_length === undefined) {
-        must.push({
-          function_score: {
-            query: baseQuery,
-            functions: [
-              {
-                filter: { range: { content_length: { gte: 7 } } },
-                weight: 1.3, // 30% boost
-              },
-            ],
-            score_mode: 'sum',
-            boost_mode: 'multiply',
-          },
-        });
-      } else {
-        must.push(baseQuery);
-      }
+      // Apply length-based scoring using tiered filters
+      // Replaces text relevance entirely - length is the primary ranking factor
+      // Tier order: 25-30 > 30-35 > 20-25 > 35-40 > 10-20 > 40+ > 7-10 > <7
+      must.push({
+        function_score: {
+          query: baseQuery,
+          functions: [
+            // Tier 1: 25-30 chars (ideal example sentences)
+            { filter: { range: { content_length: { gte: 25, lt: 30 } } }, weight: 100 },
+            // Tier 2: 30-35 chars
+            { filter: { range: { content_length: { gte: 30, lt: 35 } } }, weight: 90 },
+            // Tier 3: 20-25 chars
+            { filter: { range: { content_length: { gte: 20, lt: 25 } } }, weight: 80 },
+            // Tier 4: 35-40 chars
+            { filter: { range: { content_length: { gte: 35, lt: 40 } } }, weight: 70 },
+            // Tier 5: 10-20 chars
+            { filter: { range: { content_length: { gte: 10, lt: 20 } } }, weight: 60 },
+            // Tier 6: 40+ chars (long sentences)
+            { filter: { range: { content_length: { gte: 40 } } }, weight: 50 },
+            // Tier 7: 7-10 chars (short)
+            { filter: { range: { content_length: { gte: 7, lt: 10 } } }, weight: 40 },
+            // Tier 8: <7 chars (penalized)
+            { filter: { range: { content_length: { lt: 7 } } }, weight: 10 },
+          ],
+          score_mode: 'first', // Use first matching filter
+          boost_mode: 'replace', // Replace text relevance with length score
+        },
+      });
     }
 
     filter.push({
@@ -671,68 +762,80 @@ const buildQueryWordsMatchedResponse = (
   };
 };
 
+/**
+ * Builds a multi-language search query that searches Japanese, English, and Spanish content.
+ *
+ * Uses dis_max to pick the best-matching language instead of adding scores together,
+ * which prevents cross-language noise (e.g., an English match boosting a Japanese search).
+ *
+ * Supported query syntax (query_string):
+ * - AND, OR, NOT operators: "cat AND dog", "cat OR dog", "cat NOT dog"
+ * - Required/excluded terms: "+required -excluded"
+ * - Phrase search: "exact phrase"
+ * - Wildcards: "te*t", "test?" (no leading wildcards)
+ * - Grouping: "(cat OR dog) AND bird"
+ * - Escaping special chars: "1\+1" to search literal "1+1"
+ *
+ * @param query - The search query text
+ * @param exact_match - If true, treats the entire query as a phrase
+ * @returns A dis_max query container with language-specific sub-queries
+ */
 const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQueryContainer[] => {
-  const languageQueries: QueryDslQueryContainer[] = [
+  const queryText = exact_match ? `"${query}"` : query;
+
+  // Build Japanese query
+  const japaneseQuery: QueryDslQueryContainer = {
+    query_string: {
+      query: queryText,
+      analyze_wildcard: true,
+      allow_leading_wildcard: false,
+      fuzzy_transpositions: false,
+      fields: ['content^10', 'content.readingform^5', 'content.baseform^2'],
+      default_operator: 'AND',
+      quote_analyzer: 'ja_original_search_analyzer',
+    },
+  };
+
+  // Build English query
+  const englishQuery: QueryDslQueryContainer = {
+    query_string: {
+      query: queryText,
+      analyze_wildcard: true,
+      allow_leading_wildcard: false,
+      fuzzy_transpositions: false,
+      fields: exact_match
+        ? ['content_english.exact']
+        : ['content_english^2', 'content_english.exact^1'],
+      default_operator: 'AND',
+      quote_field_suffix: '.exact',
+    },
+  };
+
+  // Build Spanish query
+  const spanishQuery: QueryDslQueryContainer = {
+    query_string: {
+      query: queryText,
+      analyze_wildcard: true,
+      allow_leading_wildcard: false,
+      fuzzy_transpositions: false,
+      fields: exact_match
+        ? ['content_spanish.exact']
+        : ['content_spanish^2', 'content_spanish.exact^1'],
+      default_operator: 'AND',
+      quote_field_suffix: '.exact',
+    },
+  };
+
+  // Use dis_max to pick the best-matching language
+  // tie_breaker allows some contribution from other matching languages (0.3 = 30%)
+  return [
     {
-      query_string: {
-        query: exact_match ? `"${query}"` : query,
-        analyze_wildcard: true,
-        allow_leading_wildcard: false,
-        fuzzy_transpositions: false,
-        fields: exact_match ? ['content'] : ['content^3', 'content.baseform'],
-        default_operator: 'AND',
-        quote_analyzer: 'ja_original_search_analyzer',
+      dis_max: {
+        queries: [japaneseQuery, englishQuery, spanishQuery],
+        tie_breaker: 0.3,
       },
     },
   ];
-
-  if (exact_match) {
-    languageQueries.push(
-      ...[
-        {
-          multi_match: {
-            query: query,
-            fields: ['content_spanish.exact'],
-          },
-        },
-        {
-          multi_match: {
-            query: query,
-            fields: ['content_english.exact'],
-          },
-        },
-      ],
-    );
-  } else {
-    languageQueries.push(
-      ...[
-        {
-          query_string: {
-            query,
-            analyze_wildcard: true,
-            allow_leading_wildcard: false,
-            fuzzy_transpositions: false,
-            fields: ['content_spanish'],
-            default_operator: 'AND' as QueryDslOperator,
-            quote_field_suffix: '.exact',
-          },
-        },
-        {
-          query_string: {
-            query,
-            analyze_wildcard: true,
-            allow_leading_wildcard: false,
-            fuzzy_transpositions: false,
-            fields: ['content_english'],
-            default_operator: 'AND' as QueryDslOperator,
-            quote_field_suffix: '.exact',
-          },
-        },
-      ],
-    );
-  }
-
-  return languageQueries;
 };
 
 const buildUuidContextQuery = (

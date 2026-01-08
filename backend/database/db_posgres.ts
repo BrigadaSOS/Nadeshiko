@@ -12,6 +12,7 @@ import { UserSearchHistory } from '../models/miscellaneous/userSearchHistory';
 import { UserAuth } from '../models/user/userAuth';
 import { UserToken } from '../models/user/userToken';
 import { Report } from '../models/miscellaneous/report';
+import { EsSyncLog } from '../models/sync/esSyncLog';
 
 require('dotenv').config();
 
@@ -43,6 +44,7 @@ const connection = new Sequelize({
     UserAuth,
     UserToken,
     Report,
+    EsSyncLog,
   ],
   logging: false,
   pool: {

@@ -2,6 +2,8 @@
 require('dotenv').config();
 
 import './external/elasticsearch'; // Initialize client
+import { initializeElasticsearchIndex } from './external/elasticsearch';
+import { startSyncCron } from './services/syncCron';
 import path from 'path';
 import { router } from './routes/router';
 import express, { Application } from 'express';
@@ -197,7 +199,17 @@ app.listen(process.env.PORT || 5000, async () => {
       .catch((error) => {
         console.error('Unable to connect to the database: ', error);
       });
+
+    // Sync database models (creates missing tables, alters existing ones)
+    await connection.sync({ alter: true });
+
+    // Initialize Elasticsearch index if it doesn't exist
+    await initializeElasticsearchIndex();
+
     console.log(`Database available. You can freely use this application`);
+
+    // Start the sync cron job after database is ready
+    startSyncCron();
   } catch (error) {
     console.error(error);
     process.exit(1);
