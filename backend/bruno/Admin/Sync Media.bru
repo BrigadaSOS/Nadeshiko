@@ -1,0 +1,28 @@
+meta {
+  name: Sync Media
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/management/media/sync/media
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}
+
+body:json {
+  {
+    "folder_name": "anime-name",
+    "force": false,
+    "type": "anime"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

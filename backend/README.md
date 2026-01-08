@@ -24,6 +24,10 @@ cp .env.example .env
 docker-compose up -d
 ```
 
+The following admin panels will also be available:
+- Kibana: `http://localhost:5601`
+- PGAdmin: `http://localhost:15400` (credentials are in docker-compose.yaml)
+
 ### 4. Install Dependencies
 ```bash
 npm install
@@ -43,18 +47,17 @@ npm run start
 
 The API will be available at `http://localhost:5000`
 
-### 6. Initial Data Setup
-After starting services, run these commands:
-
-1. Verify Elasticsearch indices are created by:
-- Checking Kibana at http://localhost:5601
-
-### 7. Testing
-To run tests:
+### 6. Initialize Database
+Before using the API, initialize the database with default admin user and API key:
 ```bash
-npm test
+curl --request GET --url http://localhost:5000/api/v1/admin/database/sync/full
 ```
 
-## Monitoring Tools
-- Kibana: `http://localhost:5601`
-- PGAdmin: `http://localhost:15400` (credentials in docker-compose.yaml)
+Default credentials:
+- **Admin:** admin@admin.com / admin
+- **API Key:** master-api-key (use `X-API-Key` header)
+
+### 7. Bruno Collection
+Import and use the [Bruno](https://www.usebruno.com/) collection from `/bruno` for API testing.
+```
+

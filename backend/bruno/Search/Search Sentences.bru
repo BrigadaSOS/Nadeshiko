@@ -1,0 +1,35 @@
+meta {
+  name: Search Sentences
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/search/media/sentence
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}
+
+body:json {
+  {
+    "query": "search query",
+    "limit": 10,
+    "min_length": 5,
+    "max_length": 100,
+    "anime_id": 1,
+    "content_sort": "asc",
+    "exact_match": false,
+    "status": [1],
+    "category": [1, 2, 3, 4],
+    "extra": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}
+
+body:json {
+  {
+    "email": "{{user_email}}",
+    "password": "{{user_password}}"
+  }
+}
+
+script:post-response {
+  // Extract JWT token from response
+  if (res.body && res.body.token) {
+    bru.setEnvVar("jwtToken", res.body.token);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
