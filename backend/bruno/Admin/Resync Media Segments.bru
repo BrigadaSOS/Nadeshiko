@@ -1,0 +1,24 @@
+meta {
+  name: Resync Media Segments
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/sync/media/1/segments
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}
+
+assertions {
+  response.status == 202
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
