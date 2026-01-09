@@ -1,0 +1,26 @@
+meta {
+  name: Create API Key
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/v1/user/createApiKey
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{jwtToken}}
+}
+
+body:json {
+  {
+    "name": "My API Key"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
