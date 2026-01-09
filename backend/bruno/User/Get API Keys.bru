@@ -1,0 +1,20 @@
+meta {
+  name: Get API Keys
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/v1/user/getApiKeys
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{jwtToken}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
