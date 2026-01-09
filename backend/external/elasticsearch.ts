@@ -400,7 +400,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     highlight: {
       fields: {
         content: {
-          matched_fields: ['content', 'content.readingform', 'content.baseform'],
+          matched_fields: ['content', 'content.kana', 'content.baseform'],
           type: 'fvh',
         },
         content_english: {
@@ -461,7 +461,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     highlight: {
       fields: {
         content: {
-          matched_fields: ['content', 'content.readingform', 'content.baseform'],
+          matched_fields: ['content', 'content.kana', 'content.baseform'],
           type: 'fvh',
         },
         content_english: {
@@ -805,10 +805,32 @@ const buildQueryWordsMatchedResponse = (
 };
 
 /**
+ * Detects if a query contains only ASCII letters/spaces (likely romaji or English).
+ * Used to boost the kana field for romaji input since it has romaji_to_kana conversion.
+ */
+const isLikelyRomaji = (text: string): boolean => {
+  return /^[a-zA-Z\s]+$/.test(text);
+};
+
+/**
+ * Detects if a query contains kanji characters.
+ * Used to exclude kana field from searches - kanji searches should match exact text,
+ * not pronunciation (which could return irrelevant homophones).
+ */
+const containsKanji = (text: string): boolean => {
+  return /[\u4E00-\u9FAF]/.test(text);
+};
+
+/**
  * Builds a multi-language search query that searches Japanese, English, and Spanish content.
  *
  * Uses dis_max to pick the best-matching language instead of adding scores together,
  * which prevents cross-language noise (e.g., an English match boosting a Japanese search).
+ *
+ * Japanese field priority:
+ * 1. content      (exact match)       - Highest priority for exact text matches
+ * 2. content.baseform (dictionary form) - Medium priority for conjugation matching
+ * 3. content.kana (pronunciation)     - Lower priority, but boosted for romaji input
  *
  * Supported query syntax (query_string):
  * - AND, OR, NOT operators: "cat AND dog", "cat OR dog", "cat NOT dog"
@@ -823,16 +845,44 @@ const buildQueryWordsMatchedResponse = (
  * @returns A dis_max query container with language-specific sub-queries
  */
 const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQueryContainer[] => {
+  // Japanese field priority: exact match > dictionary form > pronunciation
+  // For romaji input, prioritize English/Spanish (user likely searching for English words)
+  // For kanji input, exclude kana field to avoid irrelevant homophone matches
+  const isRomaji = isLikelyRomaji(query);
+  const hasKanji = containsKanji(query);
+
+  let japaneseFields: string[];
+  let englishBoost: number;
+  let spanishBoost: number;
+
+  if (isRomaji) {
+    // Romaji input: prioritize English/Spanish, Japanese kana as fallback
+    // "go" → likely English, "taberu" → no English match, falls back to Japanese
+    japaneseFields = ['content.kana^3', 'content^2', 'content.baseform^1'];
+    englishBoost = 10;
+    spanishBoost = 10;
+  } else if (hasKanji) {
+    // Kanji input: only exact match and baseform, NO kana (avoids homophone noise)
+    japaneseFields = ['content^10', 'content.baseform^5'];
+    englishBoost = 2;
+    spanishBoost = 2;
+  } else {
+    // Hiragana/katakana input: prioritize exact match, then baseform, then kana
+    japaneseFields = ['content^10', 'content.baseform^5', 'content.kana^3'];
+    englishBoost = 2;
+    spanishBoost = 2;
+  }
+
   const queryText = exact_match ? `"${query}"` : query;
 
-  // Build Japanese query
+  // Build Japanese query with script-aware field boosts
   const japaneseQuery: QueryDslQueryContainer = {
     query_string: {
       query: queryText,
       analyze_wildcard: true,
       allow_leading_wildcard: false,
       fuzzy_transpositions: false,
-      fields: ['content^10', 'content.readingform^5', 'content.baseform^2'],
+      fields: japaneseFields,
       default_operator: 'AND',
       quote_analyzer: 'ja_original_search_analyzer',
     },
@@ -847,7 +897,7 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
       fuzzy_transpositions: false,
       fields: exact_match
         ? ['content_english.exact']
-        : ['content_english^2', 'content_english.exact^1'],
+        : [`content_english^${englishBoost}`, `content_english.exact^${englishBoost / 2}`],
       default_operator: 'AND',
       quote_field_suffix: '.exact',
     },
@@ -862,7 +912,7 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
       fuzzy_transpositions: false,
       fields: exact_match
         ? ['content_spanish.exact']
-        : ['content_spanish^2', 'content_spanish.exact^1'],
+        : [`content_spanish^${spanishBoost}`, `content_spanish.exact^${spanishBoost / 2}`],
       default_operator: 'AND',
       quote_field_suffix: '.exact',
     },
