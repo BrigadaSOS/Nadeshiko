@@ -232,7 +232,16 @@
       "statusActive": "Active",
       "statusInactive": "Inactive",
       "options": "Options",
-      "deactivate": "Deactivate"
+      "deactivate": "Deactivate",
+      "unlimited": "Unlimited",
+      "createApiKeyModal": {
+        "title": "Create API Key",
+        "nameLabel": "Name",
+        "namePlaceholder": "Enter a name for this API key",
+        "permissionsLabel": "Permissions",
+        "cancel": "Cancel",
+        "create": "Create"
+      }
     },
     "account": {
       "infoTitle": "Information",
