@@ -2,7 +2,7 @@
 import { mdiCheckBold } from '@mdi/js'
 import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiVolumeHigh } from '@mdi/js'
 
-// Configuración de lenguaje
+// Language configuration
 import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 
@@ -108,7 +108,7 @@ watch(selectedModel, async (newValue, oldValue) => {
         fieldOptions.value = newFields
       }
     } catch (error) {
-      console.error('Error al cargar nombres de campos del modelo:', error)
+      console.error(t('accountSettings.anki.fieldLoadError'), error)
     }
   }
 })
