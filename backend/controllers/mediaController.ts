@@ -55,10 +55,11 @@ export const generateURLAudio = async (req: Request, res: Response, next: NextFu
     const filePathAPI = [getBaseUrlTmp(), randomFilename].join('/');
     const filePath = [tmpDirectory, randomFilename].join('/');
     if (fs.existsSync(filePath)) {
-      return res.status(StatusCodes.OK).json({
+      res.status(StatusCodes.OK).json({
         filename: randomFilename,
         url: filePathAPI,
       });
+      return;
     } else {
       // Caso contrario genera el archivo y vuelve a buscarlo
       await mergeAudioFiles(urls, randomFilename);
@@ -73,7 +74,7 @@ export const generateURLAudio = async (req: Request, res: Response, next: NextFu
       }
     }
   } catch (error) {
-    logger.error({ err: error, urls }, 'Audio URL generation failed');
+    logger.error({ err: error }, 'Audio URL generation failed');
     next(error);
   }
 };
@@ -104,7 +105,7 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const ffmpeg = spawn(ffmpegStatic, ffmpegArgs, { stdio: 'inherit' });
+      const ffmpeg = spawn(ffmpegStatic || 'ffmpeg', ffmpegArgs, { stdio: 'inherit' });
       ffmpeg.on('close', (code: number) => {
         if (code === 0) {
           logger.info({ outputFilePath, urlCount: urls.length }, 'Files merged successfully');
@@ -161,7 +162,7 @@ export const SearchAnimeSentences = async (
       );
     }
 
-    return res.status(StatusCodes.OK).json(response);
+    res.status(StatusCodes.OK).json(response);
   } catch (error) {
     next(error);
   }
@@ -193,7 +194,7 @@ export const SearchAnimeSentencesHealth = async (
       excluded_anime_ids: req.body.excluded_anime_ids || [],
     });
 
-    return res.status(StatusCodes.OK).json(response);
+    res.status(StatusCodes.OK).json(response);
   } catch (error) {
     next(error);
   }
@@ -207,7 +208,7 @@ export const GetContextAnime = async (
   try {
     const response = await querySurroundingSegments(req.body);
 
-    return res.status(StatusCodes.ACCEPTED).json(response);
+    res.status(StatusCodes.ACCEPTED).json(response);
   } catch (error) {
     next(error);
   }
@@ -222,7 +223,7 @@ export const GetWordsMatched = async (
     const { words, exact_match } = req.body;
 
     const response = await queryWordsMatched(words, exact_match);
-    return res.status(StatusCodes.OK).json(response);
+    res.status(StatusCodes.OK).json(response);
   } catch (error) {
     next(error);
   }
@@ -299,7 +300,7 @@ export const getAllMedia = async (
       hasMoreResults,
     };
 
-    return res.status(StatusCodes.OK).json(response);
+    res.status(StatusCodes.OK).json(response);
   } catch (error) {
     next(error);
   }
@@ -337,10 +338,10 @@ export const updateSegment = async (req: Request, res: Response, next: NextFunct
     await segment.save();
 
     // Responder al cliente
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       message: 'Segment updated successfully.',
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };

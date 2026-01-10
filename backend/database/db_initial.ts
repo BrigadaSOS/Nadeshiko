@@ -13,6 +13,7 @@ import { hashApiKey, generateApiKeyHint } from '../utils/utils';
 import bcrypt from 'bcrypt';
 import readline from 'readline';
 import fs from 'fs';
+import stream from 'stream';
 
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
@@ -35,7 +36,7 @@ export async function addBasicData(db: any) {
   const permissions = ['ADD_MEDIA', 'READ_MEDIA', 'REMOVE_MEDIA', 'UPDATE_MEDIA', 'RESYNC_DATABASE', 'CREATE_USER'];
 
   const salt: string = await bcrypt.genSalt(10);
-  const encryptedPassword: string = await bcrypt.hash(process.env.PASSWORD_API_NADEDB, salt);
+  const encryptedPassword: string = await bcrypt.hash(process.env.PASSWORD_API_NADEDB!, salt);
   const roles = [1];
   const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
@@ -106,7 +107,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
 
     if (dataJsonExists) {
       try {
-        const jsonString = fs.readFileSync(dataJsonPath);
+        const jsonString = fs.readFileSync(dataJsonPath, 'utf-8');
         media_raw = JSON.parse(jsonString);
       } catch (error) {
         logger.error({ err: error, dataJsonPath }, 'Error reading JSON file');
@@ -277,7 +278,7 @@ export async function readSpecificDirectory(
 
     if (dataJsonExists) {
       try {
-        const jsonString = fs.readFileSync(dataJsonPath);
+        const jsonString = fs.readFileSync(dataJsonPath, 'utf-8');
         media_raw = JSON.parse(jsonString);
       } catch (error) {
         logger.error({ err: error, dataJsonPath }, 'Error reading JSON file');

@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 
 export const hasPermissionAPI = (permissions: string[]) => {
-  return async (req: any, res: Response, next: NextFunction) => {
+  return async (req: any, res: Response, next: NextFunction): Promise<void> => {
     // We check for permission if API key is used
     if (req.user) {
       const userPermissions = req.user.apiAuth.permissions.map((permission: { name: string }) => permission.name);
@@ -13,9 +13,10 @@ export const hasPermissionAPI = (permissions: string[]) => {
         // Crear una cadena con los permisos que faltan para el mensaje de error
         const missingPermissionsString = missingPermissions.join(', ');
 
-        return res.status(403).json({
+        res.status(403).json({
           error: `Access forbidden: missing the following permissions: ${missingPermissionsString}.`,
         });
+        return;
       }
       return next();
     }
