@@ -5,12 +5,12 @@ properties:
     type: integer
     description: Unique identifier for the media
     example: 110316
-  id_anilist:
+  anilist_id:
     type: integer
     nullable: true
     description: AniList database ID for the media
     example: 21459
-  id_tmdb:
+  tmdb_id:
     type: integer
     nullable: true
     description: TMDB (The Movie Database) ID for the media

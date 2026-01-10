@@ -47,10 +47,6 @@ export type t_CreateApiKeyResponse = {
   message: string;
 };
 
-export type t_DatabaseSyncResponse = {
-  message: string;
-};
-
 export type t_DeactivateApiKeyResponse = {
   message: string;
 };
@@ -101,6 +97,7 @@ export type t_LogoutResponse = {
 export type t_MediaInfoData = {
   airing_format?: string;
   airing_status?: string;
+  anilist_id?: number | null;
   banner?: string;
   category?: number;
   cover?: string;
@@ -109,14 +106,13 @@ export type t_MediaInfoData = {
   folder_media_name?: string;
   genres?: string[];
   id: number;
-  id_anilist?: number | null;
-  id_tmdb?: number | null;
   japanese_name?: string;
   num_episodes?: number;
   num_seasons?: number;
   num_segments?: number;
   release_date?: string | null;
   romaji_name?: string;
+  tmdb_id?: number | null;
   updated_at?: number;
   version?: string;
 };
@@ -325,12 +321,4 @@ export type t_SearchRequestBodySchema = {
 export type t_SearchMultipleRequestBodySchema = {
   exact_match?: boolean;
   words: string[];
-};
-
-export type t_SyncSpecificMediaRequestBodySchema = {
-  episode?: number;
-  folder_name: string;
-  force?: boolean;
-  season?: number;
-  type: 'anime' | 'jdrama' | 'audiobook';
 };
