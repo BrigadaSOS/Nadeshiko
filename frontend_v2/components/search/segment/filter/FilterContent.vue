@@ -7,7 +7,20 @@ const route = useRoute();
 const props = defineProps(['searchData', 'categorySelected']);
 const statistics = ref([]);
 const querySearchMedia = ref('');
+const debouncedQuerySearchMedia = ref('');
 const categorySelected = ref(props.categorySelected);
+
+// Cache translated strings outside computed to avoid repeated lookups
+const allLabel = computed(() => t('searchpage.main.labels.all'));
+
+// Debounce implementation: update debounced value 300ms after input changes
+let debounceTimer = null;
+watch(querySearchMedia, (newValue) => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        debouncedQuerySearchMedia.value = newValue.toLowerCase();
+    }, 300);
+}, { immediate: true });
 
 watch(() => props.searchData, (newData) => {
     if (newData && newData.statistics) {
@@ -25,46 +38,54 @@ watch(() => props.categorySelected, (newCategory) => {
     }
 }, { immediate: true });
 
+// Pre-compute lowercase names once when statistics change
+const normalizedStatistics = computed(() => {
+    return statistics.value.map(item => ({
+        ...item,
+        name_anime_en_lower: item?.name_anime_en?.toLowerCase() || '',
+        name_anime_jp_lower: item?.name_anime_jp?.toLowerCase() || '',
+        name_anime_romaji_lower: item?.name_anime_romaji?.toLowerCase() || '',
+    }));
+});
+
 const filteredMedia = computed(() => {
     // Calculate total count for "All" from all statistics before filtering
-    const totalCount = statistics.value
+    const totalCount = normalizedStatistics.value
         .filter((item) => categorySelected.value === 0 || item.category === categorySelected.value)
         .reduce((a, b) => a + parseInt(b.amount_sentences_found || 0), 0);
 
-    const filteredItems = statistics.value.filter((item) => {
+    const filteredItems = normalizedStatistics.value.filter((item) => {
         const categoryFilter = categorySelected.value === 0 || item.category === categorySelected.value;
-        const nameFilterEnglish = item?.name_anime_en?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
-        const nameFilterJapanese = item?.name_anime_jp?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
-        const nameFilterRomaji = item?.name_anime_romaji?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
+        // Use pre-computed lowercase names and debounced search query
+        const nameFilterEnglish = item.name_anime_en_lower.includes(debouncedQuerySearchMedia.value);
+        const nameFilterJapanese = item.name_anime_jp_lower.includes(debouncedQuerySearchMedia.value);
+        const nameFilterRomaji = item.name_anime_romaji_lower.includes(debouncedQuerySearchMedia.value);
 
         return categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji);
     });
 
-    // Always add "All" option
-    filteredItems.unshift({
+    // Build "All" option separately to avoid sorting it
+    const allOption = {
         anime_id: 0,
-        name_anime_en: t('searchpage.main.labels.all'),
+        name_anime_en: allLabel.value,
         amount_sentences_found: totalCount
-    });
+    };
 
-    if (filteredItems.length === 1) {
-        return [{ name_anime_en: t('searchpage.main.labels.noresults') }];
+    if (filteredItems.length === 0) {
+        return [allOption];
     }
 
+    // Sort only the filtered items, then prepend "All"
     const sortedItems = filteredItems.sort((a, b) => {
-        const nameA = a.name_anime_en?.toLowerCase() || '';
-        const nameB = b.name_anime_en?.toLowerCase() || '';
-
-        // If "Todo" is present, it should always appear at the top (index -1)
-        if (nameA === t('searchpage.main.labels.all').toLowerCase()) return -1;
-        if (nameB === t('searchpage.main.labels.all').toLowerCase()) return 1;
+        const nameA = a.name_anime_en_lower;
+        const nameB = b.name_anime_en_lower;
 
         if (nameA < nameB) return -1;
         if (nameA > nameB) return 1;
         return 0;
     });
 
-    return sortedItems;
+    return [allOption, ...sortedItems];
 });
 
 const selectedMediaId = computed(() => {
@@ -110,9 +131,7 @@ const filterAnime = (anime_id, anime_name) => {
                         :class="{ 'bg-sgrayhover': (item.anime_id === 0 && selectedMediaId === null) || (item.anime_id === selectedMediaId) }"
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.name_anime_en }}</span>
-                        <span
-                            v-if="item.name_anime_en?.toLowerCase() !== t('searchpage.main.labels.noresults').toLowerCase()"
-                            class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
+                        <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
                             {{ item.amount_sentences_found }}
                         </span>
                     </button>
