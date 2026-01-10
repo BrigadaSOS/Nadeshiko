@@ -11,14 +11,15 @@ import { logger } from '../utils/log';
 import jwt from 'jsonwebtoken';
 export const maxAgeJWT: number = 3 * 24 * 60 * 60; // 3 days
 
-export const authenticate = (options: { jwt: boolean; apiKey: boolean }) => {
-  return (req: any, res: Response, next: NextFunction) => {
+export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
+  return (req: any, res: Response, next: NextFunction): void => {
     const apiKey = req.headers['x-api-key'];
     const authToken = req.headers.authorization;
     const allowedUrls = process.env.ALLOWED_WEBSITE_URLS?.split(',');
 
     if (!allowedUrls) {
-      return res.status(401).json({ error: 'No allowed URLs specified in the environment file.' });
+      res.status(401).json({ error: 'No allowed URLs specified in the environment file.' });
+      return;
     }
 
     const requestUrl = parse(req.headers.referer || '');
@@ -38,13 +39,15 @@ export const authenticate = (options: { jwt: boolean; apiKey: boolean }) => {
     if (!requestFromAllowedUrl) {
       if (options.jwt && authToken && authToken.startsWith('Bearer ')) {
         return isAuthJWT(req, res, next);
-      } else if (options.apiKey && apiKey) {
-        return isAuthenticatedAPI(req, res, next);
+      } else if (options.apiKey !== false && apiKey) {
+        void isAuthenticatedAPI(req, res, next);
+        return;
       } else {
         const missing = [];
         if (options.jwt) missing.push('JWT');
         if (options.apiKey) missing.push('API Key');
         res.status(401).json({ error: `Authentication required: ${missing.join(' or ')}` });
+        return;
       }
     } else {
       // Otherwise, skip authentication except for JWT
@@ -59,6 +62,10 @@ export const authenticate = (options: { jwt: boolean; apiKey: boolean }) => {
 
 export const isAuthJWT = (req: any, _: Response, next: NextFunction): void => {
   const token = extractTokenFromCookie(req);
+
+  if (!token) {
+    return next(new Authorized('JWT token missing'));
+  }
 
   try {
     const jwtSecretKey: string = getJwtSecretKey();
@@ -101,12 +108,13 @@ function handleErrorJWT(error: any, next: NextFunction): void {
   next(new Authorized('Token inválido...'));
 }
 
-async function isAuthenticatedAPI(req: any, res: Response, next: NextFunction) {
+async function isAuthenticatedAPI(req: any, res: Response, next: NextFunction): Promise<void> {
   const apiKey = req.headers['x-api-key'];
   req.apiKey = apiKey;
 
   if (!apiKey) {
-    return res.status(401).json({ error: 'No API key was provided.' });
+    res.status(401).json({ error: 'No API key was provided.' });
+    return;
   }
 
   const hashedKey = hashApiKey(apiKey);
@@ -128,7 +136,8 @@ async function isAuthenticatedAPI(req: any, res: Response, next: NextFunction) {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid API key.' });
+      res.status(401).json({ error: 'Invalid API key.' });
+      return;
     } else {
       if (!req.user) {
         req.user = user;
