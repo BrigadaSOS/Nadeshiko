@@ -1,0 +1,36 @@
+get:
+  tags:
+    - Media
+  operationId: segmentShowByUuid
+  summary: Get segment by UUID
+  description: |
+    Get a specific segment by its UUID
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: uuid
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Segment UUID
+      example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Segment.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

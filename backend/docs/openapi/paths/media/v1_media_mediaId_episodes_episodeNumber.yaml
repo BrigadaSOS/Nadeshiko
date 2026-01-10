@@ -1,0 +1,130 @@
+get:
+  operationId: episodeShow
+  tags:
+    - Media
+  summary: Get single episode
+  description: |
+    Get a specific episode by media ID and episode number
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+    - name: episodeNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Episode number
+      example: 1
+  responses:
+    "200":
+      $ref: "../../components/responses/EpisodeResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  tags:
+    - Media
+  operationId: episodeUpdate
+  x-internal: true
+  summary: Update episode
+  description: |
+    Update an existing episode with partial data
+
+  security:
+    - apiKeyHeader: [UPDATE_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+    - name: episodeNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Episode number
+      example: 1
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/EpisodeUpdateRequest.yaml"
+  responses:
+    "200":
+      $ref: "../../components/responses/EpisodeResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Media
+  operationId: episodeDestroy
+  x-internal: true
+  summary: Delete an episode
+  description: |
+    Soft delete an episode. Segments are not cascade deleted, this only "hides" the episode.
+
+  security:
+    - apiKeyHeader: [REMOVE_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+    - name: episodeNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Episode number
+      example: 1
+  responses:
+    "204":
+      description: Episode successfully deleted
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

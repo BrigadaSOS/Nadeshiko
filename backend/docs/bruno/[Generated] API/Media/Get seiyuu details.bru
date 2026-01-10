@@ -1,0 +1,19 @@
+meta {
+  name: Get seiyuu details
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/v1/media/seiyuu/:id
+  body: none
+}
+
+params:query {
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

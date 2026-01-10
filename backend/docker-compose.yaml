@@ -1,35 +1,33 @@
 services:
-  pgroonga:
-    image: groonga/pgroonga:latest
+  postgres:
+    container_name: nadeshiko-postgres
+    image: postgres:17
     environment:
-      POSTGRES_DB: ${PG_DATABASE}
-      POSTGRES_USER: ${PG_USER}
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
-    command: postgres -c wal_level=logical -c max_replication_slots=10 -c max_slot_wal_keep_size=5GB
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - local_pgdata:/var/lib/postgresql/data
+      - nadeshiko_db:/var/lib/postgresql/data
     ports:
-      - ${PG_PORT}:5432
-    networks:
-      - nadedb-network
+      - ${POSTGRES_PORT}:5432
 
   pgadmin:
     image: dpage/pgadmin4:latest
+    container_name: nadeshiko-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@pgadmin.com
-      PGADMIN_DEFAULT_PASSWORD: password
+      PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_LISTEN_PORT: 80
     volumes:
-      - pgadmin-data:/var/lib/pgadmin
+      - nadeshiko_pgadmin:/var/lib/pgadmin
     ports:
       - 15400:80
-    networks:
-      - nadedb-network
     depends_on:
-      - pgroonga
+      - postgres
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.4
+    container_name: nadeshiko-elasticsearch
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
@@ -50,77 +48,27 @@ services:
         ./bin/elasticsearch
       '
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-      - elasticsearch_config:/usr/share/elasticsearch/config
-      - elasticsearch_plugins:/usr/share/elasticsearch/plugins
-
-    networks:
-      - nadedb-network
-
-  redis:
-    image: redis
-    command: redis-server --requirepass nadeshiko
-    ports:
-      - 6379:6379
-    networks:
-      - nadedb-network
+      - nadeshiko_elasticsearch_data:/usr/share/elasticsearch/data
+      - nadeshiko_elasticsearch_config:/usr/share/elasticsearch/config
+      - nadeshiko_elasticsearch_plugins:/usr/share/elasticsearch/plugins
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.8.2
+    image: docker.elastic.co/kibana/kibana:9.2.4
+    container_name: nadeshiko-kibana
     ports:
       - 5601:5601
     volumes:
-      - kibana_data:/usr/share/kibana/config
+      - nadeshiko_kibana_data:/usr/share/kibana/config
     environment:
       ELASTICSEARCH_URL: "http://elasticsearch:9200/"
-    networks:
-      - nadedb-network
     restart: always
     depends_on:
       - elasticsearch
 
-  pgsync:
-    image: natsume197/pgsync:3.2.1
-    networks:
-      - nadedb-network
-    depends_on:
-      - pgroonga
-      - redis
-      - elasticsearch
-    volumes:
-      - ./config/pgsync:/code/pgsync
-    command: >
-      bash -c '
-        /bin/sleep 5
-        chmod 777 -R /code
-        /code/pgsync/runserver.sh'
-    restart: unless-stopped
-    labels:
-      org.label-schema.name: "pgsync"
-      org.label-schema.description: "Postgres to Elasticsearch sync"
-      com.label-schema.service-type: "daemon"
-    environment:
-      PG_USER: ${PG_USER}
-      PG_PASSWORD: ${PG_PASSWORD}
-      PG_HOST: pgroonga
-      PG_PORT: ${PG_PORT}
-      LOG_LEVEL: INFO
-      ELASTICSEARCH_PORT: 9200
-      ELASTICSEARCH_SCHEME: http
-      ELASTICSEARCH_HOST: elasticsearch
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_AUTH: nadeshiko
-      ELASTICSEARCH: true
-      OPENSEARCH: false
-
-networks:
-  nadedb-network:
-
 volumes:
-  local_pgdata:
-  pgadmin-data:
-  elasticsearch_data:
-  elasticsearch_config:
-  elasticsearch_plugins:
-  kibana_data:
+  nadeshiko_db:
+  nadeshiko_pgadmin:
+  nadeshiko_elasticsearch_data:
+  nadeshiko_elasticsearch_config:
+  nadeshiko_elasticsearch_plugins:
+  nadeshiko_kibana_data:

@@ -1,0 +1,15 @@
+meta {
+  name: Health check for search
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/search/health
+  body: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Revoke a single session
+  type: http
+  seq: 49
+}
+
+post {
+  url: {{baseUrl}}/api/auth/revoke-session
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

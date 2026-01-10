@@ -1,14 +1,10 @@
 # Reusable component for media category field
-type: integer
-description: Media category type (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
-enum: [1, 2, 3, 4]
-example: 1
+type: string
+description: Media category type
+enum: [ANIME, JDRAMA]
+example: "ANIME"
 x-enum-descriptions:
-  - value: 1
+  - value: ANIME
     description: Anime
-  - value: 2
-    description: Unknown
-  - value: 3
-    description: J-Drama
-  - value: 4
-    description: Audiobook
+  - value: JDRAMA
+    description: Japanese Drama

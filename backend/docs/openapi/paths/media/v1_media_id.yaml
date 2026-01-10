@@ -1,0 +1,128 @@
+get:
+  tags:
+    - Media
+  operationId: mediaShow
+  summary: Get single media
+  description: |
+    Retrieves a single media entry by its ID.
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Media ID
+      schema:
+        type: integer
+        example: 7674
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/MediaResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  tags:
+    - Media
+  operationId: mediaUpdate
+  x-internal: true
+  summary: Update media
+  description: |
+    Updates an existing media entry. All fields are optional - only provided fields will be updated.
+
+  security:
+    - apiKeyHeader: [UPDATE_MEDIA]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Media ID
+      schema:
+        type: integer
+        example: 7674
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/MediaUpdateRequest.yaml"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/MediaResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Media
+  operationId: mediaDestroy
+  x-internal: true
+  summary: Delete media (soft delete)
+  description: |
+    Soft deletes a media entry by setting the `deletedAt` timestamp. The media is not removed from the database but is excluded from query results.
+
+  security:
+    - apiKeyHeader: [REMOVE_MEDIA]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Media ID
+      schema:
+        type: integer
+        example: 7674
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Media deleted successfully"
+              id:
+                type: integer
+                example: 7674
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

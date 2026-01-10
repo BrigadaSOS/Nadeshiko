@@ -1,0 +1,20 @@
+meta {
+  name: Delete an episode
+  type: http
+  seq: 15
+}
+
+delete {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber
+  body: none
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

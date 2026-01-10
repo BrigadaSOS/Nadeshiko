@@ -12,44 +12,20 @@ import {
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
 import { type NextFunction, type Request, type Response, Router } from 'express';
-import type { t_DatabaseSyncResponse, t_Error, t_SyncSpecificMediaRequestBodySchema } from '../models.ts';
-import type { SyncSpecificMediaRequestOutput } from '../outputTypes.ts';
-import { s_DatabaseSyncResponse, s_Error, s_SyncSpecificMediaRequest } from '../schemas.ts';
+import { z } from 'zod/v3';
+import type {
+  t_Error,
+  t_GetFailedJobsParamSchema,
+  t_GetQueueDetailsParamSchema,
+  t_PurgeFailedJobsParamSchema,
+  t_ReindexElasticsearchRequestBodySchema,
+  t_ReindexResponse,
+  t_RetryQueueJobsParamSchema,
+} from '../models.ts';
+import { PermissiveBoolean, s_Error, s_ReindexRequest, s_ReindexResponse } from '../schemas.ts';
 
-export type ReSyncDatabaseResponder = {
-  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
-
-export type ReSyncDatabase = (
-  params: Params<void, void, void, void>,
-  respond: ReSyncDatabaseResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ReSyncDatabasePartialResponder = {
-  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
-
-export type ReSyncDatabasePartial = (
-  params: Params<void, void, void, void>,
-  respond: ReSyncDatabasePartialResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type SyncSpecificMediaResponder = {
-  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>;
+export type ReindexElasticsearchResponder = {
+  with200(): ExpressRuntimeResponse<t_ReindexResponse>;
   with400(): ExpressRuntimeResponse<t_Error>;
   with401(): ExpressRuntimeResponse<t_Error>;
   with403(): ExpressRuntimeResponse<t_Error>;
@@ -57,158 +33,146 @@ export type SyncSpecificMediaResponder = {
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
 
-export type SyncSpecificMedia = (
-  params: Params<void, void, SyncSpecificMediaRequestOutput, void>,
-  respond: SyncSpecificMediaResponder,
+export type ReindexElasticsearch = (
+  params: Params<void, void, t_ReindexElasticsearchRequestBodySchema | undefined, void>,
+  respond: ReindexElasticsearchResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetQueueStatsResponder = {
+  with200(): ExpressRuntimeResponse<
+    {
+      failedCount?: number;
+      queue?: string;
+      stuckCount?: number;
+    }[]
+  >;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetQueueStats = (
+  params: Params<void, void, void, void>,
+  respond: GetQueueStatsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetQueueDetailsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    cancelled?: number;
+    complete?: number;
+    created?: number;
+    expired?: number;
+    failed?: number;
+    queue?: string;
+    size?: number;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetQueueDetails = (
+  params: Params<t_GetQueueDetailsParamSchema, void, void, void>,
+  respond: GetQueueDetailsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetFailedJobsResponder = {
+  with200(): ExpressRuntimeResponse<
+    {
+      createdOn?: string;
+      error?: string | null;
+      id?: string;
+      segmentId?: number;
+    }[]
+  >;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetFailedJobs = (
+  params: Params<t_GetFailedJobsParamSchema, void, void, void>,
+  respond: GetFailedJobsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type RetryQueueJobsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    message?: string;
+    retriedCount?: number;
+    success?: boolean;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type RetryQueueJobs = (
+  params: Params<t_RetryQueueJobsParamSchema, void, void, void>,
+  respond: RetryQueueJobsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type PurgeFailedJobsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    message?: string;
+    purgedCount?: number;
+    success?: boolean;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type PurgeFailedJobs = (
+  params: Params<t_PurgeFailedJobsParamSchema, void, void, void>,
+  respond: PurgeFailedJobsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AdminImplementation = {
-  reSyncDatabase: ReSyncDatabase;
-  reSyncDatabasePartial: ReSyncDatabasePartial;
-  syncSpecificMedia: SyncSpecificMedia;
+  reindexElasticsearch: ReindexElasticsearch;
+  getQueueStats: GetQueueStats;
+  getQueueDetails: GetQueueDetails;
+  getFailedJobs: GetFailedJobs;
+  retryQueueJobs: RetryQueueJobs;
+  purgeFailedJobs: PurgeFailedJobs;
 };
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
   const router = Router();
 
-  const reSyncDatabaseResponseBodyValidator = responseValidationFactory(
+  const reindexElasticsearchRequestBodySchema = s_ReindexRequest.optional();
+
+  const reindexElasticsearchResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_DatabaseSyncResponse],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
-    ],
-    undefined,
-  );
-
-  // reSyncDatabase
-  router.post(`/v1/admin/database/sync/full`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.reSyncDatabase(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(reSyncDatabaseResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const reSyncDatabasePartialResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_DatabaseSyncResponse],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
-    ],
-    undefined,
-  );
-
-  // reSyncDatabasePartial
-  router.post(`/v1/admin/database/sync/partial`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.reSyncDatabasePartial(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(reSyncDatabasePartialResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const syncSpecificMediaRequestBodySchema = s_SyncSpecificMediaRequest;
-
-  const syncSpecificMediaResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_DatabaseSyncResponse],
+      ['200', s_ReindexResponse],
       ['400', s_Error],
       ['401', s_Error],
       ['403', s_Error],
@@ -218,19 +182,19 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     undefined,
   );
 
-  // syncSpecificMedia
-  router.post(`/v1/management/media/sync/media`, async (req: Request, res: Response, next: NextFunction) => {
+  // reindexElasticsearch
+  router.post(`/v1/admin/reindex`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(syncSpecificMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(reindexElasticsearchRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200);
+          return new ExpressRuntimeResponse<t_ReindexResponse>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error>(400);
@@ -252,7 +216,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.syncSpecificMedia(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.reindexElasticsearch(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -266,7 +230,445 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(syncSpecificMediaResponseBodyValidator(status, body));
+        res.json(reindexElasticsearchResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getQueueStatsResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.array(
+          z.object({
+            queue: z.string().optional(),
+            stuckCount: z.coerce.number().optional(),
+            failedCount: z.coerce.number().optional(),
+          }),
+        ),
+      ],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getQueueStats
+  router.get(`/v1/admin/queues/stats`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<
+            {
+              failedCount?: number;
+              queue?: string;
+              stuckCount?: number;
+            }[]
+          >(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getQueueStats(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getQueueStatsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getQueueDetailsParamSchema = z.object({
+    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
+  });
+
+  const getQueueDetailsResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          queue: z.string().optional(),
+          size: z.coerce.number().optional(),
+          created: z.coerce.number().optional(),
+          failed: z.coerce.number().optional(),
+          complete: z.coerce.number().optional(),
+          expired: z.coerce.number().optional(),
+          cancelled: z.coerce.number().optional(),
+        }),
+      ],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getQueueDetails
+  router.get(`/v1/admin/queues/:queueName`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(getQueueDetailsParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            cancelled?: number;
+            complete?: number;
+            created?: number;
+            expired?: number;
+            failed?: number;
+            queue?: string;
+            size?: number;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getQueueDetails(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getQueueDetailsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getFailedJobsParamSchema = z.object({
+    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
+  });
+
+  const getFailedJobsResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.array(
+          z.object({
+            id: z.string().optional(),
+            segmentId: z.coerce.number().optional(),
+            error: z.string().nullable().optional(),
+            createdOn: z.string().datetime({ offset: true }).optional(),
+          }),
+        ),
+      ],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getFailedJobs
+  router.get(`/v1/admin/queues/:queueName/failed`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(getFailedJobsParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<
+            {
+              createdOn?: string;
+              error?: string | null;
+              id?: string;
+              segmentId?: number;
+            }[]
+          >(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getFailedJobs(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getFailedJobsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const retryQueueJobsParamSchema = z.object({
+    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
+  });
+
+  const retryQueueJobsResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          success: PermissiveBoolean.optional(),
+          retriedCount: z.coerce.number().optional(),
+          message: z.string().optional(),
+        }),
+      ],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // retryQueueJobs
+  router.post(`/v1/admin/queues/:queueName/retry`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(retryQueueJobsParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            message?: string;
+            retriedCount?: number;
+            success?: boolean;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.retryQueueJobs(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(retryQueueJobsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const purgeFailedJobsParamSchema = z.object({
+    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
+  });
+
+  const purgeFailedJobsResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          success: PermissiveBoolean.optional(),
+          purgedCount: z.coerce.number().optional(),
+          message: z.string().optional(),
+        }),
+      ],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // purgeFailedJobs
+  router.delete(`/v1/admin/queues/:queueName/purge`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(purgeFailedJobsParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            message?: string;
+            purgedCount?: number;
+            success?: boolean;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.purgeFailedJobs(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(purgeFailedJobsResponseBodyValidator(status, body));
       } else {
         res.end();
       }

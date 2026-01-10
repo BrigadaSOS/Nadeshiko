@@ -1,0 +1,16 @@
+meta {
+  name: Displays an error page
+  type: http
+  seq: 44
+}
+
+get {
+  url: {{baseUrl}}/api/auth/error
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

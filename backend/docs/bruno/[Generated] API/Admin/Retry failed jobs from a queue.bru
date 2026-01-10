@@ -1,0 +1,19 @@
+meta {
+  name: Retry failed jobs from a queue
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/queues/:queueName/retry
+  body: none
+}
+
+params:query {
+  queueName:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

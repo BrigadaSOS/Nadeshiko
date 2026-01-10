@@ -1,0 +1,19 @@
+meta {
+  name: Get failed jobs from a queue
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/queues/:queueName/failed
+  body: none
+}
+
+params:query {
+  queueName:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

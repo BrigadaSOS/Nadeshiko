@@ -1,0 +1,92 @@
+get:
+  operationId: episodeIndex
+  tags:
+    - Media
+  summary: List episodes for a media
+  description: |
+    Get a paginated list of episodes for a specific media
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+    - name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 100
+      description: Maximum number of episodes to return
+      example: 50
+    - name: cursor
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 0
+      description: Episode number to start from (for pagination)
+      example: 10
+  responses:
+    "200":
+      $ref: "../../components/responses/EpisodeListResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+post:
+  operationId: episodeCreate
+  x-internal: true
+  tags:
+    - Media
+  summary: Create new episode
+  description: |
+    Create a new episode for a specific media
+
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/EpisodeCreateRequest.yaml"
+  responses:
+    "201":
+      $ref: "../../components/responses/EpisodeResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

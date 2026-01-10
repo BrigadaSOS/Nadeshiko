@@ -1,0 +1,15 @@
+type: object
+required:
+  - data
+  - hasMoreResults
+properties:
+  data:
+    type: array
+    items:
+      $ref: "../schemas/Media.yaml"
+  cursor:
+    type: integer
+    description: Next cursor for pagination (undefined if no more results)
+  hasMoreResults:
+    type: boolean
+    description: Whether more results are available

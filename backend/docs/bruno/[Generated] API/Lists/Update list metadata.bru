@@ -1,0 +1,26 @@
+meta {
+  name: Update list metadata
+  type: http
+  seq: 27
+}
+
+patch {
+  url: {{baseUrl}}/v1/lists/:id
+  body: json
+}
+
+params:query {
+  id:
+}
+
+body:json {
+  {
+    "name": "",
+    "visibility": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

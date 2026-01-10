@@ -1,0 +1,13 @@
+export enum ApiPermission {
+  // Media permissions
+  ADD_MEDIA = 'ADD_MEDIA',
+  READ_MEDIA = 'READ_MEDIA',
+  UPDATE_MEDIA = 'UPDATE_MEDIA',
+  REMOVE_MEDIA = 'REMOVE_MEDIA',
+
+  // List permissions
+  READ_LISTS = 'READ_LISTS',
+  CREATE_LISTS = 'CREATE_LISTS',
+  UPDATE_LISTS = 'UPDATE_LISTS',
+  DELETE_LISTS = 'DELETE_LISTS',
+}

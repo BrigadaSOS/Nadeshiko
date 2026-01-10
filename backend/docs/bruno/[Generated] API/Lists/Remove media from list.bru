@@ -1,0 +1,20 @@
+meta {
+  name: Remove media from list
+  type: http
+  seq: 31
+}
+
+delete {
+  url: {{baseUrl}}/v1/lists/:id/items/:mediaId
+  body: none
+}
+
+params:query {
+  id:
+  mediaId:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

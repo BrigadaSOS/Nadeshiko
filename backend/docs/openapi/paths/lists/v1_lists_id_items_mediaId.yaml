@@ -1,0 +1,112 @@
+patch:
+  tags:
+    - Lists
+  operationId: listUpdateItem
+  x-internal: true
+  summary: Update media position in list
+  description: |
+    Updates the position of a media entry within the list. Requires admin permissions.
+
+  security:
+    - apiKeyHeader: [UPDATE_LISTS]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: List ID
+      schema:
+        type: integer
+        example: 123
+    - name: mediaId
+      in: path
+      required: true
+      description: Media ID
+      schema:
+        type: integer
+        example: 7674
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - position
+          properties:
+            position:
+              type: integer
+              example: 2
+              description: New position in the list (1-indexed)
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Position updated"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Lists
+  operationId: listRemoveItem
+  x-internal: true
+  summary: Remove media from list
+  description: |
+    Removes a media entry from the list. Requires admin permissions.
+
+  security:
+    - apiKeyHeader: [UPDATE_LISTS]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: List ID
+      schema:
+        type: integer
+        example: 123
+    - name: mediaId
+      in: path
+      required: true
+      description: Media ID
+      schema:
+        type: integer
+        example: 7674
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Media removed from list"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

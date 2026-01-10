@@ -1,0 +1,91 @@
+get:
+  tags:
+    - Lists
+  operationId: listIndex
+  summary: List all lists
+  description: |
+    Returns all lists matching the query filters. Can filter by media ID to find lists containing a specific media. Public lists are visible to all users.
+
+  security:
+    - apiKeyHeader: [READ_LISTS]
+  parameters:
+    - name: visibility
+      in: query
+      description: Filter by visibility
+      schema:
+        type: string
+        enum: [public, private]
+        example: public
+    - name: type
+      in: query
+      description: Filter by list type
+      schema:
+        type: string
+        enum: [SERIES, CUSTOM]
+        example: SERIES
+    - name: userId
+      in: query
+      description: Filter by list owner user ID
+      schema:
+        type: integer
+        example: 1
+    - name: mediaId
+      in: query
+      description: Filter lists containing this media ID
+      schema:
+        type: integer
+        example: 12345
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../components/schemas/List.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+post:
+  tags:
+    - Lists
+  operationId: listCreate
+  x-internal: true
+  summary: Create new list
+  description: |
+    Creates a new standalone list. Requires admin permissions.
+
+  security:
+    - apiKeyHeader: [CREATE_LISTS]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/ListCreateRequest.yaml"
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/List.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

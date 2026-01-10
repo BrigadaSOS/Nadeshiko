@@ -1,0 +1,23 @@
+meta {
+  name: Delete an existing API key
+  type: http
+  seq: 39
+}
+
+post {
+  url: {{baseUrl}}/api/auth/api-key/delete
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Create a new API key for a user
+  type: http
+  seq: 38
+}
+
+post {
+  url: {{baseUrl}}/api/auth/api-key/create
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

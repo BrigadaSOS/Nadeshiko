@@ -3,3 +3,8 @@ content:
   application/json:
     schema:
       $ref: "../schemas/Error.yaml"
+    examples:
+      ValidationFailed:
+        $ref: "../../components/examples/ValidationFailed.yaml"
+      InvalidJson:
+        $ref: "../../components/examples/InvalidJson.yaml"

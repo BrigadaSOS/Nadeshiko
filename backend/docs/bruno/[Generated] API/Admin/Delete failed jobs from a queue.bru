@@ -1,0 +1,19 @@
+meta {
+  name: Delete failed jobs from a queue
+  type: http
+  seq: 37
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/queues/:queueName/purge
+  body: none
+}
+
+params:query {
+  queueName:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

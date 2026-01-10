@@ -1,0 +1,53 @@
+post:
+  tags:
+    - Admin
+  operationId: retryQueueJobs
+  summary: Retry failed jobs from a queue
+  description: |
+    Retry all failed jobs from a specific queue.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+    **Use cases:**
+    - Retry jobs that failed due to temporary Elasticsearch issues
+    - Recover from network blips
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: queueName
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [es-sync-create, es-sync-update, es-sync-delete]
+      description: The name of the queue
+      example: "es-sync-create"
+  responses:
+    "200":
+      description: Jobs queued for retry
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              retriedCount:
+                type: integer
+                description: Number of jobs queued for retry
+                example: 5
+              message:
+                type: string
+                example: "Retried 5 failed jobs from es-sync-create"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

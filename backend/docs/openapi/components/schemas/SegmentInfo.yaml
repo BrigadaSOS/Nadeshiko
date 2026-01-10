@@ -4,12 +4,12 @@ required:
   - status
   - uuid
   - position
-  - start_time
-  - end_time
-  - content_jp
-  - content_en_mt
-  - content_es_mt
-  - is_nsfw
+  - startTime
+  - endTime
+  - contentJp
+  - contentEnMt
+  - contentEsMt
+  - isNsfw
 properties:
   status:
     type: integer
@@ -24,59 +24,59 @@ properties:
     type: integer
     description: Position of the segment within the episode
     example: 1133
-  start_time:
+  startTime:
     type: string
     description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment starts
     example: "0:33:27.255000"
-  end_time:
+  endTime:
     type: string
     description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment ends
     example: "0:33:28.464000"
-  content_jp:
+  contentJp:
     type: string
     description: Original Japanese content of the segment
     example: "僕は僕で、君は君だ。"
-  content_jp_highlight:
+  contentJpHighlight:
     type: string
     description: Japanese content with search terms highlighted
     example: "<em>僕</em>は<em>僕</em>で、<em>君</em>は<em>君</em>だ。"
-  content_en:
+  contentEn:
     type: string
     description: English translation of the segment content
     example: "I am me, and you are you."
-  content_en_highlight:
+  contentEnHighlight:
     type: string
     description: English content with search terms highlighted
     example: "<em>I</em> am <em>me</em>, and <em>you</em> are <em>you</em>."
-  content_en_mt:
+  contentEnMt:
     type: boolean
     description: Indicates whether the English translation was machine-translated
     example: false
-  content_es:
+  contentEs:
     type: string
     description: Spanish translation of the segment content
     example: "Yo soy yo, y tú eres tú."
-  content_es_highlight:
+  contentEsHighlight:
     type: string
     description: Spanish content with search terms highlighted
     example: "<em>Yo</em> soy <em>yo</em>, y <em>tú</em> eres <em>tú</em>."
-  content_es_mt:
+  contentEsMt:
     type: boolean
     description: Indicates whether the Spanish translation was machine-translated
     example: false
-  is_nsfw:
+  isNsfw:
     type: boolean
     description: Indicates whether the segment contains NSFW (Not Safe For Work) content
     example: false
-  actor_ja:
+  actorJa:
     type: string
     description: Name of the Japanese voice actor for this segment
     example: "Mamoru Miyano"
-  actor_en:
+  actorEn:
     type: string
     description: Name of the English voice actor for this segment
     example: "J. Michael Tatum"
-  actor_es:
+  actorEs:
     type: string
     description: Name of the Spanish voice actor for this segment
     example: "Alejandro Levis"

@@ -1,9 +1,0 @@
-type: object
-description: Database Sync Response
-required:
-  - message
-properties:
-  message:
-    type: string
-    description: Status message
-    example: "Database re-synced"

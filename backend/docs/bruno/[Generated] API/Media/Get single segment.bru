@@ -1,0 +1,21 @@
+meta {
+  name: Get single segment
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id
+  body: none
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

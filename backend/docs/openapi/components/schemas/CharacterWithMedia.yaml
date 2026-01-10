@@ -1,0 +1,42 @@
+type: object
+description: Character with all media appearances
+required:
+  - id
+  - nameJapanese
+  - nameEnglish
+  - imageUrl
+  - seiyuu
+  - mediaAppearances
+properties:
+  id:
+    type: integer
+    description: AniList character ID
+    example: 14545
+  nameJapanese:
+    type: string
+    description: Japanese name of the character
+    example: "真城最高"
+  nameEnglish:
+    type: string
+    description: English name of the character
+    example: "Moritaka Mashiro"
+  imageUrl:
+    type: string
+    format: uri
+    description: Character image URL
+    example: "https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg"
+  seiyuu:
+    $ref: "./Seiyuu.yaml"
+  mediaAppearances:
+    type: array
+    description: All media this character appears in
+    items:
+      type: object
+      properties:
+        media:
+          $ref: "./Media.yaml"
+        role:
+          type: string
+          enum: [MAIN, SUPPORTING, BACKGROUND]
+          description: Character role in this media
+          example: MAIN
