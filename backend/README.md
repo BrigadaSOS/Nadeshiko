@@ -8,39 +8,28 @@
 - npm
 - Docker and Docker Compose
 
-### 1. Clone the Repository
+### Quick Start
 
-```bash
-git clone https://github.com/your-repo/nadedb.git
-cd nadedb/backend
-```
-
-### 2. Setup Environment Variables
-
-Copy the example env file and update the values:
-
-```bash
-cp .env.example .env
-```
-
-### 3. Start Services with Docker
+First run the dependencies from docker-compose:
 
 ```bash
 docker-compose up -d
 ```
 
-The following admin panels will also be available:
-
-- Kibana: `http://localhost:5601`
-- PGAdmin: `http://localhost:15400` (credentials are in docker-compose.yaml)
-
-### 4. Install Dependencies
+Then, run the setup script to configure everything else:
 
 ```bash
-npm install
+cd backend
+npm run setup
 ```
 
-### 5. Run the Application
+This will:
+
+- Copy `.env.example` to `.env` if needed
+- Install npm dependencies
+- Initialize the database with default admin user
+
+## Running the Application
 
 For development (hot reloading):
 
@@ -57,25 +46,7 @@ npm run start
 
 The API will be available at `http://localhost:5000`
 
-### 6. Initialize Database
-
-Before using the API, initialize the database with default admin user and API
-key:
-
-```bash
-curl --request GET --url http://localhost:5000/api/v1/admin/database/sync/full
-```
-
-Default credentials:
-
-- **Admin:** admin@admin.com / admin
-- **API Key:** master-api-key (use `X-API-Key` header)
-
-### 7. Bruno Collection
+## Bruno Collection
 
 Import and use the [Bruno](https://www.usebruno.com/) collection from `/bruno`
-for API testing.
-
-```
-
-```
+for easy testing of the API endpoints.
