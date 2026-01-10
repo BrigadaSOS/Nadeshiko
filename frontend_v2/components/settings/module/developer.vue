@@ -291,9 +291,9 @@ onMounted(async () => {
                                         d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                                 </svg>
                             </div>
-                            <h1 class="mt-3 text-lg text-gray-800 dark:text-white">No se han encontrado llaves API</h1>
+                            <h1 class="mt-3 text-lg text-gray-800 dark:text-white">{{ $t('accountSettings.developer.noKeysFound') }}</h1>
                             <p class="mt-2 text-gray-500 dark:text-gray-400">
-                                ¡Crea una nueva para tus aplicaciones o proyectos!
+                                {{ $t('accountSettings.developer.noKeysMessage') }}
                             </p>
                         </div>
                     </div>

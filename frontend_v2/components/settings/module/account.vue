@@ -1,6 +1,6 @@
 <script setup>
 
-// Configuración de lenguaje
+// Language configuration
 import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 
@@ -18,7 +18,7 @@ const getUserInfo = async () => {
     dataUser.value = userInfo
     error.value = null
   } catch (e) {
-    error.value = 'Failed to load user data'
+    error.value = t('accountSettings.account.dataLoadError')
     console.error(e)
   } finally {
     isLoading.value = false
@@ -95,7 +95,7 @@ onMounted(async () => {
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
-          class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-2 px-4 rounded">Eliminar</button>
+          class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-2 px-4 rounded">{{ t('accountSettings.developer.deactivate') }}</button>
       </div>
     </div>
   </div>

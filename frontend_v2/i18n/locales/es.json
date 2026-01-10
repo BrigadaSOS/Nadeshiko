@@ -94,7 +94,19 @@
     "japaneseName": "Nombre en Japonés",
     "seasons": "Temporadas",
     "episodes": "Episodios",
-    "genres": "Géneros"
+    "genres": "Géneros",
+    "sentenceCountLabel": "Cantidad de Oraciones:",
+    "wordCountLabel": "Cantidad de Palabras:",
+    "uniqueWordsLabel": "Palabras Únicas:",
+    "uniqueKanjiLabel": "Kanjis Únicos:",
+    "uniqueWordsOnceLabel": "Palabras Únicas (usadas una vez):",
+    "lexicalDiversityLabel": "Índice de Diversidad Léxica:",
+    "anilistScoreLabel": "Puntaje Anilist:",
+    "difficultyLabel": "Dificultad:",
+    "anilistButton": "Anilist",
+    "vocabularyButton": "Vocabulario",
+    "previousPage": "Página Anterior",
+    "nextPage": "Página Siguiente"
   },
   "searchSettingsModal": {
     "title": "Ajustes del buscador",
@@ -135,6 +147,29 @@
       "cardAdded": "La tarjeta ha sido añadida en Anki exitosamente",
       "cardAddError": "No se ha podido añadir la tarjeta en Anki. Error: {error}"
     }
+  },
+  "modalAnkiNotes": {
+    "closeSrOnly": "Cerrar",
+    "searchPlaceholder": "女"
+  },
+  "modalBatch": {
+    "closeSrOnly": "Cerrar",
+    "wordLimitExceeded": "Se ha excedido el límite de palabras permitidas: {count} / 500",
+    "inputFormatError": "El formato de entrada es incorrecto. Verifique si hay comas y saltos de línea simultáneamente.",
+    "notAvailable": "No disponible",
+    "searchTypeLabel": "Tipo de búsqueda: {type}",
+    "searchTypeExact": "Exacta",
+    "searchTypeNormal": "Normal",
+    "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n...\n...\n..."
+  },
+  "modalContext": {
+    "closeSrOnly": "Cerrar"
+  },
+  "filterContent": {
+    "searchPlaceholder": "Buscar aquí"
+  },
+  "segmentSidebar": {
+    "loading": "Cargando..."
   },
   "searchpage": {
     "main": {
@@ -177,8 +212,8 @@
         "translation": "Traducción (EN/ES)",
         "movie": "Película",
         "audiobook": "Audiolibro",
-        "searchmain": "Busca aquí una palabra!",
-        "searchbar": "Busca aquí un anime",
+        "searchmain": "Nombre del título",
+        "searchbar": "Filtro",
         "multimedia": "Multimedia",
         "text": "Texto",
         "options": "Opciones",
@@ -239,6 +274,7 @@
       "usernameLabel": "Usuario",
       "emailLabel": "Correo",
       "notAvailable": "No disponible",
+      "dataLoadError": "Error al cargar los datos del usuario",
       "securityTitle": "Seguridad",
       "passwordLabel": "Contraseña",
       "additionalTitle": "Adicional",
@@ -252,6 +288,7 @@
       "successMessage": "La conexión con Anki se ha establecido de forma correcta",
       "connectionError": "Algo ha fallado",
       "errorMessage": "No se ha podido establecer conexión con Anki",
+      "fieldLoadError": "Error al cargar nombres de campos del modelo:",
       "troubleshootingTips": {
         "ankiRunning": "Verifique que la aplicación de Anki este abierta y el addon Ankiconnect instalado",
         "webCors": "Verifique que 'https://nadeshiko.co' este en el webCorsOriginList de las configuraciones de AnkiConnect",
@@ -291,7 +328,18 @@
     "retryButton": "Reintentar conexión",
     "retrying": "Reintentando...",
     "endOfResults": "¡Has llegado al final!",
-    "loadMore": "Cargar más oraciones"
+    "loadMore": "Cargar más oraciones",
+    "pageTitle": "{query} - Búsqueda en Nadeshiko",
+    "pageTitleDefault": "Nadeshiko - Búsqueda",
+    "seoDescription": "Resultados de búsqueda para \"{query}\" en Nadeshiko",
+    "seoDescriptionDefault": "Busca frases de anime y live action en Nadeshiko",
+    "mediaInfo": "{jpSentence} de {animeName}, {mediaType}",
+    "mediaTypeMovie": "Película",
+    "mediaTypeSeason": "Temporada {season}, Episodio {episode}",
+    "categoryAll": "Todo",
+    "categoryAnime": "Anime",
+    "categoryLiveaction": "Live Action",
+    "categoryAudiobook": "Audiolibro"
   },
   "modalauth": {
     "headers": {
@@ -318,7 +366,14 @@
       "errorlogin400": "Por favor, revisa tu correo/contraseña e intenta de nuevo.",
       "username": "Usuario",
       "terms": "By using this website you agree to our {terms} and to our {privacy}",
-      "registerButton": "Registrarse"
+      "registerButton": "Registrarse",
+      "closeSrOnly": "Cerrar",
+      "passwordMinLength": "Se requieren 8+ caracteres",
+      "passwordMatchError": "Las contraseñas deben coincidir"
     }
+  },
+  "auth": {
+    "registrationSuccess": "Registro exitoso",
+    "registrationError": "Registro fallido. Intentelo nuevamente"
   }
 }
