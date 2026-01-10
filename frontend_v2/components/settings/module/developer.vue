@@ -40,12 +40,27 @@ const visiblePermissions = computed(() => {
 const openCreateModal = () => {
     modalKeyName.value = ''
     modalSelectedPermissions.value = ['READ_MEDIA']
-    HSOverlay.open(document.querySelector("#hs-vertically-centered-scrollable-createapikey-modal"));
+    HSOverlay.open("#hs-vertically-centered-scrollable-createapikey-modal");
 }
 
 const closeCreateModal = () => {
     HSOverlay.close("#hs-vertically-centered-scrollable-createapikey-modal");
 }
+
+const handleBackdropClick = (event: MouseEvent) => {
+    // Only close if clicking directly on the backdrop (not on modal content)
+    if (event.target === event.currentTarget) {
+        closeCreateModal();
+    }
+}
+
+// Cleanup modal state when navigating away
+onBeforeUnmount(() => {
+    const modal = document.querySelector("#hs-vertically-centered-scrollable-createapikey-modal");
+    if (modal && !modal.classList.contains('hidden')) {
+        HSOverlay.close("#hs-vertically-centered-scrollable-createapikey-modal");
+    }
+})
 
 const confirmCreateApiKey = async () => {
     if (!modalKeyName.value) {
@@ -166,7 +181,6 @@ onMounted(async () => {
             </div>
             <div class="ml-auto">
                 <button
-                    data-hs-overlay="#hs-vertically-centered-scrollable-createapikey-modal"
                     class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" @click="openCreateModal">
                     <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
                     {{ $t('accountSettings.developer.addApiKey') }}
@@ -350,10 +364,10 @@ onMounted(async () => {
     <!-- Create API Key Modal -->
     <div id="hs-vertically-centered-scrollable-createapikey-modal"
         class="hs-overlay hs-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
-        @click="closeCreateModal">
+        @click="handleBackdropClick">
         <div
             class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
-            @click.stop
+            @click="handleBackdropClick"
         >
             <div
                 class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
@@ -364,9 +378,8 @@ onMounted(async () => {
                     <h3 class="font-bold text-gray-800 dark:text-gray-200">{{ $t('accountSettings.developer.createApiKeyModal.title') }}</h3>
                     <button
                         type="button"
-                        class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+                        class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
                         data-hs-overlay="#hs-vertically-centered-scrollable-createapikey-modal"
-                        @click="closeCreateModal"
                     >
                         <span class="sr-only">Close</span>
                         <svg
