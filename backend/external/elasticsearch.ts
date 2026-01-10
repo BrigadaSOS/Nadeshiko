@@ -193,6 +193,15 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     }
   }
 
+  // Create filters for statistics (without media filter) - used for sidebar
+  // This shows all titles matching the query + category filter
+  const { filter: filterForStatistics, must_not: must_notForStatistics } = buildCommonFilters(request);
+  // Remove anime_id/media filter from statistics filter (for sidebar)
+  const filterForStatisticsWithoutMedia = filterForStatistics.filter(
+    (f) => !('term' in f && f.term && 'media_id' in f.term)
+  );
+  const mustForStatistics = [...must];
+
   const esNoHitsNoFiltersResponse = client.search({
       size: 0,
       sort,
@@ -215,12 +224,68 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
       },
       query: {
         bool: {
-          filter,
-          must,
-          must_not,
+          filter: filterForStatisticsWithoutMedia,
+          must: mustForStatistics,
+          must_not: must_notForStatistics,
         },
       },
       search_after: request.cursor,
+      aggs: {
+        group_by_category: {
+          terms: {
+            field: 'Media.category',
+            size: 10000,
+          },
+          aggs: {
+            group_by_media_id: {
+              terms: {
+                field: 'media_id',
+                size: 10000,
+              },
+              aggs: {
+                group_by_season: {
+                  terms: {
+                    field: 'season',
+                    size: 10000,
+                  },
+                  aggs: {
+                    group_by_episode: {
+                      terms: {
+                        field: 'episode',
+                        size: 10000,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+  // Create filters for category statistics (with media filter, without category filter) - used for top tabs
+  // This shows categories for the query + media filter
+  const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = buildCommonFilters({
+    ...request,
+    category: undefined, // Remove category filter for category statistics
+  });
+  const filterWithMediaForCategoryStats = [...filterForCategoryStats];
+  const mustForCategoryStats = [...must];
+  if (hasQuery && request.media) {
+    filterWithMediaForCategoryStats.push(buildMediaFilter(request.media));
+  }
+
+  const esCategoryStatsResponse = client.search({
+      size: 0,
+      index: process.env.ELASTICSEARCH_INDEX,
+      query: {
+        bool: {
+          filter: filterWithMediaForCategoryStats,
+          must: mustForCategoryStats,
+          must_not: must_notForCategoryStats,
+        },
+      },
       aggs: {
         group_by_category: {
           terms: {
@@ -299,6 +364,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     await esResponse,
     await mediaInfo,
     await esNoHitsNoFiltersResponse,
+    await esCategoryStatsResponse,
     request,
   );
 };
@@ -403,23 +469,28 @@ const buildSearchAnimeSentencesResponse = (
   esResponse: SearchResponse,
   mediaInfoResponse: QueryMediaInfoResponse,
   esNoHitsNoFiltersResponse: SearchResponse,
+  esCategoryStatsResponse: SearchResponse,
   request: QuerySegmentsRequest,
 ): QuerySegmentsResponse => {
   const sentences: SearchAnimeSentencesSegment[] = buildSearchAnimeSentencesSegments(esResponse, mediaInfoResponse);
 
+  // Build category statistics from esCategoryStatsResponse (filtered by media, not by category)
   let categoryStatistics = [];
-  if (esNoHitsNoFiltersResponse.aggregations && 'group_by_category' in esNoHitsNoFiltersResponse.aggregations) {
+  if (esCategoryStatsResponse.aggregations && 'group_by_category' in esCategoryStatsResponse.aggregations) {
     // @ts-expect-error -- elasticsearch aggregation type
-    categoryStatistics = esNoHitsNoFiltersResponse.aggregations['group_by_category'].buckets.map((bucket) => ({
+    categoryStatistics = esCategoryStatsResponse.aggregations['group_by_category'].buckets.map((bucket) => ({
       category: bucket['key'],
       count: bucket['doc_count'],
     }));
   }
 
-  let statistics: SearchAnimeSentencesStatistics[] = [];
-  if (esNoHitsNoFiltersResponse.aggregations && 'group_by_category' in esNoHitsNoFiltersResponse.aggregations) {
+  // Helper function to build statistics from aggregation response
+  const buildStatisticsFromAggs = (aggResponse: SearchResponse): SearchAnimeSentencesStatistics[] => {
+    if (!aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) {
+      return [];
+    }
     // @ts-expect-error -- elasticsearch aggregation type
-    statistics = esNoHitsNoFiltersResponse.aggregations['group_by_category'].buckets.flatMap((categoryBucket) => {
+    return aggResponse.aggregations['group_by_category'].buckets.flatMap((categoryBucket) => {
       return categoryBucket.group_by_media_id.buckets
         .map((mediaBucket: { [x: string]: any }) => {
           const mediaInfo = mediaInfoResponse.results[Number(mediaBucket['key'])];
@@ -450,7 +521,10 @@ const buildSearchAnimeSentencesResponse = (
         })
         .filter(notEmpty);
     });
-  }
+  };
+
+  // Build statistics from esNoHitsNoFiltersResponse (filtered by category, not by media) - for sidebar
+  let statistics: SearchAnimeSentencesStatistics[] = buildStatisticsFromAggs(esNoHitsNoFiltersResponse);
 
   let cursor: FieldValue[] | undefined = undefined;
   if (esResponse.hits.hits.length >= 1) {
