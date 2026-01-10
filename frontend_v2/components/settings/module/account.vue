@@ -43,7 +43,7 @@ onMounted(async () => {
           <div v-if="isLoading">
             <div class="w-32 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
           </div>
-          <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.username || $t('accountSettings.account.notAvailable') }}</p>
+          <p v-else class="text-white font-semibold">{{ dataUser?.user?.username || $t('accountSettings.account.notAvailable') }}</p>
         </div>
         <!--
         <button data-hs-overlay="#hs-vertically-centered-scrollable-editusername"
@@ -58,7 +58,7 @@ onMounted(async () => {
           <div v-if="isLoading">
             <div class="w-40 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
           </div>
-          <p v-else class="text-white font-semibold">{{ dataUser?.info_user?.email || $t('accountSettings.account.notAvailable') }}</p>
+          <p v-else class="text-white font-semibold">{{ dataUser?.user?.email || $t('accountSettings.account.notAvailable') }}</p>
         </div>
         <!--
         <button
