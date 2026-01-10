@@ -16,7 +16,7 @@ import {
 import { searchFetchLimiter } from '../middleware/apilLimiterRate';
 
 // Get
-router.get('/v1/search/media/info', authenticate({ apiKey: true }), getAllMedia);
+router.get('/v1/search/media/info', authenticate({ apiKey: true }), hasPermissionAPI(['READ_MEDIA']), getAllMedia);
 router.get(
   '/v1/search/health',
   searchFetchLimiter,
