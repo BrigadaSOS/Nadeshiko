@@ -215,6 +215,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
       },
       query: {
         bool: {
+          filter,
           must,
           must_not,
         },
