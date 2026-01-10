@@ -23,10 +23,14 @@ watch(() => props.categorySelected, (newCategory) => {
     } else {
         categorySelected.value = 0;
     }
-    
 }, { immediate: true });
 
 const filteredMedia = computed(() => {
+    // Calculate total count for "All" from all statistics before filtering
+    const totalCount = statistics.value
+        .filter((item) => categorySelected.value === 0 || item.category === categorySelected.value)
+        .reduce((a, b) => a + parseInt(b.amount_sentences_found || 0), 0);
+
     const filteredItems = statistics.value.filter((item) => {
         const categoryFilter = categorySelected.value === 0 || item.category === categorySelected.value;
         const nameFilterEnglish = item?.name_anime_en?.toLowerCase().includes(querySearchMedia.value.toLowerCase());
@@ -36,15 +40,14 @@ const filteredMedia = computed(() => {
         return categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji);
     });
 
-    if (categorySelected.value === 0) {
-        filteredItems.unshift({
-            anime_id: 0,
-            name_anime_en: t('searchpage.main.labels.all'),
-            amount_sentences_found: filteredItems.reduce((a, b) => a + parseInt(b.amount_sentences_found || 0), 0)
-        });
-    }
+    // Always add "All" option
+    filteredItems.unshift({
+        anime_id: 0,
+        name_anime_en: t('searchpage.main.labels.all'),
+        amount_sentences_found: totalCount
+    });
 
-    if (filteredItems.length === 0) {
+    if (filteredItems.length === 1) {
         return [{ name_anime_en: t('searchpage.main.labels.noresults') }];
     }
 
@@ -64,16 +67,19 @@ const filteredMedia = computed(() => {
     return sortedItems;
 });
 
+const selectedMediaId = computed(() => {
+    return route.query.media ? Number(route.query.media) : null;
+});
+
 const filterAnime = (anime_id, anime_name) => {
-    console.log('Filtered Anime:', anime_id, anime_name);
     const query = { ...route.query };
-    
+
     if (anime_id === 0) {
         delete query.media;
     } else {
         query.media = anime_id;
     }
-    
+
     router.push({ query });
 };
 
@@ -101,7 +107,7 @@ const filterAnime = (anime_id, anime_name) => {
             <div class="overflow-auto snap-y max-h-[50vh]">
                 <li class="snap-start" v-for="item in filteredMedia" :key="item.anime_id">
                     <button @click="filterAnime(item.anime_id, item.name_anime_en)"
-                        :class="{ 'bg-sgrayhover': item.anime_id == route.query.media }"
+                        :class="{ 'bg-sgrayhover': (item.anime_id === 0 && selectedMediaId === null) || (item.anime_id === selectedMediaId) }"
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.name_anime_en }}</span>
                         <span

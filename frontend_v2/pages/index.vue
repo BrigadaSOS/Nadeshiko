@@ -41,7 +41,7 @@ const {
                                             </h2>
                                             <h3
                                                 class="inline-flex ml-2 rounded-full items-end text-base font-medium text-white/80">
-                                                v1.1.0
+                                                v1.2.0
                                             </h3>
                                         </div>
 
