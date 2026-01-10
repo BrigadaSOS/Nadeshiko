@@ -33,9 +33,10 @@ export const createAPIKeyDefault = async (req: Request, res: Response, next: Nex
       if (hasNonReadPermission) {
         // Verify user has ADMIN role (role id = 1)
         if (!roles.includes(1)) {
-          return res.status(StatusCodes.FORBIDDEN).json({
+          res.status(StatusCodes.FORBIDDEN).json({
             error: 'Access forbidden: Only admin users can create API keys with permissions other than READ_MEDIA.',
           });
+          return;
         }
       }
       permissions = requestedPermissions;
@@ -47,9 +48,10 @@ export const createAPIKeyDefault = async (req: Request, res: Response, next: Nex
       const invalidPermissions = permissions.filter((p: string) => !validPermissionNames.includes(p));
 
       if (invalidPermissions.length > 0) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
+        res.status(StatusCodes.BAD_REQUEST).json({
           error: `Invalid permissions: ${invalidPermissions.join(', ')}`,
         });
+        return;
       }
     }
 
@@ -110,9 +112,10 @@ export const deactivateAPIKey = async (req: Request, res: Response, next: NextFu
     }
 
     if (!apiKey.isActive) {
-      return res.status(StatusCodes.OK).json({
+      res.status(StatusCodes.OK).json({
         message: 'API Key is already inactive.',
       });
+      return;
     }
 
     apiKey.isActive = false;

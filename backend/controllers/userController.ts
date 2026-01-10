@@ -27,20 +27,20 @@ const clientDiscord = new DiscordOauth2({
   redirectUri: process.env.DISCORD_REDIRECT_URI,
 });
 
-export const logout = (_req: Request, res: Response, _next: NextFunction) => {
-  return res.clearCookie('access_token').status(StatusCodes.OK).json({
+interface GoogleUserInfo {
+  sub: string;
+  name: string;
+  email: string;
+}
+
+export const logout = (_req: Request, res: Response, _next: NextFunction): void => {
+  res.clearCookie('access_token').status(StatusCodes.OK).json({
     status: res.status,
     message: 'Logout successfully.',
   });
 };
 
-declare module 'express' {
-  export interface Request {
-    jwt: any;
-  }
-}
-
-export const getUserInfo = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserInfo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const user = await User.findOne({
       where: { id: req.jwt.user_id },
@@ -70,12 +70,12 @@ export const getUserInfo = async (req: Request, res: Response, next: NextFunctio
         })) || [],
     };
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       status: res.status,
       user: info_user,
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -105,11 +105,11 @@ export const sendReportSegment = async (req: Request, res: Response, next: NextF
 
     await report.save();
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       status: res.status,
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -135,9 +135,10 @@ export const signUp = async (req: Request, res: Response, next: NextFunction) =>
 
     if (oldUser) {
       if (oldUser.userAuths && oldUser.userAuths.length > 0) {
-        return res.status(StatusCodes.CONFLICT).json({
+        res.status(StatusCodes.CONFLICT).json({
           message: `Este correo electrónico ya está registrado con ${oldUser.userAuths[0].provider}. Por favor, inicia sesión usando ${oldUser.userAuths[0].provider}.`,
         });
+        return;
       } else {
         throw new Conflict('Este correo ya ha sido usado. Por favor, intenta con otro correo.');
       }
@@ -176,13 +177,13 @@ export const signUp = async (req: Request, res: Response, next: NextFunction) =>
       }
       await user.save();
 
-      return res.status(StatusCodes.CREATED).json({
+      res.status(StatusCodes.CREATED).json({
         message: `Se ha creado el usuario: '${req.body.username}' de forma exitosa.`,
         user: user,
       });
     }
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -207,9 +208,10 @@ export const logIn = async (req: Request, res: Response, next: NextFunction) => 
     if (!user.is_active) throw new NotFound('This user is not active.');
 
     if (user.userAuths && user.userAuths.length > 0) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
+      res.status(StatusCodes.UNAUTHORIZED).json({
         message: `Este correo está registrado con ${user.userAuths[0].provider}. Por favor, inicia sesión usando ${user.userAuths[0].provider}.`,
       });
+      return;
     }
 
     // Compare the passwords
@@ -248,13 +250,13 @@ export const logIn = async (req: Request, res: Response, next: NextFunction) => 
       roles: user?.UserRoles,
     };
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       message: `Succesful login, ${user.username}`,
       user: data_user,
       token: token,
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -277,9 +279,10 @@ export const loginGoogle = async (req: Request, res: Response, next: NextFunctio
     });
 
     if (user && (!user.userAuths || user.userAuths.length === 0)) {
-      return res.status(StatusCodes.CONFLICT).json({
+      res.status(StatusCodes.CONFLICT).json({
         message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`,
       });
+      return;
     }
 
     if (!user) {
@@ -337,14 +340,14 @@ export const loginGoogle = async (req: Request, res: Response, next: NextFunctio
       roles: user?.UserRoles,
     };
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       message: `Succesful login, ${user.username}`,
       user: data_user,
       token: token,
     });
   } catch (error) {
     logger.debug({ err: error }, 'Google login error details');
-    return next(error);
+    next(error);
   }
 };
 
@@ -357,11 +360,11 @@ export const getDiscordAuthUrl = (_req: Request, res: Response, next: NextFuncti
 
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`;
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       url: discordAuthUrl,
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -398,9 +401,10 @@ export const loginDiscord = async (req: Request, res: Response, next: NextFuncti
     });
 
     if (user && (!user.userAuths || user.userAuths.length === 0)) {
-      return res.status(StatusCodes.CONFLICT).json({
+      res.status(StatusCodes.CONFLICT).json({
         message: `Este correo ya está registrado con un método de autenticación diferente. Por favor, inicia sesión usando tu correo y contraseña.`,
       });
+      return;
     }
 
     if (!user) {
@@ -449,21 +453,21 @@ export const loginDiscord = async (req: Request, res: Response, next: NextFuncti
       roles: user?.UserRoles,
     };
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       message: `Successful login, ${user.username}`,
       user: data_user,
       token: token,
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
-async function verifyCodeOAuth(code: any) {
+async function verifyCodeOAuth(code: any): Promise<GoogleUserInfo> {
   const { tokens } = await client.getToken(code);
   client.setCredentials({ access_token: tokens.access_token });
   const userinfo = await client.request({
     url: 'https://www.googleapis.com/oauth2/v3/userinfo',
   });
-  return userinfo.data;
+  return userinfo.data as GoogleUserInfo;
 }
