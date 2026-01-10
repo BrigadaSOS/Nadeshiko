@@ -28,7 +28,7 @@ export const authenticate = (options: { jwt: boolean; apiKey: boolean }) => {
     if (isSSRRequest) {
       return next();
     }
-    
+
     const requestFromAllowedUrl = allowedUrls.some((url) => {
       const parsedUrl = parse(url);
       return parsedUrl.host === requestUrl.host && parsedUrl.protocol === requestUrl.protocol;

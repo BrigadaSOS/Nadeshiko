@@ -5,7 +5,8 @@ This is a Bruno collection for the Nadeshiko backend API.
 ## Setup
 
 1. Install [Bruno](https://www.usebruno.com/) if you haven't already
-2. Open Bruno and import this collection (File > Import Folder > Select `bruno/Nadeshiko-API`)
+2. Open Bruno and import this collection (File > Import Folder > Select
+   `bruno/Nadeshiko-API`)
 3. Configure your environment variables in `environments/Local.json`:
    - `baseUrl`: Your API base URL (default: `http://localhost:3000/api`)
    - `apiKey`: Your API key
@@ -16,10 +17,13 @@ This is a Bruno collection for the Nadeshiko backend API.
 The API uses two authentication methods:
 
 ### API Key Authentication
+
 Most endpoints use API key authentication via the `x-api-key` header.
 
 ### JWT Authentication
-User management endpoints use JWT authentication via the `Authorization: Bearer {token}` header.
+
+User management endpoints use JWT authentication via the
+`Authorization: Bearer {token}` header.
 
 ## Usage Tips
 
