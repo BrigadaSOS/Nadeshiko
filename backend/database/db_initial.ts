@@ -90,7 +90,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
     globalPath = path.join(baseDir, 'anime');
   } else if (type == 'jdrama') {
     globalPath = path.join(baseDir, 'jdrama');
-  }else if(type == 'audiobook') {
+  } else if (type == 'audiobook') {
     globalPath = path.join(baseDir, 'audiobook');
   }
 
@@ -126,9 +126,10 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
           cover: media_raw.cover,
           banner: media_raw.banner,
           version: media_raw.version,
-          category: type == 'anime' ? CategoryType.ANIME : type == 'jdrama' ? CategoryType.JDRAMA : CategoryType.AUDIOBOOK,
+          category:
+            type == 'anime' ? CategoryType.ANIME : type == 'jdrama' ? CategoryType.JDRAMA : CategoryType.AUDIOBOOK,
           release_date: media_raw.release_date,
-          id_category: type == 'anime' ? 1 : type == 'jdrama' ? 3 : 4
+          id_category: type == 'anime' ? 1 : type == 'jdrama' ? 3 : 4,
         });
 
         await media.save();
@@ -345,10 +346,13 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
       banner: media_raw.banner,
       version: media_raw.version,
       release_date: media_raw.release_date,
-      category: type == 'anime' ? CategoryType.ANIME : type == 'jdrama' ? CategoryType.JDRAMA : CategoryType.AUDIOBOOK
+      category: type == 'anime' ? CategoryType.ANIME : type == 'jdrama' ? CategoryType.JDRAMA : CategoryType.AUDIOBOOK,
     });
     await mediaFound.save();
-    logger.info({ mediaId: mediaFound?.id, folderName: media_raw?.folder_media_anime }, 'Media info inserted into the database');
+    logger.info(
+      { mediaId: mediaFound?.id, folderName: media_raw?.folder_media_anime },
+      'Media info inserted into the database',
+    );
   } catch (error) {
     logger.error({ err: error, mediaDirPath }, 'Error while inserting media info into the database');
   }
@@ -480,7 +484,10 @@ async function insertSegments(rows: any[], season: number, episode: number, medi
         status = SegmentStatus.INVALID_SENTENCE;
       }
       if (row.CONTENT.length >= 90) {
-        logger.warn({ row, season, episode, mediaId: media.id, contentLength: row.CONTENT.length }, 'Content longer than 90 chars - flagging segment');
+        logger.warn(
+          { row, season, episode, mediaId: media.id, contentLength: row.CONTENT.length },
+          'Content longer than 90 chars - flagging segment',
+        );
         status = SegmentStatus.SENTENCE_TOO_LONG;
       }
 
@@ -489,7 +496,20 @@ async function insertSegments(rows: any[], season: number, episode: number, medi
         row.CONTENT_TRANSLATION_ENGLISH.length >= 500 ||
         row.CONTENT_TRANSLATION_SPANISH.length >= 500
       ) {
-        logger.warn({ row, season, episode, mediaId: media.id, contentLengths: { jp: row.CONTENT.length, en: row.CONTENT_TRANSLATION_ENGLISH.length, es: row.CONTENT_TRANSLATION_SPANISH.length } }, 'Content longer than 500 characters - skipping segment');
+        logger.warn(
+          {
+            row,
+            season,
+            episode,
+            mediaId: media.id,
+            contentLengths: {
+              jp: row.CONTENT.length,
+              en: row.CONTENT_TRANSLATION_ENGLISH.length,
+              es: row.CONTENT_TRANSLATION_SPANISH.length,
+            },
+          },
+          'Content longer than 500 characters - skipping segment',
+        );
         return;
       }
 

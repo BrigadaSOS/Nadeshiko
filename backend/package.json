@@ -9,13 +9,29 @@
     "buildwin": "rmdir /s /q prod && tsc --build --pretty",
     "start": "node prod/main.js",
     "start:local": "node prod/main.js",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write \"*.ts\"",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,js,mjs,json,yaml,yml,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,json,yaml,yml,md}\"",
+    "lint:all": "npm run lint && npm run format:check",
+    "fix:all": "npm run lint:fix && npm run format",
     "husky": "husky"
   },
   "author": "",
   "license": "ISC",
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,yaml,yml,md}": [
+      "prettier --write"
+    ]
+  },
   "dependencies": {
     "@elastic/elasticsearch": "^8.15.1",
     "archiver": "^7.0.1",

@@ -1,826 +1,771 @@
 [
-    {
-        "database": "nadedb",
-        "index": "nadedb-dev",
-        "setting": {
-          "analysis": {
-            "char_filter": {
-              "normalize": {
-                "type": "icu_normalizer",
-                "name": "nfkc",
-                "mode": "compose"
-              },
-              "romaji_to_kana": {
-                "type": "mapping",
-                "mappings": [
-                  "a=>あ",
-                  "i=>い",
-                  "u=>う",
-                  "e=>え",
-                  "o=>お",
-                  "n=>ん",
-
-                  "ka=>か",
-                  "kka=>っか",
-                  "kya=>きゃ",
-                  "kkya=>っきゃ",
-                  "kwa=>くぁ",
-                  "kkwa=>っくぁ",
-
-                  "ki=>き",
-                  "kki=>っき",
-                  "kyi=>きぃ",
-                  "kkyi=>っきぃ",
-                  "kwi=>くぃ",
-                  "kkwi=>っくぃ",
-
-                  "ku=>く",
-                  "kku=>っく",
-                  "kyu=>きゅ",
-                  "kkyu=>っきゅ",
-                  "kwu=>くぅ",
-                  "kkwu=>っくぅ",
-
-                  "ke=>け",
-                  "kke=>っけ",
-                  "kye=>きぇ",
-                  "kkye=>っきぇ",
-                  "kwe=>くぇ",
-                  "kkwe=>っくぇ",
-
-                  "ko=>こ",
-                  "kko=>っこ",
-                  "kyo=>きょ",
-                  "kkyo=>っきょ",
-                  "kwo=>くぉ",
-                  "kkwo=>っくぉ",
-
-                  "sa=>さ",
-                  "ssa=>っさ",
-                  "sha=>しゃ",
-                  "ssha=>っしゃ",
-                  "sya=>しゃ",
-                  "ssya=>っしゃ",
-                  "swa=>すぁ",
-                  "sswa=>っすぁ",
-
-                  "si=>し",
-                  "ssi=>っし",
-                  "shi=>し",
-                  "sshi=>っし",
-                  "syi=>しぃ",
-                  "ssyi=>っしぃ",
-                  "swi=>すぃ",
-                  "sswi=>っすぃ",
-
-                  "su=>す",
-                  "ssu=>っす",
-                  "shu=>しゅ",
-                  "sshu=>っしゅ",
-                  "syu=>しゅ",
-                  "ssyu=>っしゅ",
-                  "swu=>すぅ",
-                  "sswu=>っすぅ",
-
-                  "se=>せ",
-                  "sse=>っせ",
-                  "she=>しぇ",
-                  "sshe=>っしぇ",
-                  "sye=>しぇ",
-                  "ssye=>っしぇ",
-                  "swe=>すぇ",
-                  "sswe=>っすぇ",
-
-                  "so=>そ",
-                  "sso=>っそ",
-                  "sho=>しょ",
-                  "ssho=>っしょ",
-                  "syo=>しょ",
-                  "ssyo=>っしょ",
-                  "swo=>すぉ",
-                  "sswo=>っすぉ",
-
-                  "ta=>た",
-                  "tta=>った",
-                  "tsa=>つぁ",
-                  "ttsa=>っつぁ",
-                  "tha=>てゃ",
-                  "ttha=>ってゃ",
-                  "tya=>ちゃ",
-                  "ttya=>っちゃ",
-                  "twa=>とぁ",
-                  "ttwa=>っとぁ",
-
-                  "ti=>ち",
-                  "tti=>っち",
-                  "tsi=>つぃ",
-                  "ttsi=>っつぃ",
-                  "thi=>てぃ",
-                  "tthi=>ってぃ",
-                  "tyi=>ちぃ",
-                  "ttyi=>っちぃ",
-                  "twi=>とぃ",
-                  "ttwi=>っとぃ",
-
-                  "tu=>つ",
-                  "ttu=>っつ",
-                  "tsu=>つ",
-                  "ttsu=>っつ",
-                  "thu=>てゅ",
-                  "tthu=>ってゅ",
-                  "tyu=>ちゅ",
-                  "ttyu=>っちゅ",
-                  "twu=>とぅ",
-                  "ttwu=>っとぅ",
-
-                  "te=>て",
-                  "tte=>って",
-                  "tse=>つぇ",
-                  "ttse=>っつぇ",
-                  "the=>てぇ",
-                  "tthe=>ってぇ",
-                  "tye=>ちぇ",
-                  "ttye=>っちぇ",
-                  "twe=>とぇ",
-                  "ttwe=>っとぇ",
-
-                  "to=>と",
-                  "tto=>っと",
-                  "tso=>つぉ",
-                  "ttso=>っつぉ",
-                  "tho=>てょ",
-                  "ttho=>ってょ",
-                  "tyo=>ちょ",
-                  "ttyo=>っちょ",
-                  "two=>とぉ",
-                  "ttwo=>っとぉ",
-
-                  "ca=>か",
-                  "cca=>っか",
-                  "cha=>ちゃ",
-                  "ccha=>っちゃ",
-                  "cya=>ちゃ",
-                  "ccya=>っちゃ",
-                  "cwa=>くぁ",
-                  "ccwa=>っくぁ",
-
-                  "ci=>し",
-                  "cci=>っし",
-                  "chi=>ち",
-                  "cchi=>っち",
-                  "cyi=>ちぃ",
-                  "ccyi=>っちぃ",
-                  "cwi=>くぃ",
-                  "ccwi=>っくぃ",
-
-                  "cu=>く",
-                  "ccu=>っく",
-                  "chu=>ちゅ",
-                  "cchu=>っちゅ",
-                  "cyu=>ちゅ",
-                  "ccyu=>っちゅ",
-                  "cwu=>くぅ",
-                  "ccwu=>っくぅ",
-
-                  "ce=>せ",
-                  "cce=>っせ",
-                  "che=>ちぇ",
-                  "cche=>っちぇ",
-                  "cye=>ちぇ",
-                  "ccye=>っちぇ",
-                  "cwe=>くぇ",
-                  "ccwe=>っくぇ",
-
-                  "co=>こ",
-                  "cco=>っこ",
-                  "cho=>ちょ",
-                  "ccho=>っちょ",
-                  "cyo=>ちょ",
-                  "ccyo=>っちょ",
-                  "cwo=>くぉ",
-                  "ccwo=>っくぉ",
-
-                  "na=>な",
-                  "nya=>にゃ",
-
-                  "ni=>に",
-                  "nyi=>にぃ",
-
-                  "nu=>ぬ",
-                  "nyu=>にゅ",
-
-                  "ne=>ね",
-                  "nye=>にぇ",
-
-                  "no=>の",
-                  "nyo=>にょ",
-
-                  "ha=>は",
-                  "hha=>っは",
-                  "hya=>ひゃ",
-                  "hhya=>っひゃ",
-                  "hwa=>ふぁ",
-                  "hhwa=>っふぁ",
-
-                  "hi=>ひ",
-                  "hhi=>っひ",
-                  "hyi=>ひぃ",
-                  "hhyi=>っひぃ",
-                  "hwi=>ふぃ",
-                  "hhwi=>っふぃ",
-
-                  "hu=>ふ",
-                  "hhu=>っふ",
-                  "hyu=>ひゅ",
-                  "hhyu=>っひゅ",
-                  "hwu=>ふぅ",
-                  "hhwu=>っふぅ",
-
-                  "he=>へ",
-                  "hhe=>っへ",
-                  "hye=>ひぇ",
-                  "hhye=>っひぇ",
-                  "hwe=>ふぇ",
-                  "hhwe=>っふぇ",
-
-                  "ho=>ほ",
-                  "hho=>っほ",
-                  "hyo=>ひょ",
-                  "hhyo=>っひょ",
-                  "hwo=>ふぉ",
-                  "hhwo=>っふぉ",
-
-                  "ma=>ま",
-                  "mma=>っま",
-                  "mya=>みゃ",
-                  "mmya=>っみゃ",
-
-                  "mi=>み",
-                  "mmi=>っみ",
-                  "myi=>みぃ",
-                  "mmyi=>っみぃ",
-
-                  "mu=>む",
-                  "mmu=>っむ",
-                  "myu=>みゅ",
-                  "mmyu=>っみゅ",
-
-                  "me=>め",
-                  "mme=>っめ",
-                  "mye=>みぇ",
-                  "mmye=>っみぇ",
-
-                  "mo=>も",
-                  "mmo=>っも",
-                  "myo=>みょ",
-                  "mmyo=>っみょ",
-
-                  "ya=>や",
-                  "yya=>っや",
-
-                  "yi=>い",
-                  "yyi=>っい",
-
-                  "yu=>ゆ",
-                  "yyu=>っゆ",
-
-                  "ye=>いぇ",
-                  "yye=>っいぇ",
-
-                  "yo=>よ",
-                  "yyo=>っよ",
-
-                  "ra=>ら",
-                  "rra=>っら",
-                  "rya=>りゃ",
-                  "rrya=>っりゃ",
-
-                  "ri=>り",
-                  "rri=>っり",
-                  "ryi=>りぃ",
-                  "rryi=>っりぃ",
-
-                  "ru=>る",
-                  "rru=>っる",
-                  "ryu=>りゅ",
-                  "rryu=>っりゅ",
-
-                  "re=>れ",
-                  "rre=>っれ",
-                  "rye=>りぇ",
-                  "rrye=>っりぇ",
-
-                  "ro=>ろ",
-                  "rro=>っろ",
-                  "ryo=>りょ",
-                  "rryo=>っりょ",
-
-                  "wa=>わ",
-                  "wwa=>っわ",
-                  "wha=>うぁ",
-                  "wwha=>っうぁ",
-
-                  "wi=>うぃ",
-                  "wwi=>っうぃ",
-                  "whi=>うぃ",
-                  "wwhi=>っうぃ",
-
-                  "wu=>う",
-                  "wwu=>っう",
-                  "whu=>う",
-                  "wwhu=>っう",
-
-                  "we=>うぇ",
-                  "wwe=>っうぇ",
-                  "whe=>うぇ",
-                  "wwhe=>っうぇ",
-
-                  "wo=>を",
-                  "wwo=>っを",
-                  "who=>うぉ",
-                  "wwho=>っうぉ",
-
-                  "ga=>が",
-                  "gga=>っが",
-                  "gya=>ぎゃ",
-                  "ggya=>っぎゃ",
-                  "gwa=>ぐぁ",
-                  "ggwa=>っぐぁ",
-
-                  "gi=>ぎ",
-                  "ggi=>っぎ",
-                  "gyi=>ぎぃ",
-                  "ggyi=>っぎぃ",
-                  "gwi=>ぐぃ",
-                  "ggwi=>っぐぃ",
-
-                  "gu=>ぐ",
-                  "ggu=>っぐ",
-                  "gyu=>ぎゅ",
-                  "ggyu=>っぎゅ",
-                  "gwu=>ぐぅ",
-                  "ggwu=>っぐぅ",
-
-                  "ge=>げ",
-                  "gge=>っげ",
-                  "gye=>ぎぇ",
-                  "ggye=>っぎぇ",
-                  "gwe=>ぐぇ",
-                  "ggwe=>っぐぇ",
-
-                  "go=>ご",
-                  "ggo=>っご",
-                  "gyo=>ぎょ",
-                  "ggyo=>っぎょ",
-                  "gwo=>ぐぉ",
-                  "ggwo=>っぐぉ",
-
-                  "za=>ざ",
-                  "zza=>っざ",
-                  "zya=>じゃ",
-                  "zzya=>っじゃ",
-                  "zwa=>ずぁ",
-                  "zzwa=>っずぁ",
-
-                  "zi=>じ",
-                  "zzi=>っじ",
-                  "zyi=>じぃ",
-                  "zzyi=>っじぃ",
-                  "zwi=>ずぃ",
-                  "zzwi=>っずぃ",
-
-                  "zu=>ず",
-                  "zzu=>っず",
-                  "zyu=>じゅ",
-                  "zzyu=>っじゅ",
-                  "zwu=>ずぅ",
-                  "zzwu=>っずぅ",
-
-                  "ze=>ぜ",
-                  "zze=>っぜ",
-                  "zye=>じぇ",
-                  "zzye=>っじぇ",
-                  "zwe=>ずぇ",
-                  "zzwe=>っずぇ",
-
-                  "zo=>ぞ",
-                  "zzo=>っぞ",
-                  "zyo=>じょ",
-                  "zzyo=>っじょ",
-                  "zwo=>ずぉ",
-                  "zzwo=>っずぉ",
-
-                  "da=>だ",
-                  "dda=>っだ",
-                  "dha=>でゃ",
-                  "ddha=>っでゃ",
-                  "dya=>ぢゃ",
-                  "ddya=>っぢゃ",
-                  "dwa=>どぁ",
-                  "ddwa=>っどぁ",
-
-                  "di=>ぢ",
-                  "ddi=>っぢ",
-                  "dhi=>でぃ",
-                  "ddhi=>っでぃ",
-                  "dyi=>ぢぃ",
-                  "ddyi=>っぢぃ",
-                  "dwi=>どぃ",
-                  "ddwi=>っどぃ",
-
-                  "du=>づ",
-                  "ddu=>っづ",
-                  "dyu=>ぢゅ",
-                  "ddyu=>っぢゅ",
-                  "dwu=>どぅ",
-                  "ddwu=>っどぅ",
-
-                  "de=>で",
-                  "dde=>っで",
-                  "dye=>ぢぇ",
-                  "ddye=>っぢぇ",
-                  "dwe=>どぇ",
-                  "ddwe=>っどぇ",
-
-                  "do=>ど",
-                  "ddo=>っど",
-                  "dyo=>ぢょ",
-                  "ddyo=>っぢょ",
-                  "dwo=>どぉ",
-                  "ddwo=>っどぉ",
-
-                  "ba=>ば",
-                  "bba=>っば",
-                  "bya=>びゃ",
-                  "bbya=>っびゃ",
-
-                  "bi=>び",
-                  "bbi=>っび",
-                  "byi=>びぃ",
-                  "bbyi=>っびぃ",
-
-                  "bu=>ぶ",
-                  "bbu=>っぶ",
-                  "byu=>びゅ",
-                  "bbyu=>っびゅ",
-
-                  "be=>べ",
-                  "bbe=>っべ",
-                  "bye=>びぇ",
-                  "bbye=>っびぇ",
-
-                  "bo=>ぼ",
-                  "bbo=>っぼ",
-                  "byo=>びょ",
-                  "bbyo=>っびょ",
-
-                  "pa=>ぱ",
-                  "ppa=>っぱ",
-                  "pya=>ぴゃ",
-                  "ppya=>っぴゃ",
-
-                  "pi=>ぴ",
-                  "ppi=>っぴ",
-                  "pyi=>ぴぃ",
-                  "ppyi=>っぴぃ",
-
-                  "pu=>ぷ",
-                  "ppu=>っぷ",
-                  "pyu=>ぴゅ",
-                  "ppyu=>っぴゅ",
-
-                  "pe=>ぺ",
-                  "ppe=>っぺ",
-                  "pye=>ぴぇ",
-                  "ppye=>っぴぇ",
-
-                  "po=>ぽ",
-                  "ppo=>っぽ",
-                  "pyo=>ぴょ",
-                  "ppyo=>っぴょ",
-
-                  "ja=>じゃ",
-                  "jja=>っじゃ",
-                  "jya=>じゃ",
-                  "jjya=>っじゃ",
-
-                  "ji=>じ",
-                  "jji=>っじ",
-                  "jyi=>じぃ",
-                  "jjyi=>っじぃ",
-
-                  "ju=>じゅ",
-                  "jju=>っじゅ",
-                  "jyu=>じゅ",
-                  "jjyu=>っじゅ",
-
-                  "je=>じぇ",
-                  "jje=>っじぇ",
-                  "jye=>じぇ",
-                  "jjye=>っじぇ",
-
-                  "jo=>じょ",
-                  "jjo=>っじょ",
-                  "jyo=>じょ",
-                  "jjyo=>っじょ",
-
-                  "fa=>ふぁ",
-                  "ffa=>っふぁ",
-                  "fya=>ふゃ",
-                  "ffya=>っふゃ",
-
-                  "fi=>ふぃ",
-                  "ffi=>っふぃ",
-                  "fyi=>ふぃ",
-                  "ffyi=>っふぃ",
-
-                  "fu=>ふ",
-                  "ffu=>っふ",
-                  "fyu=>ふゅ",
-                  "ffyu=>っふゅ",
-
-                  "fe=>ふぇ",
-                  "ffe=>っふぇ",
-                  "fye=>ふぇ",
-                  "ffye=>っふぇ",
-                  "fo=>ふぉ",
-                  "ffo=>っふぉ",
-                  "fyo=>ふょ",
-                  "ffyo=>っふょ"
-                ]
-              }
-            },
-            "filter": {
-              "readingform": {
-                "type": "kuromoji_readingform",
-                "use_romaji": "true"
-              },
-              "spanish_stemmer": {
-                "type":       "stemmer",
-                "language":   "light_spanish"
-              },
-              "english_stemmer": {
-                "type":       "stemmer",
-                "language":   "english"
-              },
-              "english_possessive_stemmer": {
-                "type":       "stemmer",
-                "language":   "possessive_english"
-              }
-            },
-            "tokenizer": {
-              "ja_kuromoji_tokenizer": {
-                "mode": "search",
-                "type": "kuromoji_tokenizer"
-              }
-            },
-            "analyzer": {
-              "ja_kuromoji_index_analyzer": {
-                "type": "custom",
-                "char_filter": [
-                  "normalize"
-                ],
-                "tokenizer": "ja_kuromoji_tokenizer",
-                "filter": [
-                  "kuromoji_baseform",
-                  "kuromoji_part_of_speech",
-                  "cjk_width",
-                  "kuromoji_stemmer",
-                  "ja_stop"
-                ]
-              },
-              "ja_kuromoji_search_analyzer": {
-                "type": "custom",
-                "char_filter": [
-                  "normalize"
-                ],
-                "tokenizer": "ja_kuromoji_tokenizer",
-                "filter": [
-                  "kuromoji_baseform",
-                  "kuromoji_part_of_speech",
-                  "cjk_width",
-                  "kuromoji_stemmer",
-                  "ja_stop"
-                ]
-              },
-              "ja_readingform_index_analyzer": {
-                "type": "custom",
-                "char_filter": [
-                  "normalize",
-                  "romaji_to_kana"
-                ],
-                "tokenizer": "ja_kuromoji_tokenizer",
-                "filter": [
-                  "cjk_width",
-                  "readingform",
-                  "lowercase",
-                  "asciifolding"
-                ]
-              },
-              "ja_readingform_search_analyzer": {
-                "type": "custom",
-                "char_filter": [
-                  "normalize",
-                  "romaji_to_kana"
-                ],
-                "tokenizer": "ja_kuromoji_tokenizer",
-                "filter": [
-                  "cjk_width",
-                  "readingform",
-                  "lowercase",
-                  "asciifolding"
-                ]
-              },
-              "ja_original_index_analyzer": {
-                "type": "custom",
-                "char_filter": [
-                  "normalize"
-                ],
-                "tokenizer": "ja_kuromoji_tokenizer",
-                "filter": [
-                  "cjk_width",
-                  "kuromoji_stemmer"
-                ]
-              },
-              "ja_original_search_analyzer": {
-                "type": "custom",
-                "char_filter": [
-                  "normalize"
-                ],
-                "tokenizer": "ja_kuromoji_tokenizer",
-                "filter": [
-                  "cjk_width",
-                  "kuromoji_stemmer"
-                ]
-              },
-              "spanish_custom": {
-                "tokenizer":  "standard",
-                "filter": [
-                  "lowercase",
-                  "asciifolding",
-                  "spanish_stemmer"
-                ]
-              },
-              "spanish_exact": {
-                "tokenizer":  "standard",
-                "filter": [
-                  "lowercase",
-                  "asciifolding"
-                ]
-              },
-              "english_custom": {
-                "tokenizer":  "standard",
-                "filter": [
-                  "english_possessive_stemmer",
-                  "lowercase",
-                  "english_stemmer"
-                ]
-              },
-              "english_exact": {
-                "tokenizer":  "standard",
-                "filter": [
-                  "lowercase"
-                ]
-              }
-            }
+  {
+    "database": "nadedb",
+    "index": "nadedb-dev",
+    "setting": {
+      "analysis": {
+        "char_filter": {
+          "normalize": {
+            "type": "icu_normalizer",
+            "name": "nfkc",
+            "mode": "compose"
+          },
+          "romaji_to_kana": {
+            "type": "mapping",
+            "mappings": [
+              "a=>あ",
+              "i=>い",
+              "u=>う",
+              "e=>え",
+              "o=>お",
+              "n=>ん",
+
+              "ka=>か",
+              "kka=>っか",
+              "kya=>きゃ",
+              "kkya=>っきゃ",
+              "kwa=>くぁ",
+              "kkwa=>っくぁ",
+
+              "ki=>き",
+              "kki=>っき",
+              "kyi=>きぃ",
+              "kkyi=>っきぃ",
+              "kwi=>くぃ",
+              "kkwi=>っくぃ",
+
+              "ku=>く",
+              "kku=>っく",
+              "kyu=>きゅ",
+              "kkyu=>っきゅ",
+              "kwu=>くぅ",
+              "kkwu=>っくぅ",
+
+              "ke=>け",
+              "kke=>っけ",
+              "kye=>きぇ",
+              "kkye=>っきぇ",
+              "kwe=>くぇ",
+              "kkwe=>っくぇ",
+
+              "ko=>こ",
+              "kko=>っこ",
+              "kyo=>きょ",
+              "kkyo=>っきょ",
+              "kwo=>くぉ",
+              "kkwo=>っくぉ",
+
+              "sa=>さ",
+              "ssa=>っさ",
+              "sha=>しゃ",
+              "ssha=>っしゃ",
+              "sya=>しゃ",
+              "ssya=>っしゃ",
+              "swa=>すぁ",
+              "sswa=>っすぁ",
+
+              "si=>し",
+              "ssi=>っし",
+              "shi=>し",
+              "sshi=>っし",
+              "syi=>しぃ",
+              "ssyi=>っしぃ",
+              "swi=>すぃ",
+              "sswi=>っすぃ",
+
+              "su=>す",
+              "ssu=>っす",
+              "shu=>しゅ",
+              "sshu=>っしゅ",
+              "syu=>しゅ",
+              "ssyu=>っしゅ",
+              "swu=>すぅ",
+              "sswu=>っすぅ",
+
+              "se=>せ",
+              "sse=>っせ",
+              "she=>しぇ",
+              "sshe=>っしぇ",
+              "sye=>しぇ",
+              "ssye=>っしぇ",
+              "swe=>すぇ",
+              "sswe=>っすぇ",
+
+              "so=>そ",
+              "sso=>っそ",
+              "sho=>しょ",
+              "ssho=>っしょ",
+              "syo=>しょ",
+              "ssyo=>っしょ",
+              "swo=>すぉ",
+              "sswo=>っすぉ",
+
+              "ta=>た",
+              "tta=>った",
+              "tsa=>つぁ",
+              "ttsa=>っつぁ",
+              "tha=>てゃ",
+              "ttha=>ってゃ",
+              "tya=>ちゃ",
+              "ttya=>っちゃ",
+              "twa=>とぁ",
+              "ttwa=>っとぁ",
+
+              "ti=>ち",
+              "tti=>っち",
+              "tsi=>つぃ",
+              "ttsi=>っつぃ",
+              "thi=>てぃ",
+              "tthi=>ってぃ",
+              "tyi=>ちぃ",
+              "ttyi=>っちぃ",
+              "twi=>とぃ",
+              "ttwi=>っとぃ",
+
+              "tu=>つ",
+              "ttu=>っつ",
+              "tsu=>つ",
+              "ttsu=>っつ",
+              "thu=>てゅ",
+              "tthu=>ってゅ",
+              "tyu=>ちゅ",
+              "ttyu=>っちゅ",
+              "twu=>とぅ",
+              "ttwu=>っとぅ",
+
+              "te=>て",
+              "tte=>って",
+              "tse=>つぇ",
+              "ttse=>っつぇ",
+              "the=>てぇ",
+              "tthe=>ってぇ",
+              "tye=>ちぇ",
+              "ttye=>っちぇ",
+              "twe=>とぇ",
+              "ttwe=>っとぇ",
+
+              "to=>と",
+              "tto=>っと",
+              "tso=>つぉ",
+              "ttso=>っつぉ",
+              "tho=>てょ",
+              "ttho=>ってょ",
+              "tyo=>ちょ",
+              "ttyo=>っちょ",
+              "two=>とぉ",
+              "ttwo=>っとぉ",
+
+              "ca=>か",
+              "cca=>っか",
+              "cha=>ちゃ",
+              "ccha=>っちゃ",
+              "cya=>ちゃ",
+              "ccya=>っちゃ",
+              "cwa=>くぁ",
+              "ccwa=>っくぁ",
+
+              "ci=>し",
+              "cci=>っし",
+              "chi=>ち",
+              "cchi=>っち",
+              "cyi=>ちぃ",
+              "ccyi=>っちぃ",
+              "cwi=>くぃ",
+              "ccwi=>っくぃ",
+
+              "cu=>く",
+              "ccu=>っく",
+              "chu=>ちゅ",
+              "cchu=>っちゅ",
+              "cyu=>ちゅ",
+              "ccyu=>っちゅ",
+              "cwu=>くぅ",
+              "ccwu=>っくぅ",
+
+              "ce=>せ",
+              "cce=>っせ",
+              "che=>ちぇ",
+              "cche=>っちぇ",
+              "cye=>ちぇ",
+              "ccye=>っちぇ",
+              "cwe=>くぇ",
+              "ccwe=>っくぇ",
+
+              "co=>こ",
+              "cco=>っこ",
+              "cho=>ちょ",
+              "ccho=>っちょ",
+              "cyo=>ちょ",
+              "ccyo=>っちょ",
+              "cwo=>くぉ",
+              "ccwo=>っくぉ",
+
+              "na=>な",
+              "nya=>にゃ",
+
+              "ni=>に",
+              "nyi=>にぃ",
+
+              "nu=>ぬ",
+              "nyu=>にゅ",
+
+              "ne=>ね",
+              "nye=>にぇ",
+
+              "no=>の",
+              "nyo=>にょ",
+
+              "ha=>は",
+              "hha=>っは",
+              "hya=>ひゃ",
+              "hhya=>っひゃ",
+              "hwa=>ふぁ",
+              "hhwa=>っふぁ",
+
+              "hi=>ひ",
+              "hhi=>っひ",
+              "hyi=>ひぃ",
+              "hhyi=>っひぃ",
+              "hwi=>ふぃ",
+              "hhwi=>っふぃ",
+
+              "hu=>ふ",
+              "hhu=>っふ",
+              "hyu=>ひゅ",
+              "hhyu=>っひゅ",
+              "hwu=>ふぅ",
+              "hhwu=>っふぅ",
+
+              "he=>へ",
+              "hhe=>っへ",
+              "hye=>ひぇ",
+              "hhye=>っひぇ",
+              "hwe=>ふぇ",
+              "hhwe=>っふぇ",
+
+              "ho=>ほ",
+              "hho=>っほ",
+              "hyo=>ひょ",
+              "hhyo=>っひょ",
+              "hwo=>ふぉ",
+              "hhwo=>っふぉ",
+
+              "ma=>ま",
+              "mma=>っま",
+              "mya=>みゃ",
+              "mmya=>っみゃ",
+
+              "mi=>み",
+              "mmi=>っみ",
+              "myi=>みぃ",
+              "mmyi=>っみぃ",
+
+              "mu=>む",
+              "mmu=>っむ",
+              "myu=>みゅ",
+              "mmyu=>っみゅ",
+
+              "me=>め",
+              "mme=>っめ",
+              "mye=>みぇ",
+              "mmye=>っみぇ",
+
+              "mo=>も",
+              "mmo=>っも",
+              "myo=>みょ",
+              "mmyo=>っみょ",
+
+              "ya=>や",
+              "yya=>っや",
+
+              "yi=>い",
+              "yyi=>っい",
+
+              "yu=>ゆ",
+              "yyu=>っゆ",
+
+              "ye=>いぇ",
+              "yye=>っいぇ",
+
+              "yo=>よ",
+              "yyo=>っよ",
+
+              "ra=>ら",
+              "rra=>っら",
+              "rya=>りゃ",
+              "rrya=>っりゃ",
+
+              "ri=>り",
+              "rri=>っり",
+              "ryi=>りぃ",
+              "rryi=>っりぃ",
+
+              "ru=>る",
+              "rru=>っる",
+              "ryu=>りゅ",
+              "rryu=>っりゅ",
+
+              "re=>れ",
+              "rre=>っれ",
+              "rye=>りぇ",
+              "rrye=>っりぇ",
+
+              "ro=>ろ",
+              "rro=>っろ",
+              "ryo=>りょ",
+              "rryo=>っりょ",
+
+              "wa=>わ",
+              "wwa=>っわ",
+              "wha=>うぁ",
+              "wwha=>っうぁ",
+
+              "wi=>うぃ",
+              "wwi=>っうぃ",
+              "whi=>うぃ",
+              "wwhi=>っうぃ",
+
+              "wu=>う",
+              "wwu=>っう",
+              "whu=>う",
+              "wwhu=>っう",
+
+              "we=>うぇ",
+              "wwe=>っうぇ",
+              "whe=>うぇ",
+              "wwhe=>っうぇ",
+
+              "wo=>を",
+              "wwo=>っを",
+              "who=>うぉ",
+              "wwho=>っうぉ",
+
+              "ga=>が",
+              "gga=>っが",
+              "gya=>ぎゃ",
+              "ggya=>っぎゃ",
+              "gwa=>ぐぁ",
+              "ggwa=>っぐぁ",
+
+              "gi=>ぎ",
+              "ggi=>っぎ",
+              "gyi=>ぎぃ",
+              "ggyi=>っぎぃ",
+              "gwi=>ぐぃ",
+              "ggwi=>っぐぃ",
+
+              "gu=>ぐ",
+              "ggu=>っぐ",
+              "gyu=>ぎゅ",
+              "ggyu=>っぎゅ",
+              "gwu=>ぐぅ",
+              "ggwu=>っぐぅ",
+
+              "ge=>げ",
+              "gge=>っげ",
+              "gye=>ぎぇ",
+              "ggye=>っぎぇ",
+              "gwe=>ぐぇ",
+              "ggwe=>っぐぇ",
+
+              "go=>ご",
+              "ggo=>っご",
+              "gyo=>ぎょ",
+              "ggyo=>っぎょ",
+              "gwo=>ぐぉ",
+              "ggwo=>っぐぉ",
+
+              "za=>ざ",
+              "zza=>っざ",
+              "zya=>じゃ",
+              "zzya=>っじゃ",
+              "zwa=>ずぁ",
+              "zzwa=>っずぁ",
+
+              "zi=>じ",
+              "zzi=>っじ",
+              "zyi=>じぃ",
+              "zzyi=>っじぃ",
+              "zwi=>ずぃ",
+              "zzwi=>っずぃ",
+
+              "zu=>ず",
+              "zzu=>っず",
+              "zyu=>じゅ",
+              "zzyu=>っじゅ",
+              "zwu=>ずぅ",
+              "zzwu=>っずぅ",
+
+              "ze=>ぜ",
+              "zze=>っぜ",
+              "zye=>じぇ",
+              "zzye=>っじぇ",
+              "zwe=>ずぇ",
+              "zzwe=>っずぇ",
+
+              "zo=>ぞ",
+              "zzo=>っぞ",
+              "zyo=>じょ",
+              "zzyo=>っじょ",
+              "zwo=>ずぉ",
+              "zzwo=>っずぉ",
+
+              "da=>だ",
+              "dda=>っだ",
+              "dha=>でゃ",
+              "ddha=>っでゃ",
+              "dya=>ぢゃ",
+              "ddya=>っぢゃ",
+              "dwa=>どぁ",
+              "ddwa=>っどぁ",
+
+              "di=>ぢ",
+              "ddi=>っぢ",
+              "dhi=>でぃ",
+              "ddhi=>っでぃ",
+              "dyi=>ぢぃ",
+              "ddyi=>っぢぃ",
+              "dwi=>どぃ",
+              "ddwi=>っどぃ",
+
+              "du=>づ",
+              "ddu=>っづ",
+              "dyu=>ぢゅ",
+              "ddyu=>っぢゅ",
+              "dwu=>どぅ",
+              "ddwu=>っどぅ",
+
+              "de=>で",
+              "dde=>っで",
+              "dye=>ぢぇ",
+              "ddye=>っぢぇ",
+              "dwe=>どぇ",
+              "ddwe=>っどぇ",
+
+              "do=>ど",
+              "ddo=>っど",
+              "dyo=>ぢょ",
+              "ddyo=>っぢょ",
+              "dwo=>どぉ",
+              "ddwo=>っどぉ",
+
+              "ba=>ば",
+              "bba=>っば",
+              "bya=>びゃ",
+              "bbya=>っびゃ",
+
+              "bi=>び",
+              "bbi=>っび",
+              "byi=>びぃ",
+              "bbyi=>っびぃ",
+
+              "bu=>ぶ",
+              "bbu=>っぶ",
+              "byu=>びゅ",
+              "bbyu=>っびゅ",
+
+              "be=>べ",
+              "bbe=>っべ",
+              "bye=>びぇ",
+              "bbye=>っびぇ",
+
+              "bo=>ぼ",
+              "bbo=>っぼ",
+              "byo=>びょ",
+              "bbyo=>っびょ",
+
+              "pa=>ぱ",
+              "ppa=>っぱ",
+              "pya=>ぴゃ",
+              "ppya=>っぴゃ",
+
+              "pi=>ぴ",
+              "ppi=>っぴ",
+              "pyi=>ぴぃ",
+              "ppyi=>っぴぃ",
+
+              "pu=>ぷ",
+              "ppu=>っぷ",
+              "pyu=>ぴゅ",
+              "ppyu=>っぴゅ",
+
+              "pe=>ぺ",
+              "ppe=>っぺ",
+              "pye=>ぴぇ",
+              "ppye=>っぴぇ",
+
+              "po=>ぽ",
+              "ppo=>っぽ",
+              "pyo=>ぴょ",
+              "ppyo=>っぴょ",
+
+              "ja=>じゃ",
+              "jja=>っじゃ",
+              "jya=>じゃ",
+              "jjya=>っじゃ",
+
+              "ji=>じ",
+              "jji=>っじ",
+              "jyi=>じぃ",
+              "jjyi=>っじぃ",
+
+              "ju=>じゅ",
+              "jju=>っじゅ",
+              "jyu=>じゅ",
+              "jjyu=>っじゅ",
+
+              "je=>じぇ",
+              "jje=>っじぇ",
+              "jye=>じぇ",
+              "jjye=>っじぇ",
+
+              "jo=>じょ",
+              "jjo=>っじょ",
+              "jyo=>じょ",
+              "jjyo=>っじょ",
+
+              "fa=>ふぁ",
+              "ffa=>っふぁ",
+              "fya=>ふゃ",
+              "ffya=>っふゃ",
+
+              "fi=>ふぃ",
+              "ffi=>っふぃ",
+              "fyi=>ふぃ",
+              "ffyi=>っふぃ",
+
+              "fu=>ふ",
+              "ffu=>っふ",
+              "fyu=>ふゅ",
+              "ffyu=>っふゅ",
+
+              "fe=>ふぇ",
+              "ffe=>っふぇ",
+              "fye=>ふぇ",
+              "ffye=>っふぇ",
+              "fo=>ふぉ",
+              "ffo=>っふぉ",
+              "fyo=>ふょ",
+              "ffyo=>っふょ"
+            ]
           }
         },
-        "nodes": {
-            "table": "Segment",
-            "schema": "public",
-            "columns": [
-              "id",
-              "uuid",
-              "position",
-              "status",
-              "start_time",
-              "end_time",
-              "content",
-              "content_length",
-              "content_spanish",
-              "content_spanish_mt",
-              "content_english",
-              "content_english_mt",
-              "is_nsfw",
-              "path_image",
-              "path_audio",
-              "actor_ja",
-              "actor_es",
-              "actor_en",
-              "episode",
-              "season",
-              "media_id"
-            ],
-            "transform": {
-              "mapping": {
-                "id": {
-                  "type": "integer",
-                  "index": false
-                },
-                "uuid": {
-                  "type": "keyword"
-                },
-                "position": {
-                  "type": "integer"
-                },
-                "status": {
-                  "type": "short"
-                },
-                "start_time": {
-                  "type": "keyword",
-                  "index": false
-                },
-                "end_time": {
-                  "type": "keyword",
-                  "index": false
-                },
-                "content": {
-                  "type": "text",
-                  "search_analyzer": "ja_original_search_analyzer",
-                  "analyzer": "ja_original_index_analyzer",
-                  "term_vector": "with_positions_offsets",
-                  "fields": {
-                    "baseform": {
-                      "type": "text",
-                      "search_analyzer": "ja_kuromoji_search_analyzer",
-                      "analyzer": "ja_kuromoji_index_analyzer",
-                      "term_vector": "with_positions_offsets"
-                    },
-                    "readingform": {
-                      "type": "text",
-                      "search_analyzer": "ja_readingform_search_analyzer",
-                      "analyzer": "ja_readingform_index_analyzer",
-                      "term_vector": "with_positions_offsets"
-                    }
-                  }
-                },
-                "content_length": {
-                  "type": "short"
-                },
-                "content_spanish": {
-                  "type": "text",
-                  "analyzer": "spanish_custom",
-                  "term_vector": "with_positions_offsets",
-                  "fields": {
-                    "exact": {
-                      "type": "text",
-                      "analyzer": "spanish_exact",
-                      "term_vector": "with_positions_offsets"
-                    }
-                  }
-                },
-                "content_spanish_mt": {
-                  "type": "boolean"
-                },
-                "content_english": {
-                  "type": "text",
-                  "analyzer": "english_custom",
-                  "term_vector": "with_positions_offsets",
-                  "fields": {
-                    "exact": {
-                      "type": "text",
-                      "analyzer": "english_exact",
-                      "term_vector": "with_positions_offsets"
-                    }
-                  }
-                },
-                "content_english_mt": {
-                  "type": "boolean"
-                },
-                "is_nsfw": {
-                  "type": "boolean"
-                },
-                "path_image": {
-                  "type": "keyword",
-                  "index": false
-                },
-                "path_audio": {
-                  "type": "keyword",
-                  "index": false
-                },
-                "actor_ja": {
-                  "type": "keyword",
-                  "index": false
-                },
-                "actor_en": {
-                  "type": "keyword",
-                  "index": false
-                },
-                "actor_es": {
-                  "type": "keyword",
-                  "index": false
-                },
-                "episode": {
-                  "type": "short"
-                },
-                "season": {
-                  "type": "short"
-                },
-                "media_id": {
-                  "type": "integer"
-                }
+        "filter": {
+          "readingform": {
+            "type": "kuromoji_readingform",
+            "use_romaji": "true"
+          },
+          "spanish_stemmer": {
+            "type": "stemmer",
+            "language": "light_spanish"
+          },
+          "english_stemmer": {
+            "type": "stemmer",
+            "language": "english"
+          },
+          "english_possessive_stemmer": {
+            "type": "stemmer",
+            "language": "possessive_english"
+          }
+        },
+        "tokenizer": {
+          "ja_kuromoji_tokenizer": {
+            "mode": "search",
+            "type": "kuromoji_tokenizer"
+          }
+        },
+        "analyzer": {
+          "ja_kuromoji_index_analyzer": {
+            "type": "custom",
+            "char_filter": ["normalize"],
+            "tokenizer": "ja_kuromoji_tokenizer",
+            "filter": ["kuromoji_baseform", "kuromoji_part_of_speech", "cjk_width", "kuromoji_stemmer", "ja_stop"]
+          },
+          "ja_kuromoji_search_analyzer": {
+            "type": "custom",
+            "char_filter": ["normalize"],
+            "tokenizer": "ja_kuromoji_tokenizer",
+            "filter": ["kuromoji_baseform", "kuromoji_part_of_speech", "cjk_width", "kuromoji_stemmer", "ja_stop"]
+          },
+          "ja_readingform_index_analyzer": {
+            "type": "custom",
+            "char_filter": ["normalize", "romaji_to_kana"],
+            "tokenizer": "ja_kuromoji_tokenizer",
+            "filter": ["cjk_width", "readingform", "lowercase", "asciifolding"]
+          },
+          "ja_readingform_search_analyzer": {
+            "type": "custom",
+            "char_filter": ["normalize", "romaji_to_kana"],
+            "tokenizer": "ja_kuromoji_tokenizer",
+            "filter": ["cjk_width", "readingform", "lowercase", "asciifolding"]
+          },
+          "ja_original_index_analyzer": {
+            "type": "custom",
+            "char_filter": ["normalize"],
+            "tokenizer": "ja_kuromoji_tokenizer",
+            "filter": ["cjk_width", "kuromoji_stemmer"]
+          },
+          "ja_original_search_analyzer": {
+            "type": "custom",
+            "char_filter": ["normalize"],
+            "tokenizer": "ja_kuromoji_tokenizer",
+            "filter": ["cjk_width", "kuromoji_stemmer"]
+          },
+          "spanish_custom": {
+            "tokenizer": "standard",
+            "filter": ["lowercase", "asciifolding", "spanish_stemmer"]
+          },
+          "spanish_exact": {
+            "tokenizer": "standard",
+            "filter": ["lowercase", "asciifolding"]
+          },
+          "english_custom": {
+            "tokenizer": "standard",
+            "filter": ["english_possessive_stemmer", "lowercase", "english_stemmer"]
+          },
+          "english_exact": {
+            "tokenizer": "standard",
+            "filter": ["lowercase"]
+          }
+        }
+      }
+    },
+    "nodes": {
+      "table": "Segment",
+      "schema": "public",
+      "columns": [
+        "id",
+        "uuid",
+        "position",
+        "status",
+        "start_time",
+        "end_time",
+        "content",
+        "content_length",
+        "content_spanish",
+        "content_spanish_mt",
+        "content_english",
+        "content_english_mt",
+        "is_nsfw",
+        "path_image",
+        "path_audio",
+        "actor_ja",
+        "actor_es",
+        "actor_en",
+        "episode",
+        "season",
+        "media_id"
+      ],
+      "transform": {
+        "mapping": {
+          "id": {
+            "type": "integer",
+            "index": false
+          },
+          "uuid": {
+            "type": "keyword"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "short"
+          },
+          "start_time": {
+            "type": "keyword",
+            "index": false
+          },
+          "end_time": {
+            "type": "keyword",
+            "index": false
+          },
+          "content": {
+            "type": "text",
+            "search_analyzer": "ja_original_search_analyzer",
+            "analyzer": "ja_original_index_analyzer",
+            "term_vector": "with_positions_offsets",
+            "fields": {
+              "baseform": {
+                "type": "text",
+                "search_analyzer": "ja_kuromoji_search_analyzer",
+                "analyzer": "ja_kuromoji_index_analyzer",
+                "term_vector": "with_positions_offsets"
+              },
+              "readingform": {
+                "type": "text",
+                "search_analyzer": "ja_readingform_search_analyzer",
+                "analyzer": "ja_readingform_index_analyzer",
+                "term_vector": "with_positions_offsets"
               }
-            },
+            }
+          },
+          "content_length": {
+            "type": "short"
+          },
+          "content_spanish": {
+            "type": "text",
+            "analyzer": "spanish_custom",
+            "term_vector": "with_positions_offsets",
+            "fields": {
+              "exact": {
+                "type": "text",
+                "analyzer": "spanish_exact",
+                "term_vector": "with_positions_offsets"
+              }
+            }
+          },
+          "content_spanish_mt": {
+            "type": "boolean"
+          },
+          "content_english": {
+            "type": "text",
+            "analyzer": "english_custom",
+            "term_vector": "with_positions_offsets",
+            "fields": {
+              "exact": {
+                "type": "text",
+                "analyzer": "english_exact",
+                "term_vector": "with_positions_offsets"
+              }
+            }
+          },
+          "content_english_mt": {
+            "type": "boolean"
+          },
+          "is_nsfw": {
+            "type": "boolean"
+          },
+          "path_image": {
+            "type": "keyword",
+            "index": false
+          },
+          "path_audio": {
+            "type": "keyword",
+            "index": false
+          },
+          "actor_ja": {
+            "type": "keyword",
+            "index": false
+          },
+          "actor_en": {
+            "type": "keyword",
+            "index": false
+          },
+          "actor_es": {
+            "type": "keyword",
+            "index": false
+          },
+          "episode": {
+            "type": "short"
+          },
+          "season": {
+            "type": "short"
+          },
+          "media_id": {
+            "type": "integer"
+          }
+        }
+      },
       "children": [
         {
           "table": "Media",
@@ -851,12 +796,8 @@
             "variant": "object",
             "type": "one_to_many",
             "foreign_key": {
-              "child": [
-                "id"
-              ],
-              "parent": [
-                "media_id"
-              ]
+              "child": ["id"],
+              "parent": ["media_id"]
             }
           },
           "transform": {
