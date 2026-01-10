@@ -43,6 +43,7 @@ export const userStore = defineStore("user", {
           }
         );
 
+        // If the response is successful, extract the JSON
         if (response.ok) {
           this.$patch((state) => {
             state.isLoggedIn = true;
@@ -78,6 +79,7 @@ export const userStore = defineStore("user", {
             }),
           }
         );
+        // If the response is successful, extract the JSON
         if (response.ok) {
           this.$patch((state) => {
             state.isLoggedIn = true;
@@ -172,12 +174,13 @@ export const userStore = defineStore("user", {
             }),
           }
         );
+        // If the response is successful, extract the JSON
         if (response.ok) {
           const responseData = await response.json();
-          const message = "Registro exitoso";
+          const message = $i18n.t("auth.registrationSuccess");
           useToastSuccess(message);
         } else {
-          const message = "Registro fallido. Intentelo nuevamente";
+          const message = $i18n.t("auth.registrationError");
           useToastError(message);
         }
       } catch (error) {

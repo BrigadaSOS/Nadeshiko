@@ -122,34 +122,34 @@ watch([page, currentView, searchQuery], () => {
       <input
         v-model="query"
         class="block p-2.5 mb-4 w-full text-sm text-gray-900 rounded-lg border border-gray-300 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white"
-        placeholder="Buscar..."
+        :placeholder="$t('searchpage.main.labels.searchmain')"
       />
       <div class="flex items-center mb-4">
         <SearchDropdownContainer class="" dropdownId="hs-dropdown-with-header">
           <template #default>
             <SearchDropdownMainButton dropdownId="hs-dropdown-with-header">
-              Categoría
+              {{ $t('searchpage.main.labels.searchbar').replace('...', '') }}
             </SearchDropdownMainButton>
           </template>
           <template #content>
             <SearchDropdownContent>
               <SearchDropdownItem
-                text="Todo"
+                :text="$t('searchContainer.categoryAll')"
                 @click="handleFilterChange('')"
                 :selected="filterType === ''"
               />
               <SearchDropdownItem
-                text="Anime"
+                :text="$t('searchContainer.categoryAnime')"
                 @click="handleFilterChange('anime')"
                 :selected="filterType === 'anime'"
               />
               <SearchDropdownItem
-                text="Liveaction"
+                :text="$t('searchContainer.categoryLiveaction')"
                 @click="handleFilterChange('liveaction')"
                 :selected="filterType === 'liveaction'"
               />
               <SearchDropdownItem
-                text="Audiobook"
+                :text="$t('searchContainer.categoryAudiobook')"
                 @click="handleFilterChange('audiobook')"
                 :selected="filterType === 'audiobook'"
               />
@@ -247,7 +247,7 @@ watch([page, currentView, searchQuery], () => {
                 <div
                   class="text-lg font-semibold bg-graypalid px-3 rounded-lg dark:bg-graypalid dark:border-sgray2 text-white"
                 >
-                  Anime
+                  {{ $t('searchContainer.categoryAnime') }}
                 </div>
                 <div
                   class="flex-none w-full mt-2 text-sm font-medium text-gray-500 dark:text-gray-300"
@@ -264,42 +264,42 @@ watch([page, currentView, searchQuery], () => {
                 <p
                   class="text-sm font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Cantidad de Oraciones: {{ media_info.num_segments }}
+                  {{ $t('animeList.sentenceCountLabel') }} {{ media_info.num_segments }}
                 </p>
                 <p
                   class="text-sm my-1 font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Cantidad de Palabras:
+                  {{ $t('animeList.wordCountLabel') }}
                 </p>
                 <p
                   class="text-sm my-1 font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Palabras Únicas:
+                  {{ $t('animeList.uniqueWordsLabel') }}
                 </p>
                 <p
                   class="text-sm my-1 font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Kanjis Únicos:
+                  {{ $t('animeList.uniqueKanjiLabel') }}
                 </p>
                 <p
                   class="text-sm my-1 font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Palabras Únicas (usadas una vez):
+                  {{ $t('animeList.uniqueWordsOnceLabel') }}
                 </p>
                 <p
                   class="text-sm my-1 font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Índice de Diversidad Léxica:
+                  {{ $t('animeList.lexicalDiversityLabel') }}
                 </p>
                 <p
                   class="text-sm my-1 font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Puntaje Anilist:
+                  {{ $t('animeList.anilistScoreLabel') }}
                 </p>
                 <p
                   class="text-sm my-1 font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  Dificultad:
+                  {{ $t('animeList.difficultyLabel') }}
                 </p>
               </div>
 
@@ -314,7 +314,7 @@ watch([page, currentView, searchQuery], () => {
                   <div class="px-2 py-2 text-center">
                     <div class="flex items-center gap-x-2">
                       <p class="text-xs uppercase tracking-wide text-white">
-                        Temporadas:
+                        {{ $t('animeList.seasons') }}:
                       </p>
                       <p
                         class="text-xs font-medium text-gray-800 dark:text-gray-200"
@@ -331,7 +331,7 @@ watch([page, currentView, searchQuery], () => {
                   <div class="px-2 py-2 text-center">
                     <div class="flex items-center gap-x-2">
                       <p class="text-xs uppercase tracking-wide text-white">
-                        Episodios:
+                        {{ $t('animeList.episodes') }}:
                       </p>
                       <p
                         class="text-xs font-medium text-gray-800 dark:text-gray-200"
@@ -348,7 +348,7 @@ watch([page, currentView, searchQuery], () => {
                     data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-white dark:placeholder-gray-400 dark:text-white"
                   >
-                    <div>Anilist</div>
+                    <div>{{ $t('animeList.anilistButton') }}</div>
                   </button>
 
                   <button
@@ -356,7 +356,7 @@ watch([page, currentView, searchQuery], () => {
                     data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-blue-500/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-blue-400 dark:placeholder-gray-400 dark:text-blue-400"
                   >
-                    <div>Vocabulario</div>
+                    <div>{{ $t('animeList.vocabularyButton') }}</div>
                     <UiBaseIcon
                       :path="mdiArrowRight"
                       w="w-5 md:w-5"
@@ -377,7 +377,7 @@ watch([page, currentView, searchQuery], () => {
           @click="beforePage()"
           class="border-b-2 border-red-500 p-2 left-0 px-4 py-2 text-white transition-transform transform"
         >
-          Página Anterior
+          {{ $t('animeList.previousPage') }}
         </button>
 
         <button
@@ -385,7 +385,7 @@ watch([page, currentView, searchQuery], () => {
           @click="nextPage()"
           class="ml-auto border-b-2 border-red-500 p-2 right-0 px-4 py-2 text-white transition-transform transform"
         >
-          Página Siguiente
+          {{ $t('animeList.nextPage') }}
         </button>
       </div>
     </div>

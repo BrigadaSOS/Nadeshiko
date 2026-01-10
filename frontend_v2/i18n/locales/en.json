@@ -94,7 +94,19 @@
     "japaneseName": "Japanese",
     "seasons": "Seasons",
     "episodes": "Episodes",
-    "genres": "Genres"
+    "genres": "Genres",
+    "sentenceCountLabel": "Sentence Count:",
+    "wordCountLabel": "Word Count:",
+    "uniqueWordsLabel": "Unique Words:",
+    "uniqueKanjiLabel": "Unique Kanji:",
+    "uniqueWordsOnceLabel": "Unique Words (used once):",
+    "lexicalDiversityLabel": "Lexical Diversity Index:",
+    "anilistScoreLabel": "Anilist Score:",
+    "difficultyLabel": "Difficulty:",
+    "anilistButton": "Anilist",
+    "vocabularyButton": "Vocabulary",
+    "previousPage": "Previous Page",
+    "nextPage": "Next Page"
   },
   "searchSettingsModal": {
     "title": "Search settings",
@@ -135,6 +147,29 @@
       "cardAdded": "Card has been successfully added to Anki",
       "cardAddError": "Could not add card to Anki. Error: {error}"
     }
+  },
+  "modalAnkiNotes": {
+    "closeSrOnly": "Close",
+    "searchPlaceholder": "女"
+  },
+  "modalBatch": {
+    "closeSrOnly": "Close",
+    "wordLimitExceeded": "The word limit has been exceeded: {count} / 500",
+    "inputFormatError": "The input format is incorrect. Check if there are commas and line breaks simultaneously.",
+    "notAvailable": "Not available",
+    "searchTypeLabel": "Search type: {type}",
+    "searchTypeExact": "Exact",
+    "searchTypeNormal": "Normal",
+    "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n...\n...\n..."
+  },
+  "modalContext": {
+    "closeSrOnly": "Close"
+  },
+  "filterContent": {
+    "searchPlaceholder": "Search here"
+  },
+  "segmentSidebar": {
+    "loading": "Loading..."
   },
   "searchpage": {
     "main": {
@@ -177,8 +212,8 @@
         "translation": "Translation (EN/ES)",
         "movie": "Movie",
         "audiobook": "Audiobook",
-        "searchmain": "Search a word here!",
-        "searchbar": "Search an anime here...",
+        "searchmain": "Search a title here...",
+        "searchbar": "Filter",
         "multimedia": "Multimedia",
         "text": "Text",
         "options": "Options",
@@ -247,7 +282,8 @@
       "infoTitle": "Information",
       "usernameLabel": "Username",
       "emailLabel": "Email",
-      "notAvailable": "No available",
+      "notAvailable": "Not available",
+      "dataLoadError": "Failed to load user data",
       "securityTitle": "Security",
       "passwordLabel": "Password",
       "additionalTitle": "Additional",
@@ -261,6 +297,7 @@
       "successMessage": "Connection with Anki has been successfully established",
       "connectionError": "Something went wrong",
       "errorMessage": "Could not establish connection with Anki",
+      "fieldLoadError": "Error loading model field names:",
       "troubleshootingTips": {
         "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
         "webCors": "Make sure 'https://nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
@@ -300,7 +337,18 @@
     "retryButton": "Retry connection",
     "retrying": "Retrying...",
     "endOfResults": "You've reached the end!",
-    "loadMore": "Load more sentences"
+    "loadMore": "Load more sentences",
+    "pageTitle": "{query} - Search in Nadeshiko",
+    "pageTitleDefault": "Nadeshiko - Search",
+    "seoDescription": "Search results for \"{query}\" in Nadeshiko",
+    "seoDescriptionDefault": "Search anime and live action phrases in Nadeshiko",
+    "mediaInfo": "{jpSentence} from {animeName}, {mediaType}",
+    "mediaTypeMovie": "Movie",
+    "mediaTypeSeason": "Season {season}, Episode {episode}",
+    "categoryAll": "All",
+    "categoryAnime": "Anime",
+    "categoryLiveaction": "Live Action",
+    "categoryAudiobook": "Audiobook"
   },
   "modalauth": {
     "headers": {
@@ -327,7 +375,14 @@
       "errorlogin400": "Please check your email/password and try again.",
       "username": "Username",
       "terms": "By using this website you agree to our {terms} and to our {privacy}",
-      "registerButton": "Register"
+      "registerButton": "Register",
+      "closeSrOnly": "Close",
+      "passwordMinLength": "8+ characters required",
+      "passwordMatchError": "Passwords must match"
     }
+  },
+  "auth": {
+    "registrationSuccess": "Registration successful",
+    "registrationError": "Registration failed. Please try again"
   }
 }

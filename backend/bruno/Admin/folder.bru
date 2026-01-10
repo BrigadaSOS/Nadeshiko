@@ -1,4 +1,13 @@
 meta {
   name: Admin
-  seq: 1
+}
+
+auth {
+  mode: apikey
+}
+
+auth:apikey {
+  key: x-api-key
+  value: {{apiKey}}
+  placement: header
 }

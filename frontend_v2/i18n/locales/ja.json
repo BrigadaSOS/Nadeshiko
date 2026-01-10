@@ -52,7 +52,7 @@
       },
       "stats": {
         "title": "全体統計",
-        "sentenceCount": "文の数",
+        "sentenceCount": "文",
         "mediaCount": "総コンテンツ数"
       }
     },
@@ -89,12 +89,24 @@
       "recentlyAddedTitle": "最近追加されたもの",
       "fullListTitle": "コンテンツ一覧",
       "seeAll": "すべて見る",
-      "sentenceCount": "文の数",
+      "sentenceCount": "文",
       "romajiName": "名前（ローマ字）",
       "japaneseName": "日本語名",
       "seasons": "シーズン",
       "episodes": "エピソード",
-      "genres": "ジャンル"
+      "genres": "ジャンル",
+      "sentenceCountLabel": "文:",
+      "wordCountLabel": "単語数:",
+      "uniqueWordsLabel": "ユニークな単語:",
+      "uniqueKanjiLabel": "ユニークな漢字:",
+      "uniqueWordsOnceLabel": "ユニークな単語（1回のみ使用）:",
+      "lexicalDiversityLabel": "語彙多様性指数:",
+      "anilistScoreLabel": "Anilistスコア:",
+      "difficultyLabel": "難易度:",
+      "anilistButton": "Anilist",
+      "vocabularyButton": "語彙",
+      "previousPage": "前のページ",
+      "nextPage": "次のページ"
     },
     "searchSettingsModal": {
       "title": "検索設定",
@@ -135,6 +147,29 @@
         "cardAdded": "カードがAnkiに正常に追加されました",
         "cardAddError": "Ankiにカードを追加できませんでした。エラー: {error}"
       }
+    },
+    "modalAnkiNotes": {
+      "closeSrOnly": "閉じる",
+      "searchPlaceholder": "女"
+    },
+    "modalBatch": {
+      "closeSrOnly": "閉じる",
+      "wordLimitExceeded": "単語数の上限を超えました: {count} / 500",
+      "inputFormatError": "入力形式が正しくありません。カンマと改行が同時に含まれていないか確認してください。",
+      "notAvailable": "利用不可",
+      "searchTypeLabel": "検索タイプ: {type}",
+      "searchTypeExact": "完全一致",
+      "searchTypeNormal": "通常",
+      "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n...\n...\n..."
+    },
+    "modalContext": {
+      "closeSrOnly": "閉じる"
+    },
+    "filterContent": {
+      "searchPlaceholder": "ここで検索"
+    },
+    "segmentSidebar": {
+      "loading": "読み込み中..."
     },
     "searchpage": {
       "main": {
@@ -177,8 +212,8 @@
           "translation": "翻訳（EN/ES）",
           "movie": "映画",
           "audiobook": "オーディオブック",
-          "searchmain": "ここで単語を検索！",
-          "searchbar": "アニメを検索...",
+          "searchmain": "タイトルを書いてください",
+          "searchbar": "フィルター",
           "multimedia": "マルチメディア",
           "text": "テキスト",
           "options": "オプション",
@@ -248,6 +283,7 @@
         "usernameLabel": "ユーザー名",
         "emailLabel": "メール",
         "notAvailable": "利用不可",
+        "dataLoadError": "ユーザーデータの読み込みに失敗しました",
         "securityTitle": "セキュリティ",
         "passwordLabel": "パスワード",
         "additionalTitle": "エキストラ",
@@ -261,6 +297,7 @@
         "successMessage": "Ankiとの接続が正常に確立されました",
         "connectionError": "エラーが発生しました",
         "errorMessage": "Ankiとの接続を確立できませんでした",
+        "fieldLoadError": "モデルのフィールド名の読み込みエラー:",
         "troubleshootingTips": {
           "ankiRunning": "Ankiが起動中でAnkiconnectアドオンがインストールされていることを確認してください",
           "webCors": "AnkiConnectのwebCorsOriginList設定に'https://nadeshiko.co'が含まれていることを確認してください",
@@ -300,7 +337,18 @@
       "retryButton": "接続を再試行",
       "retrying": "再試行中...",
       "endOfResults": "最後まで到達しました！",
-      "loadMore": "さらに文を読み込む"
+      "loadMore": "さらに文を読み込む",
+      "pageTitle": "{query} - Nadeshiko検索",
+      "pageTitleDefault": "Nadeshiko - 検索",
+      "seoDescription": "Nadeshikoで「{query}」の検索結果",
+      "seoDescriptionDefault": "アニメと実写のフレーズをNadeshikoで検索",
+      "mediaInfo": "{animeName}、{mediaType}の{jpSentence}",
+      "mediaTypeMovie": "映画",
+      "mediaTypeSeason": "シーズン{season}、エピソード{episode}",
+      "categoryAll": "すべて",
+      "categoryAnime": "アニメ",
+      "categoryLiveaction": "実写",
+      "categoryAudiobook": "オーディオブック"
     },
     "modalauth": {
       "headers": {
@@ -327,8 +375,15 @@
         "errorlogin400": "メールアドレス/パスワードを確認して再試行してください。",
         "username": "ユーザー名",
         "terms": "このウェブサイトを使用することで、{terms}と{privacy}に同意したものとみなされます",
-        "registerButton": "登録"
+        "registerButton": "登録",
+        "closeSrOnly": "閉じる",
+        "passwordMinLength": "8文字以上必要です",
+        "passwordMatchError": "パスワードが一致しません"
       }
+    },
+    "auth": {
+      "registrationSuccess": "登録成功",
+      "registrationError": "登録に失敗しました。もう一度お試しください"
     }
   }
-  
+
