@@ -101,7 +101,7 @@ const filterAnime = (anime_id, anime_name) => {
             <div class="overflow-auto snap-y max-h-[50vh]">
                 <li class="snap-start" v-for="item in filteredMedia" :key="item.anime_id">
                     <button @click="filterAnime(item.anime_id, item.name_anime_en)"
-                        :class="{ 'bg-sgrayhover': item.anime_id == categorySelected }"
+                        :class="{ 'bg-sgrayhover': item.anime_id == route.query.media }"
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.name_anime_en }}</span>
                         <span
