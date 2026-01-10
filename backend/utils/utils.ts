@@ -35,8 +35,12 @@ export const hashApiKey = (apiKey: string) => {
 };
 
 // Reference: https://javascript.plainenglish.io/typed-express-request-and-response-with-typescript-7277aea028c
-export interface ControllerRequest<ReqBody, ReqQuery extends Query = Query>
-  extends Request<ParamsDictionary, any, ReqBody, ReqQuery> {}
+export type ControllerRequest<ReqBody, ReqQuery extends Query = Query> = Request<
+  ParamsDictionary,
+  any,
+  ReqBody,
+  ReqQuery
+>;
 
 export interface ControllerResponse<T> extends Response {
   json: Send<T, this>;
@@ -44,7 +48,5 @@ export interface ControllerResponse<T> extends Response {
 
 // https://stackoverflow.com/questions/43118692/typescript-filter-out-nulls-from-an-array
 export function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-  if (value === null || value === undefined) return false;
-  const testDummy: TValue = value;
-  return true;
+  return value !== null && value !== undefined;
 }

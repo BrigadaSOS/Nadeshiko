@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 export const router = express.Router();
 
@@ -10,7 +9,6 @@ import {
   GetContextAnime,
   SearchAnimeSentences,
   GetWordsMatched,
-  updateSegment,
   SearchAnimeSentencesHealth,
 } from '../controllers/mediaController';
 import { searchFetchLimiter } from '../middleware/apilLimiterRate';
