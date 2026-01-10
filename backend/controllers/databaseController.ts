@@ -3,6 +3,7 @@ import connection from '../database/db_posgres';
 import { Request, Response, NextFunction } from 'express';
 import { addBasicData, readAnimeDirectories, readSpecificDirectory } from '../database/db_initial';
 import { UserSearchHistory } from '../models/miscellaneous/userSearchHistory';
+import { logger } from '../utils/log';
 
 const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
 
@@ -50,6 +51,6 @@ export const SaveUserSearchHistory = async (EventType: number, Query: any, IP: a
     });
     await searchLog.save();
   } catch (error) {
-    console.log('Error while inserting search log into the database', error);
+    logger.error({ err: error, EventType, Query, IP, Hits }, 'Error inserting search log into database');
   }
 };
