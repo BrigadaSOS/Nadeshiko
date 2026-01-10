@@ -129,7 +129,6 @@ export const SearchAnimeSentences = async (
   next: NextFunction,
 ) => {
   try {
-
     const response = await querySegments({
       query: req.body.query,
       uuid: req.body.uuid,
