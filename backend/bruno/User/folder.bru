@@ -1,4 +1,11 @@
 meta {
   name: User
-  seq: 3
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{jwtToken}}
 }
