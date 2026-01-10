@@ -30,9 +30,9 @@ info:
 
 servers:
   - description: Local server
-    url: http://localhost:5000/api
+    url: http://localhost:5000
   - description: Production server
-    url: https://api.brigadasos.xyz/api
+    url: https://api.nadeshiko.co
 
 security:
   - apiKeyHeader: []
@@ -41,56 +41,39 @@ security:
 tags:
   - name: Search
     description: |
-      Search endpoints for querying Japanese sentences across indexed media (anime, J-Drama, audiobooks).
+      Search endpoints for querying Japanese sentences across indexed media.
 
-      ## Authentication & Permissions
+  - name: Media
+    description: |
+      Media CRUD endpoints for managing anime and j-drama entries.
 
-      All search endpoints require:
-
-      | Requirement | Value |
-      |-------------|-------|
-      | **Authentication** | API Key via `X-API-Key` header (or SSR requests from allowed URLs) |
-      | **Permission** | `READ_MEDIA` - The API key must have this permission |
-      | **Rate Limit** | 2000 requests per 5 minutes (per IP address) |
-      | **Monthly Quota** | Role-based (e.g., 5000 requests/month for Normal Users) |
-
-      ## Error Codes
-
-      - `401 Unauthorized` - Missing, invalid, or inactive API key
-      - `403 Forbidden` - API key lacks `READ_MEDIA` permission
-      - `429 Too Many Requests` - Rate limit or monthly quota exceeded
-
-      ## Search Features
-
-      - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
-      - **Boolean Operators:** `AND`, `OR`, `NOT` supported
-      - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`)
-      - **Wildcards:** `te*t` format (leading wildcards not supported)
-      - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
   - name: User
-    description: User management and API key operations
     x-internal: true
+    description: |
+      User management and API key operations
+
   - name: Auth
-    description: Public authentication endpoints (login, registration, OAuth...)
     x-internal: true
+    description: |
+      Public authentication endpoints (login, registration, OAuth...)
+
   - name: AuthJwt
-    description: JWT-protected authentication endpoints
     x-internal: true
-  - name: Admin
-    description: Internal endpoints for database management
-    x-internal: true
+    description: |
+      JWT-protected authentication endpoints
+
 paths:
   # Search endpoints
   "/v1/search/health":
-    $ref: "./paths/v1_search_health.yaml"
+    $ref: "./paths/search/v1_search_health.yaml"
   "/v1/search/media/sentence":
-    $ref: "./paths/v1_search_media_sentence.yaml"
+    $ref: "./paths/search/v1_search_media_sentence.yaml"
   "/v1/search/media/match/words":
-    $ref: "./paths/v1_search_media_match_words.yaml"
+    $ref: "./paths/search/v1_search_media_match_words.yaml"
   "/v1/search/media/context":
-    $ref: "./paths/v1_search_media_context.yaml"
+    $ref: "./paths/search/v1_search_media_context.yaml"
   "/v1/search/media/info":
-    $ref: "./paths/v1_search_media_info.yaml"
+    $ref: "./paths/search/v1_search_media_info.yaml"
 
   # Auth endpoints
   "/v1/auth/discord/url":
@@ -118,13 +101,27 @@ paths:
   "/v1/user/deactivateApiKey":
     $ref: "./paths/user/v1_user_deactivateApiKey.yaml"
 
-  # Admin endpoints
-  "/v1/admin/database/sync/full":
-    $ref: "./paths/admin/v1_admin_database_sync_full.yaml"
-  "/v1/admin/database/sync/partial":
-    $ref: "./paths/admin/v1_admin_database_sync_partial.yaml"
-  "/v1/management/media/sync/media":
-    $ref: "./paths/admin/v1_management_media_sync.yaml"
+  # Media endpoints
+  "/v1/media":
+    $ref: "./paths/media/v1_media.yaml"
+  "/v1/media/{id}":
+    $ref: "./paths/media/v1_media_id.yaml"
+
+  # Episode endpoints (nested under media)
+  "/v1/media/{mediaId}/episodes":
+    $ref: "./paths/media/v1_media_mediaId_episodes.yaml"
+  "/v1/media/{mediaId}/episodes/{episodeNumber}":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber.yaml"
+
+  # Segment endpoints (nested under episodes)
+  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments.yaml"
+  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_id.yaml"
+
+  # Segment standalone UUID query
+  "/v1/media/segments/{uuid}":
+    $ref: "./paths/media/v1_media_segments_uuid.yaml"
 
 components:
   securitySchemes:

@@ -1,0 +1,80 @@
+type: object
+required:
+  - uuid
+  - position
+  - startTime
+  - endTime
+  - content
+properties:
+  uuid:
+    type: string
+    description: Unique identifier for the segment
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  position:
+    type: integer
+    description: Position of the segment within the episode
+    example: 1133
+  status:
+    type: integer
+    description: Segment status (default is 1=Active)
+    enum: [0, 1, 2, 3, 100, 101]
+    default: 1
+    example: 1
+  startTime:
+    type: string
+    description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
+    example: "0:33:27.255000"
+  endTime:
+    type: string
+    description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
+    example: "0:33:28.464000"
+  content:
+    type: string
+    maxLength: 500
+    description: Original Japanese content of the segment
+    example: "僕は僕で、君は君だ。"
+  contentSpanish:
+    type: string
+    maxLength: 500
+    description: Spanish translation of the segment content
+    example: "Yo soy yo, y tú eres tú."
+  contentSpanishMt:
+    type: boolean
+    description: Whether the Spanish translation was machine-translated
+    default: false
+    example: false
+  contentEnglish:
+    type: string
+    maxLength: 500
+    description: English translation of the segment content
+    example: "I am me, and you are you."
+  contentEnglishMt:
+    type: boolean
+    description: Whether the English translation was machine-translated
+    default: false
+    example: false
+  isNsfw:
+    type: boolean
+    description: Whether the segment contains NSFW content
+    default: false
+    example: false
+  imageUrl:
+    type: string
+    description: URL to segment screenshot/image
+    example: "https://example.com/images/segment.jpg"
+  audioUrl:
+    type: string
+    description: URL to segment audio file
+    example: "https://example.com/audio/segment.mp3"
+  actorJa:
+    type: string
+    description: Japanese voice actor name
+    example: "Mamoru Miyano"
+  actorEs:
+    type: string
+    description: Spanish voice actor name
+    example: "Alejandro Levis"
+  actorEn:
+    type: string
+    description: English voice actor name
+    example: "J. Michael Tatum"

@@ -1,0 +1,63 @@
+type: object
+description: Request body for updating an existing media entry (all fields optional)
+properties:
+  anilistId:
+    type: integer
+    description: AniList database ID for the media
+    example: 7674
+  japaneseName:
+    type: string
+    description: Original Japanese name of the media
+    example: "バクマン。"
+  romajiName:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Bakuman."
+  englishName:
+    type: string
+    description: English translation of the media name
+    example: "Bakuman."
+  airingFormat:
+    type: string
+    description: Format of the media release (e.g., TV, OVA, Movie)
+    example: "TV"
+  airingStatus:
+    type: string
+    description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+    example: "FINISHED"
+  genres:
+    type: array
+    items:
+      type: string
+    description: List of genres associated with the media
+    example: ["Comedy", "Drama", "Romance", "Slice of Life"]
+  coverUrl:
+    type: string
+    description: Full URL to the cover image
+    example: "https://cdn.example.com/media/anime/bakuman/cover.webp"
+  bannerUrl:
+    type: string
+    description: Full URL to the banner image
+    example: "https://cdn.example.com/media/anime/bakuman/banner.webp"
+  releaseDate:
+    type: string
+    format: date-time
+    description: Original release date of the media
+    example: "2010-10-02T00:00:00Z"
+  category:
+    type: string
+    enum: [ANIME, AUDIOBOOK]
+    description: Media category
+    example: "ANIME"
+  numSegments:
+    type: integer
+    description: Total number of subtitle segments available
+    example: 1234
+  version:
+    type: string
+    description: Version identifier for the media entry
+    example: "6"
+  hashSalt:
+    type: string
+    description: Hash salt for data integrity verification
+    example: "ba0cbe173ed310528f16130273662a60"

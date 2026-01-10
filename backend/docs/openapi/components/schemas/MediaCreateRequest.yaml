@@ -1,0 +1,69 @@
+type: object
+description: Request body for creating a new media entry
+required:
+  - anilistId
+  - japaneseName
+  - romajiName
+  - englishName
+  - airingFormat
+  - airingStatus
+  - genres
+  - category
+  - version
+properties:
+  anilistId:
+    type: integer
+    description: AniList database ID for the media
+    example: 7674
+  japaneseName:
+    type: string
+    description: Original Japanese name of the media
+    example: "バクマン。"
+  romajiName:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Bakuman."
+  englishName:
+    type: string
+    description: English translation of the media name
+    example: "Bakuman."
+  airingFormat:
+    type: string
+    description: Format of the media release (e.g., TV, OVA, Movie)
+    example: "TV"
+  airingStatus:
+    type: string
+    description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+    example: "FINISHED"
+  genres:
+    type: array
+    items:
+      type: string
+    description: List of genres associated with the media
+    example: ["Comedy", "Drama", "Romance", "Slice of Life"]
+  coverUrl:
+    type: string
+    description: Full URL to the cover image
+    example: "https://cdn.example.com/media/anime/bakuman/cover.webp"
+  bannerUrl:
+    type: string
+    description: Full URL to the banner image
+    example: "https://cdn.example.com/media/anime/bakuman/banner.webp"
+  releaseDate:
+    type: string
+    format: date-time
+    description: Original release date of the media
+    example: "2010-10-02T00:00:00Z"
+  category:
+    type: string
+    enum: [ANIME, BOOK, JDRAMA, AUDIOBOOK]
+    description: Media category
+    example: "ANIME"
+  version:
+    type: string
+    description: Version of the media-sub-splitter used
+    example: "6"
+  hashSalt:
+    type: string
+    description: Hash salt used when generating the hash for the related media assets
+    example: "ba0cbe173ed310528f16130273662a60"

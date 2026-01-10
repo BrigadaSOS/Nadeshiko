@@ -1,0 +1,31 @@
+meta {
+  name: Delete an episode
+  type: http
+  seq: 26
+}
+
+delete {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

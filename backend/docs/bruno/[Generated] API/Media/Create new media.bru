@@ -1,0 +1,49 @@
+meta {
+  name: Create new media
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/v1/media
+  body: json
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+body:json {
+  {
+    "anilistId": 7674,
+    "japaneseName": "バクマン。",
+    "romajiName": "Bakuman.",
+    "englishName": "Bakuman.",
+    "airingFormat": "TV",
+    "airingStatus": "FINISHED",
+    "genres": [
+      "Comedy",
+      "Drama",
+      "Romance",
+      "Slice of Life"
+    ],
+    "coverUrl": "https://cdn.example.com/media/anime/bakuman/cover.webp",
+    "bannerUrl": "https://cdn.example.com/media/anime/bakuman/banner.webp",
+    "releaseDate": "2010-10-02T00:00:00.000Z",
+    "category": "ANIME",
+    "version": "6",
+    "hashSalt": "ba0cbe173ed310528f16130273662a60"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

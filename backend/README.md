@@ -48,5 +48,5 @@ The API will be available at `http://localhost:5000`
 
 ## Bruno Collection
 
-Import and use the [Bruno](https://www.usebruno.com/) collection from `/bruno`
-for easy testing of the API endpoints.
+Import and use the [Bruno](https://www.usebruno.com/) collection from
+`/docs/bruno` for easy testing of the API endpoints.

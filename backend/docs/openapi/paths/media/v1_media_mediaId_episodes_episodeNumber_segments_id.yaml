@@ -1,0 +1,151 @@
+get:
+  operationId: segmentShow
+  tags:
+    - Media
+  summary: Get single segment
+  description: |
+    Get a specific segment by ID
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+    - name: episodeNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Episode number
+      example: 1
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Segment ID
+      example: 12345
+  responses:
+    "200":
+      $ref: "../../components/responses/SegmentResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  operationId: segmentUpdate
+  x-internal: true
+  tags:
+    - Media
+  summary: Update segment
+  description: |
+    Update an existing segment with partial data
+
+  security:
+    - apiKeyHeader: [WRITE_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+    - name: episodeNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Episode number
+      example: 1
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Segment ID
+      example: 12345
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/SegmentUpdateRequest.yaml"
+  responses:
+    "200":
+      $ref: "../../components/responses/SegmentResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Media
+  operationId: segmentDestroy
+  x-internal: true
+  summary: Delete segment (set status to deleted)
+  description: |
+    Delete a segment by setting its status to 0 (DELETED)
+
+  security:
+    - apiKeyHeader: [REMOVE_MEDIA]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID of the media
+      example: 7674
+    - name: episodeNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Episode number
+      example: 1
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Segment ID
+      example: 12345
+  responses:
+    "204":
+      description: Segment successfully deleted
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

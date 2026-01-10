@@ -1,0 +1,5 @@
+description: Paginated list of segments
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/SegmentListResponse.yaml"

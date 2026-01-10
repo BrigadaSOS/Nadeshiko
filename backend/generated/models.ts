@@ -47,16 +47,35 @@ export type t_CreateApiKeyResponse = {
   message: string;
 };
 
-export type t_DatabaseSyncResponse = {
-  message: string;
-};
-
 export type t_DeactivateApiKeyResponse = {
   message: string;
 };
 
 export type t_DiscordAuthUrlResponse = {
   url: string;
+};
+
+export type t_Episode = {
+  airedAt?: string | null;
+  anilistEpisodeId?: number | null;
+  createdAt: string;
+  deletedAt?: string | null;
+  description?: string | null;
+  episodeNumber: number;
+  lengthSeconds?: number | null;
+  mediaId: number;
+  numSegments: number;
+  thumbnailUrl?: string | null;
+  titleEnglish?: string | null;
+  titleJapanese?: string | null;
+  titleRomaji?: string | null;
+  updatedAt: string;
+};
+
+export type t_EpisodeListResponse = {
+  cursor?: number;
+  data: t_Episode[];
+  hasMoreResults: boolean;
 };
 
 export type t_Error = {
@@ -98,9 +117,28 @@ export type t_LogoutResponse = {
   status?: number;
 };
 
+export type t_Media = {
+  airingFormat: string;
+  airingStatus: string;
+  anilistId: number;
+  bannerUrl: string;
+  category: 'ANIME' | 'BOOK' | 'JDRAMA' | 'AUDIOBOOK';
+  coverUrl: string;
+  englishName: string;
+  genres: string[];
+  id: number;
+  japaneseName: string;
+  numEpisodes?: number;
+  numSegments?: number;
+  releaseDate: string;
+  romajiName: string;
+  version: string;
+};
+
 export type t_MediaInfoData = {
   airing_format?: string;
   airing_status?: string;
+  anilist_id?: number | null;
   banner?: string;
   category?: number;
   cover?: string;
@@ -109,14 +147,13 @@ export type t_MediaInfoData = {
   folder_media_name?: string;
   genres?: string[];
   id: number;
-  id_anilist?: number | null;
-  id_tmdb?: number | null;
   japanese_name?: string;
   num_episodes?: number;
   num_seasons?: number;
   num_segments?: number;
   release_date?: string | null;
   romaji_name?: string;
+  tmdb_id?: number | null;
   updated_at?: number;
   version?: string;
 };
@@ -132,6 +169,12 @@ export type t_MediaInfoStats = {
   full_total_segments?: number;
   total_animes?: number;
   total_segments?: number;
+};
+
+export type t_MediaListResponse = {
+  cursor?: number;
+  data: t_Media[];
+  hasMoreResults: boolean;
 };
 
 export type t_QuotaInfo = {
@@ -162,6 +205,31 @@ export type t_SearchResponse = {
   statistics?: t_Statistic[];
 };
 
+export type t_Segment = {
+  actorEn?: string | null;
+  actorEs?: string | null;
+  actorJa?: string | null;
+  audioUrl?: string | null;
+  content: string;
+  contentEnglish?: string | null;
+  contentEnglishMt: boolean;
+  contentLength: number;
+  contentSpanish?: string | null;
+  contentSpanishMt: boolean;
+  createdAt: string;
+  endTime: string;
+  episode: number;
+  id: number;
+  imageUrl?: string | null;
+  isNsfw: boolean;
+  mediaId: number;
+  position: number;
+  startTime: string;
+  status: 0 | 1 | 2 | 3 | 100 | 101;
+  updatedAt?: string | null;
+  uuid: string;
+};
+
 export type t_SegmentInfo = {
   actor_en?: string;
   actor_es?: string;
@@ -180,6 +248,12 @@ export type t_SegmentInfo = {
   start_time: string;
   status: number;
   uuid: string;
+};
+
+export type t_SegmentListResponse = {
+  cursor?: number;
+  data: t_Segment[];
+  hasMoreResults: boolean;
 };
 
 export type t_Sentence = {
@@ -242,6 +316,57 @@ export type t_DeactivateApiKeyRequestBodySchema = {
   api_key_id: number;
 };
 
+export type t_EpisodeCreateParamSchema = {
+  mediaId: number;
+};
+
+export type t_EpisodeCreateRequestBodySchema = {
+  airedAt?: string;
+  anilistEpisodeId?: number;
+  description?: string;
+  episodeNumber: number;
+  lengthSeconds?: number;
+  thumbnailUrl?: string;
+  titleEnglish?: string;
+  titleJapanese?: string;
+  titleRomaji?: string;
+};
+
+export type t_EpisodeDestroyParamSchema = {
+  episodeNumber: number;
+  mediaId: number;
+};
+
+export type t_EpisodeIndexParamSchema = {
+  mediaId: number;
+};
+
+export type t_EpisodeIndexQuerySchema = {
+  cursor?: number;
+  size?: number;
+};
+
+export type t_EpisodeShowParamSchema = {
+  episodeNumber: number;
+  mediaId: number;
+};
+
+export type t_EpisodeUpdateParamSchema = {
+  episodeNumber: number;
+  mediaId: number;
+};
+
+export type t_EpisodeUpdateRequestBodySchema = {
+  airedAt?: string;
+  anilistEpisodeId?: number;
+  description?: string;
+  lengthSeconds?: number;
+  thumbnailUrl?: string;
+  titleEnglish?: string;
+  titleJapanese?: string;
+  titleRomaji?: string;
+};
+
 export type t_FetchMediaInfoQuerySchema = {
   cursor?: number;
   query?: string;
@@ -286,6 +411,57 @@ export type t_LoginGoogleRequestHeaderSchema = {
   referer?: string;
 };
 
+export type t_MediaCreateRequestBodySchema = {
+  airingFormat: string;
+  airingStatus: string;
+  anilistId: number;
+  bannerUrl?: string;
+  category: 'ANIME' | 'BOOK' | 'JDRAMA' | 'AUDIOBOOK';
+  coverUrl?: string;
+  englishName: string;
+  genres: string[];
+  hashSalt?: string;
+  japaneseName: string;
+  releaseDate?: string;
+  romajiName: string;
+  version: string;
+};
+
+export type t_MediaDestroyParamSchema = {
+  id: number;
+};
+
+export type t_MediaIndexQuerySchema = {
+  category?: 'ANIME' | 'JDRAMA';
+  cursor?: number;
+  limit?: number;
+};
+
+export type t_MediaShowParamSchema = {
+  id: number;
+};
+
+export type t_MediaUpdateParamSchema = {
+  id: number;
+};
+
+export type t_MediaUpdateRequestBodySchema = {
+  airingFormat?: string;
+  airingStatus?: string;
+  anilistId?: number;
+  bannerUrl?: string;
+  category?: 'ANIME' | 'AUDIOBOOK';
+  coverUrl?: string;
+  englishName?: string;
+  genres?: string[];
+  hashSalt?: string;
+  japaneseName?: string;
+  numSegments?: number;
+  releaseDate?: string;
+  romajiName?: string;
+  version?: string;
+};
+
 export type t_RegisterRequestBodySchema = {
   email: string;
   password: string;
@@ -327,10 +503,76 @@ export type t_SearchMultipleRequestBodySchema = {
   words: string[];
 };
 
-export type t_SyncSpecificMediaRequestBodySchema = {
-  episode?: number;
-  folder_name: string;
-  force?: boolean;
-  season?: number;
-  type: 'anime' | 'jdrama' | 'audiobook';
+export type t_SegmentCreateParamSchema = {
+  episodeNumber: number;
+  mediaId: number;
+};
+
+export type t_SegmentCreateRequestBodySchema = {
+  actorEn?: string;
+  actorEs?: string;
+  actorJa?: string;
+  audioUrl?: string;
+  content: string;
+  contentEnglish?: string;
+  contentEnglishMt?: boolean;
+  contentSpanish?: string;
+  contentSpanishMt?: boolean;
+  endTime: string;
+  imageUrl?: string;
+  isNsfw?: boolean;
+  position: number;
+  startTime: string;
+  status?: 0 | 1 | 2 | 3 | 100 | 101;
+  uuid: string;
+};
+
+export type t_SegmentDestroyParamSchema = {
+  episodeNumber: number;
+  id: number;
+  mediaId: number;
+};
+
+export type t_SegmentIndexParamSchema = {
+  episodeNumber: number;
+  mediaId: number;
+};
+
+export type t_SegmentIndexQuerySchema = {
+  cursor?: number;
+  size?: number;
+};
+
+export type t_SegmentShowParamSchema = {
+  episodeNumber: number;
+  id: number;
+  mediaId: number;
+};
+
+export type t_SegmentShowByUuidParamSchema = {
+  uuid: string;
+};
+
+export type t_SegmentUpdateParamSchema = {
+  episodeNumber: number;
+  id: number;
+  mediaId: number;
+};
+
+export type t_SegmentUpdateRequestBodySchema = {
+  actorEn?: string;
+  actorEs?: string;
+  actorJa?: string;
+  audioUrl?: string;
+  content?: string;
+  contentEnglish?: string;
+  contentEnglishMt?: boolean;
+  contentSpanish?: string;
+  contentSpanishMt?: boolean;
+  endTime?: string;
+  imageUrl?: string;
+  isNsfw?: boolean;
+  position?: number;
+  startTime?: string;
+  status?: 0 | 1 | 2 | 3 | 100 | 101;
 };

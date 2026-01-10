@@ -45,8 +45,6 @@ export const s_CreateApiKeyResponse = z.object({
   key: z.string(),
 });
 
-export const s_DatabaseSyncResponse = z.object({ message: z.string() });
-
 export const s_DeactivateApiKeyRequest = z.object({
   api_key_id: z.coerce.number(),
 });
@@ -56,6 +54,46 @@ export const s_DeactivateApiKeyResponse = z.object({ message: z.string() });
 export const s_DiscordAuthUrlResponse = z.object({ url: z.string() });
 
 export const s_DiscordLoginRequest = z.object({ code: z.string() });
+
+export const s_Episode = z.object({
+  mediaId: z.coerce.number(),
+  episodeNumber: z.coerce.number(),
+  anilistEpisodeId: z.coerce.number().nullable().optional(),
+  titleEnglish: z.string().nullable().optional(),
+  titleRomaji: z.string().nullable().optional(),
+  titleJapanese: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  airedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  lengthSeconds: z.coerce.number().nullable().optional(),
+  thumbnailUrl: z.string().nullable().optional(),
+  numSegments: z.coerce.number(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }),
+  deletedAt: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+export const s_EpisodeCreateRequest = z.object({
+  episodeNumber: z.coerce.number(),
+  anilistEpisodeId: z.coerce.number().optional(),
+  titleEnglish: z.string().optional(),
+  titleRomaji: z.string().optional(),
+  titleJapanese: z.string().optional(),
+  description: z.string().optional(),
+  airedAt: z.string().datetime({ offset: true }).optional(),
+  lengthSeconds: z.coerce.number().optional(),
+  thumbnailUrl: z.string().optional(),
+});
+
+export const s_EpisodeUpdateRequest = z.object({
+  anilistEpisodeId: z.coerce.number().optional(),
+  titleEnglish: z.string().optional(),
+  titleRomaji: z.string().optional(),
+  titleJapanese: z.string().optional(),
+  description: z.string().optional(),
+  airedAt: z.string().datetime({ offset: true }).optional(),
+  lengthSeconds: z.coerce.number().optional(),
+  thumbnailUrl: z.string().optional(),
+});
 
 export const s_Error = z.object({
   code: z.string(),
@@ -87,10 +125,44 @@ export const s_LogoutResponse = z.object({
   message: z.string(),
 });
 
+export const s_Media = z.object({
+  id: z.coerce.number(),
+  anilistId: z.coerce.number(),
+  japaneseName: z.string(),
+  romajiName: z.string(),
+  englishName: z.string(),
+  airingFormat: z.string(),
+  airingStatus: z.string(),
+  genres: z.array(z.string()),
+  coverUrl: z.string(),
+  bannerUrl: z.string(),
+  releaseDate: z.string().datetime({ offset: true }),
+  category: z.enum(['ANIME', 'BOOK', 'JDRAMA', 'AUDIOBOOK']),
+  numSegments: z.coerce.number().optional(),
+  numEpisodes: z.coerce.number().optional(),
+  version: z.string(),
+});
+
+export const s_MediaCreateRequest = z.object({
+  anilistId: z.coerce.number(),
+  japaneseName: z.string(),
+  romajiName: z.string(),
+  englishName: z.string(),
+  airingFormat: z.string(),
+  airingStatus: z.string(),
+  genres: z.array(z.string()),
+  coverUrl: z.string().optional(),
+  bannerUrl: z.string().optional(),
+  releaseDate: z.string().datetime({ offset: true }).optional(),
+  category: z.enum(['ANIME', 'BOOK', 'JDRAMA', 'AUDIOBOOK']),
+  version: z.string(),
+  hashSalt: z.string().optional(),
+});
+
 export const s_MediaInfoData = z.object({
   id: z.coerce.number(),
-  id_anilist: z.coerce.number().nullable().optional(),
-  id_tmdb: z.coerce.number().nullable().optional(),
+  anilist_id: z.coerce.number().nullable().optional(),
+  tmdb_id: z.coerce.number().nullable().optional(),
   category: z.coerce.number().optional(),
   created_at: z.string().datetime({ offset: true }).optional(),
   updated_at: z.coerce.number().optional(),
@@ -121,6 +193,23 @@ export const s_MediaInfoStats = z.object({
   total_segments: z.coerce.number().optional(),
   full_total_animes: z.coerce.number().optional(),
   full_total_segments: z.coerce.number().optional(),
+});
+
+export const s_MediaUpdateRequest = z.object({
+  anilistId: z.coerce.number().optional(),
+  japaneseName: z.string().optional(),
+  romajiName: z.string().optional(),
+  englishName: z.string().optional(),
+  airingFormat: z.string().optional(),
+  airingStatus: z.string().optional(),
+  genres: z.array(z.string()).optional(),
+  coverUrl: z.string().optional(),
+  bannerUrl: z.string().optional(),
+  releaseDate: z.string().datetime({ offset: true }).optional(),
+  category: z.enum(['ANIME', 'AUDIOBOOK']).optional(),
+  numSegments: z.coerce.number().optional(),
+  version: z.string().optional(),
+  hashSalt: z.string().optional(),
 });
 
 export const s_QuotaInfo = z.object({
@@ -176,6 +265,53 @@ export const s_SearchRequest = z.object({
     .optional(),
 });
 
+export const s_Segment = z.object({
+  id: z.coerce.number(),
+  uuid: z.string(),
+  position: z.coerce.number(),
+  status: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(100), z.literal(101)]),
+  startTime: z.string(),
+  endTime: z.string(),
+  content: z.string().max(500),
+  contentLength: z.coerce.number(),
+  contentSpanish: z.string().max(500).nullable().optional(),
+  contentSpanishMt: PermissiveBoolean,
+  contentEnglish: z.string().max(500).nullable().optional(),
+  contentEnglishMt: PermissiveBoolean,
+  isNsfw: PermissiveBoolean,
+  imageUrl: z.string().nullable().optional(),
+  audioUrl: z.string().nullable().optional(),
+  actorJa: z.string().nullable().optional(),
+  actorEs: z.string().nullable().optional(),
+  actorEn: z.string().nullable().optional(),
+  episode: z.coerce.number(),
+  mediaId: z.coerce.number(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+export const s_SegmentCreateRequest = z.object({
+  uuid: z.string(),
+  position: z.coerce.number(),
+  status: z
+    .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(100), z.literal(101)])
+    .optional()
+    .default(1),
+  startTime: z.string(),
+  endTime: z.string(),
+  content: z.string().max(500),
+  contentSpanish: z.string().max(500).optional(),
+  contentSpanishMt: PermissiveBoolean.optional().default(false),
+  contentEnglish: z.string().max(500).optional(),
+  contentEnglishMt: PermissiveBoolean.optional().default(false),
+  isNsfw: PermissiveBoolean.optional().default(false),
+  imageUrl: z.string().optional(),
+  audioUrl: z.string().optional(),
+  actorJa: z.string().optional(),
+  actorEs: z.string().optional(),
+  actorEn: z.string().optional(),
+});
+
 export const s_SegmentInfo = z.object({
   status: z.coerce.number(),
   uuid: z.string(),
@@ -196,6 +332,24 @@ export const s_SegmentInfo = z.object({
   actor_es: z.string().optional(),
 });
 
+export const s_SegmentUpdateRequest = z.object({
+  position: z.coerce.number().optional(),
+  status: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(100), z.literal(101)]).optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  content: z.string().max(500).optional(),
+  contentSpanish: z.string().max(500).optional(),
+  contentSpanishMt: PermissiveBoolean.optional(),
+  contentEnglish: z.string().max(500).optional(),
+  contentEnglishMt: PermissiveBoolean.optional(),
+  isNsfw: PermissiveBoolean.optional(),
+  imageUrl: z.string().optional(),
+  audioUrl: z.string().optional(),
+  actorJa: z.string().optional(),
+  actorEs: z.string().optional(),
+  actorEn: z.string().optional(),
+});
+
 export const s_Statistic = z.object({
   anime_id: z.coerce.number().optional(),
   category: z.coerce.number().optional(),
@@ -204,14 +358,6 @@ export const s_Statistic = z.object({
   name_anime_jp: z.string().optional(),
   amount_sentences_found: z.coerce.number().optional(),
   season_with_episode_hits: z.record(z.record(z.coerce.number())).optional(),
-});
-
-export const s_SyncSpecificMediaRequest = z.object({
-  folder_name: z.string().min(1).max(255),
-  season: z.coerce.number().min(0).optional(),
-  episode: z.coerce.number().min(0).optional(),
-  force: PermissiveBoolean.optional().default(false),
-  type: z.enum(['anime', 'jdrama', 'audiobook']),
 });
 
 export const s_UserRole = z.object({
@@ -243,11 +389,29 @@ export const s_AuthUser = z.object({
   roles: z.array(s_UserRole).optional(),
 });
 
+export const s_EpisodeListResponse = z.object({
+  data: z.array(s_Episode),
+  cursor: z.coerce.number().optional(),
+  hasMoreResults: PermissiveBoolean,
+});
+
 export const s_FetchMediaInfoResponse = z.object({
   stats: s_MediaInfoStats.optional(),
   results: z.array(s_MediaInfoData).optional(),
   cursor: z.coerce.number().optional(),
   hasMoreResults: PermissiveBoolean.optional(),
+});
+
+export const s_MediaListResponse = z.object({
+  data: z.array(s_Media),
+  cursor: z.coerce.number().optional(),
+  hasMoreResults: PermissiveBoolean,
+});
+
+export const s_SegmentListResponse = z.object({
+  data: z.array(s_Segment),
+  cursor: z.coerce.number().optional(),
+  hasMoreResults: PermissiveBoolean,
 });
 
 export const s_Sentence = z.object({

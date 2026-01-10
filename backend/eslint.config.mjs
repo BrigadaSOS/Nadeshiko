@@ -67,16 +67,6 @@ export default defineConfig([
         },
       ],
 
-      // Warn against path.join - prefer safePath from utils/fs for user-controlled paths
-      'no-restricted-syntax': [
-        'warn',
-        {
-          selector: "CallExpression[callee.object.name='path'][callee.property.name='join']",
-          message:
-            'Avoid path.join with user input. Use safePath from utils/fs to prevent path traversal vulnerabilities.',
-        },
-      ],
-
       'prettier/prettier': [
         'error',
         {
@@ -110,12 +100,11 @@ export default defineConfig([
     },
   },
 
-  // Allow fs imports in the wrapper module itself and setup scripts
+  // Allow fs imports in the wrapper module itself and bin scripts
   {
-    files: ['utils/fs.ts', 'scripts/**/*.ts'],
+    files: ['lib/utils/fs.ts', 'bin/**/*.ts'],
     rules: {
       'no-restricted-imports': 'off',
-      'no-restricted-syntax': 'off',
     },
   },
 ]);

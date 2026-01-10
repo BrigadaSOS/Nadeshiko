@@ -1,0 +1,100 @@
+import { AppDataSource } from '@config/database';
+import { MediaInfoData, QueryMediaInfoResponse } from '@lib/types/queryMediaInfoResponse';
+import { getBaseUrlMedia } from '@lib/utils/utils';
+import { logger } from '@lib/utils/log';
+
+let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
+
+// Return data from Media table. This table almost never changes and is quite small, so we can cache it on memory to
+// save extra calls to the DB
+export const queryMediaInfo = async (page: number = 1, pageSize: number = 10): Promise<QueryMediaInfoResponse> => {
+  // Only build cache if it doesn't exist
+  if (MEDIA_TABLE_CACHE === undefined) {
+    MEDIA_TABLE_CACHE = await refreshMediaInfoCache(page, pageSize);
+  }
+  return MEDIA_TABLE_CACHE;
+};
+
+/**
+ * Invalidate the media cache - call this when media/segments are added/updated
+ */
+export function invalidateMediaCache(): void {
+  MEDIA_TABLE_CACHE = undefined;
+}
+
+export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
+  let size_position_filter = '';
+  if (page === 0) {
+    size_position_filter = `LIMIT ${pageSize}`;
+  } else {
+    const offset = (page - 1) * pageSize;
+    size_position_filter = `LIMIT ${pageSize} OFFSET ${offset}`;
+  }
+
+  const sql = `SELECT
+  json_build_object(
+    'media_id', me.id,
+    'category', me.category,
+    'created_at', me.created_at,
+    'updated_at', me.updated_at,
+    'romaji_name', me.romaji_name,
+    'english_name', me.english_name,
+    'japanese_name', me.japanese_name,
+    'airing_format', me.airing_format,
+    'airing_status', me.airing_status,
+    'folder_media_name', me.folder_media_name,
+    'genres', me.genres,
+    'cover', me.cover,
+    'banner', me.banner,
+    'release_date', me.release_date,
+    'version', me.version,
+    'num_segments', me.num_segments,
+    'num_seasons', me.num_seasons,
+    'num_episodes', me.num_episodes
+  ) AS media_info
+    FROM
+      nadedb.public."Media" me
+    GROUP BY
+      me.id, me.romaji_name, me.english_name, me.japanese_name
+    ORDER BY me.created_at DESC
+    ${size_position_filter}`;
+
+  const sql_full =
+    'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2';
+
+  const queryResponse = await AppDataSource.query(sql);
+  const queryResponseFull = await AppDataSource.query(sql_full);
+  const full_total_animes = parseInt(queryResponseFull[0][0].count1, 10);
+  const full_total_segments = parseInt(queryResponseFull[0][0].count2, 10);
+
+  const results: { [key: number]: MediaInfoData } = {};
+  let total_animes = 0;
+  let total_segments = 0;
+
+  queryResponse[0].forEach((result: any) => {
+    if (!('media_id' in result.media_info)) {
+      logger.warn({ result }, 'Invalid query result: media_id not found');
+      return;
+    }
+
+    const location_media =
+      result.media_info.category == 1 ? 'anime' : result.media_info.category == 3 ? 'jdrama' : 'audiobook';
+    result.media_info.cover = [getBaseUrlMedia(), location_media, result.media_info.cover].join('/');
+    result.media_info.banner = [getBaseUrlMedia(), location_media, result.media_info.banner].join('/');
+
+    results[Number(result.media_info['media_id'])] = result.media_info;
+
+    total_segments += result.media_info.num_segments;
+    total_animes += 1;
+  });
+
+  return {
+    stats: {
+      total_animes,
+      full_total_animes,
+      full_total_segments,
+      total_segments,
+    },
+    results,
+  };
+};

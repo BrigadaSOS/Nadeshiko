@@ -1,0 +1,77 @@
+type: object
+required:
+  - mediaId
+  - episodeNumber
+  - numSegments
+  - createdAt
+  - updatedAt
+properties:
+  mediaId:
+    type: integer
+    description: ID of the media this episode belongs to
+    example: 7674
+  episodeNumber:
+    type: integer
+    description: Episode number within the media
+    example: 1
+  anilistEpisodeId:
+    type: integer
+    nullable: true
+    description: AniList episode ID for external reference
+    example: 123456
+  titleEnglish:
+    type: string
+    nullable: true
+    description: English title of the episode
+    example: "The Beginning"
+  titleRomaji:
+    type: string
+    nullable: true
+    description: Romanized title of the episode
+    example: "Hajimari"
+  titleJapanese:
+    type: string
+    nullable: true
+    description: Japanese title of the episode
+    example: "始まり"
+  description:
+    type: string
+    nullable: true
+    description: Episode description or synopsis
+    example: "The hero begins their journey"
+  airedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the episode originally aired
+    example: "2024-01-15T09:00:00Z"
+  lengthSeconds:
+    type: integer
+    nullable: true
+    description: Episode duration in seconds
+    example: 1420
+  thumbnailUrl:
+    type: string
+    nullable: true
+    description: URL to episode thumbnail image
+    example: "https://example.com/thumbnails/episode1.jpg"
+  numSegments:
+    type: integer
+    description: Number of segments in this episode
+    example: 450
+  createdAt:
+    type: string
+    format: date-time
+    description: When the episode record was created
+    example: "2024-01-01T00:00:00Z"
+  updatedAt:
+    type: string
+    format: date-time
+    description: When the episode record was last updated
+    example: "2024-01-01T00:00:00Z"
+  deletedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the episode was deleted
+    example: null

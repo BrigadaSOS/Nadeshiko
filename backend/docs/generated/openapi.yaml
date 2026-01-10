@@ -28,41 +28,19 @@ info:
     url: https://nadeshiko.co
 servers:
   - description: Local server
-    url: http://localhost:5000/api
+    url: http://localhost:5000
   - description: Production server
-    url: https://api.brigadasos.xyz/api
+    url: https://api.nadeshiko.co
 security:
   - apiKeyHeader: []
   - jwtCookie: []
 tags:
   - name: Search
     description: |
-      Search endpoints for querying Japanese sentences across indexed media (anime, J-Drama, audiobooks).
-
-      ## Authentication & Permissions
-
-      All search endpoints require:
-
-      | Requirement | Value |
-      |-------------|-------|
-      | **Authentication** | API Key via `X-API-Key` header (or SSR requests from allowed URLs) |
-      | **Permission** | `READ_MEDIA` - The API key must have this permission |
-      | **Rate Limit** | 2000 requests per 5 minutes (per IP address) |
-      | **Monthly Quota** | Role-based (e.g., 5000 requests/month for Normal Users) |
-
-      ## Error Codes
-
-      - `401 Unauthorized` - Missing, invalid, or inactive API key
-      - `403 Forbidden` - API key lacks `READ_MEDIA` permission
-      - `429 Too Many Requests` - Rate limit or monthly quota exceeded
-
-      ## Search Features
-
-      - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
-      - **Boolean Operators:** `AND`, `OR`, `NOT` supported
-      - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`)
-      - **Wildcards:** `te*t` format (leading wildcards not supported)
-      - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
+      Search endpoints for querying Japanese sentences across indexed media.
+  - name: Media
+    description: |
+      Media CRUD endpoints for managing anime and j-drama entries.
 paths:
   /v1/search/health:
     get:
@@ -321,6 +299,270 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /v1/media:
+    get:
+      tags:
+        - Media
+      operationId: mediaIndex
+      summary: List all media
+      description: |
+        Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 40
+        - name: cursor
+          in: query
+          description: Pagination cursor offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: category
+          in: query
+          description: Filter by media category
+          schema:
+            type: string
+            enum:
+              - ANIME
+              - JDRAMA
+            example: ANIME
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{id}:
+    get:
+      tags:
+        - Media
+      operationId: mediaShow
+      summary: Get single media
+      description: |
+        Retrieves a single media entry by its ID.
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{mediaId}/episodes:
+    get:
+      operationId: episodeIndex
+      tags:
+        - Media
+      summary: List episodes for a media
+      description: |
+        Get a paginated list of episodes for a specific media
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of episodes to return
+          example: 50
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Episode number to start from (for pagination)
+          example: 10
+      responses:
+        "200":
+          $ref: "#/components/responses/EpisodeListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{mediaId}/episodes/{episodeNumber}:
+    get:
+      operationId: episodeShow
+      tags:
+        - Media
+      summary: Get single episode
+      description: |
+        Get a specific episode by media ID and episode number
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      responses:
+        "200":
+          $ref: "#/components/responses/EpisodeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
+    get:
+      operationId: segmentShow
+      tags:
+        - Media
+      summary: Get single segment
+      description: |
+        Get a specific segment by ID
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Segment ID
+          example: 12345
+      responses:
+        "200":
+          $ref: "#/components/responses/SegmentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/segments/{uuid}:
+    get:
+      operationId: segmentShowByUuid
+      tags:
+        - Media
+      summary: Get segment by UUID
+      description: Get a specific segment by its UUID
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Segment UUID
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+      responses:
+        "200":
+          description: Single segment response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Segment"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      x-permission: READ_MEDIA
 components:
   securitySchemes:
     apiKeyHeader:
@@ -898,12 +1140,12 @@ components:
           type: integer
           description: Unique identifier for the media
           example: 110316
-        id_anilist:
+        anilist_id:
           type: integer
           nullable: true
           description: AniList database ID for the media
           example: 21459
-        id_tmdb:
+        tmdb_id:
           type: integer
           nullable: true
           description: TMDB (The Movie Database) ID for the media
@@ -1003,6 +1245,338 @@ components:
         hasMoreResults:
           type: boolean
           description: Whether more results are available
+    Media:
+      type: object
+      description: Media entry with full metadata
+      required:
+        - id
+        - anilistId
+        - japaneseName
+        - romajiName
+        - englishName
+        - airingFormat
+        - airingStatus
+        - genres
+        - coverUrl
+        - bannerUrl
+        - releaseDate
+        - category
+        - version
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the media
+          example: 7674
+        anilistId:
+          type: integer
+          description: AniList database ID for the media
+          example: 7674
+        japaneseName:
+          type: string
+          description: Original Japanese name of the media
+          example: バクマン。
+        romajiName:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Bakuman.
+        englishName:
+          type: string
+          description: English translation of the media name
+          example: Bakuman.
+        airingFormat:
+          type: string
+          description: Format of the media release (e.g., TV, OVA, Movie)
+          example: TV
+        airingStatus:
+          type: string
+          description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+          example: FINISHED
+        genres:
+          type: array
+          items:
+            type: string
+          description: List of genres associated with the media
+          example:
+            - Comedy
+            - Drama
+            - Romance
+            - Slice of Life
+        coverUrl:
+          type: string
+          format: uri
+          description: Full URL to the cover image
+          example: https://cdn.example.com/media/anime/bakuman/cover.webp
+        bannerUrl:
+          type: string
+          format: uri
+          description: Full URL to the banner image
+          example: https://cdn.example.com/media/anime/bakuman/banner.webp
+        releaseDate:
+          type: string
+          format: date-time
+          description: Original release date of the media
+          example: "2010-10-02T00:00:00Z"
+        category:
+          type: string
+          enum:
+            - ANIME
+            - BOOK
+            - JDRAMA
+            - AUDIOBOOK
+          description: Media category
+          example: ANIME
+        numSegments:
+          type: integer
+          description: Total number of subtitle segments available
+          example: 0
+        numEpisodes:
+          type: integer
+          description: Total number of episodes available
+          example: 25
+        version:
+          type: string
+          description: Version identifier for the media entry
+          example: "6"
+    MediaListResponse:
+      type: object
+      required:
+        - data
+        - hasMoreResults
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Media"
+        cursor:
+          type: integer
+          description: Next cursor for pagination (undefined if no more results)
+        hasMoreResults:
+          type: boolean
+          description: Whether more results are available
+    Episode:
+      type: object
+      required:
+        - mediaId
+        - episodeNumber
+        - numSegments
+        - createdAt
+        - updatedAt
+      properties:
+        mediaId:
+          type: integer
+          description: ID of the media this episode belongs to
+          example: 7674
+        episodeNumber:
+          type: integer
+          description: Episode number within the media
+          example: 1
+        anilistEpisodeId:
+          type: integer
+          nullable: true
+          description: AniList episode ID for external reference
+          example: 123456
+        titleEnglish:
+          type: string
+          nullable: true
+          description: English title of the episode
+          example: The Beginning
+        titleRomaji:
+          type: string
+          nullable: true
+          description: Romanized title of the episode
+          example: Hajimari
+        titleJapanese:
+          type: string
+          nullable: true
+          description: Japanese title of the episode
+          example: 始まり
+        description:
+          type: string
+          nullable: true
+          description: Episode description or synopsis
+          example: The hero begins their journey
+        airedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the episode originally aired
+          example: "2024-01-15T09:00:00Z"
+        lengthSeconds:
+          type: integer
+          nullable: true
+          description: Episode duration in seconds
+          example: 1420
+        thumbnailUrl:
+          type: string
+          nullable: true
+          description: URL to episode thumbnail image
+          example: https://example.com/thumbnails/episode1.jpg
+        numSegments:
+          type: integer
+          description: Number of segments in this episode
+          example: 450
+        createdAt:
+          type: string
+          format: date-time
+          description: When the episode record was created
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the episode record was last updated
+          example: "2024-01-01T00:00:00Z"
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the episode was deleted
+          example: null
+    EpisodeListResponse:
+      type: object
+      required:
+        - data
+        - cursor
+        - hasMoreResults
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Episode"
+          description: Array of episode objects
+        cursor:
+          type: integer
+          description: Cursor for pagination (last episode number in current page)
+          example: 12
+        hasMoreResults:
+          type: boolean
+          description: Whether more results are available
+          example: true
+    Segment:
+      type: object
+      required:
+        - id
+        - uuid
+        - position
+        - status
+        - startTime
+        - endTime
+        - content
+        - contentLength
+        - contentSpanishMt
+        - contentEnglishMt
+        - isNsfw
+        - episode
+        - mediaId
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Auto-generated segment ID
+          example: 12345
+        uuid:
+          type: string
+          description: Unique identifier for the segment
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        position:
+          type: integer
+          description: Position of the segment within the episode
+          example: 1133
+        status:
+          type: integer
+          description: Segment status (0=Deleted, 1=Active, 2=Suspended, 3=Verified, 100=Invalid Sentence, 101=Sentence Too Long)
+          enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 100
+            - 101
+          example: 1
+        startTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
+          example: "0:33:27.255000"
+        endTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
+          example: "0:33:28.464000"
+        content:
+          type: string
+          maxLength: 500
+          description: Original Japanese content of the segment
+          example: 僕は僕で、君は君だ。
+        contentLength:
+          type: integer
+          description: Length of the content
+          example: 10
+        contentSpanish:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Spanish translation of the segment content
+          example: Yo soy yo, y tú eres tú.
+        contentSpanishMt:
+          type: boolean
+          description: Whether the Spanish translation was machine-translated
+          example: false
+        contentEnglish:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: English translation of the segment content
+          example: I am me, and you are you.
+        contentEnglishMt:
+          type: boolean
+          description: Whether the English translation was machine-translated
+          example: false
+        isNsfw:
+          type: boolean
+          description: Whether the segment contains NSFW content
+          example: false
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL to segment screenshot/image
+          example: https://example.com/images/segment.jpg
+        audioUrl:
+          type: string
+          nullable: true
+          description: URL to segment audio file
+          example: https://example.com/audio/segment.mp3
+        actorJa:
+          type: string
+          nullable: true
+          description: Japanese voice actor name
+          example: Mamoru Miyano
+        actorEs:
+          type: string
+          nullable: true
+          description: Spanish voice actor name
+          example: Alejandro Levis
+        actorEn:
+          type: string
+          nullable: true
+          description: English voice actor name
+          example: J. Michael Tatum
+        episode:
+          type: integer
+          description: Episode number this segment belongs to
+          example: 1
+        mediaId:
+          type: integer
+          description: Media ID this segment belongs to
+          example: 7674
+        createdAt:
+          type: string
+          format: date-time
+          description: When the segment was created
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the segment was last updated
+          example: "2024-01-01T00:00:00Z"
   examples:
     AuthCredentialsRequired:
       summary: Authentication Credentials Required
@@ -1141,3 +1715,41 @@ components:
           examples:
             InternalServerError:
               $ref: "#/components/examples/InternalServerError"
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            ValidationFailed:
+              $ref: "#/components/examples/ValidationFailed"
+            InvalidJson:
+              $ref: "#/components/examples/InvalidJson"
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            NotFound:
+              $ref: "#/components/examples/NotFound"
+    EpisodeListResponse:
+      description: Paginated list of episodes
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EpisodeListResponse"
+    EpisodeResponse:
+      description: Single episode response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Episode"
+    SegmentResponse:
+      description: Single segment response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Segment"

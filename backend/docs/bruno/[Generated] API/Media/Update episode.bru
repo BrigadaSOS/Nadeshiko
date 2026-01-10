@@ -1,0 +1,44 @@
+meta {
+  name: Update episode
+  type: http
+  seq: 25
+}
+
+patch {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber
+  body: json
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+body:json {
+  {
+    "anilistEpisodeId": 0,
+    "titleEnglish": "",
+    "titleRomaji": "",
+    "titleJapanese": "",
+    "description": "",
+    "airedAt": "",
+    "lengthSeconds": 0,
+    "thumbnailUrl": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

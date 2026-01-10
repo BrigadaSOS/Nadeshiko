@@ -1,23 +1,22 @@
-// Must be called before all imports
 import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
-import './external/elasticsearch'; // Initialize client
-import { safePath } from './utils/fs';
-import { router } from './routes/router';
+import '@lib/external/elasticsearch'; // Initialize client
+import '@app/subscribers'; // Import TypeORM subscribers
+import { initializeElasticsearchIndex } from '@lib/external/elasticsearch';
+import { router } from '@app/routes/router';
 import express, { Application, ErrorRequestHandler } from 'express';
-import connection from './database/db_posgres';
-import { handleErrors } from './middleware/errorHandler';
-import { requestIdMiddleware } from './middleware/requestId';
-import { logger, httpLogger } from './utils/log';
-import { NotFoundError } from './utils/apiErrors';
-import { mediaLimiter, perEndpointLimiter } from './middleware/apiLimiterRate';
-import { createImageMiddleware } from './middleware/imageMiddleware';
-import { corsMiddleware } from './middleware/cors';
-import { handleJsonParseErrors } from './middleware/requestParsing';
-import { metricsMiddleware } from './middleware/metrics';
-import { responseBodyLogger } from './middleware/responseBodyLogger';
-import { rawBodySaver } from './middleware/rawBodySaver';
+import { initializeDatabase } from '@config/database';
+import { handleErrors } from '@app/middleware/errorHandler';
+import { requestIdMiddleware } from '@app/middleware/requestId';
+import { logger, httpLogger } from '@lib/utils/log';
+import { NotFoundError } from '@lib/utils/apiErrors';
+import { perEndpointLimiter } from '@app/middleware/apiLimiterRate';
+import { corsMiddleware } from '@app/middleware/cors';
+import { handleJsonParseErrors } from '@app/middleware/requestParsing';
+import { metricsMiddleware } from '@app/middleware/metrics';
+import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
+import { rawBodySaver } from '@app/middleware/rawBodySaver';
 
 const PORT = process.env.PORT || 5000;
 const app: Application = express();
@@ -26,14 +25,13 @@ const app: Application = express();
 // Required for rate limiting and accurate client IP detection
 app.set('trust proxy', 1);
 
-// These handlers catch errors OUTSIDE of Express request handling.
-// Express errors are handled by handleErrors middleware.
-// These are for startup failures, event handlers, and other non-request errors.
+// These handlers catch errors OUTSIDE of Express request handling
+// (for startup failures, event handlers, and other non-request errors)
 process.on('uncaughtException', (error) => {
   logger.fatal(error, 'Uncaught Exception');
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
   logger.fatal(
     {
       reason: reason,
@@ -45,61 +43,26 @@ process.on('unhandledRejection', (reason, promise) => {
   );
 });
 
-// Generate requestId for each request FIRST (so all logs and middleware have access to it)
 app.use(requestIdMiddleware);
-
 app.use(corsMiddleware);
 
 // Capture response bodies BEFORE logging (must be before httpLogger)
 app.use(responseBodyLogger);
 
 // Parse incoming request bodies BEFORE httpLogger so req.rawBody is available for logging
-// - json(): parses application/json payloads (up to 10MB)
-// - urlencoded(): parses form submissions (up to 10MB)
 // The verify callback in both captures the raw body to req.rawBody for logging
 app.use(express.json({ limit: '10mb', verify: rawBodySaver as any }));
 app.use(express.urlencoded({ extended: true, limit: '10mb', verify: rawBodySaver as any }));
 app.use(handleJsonParseErrors);
 
-// Log and measure ALL requests (must be after body parsers to include req.rawBody)
 app.use(httpLogger);
 app.use(metricsMiddleware);
 
-type Environment = 'testing' | 'production';
+// Route endpoints
+app.get('/up', (_req, res) => res.status(200).send('OK'));
+app.use('/', perEndpointLimiter, router);
 
-const mediaConfigMap: Record<
-  Environment,
-  { mediaDir: string; cacheDir: string; tmpDir: string; useHighQualityKernel: boolean }
-> = {
-  testing: {
-    mediaDir: safePath(__dirname, 'media'),
-    cacheDir: 'tmp/cache',
-    tmpDir: safePath(__dirname, 'media', 'tmp'),
-    useHighQualityKernel: true,
-  },
-  production: {
-    mediaDir: process.env.MEDIA_DIRECTORY!,
-    cacheDir: 'media/tmp/cache',
-    tmpDir: process.env.TMP_DIRECTORY!,
-    useHighQualityKernel: false,
-  },
-};
-
-const mediaConfig = mediaConfigMap[process.env.ENVIRONMENT as Environment];
-
-if (mediaConfig) {
-  app.use(
-    '/api/media',
-    mediaLimiter,
-    createImageMiddleware(mediaConfig.mediaDir, mediaConfig.cacheDir, mediaConfig.useHighQualityKernel),
-  );
-  app.use('/api/media/tmp', mediaLimiter, express.static(mediaConfig.tmpDir, { fallthrough: false }));
-}
-
-// Actual route endpoints
-app.use('/api', perEndpointLimiter, router);
-
-// Catch-all 404 handler - must be after all routes, before error handler
+// Catch-all 404 handler
 app.use((req, res) => {
   const error = new NotFoundError(`Cannot ${req.method} ${req.originalUrl}`);
   error.instance = req.requestId;
@@ -109,15 +72,18 @@ app.use((req, res) => {
 // Error handling middleware
 app.use(handleErrors as ErrorRequestHandler);
 
-// Starting the Server
 app.listen(PORT, async () => {
   logger.info('===================================');
   logger.info(`Current environment: [${process.env.ENVIRONMENT}]`);
   logger.info('API is now available. Waiting for database...');
 
   try {
-    await connection.authenticate();
-    logger.info('Connection has been established successfully.');
+    // Initialize database connection
+    await initializeDatabase();
+
+    // Initialize Elasticsearch index
+    await initializeElasticsearchIndex();
+
     logger.info('Database available. You can freely use this application');
   } catch (error) {
     logger.error(error, 'Unable to connect to the database');
