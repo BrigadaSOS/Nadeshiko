@@ -72,7 +72,8 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
       return;
     }
 
-    let location_media = result.media_info.category == 1 ? 'anime' : result.media_info.category == 3 ? 'jdrama' : 'audiobook';
+    const location_media =
+      result.media_info.category == 1 ? 'anime' : result.media_info.category == 3 ? 'jdrama' : 'audiobook';
     result.media_info.cover = [getBaseUrlMedia(), location_media, result.media_info.cover].join('/');
     result.media_info.banner = [getBaseUrlMedia(), location_media, result.media_info.banner].join('/');
 

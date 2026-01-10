@@ -82,8 +82,7 @@ const baseOptions: pino.LoggerOptions = {
 export const logger = pino(baseOptions);
 
 // Create child loggers for specific contexts
-export const createLogger = (context: string) =>
-  logger.child({ context });
+export const createLogger = (context: string) => logger.child({ context });
 
 // HTTP request logger configuration
 export const httpLogger = pinoHttp({

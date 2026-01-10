@@ -63,10 +63,11 @@ export const getUserInfo = async (req: Request, res: Response, next: NextFunctio
     const info_user = {
       username: user.username,
       email: user.email,
-      roles: user.UserRoles?.map((userRole: any) => ({
-        id_role: userRole.id_role,
-        name: userRole.role?.name,
-      })) || [],
+      roles:
+        user.UserRoles?.map((userRole: any) => ({
+          id_role: userRole.id_role,
+          name: userRole.role?.name,
+        })) || [],
     };
 
     return res.status(StatusCodes.OK).json({

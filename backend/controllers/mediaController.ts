@@ -160,7 +160,7 @@ export const SearchAnimeSentences = async (
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
-      excluded_anime_ids: req.body.excluded_anime_ids || []
+      excluded_anime_ids: req.body.excluded_anime_ids || [],
     });
 
     if (!req.body.cursor) {
@@ -204,7 +204,7 @@ export const SearchAnimeSentencesHealth = async (
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
-      excluded_anime_ids: req.body.excluded_anime_ids || []
+      excluded_anime_ids: req.body.excluded_anime_ids || [],
     });
 
     return res.status(StatusCodes.OK).json(response);
@@ -258,7 +258,7 @@ export const getAllMedia = async (
     const categoryMap: Record<string, CategoryType> = {
       anime: CategoryType.ANIME,
       liveaction: CategoryType.JDRAMA,
-      audiobook: CategoryType.AUDIOBOOK
+      audiobook: CategoryType.AUDIOBOOK,
     };
 
     const whereClause: any = {};
@@ -285,7 +285,12 @@ export const getAllMedia = async (
 
     const paginatedResults = rows.map((media) => {
       const mediaData = media.toJSON();
-      const location_media = mediaData.category === CategoryType.ANIME ? 'anime' : mediaData.category === CategoryType.JDRAMA ? 'jdrama' : 'audiobook';
+      const location_media =
+        mediaData.category === CategoryType.ANIME
+          ? 'anime'
+          : mediaData.category === CategoryType.JDRAMA
+            ? 'jdrama'
+            : 'audiobook';
       mediaData.cover = [getBaseUrlMedia(), location_media, mediaData.cover].join('/');
       mediaData.banner = [getBaseUrlMedia(), location_media, mediaData.banner].join('/');
       return mediaData;

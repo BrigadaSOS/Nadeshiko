@@ -1,3 +1,19 @@
-public/swagger.json
+# Build outputs
 dist/
+prod/
+
+# Dependencies
 node_modules/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Lock files (auto-generated)
+package-lock.json
+
+# Coverage
+coverage/

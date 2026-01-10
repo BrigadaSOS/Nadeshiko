@@ -38,7 +38,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
   const must: QueryDslQueryContainer[] = [];
   const filter: QueryDslQueryContainer[] = [];
   const must_not: QueryDslQueryContainer[] = [];
-  
+
   let sort: Sort = [];
 
   // Match only by uuid and return 1 result. This takes precedence over other queries
@@ -283,7 +283,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     query: {
       bool: {
         must,
-        must_not
+        must_not,
       },
     },
     search_after: request.cursor,
@@ -345,7 +345,7 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
       bool: {
         filter,
         must,
-        must_not
+        must_not,
       },
     },
     search_after: request.cursor,
@@ -561,9 +561,16 @@ const buildSearchAnimeSentencesSegments = (
         logger.error({ mediaId: data['media_id'] }, 'Media Info not found');
         return;
       }
-      let location_media = mediaInfo.category == 1 ? 'anime' : mediaInfo.category == 3 ? 'jdrama' : 'audiobook';
+      const location_media = mediaInfo.category == 1 ? 'anime' : mediaInfo.category == 3 ? 'jdrama' : 'audiobook';
       const coverPath = data['path_image']
-        ? [getBaseUrlMedia(), location_media, seriesNamePath, seasonNumberPath, episodeNumberPath, data['path_image']].join('/')
+        ? [
+            getBaseUrlMedia(),
+            location_media,
+            seriesNamePath,
+            seasonNumberPath,
+            episodeNumberPath,
+            data['path_image'],
+          ].join('/')
         : mediaInfo.cover || '';
 
       return {
@@ -598,8 +605,7 @@ const buildSearchAnimeSentencesSegments = (
           actor_es: data['actor_es'],
         },
         media_info: {
-          path_image: 
-           coverPath,
+          path_image: coverPath,
           path_audio: [
             getBaseUrlMedia(),
             location_media,
