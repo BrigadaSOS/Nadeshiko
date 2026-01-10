@@ -5,11 +5,12 @@ const route = useRoute();
 let query = ref('')
 
 const navigateSearchSentence = async () => {
-  if (!query.value) { return }
+  const { query: _query, ...restOfQuery } = route.query
   await navigateTo({
     path: '/search/sentence',
     query: {
-      query: query.value,
+      ...restOfQuery,
+      ...(query.value && { query: query.value }),
     }
   })
 }
@@ -47,7 +48,7 @@ onBeforeUnmount(() => {
       <div class="flex-[1_0_0%] ">
         <label for="hs-search-article-1" class="block text-sm text-gray-700 font-medium dark:text-white"><span
             class="sr-only">Search anything!</span></label>
-        <input id="sentence-search-input" autofocus required v-model="query" @keydown.enter="navigateSearchSentence"
+        <input id="sentence-search-input" autofocus v-model="query" @keydown.enter="navigateSearchSentence"
           class=" dark:focus:ring-gray-500 border py-3 dark:focus:border-gray-500 h-full px-4 block w-full border-transparent rounded-lg  focus:outline-none dark:bg-input-background dark:border-neutral-600 dark:text-white/80 dark:placeholder-neutral-500"
           placeholder="Search anything!" />
         <div class="absolute inset-y-0 end-0 flex items-center pointer-events-none  pe-36">
