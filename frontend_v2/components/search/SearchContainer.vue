@@ -32,6 +32,14 @@ const categoryMapping = {
     'audiobook': 4
 };
 
+// Get anime name for tab when filtering by specific media
+const animeTabName = computed(() => {
+    if (media.value && searchData.value?.sentences?.length > 0) {
+        return searchData.value.sentences[0].basic_info.name_anime_en;
+    }
+    return t('searchContainer.categoryAll');
+});
+
 // SEO Meta
 
 const dynamicTitle = computed(() => {
@@ -321,15 +329,15 @@ onBeforeRouteUpdate(async (to, from) => {
         <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
             <GeneralTabsContainer>
                 <GeneralTabsHeader>
-                    <GeneralTabsItem category="0" :categoryName="t('searchContainer.categoryAll')" :count="getCategoryCount(0)"
+                    <GeneralTabsItem category="0" :categoryName="animeTabName" :count="getCategoryCount(0)"
                         :isActive="category === 0" @click="categoryFilter(0)" />
-                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 1)"
+                    <GeneralTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 1)"
                         category="1" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount(1)" :isActive="category === 1"
                         @click="categoryFilter(1)" />
-                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 3)"
+                    <GeneralTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 3)"
                         category="3" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount(3)" :isActive="category === 3"
                         @click="categoryFilter(3)" />
-                    <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 4)"
+                    <GeneralTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 4)"
                         category="4" :categoryName="t('searchContainer.categoryAudiobook')" :count="getCategoryCount(4)" :isActive="category === 4"
                         @click="categoryFilter(4)" />
                 </GeneralTabsHeader>
