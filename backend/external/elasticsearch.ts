@@ -34,228 +34,45 @@ export const client = new Client({
 });
 
 export const querySegments = async (request: QuerySegmentsRequest): Promise<QuerySegmentsResponse> => {
-  const must: QueryDslQueryContainer[] = [];
-  const filter: QueryDslQueryContainer[] = [];
-  const must_not: QueryDslQueryContainer[] = [];
-
-  let sort: Sort = [];
-
-  // Match only by uuid and return 1 result. This takes precedence over other queries
-  if (request.uuid) {
-    must.push({
-      match: {
-        uuid: request.uuid,
-      },
-    });
-  }
-
-  // Search by query, optionally filtering by media_id to only return results from an specific anime
-  // Validate length range if provided
   if (request.min_length !== undefined && request.max_length !== undefined && request.min_length > request.max_length) {
     throw new Error('min_length cannot be greater than max_length');
   }
 
-  if (request.query && !request.uuid) {
-    if (request.length_sort_order && request.length_sort_order.toLowerCase() === 'random') {
-      const seed = request.random_seed || undefined;
+  const must: QueryDslQueryContainer[] = [];
 
-      must.push({
-        function_score: {
-          query: {
-            bool: {
-              should: buildMultiLanguageQuery(request.query, request.exact_match || false),
-            },
-          },
-          functions: [
-            {
-              random_score: {
-                field: '_seq_no',
-                seed: seed,
-              },
-            },
-          ],
-          boost_mode: 'multiply',
-        },
-      });
-    } else {
-      const baseQuery = {
-        bool: {
-          should: buildMultiLanguageQuery(request.query, request.exact_match || false),
-        },
-      };
+  // Match only by uuid - takes precedence, no filters or sort needed
+  if (request.uuid) {
+    must.push({ match: { uuid: request.uuid } });
+  }
 
-      // Boost score for sentences with at least 7 characters if no min_length specified
-      if (request.min_length === undefined) {
-        must.push({
-          function_score: {
-            query: baseQuery,
-            functions: [
-              {
-                filter: { range: { content_length: { gte: 7 } } },
-                weight: 1.3, // 30% boost
-              },
-            ],
-            score_mode: 'sum',
-            boost_mode: 'multiply',
-          },
-        });
-      } else {
-        must.push(baseQuery);
-      }
-    }
+  const isMatchAll = !request.uuid && !request.query && !!request.anime_id;
+  const hasQuery = !request.uuid && !!request.query;
 
-    filter.push({
-      terms: {
-        status: request.status,
-      },
-    });
+  // Build the core query
+  if (isMatchAll) {
+    must.push({ match_all: {} });
+  } else if (hasQuery) {
+    const textQuery = buildTextSearchQuery(request.query!, request.exact_match || false, request.min_length !== undefined);
+    must.push(textQuery);
+  }
 
-    // Add length range filter if specified
-    if (request.min_length !== undefined || request.max_length !== undefined) {
-      const rangeFilter: any = {};
-      if (request.min_length !== undefined) {
-        rangeFilter.gte = request.min_length;
-      }
-      if (request.max_length !== undefined) {
-        rangeFilter.lte = request.max_length;
-      }
-      filter.push({
-        range: {
-          content_length: rangeFilter,
-        },
-      });
-    }
+  // Build common filters (shared by both query types)
+  const { filter, must_not } = buildCommonFilters(request);
 
-    if (request.anime_id) {
-      filter.push({
-        term: {
-          media_id: request.anime_id,
-        },
-      });
-    }
+  // Add media filter (only for text search with media specified)
+  if (hasQuery && request.media) {
+    filter.push(buildMediaFilter(request.media));
+  }
 
-    if (request.excluded_anime_ids && request.excluded_anime_ids.length > 0) {
-      must_not.push({
-        terms: {
-          media_id: request.excluded_anime_ids,
-        },
-      });
-    }
+  // Build sort and optional random scoring
+  const { sort, randomScoreQuery } = buildSortAndRandomScore(request, isMatchAll);
 
-    if (request.season) {
-      filter.push({
-        terms: {
-          season: request.season,
-        },
-      });
-    }
-
-    if (request.episode) {
-      filter.push({
-        terms: {
-          episode: request.episode,
-        },
-      });
-    }
-
-    if (request.media) {
-      const mediaQueries: QueryDslQueryContainer[] = request.media.flatMap((mediaFilter) => {
-        if (!mediaFilter.seasons) {
-          return {
-            bool: {
-              must: [
-                {
-                  term: {
-                    media_id: {
-                      value: mediaFilter.media_id,
-                    },
-                  },
-                },
-              ],
-            },
-          };
-        }
-
-        return mediaFilter.seasons.flatMap((season) => {
-          if (!season.episodes) {
-            return {
-              bool: {
-                must: [
-                  {
-                    term: {
-                      media_id: {
-                        value: mediaFilter.media_id,
-                      },
-                    },
-                  },
-                  {
-                    term: {
-                      season: {
-                        value: season.season,
-                      },
-                    },
-                  },
-                ],
-              },
-            };
-          }
-
-          return season.episodes.flatMap((episode) => {
-            return {
-              bool: {
-                must: [
-                  {
-                    term: {
-                      media_id: {
-                        value: mediaFilter.media_id,
-                      },
-                    },
-                  },
-                  {
-                    term: {
-                      season: {
-                        value: season.season,
-                      },
-                    },
-                  },
-                  {
-                    term: {
-                      episode: {
-                        value: episode,
-                      },
-                    },
-                  },
-                ],
-              },
-            };
-          });
-        });
-      });
-
-      filter.push({
-        bool: {
-          should: mediaQueries,
-        },
-      });
-    }
-
-    if (request.category && request.category.length > 0) {
-      filter.push({
-        terms: {
-          'Media.category': request.category,
-        },
-      });
-    }
-
-    // Sort is only used when we search by a query. For uuid queries it is not included
-    if (!request.length_sort_order || request.length_sort_order === 'none') {
-      sort = [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
-    } else if (request.length_sort_order === 'random') {
-      // Score is randomized by the random function score, but this is required for the cursor field to appear
-      sort = [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
-    } else {
-      // Override score order when defining sort order
-      sort = [{ content_length: { order: request.length_sort_order as SortOrder } }];
+  // Apply random score if present - wrap existing query in function_score
+  if (randomScoreQuery && (isMatchAll || hasQuery)) {
+    const lastQuery = must.pop();
+    if (lastQuery) {
+      (randomScoreQuery.function_score as any).query = lastQuery;
+      must.push(randomScoreQuery);
     }
   }
 
@@ -484,7 +301,6 @@ const buildSearchAnimeSentencesResponse = (
   if (esNoHitsNoFiltersResponse.aggregations && 'group_by_category' in esNoHitsNoFiltersResponse.aggregations) {
     // @ts-expect-error -- elasticsearch aggregation type
     statistics = esNoHitsNoFiltersResponse.aggregations['group_by_category'].buckets.flatMap((categoryBucket) => {
-      // @ts-expect-error -- elasticsearch aggregation type
       return categoryBucket.group_by_media_id.buckets
         .map((mediaBucket: { [x: string]: any }) => {
           const mediaInfo = mediaInfoResponse.results[Number(mediaBucket['key'])];
@@ -768,4 +584,145 @@ const buildUuidContextQuery = (
       ],
     },
   };
+};
+
+const buildCommonFilters = (
+  request: QuerySegmentsRequest,
+): { filter: QueryDslQueryContainer[]; must_not: QueryDslQueryContainer[] } => {
+  const filter: QueryDslQueryContainer[] = [];
+  const must_not: QueryDslQueryContainer[] = [];
+
+  filter.push({ terms: { status: request.status } });
+
+  if (request.min_length !== undefined || request.max_length !== undefined) {
+    const rangeFilter: { gte?: number; lte?: number } = {};
+    if (request.min_length !== undefined) rangeFilter.gte = request.min_length;
+    if (request.max_length !== undefined) rangeFilter.lte = request.max_length;
+    filter.push({ range: { content_length: rangeFilter } });
+  }
+
+  if (request.anime_id) {
+    filter.push({ term: { media_id: request.anime_id } });
+  }
+
+  if (request.excluded_anime_ids && request.excluded_anime_ids.length > 0) {
+    must_not.push({ terms: { media_id: request.excluded_anime_ids } });
+  }
+
+  if (request.season) {
+    filter.push({ terms: { season: request.season } });
+  }
+
+  if (request.episode) {
+    filter.push({ terms: { episode: request.episode } });
+  }
+
+  if (request.category && request.category.length > 0) {
+    filter.push({ terms: { 'Media.category': request.category } });
+  }
+
+  return { filter, must_not };
+};
+
+const buildSortAndRandomScore = (
+  request: QuerySegmentsRequest,
+  isMatchAll: boolean,
+): { sort: Sort; randomScoreQuery: QueryDslQueryContainer | null } => {
+  let sort: Sort = [];
+  let randomScoreQuery: QueryDslQueryContainer | null = null;
+
+  if (request.length_sort_order === 'random') {
+    const seed = request.random_seed || undefined;
+    randomScoreQuery = {
+      function_score: {
+        functions: [
+          {
+            random_score: {
+              field: '_seq_no',
+              seed: seed,
+            },
+          },
+        ],
+        boost_mode: isMatchAll ? 'replace' : 'multiply',
+      },
+    };
+    sort = [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
+  } else if (!request.length_sort_order || request.length_sort_order === 'none') {
+    sort = isMatchAll
+      ? [{ content_length: { order: 'asc' } }]
+      : [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
+  } else {
+    sort = [{ content_length: { order: request.length_sort_order as SortOrder } }];
+  }
+
+  return { sort, randomScoreQuery };
+};
+
+const buildTextSearchQuery = (
+  query: string,
+  exactMatch: boolean,
+  minLengthDefined: boolean,
+): QueryDslQueryContainer => {
+  const baseQuery = {
+    bool: {
+      should: buildMultiLanguageQuery(query, exactMatch),
+    },
+  };
+
+  if (!minLengthDefined) {
+    return {
+      function_score: {
+        query: baseQuery,
+        functions: [
+          {
+            filter: { range: { content_length: { gte: 7 } } },
+            weight: 1.3,
+          },
+        ],
+        score_mode: 'sum',
+        boost_mode: 'multiply',
+      },
+    };
+  }
+
+  return baseQuery;
+};
+
+const buildMediaFilter = (media: QuerySegmentsRequest['media']): QueryDslQueryContainer => {
+  if (!media) return { match_all: {} };
+
+  const mediaQueries: QueryDslQueryContainer[] = media.flatMap((mediaFilter) => {
+    if (!mediaFilter.seasons) {
+      return {
+        bool: {
+          must: [{ term: { media_id: { value: mediaFilter.media_id } } }],
+        },
+      };
+    }
+
+    return mediaFilter.seasons.flatMap((season) => {
+      if (!season.episodes) {
+        return {
+          bool: {
+            must: [
+              { term: { media_id: { value: mediaFilter.media_id } } },
+              { term: { season: { value: season.season } } },
+            ],
+          },
+        };
+      }
+
+      return season.episodes.map((episode) => ({
+        bool: {
+          must: [
+            { term: { media_id: { value: mediaFilter.media_id } } },
+            { term: { season: { value: season.season } } },
+            { term: { episode: { value: episode } } },
+          ],
+        },
+      }));
+    });
+  });
+
+  return { bool: { should: mediaQueries } };
 };

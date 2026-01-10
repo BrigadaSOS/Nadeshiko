@@ -128,7 +128,7 @@ export const SearchAnimeSentences = async (
   next: NextFunction,
 ) => {
   try {
-    if (!req.body.query && !req.body.uuid) throw new BadRequest('Missing query');
+    if (!req.body.query && !req.body.uuid && !req.body.anime_id) throw new BadRequest('Missing query');
 
     const response = await querySegments({
       query: req.body.query,
@@ -150,7 +150,7 @@ export const SearchAnimeSentences = async (
       excluded_anime_ids: req.body.excluded_anime_ids || [],
     });
 
-    if (!req.body.cursor) {
+    if (!req.body.cursor && req.body.query) {
       const hits = response.statistics.reduce((total, item) => {
         return total + item.amount_sentences_found;
       }, 0);
