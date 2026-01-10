@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: "production"
+    service: "nadeshiko-backend"
+
+scrape_configs:
+  - job_name: "nadeshiko-backend"
+    static_configs:
+      - targets: ["nadeshiko-backend-web:5000"]
+        labels:
+          instance: "backend"
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          instance: "prometheus"

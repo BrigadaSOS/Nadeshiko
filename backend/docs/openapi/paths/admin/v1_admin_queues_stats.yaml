@@ -1,0 +1,48 @@
+get:
+  tags:
+    - Admin
+  operationId: getQueueStats
+  summary: Get queue statistics
+  description: |
+    Get statistics for all ES sync queues including pending and failed job counts.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+    **Use cases:**
+    - Monitor queue health
+    - Detect stuck jobs
+    - Check backlog size
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  responses:
+    "200":
+      description: Queue statistics retrieved successfully
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                queue:
+                  type: string
+                  example: "es-sync-create"
+                stuckCount:
+                  type: integer
+                  description: Number of jobs currently pending/active
+                  example: 5
+                failedCount:
+                  type: integer
+                  description: Number of failed jobs
+                  example: 2
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

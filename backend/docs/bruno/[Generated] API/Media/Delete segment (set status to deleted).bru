@@ -1,0 +1,21 @@
+meta {
+  name: Delete segment (set status to deleted)
+  type: http
+  seq: 20
+}
+
+delete {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id
+  body: none
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,22 @@
+meta {
+  name: List all lists
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{baseUrl}}/v1/lists?visibility=public&type=SERIES&userId=1&mediaId=12345
+  body: none
+}
+
+params:query {
+  visibility: public
+  type: SERIES
+  userId: 1
+  mediaId: 12345
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,5 @@
+description: Single segment response
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/Segment.yaml"

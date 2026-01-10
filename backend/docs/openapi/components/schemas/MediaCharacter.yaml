@@ -1,0 +1,13 @@
+type: object
+description: Character appearing in a media with their role
+required:
+  - character
+  - role
+properties:
+  character:
+    $ref: "./Character.yaml"
+  role:
+    type: string
+    enum: [MAIN, SUPPORTING, BACKGROUND]
+    description: Character's role in the media
+    example: "MAIN"

@@ -1,9 +1,0 @@
-type: object
-description: Google OAuth login request body
-required:
-  - code
-properties:
-  code:
-    type: string
-    description: Google OAuth authorization code
-    example: "1234567890"

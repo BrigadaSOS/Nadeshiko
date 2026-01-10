@@ -1,0 +1,26 @@
+meta {
+  name: Update media position in list
+  type: http
+  seq: 30
+}
+
+patch {
+  url: {{baseUrl}}/v1/lists/:id/items/:mediaId
+  body: json
+}
+
+params:query {
+  id:
+  mediaId:
+}
+
+body:json {
+  {
+    "position": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,37 @@
+get:
+  tags:
+    - Media
+  operationId: seiyuuShow
+  summary: Get seiyuu details
+  description: |
+    Returns a voice actor with all characters they voiced and media appearances.
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: AniList staff ID
+      schema:
+        type: integer
+        example: 95991
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/SeiyuuWithRoles.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

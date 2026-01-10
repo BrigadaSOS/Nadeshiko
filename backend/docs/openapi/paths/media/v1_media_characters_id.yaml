@@ -1,0 +1,37 @@
+get:
+  tags:
+    - Media
+  operationId: characterShow
+  summary: Get character details
+  description: |
+    Returns a character with their seiyuu and all media appearances.
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: AniList character ID
+      schema:
+        type: integer
+        example: 14545
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/CharacterWithMedia.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

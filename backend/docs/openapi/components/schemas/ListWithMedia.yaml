@@ -1,0 +1,44 @@
+type: object
+description: List with all media in order
+required:
+  - id
+  - name
+  - type
+  - userId
+  - visibility
+  - media
+properties:
+  id:
+    type: integer
+    description: List ID
+    example: 123
+  name:
+    type: string
+    description: Name of the list
+    example: "Bakuman Series"
+  type:
+    type: string
+    enum: [SERIES, CUSTOM]
+    description: Type of list
+    example: "SERIES"
+  userId:
+    type: integer
+    description: User ID who owns the list (1 = admin)
+    example: 1
+  visibility:
+    type: string
+    enum: [PUBLIC, PRIVATE]
+    description: Visibility of the list
+    example: "PUBLIC"
+  media:
+    type: array
+    description: All media in the list, sorted by position
+    items:
+      type: object
+      properties:
+        position:
+          type: integer
+          description: Position in the list (1-indexed)
+          example: 1
+        media:
+          $ref: "./Media.yaml"

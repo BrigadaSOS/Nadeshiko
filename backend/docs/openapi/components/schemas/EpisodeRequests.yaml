@@ -1,0 +1,58 @@
+# Episode Request Schemas
+# Shared field definitions using YAML anchors
+
+EpisodeFields: &episodeFields
+  anilistEpisodeId:
+    type: integer
+    description: AniList episode ID for external reference
+    example: 123456
+  titleEnglish:
+    type: string
+    description: English title of the episode
+    example: "The Beginning"
+  titleRomaji:
+    type: string
+    description: Romanized title of the episode
+    example: "Hajimari"
+  titleJapanese:
+    type: string
+    description: Japanese title of the episode
+    example: "始まり"
+  description:
+    type: string
+    description: Episode description or synopsis
+    example: "The hero begins their journey"
+  airedAt:
+    type: string
+    format: date-time
+    description: When the episode originally aired
+    example: "2024-01-15T09:00:00Z"
+  lengthSeconds:
+    type: integer
+    description: Episode duration in seconds
+    example: 1420
+  thumbnailUrl:
+    type: string
+    description: URL to episode thumbnail image
+    example: "https://example.com/thumbnails/episode1.jpg"
+
+# Create-only field (episodeNumber - part of composite key, not updateable)
+EpisodeNumberField: &episodeNumberField
+  episodeNumber:
+    type: integer
+    description: Episode number within the media (must be unique for this media)
+    example: 1
+
+EpisodeCreateRequest:
+  type: object
+  required:
+    - episodeNumber
+  properties:
+    <<: *episodeFields
+    <<: *episodeNumberField
+
+EpisodeUpdateRequest:
+  type: object
+  description: All fields are optional for partial updates
+  properties:
+    <<: *episodeFields

@@ -1,0 +1,59 @@
+post:
+  tags:
+    - Lists
+  operationId: listAddItem
+  x-internal: true
+  summary: Add media to list
+  description: |
+    Adds a media entry to the list at the specified position. Requires admin permissions.
+
+  security:
+    - apiKeyHeader: [UPDATE_LISTS]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: List ID
+      schema:
+        type: integer
+        example: 123
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - mediaId
+            - position
+          properties:
+            mediaId:
+              type: integer
+              example: 7674
+            position:
+              type: integer
+              example: 1
+              description: Position in the list (1-indexed)
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Media added to list"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

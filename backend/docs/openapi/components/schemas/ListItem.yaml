@@ -1,0 +1,16 @@
+type: object
+description: Media item in a list with ordering
+required:
+  - list
+  - media
+  - position
+properties:
+  list:
+    $ref: "./List.yaml"
+  media:
+    $ref: "./Media.yaml"
+  position:
+    type: integer
+    description: Position/order in the list (1-indexed)
+    example: 1
+    minimum: 1

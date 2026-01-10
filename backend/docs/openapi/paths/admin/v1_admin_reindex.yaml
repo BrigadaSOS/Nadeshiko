@@ -1,0 +1,41 @@
+post:
+  tags:
+    - Admin
+  operationId: reindexElasticsearch
+  summary: Reindex database into Elasticsearch
+  description: |
+    Reindexes segments from the PostgreSQL database into Elasticsearch.
+    Allows filtering by specific media IDs or episodes.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission for reindexing)
+
+    **Behavior:**
+    - If no filters provided, reindexes all segments
+    - If `mediaIds` provided, reindexes all segments from those media
+    - If `episodes` provided, reindexes only the specified episodes
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/ReindexRequest.yaml"
+  responses:
+    "200":
+      description: Reindex operation completed
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/ReindexResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

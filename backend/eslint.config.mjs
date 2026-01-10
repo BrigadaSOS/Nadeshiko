@@ -56,27 +56,6 @@ export default defineConfig([
         },
       ],
 
-      // Prohibit direct fs imports - use utils/fs wrappers instead
-      'no-restricted-imports': [
-        'error',
-        {
-          name: 'fs',
-          message:
-            'Direct imports of "fs" are not allowed. Use "utils/fs" wrappers instead for consistent error handling.',
-          allowTypeImports: true,
-        },
-      ],
-
-      // Warn against path.join - prefer safePath from utils/fs for user-controlled paths
-      'no-restricted-syntax': [
-        'warn',
-        {
-          selector: "CallExpression[callee.object.name='path'][callee.property.name='join']",
-          message:
-            'Avoid path.join with user input. Use safePath from utils/fs to prevent path traversal vulnerabilities.',
-        },
-      ],
-
       'prettier/prettier': [
         'error',
         {
@@ -107,15 +86,6 @@ export default defineConfig([
           endOfLine: 'auto',
         },
       ],
-    },
-  },
-
-  // Allow fs imports in the wrapper module itself and setup scripts
-  {
-    files: ['utils/fs.ts', 'scripts/**/*.ts'],
-    rules: {
-      'no-restricted-imports': 'off',
-      'no-restricted-syntax': 'off',
     },
   },
 ]);

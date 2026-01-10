@@ -1,0 +1,41 @@
+meta {
+  name: Update segment
+  type: http
+  seq: 19
+}
+
+patch {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id
+  body: json
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+  id:
+}
+
+body:json {
+  {
+    "position": 0,
+    "status": 0,
+    "startTime": "",
+    "endTime": "",
+    "content": "",
+    "contentSpanish": "",
+    "contentSpanishMt": false,
+    "contentEnglish": "",
+    "contentEnglishMt": false,
+    "isNsfw": false,
+    "storage": "",
+    "hashedId": "",
+    "actorJa": "",
+    "actorEs": "",
+    "actorEn": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

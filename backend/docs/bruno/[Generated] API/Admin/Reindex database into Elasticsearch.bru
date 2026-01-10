@@ -1,0 +1,32 @@
+meta {
+  name: Reindex database into Elasticsearch
+  type: http
+  seq: 32
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/reindex
+  body: json
+}
+
+body:json {
+  {
+    "media": [
+      {
+        "mediaId": 5,
+        "episodes": [
+          1,
+          3
+        ]
+      },
+      {
+        "mediaId": 10
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

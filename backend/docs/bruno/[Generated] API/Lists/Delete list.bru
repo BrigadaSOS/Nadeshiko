@@ -1,0 +1,19 @@
+meta {
+  name: Delete list
+  type: http
+  seq: 28
+}
+
+delete {
+  url: {{baseUrl}}/v1/lists/:id
+  body: none
+}
+
+params:query {
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

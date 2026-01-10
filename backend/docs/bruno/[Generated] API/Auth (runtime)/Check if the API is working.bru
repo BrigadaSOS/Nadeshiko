@@ -1,0 +1,16 @@
+meta {
+  name: Check if the API is working
+  type: http
+  seq: 47
+}
+
+get {
+  url: {{baseUrl}}/api/auth/ok
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

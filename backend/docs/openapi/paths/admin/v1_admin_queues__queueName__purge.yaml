@@ -1,0 +1,54 @@
+delete:
+  tags:
+    - Admin
+  operationId: purgeFailedJobs
+  summary: Delete failed jobs from a queue
+  description: |
+    Permanently delete all failed jobs from a queue.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+    **Use cases:**
+    - Clean up old failed jobs after investigating
+    - Reset a queue after fixing the underlying issue
+    - Note: This does NOT re-sync the segments - use the reindex endpoint for that
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: queueName
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [es-sync-create, es-sync-update, es-sync-delete]
+      description: The name of the queue
+      example: "es-sync-create"
+  responses:
+    "200":
+      description: Failed jobs purged successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              purgedCount:
+                type: integer
+                description: Number of failed jobs deleted
+                example: 15
+              message:
+                type: string
+                example: "Purged 15 failed jobs from es-sync-create"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

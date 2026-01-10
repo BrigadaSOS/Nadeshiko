@@ -1,0 +1,32 @@
+type: object
+description: List data for adding media to a list
+required:
+  - position
+properties:
+  listId:
+    type: integer
+    nullable: true
+    description: Existing list ID (if adding to existing list)
+    example: 123
+  listName:
+    type: string
+    nullable: true
+    description: Name for new list (if creating new list)
+    example: "Bakuman Series"
+  listType:
+    type: string
+    enum: [SERIES, CUSTOM]
+    nullable: true
+    description: Type of list (if creating new list)
+    example: "SERIES"
+  listVisibility:
+    type: string
+    enum: [PUBLIC, PRIVATE]
+    nullable: true
+    description: Visibility of list (if creating new list)
+    example: "PUBLIC"
+  position:
+    type: integer
+    description: Position/order of media in the list (1-indexed)
+    example: 1
+    minimum: 1

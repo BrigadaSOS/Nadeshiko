@@ -48,5 +48,22 @@ The API will be available at `http://localhost:5000`
 
 ## Bruno Collection
 
-Import and use the [Bruno](https://www.usebruno.com/) collection from `/bruno`
-for easy testing of the API endpoints.
+Import and use the [Bruno](https://www.usebruno.com/) collection from
+`/docs/bruno` for easy testing of the API endpoints.
+
+## Release Versioning
+
+Use a single command to keep backend and OpenAPI versions aligned:
+
+```bash
+cd backend
+bun run release:set-version 1.2.3
+bun run release:check-version
+```
+
+Tag and push the backend release (this triggers the release workflow):
+
+```bash
+git tag -a v1.2.3 -m "Backend v1.2.3"
+git push origin v1.2.3
+```

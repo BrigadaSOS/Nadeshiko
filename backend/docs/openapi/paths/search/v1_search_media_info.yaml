@@ -1,0 +1,58 @@
+get:
+  tags:
+    - Search
+  operationId: fetchMediaInfo
+  summary: Fetch media info
+  description: |
+    Lists available media with metadata and supports filtering by type and search query.
+
+    Returns paginated results with comprehensive media information including cover/banner images, episode counts, and genres.
+
+    **Use Cases**
+    - Browsing the media library
+    - Getting media metadata for display
+
+    **Requirements:**
+    - Required Scopes: `READ_MEDIA`
+
+  parameters:
+    - name: size
+      in: query
+      description: Number of results per page
+      schema:
+        type: integer
+        default: 20
+    - name: cursor
+      in: query
+      description: Pagination cursor offset
+      schema:
+        type: integer
+        default: 0
+    - name: query
+      in: query
+      description: Search query for filtering media
+      schema:
+        type: string
+        example: steins
+    - name: type
+      in: query
+      description: Filter by media category
+      schema:
+        type: string
+        enum: [anime, liveaction, audiobook]
+        example: anime
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/FetchMediaInfoResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

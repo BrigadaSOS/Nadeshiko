@@ -1,0 +1,60 @@
+get:
+  tags:
+    - Admin
+  operationId: getFailedJobs
+  summary: Get failed jobs from a queue
+  description: |
+    Get jobs that have exceeded their retry limit and permanently failed.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+    **Use cases:**
+    - Identify segments that failed to sync to Elasticsearch
+    - Debug persistent sync issues
+    - Decide whether to retry or purge failed jobs
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: queueName
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [es-sync-create, es-sync-update, es-sync-delete]
+      description: The name of the queue
+      example: "es-sync-create"
+  responses:
+    "200":
+      description: Failed jobs retrieved successfully
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: Job ID
+                segmentId:
+                  type: integer
+                  description: The segment ID that failed to sync
+                error:
+                  type: string
+                  nullable: true
+                  description: Error message from the last attempt
+                createdOn:
+                  type: string
+                  format: date-time
+                  description: When the job was created
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

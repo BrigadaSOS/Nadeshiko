@@ -1,0 +1,19 @@
+meta {
+  name: Get character details
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/v1/media/characters/:id
+  body: none
+}
+
+params:query {
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
