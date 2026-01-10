@@ -135,10 +135,14 @@ const fetchSentences = async (fromButton = false) => {
 
         // Build request body
         let body = {
-            query: query.value,
             limit: 20,
             extra: true
         };
+
+        // Only add query if it exists (to avoid ES filters when no query is provided)
+        if (query.value) {
+            body.query = query.value;
+        }
 
         // Add optional parameters, omit category if it is 'all'
         if (category.value !== 0) {
