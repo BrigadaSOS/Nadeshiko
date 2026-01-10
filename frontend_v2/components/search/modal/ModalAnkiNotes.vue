@@ -79,7 +79,7 @@ const getNotesFromQuery = async () => {
           <button type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection">
-            <span class="sr-only">Close</span>
+            <span class="sr-only">{{ $t('modalAnkiNotes.closeSrOnly') }}</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
               xmlns="http://www.w3.org/2000/svg">
               <path
@@ -90,7 +90,7 @@ const getNotesFromQuery = async () => {
         </div>
         <div class="overflow-y-auto">
           <div class="flex flex-row mx-auto">
-            <!-- Contenido -->
+            <!-- Content -->
             <div class="sm:mx-4 mx-auto flex flex-col">
               <div class="p-6 space-y-6 flex flex-col">
                 <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
@@ -114,12 +114,12 @@ const getNotesFromQuery = async () => {
                                 d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
                                 fill="currentFill" />
                             </svg>
-                            <span class="sr-only">Loading...</span>
+                            <span class="sr-only">{{ $t('accountSettings.anki.loading') }}</span>
                           </div>
-                          <strong class="block font-medium">Cargando...</strong>
+                          <strong class="block font-medium">{{ $t('accountSettings.anki.loading') }}</strong>
                         </div>
                         <p class="mt-2 text-sm text-blue-700 dark:text-blue-200">
-                          Por favor, espere mientras se valida.
+                          {{ $t('accountSettings.anki.loadingMessage') }}
                         </p>
                       </div>
 
@@ -161,7 +161,7 @@ const getNotesFromQuery = async () => {
                 <input :value="inputVal" @input="(e: any) => { inputVal = e.target.value; getNotesFromQuery(); }"
                   autocomplete="off"
                   class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
-                  placeholder="女"></input>
+                  :placeholder="$t('modalAnkiNotes.searchPlaceholder')"></input>
 
                 <div class="mt-6">
                   <div class="border rounded-lg h-96 overflow-hidden dark:border-modal-border">

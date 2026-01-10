@@ -39,19 +39,29 @@ const dynamicTitle = computed(() => {
     const sentence = searchData.value.sentences[0];
     return `${sentence.basic_info.name_anime_en} | Nadeshiko`;
   }
-  return route.query.query 
-    ? `${route.query.query} - Búsqueda en Nadeshiko` 
-    : 'Nadeshiko - Búsqueda';
+  return route.query.query
+    ? t('searchContainer.pageTitle', { query: route.query.query })
+    : t('searchContainer.pageTitleDefault');
 })
 
 const dynamicDescription = computed(() => {
   if (uuid.value && searchData.value?.sentences?.length > 0) {
     const sentence = searchData.value.sentences[0];
-    return `${sentence.segment_info.content_jp} De ${sentence.basic_info.name_anime_en}, ${sentence.basic_info.season === 0 ? 'Película' : `Temporada ${sentence.basic_info.season}, Episodio ${sentence.basic_info.episode}`}`;
+    const mediaType = sentence.basic_info.season === 0
+      ? t('searchContainer.mediaTypeMovie')
+      : t('searchContainer.mediaTypeSeason', {
+          season: sentence.basic_info.season,
+          episode: sentence.basic_info.episode
+        });
+    return t('searchContainer.mediaInfo', {
+      jpSentence: sentence.segment_info.content_jp,
+      animeName: sentence.basic_info.name_anime_en,
+      mediaType: mediaType
+    });
   }
-  return route.query.query 
-    ? `Resultados de búsqueda para "${route.query.query}" en Nadeshiko` 
-    : 'Busca frases de anime y live action en Nadeshiko';
+  return route.query.query
+    ? t('searchContainer.seoDescription', { query: route.query.query })
+    : t('searchContainer.seoDescriptionDefault');
 })
 
 const updateMetadata = () => {
@@ -288,7 +298,7 @@ onBeforeRouteUpdate(async (to, from) => {
                                             d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
                                             fill="currentFill" />
                                     </svg>
-                                    <span class="sr-only">Loading...</span>
+                                    <span class="sr-only">{{ $t('accountSettings.anki.loading') }}</span>
                                 </div>
 
                             </template>
@@ -307,16 +317,16 @@ onBeforeRouteUpdate(async (to, from) => {
         <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
             <GeneralTabsContainer>
                 <GeneralTabsHeader>
-                    <GeneralTabsItem category="0" categoryName="Todo" :count="getCategoryCount(0)"
+                    <GeneralTabsItem category="0" :categoryName="t('searchContainer.categoryAll')" :count="getCategoryCount(0)"
                         :isActive="category === 0" @click="categoryFilter(0)" />
                     <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 1)"
-                        category="1" categoryName="Anime" :count="getCategoryCount(1)" :isActive="category === 1"
+                        category="1" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount(1)" :isActive="category === 1"
                         @click="categoryFilter(1)" />
                     <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 3)"
-                        category="3" categoryName="Liveaction" :count="getCategoryCount(3)" :isActive="category === 3"
+                        category="3" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount(3)" :isActive="category === 3"
                         @click="categoryFilter(3)" />
                     <GeneralTabsItem v-if="searchData?.categoryStatistics?.find((item) => item.category === 4)"
-                        category="4" categoryName="Audiobook" :count="getCategoryCount(4)" :isActive="category === 4"
+                        category="4" :categoryName="t('searchContainer.categoryAudiobook')" :count="getCategoryCount(4)" :isActive="category === 4"
                         @click="categoryFilter(4)" />
                 </GeneralTabsHeader>
             </GeneralTabsContainer>
@@ -361,7 +371,7 @@ onBeforeRouteUpdate(async (to, from) => {
                             <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
                             <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
                             <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-                            <span class="sr-only">Cargando...</span>
+                            <span class="sr-only">{{ $t('searchContainer.loading') }}</span>
                         </div>
                     </div>
                 </div>

@@ -75,11 +75,11 @@ watch(inputText, (newValue) => {
     .filter((word) => word !== '')
 
   if (words.value.length > 500) {
-    errorMessage.value = `Se ha excedido el límite de palabras permitidas: ${words.value.length} / 500`
+    errorMessage.value = t('modalBatch.wordLimitExceeded', { count: words.value.length })
     wordCount.value = words.value.length
   } else if (newValue.includes(',') && newValue.includes('\n')) {
-    errorMessage.value = 'El formato de entrada es incorrecto. Verifique si hay comas y saltos de línea simultáneos.'
-    wordCount.value = 'No disponible'
+    errorMessage.value = t('modalBatch.inputFormatError')
+    wordCount.value = t('modalBatch.notAvailable')
   } else {
     errorMessage.value = ''
     wordCount.value = words.value.length
@@ -99,7 +99,7 @@ watch(inputText, (newValue) => {
           <button type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-batch">
-            <span class="sr-only">Close</span>
+            <span class="sr-only">{{ t('modalBatch.closeSrOnly') }}</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
               xmlns="http://www.w3.org/2000/svg">
               <path
@@ -124,7 +124,7 @@ watch(inputText, (newValue) => {
 
                 <textarea v-model="inputText" autocomplete="off" rows="10"
                   class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
-                  placeholder="彼女&#10;彼氏&#10;走る&#10;恋人&#10;...&#10;...&#10;..."></textarea>
+                  :placeholder="t('modalBatch.examplePlaceholder')"></textarea>
 
               </div>
               <div class="px-4 sm:px-6 overflow-y-auto">
@@ -185,7 +185,7 @@ watch(inputText, (newValue) => {
           <button type="button"
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-batch2">
-            <span class="sr-only">Close</span>
+            <span class="sr-only">{{ t('modalBatch.closeSrOnly') }}</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
               xmlns="http://www.w3.org/2000/svg">
               <path
@@ -199,7 +199,7 @@ watch(inputText, (newValue) => {
             <div class="-m-1.5 overflow-x-auto">
               <div v-if="!isLoading" class="p-1.5 min-w-full inline-block align-middle">
                 <div class="mb-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ml-auto">
-                  Tipo de busqueda: {{ checkExactSearch ? "Exacta" : "Normal" }}
+                  {{ t('modalBatch.searchTypeLabel', { type: t(checkExactSearch ? 'modalBatch.searchTypeExact' : 'modalBatch.searchTypeNormal') }) }}
                   <br />
                   {{ t("batchSearch.results.words") }}: {{ wordCount }}
                   <br />

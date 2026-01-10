@@ -38,7 +38,7 @@ export const userStore = defineStore("user", {
           }
         );
 
-        // Si la respuesta es exitosa, extrae el JSON
+        // If the response is successful, extract the JSON
         if (response.ok) {
           const responseData = await response.json();
           this.$patch((state) => {
@@ -78,7 +78,7 @@ export const userStore = defineStore("user", {
             }),
           }
         );
-        // Si la respuesta es exitosa, extrae el JSON
+        // If the response is successful, extract the JSON
         if (response.ok) {
           const responseData = await response.json();
           this.$patch((state) => {
@@ -181,13 +181,13 @@ export const userStore = defineStore("user", {
             }),
           }
         );
-        // Si la respuesta es exitosa, extrae el JSON
+        // If the response is successful, extract the JSON
         if (response.ok) {
           const responseData = await response.json();
-          const message = "Registro exitoso";
+          const message = $i18n.t("auth.registrationSuccess");
           useToastSuccess(message);
         } else {
-          const message = "Registro fallido. Intentelo nuevamente";
+          const message = $i18n.t("auth.registrationError");
           useToastError(message);
         }
       } catch (error) {
@@ -244,7 +244,7 @@ export const userStore = defineStore("user", {
               roles: responseData?.user?.roles.map((role: any) => role.id_role),
             };
           });
-          return responseData; // Devuelve los datos de la respuesta en caso de éxito
+          return responseData; // Returns the response data on success
         } else {
           this.isLoggedIn = false;
           if (response.status === 401) {

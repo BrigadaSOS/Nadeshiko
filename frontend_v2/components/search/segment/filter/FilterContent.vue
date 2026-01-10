@@ -89,7 +89,7 @@ const filterAnime = (anime_id, anime_name) => {
             <div class="flex flex-inline">
                 <input type="search" v-model="querySearchMedia" id="default-search2" autocomplete="off"
                     class="block w-full p-4 pl-4 text-xs xxl:text-sm xxm:text-xl text-gray-900 dark:bg-neutral-800  dark:placeholder-gray-400 dark:text-white/45 dark:focus:ring-gray-500 dark:focus:border-gray-500"
-                    placeholder="Search here" required />
+                    :placeholder="$t('filterContent.searchPlaceholder')" required />
                 <div class="absolute z-10 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
                     <svg aria-hidden="true" class="w-5 h-5 text-white/60 dark:text-gray-400" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
