@@ -1,14 +1,14 @@
 import { ApiAuth } from '../models/api/apiAuth';
 import { User } from '../models/user/user';
 import { Authorized, BadRequest } from '../utils/error';
-import { Response, NextFunction, request } from 'express';
+import { Response, NextFunction } from 'express';
 import { ApiPermission } from '../models/api/apiPermission';
 import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
 import { hashApiKey } from '../utils/utils';
 import { parse } from 'url';
 import { logger } from '../utils/log';
 
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 export const maxAgeJWT: number = 3 * 24 * 60 * 60; // 3 days
 
 export const authenticate = (options: { jwt: boolean; apiKey: boolean }) => {

@@ -1,3 +1,3 @@
-import { GetContextAnimeRequest } from '../controller/GetContextAnimeRequest';
+import type { GetContextAnimeRequest } from '../controller/GetContextAnimeRequest';
 
-export interface QuerySurroundingSegmentsRequest extends GetContextAnimeRequest {}
+export type QuerySurroundingSegmentsRequest = GetContextAnimeRequest;

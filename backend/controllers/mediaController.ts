@@ -2,17 +2,13 @@ import { BadRequest, NotFound } from '../utils/error';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { v3 as uuidv3 } from 'uuid';
-import connection from '../database/db_posgres';
 import { logger } from '../utils/log';
 
 import path from 'path';
 import fs from 'fs';
-
-const { spawn } = require('child_process');
-const util = require('util');
-// execPromisified no longer needed
-const ffmpegStatic = require('ffmpeg-static');
-const requestIp = require('request-ip');
+import { spawn } from 'child_process';
+import ffmpegStatic from 'ffmpeg-static';
+import requestIp from 'request-ip';
 
 import { querySegments, querySurroundingSegments, queryWordsMatched } from '../external/elasticsearch';
 import { queryMediaInfo } from '../external/database_queries';
@@ -52,18 +48,9 @@ export const generateURLAudio = async (req: Request, res: Response, next: NextFu
       throw new BadRequest('Debe ingresar una lista de URLs MP3.');
     }
 
-    let protocol: string = '';
-    if (process.env.ENVIRONMENT == 'production') {
-      protocol = 'https';
-    } else if (process.env.ENVIRONMENT == 'testing') {
-      protocol = 'http';
-    }
-
     const urlHash = urls.join('');
 
     const randomFilename = `${uuidv3(urlHash, process.env.UUID_NAMESPACE!)}.mp3`;
-
-    const outputUrl = '';
     // Verifica si el archivo ya existe en la carpeta temporal
     const filePathAPI = [getBaseUrlTmp(), randomFilename].join('/');
     const filePath = [tmpDirectory, randomFilename].join('/');

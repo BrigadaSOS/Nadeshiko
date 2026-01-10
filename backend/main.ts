@@ -1,5 +1,5 @@
 // Must be called before all imports
-require('dotenv').config();
+import 'dotenv/config';
 
 import './external/elasticsearch'; // Initialize client
 import path from 'path';
@@ -9,8 +9,10 @@ import connection from './database/db_posgres';
 import { handleErrors } from './middleware/errorHandler';
 import { logger, httpLogger } from './utils/log';
 
-const bodyParser = require('body-parser');
-const promBundle = require('express-prom-bundle');
+import bodyParser from 'body-parser';
+import promBundle from 'express-prom-bundle';
+import sharp from 'sharp';
+import fs from 'fs';
 const metricsMiddleware = promBundle({
   includeMethod: true,
   includePath: true,
@@ -25,7 +27,7 @@ const app: Application = express();
 app.set('trust proxy', 1);
 const allowedOrigins = process.env.ALLOWED_WEBSITE_URLS ? process.env.ALLOWED_WEBSITE_URLS.split(',') : [];
 
-// @ts-ignore
+// @ts-expect-error -- express middleware signature
 app.use(function (req, res, next) {
   // Obtiene el origen de la solicitud
   const origin: string | undefined = req.headers.origin;
@@ -55,9 +57,6 @@ app.use(function (req, res, next) {
   // Pass to next layer of middleware
   next();
 });
-
-const sharp = require('sharp');
-const fs = require('fs');
 
 if (process.env.ENVIRONMENT === 'testing') {
   // Access media uploaded from outside localhost
@@ -150,7 +149,7 @@ app.use(httpLogger);
 app.use(metricsMiddleware);
 app.use('/api', router);
 
-// @ts-ignore
+// @ts-expect-error -- error handler type
 app.use(handleErrors);
 
 if (!parseInt(process.env.PORT as string)) {

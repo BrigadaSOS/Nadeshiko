@@ -13,7 +13,7 @@ import { UserAuth } from '../models/user/userAuth';
 import { UserToken } from '../models/user/userToken';
 import { Report } from '../models/miscellaneous/report';
 
-require('dotenv').config();
+import 'dotenv/config';
 
 const connection = new Sequelize({
   dialect: 'postgres',

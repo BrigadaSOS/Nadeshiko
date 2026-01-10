@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 export const router = express.Router();
 
@@ -12,7 +11,6 @@ import {
   loginGoogle,
   getDiscordAuthUrl,
   loginDiscord,
-  sendReportSegment,
 } from '../controllers/userController';
 import { listAPIKeysByUser, createAPIKeyDefault, deactivateAPIKey } from '../controllers/apiController';
 
