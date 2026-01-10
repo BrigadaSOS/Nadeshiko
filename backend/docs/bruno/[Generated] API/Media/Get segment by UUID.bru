@@ -1,0 +1,30 @@
+meta {
+  name: Get segment by UUID
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{baseUrl}}/v1/media/segments/:uuid
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  uuid:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

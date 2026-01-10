@@ -1,0 +1,179 @@
+# Name of your application. Used to uniquely configure containers.
+service: nadeshiko-backend
+image: nadeshiko-backend
+
+# Deploy to these servers.
+servers:
+  web:
+    hosts:
+      - nadeshiko-production
+
+# Where you keep your container images.
+registry:
+  server: localhost:5555
+
+proxy:
+  ssl: true
+  host: api.nadeshiko.co
+  forward_headers: true
+
+# Inject ENV variables into containers (secrets come from .kamal/secrets).
+env:
+  secret:
+    - ALLOWED_WEBSITE_URLS
+    - API_KEY_MASTER
+    - BETTER_AUTH_SECRET
+
+    - EMAIL_API_NADEDB
+    - USERNAME_API_NADEDB
+
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    - POSTGRES_DB
+
+    - ELASTICSEARCH_USER
+    - ELASTICSEARCH_PASSWORD
+
+    - DISCORD_CLIENT_ID
+    - DISCORD_CLIENT_SECRET
+    - DISCORD_REDIRECT_URI
+
+    - ID_OAUTH_GOOGLE
+    - SECRET_OAUTH_GOOGLE
+    - URI_ALLOWED_GOOGLE
+
+    - GF_SECURITY_ADMIN_PASSWORD
+
+    - SES_AWS_REGION
+    - SES_AWS_ACCESS_KEY_ID
+    - SES_AWS_SECRET_ACCESS_KEY
+
+  clear:
+    ENVIRONMENT: production
+    PORT: 80
+    BASE_URL: https://api.nadeshiko.co
+    COOKIE_DOMAIN: .nadeshiko.co
+
+    SES_FROM_EMAIL: noreply@nadeshiko.co
+    SES_FROM_NAME: Nadeshiko
+
+    POSTGRES_HOST: "nadeshiko-backend-postgres"
+    POSTGRES_PORT: 5432
+
+    ELASTICSEARCH_HOST: "http://nadeshiko-backend-elasticsearch:9200"
+    ELASTICSEARCH_INDEX: nadedb
+
+    # R2 CDN URL - Images are served directly from Cloudflare R2
+    R2_BASE_URL: https://cdn.nadeshiko.co/media
+    # Local storage URL - Used when storage backend is set to 'local'
+    LOCAL_BASE_URL: /assets
+
+# Aliases are triggered with "kamal <alias>".
+aliases:
+  console: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  db-setup: app exec --interactive --reuse "bun run db:setup"
+  db-migrate: app exec --interactive --reuse "bun run db:migrate"
+  db-prepare: app exec --interactive --reuse "bun run db:prepare"
+  db-seed: app exec --interactive --reuse "bun run db:seed"
+  db-rollback: app exec --interactive --reuse "bun run db:rollback"
+  routes: app exec --reuse "bun run routes"
+
+builder:
+  arch: amd64
+
+ssh:
+  user: docker
+  keys: ["~/.ssh/vps"]
+  keys_only: true
+
+accessories:
+  postgres:
+    image: postgres:17
+    host: nadeshiko-production
+    port: 127.0.0.1:5432:5432
+    env:
+      secret:
+        - POSTGRES_USER
+        - POSTGRES_PASSWORD
+        - POSTGRES_DB
+    volumes:
+      - nadeshiko-postgres-data:/var/lib/postgresql/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.4
+    host: nadeshiko-production
+    port: 127.0.0.1:9200:9200
+    env:
+      clear:
+        discovery.type: single-node
+        ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+        xpack.security.enabled: "false"
+        http.host: "0.0.0.0"
+    volumes:
+      - nadeshiko-elasticsearch-data:/usr/share/elasticsearch/data
+      - nadeshiko-elasticsearch-config:/usr/share/elasticsearch/config
+      - nadeshiko-elasticsearch-plugins:/usr/share/elasticsearch/plugins
+    cmd: >
+      bash -c '
+        if [ ! -d "/usr/share/elasticsearch/plugins/analysis-icu" ]; then
+          ./bin/elasticsearch-plugin install analysis-icu;
+        fi;
+        if [ ! -d "/usr/share/elasticsearch/plugins/analysis-kuromoji" ]; then
+          ./bin/elasticsearch-plugin install analysis-kuromoji;
+        fi;
+        ./bin/elasticsearch
+      '
+    options:
+      ulimit:
+        - nofile=65536:65536
+        - memlock=-1:-1
+
+  prometheus:
+    image: prom/prometheus:latest
+    host: nadeshiko-production
+    port: 127.0.0.1:9091:9090
+    volumes:
+      - nadeshiko-prometheus-data:/prometheus
+    files:
+      - config/prometheus.yml:/etc/prometheus/prometheus.yml
+    cmd: >
+      --config.file=/etc/prometheus/prometheus.yml
+      --storage.tsdb.path=/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    host: nadeshiko-production
+    port: 127.0.0.1:3000:3000
+    env:
+      clear:
+        GF_SERVER_ROOT_URL: "http://localhost:3000"
+        GF_SECURITY_ADMIN_USER: admin
+      secret:
+        - GF_SECURITY_ADMIN_PASSWORD
+    volumes:
+      - nadeshiko-grafana-data:/var/lib/grafana
+      - nadeshiko-grafana-provisioning:/etc/grafana/provisioning
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.2.4
+    host: nadeshiko-production
+    port: 127.0.0.1:5601:5601
+    env:
+      clear:
+        ELASTICSEARCH_HOSTS: "http://nadeshiko-backend-elasticsearch:9200"
+    volumes:
+      - nadeshiko-kibana-data:/usr/share/kibana/config
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    host: nadeshiko-production
+    port: 127.0.0.1:5050:5050
+    env:
+      secret:
+        - PGADMIN_DEFAULT_EMAIL
+        - PGADMIN_DEFAULT_PASSWORD
+      clear:
+        PGADMIN_LISTEN_PORT: "5050"
+    volumes:
+      - nadeshiko-pgadmin-data:/var/lib/pgadmin

@@ -1,0 +1,37 @@
+meta {
+  name: Update media position in list
+  type: http
+  seq: 34
+}
+
+patch {
+  url: {{baseUrl}}/v1/lists/:id/items/:mediaId
+  body: json
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  id:
+  mediaId:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+body:json {
+  {
+    "position": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

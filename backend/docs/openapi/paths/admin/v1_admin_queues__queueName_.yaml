@@ -1,0 +1,73 @@
+get:
+  tags:
+    - Admin
+  operationId: getQueueDetails
+  summary: Get detailed queue information
+  description: |
+    Get detailed information about a specific queue including completed, expired, and cancelled jobs.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+    **Queue names:**
+    - `es-sync-create` - Jobs to create new segments
+    - `es-sync-update` - Jobs to update existing segments
+    - `es-sync-delete` - Jobs to delete segments
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: queueName
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [es-sync-create, es-sync-update, es-sync-delete]
+      description: The name of the queue
+      example: "es-sync-create"
+  responses:
+    "200":
+      description: Queue details retrieved successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              queue:
+                type: string
+                example: "es-sync-create"
+              size:
+                type: integer
+                description: Current queue size (pending jobs)
+                example: 10
+              created:
+                type: integer
+                description: Total jobs created
+                example: 1250
+              failed:
+                type: integer
+                description: Total failed jobs
+                example: 5
+              complete:
+                type: integer
+                description: Total completed jobs
+                example: 1235
+              expired:
+                type: integer
+                description: Total expired jobs
+                example: 2
+              cancelled:
+                type: integer
+                description: Total cancelled jobs
+                example: 3
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

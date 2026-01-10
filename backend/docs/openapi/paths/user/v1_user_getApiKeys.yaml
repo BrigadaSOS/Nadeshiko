@@ -6,7 +6,7 @@ post:
   operationId: getApiKeys
   x-internal: true
   security:
-    - jwtCookie: []
+    - sessionCookie: []
   responses:
     "200":
       description: API keys retrieved

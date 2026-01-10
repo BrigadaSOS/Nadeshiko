@@ -1,0 +1,74 @@
+meta {
+  name: Update media
+  type: http
+  seq: 13
+}
+
+patch {
+  url: {{baseUrl}}/v1/media/:id
+  body: json
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  id:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+body:json {
+  {
+    "anilistId": 0,
+    "japaneseName": "",
+    "romajiName": "",
+    "englishName": "",
+    "airingFormat": "",
+    "airingStatus": "",
+    "genres": [],
+    "storage": "",
+    "startDate": "",
+    "endDate": "",
+    "category": "",
+    "version": "",
+    "hashSalt": "",
+    "studio": "",
+    "seasonName": "",
+    "seasonYear": 0,
+    "characters": [
+      {
+        "characterId": 0,
+        "characterNameJapanese": "",
+        "characterNameEnglish": "",
+        "characterImageUrl": "",
+        "characterRole": "",
+        "seiyuuId": 0,
+        "seiyuuNameJapanese": "",
+        "seiyuuNameEnglish": "",
+        "seiyuuImageUrl": ""
+      }
+    ],
+    "lists": [
+      {
+        "listId": 0,
+        "listName": "",
+        "listType": "",
+        "listVisibility": "",
+        "position": 0
+      }
+    ],
+    "numSegments": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

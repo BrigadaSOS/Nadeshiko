@@ -1,25 +1,25 @@
 type: object
 description: Basic anime/media information included in search results
 required:
-  - id_anime
-  - name_anime_romaji
+  - animeId
+  - nameAnimeRomaji
   - episode
   - season
   - category
 properties:
-  id_anime:
+  animeId:
     type: integer
     description: Unique identifier for the anime/media
     example: 110316
-  name_anime_romaji:
+  nameAnimeRomaji:
     type: string
     description: Romaji transliteration of the anime name
     example: "Steins;Gate"
-  name_anime_en:
+  nameAnimeEn:
     type: string
     description: English translation of the anime name
     example: "Steins;Gate"
-  name_anime_jp:
+  nameAnimeJp:
     type: string
     description: Original Japanese name of the anime
     example: "シュタインズ・ゲート"
@@ -42,6 +42,4 @@ properties:
     description: Season number where the segment appears
     example: 1
   category:
-    type: integer
-    description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
-    example: 1
+    $ref: "./Category.yaml"

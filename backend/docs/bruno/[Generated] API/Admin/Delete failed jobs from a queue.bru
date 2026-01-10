@@ -1,0 +1,30 @@
+meta {
+  name: Delete failed jobs from a queue
+  type: http
+  seq: 41
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/queues/:queueName/purge
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  queueName:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

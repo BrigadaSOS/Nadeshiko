@@ -32,22 +32,6 @@ import {
   s_UserInfoResponse,
 } from '../schemas.ts';
 
-export type GetUserInfoResponder = {
-  with200(): ExpressRuntimeResponse<t_UserInfoResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
-
-export type GetUserInfo = (
-  params: Params<void, void, void, void>,
-  respond: GetUserInfoResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
 export type GetIdentityMeResponder = {
   with200(): ExpressRuntimeResponse<t_UserInfoResponse>;
   with401(): ExpressRuntimeResponse<t_Error>;
@@ -115,7 +99,6 @@ export type DeactivateApiKey = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UserImplementation = {
-  getUserInfo: GetUserInfo;
   getIdentityMe: GetIdentityMe;
   createApiKey: CreateApiKey;
   getApiKeys: GetApiKeys;
@@ -124,71 +107,6 @@ export type UserImplementation = {
 
 export function createUserRouter(implementation: UserImplementation): Router {
   const router = Router();
-
-  const getUserInfoResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_UserInfoResponse],
-      ['401', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
-    ],
-    undefined,
-  );
-
-  // getUserInfo
-  router.post(`/v1/jwt/user/info`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_UserInfoResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getUserInfo(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getUserInfoResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
 
   const getIdentityMeResponseBodyValidator = responseValidationFactory(
     [

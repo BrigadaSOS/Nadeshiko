@@ -1,0 +1,5 @@
+description: Single episode response
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/Episode.yaml"

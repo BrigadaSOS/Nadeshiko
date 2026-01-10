@@ -1,0 +1,5 @@
+description: Paginated list of episodes
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/EpisodeListResponse.yaml"

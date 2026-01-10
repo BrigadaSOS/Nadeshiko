@@ -1,0 +1,31 @@
+type: object
+description: Request to reindex segments from the database into Elasticsearch
+properties:
+  media:
+    type: array
+    description: |-
+      Array of media to reindex. If not provided, all media will be reindexed.
+      Each media can optionally specify which episodes to reindex.
+      If episodes are not specified for a media, all episodes will be reindexed.
+    items:
+      type: object
+      required:
+        - mediaId
+      properties:
+        mediaId:
+          type: integer
+          description: The ID of the media
+          example: 5
+        episodes:
+          type: array
+          description: |-
+            Optional array of episode numbers to reindex.
+            If not provided, all episodes for this media will be reindexed.
+          items:
+            type: integer
+          example: [1, 3, 5]
+    example:
+      - mediaId: 5
+        episodes: [1, 3]
+      - mediaId: 10
+      # mediaId 10 will have all episodes reindexed

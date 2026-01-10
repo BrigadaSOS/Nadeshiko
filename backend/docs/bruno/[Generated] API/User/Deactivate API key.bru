@@ -1,0 +1,29 @@
+meta {
+  name: Deactivate API key
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/v1/user/deactivateApiKey
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "api_key_id": 123
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

@@ -28,41 +28,22 @@ info:
     url: https://nadeshiko.co
 servers:
   - description: Local server
-    url: http://localhost:5000/api
+    url: http://localhost:5000
   - description: Production server
-    url: https://api.brigadasos.xyz/api
+    url: https://api.nadeshiko.co
 security:
   - apiKeyHeader: []
-  - jwtCookie: []
+  - sessionCookie: []
 tags:
   - name: Search
     description: |
-      Search endpoints for querying Japanese sentences across indexed media (anime, J-Drama, audiobooks).
-
-      ## Authentication & Permissions
-
-      All search endpoints require:
-
-      | Requirement | Value |
-      |-------------|-------|
-      | **Authentication** | API Key via `X-API-Key` header (or SSR requests from allowed URLs) |
-      | **Permission** | `READ_MEDIA` - The API key must have this permission |
-      | **Rate Limit** | 2000 requests per 5 minutes (per IP address) |
-      | **Monthly Quota** | Role-based (e.g., 5000 requests/month for Normal Users) |
-
-      ## Error Codes
-
-      - `401 Unauthorized` - Missing, invalid, or inactive API key
-      - `403 Forbidden` - API key lacks `READ_MEDIA` permission
-      - `429 Too Many Requests` - Rate limit or monthly quota exceeded
-
-      ## Search Features
-
-      - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
-      - **Boolean Operators:** `AND`, `OR`, `NOT` supported
-      - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`)
-      - **Wildcards:** `te*t` format (leading wildcards not supported)
-      - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
+      Search endpoints for querying Japanese sentences across indexed media.
+  - name: Media
+    description: |
+      Media CRUD endpoints for managing anime and j-drama entries.
+  - name: Lists
+    description: |
+      List endpoints for managing media collections and watch orders.
 paths:
   /v1/search/health:
     get:
@@ -321,6 +302,803 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /v1/media:
+    get:
+      tags:
+        - Media
+      operationId: mediaIndex
+      summary: List all media
+      description: |
+        Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 40
+        - name: cursor
+          in: query
+          description: Pagination cursor offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: category
+          in: query
+          description: Filter by media category
+          schema:
+            type: string
+            enum:
+              - ANIME
+              - JDRAMA
+            example: ANIME
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{id}:
+    get:
+      tags:
+        - Media
+      operationId: mediaShow
+      summary: Get single media
+      description: |
+        Retrieves a single media entry by its ID.
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{mediaId}/episodes:
+    get:
+      operationId: episodeIndex
+      tags:
+        - Media
+      summary: List episodes for a media
+      description: |
+        Get a paginated list of episodes for a specific media
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of episodes to return
+          example: 50
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Episode number to start from (for pagination)
+          example: 10
+      responses:
+        "200":
+          $ref: "#/components/responses/EpisodeListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{mediaId}/episodes/{episodeNumber}:
+    get:
+      operationId: episodeShow
+      tags:
+        - Media
+      summary: Get single episode
+      description: |
+        Get a specific episode by media ID and episode number
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      responses:
+        "200":
+          $ref: "#/components/responses/EpisodeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
+    get:
+      operationId: segmentShow
+      tags:
+        - Media
+      summary: Get single segment
+      description: |
+        Get a specific segment by ID
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Segment ID
+          example: 12345
+      responses:
+        "200":
+          $ref: "#/components/responses/SegmentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/segments/{uuid}:
+    get:
+      tags:
+        - Media
+      operationId: segmentShowByUuid
+      summary: Get segment by UUID
+      description: |
+        Get a specific segment by its UUID
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Segment UUID
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Segment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/characters/{id}:
+    get:
+      tags:
+        - Media
+      operationId: characterShow
+      summary: Get character details
+      description: |
+        Returns a character with their seiyuu and all media appearances.
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: AniList character ID
+          schema:
+            type: integer
+            example: 14545
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterWithMedia"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/media/seiyuu/{id}:
+    get:
+      tags:
+        - Media
+      operationId: seiyuuShow
+      summary: Get seiyuu details
+      description: |
+        Returns a voice actor with all characters they voiced and media appearances.
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: AniList staff ID
+          schema:
+            type: integer
+            example: 95991
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeiyuuWithRoles"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/lists:
+    get:
+      tags:
+        - Lists
+      operationId: listIndex
+      summary: List all lists
+      description: |
+        Returns all lists matching the query filters. Can filter by media ID to find lists containing a specific media. Public lists are visible to all users.
+      security:
+        - apiKeyHeader:
+            - READ_LISTS
+      parameters:
+        - name: visibility
+          in: query
+          description: Filter by visibility
+          schema:
+            type: string
+            enum:
+              - public
+              - private
+            example: public
+        - name: type
+          in: query
+          description: Filter by list type
+          schema:
+            type: string
+            enum:
+              - SERIES
+              - CUSTOM
+            example: SERIES
+        - name: userId
+          in: query
+          description: Filter by list owner user ID
+          schema:
+            type: integer
+            example: 1
+        - name: mediaId
+          in: query
+          description: Filter lists containing this media ID
+          schema:
+            type: integer
+            example: 12345
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/List"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/lists/{id}:
+    get:
+      tags:
+        - Lists
+      operationId: listShow
+      summary: Get list details
+      description: |
+        Returns a list with all media in order (sorted by position).
+      security:
+        - apiKeyHeader:
+            - READ_LISTS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListWithMedia"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/admin/reindex:
+    post:
+      tags:
+        - Admin
+      operationId: reindexElasticsearch
+      summary: Reindex database into Elasticsearch
+      description: |
+        Reindexes segments from the PostgreSQL database into Elasticsearch.
+        Allows filtering by specific media IDs or episodes.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission for reindexing)
+
+        **Behavior:**
+        - If no filters provided, reindexes all segments
+        - If `mediaIds` provided, reindexes all segments from those media
+        - If `episodes` provided, reindexes only the specified episodes
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReindexRequest"
+      responses:
+        "200":
+          description: Reindex operation completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReindexResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/admin/queues/stats:
+    get:
+      tags:
+        - Admin
+      operationId: getQueueStats
+      summary: Get queue statistics
+      description: |
+        Get statistics for all ES sync queues including pending and failed job counts.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+        **Use cases:**
+        - Monitor queue health
+        - Detect stuck jobs
+        - Check backlog size
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      responses:
+        "200":
+          description: Queue statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    queue:
+                      type: string
+                      example: es-sync-create
+                    stuckCount:
+                      type: integer
+                      description: Number of jobs currently pending/active
+                      example: 5
+                    failedCount:
+                      type: integer
+                      description: Number of failed jobs
+                      example: 2
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/admin/queues/{queueName}:
+    get:
+      tags:
+        - Admin
+      operationId: getQueueDetails
+      summary: Get detailed queue information
+      description: |
+        Get detailed information about a specific queue including completed, expired, and cancelled jobs.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+        **Queue names:**
+        - `es-sync-create` - Jobs to create new segments
+        - `es-sync-update` - Jobs to update existing segments
+        - `es-sync-delete` - Jobs to delete segments
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - es-sync-create
+              - es-sync-update
+              - es-sync-delete
+          description: The name of the queue
+          example: es-sync-create
+      responses:
+        "200":
+          description: Queue details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queue:
+                    type: string
+                    example: es-sync-create
+                  size:
+                    type: integer
+                    description: Current queue size (pending jobs)
+                    example: 10
+                  created:
+                    type: integer
+                    description: Total jobs created
+                    example: 1250
+                  failed:
+                    type: integer
+                    description: Total failed jobs
+                    example: 5
+                  complete:
+                    type: integer
+                    description: Total completed jobs
+                    example: 1235
+                  expired:
+                    type: integer
+                    description: Total expired jobs
+                    example: 2
+                  cancelled:
+                    type: integer
+                    description: Total cancelled jobs
+                    example: 3
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/admin/queues/{queueName}/failed:
+    get:
+      tags:
+        - Admin
+      operationId: getFailedJobs
+      summary: Get failed jobs from a queue
+      description: |
+        Get jobs that have exceeded their retry limit and permanently failed.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+        **Use cases:**
+        - Identify segments that failed to sync to Elasticsearch
+        - Debug persistent sync issues
+        - Decide whether to retry or purge failed jobs
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - es-sync-create
+              - es-sync-update
+              - es-sync-delete
+          description: The name of the queue
+          example: es-sync-create
+      responses:
+        "200":
+          description: Failed jobs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: Job ID
+                    segmentId:
+                      type: integer
+                      description: The segment ID that failed to sync
+                    error:
+                      type: string
+                      nullable: true
+                      description: Error message from the last attempt
+                    createdOn:
+                      type: string
+                      format: date-time
+                      description: When the job was created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/admin/queues/{queueName}/retry:
+    post:
+      tags:
+        - Admin
+      operationId: retryQueueJobs
+      summary: Retry failed jobs from a queue
+      description: |
+        Retry all failed jobs from a specific queue.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+        **Use cases:**
+        - Retry jobs that failed due to temporary Elasticsearch issues
+        - Recover from network blips
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - es-sync-create
+              - es-sync-update
+              - es-sync-delete
+          description: The name of the queue
+          example: es-sync-create
+      responses:
+        "200":
+          description: Jobs queued for retry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  retriedCount:
+                    type: integer
+                    description: Number of jobs queued for retry
+                    example: 5
+                  message:
+                    type: string
+                    example: Retried 5 failed jobs from es-sync-create
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/admin/queues/{queueName}/purge:
+    delete:
+      tags:
+        - Admin
+      operationId: purgeFailedJobs
+      summary: Delete failed jobs from a queue
+      description: |
+        Permanently delete all failed jobs from a queue.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+
+        **Use cases:**
+        - Clean up old failed jobs after investigating
+        - Reset a queue after fixing the underlying issue
+        - Note: This does NOT re-sync the segments - use the reindex endpoint for that
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - es-sync-create
+              - es-sync-update
+              - es-sync-delete
+          description: The name of the queue
+          example: es-sync-create
+      responses:
+        "200":
+          description: Failed jobs purged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  purgedCount:
+                    type: integer
+                    description: Number of failed jobs deleted
+                    example: 15
+                  message:
+                    type: string
+                    example: Purged 15 failed jobs from es-sync-create
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 components:
   securitySchemes:
     apiKeyHeader:
@@ -328,41 +1106,51 @@ components:
       in: header
       name: X-API-Key
       description: API key authentication via X-API-Key header
-    jwtCookie:
+    sessionCookie:
       type: apiKey
       in: cookie
-      name: access_token
-      description: JWT authentication via access_token cookie
+      name: nadeshiko.session_token
+      description: Session authentication via better-auth cookie
   schemas:
+    Category:
+      type: string
+      description: Media category type
+      enum:
+        - ANIME
+        - JDRAMA
+      example: ANIME
+      x-enum-descriptions:
+        - value: ANIME
+          description: Anime
+        - value: JDRAMA
+          description: Japanese Drama
     Statistic:
       type: object
       description: Search result statistics grouped by anime/media
       properties:
-        anime_id:
+        animeId:
           type: integer
           description: Unique identifier for the anime/media
           example: 110316
         category:
-          type: integer
-          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
-          example: 1
-        name_anime_romaji:
+          $ref: "#/components/schemas/Category"
+        nameAnimeRomaji:
           type: string
           description: Romaji transliteration of the anime name
           example: Steins;Gate
-        name_anime_en:
+        nameAnimeEn:
           type: string
           description: English translation of the anime name
           example: Steins;Gate
-        name_anime_jp:
+        nameAnimeJp:
           type: string
           description: Original Japanese name of the anime
           example: シュタインズ・ゲート
-        amount_sentences_found:
+        amountSentencesFound:
           type: integer
           description: Total number of sentences found for this anime
           example: 42
-        season_with_episode_hits:
+        seasonWithEpisodeHits:
           type: object
           description: Nested object mapping seasons to episodes with hit counts
           example:
@@ -379,9 +1167,7 @@ components:
       description: Statistics grouped by media category
       properties:
         category:
-          type: integer
-          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
-          example: 1
+          $ref: "#/components/schemas/Category"
         count:
           type: integer
           description: Number of entries in this category
@@ -390,25 +1176,25 @@ components:
       type: object
       description: Basic anime/media information included in search results
       required:
-        - id_anime
-        - name_anime_romaji
+        - animeId
+        - nameAnimeRomaji
         - episode
         - season
         - category
       properties:
-        id_anime:
+        animeId:
           type: integer
           description: Unique identifier for the anime/media
           example: 110316
-        name_anime_romaji:
+        nameAnimeRomaji:
           type: string
           description: Romaji transliteration of the anime name
           example: Steins;Gate
-        name_anime_en:
+        nameAnimeEn:
           type: string
           description: English translation of the anime name
           example: Steins;Gate
-        name_anime_jp:
+        nameAnimeJp:
           type: string
           description: Original Japanese name of the anime
           example: シュタインズ・ゲート
@@ -431,9 +1217,7 @@ components:
           description: Season number where the segment appears
           example: 1
         category:
-          type: integer
-          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
-          example: 1
+          $ref: "#/components/schemas/Category"
     SegmentInfo:
       type: object
       description: Detailed information about a subtitle segment
@@ -441,12 +1225,12 @@ components:
         - status
         - uuid
         - position
-        - start_time
-        - end_time
-        - content_jp
-        - content_en_mt
-        - content_es_mt
-        - is_nsfw
+        - startTime
+        - endTime
+        - contentJp
+        - contentEnMt
+        - contentEsMt
+        - isNsfw
       properties:
         status:
           type: integer
@@ -461,59 +1245,59 @@ components:
           type: integer
           description: Position of the segment within the episode
           example: 1133
-        start_time:
+        startTime:
           type: string
           description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment starts
           example: "0:33:27.255000"
-        end_time:
+        endTime:
           type: string
           description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment ends
           example: "0:33:28.464000"
-        content_jp:
+        contentJp:
           type: string
           description: Original Japanese content of the segment
           example: 僕は僕で、君は君だ。
-        content_jp_highlight:
+        contentJpHighlight:
           type: string
           description: Japanese content with search terms highlighted
           example: <em>僕</em>は<em>僕</em>で、<em>君</em>は<em>君</em>だ。
-        content_en:
+        contentEn:
           type: string
           description: English translation of the segment content
           example: I am me, and you are you.
-        content_en_highlight:
+        contentEnHighlight:
           type: string
           description: English content with search terms highlighted
           example: <em>I</em> am <em>me</em>, and <em>you</em> are <em>you</em>.
-        content_en_mt:
+        contentEnMt:
           type: boolean
           description: Indicates whether the English translation was machine-translated
           example: false
-        content_es:
+        contentEs:
           type: string
           description: Spanish translation of the segment content
           example: Yo soy yo, y tú eres tú.
-        content_es_highlight:
+        contentEsHighlight:
           type: string
           description: Spanish content with search terms highlighted
           example: <em>Yo</em> soy <em>yo</em>, y <em>tú</em> eres <em>tú</em>.
-        content_es_mt:
+        contentEsMt:
           type: boolean
           description: Indicates whether the Spanish translation was machine-translated
           example: false
-        is_nsfw:
+        isNsfw:
           type: boolean
           description: Indicates whether the segment contains NSFW (Not Safe For Work) content
           example: false
-        actor_ja:
+        actorJa:
           type: string
           description: Name of the Japanese voice actor for this segment
           example: Mamoru Miyano
-        actor_en:
+        actorEn:
           type: string
           description: Name of the English voice actor for this segment
           example: J. Michael Tatum
-        actor_es:
+        actorEs:
           type: string
           description: Name of the Spanish voice actor for this segment
           example: Alejandro Levis
@@ -540,17 +1324,17 @@ components:
       type: object
       description: A complete sentence result combining basic info, segment details, and media paths
       required:
-        - basic_info
-        - segment_info
-        - media_info
+        - basicInfo
+        - segmentInfo
+        - mediaInfo
       properties:
-        basic_info:
+        basicInfo:
           $ref: "#/components/schemas/BasicInfo"
           description: Basic anime/media information
-        segment_info:
+        segmentInfo:
           $ref: "#/components/schemas/SegmentInfo"
           description: Detailed segment information including translations
-        media_info:
+        mediaInfo:
           $ref: "#/components/schemas/MediaInfoPath"
           description: URLs to media resources (images, audio, video)
     SearchHealthCheckResponse:
@@ -624,14 +1408,12 @@ components:
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         category:
           type: array
-          description: Media category filter (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+          description: Media category filter
           items:
-            type: integer
+            $ref: "#/components/schemas/Category"
           default:
-            - 1
-            - 2
-            - 3
-            - 4
+            - ANIME
+            - JDRAMA
         anime_id:
           type: integer
           description: Unique ID from media
@@ -874,19 +1656,19 @@ components:
       type: object
       description: Statistics about media and segments in the database
       properties:
-        total_animes:
+        totalAnimes:
           type: integer
           description: Number of anime/media entries in the current result set
           example: 15
-        total_segments:
+        totalSegments:
           type: integer
           description: Number of subtitle segments in the current result set
           example: 150
-        full_total_animes:
+        fullTotalAnimes:
           type: integer
           description: Total number of anime/media entries in the entire database
           example: 5234
-        full_total_segments:
+        fullTotalSegments:
           type: integer
           description: Total number of subtitle segments in the entire database
           example: 1523847
@@ -898,56 +1680,59 @@ components:
           type: integer
           description: Unique identifier for the media
           example: 110316
-        id_anilist:
+        anilistId:
           type: integer
           nullable: true
           description: AniList database ID for the media
           example: 21459
-        id_tmdb:
+        tmdbId:
           type: integer
           nullable: true
           description: TMDB (The Movie Database) ID for the media
           example: 63726
         category:
-          type: integer
-          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
-          example: 1
-        created_at:
+          $ref: "#/components/schemas/Category"
+        createdAt:
           type: string
           format: date-time
           description: Timestamp when the media entry was created in the database
           example: "2024-01-15T10:30:00Z"
-        updated_at:
+        updatedAt:
           type: integer
           description: Timestamp when the media entry was last updated
           example: 1705769100
-        romaji_name:
+        romajiName:
           type: string
           description: Romaji transliteration of the media name
           example: Steins;Gate
-        english_name:
+        englishName:
           type: string
           description: English translation of the media name
           example: Steins;Gate
-        japanese_name:
+        japaneseName:
           type: string
           description: Original Japanese name of the media
           example: シュタインズ・ゲート
-        airing_format:
+        airingFormat:
           type: string
           description: Format of the media release (e.g., TV, OVA, Movie)
           example: TV
-        airing_status:
+        airingStatus:
           type: string
           description: Current airing status (FINISHED, RELEASING)
           example: FINISHED
-        release_date:
+        startDate:
           type: string
-          format: date-time
+          format: date
+          description: Start date of the media (YYYY-MM-DD)
+          example: "2011-04-06"
+        endDate:
+          type: string
+          format: date
           nullable: true
-          description: Original release date of the media (null if unknown)
-          example: "2011-04-06T00:00:00Z"
-        folder_media_name:
+          description: End date of the media (null if unknown) (YYYY-MM-DD)
+          example: "2011-09-14"
+        folderMediaName:
           type: string
           description: Folder name used for storing media files
           example: steins-gate
@@ -974,15 +1759,15 @@ components:
           type: string
           description: Version identifier for the media entry
           example: v1.0
-        num_segments:
+        numSegments:
           type: integer
           description: Total number of subtitle segments available
           example: 18542
-        num_seasons:
+        numSeasons:
           type: integer
           description: Total number of seasons available
           example: 1
-        num_episodes:
+        numEpisodes:
           type: integer
           description: Total number of episodes available
           example: 24
@@ -1003,6 +1788,666 @@ components:
         hasMoreResults:
           type: boolean
           description: Whether more results are available
+    Seiyuu:
+      type: object
+      description: Japanese voice actor (seiyuu)
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+      properties:
+        id:
+          type: integer
+          description: AniList staff ID
+          example: 95991
+        nameJapanese:
+          type: string
+          description: Japanese name of the voice actor
+          example: 阿部敦
+        nameEnglish:
+          type: string
+          description: English name of the voice actor
+          example: Atsushi Abe
+        imageUrl:
+          type: string
+          format: uri
+          description: Profile image URL
+          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
+    Character:
+      type: object
+      description: Anime character
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+        - seiyuu
+      properties:
+        id:
+          type: integer
+          description: AniList character ID
+          example: 14545
+        nameJapanese:
+          type: string
+          description: Japanese name of the character
+          example: 真城最高
+        nameEnglish:
+          type: string
+          description: English name of the character
+          example: Moritaka Mashiro
+        imageUrl:
+          type: string
+          format: uri
+          description: Character image URL
+          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
+        seiyuu:
+          $ref: "#/components/schemas/Seiyuu"
+    MediaCharacter:
+      type: object
+      description: Character appearing in a media with their role
+      required:
+        - character
+        - role
+      properties:
+        character:
+          $ref: "#/components/schemas/Character"
+        role:
+          type: string
+          enum:
+            - MAIN
+            - SUPPORTING
+            - BACKGROUND
+          description: Character's role in the media
+          example: MAIN
+    List:
+      type: object
+      description: Media collection list
+      required:
+        - id
+        - name
+        - type
+        - userId
+        - visibility
+      properties:
+        id:
+          type: integer
+          description: List ID
+          example: 123
+        name:
+          type: string
+          description: Name of the list
+          example: Bakuman Series
+        type:
+          type: string
+          enum:
+            - SERIES
+            - CUSTOM
+          description: Type of list
+          example: SERIES
+        userId:
+          type: integer
+          description: User ID who owns the list (1 = admin)
+          example: 1
+        visibility:
+          type: string
+          enum:
+            - PUBLIC
+            - PRIVATE
+          description: Visibility of the list
+          example: PUBLIC
+    Media:
+      type: object
+      description: Media entry with full metadata
+      required:
+        - id
+        - anilistId
+        - japaneseName
+        - romajiName
+        - englishName
+        - airingFormat
+        - airingStatus
+        - genres
+        - coverUrl
+        - bannerUrl
+        - startDate
+        - category
+        - version
+        - studio
+        - seasonName
+        - seasonYear
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the media
+          example: 7674
+        anilistId:
+          type: integer
+          description: AniList database ID for the media
+          example: 7674
+        japaneseName:
+          type: string
+          description: Original Japanese name of the media
+          example: バクマン。
+        romajiName:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Bakuman.
+        englishName:
+          type: string
+          description: English translation of the media name
+          example: Bakuman.
+        airingFormat:
+          type: string
+          description: Format of the media release (e.g., TV, OVA, Movie)
+          example: TV
+        airingStatus:
+          type: string
+          description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+          example: FINISHED
+        genres:
+          type: array
+          items:
+            type: string
+          description: List of genres associated with the media
+          example:
+            - Comedy
+            - Drama
+            - Romance
+            - Slice of Life
+        coverUrl:
+          type: string
+          format: uri
+          description: Full URL to the cover image
+          example: https://cdn.example.com/media/anime/bakuman/cover.webp
+        bannerUrl:
+          type: string
+          format: uri
+          description: Full URL to the banner image
+          example: https://cdn.example.com/media/anime/bakuman/banner.webp
+        startDate:
+          type: string
+          format: date
+          description: Start date of the media (first airing/release)
+          example: "2010-10-02"
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: End date of the media (last airing/release)
+          example: "2011-04-02"
+        category:
+          $ref: "#/components/schemas/Category"
+        numSegments:
+          type: integer
+          description: Total number of subtitle segments available
+          example: 0
+        numEpisodes:
+          type: integer
+          description: Total number of episodes available
+          example: 25
+        version:
+          type: string
+          description: Version identifier for the media entry
+          example: "6"
+        studio:
+          type: string
+          description: Animation studio that produced the media
+          example: J.C.STAFF
+        seasonName:
+          type: string
+          description: Season when the media aired (WINTER, SPRING, SUMMER, FALL)
+          example: FALL
+        seasonYear:
+          type: integer
+          description: Year when the media aired
+          example: 2010
+        characters:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaCharacter"
+          description: Characters appearing in the media with their voice actors
+        lists:
+          type: array
+          items:
+            $ref: "#/components/schemas/List"
+          description: Lists that contain this media
+    MediaListResponse:
+      type: object
+      required:
+        - data
+        - hasMoreResults
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Media"
+        cursor:
+          type: integer
+          description: Next cursor for pagination (undefined if no more results)
+        hasMoreResults:
+          type: boolean
+          description: Whether more results are available
+    Episode:
+      type: object
+      required:
+        - mediaId
+        - episodeNumber
+        - numSegments
+      properties:
+        mediaId:
+          type: integer
+          description: ID of the media this episode belongs to
+          example: 7674
+        episodeNumber:
+          type: integer
+          description: Episode number within the media
+          example: 1
+        anilistEpisodeId:
+          type: integer
+          nullable: true
+          description: AniList episode ID for external reference
+          example: 123456
+        titleEnglish:
+          type: string
+          nullable: true
+          description: English title of the episode
+          example: The Beginning
+        titleRomaji:
+          type: string
+          nullable: true
+          description: Romanized title of the episode
+          example: Hajimari
+        titleJapanese:
+          type: string
+          nullable: true
+          description: Japanese title of the episode
+          example: 始まり
+        description:
+          type: string
+          nullable: true
+          description: Episode description or synopsis
+          example: The hero begins their journey
+        airedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the episode originally aired
+          example: "2024-01-15T09:00:00Z"
+        lengthSeconds:
+          type: integer
+          nullable: true
+          description: Episode duration in seconds
+          example: 1420
+        thumbnailUrl:
+          type: string
+          nullable: true
+          description: URL to episode thumbnail image
+          example: https://example.com/thumbnails/episode1.jpg
+        numSegments:
+          type: integer
+          description: Number of segments in this episode
+          example: 450
+    EpisodeListResponse:
+      type: object
+      required:
+        - data
+        - hasMoreResults
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Episode"
+          description: Array of episode objects
+        cursor:
+          type: integer
+          description: Cursor for pagination (last episode number in current page)
+          example: 12
+        hasMoreResults:
+          type: boolean
+          description: Whether more results are available
+          example: true
+    Segment:
+      type: object
+      required:
+        - id
+        - uuid
+        - position
+        - status
+        - startTime
+        - endTime
+        - content
+        - contentLength
+        - contentSpanishMt
+        - contentEnglishMt
+        - isNsfw
+        - episode
+        - mediaId
+        - storage
+        - hashedId
+      properties:
+        id:
+          type: integer
+          description: Auto-generated segment ID
+          example: 12345
+        uuid:
+          type: string
+          description: Unique identifier for the segment
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        position:
+          type: integer
+          description: Position of the segment within the episode
+          example: 1133
+        status:
+          type: integer
+          description: Segment status (0=Deleted, 1=Active, 2=Suspended, 3=Verified, 100=Invalid Sentence, 101=Sentence Too Long)
+          enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 100
+            - 101
+          example: 1
+        startTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
+          example: "0:33:27.255000"
+        endTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
+          example: "0:33:28.464000"
+        content:
+          type: string
+          maxLength: 500
+          description: Original Japanese content of the segment
+          example: 僕は僕で、君は君だ。
+        contentLength:
+          type: integer
+          description: Length of the content
+          example: 10
+        contentSpanish:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Spanish translation of the segment content
+          example: Yo soy yo, y tú eres tú.
+        contentSpanishMt:
+          type: boolean
+          description: Whether the Spanish translation was machine-translated
+          example: false
+        contentEnglish:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: English translation of the segment content
+          example: I am me, and you are you.
+        contentEnglishMt:
+          type: boolean
+          description: Whether the English translation was machine-translated
+          example: false
+        isNsfw:
+          type: boolean
+          description: Whether the segment contains NSFW content
+          example: false
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL to segment screenshot/image (generated from storage + hashedId)
+          example: https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.webp
+        audioUrl:
+          type: string
+          nullable: true
+          description: URL to segment audio file (generated from storage + hashedId)
+          example: https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.mp3
+        actorJa:
+          type: string
+          nullable: true
+          description: Japanese voice actor name
+          example: Mamoru Miyano
+        actorEs:
+          type: string
+          nullable: true
+          description: Spanish voice actor name
+          example: Alejandro Levis
+        actorEn:
+          type: string
+          nullable: true
+          description: English voice actor name
+          example: J. Michael Tatum
+        episode:
+          type: integer
+          description: Episode number this segment belongs to
+          example: 1
+        mediaId:
+          type: integer
+          description: Media ID this segment belongs to
+          example: 7674
+        storage:
+          type: string
+          enum:
+            - local
+            - r2
+          description: Storage backend for segment assets
+          example: r2
+        hashedId:
+          type: string
+          description: Hash identifier for the segment
+          example: 0d39e46b14
+    CharacterWithMedia:
+      type: object
+      description: Character with all media appearances
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+        - seiyuu
+        - mediaAppearances
+      properties:
+        id:
+          type: integer
+          description: AniList character ID
+          example: 14545
+        nameJapanese:
+          type: string
+          description: Japanese name of the character
+          example: 真城最高
+        nameEnglish:
+          type: string
+          description: English name of the character
+          example: Moritaka Mashiro
+        imageUrl:
+          type: string
+          format: uri
+          description: Character image URL
+          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
+        seiyuu:
+          $ref: "#/components/schemas/Seiyuu"
+        mediaAppearances:
+          type: array
+          description: All media this character appears in
+          items:
+            type: object
+            properties:
+              media:
+                $ref: "#/components/schemas/Media"
+              role:
+                type: string
+                enum:
+                  - MAIN
+                  - SUPPORTING
+                  - BACKGROUND
+                description: Character role in this media
+                example: MAIN
+    SeiyuuWithRoles:
+      type: object
+      description: Seiyuu with all voice acting roles
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+        - roles
+      properties:
+        id:
+          type: integer
+          description: AniList staff ID
+          example: 95991
+        nameJapanese:
+          type: string
+          description: Japanese name of the voice actor
+          example: 阿部敦
+        nameEnglish:
+          type: string
+          description: English name of the voice actor
+          example: Atsushi Abe
+        imageUrl:
+          type: string
+          format: uri
+          description: Profile image URL
+          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
+        roles:
+          type: array
+          description: All characters voiced by this seiyuu with their media appearances
+          items:
+            type: object
+            properties:
+              character:
+                $ref: "#/components/schemas/Character"
+              media:
+                $ref: "#/components/schemas/Media"
+              role:
+                type: string
+                enum:
+                  - MAIN
+                  - SUPPORTING
+                  - BACKGROUND
+                description: Character role in this media
+                example: MAIN
+    ListWithMedia:
+      type: object
+      description: List with all media in order
+      required:
+        - id
+        - name
+        - type
+        - userId
+        - visibility
+        - media
+      properties:
+        id:
+          type: integer
+          description: List ID
+          example: 123
+        name:
+          type: string
+          description: Name of the list
+          example: Bakuman Series
+        type:
+          type: string
+          enum:
+            - SERIES
+            - CUSTOM
+          description: Type of list
+          example: SERIES
+        userId:
+          type: integer
+          description: User ID who owns the list (1 = admin)
+          example: 1
+        visibility:
+          type: string
+          enum:
+            - PUBLIC
+            - PRIVATE
+          description: Visibility of the list
+          example: PUBLIC
+        media:
+          type: array
+          description: All media in the list, sorted by position
+          items:
+            type: object
+            properties:
+              position:
+                type: integer
+                description: Position in the list (1-indexed)
+                example: 1
+              media:
+                $ref: "#/components/schemas/Media"
+    ReindexRequest:
+      type: object
+      description: Request to reindex segments from the database into Elasticsearch
+      properties:
+        media:
+          type: array
+          description: |-
+            Array of media to reindex. If not provided, all media will be reindexed.
+            Each media can optionally specify which episodes to reindex.
+            If episodes are not specified for a media, all episodes will be reindexed.
+          items:
+            type: object
+            required:
+              - mediaId
+            properties:
+              mediaId:
+                type: integer
+                description: The ID of the media
+                example: 5
+              episodes:
+                type: array
+                description: |-
+                  Optional array of episode numbers to reindex.
+                  If not provided, all episodes for this media will be reindexed.
+                items:
+                  type: integer
+                example:
+                  - 1
+                  - 3
+                  - 5
+          example:
+            - mediaId: 5
+              episodes:
+                - 1
+                - 3
+            - mediaId: 10
+    ReindexResponse:
+      type: object
+      description: Response from the reindex operation
+      properties:
+        success:
+          type: boolean
+          description: Whether the reindex operation completed successfully
+        message:
+          type: string
+          description: Human-readable message about the reindex operation
+        stats:
+          type: object
+          description: Statistics about the reindex operation
+          properties:
+            totalSegments:
+              type: integer
+              description: Total number of segments processed
+            successfulIndexes:
+              type: integer
+              description: Number of segments successfully indexed
+            failedIndexes:
+              type: integer
+              description: Number of segments that failed to index
+            mediaProcessed:
+              type: integer
+              description: Number of media items processed
+        errors:
+          type: array
+          description: Array of errors that occurred during reindexing (if any)
+          items:
+            type: object
+            properties:
+              segmentId:
+                type: integer
+                description: ID of the segment that failed
+              error:
+                type: string
+                description: Error message
   examples:
     AuthCredentialsRequired:
       summary: Authentication Credentials Required
@@ -1141,3 +2586,41 @@ components:
           examples:
             InternalServerError:
               $ref: "#/components/examples/InternalServerError"
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            ValidationFailed:
+              $ref: "#/components/examples/ValidationFailed"
+            InvalidJson:
+              $ref: "#/components/examples/InvalidJson"
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            NotFound:
+              $ref: "#/components/examples/NotFound"
+    EpisodeListResponse:
+      description: Paginated list of episodes
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EpisodeListResponse"
+    EpisodeResponse:
+      description: Single episode response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Episode"
+    SegmentResponse:
+      description: Single segment response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Segment"

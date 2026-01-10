@@ -3,3 +3,6 @@ content:
   application/json:
     schema:
       $ref: "../schemas/Error.yaml"
+    examples:
+      NotFound:
+        $ref: "../examples/NotFound.yaml"

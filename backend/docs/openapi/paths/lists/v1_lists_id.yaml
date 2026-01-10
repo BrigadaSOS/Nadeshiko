@@ -1,0 +1,136 @@
+get:
+  tags:
+    - Lists
+  operationId: listShow
+  summary: Get list details
+  description: |
+    Returns a list with all media in order (sorted by position).
+
+  security:
+    - apiKeyHeader: [READ_LISTS]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: List ID
+      schema:
+        type: integer
+        example: 123
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/ListWithMedia.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  tags:
+    - Lists
+  operationId: listUpdate
+  x-internal: true
+  summary: Update list metadata
+  description: |
+    Updates list name or visibility. Requires admin permissions.
+
+  security:
+    - apiKeyHeader: [UPDATE_LISTS]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: List ID
+      schema:
+        type: integer
+        example: 123
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Updated List Name"
+            visibility:
+              type: string
+              enum: [PUBLIC, PRIVATE]
+              example: PUBLIC
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/List.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Lists
+  operationId: listDestroy
+  x-internal: true
+  summary: Delete list
+  description: |
+    Deletes a list and all its items. Requires admin permissions.
+
+  security:
+    - apiKeyHeader: [DELETE_LISTS]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: List ID
+      schema:
+        type: integer
+        example: 123
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "List deleted successfully"
+              id:
+                type: integer
+                example: 123
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

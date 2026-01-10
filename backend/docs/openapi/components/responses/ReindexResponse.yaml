@@ -1,0 +1,37 @@
+type: object
+description: Response from the reindex operation
+properties:
+  success:
+    type: boolean
+    description: Whether the reindex operation completed successfully
+  message:
+    type: string
+    description: Human-readable message about the reindex operation
+  stats:
+    type: object
+    description: Statistics about the reindex operation
+    properties:
+      totalSegments:
+        type: integer
+        description: Total number of segments processed
+      successfulIndexes:
+        type: integer
+        description: Number of segments successfully indexed
+      failedIndexes:
+        type: integer
+        description: Number of segments that failed to index
+      mediaProcessed:
+        type: integer
+        description: Number of media items processed
+  errors:
+    type: array
+    description: Array of errors that occurred during reindexing (if any)
+    items:
+      type: object
+      properties:
+        segmentId:
+          type: integer
+          description: ID of the segment that failed
+        error:
+          type: string
+          description: Error message

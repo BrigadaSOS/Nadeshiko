@@ -1,0 +1,33 @@
+meta {
+  name: List all lists
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/v1/lists?visibility=public&type=SERIES&userId=1&mediaId=12345
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  visibility: public
+  type: SERIES
+  userId: 1
+  mediaId: 12345
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

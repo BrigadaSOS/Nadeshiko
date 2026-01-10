@@ -6,7 +6,7 @@ get:
   operationId: getIdentityMe
   x-internal: true
   security:
-    - jwtCookie: []
+    - sessionCookie: []
   responses:
     "200":
       description: User info retrieved

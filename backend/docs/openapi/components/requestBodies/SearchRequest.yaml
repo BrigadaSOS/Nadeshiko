@@ -15,10 +15,10 @@ properties:
     example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
   category:
     type: array
-    description: Media category filter (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+    description: Media category filter
     items:
-      type: integer
-    default: [1, 2, 3, 4]
+      $ref: "../schemas/Category.yaml"
+    default: [ANIME, JDRAMA]
   anime_id:
     type: integer
     description: Unique ID from media

@@ -6,7 +6,7 @@ post:
   operationId: deactivateApiKey
   x-internal: true
   security:
-    - jwtCookie: []
+    - sessionCookie: []
   requestBody:
     required: true
     content:

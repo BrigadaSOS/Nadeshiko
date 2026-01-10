@@ -30,85 +30,51 @@ info:
 
 servers:
   - description: Local server
-    url: http://localhost:5000/api
+    url: http://localhost:5000
   - description: Production server
-    url: https://api.brigadasos.xyz/api
+    url: https://api.nadeshiko.co
 
 security:
   - apiKeyHeader: []
-  - jwtCookie: []
+  - sessionCookie: []
 
 tags:
   - name: Search
     description: |
-      Search endpoints for querying Japanese sentences across indexed media (anime, J-Drama, audiobooks).
+      Search endpoints for querying Japanese sentences across indexed media.
 
-      ## Authentication & Permissions
-
-      All search endpoints require:
-
-      | Requirement | Value |
-      |-------------|-------|
-      | **Authentication** | API Key via `X-API-Key` header (or SSR requests from allowed URLs) |
-      | **Permission** | `READ_MEDIA` - The API key must have this permission |
-      | **Rate Limit** | 2000 requests per 5 minutes (per IP address) |
-      | **Monthly Quota** | Role-based (e.g., 5000 requests/month for Normal Users) |
-
-      ## Error Codes
-
-      - `401 Unauthorized` - Missing, invalid, or inactive API key
-      - `403 Forbidden` - API key lacks `READ_MEDIA` permission
-      - `429 Too Many Requests` - Rate limit or monthly quota exceeded
-
-      ## Search Features
-
-      - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
-      - **Boolean Operators:** `AND`, `OR`, `NOT` supported
-      - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`)
-      - **Wildcards:** `te*t` format (leading wildcards not supported)
-      - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
-  - name: User
-    description: User management and API key operations
-    x-internal: true
-  - name: Auth
-    description: Public authentication endpoints (login, registration, OAuth...)
-    x-internal: true
-  - name: AuthJwt
-    description: JWT-protected authentication endpoints
-    x-internal: true
   - name: Admin
-    description: Internal endpoints for database management
     x-internal: true
+    description: |
+      Administrative endpoints for system management and operations.
+
+  - name: Media
+    description: |
+      Media CRUD endpoints for managing anime and j-drama entries.
+
+  - name: User
+    x-internal: true
+    description: |
+      User management and API key operations
+
+  - name: Lists
+    description: |
+      List endpoints for managing media collections and watch orders.
+
 paths:
   # Search endpoints
   "/v1/search/health":
-    $ref: "./paths/v1_search_health.yaml"
+    $ref: "./paths/search/v1_search_health.yaml"
   "/v1/search/media/sentence":
-    $ref: "./paths/v1_search_media_sentence.yaml"
+    $ref: "./paths/search/v1_search_media_sentence.yaml"
   "/v1/search/media/match/words":
-    $ref: "./paths/v1_search_media_match_words.yaml"
+    $ref: "./paths/search/v1_search_media_match_words.yaml"
   "/v1/search/media/context":
-    $ref: "./paths/v1_search_media_context.yaml"
+    $ref: "./paths/search/v1_search_media_context.yaml"
   "/v1/search/media/info":
-    $ref: "./paths/v1_search_media_info.yaml"
-
-  # Auth endpoints
-  "/v1/auth/discord/url":
-    $ref: "./paths/auth/v1_auth_discord_url.yaml"
-  "/v1/auth/discord":
-    $ref: "./paths/auth/v1_auth_discord.yaml"
-  "/v1/auth/google":
-    $ref: "./paths/auth/v1_auth_google.yaml"
-  "/v1/auth/login":
-    $ref: "./paths/auth/v1_auth_login.yaml"
-  "/v1/auth/register":
-    $ref: "./paths/auth/v1_auth_register.yaml"
-  "/v1/auth/logout":
-    $ref: "./paths/auth-jwt/v1_auth_logout.yaml"
+    $ref: "./paths/search/v1_search_media_info.yaml"
 
   # User endpoints
-  "/v1/jwt/user/info":
-    $ref: "./paths/user/v1_jwt_user_info.yaml"
   "/v1/auth/identity/me":
     $ref: "./paths/user/v1_auth_identity_me.yaml"
   "/v1/user/createApiKey":
@@ -118,13 +84,59 @@ paths:
   "/v1/user/deactivateApiKey":
     $ref: "./paths/user/v1_user_deactivateApiKey.yaml"
 
+  # Media endpoints
+  "/v1/media":
+    $ref: "./paths/media/v1_media.yaml"
+  "/v1/media/{id}":
+    $ref: "./paths/media/v1_media_id.yaml"
+
+  # Episode endpoints (nested under media)
+  "/v1/media/{mediaId}/episodes":
+    $ref: "./paths/media/v1_media_mediaId_episodes.yaml"
+  "/v1/media/{mediaId}/episodes/{episodeNumber}":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber.yaml"
+
+  # Segment endpoints (nested under episodes)
+  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments.yaml"
+  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_id.yaml"
+
+  # Segment standalone UUID query
+  "/v1/media/segments/{uuid}":
+    $ref: "./paths/media/v1_media_segments_uuid.yaml"
+
+  # Character endpoints (nested under media)
+  "/v1/media/characters/{id}":
+    $ref: "./paths/media/v1_media_characters_id.yaml"
+
+  # Seiyuu endpoints (nested under media)
+  "/v1/media/seiyuu/{id}":
+    $ref: "./paths/media/v1_media_seiyuu_id.yaml"
+
+  # List endpoints
+  "/v1/lists":
+    $ref: "./paths/lists/v1_lists.yaml"
+  "/v1/lists/{id}":
+    $ref: "./paths/lists/v1_lists_id.yaml"
+  "/v1/lists/{id}/items":
+    $ref: "./paths/lists/v1_lists_id_items.yaml"
+  "/v1/lists/{id}/items/{mediaId}":
+    $ref: "./paths/lists/v1_lists_id_items_mediaId.yaml"
+
   # Admin endpoints
-  "/v1/admin/database/sync/full":
-    $ref: "./paths/admin/v1_admin_database_sync_full.yaml"
-  "/v1/admin/database/sync/partial":
-    $ref: "./paths/admin/v1_admin_database_sync_partial.yaml"
-  "/v1/management/media/sync/media":
-    $ref: "./paths/admin/v1_management_media_sync.yaml"
+  "/v1/admin/reindex":
+    $ref: "./paths/admin/v1_admin_reindex.yaml"
+  "/v1/admin/queues/stats":
+    $ref: "./paths/admin/v1_admin_queues_stats.yaml"
+  "/v1/admin/queues/{queueName}":
+    $ref: "./paths/admin/v1_admin_queues__queueName_.yaml"
+  "/v1/admin/queues/{queueName}/failed":
+    $ref: "./paths/admin/v1_admin_queues__queueName__failed.yaml"
+  "/v1/admin/queues/{queueName}/retry":
+    $ref: "./paths/admin/v1_admin_queues__queueName__retry.yaml"
+  "/v1/admin/queues/{queueName}/purge":
+    $ref: "./paths/admin/v1_admin_queues__queueName__purge.yaml"
 
 components:
   securitySchemes:
@@ -134,8 +146,8 @@ components:
       name: X-API-Key
       description: API key authentication via X-API-Key header
 
-    jwtCookie:
+    sessionCookie:
       type: apiKey
       in: cookie
-      name: access_token
-      description: JWT authentication via access_token cookie
+      name: nadeshiko.session_token
+      description: Session authentication via better-auth cookie

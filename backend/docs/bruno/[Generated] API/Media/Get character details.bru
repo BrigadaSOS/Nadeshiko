@@ -1,0 +1,30 @@
+meta {
+  name: Get character details
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/v1/media/characters/:id
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  id:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

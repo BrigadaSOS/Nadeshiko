@@ -1,0 +1,30 @@
+meta {
+  name: Get single media
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/v1/media/:id
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  id:
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

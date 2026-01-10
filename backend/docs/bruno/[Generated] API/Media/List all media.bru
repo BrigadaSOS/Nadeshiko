@@ -1,0 +1,32 @@
+meta {
+  name: List all media
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/v1/media?limit=20&category=ANIME
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+params:query {
+  limit: 20
+  cursor:
+  category: ANIME
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
