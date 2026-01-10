@@ -267,7 +267,16 @@
       "statusActive": "Activa",
       "statusInactive": "Inactiva",
       "options": "Opciones",
-      "deactivate": "Desactivar"
+      "deactivate": "Desactivar",
+      "unlimited": "Ilimitado",
+      "createApiKeyModal": {
+        "title": "Crear llave API",
+        "nameLabel": "Nombre",
+        "namePlaceholder": "Introduce un nombre para esta llave API",
+        "permissionsLabel": "Permisos",
+        "cancel": "Cancelar",
+        "create": "Crear"
+      }
     },
     "account": {
       "infoTitle": "Información",

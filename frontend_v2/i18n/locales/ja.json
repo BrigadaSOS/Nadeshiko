@@ -267,7 +267,16 @@
         "statusActive": "有効",
         "statusInactive": "無効",
         "options": "オプション",
-        "deactivate": "無効化"
+        "deactivate": "無効化",
+        "unlimited": "無制限",
+        "createApiKeyModal": {
+          "title": "APIキー作成",
+          "nameLabel": "名前",
+          "namePlaceholder": "このAPIキーの名前を入力してください",
+          "permissionsLabel": "権限",
+          "cancel": "キャンセル",
+          "create": "作成"
+        }
       },
       "account": {
         "infoTitle": "情報",
