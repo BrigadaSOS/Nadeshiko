@@ -5,7 +5,7 @@ import { User } from '../models/user/user';
 import { ApiPermission } from '../models/api/apiPermission';
 import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
 import { UserRole } from '../models/user/userRole';
-import { refreshMediaInfoCache } from '../external/database_queries';
+import { refreshMediaInfoCache, invalidateMediaInfoCache } from '../external/database_queries';
 import { logger } from '../utils/log';
 import { hashApiKey, generateApiKeyHint } from '../utils/utils';
 import { statSync, readFileSync, readdirSync, existsSync, createReadStream, safePath } from '../utils/fs';
@@ -241,8 +241,8 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
           },
         );
 
-        // Refresh cache after modifying Media table
-        await refreshMediaInfoCache(0, 10);
+        // Invalidate cache after modifying Media table (will be rebuilt on next query)
+        invalidateMediaInfoCache();
       }
     } else {
       logger.warn({ mediaDirPath }, 'data.json file not found, skipping directory');
@@ -457,8 +457,8 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
     },
   );
 
-  // Refresh cache after modifying Media table
-  await refreshMediaInfoCache(0, 10);
+  // Invalidate cache after modifying Media table (will be rebuilt on next query)
+  invalidateMediaInfoCache();
 }
 
 // Helper functions

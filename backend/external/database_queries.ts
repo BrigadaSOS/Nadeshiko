@@ -8,19 +8,19 @@ let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
 // Return data from Media table. This table almost never changes and is quite small, so we can cache it on memory to
 // save extra calls to the DB
 export const queryMediaInfo = async (page: number = 1, pageSize: number = 10): Promise<QueryMediaInfoResponse> => {
-  if (MEDIA_TABLE_CACHE !== undefined) {
-    logger.debug('Using cached Media info');
-    return MEDIA_TABLE_CACHE;
+  // Only build cache if it doesn't exist
+  if (MEDIA_TABLE_CACHE === undefined) {
+    MEDIA_TABLE_CACHE = await refreshMediaInfoCache(page, pageSize);
   }
-
-  await refreshMediaInfoCache(page, pageSize);
-  return MEDIA_TABLE_CACHE!;
+  return MEDIA_TABLE_CACHE;
 };
 
-export const invalidateMediaCache = (): void => {
-  logger.info('Invalidating Media table cache');
+/**
+ * Invalidate the media info cache - call this when media/segments are added/updated
+ */
+export function invalidateMediaInfoCache(): void {
   MEDIA_TABLE_CACHE = undefined;
-};
+}
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
   let size_position_filter = '';
@@ -31,14 +31,14 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     size_position_filter = `LIMIT ${pageSize} OFFSET ${offset}`;
   }
 
-  const sql = `SELECT 
+  const sql = `SELECT
   json_build_object(
     'media_id', me.id,
     'category', me.category,
     'created_at', me.created_at,
     'updated_at', me.updated_at,
     'romaji_name', me.romaji_name,
-    'english_name', me.english_name, 
+    'english_name', me.english_name,
     'japanese_name', me.japanese_name,
     'airing_format', me.airing_format,
     'airing_status', me.airing_status,
@@ -52,9 +52,9 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     'num_seasons', me.num_seasons,
     'num_episodes', me.num_episodes
   ) AS media_info
-    FROM 
+    FROM
       nadedb.public."Media" me
-    GROUP BY 
+    GROUP BY
       me.id, me.romaji_name, me.english_name, me.japanese_name
     ORDER BY me.created_at DESC
     ${size_position_filter}`;
@@ -90,7 +90,7 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     total_animes += 1;
   });
 
-  MEDIA_TABLE_CACHE = {
+  return {
     stats: {
       total_animes,
       full_total_animes,

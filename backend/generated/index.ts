@@ -2,9 +2,12 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { type ServerConfig, startServer } from '@nahkies/typescript-express-runtime/server';
+import {
+  type ServerConfig,
+  startServer,
+} from "@nahkies/typescript-express-runtime/server"
 
 export async function bootstrap(config: ServerConfig) {
   // Nadeshiko API
-  return startServer(config);
+  return startServer(config)
 }

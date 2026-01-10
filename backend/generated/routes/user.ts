@@ -2,16 +2,22 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import {
+  ExpressRuntimeError,
+  RequestInputType,
+} from "@nahkies/typescript-express-runtime/errors"
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
   type Params,
   SkipResponse,
   type StatusCode,
-} from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+} from "@nahkies/typescript-express-runtime/server"
+import {
+  parseRequestInput,
+  responseValidationFactory,
+} from "@nahkies/typescript-express-runtime/zod-v3"
+import { type NextFunction, type Request, type Response, Router } from "express"
 import type {
   t_CreateApiKeyRequestBodySchema,
   t_CreateApiKeyResponse,
@@ -20,7 +26,7 @@ import type {
   t_Error,
   t_GetApiKeysResponse,
   t_UserInfoResponse,
-} from '../models.ts';
+} from "../models.ts"
 import type { CreateApiKeyRequestOutput, DeactivateApiKeyRequestOutput } from '../outputTypes.ts';
 import {
   s_CreateApiKeyRequest,
@@ -30,15 +36,15 @@ import {
   s_Error,
   s_GetApiKeysResponse,
   s_UserInfoResponse,
-} from '../schemas.ts';
+} from "../schemas.ts"
 
 export type GetUserInfoResponder = {
-  with200(): ExpressRuntimeResponse<t_UserInfoResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
+  with200(): ExpressRuntimeResponse<t_UserInfoResponse>
+  with401(): ExpressRuntimeResponse<t_Error>
+  with404(): ExpressRuntimeResponse<t_Error>
+  with429(): ExpressRuntimeResponse<t_Error>
+  with500(): ExpressRuntimeResponse<t_Error>
+} & ExpressRuntimeResponder
 
 export type GetUserInfo = (
   params: Params<void, void, void, void>,
@@ -46,15 +52,15 @@ export type GetUserInfo = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
 
 export type GetIdentityMeResponder = {
-  with200(): ExpressRuntimeResponse<t_UserInfoResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
+  with200(): ExpressRuntimeResponse<t_UserInfoResponse>
+  with401(): ExpressRuntimeResponse<t_Error>
+  with404(): ExpressRuntimeResponse<t_Error>
+  with429(): ExpressRuntimeResponse<t_Error>
+  with500(): ExpressRuntimeResponse<t_Error>
+} & ExpressRuntimeResponder
 
 export type GetIdentityMe = (
   params: Params<void, void, void, void>,
@@ -62,17 +68,17 @@ export type GetIdentityMe = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
 
 export type CreateApiKeyResponder = {
-  with201(): ExpressRuntimeResponse<t_CreateApiKeyResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
+  with201(): ExpressRuntimeResponse<t_CreateApiKeyResponse>
+  with400(): ExpressRuntimeResponse<t_Error>
+  with401(): ExpressRuntimeResponse<t_Error>
+  with403(): ExpressRuntimeResponse<t_Error>
+  with404(): ExpressRuntimeResponse<t_Error>
+  with429(): ExpressRuntimeResponse<t_Error>
+  with500(): ExpressRuntimeResponse<t_Error>
+} & ExpressRuntimeResponder
 
 export type CreateApiKey = (
   params: Params<void, void, CreateApiKeyRequestOutput, void>,
@@ -80,14 +86,14 @@ export type CreateApiKey = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
 
 export type GetApiKeysResponder = {
-  with200(): ExpressRuntimeResponse<t_GetApiKeysResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
+  with200(): ExpressRuntimeResponse<t_GetApiKeysResponse>
+  with401(): ExpressRuntimeResponse<t_Error>
+  with429(): ExpressRuntimeResponse<t_Error>
+  with500(): ExpressRuntimeResponse<t_Error>
+} & ExpressRuntimeResponder
 
 export type GetApiKeys = (
   params: Params<void, void, void, void>,
@@ -95,16 +101,16 @@ export type GetApiKeys = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
 
 export type DeactivateApiKeyResponder = {
-  with200(): ExpressRuntimeResponse<t_DeactivateApiKeyResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
+  with200(): ExpressRuntimeResponse<t_DeactivateApiKeyResponse>
+  with400(): ExpressRuntimeResponse<t_Error>
+  with401(): ExpressRuntimeResponse<t_Error>
+  with404(): ExpressRuntimeResponse<t_Error>
+  with429(): ExpressRuntimeResponse<t_Error>
+  with500(): ExpressRuntimeResponse<t_Error>
+} & ExpressRuntimeResponder
 
 export type DeactivateApiKey = (
   params: Params<void, void, DeactivateApiKeyRequestOutput, void>,
@@ -112,358 +118,406 @@ export type DeactivateApiKey = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
 
 export type UserImplementation = {
-  getUserInfo: GetUserInfo;
-  getIdentityMe: GetIdentityMe;
-  createApiKey: CreateApiKey;
-  getApiKeys: GetApiKeys;
-  deactivateApiKey: DeactivateApiKey;
-};
+  getUserInfo: GetUserInfo
+  getIdentityMe: GetIdentityMe
+  createApiKey: CreateApiKey
+  getApiKeys: GetApiKeys
+  deactivateApiKey: DeactivateApiKey
+}
 
 export function createUserRouter(implementation: UserImplementation): Router {
-  const router = Router();
+  const router = Router()
 
   const getUserInfoResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_UserInfoResponse],
-      ['401', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ["200", s_UserInfoResponse],
+      ["401", s_Error],
+      ["404", s_Error],
+      ["429", s_Error],
+      ["500", s_Error],
     ],
     undefined,
-  );
+  )
 
   // getUserInfo
-  router.post(`/v1/jwt/user/info`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+  router.post(
+    `/v1/jwt/user/info`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: undefined,
+          query: undefined,
+          body: undefined,
+          headers: undefined,
+        }
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_UserInfoResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_UserInfoResponse>(200)
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error>(401)
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error>(404)
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error>(429)
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error>(500)
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status)
+          },
+        }
 
-      const response = await implementation.getUserInfo(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+        const response = await implementation
+          .getUserInfo(input, responder, req, res, next)
+          .catch((err) => {
+            throw ExpressRuntimeError.HandlerError(err)
+          })
 
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return
+        }
+
+        const { status, body } =
+          response instanceof ExpressRuntimeResponse
+            ? response.unpack()
+            : response
+
+        res.status(status)
+
+        if (body !== undefined) {
+          res.json(getUserInfoResponseBodyValidator(status, body))
+        } else {
+          res.end()
+        }
+      } catch (error) {
+        next(error)
       }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getUserInfoResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
+    },
+  )
 
   const getIdentityMeResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_UserInfoResponse],
-      ['401', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ["200", s_UserInfoResponse],
+      ["401", s_Error],
+      ["404", s_Error],
+      ["429", s_Error],
+      ["500", s_Error],
     ],
     undefined,
-  );
+  )
 
   // getIdentityMe
-  router.get(`/v1/auth/identity/me`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+  router.get(
+    `/v1/auth/identity/me`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: undefined,
+          query: undefined,
+          body: undefined,
+          headers: undefined,
+        }
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_UserInfoResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_UserInfoResponse>(200)
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error>(401)
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error>(404)
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error>(429)
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error>(500)
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status)
+          },
+        }
 
-      const response = await implementation.getIdentityMe(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+        const response = await implementation
+          .getIdentityMe(input, responder, req, res, next)
+          .catch((err) => {
+            throw ExpressRuntimeError.HandlerError(err)
+          })
 
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return
+        }
+
+        const { status, body } =
+          response instanceof ExpressRuntimeResponse
+            ? response.unpack()
+            : response
+
+        res.status(status)
+
+        if (body !== undefined) {
+          res.json(getIdentityMeResponseBodyValidator(status, body))
+        } else {
+          res.end()
+        }
+      } catch (error) {
+        next(error)
       }
+    },
+  )
 
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getIdentityMeResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const createApiKeyRequestBodySchema = s_CreateApiKeyRequest;
+  const createApiKeyRequestBodySchema = s_CreateApiKeyRequest
 
   const createApiKeyResponseBodyValidator = responseValidationFactory(
     [
-      ['201', s_CreateApiKeyResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ["201", s_CreateApiKeyResponse],
+      ["400", s_Error],
+      ["401", s_Error],
+      ["403", s_Error],
+      ["404", s_Error],
+      ["429", s_Error],
+      ["500", s_Error],
     ],
     undefined,
-  );
+  )
 
   // createApiKey
-  router.post(`/v1/user/createApiKey`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(createApiKeyRequestBodySchema, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
+  router.post(
+    `/v1/user/createApiKey`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: undefined,
+          query: undefined,
+          body: parseRequestInput(
+            createApiKeyRequestBodySchema,
+            req.body,
+            RequestInputType.RequestBody,
+          ),
+          headers: undefined,
+        }
 
-      const responder = {
-        with201() {
-          return new ExpressRuntimeResponse<t_CreateApiKeyResponse>(201);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+        const responder = {
+          with201() {
+            return new ExpressRuntimeResponse<t_CreateApiKeyResponse>(201)
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error>(400)
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error>(401)
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error>(403)
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error>(404)
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error>(429)
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error>(500)
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status)
+          },
+        }
 
-      const response = await implementation.createApiKey(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+        const response = await implementation
+          .createApiKey(input, responder, req, res, next)
+          .catch((err) => {
+            throw ExpressRuntimeError.HandlerError(err)
+          })
 
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return
+        }
+
+        const { status, body } =
+          response instanceof ExpressRuntimeResponse
+            ? response.unpack()
+            : response
+
+        res.status(status)
+
+        if (body !== undefined) {
+          res.json(createApiKeyResponseBodyValidator(status, body))
+        } else {
+          res.end()
+        }
+      } catch (error) {
+        next(error)
       }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(createApiKeyResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
+    },
+  )
 
   const getApiKeysResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_GetApiKeysResponse],
-      ['401', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ["200", s_GetApiKeysResponse],
+      ["401", s_Error],
+      ["429", s_Error],
+      ["500", s_Error],
     ],
     undefined,
-  );
+  )
 
   // getApiKeys
-  router.post(`/v1/user/getApiKeys`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+  router.post(
+    `/v1/user/getApiKeys`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: undefined,
+          query: undefined,
+          body: undefined,
+          headers: undefined,
+        }
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_GetApiKeysResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_GetApiKeysResponse>(200)
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error>(401)
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error>(429)
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error>(500)
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status)
+          },
+        }
 
-      const response = await implementation.getApiKeys(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+        const response = await implementation
+          .getApiKeys(input, responder, req, res, next)
+          .catch((err) => {
+            throw ExpressRuntimeError.HandlerError(err)
+          })
 
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return
+        }
+
+        const { status, body } =
+          response instanceof ExpressRuntimeResponse
+            ? response.unpack()
+            : response
+
+        res.status(status)
+
+        if (body !== undefined) {
+          res.json(getApiKeysResponseBodyValidator(status, body))
+        } else {
+          res.end()
+        }
+      } catch (error) {
+        next(error)
       }
+    },
+  )
 
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getApiKeysResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const deactivateApiKeyRequestBodySchema = s_DeactivateApiKeyRequest;
+  const deactivateApiKeyRequestBodySchema = s_DeactivateApiKeyRequest
 
   const deactivateApiKeyResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_DeactivateApiKeyResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ["200", s_DeactivateApiKeyResponse],
+      ["400", s_Error],
+      ["401", s_Error],
+      ["404", s_Error],
+      ["429", s_Error],
+      ["500", s_Error],
     ],
     undefined,
-  );
+  )
 
   // deactivateApiKey
-  router.post(`/v1/user/deactivateApiKey`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(deactivateApiKeyRequestBodySchema, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
+  router.post(
+    `/v1/user/deactivateApiKey`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: undefined,
+          query: undefined,
+          body: parseRequestInput(
+            deactivateApiKeyRequestBodySchema,
+            req.body,
+            RequestInputType.RequestBody,
+          ),
+          headers: undefined,
+        }
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_DeactivateApiKeyResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_DeactivateApiKeyResponse>(200)
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error>(400)
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error>(401)
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error>(404)
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error>(429)
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error>(500)
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status)
+          },
+        }
 
-      const response = await implementation.deactivateApiKey(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+        const response = await implementation
+          .deactivateApiKey(input, responder, req, res, next)
+          .catch((err) => {
+            throw ExpressRuntimeError.HandlerError(err)
+          })
 
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return
+        }
+
+        const { status, body } =
+          response instanceof ExpressRuntimeResponse
+            ? response.unpack()
+            : response
+
+        res.status(status)
+
+        if (body !== undefined) {
+          res.json(deactivateApiKeyResponseBodyValidator(status, body))
+        } else {
+          res.end()
+        }
+      } catch (error) {
+        next(error)
       }
+    },
+  )
 
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deactivateApiKeyResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  return router;
+  return router
 }
 
-export { createUserRouter as createRouter };
-export type { UserImplementation as Implementation };
+export { createUserRouter as createRouter }
+export type { UserImplementation as Implementation }

@@ -123,6 +123,14 @@ paths:
     $ref: "./paths/admin/v1_admin_database_sync_full.yaml"
   "/v1/admin/database/sync/partial":
     $ref: "./paths/admin/v1_admin_database_sync_partial.yaml"
+  "/v1/admin/database/reindex/segment/{segmentId}":
+    $ref: "./paths/admin/v1_admin_reindex_segment.yaml"
+  "/v1/admin/database/reindex/media/{mediaId}/segments":
+    $ref: "./paths/admin/v1_admin_reindex_media_segments.yaml"
+  "/v1/admin/database/reindex/database":
+    $ref: "./paths/admin/v1_admin_reindex_database.yaml"
+  "/v1/admin/database/reindex/status":
+    $ref: "./paths/admin/v1_admin_reindex_status.yaml"
   "/v1/management/media/sync/media":
     $ref: "./paths/admin/v1_management_media_sync.yaml"
 

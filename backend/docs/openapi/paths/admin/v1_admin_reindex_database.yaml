@@ -1,0 +1,33 @@
+post:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: reindexFullDatabase
+  summary: Reindex Full Database to Elasticsearch
+  description: |
+    Reindex all segments from the database to Elasticsearch. This is a long-running operation
+    that processes all media, seasons, and episodes. Runs in the background and returns immediately.
+
+    **Requirements:**
+    - Required scopes: `RESYNC_DATABASE`
+
+  security:
+    - apiKeyHeader: [RESYNC_DATABASE]
+  responses:
+    "202":
+      description: Full database reindex started successfully (runs in background)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Started full database reindex to Elasticsearch in the background. This may take a while."
+              reindex_id:
+                type: string
+                example: "full-db-1234567890"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"

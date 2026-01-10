@@ -1,0 +1,83 @@
+get:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: getReindexStatus
+  summary: Get Reindex Status
+  description: |
+    Get the status of background reindex operations and failed sync logs.
+
+    **Requirements:**
+    - Required scopes: `RESYNC_DATABASE`
+
+  security:
+    - apiKeyHeader: [RESYNC_DATABASE]
+  responses:
+    "200":
+      description: Reindex status retrieved successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              operations:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    reindex_id:
+                      type: string
+                    status:
+                      type: string
+                      enum: [running, completed, failed]
+                    started_at:
+                      type: string
+                      format: date-time
+                    completed_at:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    result:
+                      type: object
+                      properties:
+                        success:
+                          type: boolean
+                        indexed:
+                          type: integer
+                        failed:
+                          type: integer
+                        deleted:
+                          type: integer
+                        errors:
+                          type: array
+                          items:
+                            type: string
+              failed_sync_count:
+                type: integer
+                description: Total count of failed sync operations
+              failed_sync_logs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    table_name:
+                      type: string
+                    record_id:
+                      type: integer
+                    operation:
+                      type: string
+                      enum: [CREATE, UPDATE, DELETE]
+                    error_message:
+                      type: string
+                      nullable: true
+                    retry_count:
+                      type: integer
+                    created_at:
+                      type: string
+                      format: date-time
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"

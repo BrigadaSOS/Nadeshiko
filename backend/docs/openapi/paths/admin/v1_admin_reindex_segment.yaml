@@ -1,0 +1,48 @@
+post:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: reindexSegment
+  summary: Reindex Segment to Elasticsearch
+  description: |
+    Manually reindex a specific segment to Elasticsearch.
+
+    **Requirements:**
+    - Required scopes: `RESYNC_DATABASE`
+
+  security:
+    - apiKeyHeader: [RESYNC_DATABASE]
+  parameters:
+    - name: segmentId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: The ID of the segment to reindex
+  responses:
+    "200":
+      description: Segment reindexed successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Segment 123 reindexed to Elasticsearch"
+    "400":
+      description: Bad Request (invalid segment ID)
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "500":
+      description: Internal Server Error (failed to reindex)
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"

@@ -1,0 +1,70 @@
+post:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: reindexMediaSegments
+  summary: Reindex Media Segments to Elasticsearch
+  description: |
+    Reindex all segments for a specific media to Elasticsearch. Optionally filter by season and/or episode.
+    Runs in the background and returns immediately with a reindex_id.
+
+    **Requirements:**
+    - Required scopes: `RESYNC_DATABASE`
+
+  security:
+    - apiKeyHeader: [RESYNC_DATABASE]
+  parameters:
+    - name: mediaId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: The ID of the media whose segments to reindex
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            season:
+              type: integer
+              description: Optional season number to filter
+            episode:
+              type: integer
+              description: Optional episode number to filter
+  responses:
+    "202":
+      description: Reindex started successfully (runs in background)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Started reindexing segments for media 123 in the background"
+              reindex_id:
+                type: string
+                example: "media-123-1234567890"
+              media_id:
+                type: integer
+                example: 123
+              season:
+                type: integer
+                nullable: true
+                example: null
+              episode:
+                type: integer
+                nullable: true
+                example: null
+    "400":
+      description: Bad Request (invalid media ID or season/episode)
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"

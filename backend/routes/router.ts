@@ -20,7 +20,15 @@ import { logout } from 'controllers/authJwtController';
 
 import { getUserInfo, getIdentityMe, createApiKey, getApiKeys, deactivateApiKey } from 'controllers/userController';
 
-import { reSyncDatabase, reSyncDatabasePartial, syncSpecificMedia } from 'controllers/adminController';
+import {
+  reSyncDatabase,
+  reSyncDatabasePartial,
+  syncSpecificMedia,
+  reindexSegment,
+  reindexMediaSegments,
+  reindexFullDatabase,
+  getReindexStatus,
+} from 'controllers/adminController';
 
 // Generated routers
 import { createRouter as createSearchRouter } from 'generated/routes/search';
@@ -64,6 +72,10 @@ const AdminRoutes = createAdminRouter({
   reSyncDatabase,
   reSyncDatabasePartial,
   syncSpecificMedia,
+  reindexSegment,
+  reindexMediaSegments,
+  reindexFullDatabase,
+  getReindexStatus,
 });
 
 // ============================================================
@@ -87,6 +99,7 @@ router.all(
 );
 router.all('/v1/admin/database/sync/full', authenticate({ apiKey: true }), hasPermissionAPI(['RESYNC_DATABASE']));
 router.all('/v1/admin/database/sync/partial', authenticate({ apiKey: true }), hasPermissionAPI(['RESYNC_DATABASE']));
+router.all('/v1/admin/database/reindex/*', authenticate({ apiKey: true }), hasPermissionAPI(['RESYNC_DATABASE']));
 router.all('/v1/management/media/sync/media', authenticate({ apiKey: true }), hasPermissionAPI(['ADD_MEDIA']));
 
 // ============================================================
