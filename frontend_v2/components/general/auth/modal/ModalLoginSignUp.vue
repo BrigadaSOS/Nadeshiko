@@ -25,7 +25,7 @@ watch(
   () => store.isLoggedIn,
   async (newVal) => {
     if (newVal) {
-      await nextTick(); // Asegura que el DOM esté actualizado
+      await nextTick(); // Ensures the DOM is updated
       const closeButton = document.querySelector(
         '[data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"]'
       );
@@ -68,7 +68,7 @@ const redirectToDiscordAuth = async () => {
             class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
             data-hs-overlay="#hs-vertically-centered-scrollable-loginsignup-modal"
           >
-            <span class="sr-only">Close</span>
+            <span class="sr-only">{{ $t('modalauth.labels.closeSrOnly') }}</span>
             <svg
               class="w-3.5 h-3.5"
               width="8"
@@ -196,8 +196,7 @@ const redirectToDiscordAuth = async () => {
                                   class="hidden text-xs text-red-600 mt-2"
                                   id="email-error"
                                 >
-                                  Please include a valid email address so we can
-                                  get back to you
+                                  {{ $t('modalauth.labels.emailValidationError') }}
                                 </p>
                               </div>
 
@@ -232,8 +231,7 @@ const redirectToDiscordAuth = async () => {
                                   class="hidden text-xs text-red-600 mt-2"
                                   id="email-error"
                                 >
-                                  Please include a valid email address so we can
-                                  get back to you
+                                  {{ $t('modalauth.labels.emailValidationError') }}
                                 </p>
                               </div>
                               <!-- End Form Group -->
@@ -275,11 +273,11 @@ const redirectToDiscordAuth = async () => {
                                     class="hidden text-xs text-red-600 mt-2"
                                     id="password-error"
                                   >
-                                    8+ characters required
+                                    {{ $t('modalauth.labels.passwordMinLength') }}
                                   </p>
                                 </div>
 
-                                <!-- Campo para repetir contraseña -->
+                                <!-- Password repeat field -->
                                 <div class="flex-grow">
                                   <div
                                     class="flex justify-between items-center"
@@ -314,7 +312,7 @@ const redirectToDiscordAuth = async () => {
                                     class="hidden text-xs text-red-600 mt-2"
                                     id="password_repeat-error"
                                   >
-                                    Las contraseñas deben coincidir
+                                    {{ $t('modalauth.labels.passwordMatchError') }}
                                   </p>
                                 </div>
                               </div>

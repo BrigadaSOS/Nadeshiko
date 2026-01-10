@@ -218,9 +218,9 @@ export const ankiStore = defineStore("anki", {
 
         let cardID = id;
 
-        // Si no hay ID, significa que actualizaremos la ultima carta
+        // If there's no ID, we'll update the latest card
         if (!id) {
-          // Buscamos las cartas mas recientes 
+          // Find the most recent cards 
           let queryParts = []
           let queryString = ''
           queryParts.push(`"deck:${this.ankiPreferences.settings.current.deck}"`)
@@ -231,7 +231,7 @@ export const ankiStore = defineStore("anki", {
           let response = await this.executeAction('findNotes', { query: queryString })
           const noteIDs = response.result
 
-          // Seleccionamos la ultima carta
+          // Select the latest card
 
           // @ts-ignore:ignore-next-line
           const latestCard = noteIDs.reduce((a, b) => Math.max(a, b), -1)
@@ -244,12 +244,12 @@ export const ankiStore = defineStore("anki", {
           cardID = latestCard;
         }
 
-        // Extrae la información de la nota a actualizar
+        // Extract the information of the note to update
         let infoResponse = await this.executeAction('notesInfo', { notes: [cardID] })
         const infoCard = infoResponse.result
         console.log(infoCard)
 
-        // Almacena el contenido multimedia en Anki
+        // Store the multimedia content in Anki
         let imageRequest = this.executeAction('storeMediaFile', {
           filename: sentence.segment_info.uuid + '.webp',
           url: sentence.media_info.path_image,
@@ -282,8 +282,8 @@ export const ankiStore = defineStore("anki", {
 
         let [imageResult, audioResult] = await Promise.all([imageRequest, audioRequest]);
 
-        // Realiza una busqueda en la interfaz de Anki para cambiar a una tarjeta generica
-        // Y evitar problemas al actualizar
+        // Perform a search in the Anki interface to switch to a generic card
+        // And avoid problems when updating
         await this.guiBrowse('nid:1 nid:2')
 
         const allowedFields = [
@@ -359,7 +359,7 @@ export const ankiStore = defineStore("anki", {
           },
         })
 
-        // Busca la ultima tarjeta insertada
+        // Find the last inserted card
         await this.guiBrowse(`nid:${infoCard[0].noteId}`)
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
