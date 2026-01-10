@@ -116,14 +116,14 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       season: sentence.basic_info.season,
       episode: sentence.basic_info.episode,
       segment_position: sentence.segment_info.position,
-      limit: 1, // Traer tres oraciones: anterior, actual y siguiente
+      limit: 1, // Fetch three sentences: previous, current, and next
     });
 
     if (response && response.sentences.length > 0) {
       const previousSentence = response.sentences[0];
       const nextSentence = response.sentences[2];
 
-      // Guardar el contenido original antes de concatenar
+      // Save the original content before concatenating
       activeConcatenation = {
         sentence,
         originalContent: {
@@ -138,7 +138,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 
       let concatenatedAudio;
 
-      // Concatenar según la dirección especificada
+      // Concatenate according to the specified direction
       if (direction === 'forward') {
         audioUrls.push(nextSentence.media_info.path_audio);
         concatenatedAudio = await concatenateAudios(audioUrls);

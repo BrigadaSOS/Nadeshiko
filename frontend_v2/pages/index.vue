@@ -281,12 +281,11 @@ const {
                                                             class="rounded-lg flex items-center flex-col border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/80">
                                                             <div
                                                                 class="flex items-center gap-2 mb-2 text-red-800 dark:text-red-100">
-                                                                <strong class="block font-medium">La conexión ha
-                                                                    fallado </strong>
+                                                                <strong class="block font-medium">{{ $t('searchContainer.errorMessage1') }}</strong>
                                                             </div>
                                                             <UiButtonPrimaryAction @click="fetchMedia">
                                                                 <template v-if="isLoading">
-                                                                    Reintentando...
+                                                                    {{ $t('searchContainer.retrying') }}
                                                                     <div role="status">
                                                                         <svg aria-hidden="true"
                                                                             class="inline w-5 h-5 text-gray-200 animate-spin dark:text-gray-400 fill-gray-500 dark:fill-gray-200"
@@ -305,7 +304,7 @@ const {
                                                                 <template v-else>
                                                                         <UiBaseIcon :path="mdiRefresh"
                                                                             @click="fetchMedia" />
-                                                                    Reintentar conexión
+                                                                    {{ $t('searchContainer.retryButton') }}
                                                                 </template>
                                                             </UiButtonPrimaryAction>
                                                         </div>
