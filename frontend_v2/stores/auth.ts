@@ -11,6 +11,11 @@ export const userStore = defineStore("user", {
       roles: null,
     },
   }),
+  getters: {
+    isAdmin: (state) => {
+      return state.userInfo.roles?.some((role: any) => role.id_role === 1); // ADMIN role id = 1
+    },
+  },
   persist: {
     key: "info",
     storage: piniaPluginPersistedstate.localStorage(),
@@ -40,13 +45,10 @@ export const userStore = defineStore("user", {
 
         // If the response is successful, extract the JSON
         if (response.ok) {
-          const responseData = await response.json();
           this.$patch((state) => {
             state.isLoggedIn = true;
-            state.userInfo = {
-              roles: responseData.user.roles.map((roles: any) => roles.id_role),
-            };
           });
+          await this.getBasicInfo();
           const message = $i18n.t("modalauth.labels.successfullogin");
           useToastSuccess(message);
         } else {
@@ -56,7 +58,6 @@ export const userStore = defineStore("user", {
       } catch (error) {
         const message = $i18n.t("modalauth.labels.errorlogin400");
         useToastError(message);
-        console.log(error);
       }
     },
     async loginGoogle(code: string) {
@@ -80,13 +81,10 @@ export const userStore = defineStore("user", {
         );
         // If the response is successful, extract the JSON
         if (response.ok) {
-          const responseData = await response.json();
           this.$patch((state) => {
             state.isLoggedIn = true;
-            state.userInfo = {
-              roles: responseData.user.roles.map((roles: any) => roles.id_role),
-            };
           });
+          await this.getBasicInfo();
           const message = $i18n.t("modalauth.labels.successfullogin");
           useToastSuccess(message);
         } else {
@@ -96,7 +94,6 @@ export const userStore = defineStore("user", {
       } catch (error) {
         const message = $i18n.t("modalauth.labels.errorlogin400");
         useToastError(message);
-        console.log(error);
       }
     },
     async redirectToDiscordLogin() {
@@ -114,7 +111,7 @@ export const userStore = defineStore("user", {
 
           if (data && data.url) {
             window.location.href = data.url
-          }  
+          }
         }
       } catch (error) {
         console.log(error);
@@ -141,13 +138,10 @@ export const userStore = defineStore("user", {
         );
 
         if (response.ok) {
-          const responseData = await response.json();
           this.$patch((state) => {
             state.isLoggedIn = true;
-            state.userInfo = {
-              roles: responseData.user.roles.map((roles: any) => roles.id_role),
-            };
           });
+          await this.getBasicInfo();
           const message = $i18n.t("modalauth.labels.successfullogin");
           useToastSuccess(message);
         } else {
@@ -157,7 +151,6 @@ export const userStore = defineStore("user", {
       } catch (error) {
         const message = $i18n.t("modalauth.labels.errorlogin400");
         useToastError(message);
-        console.log(error);
       }
     },
     async signUp(username: string, email: string, password: string) {
@@ -241,10 +234,10 @@ export const userStore = defineStore("user", {
           this.$patch((state) => {
             state.isLoggedIn = true;
             state.userInfo = {
-              roles: responseData?.user?.roles.map((role: any) => role.id_role),
+              roles: responseData?.user?.roles || [],
             };
           });
-          return responseData; // Returns the response data on success
+          return responseData;
         } else {
           this.isLoggedIn = false;
           if (response.status === 401) {
@@ -252,7 +245,6 @@ export const userStore = defineStore("user", {
           }
         }
       } catch (error) {
-        console.error("Network error:", error);
         this.isLoggedIn = false;
       }
     },

@@ -43,6 +43,18 @@ export const getUserInfo = async (req: Request, res: Response, next: NextFunctio
   try {
     const user = await User.findOne({
       where: { id: req.jwt.user_id },
+      include: [
+        {
+          model: UserRole,
+          required: false,
+          include: [
+            {
+              model: Role,
+              required: true,
+            },
+          ],
+        },
+      ],
     });
 
     if (!user) throw new NotFound('This user has not been found.');
@@ -50,11 +62,15 @@ export const getUserInfo = async (req: Request, res: Response, next: NextFunctio
     const info_user = {
       username: user.username,
       email: user.email,
+      roles: user.UserRoles?.map((userRole: any) => ({
+        id_role: userRole.id_role,
+        name: userRole.role?.name,
+      })) || [],
     };
 
     return res.status(StatusCodes.OK).json({
       status: res.status,
-      info_user,
+      user: info_user,
     });
   } catch (error) {
     return next(error);
@@ -136,21 +152,26 @@ export const signUp = async (req: Request, res: Response, next: NextFunction) =>
 
       const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
+      // In testing environment, auto-verify the user and skip email sending
+      const isTesting = process.env.ENVIRONMENT === 'testing';
+
       const user = await User.create(
         {
           username: username,
           email: email.toLowerCase(),
           password: encryptedPassword,
           email_token: randomTokenEmail,
-          is_verified: false,
+          is_verified: isTesting, // Auto-verify in testing environment
           is_active: true,
           UserRoles: userRoles,
         },
         { include: UserRole },
       );
 
-      // Send verification email to user
-      await sendConfirmationEmail(username, email.toLowerCase(), randomTokenEmail);
+      // Send verification email to user (skip in testing environment)
+      if (!isTesting) {
+        await sendConfirmationEmail(username, email.toLowerCase(), randomTokenEmail);
+      }
       await user.save();
 
       return res.status(StatusCodes.CREATED).json({

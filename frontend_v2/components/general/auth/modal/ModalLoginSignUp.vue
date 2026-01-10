@@ -5,6 +5,12 @@ const target = ref();
 const { hasFocus, activate, deactivate } = useFocusTrap(target);
 
 const store = userStore();
+
+// Login form refs
+let loginEmail = ref("");
+let loginPassword = ref("");
+
+// Register form refs
 let passwordR = ref("");
 let passwordR2 = ref("");
 let emailR = ref("");
@@ -46,6 +52,10 @@ const callbackDiscord = (code) => {
 
 const redirectToDiscordAuth = async () => {
   store.redirectToDiscordLogin();
+};
+
+const handleLogin = async () => {
+  await store.login(loginEmail.value, loginPassword.value);
 };
 </script>
 
@@ -97,6 +107,45 @@ const redirectToDiscordAuth = async () => {
                 >
                   <div class="p-4 sm:px-7 mb-3">
                     <div class="flex flex-col">
+                      <!-- Email/Password Login Form -->
+                      <form autocomplete="off" @submit.prevent="handleLogin">
+                        <div class="grid gap-y-4">
+                          <div>
+                            <input
+                              type="email"
+                              v-model="loginEmail"
+                              :placeholder="$t('modalauth.labels.email')"
+                              class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="password"
+                              v-model="loginPassword"
+                              :placeholder="$t('modalauth.labels.password')"
+                              class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <UiButtonPrimaryAction
+                            type="submit"
+                            class="py-3 w-full px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
+                          >
+                            {{ $t('modalauth.buttons.login') }}
+                          </UiButtonPrimaryAction>
+                        </div>
+                      </form>
+                      <div class="relative my-4">
+                        <div class="absolute inset-0 flex items-center">
+                          <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                          <span class="px-2 bg-white dark:bg-modal-background text-gray-500 dark:text-gray-400">
+                            {{ $t('modalauth.labels.conditionalor') }}
+                          </span>
+                        </div>
+                      </div>
                       <ClientOnly>
                         <GoogleLogin :callback="callbackGoogle">
                           <UiButtonPrimaryAction

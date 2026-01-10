@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import {
     mdiPencilOutline,
     mdiPlus,
     mdiCheckBold
 } from '@mdi/js'
 
+const auth_store = userStore()
 const api_store = apiStore()
 let isLoading = ref(false)
 let isError = ref(false)
@@ -14,28 +15,68 @@ let generatedApiKey = ref(null);
 let deactivatedApiKey = ref(null);
 let quotaPercentage = 0;
 
-const createApiKey = async () => {
-isLoading.value = true;
-isError.value = false;
-isSuccess.value = false;
-generatedApiKey.value = null;
-try {
-    const response = await api_store.createApiKeyGeneral('default');
-    if (response && response.key) {
-        generatedApiKey.value = response.key;
-        isSuccess.value = true;
-      isLoading.value = false;
-    } else {
-        isError.value = true;
-      isLoading.value = false;
+// Available permissions (hardcoded as they come from db_initial.ts)
+const availablePermissions = [
+    'ADD_MEDIA',
+    'READ_MEDIA',
+    'REMOVE_MEDIA',
+    'UPDATE_MEDIA',
+    'RESYNC_DATABASE',
+    'CREATE_USER',
+]
+
+// Modal state
+const modalKeyName = ref('')
+const modalSelectedPermissions = ref<string[]>(['READ_MEDIA'])
+
+// Computed: permissions shown in dropdown (all for admin, only READ_MEDIA for non-admin)
+const visiblePermissions = computed(() => {
+    if (auth_store.isAdmin) {
+        return availablePermissions
     }
-} catch (error) {
-    isError.value = true;
-    isLoading.value = false;
-    console.error(error);
-} finally {
-    isLoading.value = false;
+    return availablePermissions.filter(p => p === 'READ_MEDIA')
+})
+
+const openCreateModal = () => {
+    modalKeyName.value = ''
+    modalSelectedPermissions.value = ['READ_MEDIA']
+    HSOverlay.open(document.querySelector("#hs-vertically-centered-scrollable-createapikey-modal"));
 }
+
+const closeCreateModal = () => {
+    HSOverlay.close("#hs-vertically-centered-scrollable-createapikey-modal");
+}
+
+const confirmCreateApiKey = async () => {
+    if (!modalKeyName.value) {
+        return
+    }
+
+    isLoading.value = true;
+    isError.value = false;
+    isSuccess.value = false;
+    generatedApiKey.value = null;
+
+    try {
+        const response = await api_store.createApiKeyGeneral(modalKeyName.value, modalSelectedPermissions.value);
+        if (response && response.key) {
+            generatedApiKey.value = response.key;
+            isSuccess.value = true;
+            closeCreateModal()
+            await refreshApiKeys()
+        } else {
+            isError.value = true;
+        }
+    } catch (error) {
+        isError.value = true;
+        console.error(error);
+    } finally {
+        isLoading.value = false;
+    }
+}
+
+const createApiKey = async () => {
+    openCreateModal()
 };
 
 const deactivateApiKey = async (item) => {
@@ -46,6 +87,7 @@ const deactivateApiKey = async (item) => {
     isSuccess.value = true;
     isLoading.value = false;
     deactivatedApiKey = true;
+    await refreshApiKeys()
 
   } catch (error) {
     isError.value = true;
@@ -56,7 +98,7 @@ const deactivateApiKey = async (item) => {
   }
 }
 
-onMounted(async () => {
+const refreshApiKeys = async () => {
     isError.value = false
     isSuccess.value = false
     isLoading.value = true
@@ -80,6 +122,11 @@ onMounted(async () => {
     } finally {
         isLoading.value = false
     }
+}
+
+onMounted(async () => {
+    await auth_store.getBasicInfo();
+    await refreshApiKeys();
 })
 
 
@@ -118,13 +165,11 @@ onMounted(async () => {
                 <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.developer.apiKeyManagement') }}</h3>
             </div>
             <div class="ml-auto">
-                <button data-hs-overlay="#hs-vertically-centered-scrollable-addapikey"
-                    class="bg-graypalid flex items-center text-center hover:bg-graypalid/60 text-white font-bold py-2 pl-4  rounded">
-                    <button data-hs-overlay="#hs-vertically-centered-scrollable-editusername"
-                        class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" @click="createApiKey">
-                        <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
-                        {{ $t('accountSettings.developer.addApiKey') }}
-                    </button>
+                <button
+                    data-hs-overlay="#hs-vertically-centered-scrollable-createapikey-modal"
+                    class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" @click="openCreateModal">
+                    <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
+                    {{ $t('accountSettings.developer.addApiKey') }}
                 </button>
             </div>
         </div>
@@ -298,6 +343,101 @@ onMounted(async () => {
                         </div>
                     </div>
                 </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create API Key Modal -->
+    <div id="hs-vertically-centered-scrollable-createapikey-modal"
+        class="hs-overlay hs-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
+        @click="closeCreateModal">
+        <div
+            class="justify-center hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
+            @click.stop
+        >
+            <div
+                class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
+            >
+                <div
+                    class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
+                >
+                    <h3 class="font-bold text-gray-800 dark:text-gray-200">{{ $t('accountSettings.developer.createApiKeyModal.title') }}</h3>
+                    <button
+                        type="button"
+                        class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+                        data-hs-overlay="#hs-vertically-centered-scrollable-createapikey-modal"
+                        @click="closeCreateModal"
+                    >
+                        <span class="sr-only">Close</span>
+                        <svg
+                            class="w-3.5 h-3.5"
+                            width="8"
+                            height="8"
+                            viewBox="0 0 8 8"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M0.772004 0.772004C0.907186 0.636856 1.08918 0.560669 1.279 0.560669C1.46882 0.560669 1.65081 0.636856 1.786 0.772004L6.228 5.21401C6.36315 5.34919 6.43933 5.53119 6.43933 5.72101C6.43933 5.91082 6.36315 6.09282 6.228 6.22801C6.09282 6.36315 5.91082 6.43933 5.721 6.43933C5.53119 6.43933 5.34919 6.36315 5.214 6.22801L0.772004 1.786C0.636856 1.65081 0.560669 1.46882 0.560669 1.279C0.560669 1.08918 0.636856 0.907186 0.772004 0.772004Z"
+                                fill="currentColor"
+                            />
+                            <path
+                                d="M6.228 0.772004C6.36315 0.907186 6.43933 1.08918 6.43933 1.279C6.43933 1.46882 6.36315 1.65081 6.228 1.786L1.786 6.22801C1.65081 6.36315 1.46882 6.43933 1.279 6.43933C1.08918 6.43933 0.907186 6.36315 0.772004 6.22801C0.636856 6.09282 0.560669 5.91082 0.560669 5.72101C0.560669 5.53119 0.636856 5.34919 0.772004 5.21401L5.214 0.772004C5.34919 0.636856 5.53119 0.560669 5.721 0.560669C5.91082 0.560669 6.09282 0.636856 6.228 0.772004Z"
+                                fill="currentColor"
+                            />
+                        </svg>
+                    </button>
+                </div>
+                <div class="overflow-y-auto p-4">
+                    <div class="flex flex-col gap-4">
+                        <!-- Name input -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $t('accountSettings.developer.createApiKeyModal.nameLabel') }}
+                            </label>
+                            <input
+                                v-model="modalKeyName"
+                                type="text"
+                                class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-modal-input dark:border-white/5 dark:text-white"
+                                :placeholder="$t('accountSettings.developer.createApiKeyModal.namePlaceholder')"
+                            />
+                        </div>
+
+                        <!-- Permissions dropdown -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $t('accountSettings.developer.createApiKeyModal.permissionsLabel') }}
+                            </label>
+                            <div class="flex flex-col gap-2">
+                                <label
+                                    v-for="permission in visiblePermissions"
+                                    :key="permission"
+                                    class="flex items-center gap-2 p-2 border rounded-lg dark:bg-sgray dark:border-modal-border cursor-pointer"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        v-model="modalSelectedPermissions"
+                                        :value="permission"
+                                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                    />
+                                    <span class="text-gray-800 dark:text-gray-200">{{ permission }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="flex justify-end items-center gap-2 py-3 px-4 border-t dark:border-modal-border"
+                >
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="confirmCreateApiKey"
+                        :disabled="!modalKeyName || isLoading"
+                    >
+                        {{ $t('accountSettings.developer.createApiKeyModal.create') }}
+                    </button>
+                </div>
             </div>
         </div>
     </div>
