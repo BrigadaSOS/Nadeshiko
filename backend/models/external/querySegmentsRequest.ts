@@ -1,6 +1,5 @@
-import { FieldValue, SortOrder } from '@elastic/elasticsearch/lib/api/types';
+import { FieldValue } from '@elastic/elasticsearch/lib/api/types';
 import { SegmentStatus } from '../media/segment';
-import { SearchAnimeSentencesRequest } from 'models/controller/SearchAnimeSentencesRequest';
 
 export interface QuerySegmentsRequest {
   readonly query?: string;

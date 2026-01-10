@@ -1,4 +1,4 @@
-import { Table, Model, Column, DataType, HasMany, ForeignKey, BelongsTo, HasOne } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, HasMany, HasOne } from 'sequelize-typescript';
 import { ApiAuth } from '../api/apiAuth';
 import { ApiUsageHistory } from '../api/apiUsageHistory';
 import { DataTypes } from 'sequelize';

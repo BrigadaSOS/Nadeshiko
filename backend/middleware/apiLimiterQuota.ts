@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
 import { ApiAuth } from '../models/api/apiAuth';
 import { ApiUsageHistory } from '../models/api/apiUsageHistory';

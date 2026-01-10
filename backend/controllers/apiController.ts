@@ -1,4 +1,4 @@
-import { Authorized, BadRequest, Conflict, NotFound } from '../utils/error';
+import { BadRequest, NotFound } from '../utils/error';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { User } from '../models/user/user';
