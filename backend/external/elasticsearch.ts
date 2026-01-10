@@ -24,7 +24,6 @@ import { logger } from '../utils/log';
 import { QuerySegmentsRequest } from '../models/external/querySegmentsRequest';
 import { QuerySurroundingSegmentsRequest } from '../models/external/querySurroundingSegmentsRequest';
 import { QuerySurroundingSegmentsResponse } from '../models/external/querySurroundingSegmentsResponse';
-import { SearchAnimeSentencesRequest } from 'models/controller/SearchAnimeSentencesRequest';
 
 export const client = new Client({
   node: process.env.ELASTICSEARCH_HOST,
@@ -474,7 +473,7 @@ const buildSearchAnimeSentencesResponse = (
 
   let categoryStatistics = [];
   if (esNoHitsNoFiltersResponse.aggregations && 'group_by_category' in esNoHitsNoFiltersResponse.aggregations) {
-    // @ts-ignore
+    // @ts-expect-error -- elasticsearch aggregation type
     categoryStatistics = esNoHitsNoFiltersResponse.aggregations['group_by_category'].buckets.map((bucket) => ({
       category: bucket['key'],
       count: bucket['doc_count'],
@@ -483,18 +482,18 @@ const buildSearchAnimeSentencesResponse = (
 
   let statistics: SearchAnimeSentencesStatistics[] = [];
   if (esNoHitsNoFiltersResponse.aggregations && 'group_by_category' in esNoHitsNoFiltersResponse.aggregations) {
-    // @ts-ignore
+    // @ts-expect-error -- elasticsearch aggregation type
     statistics = esNoHitsNoFiltersResponse.aggregations['group_by_category'].buckets.flatMap((categoryBucket) => {
-      // @ts-ignore
+      // @ts-expect-error -- elasticsearch aggregation type
       return categoryBucket.group_by_media_id.buckets
         .map((mediaBucket: { [x: string]: any }) => {
           const mediaInfo = mediaInfoResponse.results[Number(mediaBucket['key'])];
           if (!mediaInfo || !Object.keys(mediaInfo).length) {
             return undefined;
           }
-          // @ts-ignore
+          // @ts-expect-error -- elasticsearch aggregation type
           const seasonsWithResults = mediaBucket['group_by_season'].buckets.reduce((seasonsAcc, seasonBucket) => {
-            // @ts-ignore
+            // @ts-expect-error -- elasticsearch aggregation type
             const episodes = seasonBucket['group_by_episode'].buckets.reduce((episodesAcc, episodeBucket) => {
               episodesAcc[episodeBucket['key']] = episodeBucket['doc_count'];
               return episodesAcc;
@@ -650,7 +649,7 @@ const buildQueryWordsMatchedResponse = (
 
     let media: WordMatchMediaInfo[] = [];
     if (response.aggregations && 'group_by_media_id' in response.aggregations) {
-      // @ts-ignore
+      // @ts-expect-error -- elasticsearch aggregation type
       media = response.aggregations['group_by_media_id'].buckets.map((bucket: any): WordMatchMediaInfo => {
         const mediaInfo = mediaInfoResponse.results[Number(bucket['key'])];
 

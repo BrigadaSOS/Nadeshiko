@@ -1,4 +1,4 @@
-import { Table, Model, Column, DataType, HasMany, BelongsToMany } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, BelongsToMany } from 'sequelize-typescript';
 import { ApiAuth } from './apiAuth';
 import { ApiAuthPermission } from './ApiAuthPermission';
 

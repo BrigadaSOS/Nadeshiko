@@ -57,9 +57,9 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
 
   const queryResponse = await connection.query(sql);
   const queryResponseFull = await connection.query(sql_full);
-  //@ts-ignore
+  // @ts-expect-error -- query response type
   const full_total_animes = parseInt(queryResponseFull[0][0].count1, 10);
-  //@ts-ignore
+  // @ts-expect-error -- query response type
   const full_total_segments = parseInt(queryResponseFull[0][0].count2, 10);
 
   const results: { [key: number]: MediaInfoData } = {};

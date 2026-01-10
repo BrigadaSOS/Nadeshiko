@@ -1,5 +1,4 @@
-import { Authorized, BadRequest } from '../utils/error';
-import { Response, NextFunction, request } from 'express';
+import { Response, NextFunction } from 'express';
 
 export const hasPermissionAPI = (permissions: string[]) => {
   return async (req: any, res: Response, next: NextFunction) => {

@@ -10,10 +10,9 @@ import { refreshMediaInfoCache } from '../external/database_queries';
 import { logger } from '../utils/log';
 import { hashApiKey, generateApiKeyHint } from '../utils/utils';
 
-const bcrypt = require('bcrypt');
-const readline = require('readline');
-const stream = require('stream');
-const fs = require('fs');
+import bcrypt from 'bcrypt';
+import readline from 'readline';
+import fs from 'fs';
 
 // Añade el contenido indispensable para el funcionamiento de la base de datos
 export async function addBasicData(db: any) {
@@ -189,14 +188,14 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
                 // Para tener la libertad de reemplazar cada linea
                 for await (const line of rl) {
                   // Elimina las barras invertidas y divide la línea por el delimitador de TSV
-                  const rowArray = line.split('\t').map((s: string) => s.replace(/[\\\-]/g, ''));
+                  const rowArray = line.split('\t').map((s: string) => s.replace(/[\\-]/g, ''));
                   if (!headers) {
                     headers = rowArray;
                   } else {
                     // Crea un objeto para la fila, usando 'headers' para las claves y 'rowArray' para los valores
                     const rowObject = {};
                     headers.forEach((header: string | number, index: string | number) => {
-                      //@ts-ignore
+                      // @ts-expect-error -- rowObject index access
                       rowObject[header] = rowArray[index];
                     });
                     rows.push(rowObject);
@@ -405,14 +404,14 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
           // Para tener la libertad de reemplazar cada linea
           for await (const line of rl) {
             // Elimina las barras invertidas y divide la línea por el delimitador de TSV
-            const rowArray = line.split('\t').map((s: string) => s.replace(/[\\\-]/g, ''));
+            const rowArray = line.split('\t').map((s: string) => s.replace(/[\\-]/g, ''));
             if (!headers) {
               headers = rowArray;
             } else {
               // Crea un objeto para la fila, usando 'headers' para las claves y 'rowArray' para los valores
               const rowObject = {};
               headers.forEach((header: string | number, index: string | number) => {
-                //@ts-ignore
+                // @ts-expect-error -- rowObject index access
                 rowObject[header] = rowArray[index];
               });
               rows.push(rowObject);

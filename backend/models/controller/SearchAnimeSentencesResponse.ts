@@ -1,3 +1,3 @@
-import { QuerySegmentsResponse } from '../external/querySegmentsResponse';
+import type { QuerySegmentsResponse } from '../external/querySegmentsResponse';
 
-export interface SearchAnimeSentencesResponse extends QuerySegmentsResponse {}
+export type SearchAnimeSentencesResponse = QuerySegmentsResponse;

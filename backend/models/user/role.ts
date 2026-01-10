@@ -1,4 +1,4 @@
-import { Table, Model, Column, DataType, HasMany, BelongsToMany } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, HasMany } from 'sequelize-typescript';
 import { UserRole } from './userRole';
 
 @Table({

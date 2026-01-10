@@ -1,4 +1,4 @@
-import { Table, Model, Column, DataType, HasMany, BelongsTo, ForeignKey } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, BelongsTo, ForeignKey } from 'sequelize-typescript';
 import { User } from '../user/user';
 import { ApiAuth } from './apiAuth';
 @Table({

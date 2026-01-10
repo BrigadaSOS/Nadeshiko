@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 import { Authorized, BadRequest, Conflict, NotFound } from '../utils/error';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
@@ -12,8 +12,8 @@ import { createToken, maxAgeJWT } from '../middleware/authentication';
 import { Report, ReportStatus, ReportType } from '../models/miscellaneous/report';
 import DiscordOauth2 from 'discord-oauth2';
 import { sendConfirmationEmail } from '../utils/email';
-const { OAuth2Client } = require('google-auth-library');
-const bcrypt = require('bcrypt');
+import { OAuth2Client } from 'google-auth-library';
+import bcrypt from 'bcrypt';
 
 const client = new OAuth2Client({
   clientId: process.env.ID_OAUTH_GOOGLE,
