@@ -1,6 +1,7 @@
 import connection from '../database/db_posgres';
 import { MediaInfoData, QueryMediaInfoResponse } from '../models/external/queryMediaInfoResponse';
 import { getBaseUrlMedia } from '../utils/utils';
+import { logger } from '../utils/log';
 
 let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
 
@@ -67,7 +68,7 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
 
   queryResponse[0].forEach((result: any) => {
     if (!('media_id' in result.media_info)) {
-      console.log('WARN: Invalid query, media_id not found');
+      logger.warn({ result }, 'Invalid query result: media_id not found');
       return;
     }
 

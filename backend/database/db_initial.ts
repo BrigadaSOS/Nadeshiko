@@ -110,7 +110,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
         const jsonString = fs.readFileSync(dataJsonPath);
         media_raw = JSON.parse(jsonString);
       } catch (error) {
-        logger.error('Error reading JSON file', error);
+        logger.error({ err: error, dataJsonPath }, 'Error reading JSON file');
       }
 
       try {
@@ -133,7 +133,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
 
         await media.save();
       } catch (error) {
-        logger.error('Error creating media', error);
+        logger.error({ err: error, mediaDirPath }, 'Error creating media');
       }
 
       if (fs.statSync(mediaDirPath).isDirectory()) {
@@ -172,7 +172,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
               const dataTsvExists = fs.existsSync(dataTsvPath);
 
               if (dataTsvExists) {
-                logger.info(`Found media data: %s`, dataTsvPath);
+                logger.info({ dataTsvPath, season: number_season, episode: number_episode }, 'Found media data');
 
                 // Se lee cada linea mediante el stream del TSV y se usa la interfaz para manejarla despues
                 const rl = readline.createInterface({
@@ -240,7 +240,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
         await refreshMediaInfoCache(0, 10);
       }
     } else {
-      logger.error(`data.json file not found for %s. Skipping...`, mediaDirPath);
+      logger.warn({ mediaDirPath }, 'data.json file not found, skipping directory');
     }
   }
 }
@@ -280,7 +280,7 @@ export async function readSpecificDirectory(
         const jsonString = fs.readFileSync(dataJsonPath);
         media_raw = JSON.parse(jsonString);
       } catch (error) {
-        logger.error(`Error reading JSON file %s`, dataJsonPath, error);
+        logger.error({ err: error, dataJsonPath }, 'Error reading JSON file');
         return 'Error reading JSON file: ' + error;
       }
     }
@@ -346,11 +346,11 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
       version: media_raw.version,
       release_date: media_raw.release_date,
       category: type == 'anime' ? CategoryType.ANIME : type == 'jdrama' ? CategoryType.JDRAMA : CategoryType.AUDIOBOOK
-    });     
+    });
     await mediaFound.save();
-    logger.info('Media info inserted into the database');
+    logger.info({ mediaId: mediaFound?.id, folderName: media_raw?.folder_media_anime }, 'Media info inserted into the database');
   } catch (error) {
-    logger.error('Error while inserting media info into the database', error);
+    logger.error({ err: error, mediaDirPath }, 'Error while inserting media info into the database');
   }
 
   // Lee cada temporada y empieza a mapearla en la base de datos
@@ -385,7 +385,7 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
         const dataTsvExists = fs.existsSync(dataTsvPath);
 
         if (dataTsvExists) {
-          logger.info(`Anime data has been found: ${dataTsvPath}`);
+          logger.info({ dataTsvPath, season: number_season, episode: number_episode }, 'Anime data found');
 
           // Se lee cada linea mediante el stream del TSV y se usa la interfaz para manejarla despues
           const rl = readline.createInterface({
@@ -473,14 +473,14 @@ async function insertSegments(rows: any[], season: number, episode: number, medi
       let status = SegmentStatus.ACTIVE;
 
       if (row.CONTENT === '') {
-        logger.info(`Empty japanese content. Flagging row... %s`, row);
+        logger.warn({ row, season, episode, mediaId: media.id }, 'Empty japanese content - flagging segment');
         status = SegmentStatus.INVALID_SENTENCE;
       } else if (row.CONTENT_TRANSLATION_ENGLISH === '' || row.CONTENT_TRANSLATION_SPANISH === '') {
-        logger.info(`Empty translation group. Flagging row... %s`, row);
+        logger.warn({ row, season, episode, mediaId: media.id }, 'Empty translation group - flagging segment');
         status = SegmentStatus.INVALID_SENTENCE;
       }
       if (row.CONTENT.length >= 90) {
-        logger.info(`Content longer than 90 chars. Flagging row... %s`, row);
+        logger.warn({ row, season, episode, mediaId: media.id, contentLength: row.CONTENT.length }, 'Content longer than 90 chars - flagging segment');
         status = SegmentStatus.SENTENCE_TOO_LONG;
       }
 
@@ -489,7 +489,7 @@ async function insertSegments(rows: any[], season: number, episode: number, medi
         row.CONTENT_TRANSLATION_ENGLISH.length >= 500 ||
         row.CONTENT_TRANSLATION_SPANISH.length >= 500
       ) {
-        logger.info(`Content longer than 500 characters. Can not save row, skipping... %s`, row);
+        logger.warn({ row, season, episode, mediaId: media.id, contentLengths: { jp: row.CONTENT.length, en: row.CONTENT_TRANSLATION_ENGLISH.length, es: row.CONTENT_TRANSLATION_SPANISH.length } }, 'Content longer than 500 characters - skipping segment');
         return;
       }
 

@@ -2,6 +2,7 @@ import { Authorized, BadRequest, Conflict, NotFound } from '../utils/error';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { User } from '../models/user/user';
+import { logger } from '../utils/log';
 import { ApiAuth } from '../models/api/apiAuth';
 import { generateApiKey, generateApiKeyHint, hashApiKey } from '../utils/utils';
 import { ApiPermission } from '../models/api/apiPermission';
@@ -198,7 +199,7 @@ export const listAPIKeysByUser = async (req: Request, res: Response, next: NextF
       },
     });
   } catch (error) {
-    console.error('Error listing API keys:', error);
+    logger.error({ err: error, userId: user_id }, 'Error listing API keys');
     next(error);
   }
 };

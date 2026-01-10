@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { v3 as uuidv3 } from 'uuid';
 import connection from '../database/db_posgres';
+import { logger } from '../utils/log';
 
 import path from 'path';
 import fs from 'fs';
@@ -45,7 +46,7 @@ const tmpDirectory: string = process.env.TMP_DIRECTORY!;
  */
 export const generateURLAudio = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const urls: string[] = req.body.urls;
+    const urls: string[] = req.body.urls || [];
 
     if (!Array.isArray(urls) || urls.length === 0) {
       throw new BadRequest('Debe ingresar una lista de URLs MP3.');
@@ -85,7 +86,7 @@ export const generateURLAudio = async (req: Request, res: Response, next: NextFu
       }
     }
   } catch (error) {
-    console.log(error);
+    logger.error({ err: error, urls }, 'Audio URL generation failed');
     next(error);
   }
 };
@@ -119,7 +120,7 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
       const ffmpeg = spawn(ffmpegStatic, ffmpegArgs, { stdio: 'inherit' });
       ffmpeg.on('close', (code: number) => {
         if (code === 0) {
-          console.log('Files merged successfully!');
+          logger.info({ outputFilePath, urlCount: urls.length }, 'Files merged successfully');
           resolve();
         } else {
           reject(new Error(`ffmpeg exited with code ${code}`));
@@ -130,7 +131,7 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
       });
     });
   } catch (error) {
-    console.error(`Error merging files: ${error}`);
+    logger.error({ err: error, urls, outputFilePath }, 'Error merging audio files');
   }
 }
 

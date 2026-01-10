@@ -7,9 +7,7 @@ import { router } from './routes/router';
 import express, { Application } from 'express';
 import connection from './database/db_posgres';
 import { handleErrors } from './middleware/errorHandler';
-import winston, { log } from 'winston';
-import expressWinston from 'express-winston';
-import { expressWinstonErrorLogger, expressWinstonLogger } from './utils/log';
+import { logger, httpLogger } from './utils/log';
 
 const bodyParser = require('body-parser');
 const promBundle = require('express-prom-bundle');
@@ -93,7 +91,7 @@ if (process.env.ENVIRONMENT === 'testing') {
         res.sendFile(cachePath);
       })
       .catch((err: any) => {
-        console.error(err);
+        logger.error({ err, imagePath, cachePath }, 'Sharp image processing failed');
         res.status(500).end();
       });
   });
@@ -131,7 +129,7 @@ if (process.env.ENVIRONMENT === 'testing') {
         res.sendFile(cachePath);
       })
       .catch((err: any) => {
-        console.error(err);
+        logger.error({ err, imagePath, cachePath }, 'Sharp image processing failed');
         res.status(500).end();
       });
   });
@@ -148,19 +146,9 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Must go before router
-app.use(expressWinstonLogger);
+app.use(httpLogger);
 app.use(metricsMiddleware);
 app.use('/api', router);
-
-// Must go after router
-app.use(expressWinstonErrorLogger);
-
-app.use(
-  expressWinston.errorLogger({
-    transports: [new winston.transports.Console()],
-    format: winston.format.combine(winston.format.timestamp(), winston.format.errors(), winston.format.prettyPrint()),
-  }),
-);
 
 // @ts-ignore
 app.use(handleErrors);
@@ -170,36 +158,36 @@ if (!parseInt(process.env.PORT as string)) {
 }
 
 app.use(function (err: any, _req: any, _res: any, next: (arg0: any) => void) {
-  console.log(err);
+  logger.error({ err }, 'Unhandled middleware error');
   next(err);
 });
 
 // Ultra error handler
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception: ', error);
+  logger.fatal(error, 'Uncaught Exception');
 });
 
 process.on('unhandledRejection', (error) => {
-  console.error('Unhandled Rejection: ', error);
+  logger.fatal(error, 'Unhandled Rejection');
 });
 
 // Starting the Server
 app.listen(process.env.PORT || 5000, async () => {
-  console.log('===================================');
-  console.log(`Current environment: [${process.env.ENVIRONMENT}]`);
-  console.log(`API is now available. Waiting for database...`);
+  logger.info('===================================');
+  logger.info(`Current environment: [${process.env.ENVIRONMENT}]`);
+  logger.info('API is now available. Waiting for database...');
   try {
     await connection
       .authenticate()
       .then(() => {
-        console.log('Connection has been established successfully.');
+        logger.info('Connection has been established successfully.');
       })
       .catch((error) => {
-        console.error('Unable to connect to the database: ', error);
+        logger.error(error, 'Unable to connect to the database');
       });
-    console.log(`Database available. You can freely use this application`);
+    logger.info('Database available. You can freely use this application');
   } catch (error) {
-    console.error(error);
+    logger.error(error, 'Failed to initialize database');
     process.exit(1);
   }
 });

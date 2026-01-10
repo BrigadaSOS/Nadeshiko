@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 import { Authorized, BadRequest, Conflict, NotFound } from '../utils/error';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import { logger } from '../utils/log';
 
 import { User } from '../models/user/user';
 import { UserRole } from '../models/user/userRole';
@@ -341,7 +342,7 @@ export const loginGoogle = async (req: Request, res: Response, next: NextFunctio
       token: token,
     });
   } catch (error) {
-    console.log(error);
+    logger.debug({ err: error }, 'Google login error details');
     return next(error);
   }
 };
