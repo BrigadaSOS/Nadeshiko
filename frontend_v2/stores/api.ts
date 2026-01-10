@@ -45,7 +45,7 @@ export const apiStore = defineStore('api', {
                 console.error(error);
             }
         },
-        async createApiKeyGeneral(nameApiKey: string): Promise<ApiResponse | void> {
+        async createApiKeyGeneral(nameApiKey: string, permissions?: string[]): Promise<ApiResponse | void> {
             const config = useRuntimeConfig();
             try {
                 const response = await fetch(`${config.public.baseURLBackend}user/createApiKey`, {
@@ -56,7 +56,8 @@ export const apiStore = defineStore('api', {
                     },
                     credentials: "include",
                     body: JSON.stringify({
-                        name: nameApiKey
+                        name: nameApiKey,
+                        permissions: permissions
                     })
                 });
                 const data = await response.json();

@@ -13,8 +13,8 @@ import { Op } from 'sequelize';
 
 export const createAPIKeyDefault = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id } = req.jwt;
-    const { name } = req.body;
+    const { user_id, roles } = req.jwt;
+    const { name, permissions: requestedPermissions } = req.body;
 
     const user = await User.findOne({
       where: { id: user_id },
@@ -22,6 +22,35 @@ export const createAPIKeyDefault = async (req: Request, res: Response, next: Nex
 
     if (!name) throw new NotFound('Name for API key not found.');
     if (!user) throw new NotFound('User not found.');
+
+    // Determine permissions to assign
+    let permissions: string[];
+    if (!requestedPermissions || requestedPermissions.length === 0) {
+      permissions = ['READ_MEDIA'];
+    } else {
+      const hasNonReadPermission = requestedPermissions.some((p: string) => p !== 'READ_MEDIA');
+      if (hasNonReadPermission) {
+        // Verify user has ADMIN role (role id = 1)
+        if (!roles.includes(1)) {
+          return res.status(StatusCodes.FORBIDDEN).json({
+            error: 'Access forbidden: Only admin users can create API keys with permissions other than READ_MEDIA.',
+          });
+        }
+      }
+      permissions = requestedPermissions;
+
+      const validPermissions = await ApiPermission.findAll({
+        attributes: ['name'],
+      });
+      const validPermissionNames = validPermissions.map((p) => p.name);
+      const invalidPermissions = permissions.filter((p: string) => !validPermissionNames.includes(p));
+
+      if (invalidPermissions.length > 0) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error: `Invalid permissions: ${invalidPermissions.join(', ')}`,
+        });
+      }
+    }
 
     // Create a default API Key
     const api_key = generateApiKey();
@@ -37,8 +66,6 @@ export const createAPIKeyDefault = async (req: Request, res: Response, next: Nex
       userId: user_id,
     });
 
-    // Set default permissions for API Key
-    const permissions = ['READ_MEDIA'];
     const apiPermissions = await ApiPermission.findAll({
       where: {
         name: permissions,
@@ -54,7 +81,6 @@ export const createAPIKeyDefault = async (req: Request, res: Response, next: Nex
       }),
     );
 
-    // Return final response
     res.status(StatusCodes.CREATED).json({ message: 'API Key created successfully', key: api_key });
   } catch (error) {
     next(error);
