@@ -558,7 +558,7 @@ const buildSearchAnimeSentencesSegments = (
       const content_es_highlight = 'content_spanish' in highlight ? highlight['content_spanish'][0] : '';
 
       if (!mediaInfo || !Object.keys(mediaInfo).length) {
-        logger.error('Media Info not found for anime with id %s', data['media_id']);
+        logger.error({ mediaId: data['media_id'] }, 'Media Info not found');
         return;
       }
       let location_media = mediaInfo.category == 1 ? 'anime' : mediaInfo.category == 3 ? 'jdrama' : 'audiobook';
