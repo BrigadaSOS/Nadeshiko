@@ -330,7 +330,7 @@ onBeforeRouteUpdate(async (to, from) => {
             <GeneralTabsContainer>
                 <GeneralTabsHeader>
                     <GeneralTabsItem category="0" :categoryName="animeTabName" :count="getCategoryCount(0)"
-                        :isActive="category === 0" @click="categoryFilter(0)" />
+                        :isActive="category === 0 || media" @click="categoryFilter(0)" />
                     <GeneralTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 1)"
                         category="1" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount(1)" :isActive="category === 1"
                         @click="categoryFilter(1)" />
