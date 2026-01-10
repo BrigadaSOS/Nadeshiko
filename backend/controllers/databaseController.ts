@@ -1,13 +1,13 @@
 import { StatusCodes } from 'http-status-codes';
 import connection from '../database/db_posgres';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { addBasicData, readAnimeDirectories, readSpecificDirectory } from '../database/db_initial';
 import { UserSearchHistory } from '../models/miscellaneous/userSearchHistory';
 import { logger } from '../utils/log';
 
 const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
 
-export const reSyncDatabase = async (_req: Request, res: Response, next: NextFunction) => {
+export const reSyncDatabase = async (_req: any, res: Response, next: NextFunction) => {
   try {
     await connection.sync({ force: true }).then(async () => {
       const db = connection.models;
@@ -22,7 +22,7 @@ export const reSyncDatabase = async (_req: Request, res: Response, next: NextFun
   }
 };
 
-export const reSyncDatabasePartial = async (_req: Request, res: Response, next: NextFunction) => {
+export const reSyncDatabasePartial = async (_req: any, res: Response, next: NextFunction) => {
   try {
     await connection.sync({ alter: true });
     res.status(StatusCodes.OK).json({ message: 'Database re-synced without deleting everything' });
@@ -31,7 +31,7 @@ export const reSyncDatabasePartial = async (_req: Request, res: Response, next: 
   }
 };
 
-export const SyncSpecificMedia = async (req: Request, res: Response, next: NextFunction) => {
+export const SyncSpecificMedia = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { folder_name, season, episode, force, type } = req.body;
     const message = await readSpecificDirectory(mediaDirectory, folder_name, season, episode, force, type);
