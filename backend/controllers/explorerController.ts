@@ -6,6 +6,7 @@ import path from 'path';
 import multer from 'multer';
 import archiver from 'archiver';
 import recursive from 'recursive-readdir';
+import { logger } from '../utils/log';
 
 export const getFilesFromDirectory = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -58,7 +59,7 @@ export const getFilesFromDirectory = async (req: Request, res: Response, next: N
               lastModified: stats.mtime.toISOString(),
             };
           } catch (error) {
-            console.error(`Error al obtener estadísticas para ${filePath}:`, error);
+            logger.error({ err: error, filePath }, 'Error getting file statistics');
             return null;
           }
         }),
@@ -106,7 +107,7 @@ export const createFolder = async (req: Request, res: Response, next: NextFuncti
     // Create the new folder
     fs.mkdir(newFolderPath, { recursive: true }, (err) => {
       if (err) {
-        console.error('Error al crear la carpeta:', err);
+        logger.error({ err, newFolderPath }, 'Error creating folder');
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Error al crear la carpeta' });
       }
 
@@ -233,7 +234,7 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
       directory = directory.replace(/^media[/\\]?/g, '');
     }
 
-    const fullPath = path.join(MEDIA_DIRECTORY, directory);
+    fullPath = path.join(MEDIA_DIRECTORY, directory);
 
     if (!fs.existsSync(fullPath)) {
       return res.status(StatusCodes.NOT_FOUND).json({ error: 'Archivo o directorio no encontrado' });
@@ -253,7 +254,7 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
       archive.pipe(output);
 
       archive.on('error', (err) => {
-        console.log(err);
+        logger.error({ err, fullPath }, 'Archive compression error');
         res.status(500).json({ error: 'Error al comprimir el directorio' });
       });
 
@@ -294,7 +295,7 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
 
       const fileStream = fs.createReadStream(fullPath, { start, end });
       fileStream.on('error', (error) => {
-        console.error('Error al leer el archivo:', error);
+        logger.error({ err: error, fullPath }, 'Error reading file stream');
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Error al leer el archivo' });
       });
       req.on('close', () => {
@@ -303,7 +304,7 @@ export const downloadFile = async (req: Request, res: Response, _next: NextFunct
       fileStream.pipe(res);
     }
   } catch (error) {
-    console.error('Error al descargar el archivo:', error);
+    logger.error({ err: error }, 'Error downloading file');
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Error al descargar el archivo' });
   }
 };
@@ -331,7 +332,7 @@ export const compressDirectory = async (req: Request, res: Response, _next: Next
     }
 
     const outputZipPath = path.join(MEDIA_DIRECTORY, 'compressed.zip');
-    const pathToZip = path.join(MEDIA_DIRECTORY, directory);
+    pathToZip = path.join(MEDIA_DIRECTORY, directory);
 
     // Crear un archivo zip
     const output = fs.createWriteStream(outputZipPath);
@@ -366,17 +367,16 @@ export const compressDirectory = async (req: Request, res: Response, _next: Next
 
     archive.on('progress', (progress) => {
       const newProgress = (progress.fs.processedBytes / totalSize) * 100;
-      console.log(progress.fs.processedBytes, totalSize);
       res.write(`data: {"progress": ${newProgress.toFixed(2)}}\n\n`);
     });
 
     output.on('close', () => {
-      console.log('La compresión ha finalizado:', archive.pointer() + ' bytes totales');
+      logger.info({ totalBytes: archive.pointer() }, 'Directory compression completed');
       res.end();
     });
     archive.finalize();
   } catch (error) {
-    console.error('Error al comprimir el directorio:', error);
+    logger.error({ err: error }, 'Error compressing directory');
     res.status(500).json({ error: 'Error al comprimir el directorio' });
   }
 };

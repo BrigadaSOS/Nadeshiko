@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { logger } from './log';
 
 export const sendConfirmationEmail = async (username: string, email: string, token: string) => {
   try {
@@ -21,9 +22,9 @@ export const sendConfirmationEmail = async (username: string, email: string, tok
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('Email de verificación enviado');
+    logger.info({ email, username }, 'Verification email sent');
   } catch (error) {
-    console.error('Error enviando el email de verificación: ', error);
+    logger.error({ err: error, email, username }, 'Error sending verification email');
     throw new Error('Error enviando el email de verificación.');
   }
 };

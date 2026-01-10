@@ -6,6 +6,7 @@ import { ApiPermission } from '../models/api/apiPermission';
 import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
 import { hashApiKey } from '../utils/utils';
 import { parse } from 'url';
+import { logger } from '../utils/log';
 
 const jwt = require('jsonwebtoken');
 export const maxAgeJWT: number = 3 * 24 * 60 * 60; // 3 days
@@ -135,7 +136,7 @@ async function isAuthenticatedAPI(req: any, res: Response, next: NextFunction) {
     }
     next();
   } catch (error) {
-    console.error('Authentication Error:', error);
+    logger.error({ err: error, apiKeyPresent: !!apiKey }, 'Authentication error');
     next(new BadRequest('There was an error. Please try again later...'));
   }
 }

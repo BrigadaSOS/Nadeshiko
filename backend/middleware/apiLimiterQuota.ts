@@ -6,6 +6,7 @@ import { User } from '../models/user/user';
 import { UserRole } from '../models/user/userRole';
 import { Role } from '../models/user/role';
 import { hashApiKey } from '../utils/utils';
+import { logger } from '../utils/log';
 
 export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunction) => {
   if (req.apiKey) {
@@ -58,7 +59,7 @@ export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunct
       await logApiUsage(req, apiAuth);
       next();
     } catch (error) {
-      console.error('Rate Limit Error:', error);
+      logger.error({ err: error }, 'Rate limit check failed');
       next(error);
     }
   } else {
