@@ -1,0 +1,41 @@
+meta {
+  name: Create new segment
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments
+  body: json
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+}
+
+body:json {
+  {
+    "position": 0,
+    "status": 0,
+    "startTime": "",
+    "endTime": "",
+    "content": "",
+    "contentSpanish": "",
+    "contentSpanishMt": false,
+    "contentEnglish": "",
+    "contentEnglishMt": false,
+    "isNsfw": false,
+    "storage": "",
+    "hashedId": "",
+    "actorJa": "",
+    "actorEs": "",
+    "actorEn": "",
+    "uuid": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Add media to list
+  type: http
+  seq: 29
+}
+
+post {
+  url: {{baseUrl}}/v1/lists/:id/items
+  body: json
+}
+
+params:query {
+  id:
+}
+
+body:json {
+  {
+    "mediaId": 0,
+    "position": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

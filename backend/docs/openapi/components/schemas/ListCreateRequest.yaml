@@ -1,0 +1,23 @@
+type: object
+description: Request body for creating a new standalone list
+required:
+  - name
+properties:
+  name:
+    type: string
+    description: Name of the list
+    example: "My Watchlist"
+  type:
+    type: string
+    enum: [SERIES, CUSTOM]
+    description: Type of list
+    example: "CUSTOM"
+  userId:
+    type: integer
+    description: User ID who owns the list (1 = admin)
+    example: 1
+  visibility:
+    type: string
+    enum: [PUBLIC, PRIVATE]
+    description: Visibility of the list
+    example: "PUBLIC"

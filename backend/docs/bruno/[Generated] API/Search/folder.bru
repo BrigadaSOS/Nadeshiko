@@ -1,0 +1,13 @@
+meta {
+  name: Search
+}
+
+auth {
+  mode: apikey
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{apiKey}}
+  placement: header
+}

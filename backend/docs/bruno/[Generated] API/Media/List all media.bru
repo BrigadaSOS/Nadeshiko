@@ -1,0 +1,21 @@
+meta {
+  name: List all media
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/media?limit=20&category=ANIME
+  body: none
+}
+
+params:query {
+  limit: 20
+  cursor:
+  category: ANIME
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

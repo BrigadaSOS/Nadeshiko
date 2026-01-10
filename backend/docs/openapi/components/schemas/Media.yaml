@@ -1,0 +1,111 @@
+type: object
+description: Media entry with full metadata
+required:
+  - id
+  - anilistId
+  - japaneseName
+  - romajiName
+  - englishName
+  - airingFormat
+  - airingStatus
+  - genres
+  - coverUrl
+  - bannerUrl
+  - startDate
+  - category
+  - version
+  - studio
+  - seasonName
+  - seasonYear
+properties:
+  id:
+    type: integer
+    description: Unique identifier for the media
+    example: 7674
+  anilistId:
+    type: integer
+    description: AniList database ID for the media
+    example: 7674
+  japaneseName:
+    type: string
+    description: Original Japanese name of the media
+    example: "バクマン。"
+  romajiName:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Bakuman."
+  englishName:
+    type: string
+    description: English translation of the media name
+    example: "Bakuman."
+  airingFormat:
+    type: string
+    description: Format of the media release (e.g., TV, OVA, Movie)
+    example: "TV"
+  airingStatus:
+    type: string
+    description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+    example: "FINISHED"
+  genres:
+    type: array
+    items:
+      type: string
+    description: List of genres associated with the media
+    example: ["Comedy", "Drama", "Romance", "Slice of Life"]
+  coverUrl:
+    type: string
+    format: uri
+    description: Full URL to the cover image
+    example: "https://cdn.example.com/media/anime/bakuman/cover.webp"
+  bannerUrl:
+    type: string
+    format: uri
+    description: Full URL to the banner image
+    example: "https://cdn.example.com/media/anime/bakuman/banner.webp"
+  startDate:
+    type: string
+    format: date
+    description: Start date of the media (first airing/release)
+    example: "2010-10-02"
+  endDate:
+    type: string
+    format: date
+    nullable: true
+    description: End date of the media (last airing/release)
+    example: "2011-04-02"
+  category:
+    $ref: "./Category.yaml"
+  numSegments:
+    type: integer
+    description: Total number of subtitle segments available
+    example: 0
+  numEpisodes:
+    type: integer
+    description: Total number of episodes available
+    example: 25
+  version:
+    type: string
+    description: Version identifier for the media entry
+    example: "6"
+  studio:
+    type: string
+    description: Animation studio that produced the media
+    example: "J.C.STAFF"
+  seasonName:
+    type: string
+    description: Season when the media aired (WINTER, SPRING, SUMMER, FALL)
+    example: "FALL"
+  seasonYear:
+    type: integer
+    description: Year when the media aired
+    example: 2010
+  characters:
+    type: array
+    items:
+      $ref: "./MediaCharacter.yaml"
+    description: Characters appearing in the media with their voice actors
+  lists:
+    type: array
+    items:
+      $ref: "./List.yaml"
+    description: Lists that contain this media

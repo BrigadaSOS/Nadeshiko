@@ -1,0 +1,20 @@
+meta {
+  name: Get single episode
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber
+  body: none
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

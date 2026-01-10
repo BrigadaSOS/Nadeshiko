@@ -1,0 +1,19 @@
+meta {
+  name: Delete media (soft delete)
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/v1/media/:id
+  body: none
+}
+
+params:query {
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

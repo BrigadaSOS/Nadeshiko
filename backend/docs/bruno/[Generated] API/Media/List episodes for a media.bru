@@ -1,0 +1,21 @@
+meta {
+  name: List episodes for a media
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes
+  body: none
+}
+
+params:query {
+  mediaId:
+  size:
+  cursor:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Get segment by UUID
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/v1/media/segments/:uuid
+  body: none
+}
+
+params:query {
+  uuid:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

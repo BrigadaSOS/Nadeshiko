@@ -1,0 +1,5 @@
+# Ignore all secret key files
+*.key
+
+# But keep the secrets template
+!secrets

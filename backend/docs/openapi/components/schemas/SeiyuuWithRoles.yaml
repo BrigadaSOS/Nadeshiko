@@ -1,0 +1,41 @@
+type: object
+description: Seiyuu with all voice acting roles
+required:
+  - id
+  - nameJapanese
+  - nameEnglish
+  - imageUrl
+  - roles
+properties:
+  id:
+    type: integer
+    description: AniList staff ID
+    example: 95991
+  nameJapanese:
+    type: string
+    description: Japanese name of the voice actor
+    example: "阿部敦"
+  nameEnglish:
+    type: string
+    description: English name of the voice actor
+    example: "Atsushi Abe"
+  imageUrl:
+    type: string
+    format: uri
+    description: Profile image URL
+    example: "https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg"
+  roles:
+    type: array
+    description: All characters voiced by this seiyuu with their media appearances
+    items:
+      type: object
+      properties:
+        character:
+          $ref: "./Character.yaml"
+        media:
+          $ref: "./Media.yaml"
+        role:
+          type: string
+          enum: [MAIN, SUPPORTING, BACKGROUND]
+          description: Character role in this media
+          example: MAIN

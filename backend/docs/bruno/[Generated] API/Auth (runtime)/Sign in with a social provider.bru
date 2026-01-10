@@ -1,0 +1,16 @@
+meta {
+  name: Sign in with a social provider
+  type: http
+  seq: 51
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-in/social
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
