@@ -6,6 +6,9 @@ const { hasFocus, activate, deactivate } = useFocusTrap(target);
 
 const store = userStore();
 
+// Show email/password login only in development/testing environment
+const isDevEnv = computed(() => process.env.NODE_ENV !== 'production');
+
 // Login form refs
 let loginEmail = ref("");
 let loginPassword = ref("");
@@ -18,7 +21,6 @@ let usernameR = ref("");
 
 
 onMounted(() => {
-
   const query = new URLSearchParams(window.location.search);
   const code = query.get("code");
 
@@ -107,8 +109,8 @@ const handleLogin = async () => {
                 >
                   <div class="p-4 sm:px-7 mb-3">
                     <div class="flex flex-col">
-                      <!-- Email/Password Login Form -->
-                      <form autocomplete="off" @submit.prevent="handleLogin">
+                      <!-- Email/Password Login Form (dev only) -->
+                      <form v-if="isDevEnv" autocomplete="off" @submit.prevent="handleLogin">
                         <div class="grid gap-y-4">
                           <div>
                             <input
@@ -136,7 +138,8 @@ const handleLogin = async () => {
                           </UiButtonPrimaryAction>
                         </div>
                       </form>
-                      <div class="relative my-4">
+                      <!-- "OR" separator (only show when email form is visible) -->
+                      <div v-if="isDevEnv" class="relative my-4">
                         <div class="absolute inset-0 flex items-center">
                           <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
                         </div>
