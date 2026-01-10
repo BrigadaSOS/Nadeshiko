@@ -8,4 +8,21 @@ module.exports = {
   bracketSpacing: true,
   arrowParens: 'always',
   endOfLine: 'auto',
+
+  // File-specific overrides
+  overrides: [
+    {
+      files: '*.md',
+      options: {
+        proseWrap: 'always',
+        printWidth: 80,
+      },
+    },
+    {
+      files: '*.{yaml,yml}',
+      options: {
+        singleQuote: false,
+      },
+    },
+  ],
 };
