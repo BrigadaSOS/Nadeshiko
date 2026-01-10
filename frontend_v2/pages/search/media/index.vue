@@ -176,8 +176,11 @@ watch([page, currentView, searchQuery], () => {
         </div>
 
         <!-- Media Content -->
-        <div v-else
+        <NuxtLink
+          v-else
           v-for="(media_info, index) in media"
+          :key="media_info.id"
+          :to="`/search/sentence?media=${media_info.id}`"
           class="flex flex-col items-center"
         >
           <div
@@ -185,8 +188,7 @@ watch([page, currentView, searchQuery], () => {
           >
             <img
               :src="media_info.cover"
-              :key="media_info.id"
-              :alt="media_info.title"
+              :alt="media_info.english_name"
               class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
             />
           </div>
@@ -195,7 +197,7 @@ watch([page, currentView, searchQuery], () => {
           >
             {{ media_info?.english_name }}
           </p>
-        </div>
+        </NuxtLink>
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
         <!-- Loading Placeholder for List -->
@@ -351,10 +353,9 @@ watch([page, currentView, searchQuery], () => {
                     <div>{{ $t('animeList.anilistButton') }}</div>
                   </button>
 
-                  <button
-                    type="button"
-                    data-hs-overlay="#hs-vertically-centered-scrollable-batch1"
-                    class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-blue-500/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-blue-400 dark:placeholder-gray-400 dark:text-blue-400"
+                  <NuxtLink
+                    :to="`/search/sentence?media=${media_info.id}`"
+                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-green-500/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-green-400 dark:placeholder-gray-400 dark:text-green-400"
                   >
                     <div>{{ $t('animeList.vocabularyButton') }}</div>
                     <UiBaseIcon
@@ -364,7 +365,7 @@ watch([page, currentView, searchQuery], () => {
                       size="20"
                       class=""
                     />
-                  </button>
+                  </NuxtLink>
                 </div>
               </div>
             </div>

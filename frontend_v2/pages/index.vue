@@ -177,8 +177,8 @@ const {
                                                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
                                                     <NuxtLink v-if="media?.results.length > 0"
                                                         v-for="(media_info, index) in media.results"
-                                                        :key="media_info.media_id"
-                                                        :to="`/search/sentence?media=${media_info.media_id}`"
+                                                        :key="media_info.id"
+                                                        :to="`/search/sentence?media=${media_info.id}`"
                                                         class="w-full relative">
                                                         <div class="w-full">
                                                             <div

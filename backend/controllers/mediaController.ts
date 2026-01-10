@@ -128,7 +128,6 @@ export const SearchAnimeSentences = async (
   next: NextFunction,
 ) => {
   try {
-    if (!req.body.query && !req.body.uuid && !req.body.anime_id) throw new BadRequest('Missing query');
 
     const response = await querySegments({
       query: req.body.query,

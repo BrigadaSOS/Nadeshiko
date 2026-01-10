@@ -25,6 +25,70 @@ import { QuerySegmentsRequest } from '../models/external/querySegmentsRequest';
 import { QuerySurroundingSegmentsRequest } from '../models/external/querySurroundingSegmentsRequest';
 import { QuerySurroundingSegmentsResponse } from '../models/external/querySurroundingSegmentsResponse';
 
+/**
+ * =============================================================================
+ * ELASTICSEARCH SEARCH ARCHITECTURE
+ * =============================================================================
+ *
+ * JAPANESE CONTENT FIELDS (3 fields for different matching strategies)
+ * -----------------------------------------------------------------------------
+ * | Field                 | Purpose                    | Example: "食べました"       |
+ * |----------------------|----------------------------|----------------------------|
+ * | content              | Exact text matching        | Tokens: 食べ, ました        |
+ * | content.baseform     | Dictionary form matching   | Tokens: 食べる, ます        |
+ * | content.readingform  | Pronunciation/reading match| Tokens: タベ, マシタ        |
+ * -----------------------------------------------------------------------------
+ *
+ * FIELD SELECTION BY INPUT TYPE (AUTO-DETECTED)
+ * -----------------------------------------------------------------------------
+ * | Input Type       | Fields (with boosts)                          | Rationale           |
+ * |------------------|-----------------------------------------------|---------------------|
+ * | Romaji (go)      | EN/ES^10, readingform^3, content^2, base^1    | Prefer EN/ES        |
+ * | Kanji (食べる)    | content^10, baseform^5 (NO readingform)       | Avoid homophones    |
+ * | Kana (たべる)     | content^10, baseform^5, readingform^3         | Standard search     |
+ * -----------------------------------------------------------------------------
+ *
+ * SCORING (boost_mode: replace for length-based, multiply for random)
+ * -----------------------------------------------------------------------------
+ * Length scoring (when min_length not specified):
+ *   Uses gaussian (bell curve) distribution centered at 27 chars (μ=27, σ=6)
+ *   - Provides smooth, organic scoring without artificial tier boundaries
+ *   - Peak score (100) at ideal length (27 chars)
+ *   - Score gradually decreases as length deviates from ideal
+ *   - Floor score (10) for very short (<8) or very long (>50) sentences
+ *
+ *   Example distribution:
+ *   27 chars → 100 (peak), 25-29 chars → 95-100, 21-33 chars → 80-95
+ *   15-39 chars → 50-80, <15 or >39 chars → 10-50
+ *
+ * Language selection (dis_max with tie_breaker: 0.1):
+ *   - Picks best matching language, 10% contribution from others
+ *   - Reduces cross-language noise (was 30% in previous implementation)
+ *
+ * QUERY SYNTAX (supported via query_string)
+ * -----------------------------------------------------------------------------
+ * - AND, OR, NOT operators: "cat AND dog", "cat OR dog"
+ * - Required/excluded: "+required -excluded"
+ * - Phrase search: "exact phrase"
+ * - Wildcards: "te*t" (no leading wildcards)
+ * - Grouping: "(cat OR dog) AND bird"
+ * =============================================================================
+ */
+
+enum InputScript {
+  KANJI = 'kanji',
+  KANA = 'kana',
+  ROMAJI = 'romaji',
+}
+
+interface ScriptBoostConfig {
+  japanese: number;
+  japaneseBaseform: number;
+  japaneseReadingform: number;
+  english: number;
+  spanish: number;
+}
+
 export const client = new Client({
   node: process.env.ELASTICSEARCH_HOST,
   auth: {
@@ -33,6 +97,50 @@ export const client = new Client({
   },
 });
 
+function detectInputScript(query: string): InputScript {
+  const hasKanji = /[\u4e00-\u9faf]/.test(query);
+  const hasHiragana = /[\u3040-\u309f]/.test(query);
+  const hasKatakana = /[\u30a0-\u30ff]/.test(query);
+
+  if (hasKanji) {
+    return InputScript.KANJI;
+  }
+
+  if (hasHiragana || hasKatakana) {
+    return InputScript.KANA;
+  }
+
+  return InputScript.ROMAJI;
+}
+
+function getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
+  const boostConfigs: Record<InputScript, ScriptBoostConfig> = {
+    [InputScript.KANJI]: {
+      japanese: 10,
+      japaneseBaseform: 5,
+      japaneseReadingform: 0,
+      english: 1,
+      spanish: 1,
+    },
+    [InputScript.KANA]: {
+      japanese: 10,
+      japaneseBaseform: 5,
+      japaneseReadingform: 3,
+      english: 1,
+      spanish: 1,
+    },
+    [InputScript.ROMAJI]: {
+      japanese: 2,
+      japaneseBaseform: 1,
+      japaneseReadingform: 3,
+      english: 10,
+      spanish: 10,
+    },
+  };
+
+  return boostConfigs[detectedScript];
+}
+
 export const querySegments = async (request: QuerySegmentsRequest): Promise<QuerySegmentsResponse> => {
   if (request.min_length !== undefined && request.max_length !== undefined && request.min_length > request.max_length) {
     throw new Error('min_length cannot be greater than max_length');
@@ -40,34 +148,43 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
 
   const must: QueryDslQueryContainer[] = [];
 
-  // Match only by uuid - takes precedence, no filters or sort needed
   if (request.uuid) {
     must.push({ match: { uuid: request.uuid } });
   }
 
-  const isMatchAll = !request.uuid && !request.query && !!request.anime_id;
+  const isMatchAll = !request.uuid && !request.query;
   const hasQuery = !request.uuid && !!request.query;
 
-  // Build the core query
   if (isMatchAll) {
-    must.push({ match_all: {} });
+    if (request.min_length === undefined && request.max_length === undefined) {
+      must.push({
+        function_score: {
+          query: { match_all: {} },
+          functions: buildImprovedLengthTiers(),
+          score_mode: 'first',
+          boost_mode: 'replace',
+        },
+      });
+    } else {
+      must.push({ match_all: {} });
+    }
   } else if (hasQuery) {
-    const textQuery = buildTextSearchQuery(request.query!, request.exact_match || false, request.min_length !== undefined);
+    const textQuery = buildTextSearchQuery(
+      request.query!,
+      request.exact_match || false,
+      request.min_length !== undefined || request.max_length !== undefined,
+    );
     must.push(textQuery);
   }
 
-  // Build common filters (shared by both query types)
   const { filter, must_not } = buildCommonFilters(request);
 
-  // Add media filter (only for text search with media specified)
   if (hasQuery && request.media) {
     filter.push(buildMediaFilter(request.media));
   }
 
-  // Build sort and optional random scoring
   const { sort, randomScoreQuery } = buildSortAndRandomScore(request, isMatchAll);
 
-  // Apply random score if present - wrap existing query in function_score
   if (randomScoreQuery && (isMatchAll || hasQuery)) {
     const lastQuery = must.pop();
     if (lastQuery) {
@@ -77,55 +194,56 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
   }
 
   const esNoHitsNoFiltersResponse = client.search({
-    size: 0,
-    sort,
-    index: process.env.ELASTICSEARCH_INDEX,
-    highlight: {
-      fields: {
-        content: {
-          matched_fields: ['content', 'content.readingform', 'content.baseform'],
-          type: 'fvh',
-        },
-        content_english: {
-          matched_fields: ['content_english', 'content_english.exact'],
-          type: 'fvh',
-        },
-        content_spanish: {
-          matched_fields: ['content_spanish', 'content_spanish.exact'],
-          type: 'fvh',
+      size: 0,
+      sort,
+      index: process.env.ELASTICSEARCH_INDEX,
+      highlight: {
+        fields: {
+          content: {
+            matched_fields: ['content', 'content.readingform', 'content.baseform'],
+            type: 'fvh',
+          },
+          content_english: {
+            matched_fields: ['content_english', 'content_english.exact'],
+            type: 'fvh',
+          },
+          content_spanish: {
+            matched_fields: ['content_spanish', 'content_spanish.exact'],
+            type: 'fvh',
+          },
         },
       },
-    },
-    query: {
-      bool: {
-        must,
-        must_not,
-      },
-    },
-    search_after: request.cursor,
-    aggs: {
-      group_by_category: {
-        terms: {
-          field: 'Media.category',
-          size: 10000,
+      query: {
+        bool: {
+          must,
+          must_not,
         },
-        aggs: {
-          group_by_media_id: {
-            terms: {
-              field: 'media_id',
-              size: 10000,
-            },
-            aggs: {
-              group_by_season: {
-                terms: {
-                  field: 'season',
-                  size: 10000,
-                },
-                aggs: {
-                  group_by_episode: {
-                    terms: {
-                      field: 'episode',
-                      size: 10000,
+      },
+      search_after: request.cursor,
+      aggs: {
+        group_by_category: {
+          terms: {
+            field: 'Media.category',
+            size: 10000,
+          },
+          aggs: {
+            group_by_media_id: {
+              terms: {
+                field: 'media_id',
+                size: 10000,
+              },
+              aggs: {
+                group_by_season: {
+                  terms: {
+                    field: 'season',
+                    size: 10000,
+                  },
+                  aggs: {
+                    group_by_episode: {
+                      terms: {
+                        field: 'episode',
+                        size: 10000,
+                      },
                     },
                   },
                 },
@@ -134,50 +252,54 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
           },
         },
       },
-    },
-  });
+    });
 
-  const esResponse = client.search({
-    size: request.limit,
-    sort,
-    index: process.env.ELASTICSEARCH_INDEX,
-    highlight: {
-      fields: {
-        content: {
-          matched_fields: ['content', 'content.readingform', 'content.baseform'],
-          type: 'fvh',
-        },
-        content_english: {
-          matched_fields: ['content_english', 'content_english.exact'],
-          type: 'fvh',
-        },
-        content_spanish: {
-          matched_fields: ['content_spanish', 'content_spanish.exact'],
-          type: 'fvh',
+    const esResponse = client.search({
+      size: request.limit,
+      sort,
+      index: process.env.ELASTICSEARCH_INDEX,
+      highlight: {
+        fields: {
+          content: {
+            matched_fields: ['content', 'content.readingform', 'content.baseform'],
+            type: 'fvh',
+          },
+          content_english: {
+            matched_fields: ['content_english', 'content_english.exact'],
+            type: 'fvh',
+          },
+          content_spanish: {
+            matched_fields: ['content_spanish', 'content_spanish.exact'],
+            type: 'fvh',
+          },
         },
       },
-    },
-    query: {
-      bool: {
-        filter,
-        must,
-        must_not,
-      },
-    },
-    search_after: request.cursor,
-    aggs: {
-      group_by_media_id: {
-        terms: {
-          field: 'media_id',
-          size: 10000,
+      query: {
+        bool: {
+          filter,
+          must,
+          must_not,
         },
       },
-    },
-  });
+      search_after: request.cursor,
+      aggs: {
+        group_by_media_id: {
+          terms: {
+            field: 'media_id',
+            size: 10000,
+          },
+        },
+      },
+    });
 
-  const mediaInfo = queryMediaInfo(0, 10000000);
+    const mediaInfo = queryMediaInfo(0, 10000000);
 
-  return buildSearchAnimeSentencesResponse(await esResponse, await mediaInfo, await esNoHitsNoFiltersResponse, request);
+  return buildSearchAnimeSentencesResponse(
+    await esResponse,
+    await mediaInfo,
+    await esNoHitsNoFiltersResponse,
+    request,
+  );
 };
 
 export const queryWordsMatched = async (words: string[], exact_match: boolean): Promise<QueryWordsMatchedResponse> => {
@@ -187,11 +309,7 @@ export const queryWordsMatched = async (words: string[], exact_match: boolean): 
         {},
         {
           size: 0,
-          query: {
-            bool: {
-              should: buildMultiLanguageQuery(word, exact_match),
-            },
-          },
+          query: buildMultiLanguageQuery(word, exact_match),
           aggs: {
             group_by_media_id: {
               terms: {
@@ -217,60 +335,60 @@ export const querySurroundingSegments = async (
   request: QuerySurroundingSegmentsRequest,
 ): Promise<QuerySurroundingSegmentsResponse> => {
   const contextSearches: MsearchRequestItem[] = [
-    {},
-    {
-      sort: [
-        {
-          position: {
-            order: 'asc',
+      {},
+      {
+        sort: [
+          {
+            position: {
+              order: 'asc',
+            },
           },
-        },
-      ],
-      size: request.limit ? request.limit + 1 : 16,
-      query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
-        range: {
-          position: {
-            gte: request.segment_position,
+        ],
+        size: request.limit ? request.limit + 1 : 16,
+        query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+          range: {
+            position: {
+              gte: request.segment_position,
+            },
           },
-        },
-      }),
-    },
-    {},
-    {
-      sort: [
-        {
-          position: {
-            order: 'desc',
+        }),
+      },
+      {},
+      {
+        sort: [
+          {
+            position: {
+              order: 'desc',
+            },
           },
-        },
-      ],
-      size: request.limit || 14,
-      query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
-        range: {
-          position: {
-            lt: request.segment_position,
+        ],
+        size: request.limit || 14,
+        query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+          range: {
+            position: {
+              lt: request.segment_position,
+            },
           },
-        },
-      }),
-    },
-  ];
+        }),
+      },
+    ];
 
-  const esResponse = await client.msearch({
-    index: process.env.ELASTICSEARCH_INDEX,
-    searches: contextSearches,
-  });
+    const esResponse = await client.msearch({
+      index: process.env.ELASTICSEARCH_INDEX,
+      searches: contextSearches,
+    });
 
-  const mediaInfo = await queryMediaInfo(0, 10000000);
+    const mediaInfo = await queryMediaInfo(0, 10000000);
 
-  let previousSegments: SearchAnimeSentencesSegment[] = [];
-  let nextSegments: SearchAnimeSentencesSegment[] = [];
-  if (esResponse.responses[0].status) {
-    previousSegments = buildSearchAnimeSentencesSegments(esResponse.responses[0] as SearchResponseBody, mediaInfo);
-  }
+    let previousSegments: SearchAnimeSentencesSegment[] = [];
+    let nextSegments: SearchAnimeSentencesSegment[] = [];
+    if (esResponse.responses[0].status) {
+      previousSegments = buildSearchAnimeSentencesSegments(esResponse.responses[0] as SearchResponseBody, mediaInfo);
+    }
 
-  if (esResponse.responses[1].status) {
-    nextSegments = buildSearchAnimeSentencesSegments(esResponse.responses[1] as SearchResponseBody, mediaInfo);
-  }
+    if (esResponse.responses[1].status) {
+      nextSegments = buildSearchAnimeSentencesSegments(esResponse.responses[1] as SearchResponseBody, mediaInfo);
+    }
   const sortedSegments = [...previousSegments, ...nextSegments].sort(
     (a, b) => a.segment_info.position - b.segment_info.position,
   );
@@ -492,20 +610,37 @@ const buildQueryWordsMatchedResponse = (
   };
 };
 
-const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQueryContainer[] => {
-  const languageQueries: QueryDslQueryContainer[] = [
-    {
+const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQueryContainer => {
+  const queryText = exact_match ? `"${query}"` : query;
+  const detectedScript = detectInputScript(query);
+  const boosts = getScriptBoosts(detectedScript);
+
+  const japaneseQuery: QueryDslQueryContainer = {
+    query_string: {
+      query: queryText,
+      analyze_wildcard: true,
+      allow_leading_wildcard: false,
+      fuzzy_transpositions: false,
+      fields: [`content^${boosts.japanese}`, `content.baseform^${boosts.japaneseBaseform}`],
+      default_operator: 'AND',
+      quote_analyzer: 'ja_original_search_analyzer',
+    },
+  };
+
+  const languageQueries: QueryDslQueryContainer[] = [japaneseQuery];
+
+  if (boosts.japaneseReadingform > 0) {
+    languageQueries.push({
       query_string: {
-        query: exact_match ? `"${query}"` : query,
-        analyze_wildcard: true,
+        query: queryText,
         allow_leading_wildcard: false,
         fuzzy_transpositions: false,
-        fields: exact_match ? ['content'] : ['content^3', 'content.baseform'],
+        fields: [`content.readingform^${boosts.japaneseReadingform}`],
         default_operator: 'AND',
-        quote_analyzer: 'ja_original_search_analyzer',
+        analyzer: 'ja_readingform_search_analyzer',
       },
-    },
-  ];
+    });
+  }
 
   if (exact_match) {
     languageQueries.push(
@@ -513,13 +648,13 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
         {
           multi_match: {
             query: query,
-            fields: ['content_spanish.exact'],
+            fields: [`content_spanish.exact^${boosts.spanish}`],
           },
         },
         {
           multi_match: {
             query: query,
-            fields: ['content_english.exact'],
+            fields: [`content_english.exact^${boosts.english}`],
           },
         },
       ],
@@ -533,7 +668,7 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
             analyze_wildcard: true,
             allow_leading_wildcard: false,
             fuzzy_transpositions: false,
-            fields: ['content_spanish'],
+            fields: [`content_spanish^${boosts.spanish}`, 'content_spanish.exact^1'],
             default_operator: 'AND' as QueryDslOperator,
             quote_field_suffix: '.exact',
           },
@@ -544,7 +679,7 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
             analyze_wildcard: true,
             allow_leading_wildcard: false,
             fuzzy_transpositions: false,
-            fields: ['content_english'],
+            fields: [`content_english^${boosts.english}`, 'content_english.exact^1'],
             default_operator: 'AND' as QueryDslOperator,
             quote_field_suffix: '.exact',
           },
@@ -553,7 +688,12 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): QueryDslQ
     );
   }
 
-  return languageQueries;
+  return {
+    dis_max: {
+      queries: languageQueries,
+      tie_breaker: 0.1,
+    },
+  };
 };
 
 const buildUuidContextQuery = (
@@ -631,8 +771,14 @@ const buildSortAndRandomScore = (
   let sort: Sort = [];
   let randomScoreQuery: QueryDslQueryContainer | null = null;
 
+  // Determine if we're using length-based scoring (no min_length filter)
+  const useLengthScoring = request.min_length === undefined;
+
   if (request.length_sort_order === 'random') {
-    const seed = request.random_seed || undefined;
+    // Generate a deterministic seed based on current day if not provided
+    // This allows "random but repeatable" results within the same day
+    const seed = request.random_seed ?? Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+
     randomScoreQuery = {
       function_score: {
         functions: [
@@ -648,9 +794,15 @@ const buildSortAndRandomScore = (
     };
     sort = [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
   } else if (!request.length_sort_order || request.length_sort_order === 'none') {
-    sort = isMatchAll
-      ? [{ content_length: { order: 'asc' } }]
-      : [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
+    // When browsing media without query and no length filter, sort by length score (25-30 chars prioritized)
+    // Otherwise for match_all with min_length filter, sort by content_length ascending
+    if (isMatchAll && useLengthScoring) {
+      sort = [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
+    } else if (isMatchAll) {
+      sort = [{ content_length: { order: 'asc' } }];
+    } else {
+      sort = [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
+    }
   } else {
     sort = [{ content_length: { order: request.length_sort_order as SortOrder } }];
   }
@@ -661,32 +813,49 @@ const buildSortAndRandomScore = (
 const buildTextSearchQuery = (
   query: string,
   exactMatch: boolean,
-  minLengthDefined: boolean,
+  hasLengthConstraints: boolean,
 ): QueryDslQueryContainer => {
-  const baseQuery = {
-    bool: {
-      should: buildMultiLanguageQuery(query, exactMatch),
-    },
-  };
+  const baseQuery = buildMultiLanguageQuery(query, exactMatch);
 
-  if (!minLengthDefined) {
+  if (!hasLengthConstraints) {
     return {
       function_score: {
         query: baseQuery,
-        functions: [
-          {
-            filter: { range: { content_length: { gte: 7 } } },
-            weight: 1.3,
-          },
-        ],
-        score_mode: 'sum',
-        boost_mode: 'multiply',
+        functions: buildImprovedLengthTiers(),
+        score_mode: 'first',
+        boost_mode: 'replace',
       },
     };
   }
 
   return baseQuery;
 };
+
+function buildImprovedLengthTiers(): any[] {
+  const mean = 27;
+  const stddev = 6;
+  const maxScore = 100;
+  const minScore = 10;
+
+  const buckets: any[] = [];
+
+  for (let length = 1; length <= 80; length += 1) {
+    const gaussianScore = maxScore * Math.exp(-0.5 * Math.pow((length - mean) / stddev, 2));
+    const score = Math.max(minScore, Math.round(gaussianScore));
+
+    buckets.push({
+      filter: { range: { content_length: { gte: length, lt: length + 1 } } },
+      weight: score,
+    });
+  }
+
+  buckets.push({
+    filter: { range: { content_length: { gte: 80 } } },
+    weight: minScore,
+  });
+
+  return buckets;
+}
 
 const buildMediaFilter = (media: QuerySegmentsRequest['media']): QueryDslQueryContainer => {
   if (!media) return { match_all: {} };

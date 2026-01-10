@@ -92,7 +92,7 @@ export interface MediaInfoStats {
 }
 
 export interface MediaInfoData {
-  media_id: number,
+  id: number,
   category: number,
   created_at: string,
   updated_at?: number,
@@ -158,11 +158,13 @@ export const useApiSearch = defineStore("search", {
             content_sort: body.content_sort,            // Order by amount of characters (ASC, DESC)
             cursor: body.cursor,                        // Current page of search
             extra: body.extra,                          // Stats information
-            excluded_anime_ids: body.excluded_anime_ids // Array of excluded anime IDs
+            excluded_anime_ids: body.excluded_anime_ids,// Array of excluded anime IDs
+            min_length: body.min_length,                // Minimum sentence length (characters)
+            max_length: body.max_length,                // Maximum sentence length (characters)
           }
         }
       );
-      // @ts-ignore 
+      // @ts-ignore
       // we should return a ResponseV1 object
       return data;
     },
