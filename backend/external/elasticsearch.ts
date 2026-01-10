@@ -24,6 +24,8 @@ import { logger } from '../utils/log';
 import { QuerySegmentsRequest } from '../models/external/querySegmentsRequest';
 import { QuerySurroundingSegmentsRequest } from '../models/external/querySurroundingSegmentsRequest';
 import { QuerySurroundingSegmentsResponse } from '../models/external/querySurroundingSegmentsResponse';
+import { SearchAnimeSentencesRequest } from '../models/controller/SearchAnimeSentencesRequest';
+import elasticsearchSchema from '../config/elasticsearch-schema.json';
 
 /**
  * =============================================================================
@@ -96,6 +98,27 @@ export const client = new Client({
     password: process.env.ELASTICSEARCH_PASSWORD || '',
   },
 });
+
+const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
+
+export async function initializeElasticsearchIndex(): Promise<void> {
+  const indexExists = await client.indices.exists({ index: INDEX_NAME });
+
+  if (indexExists) {
+    logger.info(`Elasticsearch index '${INDEX_NAME}' already exists`);
+    return;
+  }
+
+  logger.info(`Creating Elasticsearch index '${INDEX_NAME}' with mappings from config/elasticsearch-schema.json`);
+
+  await client.indices.create({
+    index: INDEX_NAME,
+    settings: elasticsearchSchema.settings as any,
+    mappings: elasticsearchSchema.mappings as any,
+  });
+
+  logger.info(`Elasticsearch index '${INDEX_NAME}' created successfully from config/elasticsearch-schema.json`);
+}
 
 function detectInputScript(query: string): InputScript {
   const hasKanji = /[\u4e00-\u9faf]/.test(query);
