@@ -198,62 +198,61 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
   const { filter: filterForStatistics, must_not: must_notForStatistics } = buildCommonFilters(request);
   // Remove anime_id/media filter from statistics filter (for sidebar)
   const filterForStatisticsWithoutMedia = filterForStatistics.filter(
-    (f) => !('term' in f && f.term && 'media_id' in f.term)
+    (f) => !('term' in f && f.term && 'media_id' in f.term),
   );
   const mustForStatistics = [...must];
 
   const esNoHitsNoFiltersResponse = client.search({
-      size: 0,
-      sort,
-      index: process.env.ELASTICSEARCH_INDEX,
-      highlight: {
-        fields: {
-          content: {
-            matched_fields: ['content', 'content.readingform', 'content.baseform'],
-            type: 'fvh',
-          },
-          content_english: {
-            matched_fields: ['content_english', 'content_english.exact'],
-            type: 'fvh',
-          },
-          content_spanish: {
-            matched_fields: ['content_spanish', 'content_spanish.exact'],
-            type: 'fvh',
-          },
+    size: 0,
+    sort,
+    index: process.env.ELASTICSEARCH_INDEX,
+    highlight: {
+      fields: {
+        content: {
+          matched_fields: ['content', 'content.readingform', 'content.baseform'],
+          type: 'fvh',
+        },
+        content_english: {
+          matched_fields: ['content_english', 'content_english.exact'],
+          type: 'fvh',
+        },
+        content_spanish: {
+          matched_fields: ['content_spanish', 'content_spanish.exact'],
+          type: 'fvh',
         },
       },
-      query: {
-        bool: {
-          filter: filterForStatisticsWithoutMedia,
-          must: mustForStatistics,
-          must_not: must_notForStatistics,
-        },
+    },
+    query: {
+      bool: {
+        filter: filterForStatisticsWithoutMedia,
+        must: mustForStatistics,
+        must_not: must_notForStatistics,
       },
-      search_after: request.cursor,
-      aggs: {
-        group_by_category: {
-          terms: {
-            field: 'Media.category',
-            size: 10000,
-          },
-          aggs: {
-            group_by_media_id: {
-              terms: {
-                field: 'media_id',
-                size: 10000,
-              },
-              aggs: {
-                group_by_season: {
-                  terms: {
-                    field: 'season',
-                    size: 10000,
-                  },
-                  aggs: {
-                    group_by_episode: {
-                      terms: {
-                        field: 'episode',
-                        size: 10000,
-                      },
+    },
+    search_after: request.cursor,
+    aggs: {
+      group_by_category: {
+        terms: {
+          field: 'Media.category',
+          size: 10000,
+        },
+        aggs: {
+          group_by_media_id: {
+            terms: {
+              field: 'media_id',
+              size: 10000,
+            },
+            aggs: {
+              group_by_season: {
+                terms: {
+                  field: 'season',
+                  size: 10000,
+                },
+                aggs: {
+                  group_by_episode: {
+                    terms: {
+                      field: 'episode',
+                      size: 10000,
                     },
                   },
                 },
@@ -262,7 +261,8 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
           },
         },
       },
-    });
+    },
+  });
 
   // Create filters for category statistics (with media filter, without category filter) - used for top tabs
   // This shows categories for the query + media filter
@@ -277,39 +277,38 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
   }
 
   const esCategoryStatsResponse = client.search({
-      size: 0,
-      index: process.env.ELASTICSEARCH_INDEX,
-      query: {
-        bool: {
-          filter: filterWithMediaForCategoryStats,
-          must: mustForCategoryStats,
-          must_not: must_notForCategoryStats,
-        },
+    size: 0,
+    index: process.env.ELASTICSEARCH_INDEX,
+    query: {
+      bool: {
+        filter: filterWithMediaForCategoryStats,
+        must: mustForCategoryStats,
+        must_not: must_notForCategoryStats,
       },
-      aggs: {
-        group_by_category: {
-          terms: {
-            field: 'Media.category',
-            size: 10000,
-          },
-          aggs: {
-            group_by_media_id: {
-              terms: {
-                field: 'media_id',
-                size: 10000,
-              },
-              aggs: {
-                group_by_season: {
-                  terms: {
-                    field: 'season',
-                    size: 10000,
-                  },
-                  aggs: {
-                    group_by_episode: {
-                      terms: {
-                        field: 'episode',
-                        size: 10000,
-                      },
+    },
+    aggs: {
+      group_by_category: {
+        terms: {
+          field: 'Media.category',
+          size: 10000,
+        },
+        aggs: {
+          group_by_media_id: {
+            terms: {
+              field: 'media_id',
+              size: 10000,
+            },
+            aggs: {
+              group_by_season: {
+                terms: {
+                  field: 'season',
+                  size: 10000,
+                },
+                aggs: {
+                  group_by_episode: {
+                    terms: {
+                      field: 'episode',
+                      size: 10000,
                     },
                   },
                 },
@@ -318,47 +317,48 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
           },
         },
       },
-    });
+    },
+  });
 
-    const esResponse = client.search({
-      size: request.limit,
-      sort,
-      index: process.env.ELASTICSEARCH_INDEX,
-      highlight: {
-        fields: {
-          content: {
-            matched_fields: ['content', 'content.readingform', 'content.baseform'],
-            type: 'fvh',
-          },
-          content_english: {
-            matched_fields: ['content_english', 'content_english.exact'],
-            type: 'fvh',
-          },
-          content_spanish: {
-            matched_fields: ['content_spanish', 'content_spanish.exact'],
-            type: 'fvh',
-          },
+  const esResponse = client.search({
+    size: request.limit,
+    sort,
+    index: process.env.ELASTICSEARCH_INDEX,
+    highlight: {
+      fields: {
+        content: {
+          matched_fields: ['content', 'content.readingform', 'content.baseform'],
+          type: 'fvh',
+        },
+        content_english: {
+          matched_fields: ['content_english', 'content_english.exact'],
+          type: 'fvh',
+        },
+        content_spanish: {
+          matched_fields: ['content_spanish', 'content_spanish.exact'],
+          type: 'fvh',
         },
       },
-      query: {
-        bool: {
-          filter,
-          must,
-          must_not,
+    },
+    query: {
+      bool: {
+        filter,
+        must,
+        must_not,
+      },
+    },
+    search_after: request.cursor,
+    aggs: {
+      group_by_media_id: {
+        terms: {
+          field: 'media_id',
+          size: 10000,
         },
       },
-      search_after: request.cursor,
-      aggs: {
-        group_by_media_id: {
-          terms: {
-            field: 'media_id',
-            size: 10000,
-          },
-        },
-      },
-    });
+    },
+  });
 
-    const mediaInfo = queryMediaInfo(0, 10000000);
+  const mediaInfo = queryMediaInfo(0, 10000000);
 
   return buildSearchAnimeSentencesResponse(
     await esResponse,
@@ -402,60 +402,60 @@ export const querySurroundingSegments = async (
   request: QuerySurroundingSegmentsRequest,
 ): Promise<QuerySurroundingSegmentsResponse> => {
   const contextSearches: MsearchRequestItem[] = [
-      {},
-      {
-        sort: [
-          {
-            position: {
-              order: 'asc',
-            },
+    {},
+    {
+      sort: [
+        {
+          position: {
+            order: 'asc',
           },
-        ],
-        size: request.limit ? request.limit + 1 : 16,
-        query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
-          range: {
-            position: {
-              gte: request.segment_position,
-            },
+        },
+      ],
+      size: request.limit ? request.limit + 1 : 16,
+      query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+        range: {
+          position: {
+            gte: request.segment_position,
           },
-        }),
-      },
-      {},
-      {
-        sort: [
-          {
-            position: {
-              order: 'desc',
-            },
+        },
+      }),
+    },
+    {},
+    {
+      sort: [
+        {
+          position: {
+            order: 'desc',
           },
-        ],
-        size: request.limit || 14,
-        query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
-          range: {
-            position: {
-              lt: request.segment_position,
-            },
+        },
+      ],
+      size: request.limit || 14,
+      query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+        range: {
+          position: {
+            lt: request.segment_position,
           },
-        }),
-      },
-    ];
+        },
+      }),
+    },
+  ];
 
-    const esResponse = await client.msearch({
-      index: process.env.ELASTICSEARCH_INDEX,
-      searches: contextSearches,
-    });
+  const esResponse = await client.msearch({
+    index: process.env.ELASTICSEARCH_INDEX,
+    searches: contextSearches,
+  });
 
-    const mediaInfo = await queryMediaInfo(0, 10000000);
+  const mediaInfo = await queryMediaInfo(0, 10000000);
 
-    let previousSegments: SearchAnimeSentencesSegment[] = [];
-    let nextSegments: SearchAnimeSentencesSegment[] = [];
-    if (esResponse.responses[0].status) {
-      previousSegments = buildSearchAnimeSentencesSegments(esResponse.responses[0] as SearchResponseBody, mediaInfo);
-    }
+  let previousSegments: SearchAnimeSentencesSegment[] = [];
+  let nextSegments: SearchAnimeSentencesSegment[] = [];
+  if (esResponse.responses[0].status) {
+    previousSegments = buildSearchAnimeSentencesSegments(esResponse.responses[0] as SearchResponseBody, mediaInfo);
+  }
 
-    if (esResponse.responses[1].status) {
-      nextSegments = buildSearchAnimeSentencesSegments(esResponse.responses[1] as SearchResponseBody, mediaInfo);
-    }
+  if (esResponse.responses[1].status) {
+    nextSegments = buildSearchAnimeSentencesSegments(esResponse.responses[1] as SearchResponseBody, mediaInfo);
+  }
   const sortedSegments = [...previousSegments, ...nextSegments].sort(
     (a, b) => a.segment_info.position - b.segment_info.position,
   );
@@ -524,7 +524,7 @@ const buildSearchAnimeSentencesResponse = (
   };
 
   // Build statistics from esNoHitsNoFiltersResponse (filtered by category, not by media) - for sidebar
-  let statistics: SearchAnimeSentencesStatistics[] = buildStatisticsFromAggs(esNoHitsNoFiltersResponse);
+  const statistics: SearchAnimeSentencesStatistics[] = buildStatisticsFromAggs(esNoHitsNoFiltersResponse);
 
   let cursor: FieldValue[] | undefined = undefined;
   if (esResponse.hits.hits.length >= 1) {
