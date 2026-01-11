@@ -274,6 +274,14 @@ const getSeasonEpisodeData = () => {
     return selectedAnime?.season_with_episode_hits || {};
 };
 
+// Check if the selected media has any seasons other than 0 (for movies, audiobooks, etc.)
+const hasSeasonsOtherThanZero = computed(() => {
+    const seasonData = getSeasonEpisodeData();
+    const seasonKeys = Object.keys(seasonData).map(Number);
+    // Check if there's any season other than 0
+    return seasonKeys.some(season => season !== 0);
+});
+
 const handleRandomLogic = () => {
     cursor.value = null;
     endOfResults.value = false;
@@ -413,7 +421,7 @@ onBeforeRouteUpdate(async (to, from) => {
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
                     <SearchSegmentFilterSeasonEpisodeFilter
-                        v-if="media"
+                        v-if="media && hasSeasonsOtherThanZero"
                         :seasonWithEpisodeHits="getSeasonEpisodeData()"
                         :selectedMediaId="media"
                     />

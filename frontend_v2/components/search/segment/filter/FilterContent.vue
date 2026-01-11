@@ -99,6 +99,9 @@ const filterAnime = (anime_id, anime_name) => {
         delete query.media;
     } else {
         query.media = anime_id;
+        // Clear season and episode filters when selecting a different anime
+        delete query.season;
+        delete query.episode;
     }
 
     router.push({ query });
@@ -136,7 +139,7 @@ const clearFilters = () => {
                     </svg>
                 </div>
             </div>
-            <div class="overflow-auto snap-y max-h-[50vh]">
+            <div class="overflow-auto snap-y max-h-[14rem]">
                 <li class="snap-start" v-for="item in filteredMedia" :key="item.anime_id">
                     <button @click="filterAnime(item.anime_id, item.name_anime_en)"
                         :class="{ 'bg-sgrayhover': (item.anime_id === 0 && selectedMediaId === null) || (item.anime_id === selectedMediaId) }"
