@@ -86,7 +86,8 @@ const toggleSeason = (seasonId) => {
         newSeasons.add(seasonId);
     }
 
-    updateUrlParams(Array.from(newSeasons), selectedEpisodeId.value);
+    // Clear episode filter when selecting/deselecting seasons
+    updateUrlParams(Array.from(newSeasons), null);
 };
 
 const toggleEpisode = (episodeId) => {
@@ -136,7 +137,7 @@ const clearFilters = () => {
             </div>
 
             <!-- Seasons List -->
-            <div class="overflow-auto snap-y max-h-[50vh]">
+            <div class="overflow-auto snap-y max-h-[14rem]">
                 <template v-if="seasonsList.length > 0">
                     <div v-for="season in seasonsList" :key="season.season">
                         <!-- Season Header -->
