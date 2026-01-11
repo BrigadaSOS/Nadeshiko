@@ -104,14 +104,25 @@ const filterAnime = (anime_id, anime_name) => {
     router.push({ query });
 };
 
+const clearFilters = () => {
+    const query = { ...route.query };
+    delete query.media;
+    router.push({ query });
+};
+
 </script>
 
 <template>
     <div class="relative mx-auto">
         <ul
             class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
-            <div class="flex items-center w-full px-4 py-2 text-center justify-center rounded-t-lg rounded-l-lg">
-                <span class="font-medium text-sm">{{ $t('searchpage.main.labels.contentList') }}</span>
+            <div class="flex items-center w-full px-4 py-2 text-center rounded-t-lg rounded-l-lg">
+                <span class="font-medium text-sm flex-1 text-center">{{ $t('searchpage.main.labels.contentList') }}</span>
+                <button
+                    @click="clearFilters"
+                    class="text-xs text-gray-400 hover:text-gray-200 dark:hover:text-white absolute right-4">
+                    {{ $t('seasonEpisodeFilter.clear') }}
+                </button>
             </div>
             <div class="flex flex-inline">
                 <input type="search" v-model="querySearchMedia" id="default-search2" autocomplete="off"
