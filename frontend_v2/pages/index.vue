@@ -7,24 +7,6 @@ useSeoMeta({
     ogDescription: 'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!'
 })
 
-// Firefox Mobile scroll-to-bottom fix - CSS only, home page only
-useHead({
-    style: [
-        {
-            innerHTML: `
-                html, body {
-                    overflow-anchor: none;
-                    scroll-behavior: auto;
-                }
-                html {
-                    scroll-padding-top: 0;
-                    scroll-margin-top: 0;
-                }
-            `
-        }
-    ]
-})
-
 const apiSearch = useApiSearch();
 const {
     data: media,
