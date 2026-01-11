@@ -98,8 +98,21 @@ const route = useRoute();
 
 const filterByMedia = (mediaId: number, season?: number, episode?: number) => {
   const query = { ...route.query, media: mediaId };
-  if (season !== undefined) query.season = season;
-  if (episode !== undefined) query.episode = episode;
+
+  if (season !== undefined) {
+    query.season = season;
+    // Clear episode filter when selecting a season
+    delete query.episode;
+  } else {
+    // Clear season and episode when selecting only media
+    delete query.season;
+    delete query.episode;
+  }
+
+  if (episode !== undefined) {
+    query.episode = episode;
+  }
+
   router.push({ query });
 };
 
