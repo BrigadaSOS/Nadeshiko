@@ -245,6 +245,11 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
               size: 10000,
             },
             aggs: {
+              min_max_position: {
+                stats: {
+                  field: 'position',
+                }
+              },
               group_by_season: {
                 terms: {
                   field: 'season',
@@ -513,6 +518,12 @@ const buildSearchAnimeSentencesResponse = (
             return seasonsAcc;
           }, {});
 
+          // Extract min/max position from stats aggregation
+          // @ts-expect-error -- elasticsearch aggregation type
+          const positionStats = mediaBucket['min_max_position'];
+          const minPosition = positionStats?.min ?? 0;
+          const maxPosition = positionStats?.max ?? 0;
+
           return {
             anime_id: mediaBucket['key'],
             category: mediaInfo.category,
@@ -521,6 +532,8 @@ const buildSearchAnimeSentencesResponse = (
             name_anime_jp: mediaInfo.japanese_name,
             amount_sentences_found: mediaBucket['doc_count'],
             season_with_episode_hits: seasonsWithResults,
+            min_position: minPosition,
+            max_position: maxPosition,
           };
         })
         .filter(notEmpty);
@@ -834,6 +847,13 @@ const buildCommonFilters = (
 
   if (request.episode) {
     filter.push({ terms: { episode: request.episode } });
+  }
+
+  if (request.pos_min !== undefined || request.pos_max !== undefined) {
+    const rangeFilter: { gte?: number; lte?: number } = {};
+    if (request.pos_min !== undefined) rangeFilter.gte = request.pos_min;
+    if (request.pos_max !== undefined) rangeFilter.lte = request.pos_max;
+    filter.push({ range: { position: rangeFilter } });
   }
 
   if (request.category && request.category.length > 0) {

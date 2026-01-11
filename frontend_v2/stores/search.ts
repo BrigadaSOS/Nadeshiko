@@ -78,6 +78,8 @@ export type Statistic = {
   name_anime_jp: string;
   amount_sentences_found: number;
   season_with_episode_hits: SeasonWithEpisodeHits;
+  min_position?: number;
+  max_position?: number;
 }
 
 export type SeasonWithEpisodeHits = {

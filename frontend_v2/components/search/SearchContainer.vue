@@ -25,6 +25,8 @@ let sort = ref(null)
 let uuid = ref(null);
 let seasons = ref([]);
 let episode = ref(null);
+let posMin = ref(null);
+let posMax = ref(null);
 
 // Category mapping
 const categoryMapping = {
@@ -184,6 +186,14 @@ const fetchSentences = async (fromButton = false) => {
             body.episode = [episode.value];
         }
 
+        if (posMin.value !== null) {
+            body.pos_min = posMin.value;
+        }
+
+        if (posMax.value !== null) {
+            body.pos_max = posMax.value;
+        }
+
         if (sort.value && sort.value !== 'none') {
             body.content_sort = sort.value;
         }
@@ -274,6 +284,20 @@ const getSeasonEpisodeData = () => {
     return selectedAnime?.season_with_episode_hits || {};
 };
 
+// Get position range data for the selected media
+const getPositionRangeData = () => {
+    if (!media.value || !searchData.value?.statistics) return { min: 0, max: 0 };
+    const mediaId = Number(media.value);
+    if (isNaN(mediaId)) return { min: 0, max: 0 };
+    const selectedAnime = searchData.value.statistics.find(
+        stat => stat.anime_id === mediaId
+    );
+    return {
+        min: selectedAnime?.min_position ?? 0,
+        max: selectedAnime?.max_position ?? 0
+    };
+};
+
 // Check if the selected media has any seasons other than 0 (for movies, audiobooks, etc.)
 const hasSeasonsOtherThanZero = computed(() => {
     const seasonData = getSeasonEpisodeData();
@@ -298,6 +322,8 @@ onMounted(async () => {
     uuid.value = route.query.uuid;
     seasons.value = route.query.season ? route.query.season.split(',').map(Number) : [];
     episode.value = route.query.episode ? Number(route.query.episode) : null;
+    posMin.value = route.query.pos_min ? Number(route.query.pos_min) : null;
+    posMax.value = route.query.pos_max ? Number(route.query.pos_max) : null;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -315,6 +341,8 @@ onBeforeRouteUpdate(async (to, from) => {
     uuid.value = route.query.uuid;
     seasons.value = to.query.season ? to.query.season.split(',').map(Number) : [];
     episode.value = to.query.episode ? Number(to.query.episode) : null;
+    posMin.value = to.query.pos_min ? Number(to.query.pos_min) : null;
+    posMax.value = to.query.pos_max ? Number(to.query.pos_max) : null;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -420,6 +448,12 @@ onBeforeRouteUpdate(async (to, from) => {
                 <div v-if="searchData?.statistics?.length > 0" class="p-2 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
+                    <SearchSegmentFilterTimeRangeFilter
+                        v-if="media"
+                        :minPosition="getPositionRangeData().min"
+                        :maxPosition="getPositionRangeData().max"
+                        :selectedMediaId="media"
+                    />
                     <SearchSegmentFilterSeasonEpisodeFilter
                         v-if="media && hasSeasonsOtherThanZero"
                         :seasonWithEpisodeHits="getSeasonEpisodeData()"

@@ -146,6 +146,8 @@ export const SearchAnimeSentences = async (
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
+      pos_min: req.body.pos_min,
+      pos_max: req.body.pos_max,
       excluded_anime_ids: req.body.excluded_anime_ids || [],
     });
 
@@ -190,6 +192,8 @@ export const SearchAnimeSentencesHealth = async (
       extra: req.body.extra || false,
       min_length: req.body.min_length,
       max_length: req.body.max_length,
+      pos_min: req.body.pos_min,
+      pos_max: req.body.pos_max,
       excluded_anime_ids: req.body.excluded_anime_ids || [],
     });
 

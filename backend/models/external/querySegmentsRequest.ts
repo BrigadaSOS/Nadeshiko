@@ -7,6 +7,8 @@ export interface QuerySegmentsRequest {
   readonly length_sort_order: string;
   readonly min_length?: number;
   readonly max_length?: number;
+  readonly pos_min?: number;
+  readonly pos_max?: number;
   readonly random_seed?: number;
   readonly limit: number;
   readonly status: SegmentStatus[];

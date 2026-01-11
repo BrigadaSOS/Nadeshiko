@@ -173,6 +173,10 @@
     "clear": "Limpiar",
     "noEpisodes": "No se encontraron episodios"
   },
+  "timeRangeFilter": {
+    "title": "Rango de tiempo",
+    "clear": "Limpiar"
+  },
   "segmentSidebar": {
     "loading": "Cargando..."
   },

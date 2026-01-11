@@ -15,10 +15,14 @@ export interface SearchAnimeSentencesSegment {
 
 export interface SearchAnimeSentencesStatistics {
   anime_id: number;
+  category: number;
+  name_anime_romaji: string;
   name_anime_en: string;
   name_anime_jp: string;
   amount_sentences_found: number;
   season_with_episode_hits: { [season: number]: { [episode: number]: number } };
+  min_position?: number;
+  max_position?: number;
 }
 
 interface BasicInfoData {
