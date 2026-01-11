@@ -1,0 +1,70 @@
+name: Media Request
+description: Request new media content to be added to Nadeshiko
+title: "Add <title> to Nadeshiko"
+type: "Media Request"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting new media content for Nadeshiko!
+        Please do not include any direct download links to the requested media, just information about the title.
+
+  - type: dropdown
+    id: media-type
+    attributes:
+      label: Media Type
+      description: What type of media are you requesting?
+      options:
+        - Anime
+        - Live Action
+        - Movie
+        - Audiobook
+    validations:
+      required: true
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: The title of the show (in English or Japanese)
+      placeholder: e.g., Kimi no Suizou Wo Tabetai / 君の膵臓を食べたい
+    validations:
+      required: true
+
+  - type: textarea
+    id: link
+    attributes:
+      label: External Link
+      description: Add a link to Anilist/MyAnimeList/IMDB that can be used to clearly identify the title
+      placeholder: https://anilist.co/anime/99750/Kimi-no-Suizou-wo-Tabetai
+    validations:
+      required: false
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why This Media?
+      description: Why would you want to see this media in Nadeshiko? (interesting vocabulary, personal interest, adding new relevant content...)
+      placeholder: This media would be useful because...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: subtitle-availability
+    attributes:
+      label: Subtitle Availability
+      description: Are subtitles available for this media?
+      options:
+        - label: Japanese subtitles available
+        - label: English subtitles available
+        - label: Spanish subtitles available
+        - label: Not sure
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other relevant information about this media request
+    validations:
+      required: false
+
