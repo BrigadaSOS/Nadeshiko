@@ -1,6 +1,8 @@
-import { Table, Model, Column, DataType, ForeignKey, BeforeCreate, BelongsTo } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, ForeignKey, BeforeCreate, AfterCreate, AfterUpdate, AfterDestroy, BelongsTo } from 'sequelize-typescript';
 import { v3 as uuidv3 } from 'uuid';
 import { Media } from './media';
+import { syncSegment } from '../../services/elasticsearchSync';
+import { SyncOperation } from '../../models/sync/esSyncLog';
 
 export enum SegmentStatus {
   DELETED = 0,
@@ -164,5 +166,29 @@ export class Segment extends Model {
     const uuidNamespace: string | undefined = process.env.UUID_NAMESPACE?.toString();
     const unique_base_id = `${instance.media_id}-${instance.season}-${instance.episode}-${instance.position}`;
     instance.uuid = uuidv3(unique_base_id, uuidNamespace!);
+  }
+
+  @AfterCreate
+  static async syncToElasticsearchCreate(instance: Segment) {
+    // Non-blocking sync - don't wait for result
+    syncSegment(instance, SyncOperation.CREATE).catch((error) => {
+      console.error(`Failed to sync segment ${instance.id} to ES after create:`, error);
+    });
+  }
+
+  @AfterUpdate
+  static async syncToElasticsearchUpdate(instance: Segment) {
+    // Non-blocking sync - don't wait for result
+    syncSegment(instance, SyncOperation.UPDATE).catch((error) => {
+      console.error(`Failed to sync segment ${instance.id} to ES after update:`, error);
+    });
+  }
+
+  @AfterDestroy
+  static async syncToElasticsearchDelete(instance: Segment) {
+    // Non-blocking sync - don't wait for result
+    syncSegment(instance, SyncOperation.DELETE).catch((error) => {
+      console.error(`Failed to sync segment ${instance.id} deletion to ES:`, error);
+    });
   }
 }
