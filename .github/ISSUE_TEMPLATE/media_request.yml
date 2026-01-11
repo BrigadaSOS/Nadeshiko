@@ -1,0 +1,109 @@
+name: Media Request
+description: Request new media content to be added to Nadeshiko
+title: "[Media]: "
+labels: ["media request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting new media content for Nadeshiko!
+
+  - type: dropdown
+    id: media-type
+    attributes:
+      label: Media Type
+      description: What type of media are you requesting?
+      options:
+        - Anime
+        - J-Drama
+        - Film
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: title-japanese
+    attributes:
+      label: Japanese Title
+      description: The original Japanese title of the media
+      placeholder: e.g., 君の名は。
+    validations:
+      required: true
+
+  - type: input
+    id: title-english
+    attributes:
+      label: English Title
+      description: The English title or romanization
+      placeholder: e.g., Kimi no Na wa / Your Name
+    validations:
+      required: false
+
+  - type: input
+    id: year
+    attributes:
+      label: Release Year
+      description: When was this media released?
+      placeholder: e.g., 2016
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Brief description of the media
+      placeholder: A brief synopsis or explanation...
+    validations:
+      required: false
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why This Media?
+      description: Why would this be a valuable addition to Nadeshiko?
+      placeholder: This media would be useful because...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: difficulty-level
+    attributes:
+      label: Difficulty Level
+      description: What level of Japanese learner would benefit from this content?
+      options:
+        - Beginner
+        - Intermediate
+        - Advanced
+        - Mixed
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: availability
+    attributes:
+      label: Source/Availability
+      description: Where can this media be found? (streaming service, physical media, etc.)
+      placeholder: Available on...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: subtitle-availability
+    attributes:
+      label: Subtitle Availability
+      description: Are subtitles available for this media?
+      options:
+        - label: Japanese subtitles available
+        - label: English subtitles available
+        - label: Spanish subtitles available
+        - label: Not sure
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other relevant information about this media request
+    validations:
+      required: false
