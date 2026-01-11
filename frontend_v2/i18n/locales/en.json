@@ -169,7 +169,7 @@
     "searchPlaceholder": "Search here"
   },
   "seasonEpisodeFilter": {
-    "title": "Season/Episode Filter",
+    "title": "Episode",
     "clear": "Clear",
     "noEpisodes": "No episodes found"
   },
@@ -210,7 +210,7 @@
       "labels": {
         "errorMessage1": "An error has occurred while doing the search.",
         "errorMessage2": "Please try again later.",
-        "contentList": "Content list",
+        "contentList": "Content",
         "noresults": "No results found...",
         "season": "Season",
         "episode": "Episode",
