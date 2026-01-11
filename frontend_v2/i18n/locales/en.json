@@ -168,6 +168,11 @@
   "filterContent": {
     "searchPlaceholder": "Search here"
   },
+  "seasonEpisodeFilter": {
+    "title": "Season/Episode Filter",
+    "clear": "Clear",
+    "noEpisodes": "No episodes found"
+  },
   "segmentSidebar": {
     "loading": "Loading..."
   },
