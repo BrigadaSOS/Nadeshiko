@@ -1,12 +1,13 @@
 name: Bug Report
 description: Report a bug or issue with Nadeshiko
-title: "[Bug]: "
-labels: ["bug"]
+title: "<Bug description>"
+labels: ["needs-triage", "priority-high"]
+type: "Bug"
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug!
+        Thank you for for taking the time to report a bug! Please allow us to undesrtand the issue better by providing some information below
 
   - type: textarea
     id: description
@@ -54,12 +55,8 @@ body:
       label: Component
       description: Which part of Nadeshiko is affected?
       options:
-        - Frontend UI
-        - Backend API
-        - Search functionality
-        - Media playback
-        - Anki export
-        - Download feature
+        - Nadeshiko (Webpage)
+        - Backend (API)
         - Other
     validations:
       required: false
@@ -79,12 +76,15 @@ body:
     validations:
       required: false
 
-  - type: input
-    id: os
+  - type: dropdown
+    id: device
     attributes:
-      label: Operating System
-      description: What OS are you using?
-      placeholder: e.g., Windows 11, macOS 14, Ubuntu 22.04
+      label: Device
+      description: Which device are you using?
+      options:
+        - Mobile (Android)
+        - Mobile (iOS)
+        - Desktop
     validations:
       required: false
 
