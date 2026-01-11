@@ -19,8 +19,15 @@ const {
     {
         default: () => null
     },
-    
+
 );
+
+// Quick fix for Firefox Mobile scrolling to bottom on page load
+onMounted(() => {
+    nextTick(() => {
+        window.scrollTo(0, 0);
+    });
+});
 </script>
 
 <template>
