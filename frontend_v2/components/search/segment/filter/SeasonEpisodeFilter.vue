@@ -165,7 +165,7 @@ const clearFilters = () => {
                                 :key="episode.episode"
                                 @click="toggleEpisode(episode.episode)"
                                 :class="{ 'bg-sgrayhover': selectedEpisodeId === episode.episode }"
-                                class="flex truncate border duration-300 items-center justify-between w-full px-8 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5"
+                                class="flex truncate border duration-300 items-center justify-between w-full pl-8 pr-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5"
                                 :title="`${$t('searchpage.main.labels.episode')} ${episode.episode}: ${episode.count}`">
                                 <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">
                                     {{ $t('searchpage.main.labels.episode') }} {{ episode.episode }}
