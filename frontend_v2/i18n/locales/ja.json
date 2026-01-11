@@ -204,6 +204,8 @@
           "sortlengthmax": "最長",
           "sortasc": "最短",
           "sortdesc": "最長",
+          "sorttime_asc": "時系列順",
+          "sorttime_desc": "逆順",
           "sortrandom": "ランダム",
           "search": "検索"
         },

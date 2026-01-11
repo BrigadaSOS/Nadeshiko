@@ -1,6 +1,6 @@
 <script setup>
 const { t } = useI18n();
-import { mdiDice2, mdiSortAscending, mdiRefresh, mdiSortDescending, mdiSort, mdiFilterOutline } from '@mdi/js';
+import { mdiDice2, mdiSortAscending, mdiSortDescending, mdiSort, mdiFilterOutline, mdiClockOutline, mdiClockAlertOutline } from '@mdi/js';
 const router = useRouter();
 const route = useRoute();
 const sortType = ref(route.query.sort);
@@ -34,9 +34,6 @@ watch(() => route.query.sort, (newSort) => {
 <template>
     <SearchDropdownContainer class="gap-2 mb-4 text-xs w-full flex" dropdownId="hs-dropdown-with-header">
         <template #default>
-            <UiButtonPrimaryAction v-if="sortType === 'random'" @click="sortContent('random')">
-                <UiBaseIcon size="20" :path="mdiRefresh" />
-            </UiButtonPrimaryAction>
             <SearchDropdownMainButton class="w-full items-center text-center align-middle flex"
                 dropdownId="hs-dropdown-with-header">
                 <UiBaseIcon :path="mdiFilterOutline" />
@@ -54,6 +51,10 @@ watch(() => route.query.sort, (newSort) => {
                     :iconPath="mdiSortAscending" />
                 <SearchDropdownItem @click="sortContent('desc')" :text="t('searchpage.main.buttons.sortlengthmax')"
                     :iconPath="mdiSortDescending" />
+                <SearchDropdownItem @click="sortContent('time_asc')" :text="t('searchpage.main.buttons.sorttime_asc')"
+                    :iconPath="mdiClockOutline" />
+                <SearchDropdownItem @click="sortContent('time_desc')" :text="t('searchpage.main.buttons.sorttime_desc')"
+                    :iconPath="mdiClockAlertOutline" />
                 <SearchDropdownItem @click="sortContent('random')" :text="t('searchpage.main.buttons.sortrandom')"
                     :iconPath="mdiDice2" />
             </SearchDropdownContent>
