@@ -169,7 +169,7 @@
       "searchPlaceholder": "ここで検索"
     },
     "seasonEpisodeFilter": {
-      "title": "シーズン/エピソードフィルター",
+      "title": "エピソード",
       "clear": "クリア",
       "noEpisodes": "エピソードが見つかりませんでした"
     },
@@ -210,7 +210,7 @@
         "labels": {
           "errorMessage1": "検索中にエラーが発生しました。",
           "errorMessage2": "しばらくしてから再試行してください。",
-          "contentList": "コンテンツ一覧",
+          "contentList": "コンテンツ",
           "noresults": "結果が見つかりませんでした...",
           "season": "シーズン",
           "episode": "エピソード",

@@ -169,7 +169,7 @@
     "searchPlaceholder": "Buscar aquí"
   },
   "seasonEpisodeFilter": {
-    "title": "Filtro de Temporada/Episodio",
+    "title": "Episodio",
     "clear": "Limpiar",
     "noEpisodes": "No se encontraron episodios"
   },
@@ -210,7 +210,7 @@
       "labels": {
         "errorMessage1": "Algo ha ocurrido y no ha sido posible obtener una respuesta satisfactoria por parte del servidor.",
         "errorMessage2": "Vuelve a intentarlo en unos minutos.",
-        "contentList": "Listado de contenido",
+        "contentList": "Contenido",
         "noresults": "No hay resultados...",
         "season": "Temporada",
         "episode": "Episodio",
