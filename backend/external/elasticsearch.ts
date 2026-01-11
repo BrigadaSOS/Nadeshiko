@@ -193,12 +193,14 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     }
   }
 
-  // Create filters for statistics (without media filter) - used for sidebar
-  // This shows all titles matching the query + category filter
+  // Create filters for statistics (without media, season, episode filters) - used for sidebar
+  // This shows all titles matching the query + category filter, but with all seasons/episodes
   const { filter: filterForStatistics, must_not: must_notForStatistics } = buildCommonFilters(request);
-  // Remove anime_id/media filter from statistics filter (for sidebar)
+  // Remove anime_id/media, season, and episode filters from statistics filter (for sidebar)
   const filterForStatisticsWithoutMedia = filterForStatistics.filter(
-    (f) => !('term' in f && f.term && 'media_id' in f.term),
+    (f) =>
+      !('term' in f && f.term && 'media_id' in f.term) && // Remove media filter
+      !('terms' in f && f.terms && ('season' in f.terms || 'episode' in f.terms)), // Remove season/episode filters
   );
   const mustForStatistics = [...must];
 
@@ -264,11 +266,13 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     },
   });
 
-  // Create filters for category statistics (with media filter, without category filter) - used for top tabs
-  // This shows categories for the query + media filter
+  // Create filters for category statistics (with media filter, without category/season/episode filters) - used for top tabs
+  // This shows categories for the query + media filter, with all seasons/episodes
   const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = buildCommonFilters({
     ...request,
     category: undefined, // Remove category filter for category statistics
+    season: undefined, // Remove season filter for category statistics
+    episode: undefined, // Remove episode filter for category statistics
   });
   const filterWithMediaForCategoryStats = [...filterForCategoryStats];
   const mustForCategoryStats = [...must];

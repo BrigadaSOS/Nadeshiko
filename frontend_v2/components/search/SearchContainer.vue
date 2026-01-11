@@ -23,6 +23,8 @@ let cursor = ref(null);
 let media = ref(null);
 let sort = ref(null)
 let uuid = ref(null);
+let seasons = ref([]);
+let episode = ref(null);
 
 // Category mapping
 const categoryMapping = {
@@ -35,7 +37,20 @@ const categoryMapping = {
 // Get anime name for tab when filtering by specific media
 const animeTabName = computed(() => {
     if (media.value && searchData.value?.sentences?.length > 0) {
-        return searchData.value.sentences[0].basic_info.name_anime_en;
+        let name = searchData.value.sentences[0].basic_info.name_anime_en;
+
+        // Add seasons if selected
+        if (seasons.value.length > 0) {
+            const seasonText = seasons.value.join(', ');
+            name += ` - ${t('searchpage.main.labels.season')} ${seasonText}`;
+        }
+
+        // Add episode if selected
+        if (episode.value !== null) {
+            name += `, ${t('searchpage.main.labels.episode')} ${episode.value}`;
+        }
+
+        return name;
     }
     return t('searchContainer.categoryAll');
 });
@@ -161,6 +176,14 @@ const fetchSentences = async (fromButton = false) => {
             body.anime_id = media.value
         }
 
+        if (seasons.value.length > 0) {
+            body.season = seasons.value;
+        }
+
+        if (episode.value !== null) {
+            body.episode = [episode.value];
+        }
+
         if (sort.value && sort.value !== 'none') {
             body.content_sort = sort.value;
         }
@@ -240,6 +263,17 @@ const categoryFilter = (filter) => {
     });
 };
 
+// Get season/episode data for the selected media
+const getSeasonEpisodeData = () => {
+    if (!media.value || !searchData.value?.statistics) return {};
+    const mediaId = Number(media.value);
+    if (isNaN(mediaId)) return {};
+    const selectedAnime = searchData.value.statistics.find(
+        stat => stat.anime_id === mediaId
+    );
+    return selectedAnime?.season_with_episode_hits || {};
+};
+
 const handleRandomLogic = () => {
     cursor.value = null;
     endOfResults.value = false;
@@ -254,6 +288,8 @@ onMounted(async () => {
     media.value = route.query.media;
     sort.value = route.query.sort;
     uuid.value = route.query.uuid;
+    seasons.value = route.query.season ? route.query.season.split(',').map(Number) : [];
+    episode.value = route.query.episode ? Number(route.query.episode) : null;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -269,6 +305,8 @@ onBeforeRouteUpdate(async (to, from) => {
     media.value = to.query.media;
     sort.value = to.query.sort;
     uuid.value = route.query.uuid;
+    seasons.value = to.query.season ? to.query.season.split(',').map(Number) : [];
+    episode.value = to.query.episode ? Number(to.query.episode) : null;
 
     if (category.value === undefined) {
         category.value = 0;
@@ -283,7 +321,7 @@ onBeforeRouteUpdate(async (to, from) => {
 </script>
 
 <template>
-    <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" />
+    <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :media="media" />
     <div v-if="initialError">
         <section class="w-full">
             <div class="container py-10 flex items-center px-6 mx-auto">
@@ -371,9 +409,14 @@ onBeforeRouteUpdate(async (to, from) => {
             </div>
             <!-- Filters -->
             <div class="2xl:min-w-[18rem] 2xl:max-w-[18rem]">
-                <div v-if="searchData?.statistics?.length > 0" class="pl-4 mx-auto hidden 2xl:block">
+                <div v-if="searchData?.statistics?.length > 0" class="p-2 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
+                    <SearchSegmentFilterSeasonEpisodeFilter
+                        v-if="media"
+                        :seasonWithEpisodeHits="getSeasonEpisodeData()"
+                        :selectedMediaId="media"
+                    />
                 </div>
                 <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData">
                     <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">

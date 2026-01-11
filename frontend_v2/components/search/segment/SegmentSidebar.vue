@@ -2,7 +2,18 @@
 import { mdiArrowUp } from '@mdi/js'
 const showScrollButton = ref(false);
 
-const props = defineProps(['searchData', 'categorySelected']);
+const props = defineProps(['searchData', 'categorySelected', 'media']);
+
+// Get season/episode data for the selected media
+const getSeasonEpisodeData = () => {
+    if (!props.media || !props.searchData?.statistics) return {};
+    const mediaId = Number(props.media);
+    if (isNaN(mediaId)) return {};
+    const selectedAnime = props.searchData.statistics.find(
+        stat => stat.anime_id === mediaId
+    );
+    return selectedAnime?.season_with_episode_hits || {};
+};
 
 
 const handleScroll = () => {
@@ -57,10 +68,15 @@ onUnmounted(() => {
       </svg>
     </button>
   </div>
-  <div class="p-4">
-    <div v-if="searchData?.sentences?.length > 0" class=" mx-auto px-4 ">
+  <div>
+    <div v-if="searchData?.sentences?.length > 0" class="p-2 mx-auto">
         <SearchSegmentFilterSortContent />
         <SearchSegmentFilterContent :searchData="searchData" :categorySelected="categorySelected" />
+        <SearchSegmentFilterSeasonEpisodeFilter
+            v-if="media"
+            :seasonWithEpisodeHits="getSeasonEpisodeData()"
+            :selectedMediaId="media"
+        />
       </div>
       <div v-else>
         <div class="mx-auto hidden lg:block max-w-xs">

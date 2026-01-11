@@ -168,6 +168,11 @@
   "filterContent": {
     "searchPlaceholder": "Buscar aquí"
   },
+  "seasonEpisodeFilter": {
+    "title": "Filtro de Temporada/Episodio",
+    "clear": "Limpiar",
+    "noEpisodes": "No se encontraron episodios"
+  },
   "segmentSidebar": {
     "loading": "Cargando..."
   },
