@@ -7,20 +7,20 @@ useSeoMeta({
     ogDescription: 'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!'
 })
 
-// Firefox Mobile scroll-to-bottom fix
-// Disable scroll restoration and force scroll to top on page load
+// Firefox Mobile scroll-to-bottom fix - CSS only, home page only
 useHead({
-    script: [
+    style: [
         {
             innerHTML: `
-                if ('scrollRestoration' in history) {
-                    history.scrollRestoration = 'manual';
+                html, body {
+                    overflow-anchor: none;
+                    scroll-behavior: auto;
                 }
-                window.addEventListener('load', function() {
-                    window.scrollTo(0, 0);
-                });
-            `,
-            tagPosition: 'head'
+                html {
+                    scroll-padding-top: 0;
+                    scroll-margin-top: 0;
+                }
+            `
         }
     ]
 })
