@@ -7,6 +7,24 @@ useSeoMeta({
     ogDescription: 'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!'
 })
 
+// Firefox Mobile scroll-to-bottom fix
+// Disable scroll restoration and force scroll to top on page load
+useHead({
+    script: [
+        {
+            innerHTML: `
+                if ('scrollRestoration' in history) {
+                    history.scrollRestoration = 'manual';
+                }
+                window.addEventListener('load', function() {
+                    window.scrollTo(0, 0);
+                });
+            `,
+            tagPosition: 'head'
+        }
+    ]
+})
+
 const apiSearch = useApiSearch();
 const {
     data: media,
@@ -336,13 +354,13 @@ const {
                                 <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
                                     <div class="mt-5 w-auto bg-white p-1 rounded-md">
                                         <a href="https://github.com/BrigadaSOS">
-                                            <img class="h-10 object-contain" src="/github.png" alt="GitHub" />
+                                            <img class="h-10 object-contain" src="/github.png" alt="GitHub" height="48" loading="lazy" />
                                         </a>
                                     </div>
                                     <div class="mt-5 w-auto">
                                         <a href="https://patreon.com/BrigadaSOS">
                                             <img class="h-12 object-contain rounded-md" src="/patreon.png"
-                                                alt="Become a Patron" />
+                                                alt="Become a Patron" height="48" loading="lazy" />
                                         </a>
                                     </div>
                                 </div>
