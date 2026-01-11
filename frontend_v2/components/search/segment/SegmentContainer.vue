@@ -92,6 +92,17 @@ const revertActiveConcatenation = () => {
   }
 };
 
+// Filter navigation method
+const router = useRouter();
+const route = useRoute();
+
+const filterByMedia = (mediaId: number, season?: number, episode?: number) => {
+  const query = { ...route.query, media: mediaId };
+  if (season !== undefined) query.season = season;
+  if (episode !== undefined) query.episode = episode;
+  router.push({ query });
+};
+
 const isConcatenated = (sentence: Sentence) => {
   return activeConcatenation.sentence === sentence;
 };
@@ -300,13 +311,25 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <!-- Media details  -->
           <div class="flex-1 justify-left">
             <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold my-2">
-              {{ sentence.basic_info.name_anime_en }} &bull;
+              <button
+                @click="filterByMedia(sentence.basic_info.id_anime)"
+                class="hover:text-white hover:underline transition-colors cursor-pointer">
+                {{ sentence.basic_info.name_anime_en }}
+              </button>
+              &bull;
               <template v-if="sentence.basic_info.category === 4">{{ $t('searchpage.main.labels.audiobook') }}</template>
-                <template v-else-if="sentence.basic_info.season === 0 ">{{ $t('searchpage.main.labels.movie')
-                }}</template>
+              <template v-else-if="sentence.basic_info.season === 0">{{ $t('searchpage.main.labels.movie') }}</template>
               <template v-else>
-                {{ $t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }},
-                {{ $t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
+                <button
+                  @click="filterByMedia(sentence.basic_info.id_anime, sentence.basic_info.season)"
+                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  {{ $t('searchpage.main.labels.season') }} {{ sentence.basic_info.season }}
+                </button>,
+                <button
+                  @click="filterByMedia(sentence.basic_info.id_anime, sentence.basic_info.season, sentence.basic_info.episode)"
+                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  {{ $t('searchpage.main.labels.episode') }} {{ sentence.basic_info.episode }}
+                </button>
               </template>
               &bull; {{ sentence.segment_info.start_time.split('.')[0] }}
             </p>
