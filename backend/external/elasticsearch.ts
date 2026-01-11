@@ -872,6 +872,20 @@ const buildSortAndRandomScore = (
       },
     };
     sort = [{ _score: { order: 'desc' } }, { content_length: { order: 'asc' } }];
+  } else if (request.length_sort_order === 'time_asc') {
+    // Sort by time: earliest first (season -> episode -> position)
+    sort = [
+      { season: { order: 'asc' as SortOrder } },
+      { episode: { order: 'asc' as SortOrder } },
+      { position: { order: 'asc' as SortOrder } },
+    ];
+  } else if (request.length_sort_order === 'time_desc') {
+    // Sort by time: latest first (season -> episode -> position, descending)
+    sort = [
+      { season: { order: 'desc' as SortOrder } },
+      { episode: { order: 'desc' as SortOrder } },
+      { position: { order: 'desc' as SortOrder } },
+    ];
   } else if (!request.length_sort_order || request.length_sort_order === 'none') {
     // When browsing media without query and no length filter, sort by length score (25-30 chars prioritized)
     // Otherwise for match_all with min_length filter, sort by content_length ascending

@@ -204,6 +204,8 @@
         "sortlengthmax": "Largest",
         "sortasc": "Shortest",
         "sortdesc": "Largest",
+        "sorttime_asc": "Chronological",
+        "sorttime_desc": "Reverse",
         "sortrandom": "Random",
         "search": "Search"
       },
