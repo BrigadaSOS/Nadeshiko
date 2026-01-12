@@ -124,7 +124,7 @@ const metaTags = computed(() => {
     const stats = initialSearchData.value?.categoryStatistics;
     const totalResults = stats?.reduce((sum, s) => sum + s.count, 0) || 0;
 
-    const title = `"${route.query.query}" | Nadeshiko`;
+    const title = `Search: ${route.query.query} | Nadeshiko`;
     let description = totalResults > 0
       ? `${totalResults.toLocaleString()} results found`
       : 'Search for Japanese sentences';
@@ -143,11 +143,45 @@ const metaTags = computed(() => {
     tags.title = title;
     tags.meta = [
       { name: 'description', content: description },
-      { property: 'og:title', content: `Search: ${route.query.query}` },
+      { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
-      { property: 'og:site_name', content: 'Nadeshiko' },
       { name: 'twitter:card', content: 'summary_large_image' },
+    ];
+  } else if (route.query.media && initialSearchData.value?.sentences?.length > 0) {
+    const firstSentence = initialSearchData.value.sentences[0];
+    const animeName = firstSentence.basic_info.name_anime_en;
+    const animeId = firstSentence.basic_info.anime_id;
+
+    const animeStats = initialSearchData.value?.statistics?.find(s => s.anime_id === Number(animeId));
+    const totalResults = animeStats?.total_hits || initialSearchData.value?.sentences?.length || 0;
+
+    const title = `${animeName} | Nadeshiko`;
+    let description = `${totalResults.toLocaleString()} sentences`;
+
+    const seasonData = animeStats?.season_with_episode_hits;
+    if (seasonData && Object.keys(seasonData).length > 0) {
+      const seasons = Object.keys(seasonData).map(Number).sort((a, b) => a - b);
+      if (seasons.length === 1 && seasons[0] === 0) {
+        description += '\nMovie';
+      } else {
+        description += `\n${seasons.length} season${seasons.length > 1 ? 's' : ''}`;
+      }
+    }
+
+    const thumbnail = firstSentence.media_info.cover;
+
+    tags.title = title;
+    tags.meta = [
+      { name: 'description', content: description },
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:image', content: thumbnail + '?width=1200&height=630' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: description },
+      { name: 'twitter:image', content: thumbnail + '?width=1200&height=630' },
     ];
   }
 
