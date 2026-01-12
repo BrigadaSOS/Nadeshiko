@@ -185,7 +185,7 @@ const {
                                                             <div
                                                                 class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.06)] block">
                                                                 <img class="w-full h-full object-cover absolute top-0 left-0"
-                                                                    :src="media_info.cover + '?width=460&height=652'" />
+                                                                    :src="media_info.cover + '?width=460&height=690'" />
                                                             </div>
                                                             <!--
                                                             <template>
