@@ -95,17 +95,16 @@ const metaTags = computed(() => {
       ? 'Movie'
       : `Season ${sentence.basic_info.season}, Episode ${sentence.basic_info.episode}`;
 
-    const title = sentence.basic_info.name_anime_en;
+    const title = `${sentence.basic_info.name_anime_en} | Nadeshiko`;
     const description = `「${sentence.segment_info.content_jp}」\n${mediaInfo}`;
 
-    tags.title = `${title} | Nadeshiko`;
+    tags.title = title;
     tags.meta = [
       { name: 'description', content: description },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
       { property: 'og:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
-      { property: 'og:site_name', content: 'Nadeshiko' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
@@ -131,12 +130,15 @@ const metaTags = computed(() => {
 
     if (stats && stats.length > 0) {
       const categoryNames = { 1: 'anime', 3: 'live-action', 4: 'audiobook' };
-      const breakdown = stats
+      const order = [1, 3, 4];
+      const breakdown = order
+        .map(cat => stats.find(s => s.category === cat))
+        .filter(Boolean)
         .filter(s => s.count > 0)
-        .map(s => `${s.count.toLocaleString()} ${categoryNames[s.category] || 'other'}`)
+        .map(s => `${categoryNames[s.category]}: ${s.count.toLocaleString()}`)
         .join(', ');
       if (breakdown) {
-        description += `\n${breakdown}`;
+        description += `\n(${breakdown})`;
       }
     }
 
@@ -166,10 +168,26 @@ const metaTags = computed(() => {
         description += '\nMovie';
       } else {
         description += `\n${seasons.length} season${seasons.length > 1 ? 's' : ''}`;
+
+        const filterSeason = route.query.season ? route.query.season.split(',').map(Number) : null;
+        const filterEpisode = route.query.episode ? Number(route.query.episode) : null;
+
+        if (filterSeason && filterSeason.length === 1) {
+          const episodes = seasonData[filterSeason[0]] || {};
+          const episodeCount = Object.keys(episodes).length;
+          if (filterEpisode) {
+            description = `${totalResults.toLocaleString()} sentences\nSeason ${filterSeason[0]}, Episode ${filterEpisode}`;
+          } else {
+            description += `\nSeason ${filterSeason[0]}: ${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
+          }
+        } else if (!filterSeason) {
+          const episodeCount = Object.values(seasonData).reduce((sum, s) => sum + Object.keys(s).length, 0);
+          description += `, ${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
+        }
       }
     }
 
-    const thumbnail = firstSentence.media_info.cover;
+    const thumbnail = firstSentence.media_info?.cover || firstSentence.media_info.path_image;
 
     tags.title = title;
     tags.meta = [
