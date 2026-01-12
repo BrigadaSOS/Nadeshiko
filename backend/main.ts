@@ -58,87 +58,74 @@ app.use(function (req, res, next) {
   next();
 });
 
-if (process.env.ENVIRONMENT === 'testing') {
-  // Access media uploaded from outside localhost
-  app.use('/api/media', (req, res, next) => {
+const createImageMiddleware = (baseMediaDir: string, cacheDirSuffix: string, useHighQualityKernel: boolean = false) => {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const width = req.query.width ? Number(req.query.width) : null;
     const height = req.query.height ? Number(req.query.height) : null;
-    const imagePath = path.join(__dirname, '/media', req.path);
+    const imagePath = path.join(baseMediaDir, req.path);
 
-    // If no resizing parameters are provided, serve the original image
     if (!width && !height) {
-      return express.static(path.join(__dirname, '/media'))(req, res, next);
+      return express.static(baseMediaDir, {
+        maxAge: '30d',
+        etag: true,
+        lastModified: true,
+        fallthrough: false,
+      })(req, res, next);
     }
 
-    const cacheDir = path.join(__dirname, 'media/tmp/cache', path.dirname(req.path));
+    const cacheDir = path.join(baseMediaDir, cacheDirSuffix, path.dirname(req.path));
     const cachePath = path.join(cacheDir, `${path.basename(req.path.replace('.webp', ''))}-${width}_${height}.webp`);
 
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir, { recursive: true });
     }
 
+    const setCacheHeaders = (filePath: string) => {
+      const stats = fs.statSync(filePath);
+      const etag = `"${stats.mtime.getTime()}-${stats.size}"`;
+
+      res.setHeader('Cache-Control', 'public, max-age=2592000, must-revalidate');
+      res.setHeader('ETag', etag);
+      res.setHeader('Last-Modified', stats.mtime.toUTCString());
+
+      if (req.headers['if-none-match'] === etag) {
+        res.status(304).end();
+        return true;
+      }
+      return false;
+    };
+
     if (fs.existsSync(cachePath)) {
+      if (setCacheHeaders(cachePath)) return;
       return res.sendFile(cachePath);
     }
 
+    const resizeOptions = useHighQualityKernel ? { kernel: sharp.kernel.lanczos3 } : {};
+
     sharp(imagePath)
-      .resize(width, height, {
-        kernel: sharp.kernel.lanczos3,
-      })
+      .resize(width, height, resizeOptions)
       .toFile(cachePath)
       .then(() => {
+        if (setCacheHeaders(cachePath)) return;
         res.sendFile(cachePath);
       })
       .catch((err: any) => {
         logger.error({ err, imagePath, cachePath }, 'Sharp image processing failed');
         res.status(500).end();
       });
-  });
+  };
+};
 
+if (process.env.ENVIRONMENT === 'testing') {
+  const mediaDir = path.join(__dirname, '/media');
+  app.use('/api/media', createImageMiddleware(mediaDir, 'tmp/cache', true));
   app.use('/api/media/tmp', express.static(path.join(__dirname, '/media/tmp'), { fallthrough: false }));
 } else if (process.env.ENVIRONMENT === 'production') {
-  // Access media uploaded from outside (DigitalOcean)
   const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
   const tmpDirectory: string = process.env.TMP_DIRECTORY!;
 
-  app.use('/api/media', (req, res, next) => {
-    const width = req.query.width ? Number(req.query.width) : null;
-    const height = req.query.height ? Number(req.query.height) : null;
-    const imagePath = path.join(mediaDirectory, req.path);
-
-    if (!width && !height) {
-      return express.static(mediaDirectory, { fallthrough: false })(req, res, next);
-    }
-
-    const cacheDir = path.join(mediaDirectory, 'media/tmp/cache', path.dirname(req.path));
-    const cachePath = path.join(cacheDir, `${path.basename(req.path.replace('.webp', ''))}-${width}_${height}.webp`);
-
-    if (!fs.existsSync(cacheDir)) {
-      fs.mkdirSync(cacheDir, { recursive: true });
-    }
-
-    if (fs.existsSync(cachePath)) {
-      return res.sendFile(cachePath);
-    }
-
-    sharp(imagePath)
-      .resize(width, height)
-      .toFile(cachePath)
-      .then(() => {
-        res.sendFile(cachePath);
-      })
-      .catch((err: any) => {
-        logger.error({ err, imagePath, cachePath }, 'Sharp image processing failed');
-        res.status(500).end();
-      });
-  });
-
-  app.use(
-    '/api/media/tmp',
-    express.static(tmpDirectory, {
-      fallthrough: false,
-    }),
-  );
+  app.use('/api/media', createImageMiddleware(mediaDirectory, 'media/tmp/cache', false));
+  app.use('/api/media/tmp', express.static(tmpDirectory, { fallthrough: false }));
 }
 
 app.use(bodyParser.json({ limit: '10mb' }));

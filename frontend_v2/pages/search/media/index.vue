@@ -187,7 +187,7 @@ watch([page, currentView, searchQuery], () => {
             class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
             <img
-              :src="`${media_info.cover}?width=400&height=600`"
+              :src="media_info.cover + '?width=460&height=690'"
               :alt="media_info.english_name"
               class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
             />
@@ -236,7 +236,7 @@ watch([page, currentView, searchQuery], () => {
             </div>
             <div class="relative flex-none w-[16em] h-[21em]">
               <img
-                :src="`${media_info.cover}?width=400&height=600`"
+                :src="media_info.cover + '?width=460&height=690'"
                 class="absolute inset-0 object-cover w-full h-full rounded-lg"
               />
             </div>
