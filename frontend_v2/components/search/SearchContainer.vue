@@ -1,6 +1,13 @@
 <script setup>
 import { mdiRefresh } from '@mdi/js'
 
+const props = defineProps({
+  initialData: {
+    type: Object,
+    default: null
+  }
+});
+
 const { t } = useI18n();
 const apiSearch = useApiSearch();
 const route = useRoute();
@@ -8,7 +15,7 @@ const router = useRouter();
 const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 // Main variables
-let searchData = ref(null);
+let searchData = ref(props.initialData);
 let isLoading = ref(false);
 let endOfResults = ref(false);
 const hasMoreResults = ref(true)
@@ -54,97 +61,6 @@ const animeTabName = computed(() => {
     }
     return t('searchContainer.categoryAll');
 });
-
-// SEO Meta
-
-const dynamicTitle = computed(() => {
-  if (uuid.value && searchData.value?.sentences?.length > 0) {
-    const sentence = searchData.value.sentences[0];
-    return `${sentence.basic_info.name_anime_en} | Nadeshiko`;
-  }
-  return route.query.query
-    ? t('searchContainer.pageTitle', { query: route.query.query })
-    : t('searchContainer.pageTitleDefault');
-})
-
-const dynamicDescription = computed(() => {
-  if (uuid.value && searchData.value?.sentences?.length > 0) {
-    const sentence = searchData.value.sentences[0];
-    const mediaType = sentence.basic_info.season === 0
-      ? t('searchContainer.mediaTypeMovie')
-      : t('searchContainer.mediaTypeSeason', {
-          season: sentence.basic_info.season,
-          episode: sentence.basic_info.episode
-        });
-    return t('searchContainer.mediaInfo', {
-      jpSentence: sentence.segment_info.content_jp,
-      animeName: sentence.basic_info.name_anime_en,
-      mediaType: mediaType
-    });
-  }
-  return route.query.query
-    ? t('searchContainer.seoDescription', { query: route.query.query })
-    : t('searchContainer.seoDescriptionDefault');
-})
-
-const updateMetadata = () => {
-  const metaData = {
-    title: dynamicTitle.value,
-    meta: [
-      { name: 'description', content: dynamicDescription.value },
-      { property: 'og:title', content: dynamicTitle.value },
-      { property: 'og:description', content: dynamicDescription.value },
-      { property: 'og:type', content: 'website' },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: dynamicTitle.value },
-      { name: 'twitter:description', content: dynamicDescription.value },
-    ]
-  }
-
-  if (uuid.value && searchData.value?.sentences?.length > 0) {
-    const sentence = searchData.value.sentences[0];
-    
-    metaData.meta.push(
-      { property: 'og:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
-      { name: 'twitter:image', content: sentence.media_info.path_image + '?width=1200&height=630' }
-    )
-
-    if (sentence.media_info.path_audio) {
-      const mp4Url = sentence.media_info.path_video;
-      
-      metaData.meta.push(
-        { property: 'og:video', content: mp4Url },
-        { property: 'og:video:type', content: 'video/mp4' },
-        { property: 'og:video:width', content: '1280' },  
-        { property: 'og:video:height', content: '720' }  
-      )
-
-      metaData.meta.push(
-        { name: 'twitter:card', content: 'player' },
-        { name: 'twitter:player', content: `https://dev.nadeshiko.co/embed/player?url=${encodeURIComponent(mp4Url)}` },
-        { name: 'twitter:player:width', content: '1280' },
-        { name: 'twitter:player:height', content: '720' }
-      )
-    }
-
-    metaData.meta.push(
-      { property: 'og:locale', content: 'ja_JP' },
-      { property: 'og:locale:alternate', content: 'es_ES' },
-      { property: 'og:locale:alternate', content: 'en_US' }
-    )
-
-    metaData.meta.push(
-        { property: 'og:site_name', content: `Nadeshiko - ${sentence.basic_info.name_anime_en}` }
-    )
-
-  }
-
-  useHead(metaData)
-}
-
-onBeforeMount(() => {
-  updateMetadata()
-})
 
 ////////////////////////////////
 
@@ -303,8 +219,16 @@ onMounted(async () => {
         category.value = 0;
     }
 
-    await fetchSentences();
-    updateMetadata();
+    if (props.initialData) {
+        cursor.value = props.initialData.cursor || null;
+        if (!props.initialData.cursor) {
+            endOfResults.value = true;
+            hasMoreResults.value = false;
+        }
+        previousQuery.value = query.value;
+    } else {
+        await fetchSentences();
+    }
 });
 
 onBeforeRouteUpdate(async (to, from) => {
@@ -312,7 +236,7 @@ onBeforeRouteUpdate(async (to, from) => {
     category.value = categoryMapping[to.query.category] ?? 0;
     media.value = to.query.media;
     sort.value = to.query.sort;
-    uuid.value = route.query.uuid;
+    uuid.value = to.query.uuid;
     seasons.value = to.query.season ? to.query.season.split(',').map(Number) : [];
     episode.value = to.query.episode ? Number(to.query.episode) : null;
 
@@ -323,7 +247,6 @@ onBeforeRouteUpdate(async (to, from) => {
     cursor.value = null;
     endOfResults.value = false;
     await fetchSentences();
-    updateMetadata();
 });
 
 </script>
