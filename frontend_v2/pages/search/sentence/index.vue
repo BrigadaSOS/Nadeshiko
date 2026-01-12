@@ -156,21 +156,31 @@ const metaTags = computed(() => {
     const animeId = firstSentence.basic_info.anime_id;
 
     const animeStats = initialSearchData.value?.statistics?.find(s => s.anime_id === Number(animeId));
-    const totalResults = animeStats?.total_hits || initialSearchData.value?.sentences?.length || 0;
+
+    const filterSeason = route.query.season ? route.query.season.split(',').map(Number) : null;
+    const filterEpisode = route.query.episode ? Number(route.query.episode) : null;
+
+    let totalResults = animeStats?.amount_sentences_found || 0;
+    const seasonData = animeStats?.season_with_episode_hits;
+
+    if (seasonData && filterSeason && filterSeason.length === 1) {
+      const episodes = seasonData[filterSeason[0]] || {};
+      if (filterEpisode) {
+        totalResults = episodes[filterEpisode] || 0;
+      } else {
+        totalResults = Object.values(episodes).reduce((sum, count) => sum + count, 0);
+      }
+    }
 
     const title = `${animeName} | Nadeshiko`;
     let description = `${totalResults.toLocaleString()} sentences`;
 
-    const seasonData = animeStats?.season_with_episode_hits;
     if (seasonData && Object.keys(seasonData).length > 0) {
       const seasons = Object.keys(seasonData).map(Number).sort((a, b) => a - b);
       if (seasons.length === 1 && seasons[0] === 0) {
         description += '\nMovie';
       } else {
         description += `\n${seasons.length} season${seasons.length > 1 ? 's' : ''}`;
-
-        const filterSeason = route.query.season ? route.query.season.split(',').map(Number) : null;
-        const filterEpisode = route.query.episode ? Number(route.query.episode) : null;
 
         if (filterSeason && filterSeason.length === 1) {
           const episodes = seasonData[filterSeason[0]] || {};
@@ -187,7 +197,7 @@ const metaTags = computed(() => {
       }
     }
 
-    const thumbnail = firstSentence.media_info?.cover || firstSentence.media_info.path_image;
+    const thumbnail = firstSentence.basic_info?.cover || firstSentence.media_info.path_image;
 
     tags.title = title;
     tags.meta = [
