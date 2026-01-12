@@ -91,24 +91,21 @@ const metaTags = computed(() => {
 
   const sentence = initialSearchData.value?.sentences?.[0];
   if (route.query.uuid && sentence) {
-    const mediaType = sentence.basic_info.season === 0
+    const mediaInfo = sentence.basic_info.season === 0
       ? 'Movie'
       : `Season ${sentence.basic_info.season}, Episode ${sentence.basic_info.episode}`;
 
-    const title = `${sentence.basic_info.name_anime_en} | Nadeshiko`;
-    const description = `"${sentence.segment_info.content_jp}" - From ${sentence.basic_info.name_anime_en} (${mediaType})`;
+    const title = sentence.basic_info.name_anime_en;
+    const description = `「${sentence.segment_info.content_jp}」\n${mediaInfo}`;
 
-    tags.title = title;
+    tags.title = `${title} | Nadeshiko`;
     tags.meta = [
       { name: 'description', content: description },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
       { property: 'og:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
-      { property: 'og:site_name', content: `Nadeshiko - ${sentence.basic_info.name_anime_en}` },
-      { property: 'og:locale', content: 'ja_JP' },
-      { property: 'og:locale:alternate', content: 'es_ES' },
-      { property: 'og:locale:alternate', content: 'en_US' },
+      { property: 'og:site_name', content: 'Nadeshiko' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
@@ -124,14 +121,32 @@ const metaTags = computed(() => {
       );
     }
   } else if (route.query.query) {
-    const title = t('searchContainer.pageTitle', { query: route.query.query });
-    const description = t('searchContainer.seoDescription', { query: route.query.query });
+    const stats = initialSearchData.value?.categoryStatistics;
+    const totalResults = stats?.reduce((sum, s) => sum + s.count, 0) || 0;
+
+    const title = `"${route.query.query}" | Nadeshiko`;
+    let description = totalResults > 0
+      ? `${totalResults.toLocaleString()} results found`
+      : 'Search for Japanese sentences';
+
+    if (stats && stats.length > 0) {
+      const categoryNames = { 1: 'anime', 3: 'live-action', 4: 'audiobook' };
+      const breakdown = stats
+        .filter(s => s.count > 0)
+        .map(s => `${s.count.toLocaleString()} ${categoryNames[s.category] || 'other'}`)
+        .join(', ');
+      if (breakdown) {
+        description += `\n${breakdown}`;
+      }
+    }
+
     tags.title = title;
     tags.meta = [
       { name: 'description', content: description },
-      { property: 'og:title', content: title },
+      { property: 'og:title', content: `Search: ${route.query.query}` },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
+      { property: 'og:site_name', content: 'Nadeshiko' },
       { name: 'twitter:card', content: 'summary_large_image' },
     ];
   }
