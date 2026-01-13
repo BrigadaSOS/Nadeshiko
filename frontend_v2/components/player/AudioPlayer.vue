@@ -298,7 +298,7 @@ const getAnimeImage = (sentence: any) => {
 
                     </div>
 
-                    <div class="hidden sm:flex items-center gap-2 pl-4 border-l border-white/10">
+                    <div class="sm:flex items-center gap-2 pl-4 border-l border-white/10">
                         <button @click="playerStore.toggleAutoplay()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors"
                             :class="{ 'text-red-400': autoplay, 'text-white/50': !autoplay }">
