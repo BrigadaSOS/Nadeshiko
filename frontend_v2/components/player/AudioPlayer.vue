@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePlayerStore } from '~/stores/player';
-import { mdiPlay, mdiPause, mdiSkipNext, mdiSkipPrevious, mdiClose, mdiAnimationPlay, mdiMotionPauseOutline, mdiFullscreen, mdiFullscreenExit, mdiRepeat } from '@mdi/js';
+import { mdiPlay, mdiFastForward, mdiRewind, mdiPause, mdiSkipNext, mdiSkipPrevious, mdiClose, mdiAnimationPlay, mdiMotionPauseOutline, mdiFullscreen, mdiFullscreenExit, mdiRepeat } from '@mdi/js';
 import { watch, ref, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 
@@ -89,6 +89,45 @@ watch(isImmersive, (isImmersive) => {
     }
 });
 
+const SEEK_STEP = 1;
+
+const seek = (delta: number) => {
+    const audio = playerStore.currentAudio;
+    if (!audio || isNaN(audio.duration)) return;
+
+    const nextTime = Math.min(
+        Math.max(audio.currentTime + delta, 0),
+        audio.duration
+    );
+
+    audio.currentTime = nextTime;
+    updateProgress();
+};
+
+const seekBackward = () => seek(-SEEK_STEP);
+const seekForward = () => seek(SEEK_STEP);
+
+const seekToPercent = (percent: number) => {
+    const audio = playerStore.currentAudio;
+    if (!audio || isNaN(audio.duration)) return;
+
+    const clamped = Math.min(Math.max(percent, 0), 1);
+    audio.currentTime = audio.duration * clamped;
+    updateProgress();
+};
+
+const onProgressClick = (event: MouseEvent) => {
+    const target = event.currentTarget as HTMLElement;
+    if (!target) return;
+
+    const rect = target.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const percent = clickX / rect.width;
+
+    seekToPercent(percent);
+};
+
+
 watch(currentAudio, (newAudio, oldAudio) => {
     if (oldAudio) {
         oldAudio.removeEventListener('play', startProgressAnimation);
@@ -164,6 +203,7 @@ const getAnimeImage = (sentence: any) => {
     if (!sentence) return '';
     return sentence.media_info.path_image;
 }
+
 </script>
 
 <template>
@@ -174,8 +214,7 @@ const getAnimeImage = (sentence: any) => {
                 <div v-if="isImmersive"
                     class="fixed inset-0 w-full h-[100dvh] text-white z-50 flex flex-col items-center justify-between overflow-hidden bg-neutral-950">
 
-                    <div
-                        class="absolute inset-0 z-0 select-none pointer-events-none bg-gradient-to-b from-neutral-900 to-black">
+                    <div class="absolute inset-0 z-0 select-none pointer-events-none">
                     </div>
 
                     <div class="relative z-20 w-full flex justify-between items-start p-6 md:p-8">
@@ -235,7 +274,7 @@ const getAnimeImage = (sentence: any) => {
                     </div>
 
                     <div class="relative z-20 w-full max-w-2xl px-6 pb-12 pt-6">
-                        <div class="w-full flex items-center gap-3 mb-6 group cursor-pointer">
+                        <div class="w-full flex items-center gap-3 mb-6 group cursor-pointer"  @click="onProgressClick">
                             <div
                                 class="relative flex-grow h-1.5 bg-white/10 rounded-full overflow-hidden group-hover:h-2.5 transition-all">
                                 <div class="absolute top-0 left-0 h-full bg-red-500 rounded-full transition-all duration-100 ease-linear"
@@ -244,13 +283,19 @@ const getAnimeImage = (sentence: any) => {
                         </div>
 
                         <div class="flex items-center justify-center gap-8 md:gap-12">
+
+                            <button @click="seekBackward" class="group p-2">
+                                <UiBaseIcon :path="mdiRewind" :size="28"
+                                    class="text-white/60 group-hover:text-white transition-colors" />
+                            </button>
+
                             <button @click="playerStore.prev()" class="group p-2">
                                 <UiBaseIcon :path="mdiSkipPrevious" :size="36"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
                             <button @click="playerStore.togglePlay()"
-                                class="w-20 h-20 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-all shadow-lg shadow-white/10">
+                                class="w-16 h-16 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-all shadow-lg shadow-white/10">
                                 <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="40" />
                             </button>
 
@@ -259,6 +304,10 @@ const getAnimeImage = (sentence: any) => {
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
+                            <button @click="seekForward" class="group p-2">
+                                <UiBaseIcon :path="mdiFastForward" :size="28"
+                                    class="text-white/60 group-hover:text-white transition-colors" />
+                            </button>
 
                         </div>
                     </div>
@@ -268,7 +317,7 @@ const getAnimeImage = (sentence: any) => {
 
             <div v-if="!isImmersive"
                 class="fixed bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-md text-white shadow-lg z-50 safe-pb border-t border-white/5">
-                <div class="w-full bg-neutral-700/30 group cursor-pointer h-1 hover:h-2 transition-all">
+                <div class="w-full bg-neutral-700/30 group cursor-pointer h-1.5 hover:h-2.5 transition-all" @click="onProgressClick">
                     <div class="bg-red-500 h-full transition-all ease-linear" :style="{ width: progress + '%' }"></div>
                 </div>
                 <div class="flex flex-wrap items-center justify-between p-3 gap-3 md:px-6">
@@ -282,6 +331,10 @@ const getAnimeImage = (sentence: any) => {
                         </div>
                     </div>
 
+                    <button @click="seekBackward" class="group p-2">
+                        <UiBaseIcon :path="mdiRewind" :size="28"
+                            class="text-white/60 group-hover:text-white transition-colors" />
+                    </button>
                     <div class="flex items-center gap-1 md:gap-3">
                         <button @click="playerStore.prev()"
                             class="p-2 text-white/70 hover:text-white transition-colors">
@@ -294,6 +347,10 @@ const getAnimeImage = (sentence: any) => {
                         <button @click="playerStore.next()"
                             class="p-2 text-white/70 hover:text-white transition-colors">
                             <UiBaseIcon :path="mdiSkipNext" :size="24" />
+                        </button>
+                        <button @click="seekForward" class="group p-2">
+                            <UiBaseIcon :path="mdiFastForward" :size="28"
+                                class="text-white/60 group-hover:text-white transition-colors" />
                         </button>
 
                     </div>
