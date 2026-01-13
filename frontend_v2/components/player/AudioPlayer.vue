@@ -220,7 +220,7 @@ const getAnimeImage = (sentence: any) => {
                     <div class="relative z-20 w-full flex justify-between items-start p-6 md:p-8">
                         <div class="flex flex-col gap-1 opacity-80">
                             <span class="text-xs font-bold tracking-widest uppercase text-white/60">Now Playing</span>
-                            <span class="text-sm font-semibold truncate max-w-[200px]">{{
+                            <span class="text-sm font-semibold truncate max-w-[180px]">{{
                                 currentSentence.basic_info.name_anime_en }}</span>
                         </div>
 
@@ -286,7 +286,7 @@ const getAnimeImage = (sentence: any) => {
 
                             <button @click="seekBackward" class="group p-2">
                                 <UiBaseIcon :path="mdiRewind" :size="28"
-                                    class="text-white/60 group-hover:text-white transition-colors" />
+                                    class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
                             <button @click="playerStore.prev()" class="group p-2">
@@ -306,7 +306,7 @@ const getAnimeImage = (sentence: any) => {
 
                             <button @click="seekForward" class="group p-2">
                                 <UiBaseIcon :path="mdiFastForward" :size="28"
-                                    class="text-white/60 group-hover:text-white transition-colors" />
+                                    class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
                         </div>
@@ -331,11 +331,12 @@ const getAnimeImage = (sentence: any) => {
                         </div>
                     </div>
 
-                    <button @click="seekBackward" class="group p-2">
-                        <UiBaseIcon :path="mdiRewind" :size="28"
-                            class="text-white/60 group-hover:text-white transition-colors" />
-                    </button>
+
                     <div class="flex items-center gap-1 md:gap-3">
+                        <button @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors">
+                            <UiBaseIcon :path="mdiRewind" :size="24"
+                                class="text-white/70 group-hover:text-white transition-colors" />
+                        </button>
                         <button @click="playerStore.prev()"
                             class="p-2 text-white/70 hover:text-white transition-colors">
                             <UiBaseIcon :path="mdiSkipPrevious" :size="24" />
@@ -348,9 +349,9 @@ const getAnimeImage = (sentence: any) => {
                             class="p-2 text-white/70 hover:text-white transition-colors">
                             <UiBaseIcon :path="mdiSkipNext" :size="24" />
                         </button>
-                        <button @click="seekForward" class="group p-2">
-                            <UiBaseIcon :path="mdiFastForward" :size="28"
-                                class="text-white/60 group-hover:text-white transition-colors" />
+                        <button @click="seekForward" class="p-2 text-white/70 hover:text-white transition-colors">
+                            <UiBaseIcon :path="mdiFastForward" :size="24"
+                                class="text-white/70 group-hover:text-white transition-colors" />
                         </button>
 
                     </div>
