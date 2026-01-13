@@ -1,37 +1,42 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
+import { defineAsyncComponent } from 'vue';
+import '@scalar/api-reference/style.css';
 
-const ApiReference = defineAsyncComponent(() =>
-  import('@scalar/api-reference').then((m) => m.ApiReference),
+const ScalarApiReference = defineAsyncComponent(() =>
+  import('@scalar/api-reference').then((module) => {
+    const component = module.ScalarApiReference || module.ApiReference || module.default;
+    return component;
+  })
 );
 
-const baseUrl = ref('');
-onMounted(() => {
-  baseUrl.value = window.location.origin;
-});
-
-const apiSpecUrl = computed(() => `${baseUrl.value}/nadeshikoapi.yaml`);
+const config = {
+  url: '/nadeshikoapi.yaml',
+  theme: 'deepSpace',
+  layout: 'modern',
+  darkMode: true,
+};
 </script>
 
 <template>
   <ClientOnly>
-    <Suspense>
-      <template #default>
-        <ApiReference
-          :configuration="{
-            spec: { url: apiSpecUrl },
-          }"
-        />
-      </template>
-      <template #fallback>
-        <div class="text-gray-400 text-sm">Loading API reference…</div>
-      </template>
-    </Suspense>
+    <div class="scalar-container">
+      <Suspense>
+        <template #default>
+          <ScalarApiReference :configuration="config" />
+        </template>
+        <template #fallback>
+          <div class="flex items-center justify-center p-10 text-gray-500">
+            Loading...
+          </div>
+        </template>
+      </Suspense>
+    </div>
   </ClientOnly>
 </template>
 
 <style>
-.dark-mode {
+/* ... tus estilos anteriores ... */
+.scalar-container, .dark-mode {
   --scalar-background-1: #1d1d1d;
   --scalar-background-2: #1a1a1a;
   --scalar-background-3: #272727;
