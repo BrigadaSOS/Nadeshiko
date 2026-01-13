@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { usePlayerStore } from '~/stores/player';
 import { mdiPlay, mdiPause, mdiSkipNext, mdiSkipPrevious, mdiClose, mdiAnimationPlay, mdiMotionPauseOutline, mdiFullscreen, mdiFullscreenExit, mdiRepeat } from '@mdi/js';
@@ -97,14 +96,14 @@ watch(currentAudio, (newAudio, oldAudio) => {
         oldAudio.removeEventListener('ended', onAudioEnded);
     }
     if (newAudio) {
-        progress.value = 0; // Reset progress on new audio
+        progress.value = 0;
         newAudio.addEventListener('play', startProgressAnimation);
         newAudio.addEventListener('pause', stopProgressAnimation);
         newAudio.addEventListener('ended', onAudioEnded);
     }
 
     if (currentSentence.value && (oldAudio !== newAudio)) {
-         nextTick(() => {
+        nextTick(() => {
             scrollMainView();
             if (isImmersive.value) {
                 scrollImmersiveView();
@@ -113,28 +112,33 @@ watch(currentAudio, (newAudio, oldAudio) => {
     }
 }, { immediate: false });
 
-
 const getSentenceStyle = (index: number) => {
     if (currentIndex.value === null) return { classes: '', style: {} };
 
     const distance = Math.abs(index - currentIndex.value);
+    const threshold = 1;
 
-    let classes = 'transition-all duration-500 ease-out ';
+    if (distance > threshold) {
+        return { classes: 'hidden', style: {} };
+    }
+
+    // Mantenemos el mismo tamaño de fuente para todas
+    let classes = 'transition-all duration-500 ease-out block text-xl md:text-3xl lg:text-4xl py-6 ';
     let style = {};
 
     if (distance === 0) {
-        classes += 'font-bold text-white text-lg md:text-2xl leading-tight';
+        // Activa: Blanco brillante
+        classes += 'font-bold text-white leading-tight drop-shadow-lg';
         style = {
             opacity: 1,
             transform: 'scale(1)',
         };
     } else {
-        const opacity = Math.max(0.1, 1 - distance * 0.35);
-        const scale = Math.max(0.95, 1 - distance * 0.02);
-        classes += 'font-medium text-white/70 text-base md:text-xl leading-normal';
+        // Inactivas: Gris oscuro y translúcido
+        classes += 'font-medium text-white/40 leading-normal';
         style = {
-            opacity,
-            transform: `scale(${scale})`,
+            opacity: 0.5,
+            transform: 'scale(1)',
         };
     }
 
@@ -165,112 +169,153 @@ const getAnimeImage = (sentence: any) => {
 <template>
     <transition name="fade">
         <div v-if="showPlayer && currentSentence">
-            
-            <transition name="fade">
-                <div v-if="isImmersive" class="fixed inset-0 w-full h-[100dvh] text-white z-50 flex items-center justify-center overflow-hidden p-8 md:p-12 lg:p-16">
-                    <div class="absolute inset-0 z-0">
-                        <img :src="getAnimeImage(currentSentence)" class="w-full h-full object-cover blur-lg scale-110 brightness-75" />
-                        <div class="absolute inset-0 bg-black/80"></div>
+
+            <transition name="zoom-fade">
+                <div v-if="isImmersive"
+                    class="fixed inset-0 w-full h-[100dvh] text-white z-50 flex flex-col items-center justify-between overflow-hidden bg-neutral-950">
+
+                    <div
+                        class="absolute inset-0 z-0 select-none pointer-events-none bg-gradient-to-b from-neutral-900 to-black">
                     </div>
 
-                    <div class="relative z-10 w-full h-full flex flex-col md:flex-row items-center gap-4 md:gap-12 lg:gap-16">
-                        <div class="w-1/2 md:w-1/3 flex-shrink-0">
-                            <img :src="getAnimeImage(currentSentence) + '?width=500&height=500'" 
-                                 class="w-full aspect-square object-cover rounded-2xl shadow-2xl" />
+                    <div class="relative z-20 w-full flex justify-between items-start p-6 md:p-8">
+                        <div class="flex flex-col gap-1 opacity-80">
+                            <span class="text-xs font-bold tracking-widest uppercase text-white/60">Now Playing</span>
+                            <span class="text-sm font-semibold truncate max-w-[200px]">{{
+                                currentSentence.basic_info.name_anime_en }}</span>
                         </div>
 
-                        <div class="w-full md:w-2/3 h-full flex flex-col justify-center text-left max-h-full overflow-hidden">
-                            <div class="relative flex-grow overflow-hidden min-h-0 flex flex-col">
-                                <div class="absolute top-0 left-0 w-full h-16 md:h-24 z-20 pointer-events-none"></div>
-                                
-                                <div ref="lyricsContainer" class="overflow-y-auto h-full scroll-smooth no-scrollbar">
-                                    <div class="flex flex-col justify-center min-h-full gap-4 md:gap-8 py-16 md:py-24">
-                                        <p v-for="(sentence, index) in playlist"
-                                           :key="sentence.segment_info.uuid"
-                                           :id="`sentence-${sentence.segment_info.uuid}`"
-                                           :class="getSentenceStyle(index).classes"
-                                           :style="getSentenceStyle(index).style"
-                                           v-html="getJapaneseContent(sentence)">
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                <div class="absolute bottom-0 left-0 w-full h-16 md:h-24 z-20 pointer-events-none"></div>
-                            </div>
-                            
-                            <div class="flex-shrink-0 pt-4 md:pt-8">
-                                <div class="flex items-center justify-center md:justify-start gap-4">
-                                    <button @click="playerStore.prev()" class="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
-                                        <UiBaseIcon :path="mdiSkipPrevious" :size="32" />
-                                    </button>
-                                    <button @click="playerStore.togglePlay()" class="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center bg-red-500 rounded-full hover:bg-red-600 transition-colors shadow-lg">
-                                        <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="48" />
-                                    </button>
-                                    <button @click="playerStore.next()" class="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
-                                        <UiBaseIcon :path="mdiSkipNext" :size="32" />
-                                    </button>
+                        <div
+                            class="flex items-center gap-2 bg-white/5 backdrop-blur-md rounded-full p-1 border border-white/10">
+                            <button @click="playerStore.toggleAutoplay()"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors"
+                                :class="{ 'text-red-400': autoplay, 'text-white/60': !autoplay }" title="Autoplay">
+                                <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
+                            </button>
+                            <button @click="playerStore.toggleRepeat()"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors"
+                                :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }" title="Repeat">
+                                <UiBaseIcon :path="mdiRepeat" :size="20" />
+                            </button>
+                            <div class="w-px h-4 bg-white/20 mx-1"></div>
+                            <button @click="toggleImmersive"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
+                                <UiBaseIcon :path="mdiFullscreenExit" :size="20" />
+                            </button>
+                            <button @click="playerStore.hidePlayer()"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
+                                <UiBaseIcon :path="mdiClose" :size="20" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        class="relative z-10 w-full flex-grow flex flex-col items-center justify-center overflow-hidden max-w-4xl mx-auto px-6">
+
+                        <div
+                            class="flex-shrink-0 mb-6 md:mb-1 shadow-2xl overflow-hidden hidden md:block transition-all duration-700 ring-1 ring-white/10">
+                            <img :src="getAnimeImage(currentSentence)" class="w-full h-full object-fit opacity-90" />
+                        </div>
+
+                        <div class="relative w-full h-full overflow-hidden flex flex-col items-center">
+
+                            <div ref="lyricsContainer"
+                                class="w-full h-full overflow-y-auto no-scrollbar scroll-smooth flex flex-col justify-center mask-gradient">
+                                <div
+                                    class="flex flex-col items-center justify-center w-full min-h-0 py-12 transition-all duration-500">
+                                    <p v-for="(sentence, index) in playlist" :key="sentence.segment_info.uuid"
+                                        :id="`sentence-${sentence.segment_info.uuid}`"
+                                        :class="getSentenceStyle(index).classes" :style="getSentenceStyle(index).style"
+                                        v-html="getJapaneseContent(sentence)"
+                                        class="text-center cursor-default select-none max-w-4xl mx-auto px-4">
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="absolute top-0 left-0 right-0 z-20">
-                        <div class="w-full bg-white/10">
-                            <div class="bg-red-500 h-1 transition-all ease-linear" :style="{ width: progress + '%' }"></div>
+
+                    <div class="relative z-20 w-full max-w-2xl px-6 pb-12 pt-6">
+                        <div class="w-full flex items-center gap-3 mb-6 group cursor-pointer">
+                            <div
+                                class="relative flex-grow h-1.5 bg-white/10 rounded-full overflow-hidden group-hover:h-2.5 transition-all">
+                                <div class="absolute top-0 left-0 h-full bg-red-500 rounded-full transition-all duration-100 ease-linear"
+                                    :style="{ width: progress + '%' }"></div>
+                            </div>
                         </div>
-                         <div class="flex items-center justify-end p-2 gap-2">
-                             <button @click="playerStore.toggleAutoplay()" class="p-2 rounded-full hover:bg-white/10 transition-colors" :class="{'text-red-500': autoplay}">
-                                <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" />
+
+                        <div class="flex items-center justify-center gap-8 md:gap-12">
+                            <button @click="playerStore.prev()" class="group p-2">
+                                <UiBaseIcon :path="mdiSkipPrevious" :size="36"
+                                    class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
-                            <button @click="playerStore.toggleRepeat()" class="p-2 rounded-full hover:bg-white/10 transition-colors" :class="{'!text-red-500': repeat}">
-                                <UiBaseIcon :path="mdiRepeat" />
+
+                            <button @click="playerStore.togglePlay()"
+                                class="w-20 h-20 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-all shadow-lg shadow-white/10">
+                                <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="40" />
                             </button>
-                            <button @click="toggleImmersive" class="p-2 rounded-full hover:bg-white/10 transition-colors">
-                                <UiBaseIcon :path="mdiFullscreenExit" />
+
+                            <button @click="playerStore.next()" class="group p-2">
+                                <UiBaseIcon :path="mdiSkipNext" :size="36"
+                                    class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
-                            <button @click="playerStore.hidePlayer()" class="p-2 rounded-full hover:bg-white/10 transition-colors">
-                                <UiBaseIcon :path="mdiClose" />
-                            </button>
+
+
                         </div>
                     </div>
+
                 </div>
             </transition>
 
-            <div v-if="!isImmersive" class="fixed bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-md text-white shadow-lg z-50 safe-pb">
-                <div class="w-full bg-neutral-700/50">
-                    <div class="bg-red-500 h-1 transition-all ease-linear" :style="{ width: progress + '%' }"></div>
+            <div v-if="!isImmersive"
+                class="fixed bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-md text-white shadow-lg z-50 safe-pb border-t border-white/5">
+                <div class="w-full bg-neutral-700/30 group cursor-pointer h-1 hover:h-2 transition-all">
+                    <div class="bg-red-500 h-full transition-all ease-linear" :style="{ width: progress + '%' }"></div>
                 </div>
-                <div class="flex flex-wrap items-center justify-between p-2 gap-2">
-                    <div class="flex items-center gap-3 flex-grow">
-                        <img :src="getAnimeImage(currentSentence) + '?width=100&height=100'" class="w-12 h-12 object-cover rounded-md" />
-                        <div class="flex-grow">
-                            <p class="font-bold text-sm" v-html="getJapaneseContent(currentSentence)"></p>
-                            <p class="text-xs text-gray-400 sm:hidden">{{ currentSentence.basic_info.name_anime_en }}</p>
+                <div class="flex flex-wrap items-center justify-between p-3 gap-3 md:px-6">
+                    <div class="flex items-center gap-4 flex-grow min-w-0">
+                        <img :src="getAnimeImage(currentSentence) + '?width=100&height=100'"
+                            class="w-12 h-12 object-cover rounded-lg shadow-sm" />
+                        <div class="flex-grow min-w-0">
+                            <p class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentSentence)">
+                            </p>
+                            <p class="text-xs text-gray-400 truncate">{{ currentSentence.basic_info.name_anime_en }}</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button @click="playerStore.prev()" class="p-2 rounded-full hover:bg-neutral-800 transition-colors">
-                            <UiBaseIcon :path="mdiSkipPrevious" />
+
+                    <div class="flex items-center gap-1 md:gap-3">
+                        <button @click="playerStore.prev()"
+                            class="p-2 text-white/70 hover:text-white transition-colors">
+                            <UiBaseIcon :path="mdiSkipPrevious" :size="24" />
                         </button>
-                        <button @click="playerStore.togglePlay()" class="p-3 bg-red-500 rounded-full hover:bg-red-600 transition-colors">
-                            <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" />
+                        <button @click="playerStore.togglePlay()"
+                            class="p-2 text-white hover:text-red-400 transition-colors">
+                            <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="24" />
                         </button>
-                        <button @click="playerStore.next()" class="p-2 rounded-full hover:bg-neutral-800 transition-colors">
-                            <UiBaseIcon :path="mdiSkipNext" />
+                        <button @click="playerStore.next()"
+                            class="p-2 text-white/70 hover:text-white transition-colors">
+                            <UiBaseIcon :path="mdiSkipNext" :size="24" />
                         </button>
+
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button @click="playerStore.toggleAutoplay()" class="p-2 rounded-full hover:bg-neutral-800 transition-colors" :class="{'text-red-500': autoplay}">
-                            <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" />
+
+                    <div class="hidden sm:flex items-center gap-2 pl-4 border-l border-white/10">
+                        <button @click="playerStore.toggleAutoplay()"
+                            class="p-2 rounded-full hover:bg-white/10 transition-colors"
+                            :class="{ 'text-red-400': autoplay, 'text-white/50': !autoplay }">
+                            <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
                         </button>
-                        <button @click="playerStore.toggleRepeat()" class="p-2 rounded-full hover:bg-neutral-800 transition-colors" :class="{'!text-red-500': repeat}">
-                            <UiBaseIcon :path="mdiRepeat" />
+                        <button @click="playerStore.toggleRepeat()"
+                            class="p-2 rounded-full hover:bg-white/10 transition-colors"
+                            :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }" title="Repeat">
+                            <UiBaseIcon :path="mdiRepeat" :size="20" />
                         </button>
-                        <button @click="toggleImmersive" class="p-2 rounded-full hover:bg-neutral-800 transition-colors">
-                            <UiBaseIcon :path="mdiFullscreen" />
+                        <button @click="toggleImmersive"
+                            class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70">
+                            <UiBaseIcon :path="mdiFullscreen" :size="20" />
                         </button>
-                        <button @click="playerStore.hidePlayer()" class="p-2 rounded-full hover:bg-neutral-800 transition-colors">
-                            <UiBaseIcon :path="mdiClose" />
+                        <button @click="playerStore.hidePlayer()"
+                            class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70">
+                            <UiBaseIcon :path="mdiClose" :size="20" />
                         </button>
                     </div>
                 </div>
@@ -279,23 +324,42 @@ const getAnimeImage = (sentence: any) => {
     </transition>
 </template>
 
-<style>
+<style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
-  opacity: 0;
+    opacity: 0;
+}
+
+.zoom-fade-enter-active,
+.zoom-fade-leave-active {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zoom-fade-enter-from,
+.zoom-fade-leave-to {
+    opacity: 0;
+    transform: scale(0.95);
+    filter: blur(10px);
 }
 
 .no-scrollbar::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
+
 .no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Volví a añadir la máscara de gradiente al texto para que se desvanezca suavemente en los bordes superior e inferior sobre el fondo negro */
+.mask-gradient {
+    mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
 }
 
 .safe-pb {
