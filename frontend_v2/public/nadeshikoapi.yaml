@@ -465,3 +465,13 @@ components:
           type: boolean
         content_es:
           type: string
+
+    MediaInfo:
+      type: object
+      properties:
+        path_image:
+          type: string
+        path_audio:
+          type: string
+        path_video:
+          type: string
