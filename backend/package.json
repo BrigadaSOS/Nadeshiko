@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.15.1",
+    "@types/object-hash": "^3.0.6",
     "archiver": "^7.0.1",
     "axios": "^1.7.7",
     "backend": "file:",
@@ -54,8 +55,10 @@
     "helmet": "^8.0.0",
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
+    "lru-cache": "^11.2.4",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^7.0.12",
+    "object-hash": "^3.0.0",
     "pg": "^8.13.1",
     "pino": "^10.1.1",
     "pino-http": "^11.0.0",

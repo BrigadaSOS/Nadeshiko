@@ -24,13 +24,19 @@ import { logger } from '../utils/log';
 import { QuerySegmentsRequest } from '../models/external/querySegmentsRequest';
 import { QuerySurroundingSegmentsRequest } from '../models/external/querySurroundingSegmentsRequest';
 import { QuerySurroundingSegmentsResponse } from '../models/external/querySurroundingSegmentsResponse';
+import { LRUCache } from 'lru-cache';
+import hash from 'object-hash';
 
 /**
  * =============================================================================
  * STATISTICS CACHE
  * =============================================================================
  *
- * In-memory LRU cache for Elasticsearch statistics aggregations.
+ * Production-grade in-memory LRU cache for Elasticsearch statistics aggregations.
+ *
+ * Using industry-standard packages:
+ * - lru-cache: Battle-tested LRU implementation (13M+ weekly downloads)
+ * - object-hash: Consistent, order-insensitive cache key generation
  *
  * Why caching helps:
  * - Statistics queries are expensive (aggregate all matching documents)
@@ -38,120 +44,65 @@ import { QuerySurroundingSegmentsResponse } from '../models/external/querySurrou
  * - Same statistics returned for all pagination requests with same query
  * - Dramatically reduces Elasticsearch load for repeated searches
  *
- * Cache keys:
+ * Cache key strategy:
  * - Sidebar statistics: query + category + status + length + excluded_anime_ids
  * - Category statistics: query + media + status + length + excluded_anime_ids
+ * - Using object-hash ensures {a:1, b:2} === {b:2, a:1}
  */
 
-interface CacheEntry {
-  data: SearchResponse;
-  timestamp: number;
-}
+// Global cache instances with production-grade LRU implementation
+const sidebarStatisticsCache = new LRUCache<string, SearchResponse>({
+  max: 1000, // Maximum 1000 cache entries
+  ttl: 15 * 60 * 1000, // 15 minutes TTL
+  updateAgeOnGet: true, // Update age on cache hit (LRU behavior)
+  updateAgeOnHas: false, // Don't update age on existence checks
+});
 
-class LRUCache {
-  private cache: Map<string, CacheEntry> = new Map();
-  private readonly maxSize: number;
-  private readonly ttlMs: number;
-
-  constructor(maxSize: number = 1000, ttlMinutes: number = 15) {
-    this.maxSize = maxSize;
-    this.ttlMs = ttlMinutes * 60 * 1000;
-  }
-
-  get(key: string): SearchResponse | null {
-    const entry = this.cache.get(key);
-
-    if (!entry) {
-      return null;
-    }
-
-    // Check if expired
-    if (Date.now() - entry.timestamp > this.ttlMs) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    // Move to end (most recently used)
-    this.cache.delete(key);
-    this.cache.set(key, entry);
-
-    return entry.data;
-  }
-
-  set(key: string, data: SearchResponse): void {
-    // Remove oldest entry if at capacity
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
-    }
-
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  getStats(): { size: number; maxSize: number; ttlMinutes: number } {
-    return {
-      size: this.cache.size,
-      maxSize: this.maxSize,
-      ttlMinutes: this.ttlMs / (60 * 1000),
-    };
-  }
-}
-
-// Global cache instances
-const sidebarStatisticsCache = new LRUCache(1000, 15); // 1000 entries, 15 min TTL
-const categoryStatisticsCache = new LRUCache(1000, 15);
+const categoryStatisticsCache = new LRUCache<string, SearchResponse>({
+  max: 1000,
+  ttl: 15 * 60 * 1000,
+  updateAgeOnGet: true,
+  updateAgeOnHas: false,
+});
 
 /**
  * Generate cache key for sidebar statistics (without media/season/episode filters)
+ * Uses object-hash for consistent, order-insensitive hashing
  */
 function generateSidebarStatsCacheKey(request: QuerySegmentsRequest): string {
-  const parts = [
-    request.query || '',
-    request.uuid || '',
-    request.exact_match ? 'exact' : 'fuzzy',
-    request.status?.sort().join(',') || '',
-    request.category?.sort().join(',') || '',
-    request.min_length || '',
-    request.max_length || '',
-    request.excluded_anime_ids?.sort().join(',') || '',
-  ];
-  return `sidebar:${parts.join('|')}`;
+  const cacheData = {
+    query: request.query || '',
+    uuid: request.uuid || '',
+    exact_match: request.exact_match || false,
+    status: request.status || [],
+    category: request.category || [],
+    min_length: request.min_length,
+    max_length: request.max_length,
+    excluded_anime_ids: request.excluded_anime_ids || [],
+  };
+
+  // object-hash ensures consistent hashing regardless of property order
+  return `sidebar:${hash(cacheData, { unorderedArrays: true, unorderedObjects: true })}`;
 }
 
 /**
  * Generate cache key for category statistics (with media filter)
+ * Uses object-hash for consistent, order-insensitive hashing
  */
 function generateCategoryStatsCacheKey(request: QuerySegmentsRequest): string {
-  const mediaKey = request.media
-    ? JSON.stringify(
-        request.media.map((m) => ({
-          id: m.media_id,
-          seasons: m.seasons?.map((s) => ({
-            s: s.season,
-            e: s.episodes?.sort(),
-          })),
-        }))
-      )
-    : '';
+  const cacheData = {
+    query: request.query || '',
+    uuid: request.uuid || '',
+    exact_match: request.exact_match || false,
+    status: request.status || [],
+    media: request.media || [],
+    min_length: request.min_length,
+    max_length: request.max_length,
+    excluded_anime_ids: request.excluded_anime_ids || [],
+  };
 
-  const parts = [
-    request.query || '',
-    request.uuid || '',
-    request.exact_match ? 'exact' : 'fuzzy',
-    request.status?.sort().join(',') || '',
-    mediaKey,
-    request.min_length || '',
-    request.max_length || '',
-    request.excluded_anime_ids?.sort().join(',') || '',
-  ];
-  return `category:${parts.join('|')}`;
+  // object-hash handles complex nested objects properly
+  return `category:${hash(cacheData, { unorderedArrays: true, unorderedObjects: true })}`;
 }
 
 /**
@@ -234,8 +185,16 @@ export const statisticsCache = {
    * Get current cache statistics
    */
   getStats: () => ({
-    sidebar: sidebarStatisticsCache.getStats(),
-    category: categoryStatisticsCache.getStats(),
+    sidebar: {
+      size: sidebarStatisticsCache.size,
+      maxSize: sidebarStatisticsCache.max,
+      ttlMinutes: 15,
+    },
+    category: {
+      size: categoryStatisticsCache.size,
+      maxSize: categoryStatisticsCache.max,
+      ttlMinutes: 15,
+    },
   }),
   /**
    * Clear all caches (useful for testing or manual cache invalidation)
@@ -428,7 +387,8 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
           logger.debug(
             {
               cacheKey: sidebarCacheKey,
-              cacheStats: sidebarStatisticsCache.getStats(),
+              cacheSize: sidebarStatisticsCache.size,
+              cacheMax: sidebarStatisticsCache.max,
             },
             'Cached sidebar statistics'
           );
@@ -439,7 +399,8 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     logger.debug(
       {
         cacheKey: sidebarCacheKey,
-        cacheStats: sidebarStatisticsCache.getStats(),
+        cacheSize: sidebarStatisticsCache.size,
+        cacheMax: sidebarStatisticsCache.max,
       },
       'Sidebar statistics cache HIT'
     );
@@ -515,7 +476,8 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
           logger.debug(
             {
               cacheKey: categoryCacheKey,
-              cacheStats: categoryStatisticsCache.getStats(),
+              cacheSize: categoryStatisticsCache.size,
+              cacheMax: categoryStatisticsCache.max,
             },
             'Cached category statistics'
           );
@@ -526,7 +488,8 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     logger.debug(
       {
         cacheKey: categoryCacheKey,
-        cacheStats: categoryStatisticsCache.getStats(),
+        cacheSize: categoryStatisticsCache.size,
+        cacheMax: categoryStatisticsCache.max,
       },
       'Category statistics cache HIT'
     );
