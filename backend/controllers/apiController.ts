@@ -1,4 +1,4 @@
-import { BadRequest, NotFound } from '../utils/error';
+import { badRequest, notFound } from '../utils/apiErrors';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { User } from '../models/user/user';
@@ -21,8 +21,8 @@ export const createAPIKeyDefault = async (req: Request, res: Response, next: Nex
       where: { id: user_id },
     });
 
-    if (!name) throw new NotFound('Name for API key not found.');
-    if (!user) throw new NotFound('User not found.');
+    if (!name) throw notFound('Name for API key not found.');
+    if (!user) throw notFound('User not found.');
 
     // Determine permissions to assign
     let permissions: string[];
@@ -95,7 +95,7 @@ export const deactivateAPIKey = async (req: Request, res: Response, next: NextFu
   const { api_key_id } = req.body;
 
   if (!api_key_id) {
-    return next(new BadRequest('ID of the API Key must be provided.'));
+    return next(badRequest('ID of the API Key must be provided.'));
   }
 
   try {
@@ -104,11 +104,11 @@ export const deactivateAPIKey = async (req: Request, res: Response, next: NextFu
     });
 
     if (!apiKey) {
-      throw new NotFound('API Key not found.');
+      throw notFound('API Key not found.');
     }
 
     if (apiKey.userId != user_id) {
-      throw new NotFound('API Key not found.');
+      throw notFound('API Key not found.');
     }
 
     if (!apiKey.isActive) {

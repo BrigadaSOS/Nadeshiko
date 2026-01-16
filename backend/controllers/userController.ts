@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Authorized, BadRequest, Conflict, NotFound } from '../utils/error';
+import { unauthorized, badRequest, notFound } from '../utils/apiErrors';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { logger } from '../utils/log';
@@ -58,7 +58,7 @@ export const getUserInfo = async (req: Request, res: Response, next: NextFunctio
       ],
     });
 
-    if (!user) throw new NotFound('This user has not been found.');
+    if (!user) throw notFound('This user has not been found.');
 
     const info_user = {
       username: user.username,
@@ -88,7 +88,7 @@ export const sendReportSegment = async (req: Request, res: Response, next: NextF
       where: { id: req.jwt.user_id },
     });
 
-    if (!user) throw new NotFound('This user has not been found.');
+    if (!user) throw notFound('This user has not been found.');
 
     const reportTypeValue = Number(report_type);
     if (!(reportTypeValue in ReportType)) {
@@ -119,7 +119,7 @@ export const signUp = async (req: Request, res: Response, next: NextFunction) =>
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      throw new BadRequest('Username, email, and password are required.');
+      throw badRequest('Username, email, and password are required.');
     }
 
     // check if user already exists
@@ -140,7 +140,7 @@ export const signUp = async (req: Request, res: Response, next: NextFunction) =>
         });
         return;
       } else {
-        throw new Conflict('Este correo ya ha sido usado. Por favor, intenta con otro correo.');
+        throw badRequest('Este correo ya ha sido usado. Por favor, intenta con otro correo.');
       }
     } else {
       // encrypt the password
@@ -204,8 +204,8 @@ export const logIn = async (req: Request, res: Response, next: NextFunction) => 
       ],
     });
 
-    if (!user) throw new NotFound('This email has not been found.');
-    if (!user.is_active) throw new NotFound('This user is not active.');
+    if (!user) throw notFound('This email has not been found.');
+    if (!user.is_active) throw notFound('This user is not active.');
 
     if (user.userAuths && user.userAuths.length > 0) {
       res.status(StatusCodes.UNAUTHORIZED).json({
@@ -216,10 +216,10 @@ export const logIn = async (req: Request, res: Response, next: NextFunction) => 
 
     // Compare the passwords
     const password: boolean = await bcrypt.compare(req.body.password.toString(), user.password);
-    if (!password) throw new BadRequest('Wrong email or password. Please try again.');
+    if (!password) throw badRequest('Wrong email or password. Please try again.');
 
     if (user.is_verified === false)
-      throw new Authorized('The email has not been verified. Please check your email again.');
+      throw unauthorized('The email has not been verified. Please check your email again.');
 
     // Create Token with role
     const user_role = await UserRole.findAll({

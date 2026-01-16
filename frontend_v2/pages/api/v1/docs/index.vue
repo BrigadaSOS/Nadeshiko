@@ -9,8 +9,10 @@ const ScalarApiReference = defineAsyncComponent(() =>
   })
 );
 
+const runtimeConfig = useRuntimeConfig();
+
 const config = {
-  url: '/nadeshikoapi.yaml',
+  url: `${runtimeConfig.public.baseURLBackend}/api/v1/openapi.yaml`,
   theme: 'deepSpace',
   layout: 'modern',
   darkMode: true,

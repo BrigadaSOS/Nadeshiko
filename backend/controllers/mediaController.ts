@@ -1,4 +1,4 @@
-import { BadRequest, NotFound } from '../utils/error';
+import { badRequest, notFound } from '../utils/apiErrors';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { v3 as uuidv3 } from 'uuid';
@@ -45,7 +45,7 @@ export const generateURLAudio = async (req: Request, res: Response, next: NextFu
     const urls: string[] = req.body.urls || [];
 
     if (!Array.isArray(urls) || urls.length === 0) {
-      throw new BadRequest('Debe ingresar una lista de URLs MP3.');
+      throw badRequest('Debe ingresar una lista de URLs MP3.');
     }
 
     const urlHash = urls.join('');
@@ -314,7 +314,7 @@ export const updateSegment = async (req: Request, res: Response, next: NextFunct
     });
 
     if (!segment) {
-      throw new NotFound('Segment not found.');
+      throw notFound('Segment not found.');
     }
 
     if (content_en) {

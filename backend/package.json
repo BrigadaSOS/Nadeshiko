@@ -11,6 +11,7 @@
     "buildwin": "rmdir /s /q prod && tsc --build --pretty",
     "start": "node prod/main.js",
     "start:local": "node prod/main.js",
+    "generate:api": "openapi-code-generator --input ./openapi/nadeshikoapi.yaml --input-type openapi3 --output ./generated --template typescript-express --schema-builder zod-v3",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,js,mjs,json,yaml,yml,md}\"",
@@ -36,6 +37,7 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.15.1",
+    "@nahkies/typescript-express-runtime": "^0.22.0",
     "archiver": "^7.0.1",
     "axios": "^1.7.7",
     "backend": "file:",
@@ -67,9 +69,11 @@
     "sharp": "^0.33.5",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@nahkies/openapi-code-generator": "^0.22.0",
     "@types/archiver": "^6.0.3",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.17",

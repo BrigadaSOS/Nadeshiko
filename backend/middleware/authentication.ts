@@ -1,6 +1,6 @@
 import { ApiAuth } from '../models/api/apiAuth';
 import { User } from '../models/user/user';
-import { Authorized, BadRequest } from '../utils/error';
+import { unauthorized, badRequest } from '../utils/apiErrors';
 import { Response, NextFunction } from 'express';
 import { ApiPermission } from '../models/api/apiPermission';
 import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
@@ -64,7 +64,7 @@ export const isAuthJWT = (req: any, _: Response, next: NextFunction): void => {
   const token = extractTokenFromCookie(req);
 
   if (!token) {
-    return next(new Authorized('JWT token missing'));
+    return next(unauthorized('JWT token missing'));
   }
 
   try {
@@ -101,11 +101,11 @@ function getJwtSecretKey(): string {
 
 function handleErrorJWT(error: any, next: NextFunction): void {
   if (error instanceof jwt.TokenExpiredError) {
-    return next(new Authorized('El token JWT ha expirado.'));
+    return next(unauthorized('El token JWT ha expirado.'));
   } else if (error instanceof jwt.JsonWebTokenError) {
-    return next(new Authorized('Token JWT inválido.'));
+    return next(unauthorized('Token JWT inválido.'));
   }
-  next(new Authorized('Token inválido...'));
+  next(unauthorized('Token inválido...'));
 }
 
 async function isAuthenticatedAPI(req: any, res: Response, next: NextFunction): Promise<void> {
@@ -146,7 +146,7 @@ async function isAuthenticatedAPI(req: any, res: Response, next: NextFunction): 
     next();
   } catch (error) {
     logger.error({ err: error, apiKeyPresent: !!apiKey }, 'Authentication error');
-    next(new BadRequest('There was an error. Please try again later...'));
+    next(badRequest('There was an error. Please try again later...'));
   }
 }
 
@@ -154,7 +154,7 @@ export const requireRoleJWT = (...allowedRoles: number[]) => {
   return (req: any, _: Response, next: NextFunction): void => {
     const roles: number[] = req.jwt.roles;
     if (!roles.some((role) => allowedRoles.includes(role))) {
-      return next(new Authorized('Denied access. Not authorized.'));
+      return next(unauthorized('Denied access. Not authorized.'));
     }
     next();
   };

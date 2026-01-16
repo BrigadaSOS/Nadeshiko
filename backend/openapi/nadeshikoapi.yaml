@@ -35,6 +35,22 @@ servers:
 security:
   - apiKeyHeader: []
 paths:
+  '/search/health':
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Check if the search service is operational
+      operationId: searchHealth
+      responses:
+        '200':
+          description: OK - Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseV1'
+        '401':
+          description: Unauthorized
   '/search/media/sentence':
     post:
       tags:
@@ -55,6 +71,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResponseV1'
+        '400':
+          description: Bad Request - Invalid input parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too Many Requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   '/search/media/match/words':
     post:
       tags:
@@ -73,14 +119,45 @@ paths:
                   type: array
                   items:
                     type: string
+                exact_match:
+                  type: boolean
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: object
-                # Define the response schema based on the actual response
+                $ref: '#/components/schemas/WordsMatchedResponse'
+        '400':
+          description: Bad Request - Invalid input parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too Many Requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   '/search/media/context':
     post:
       tags:
@@ -100,8 +177,43 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                # Define the response schema based on the actual response
+                $ref: '#/components/schemas/ContextResponse'
+        '400':
+          description: Bad Request - Invalid input parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too Many Requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   '/search/media/info':
     get:
       tags:
@@ -120,14 +232,56 @@ paths:
           schema:
             type: boolean
             default: true
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [anime, liveaction, audiobook]
+        - name: cursor
+          in: query
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: object
-                # Define the response schema based on the actual response
+                $ref: '#/components/schemas/MediaInfoResponse'
+        '400':
+          description: Bad Request - Invalid input parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too Many Requests - Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   securitySchemes:
     apiKeyHeader:
@@ -135,6 +289,22 @@ components:
       in: header
       name: X-API-Key
   schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum: [BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, INTERNAL_SERVER_ERROR]
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
     SentenceSearchRequest:
       type: object
       properties:
@@ -360,9 +530,9 @@ components:
     SeasonWithEpisodeHits:
       type: object
       additionalProperties:
-        type: object
         additionalProperties:
           type: integer
+        type: object
 
     CategoryStatistic:
       type: object
@@ -465,6 +635,18 @@ components:
           type: boolean
         content_es:
           type: string
+        content_es_highlight:
+          type: string
+        content_es_mt:
+          type: boolean
+        is_nsfw:
+          type: boolean
+        actor_ja:
+          type: string
+        actor_en:
+          type: string
+        actor_es:
+          type: string
 
     MediaInfo:
       type: object
@@ -475,3 +657,60 @@ components:
           type: string
         path_video:
           type: string
+    WordsMatchedResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WordMatch'
+    WordMatch:
+      type: object
+      properties:
+        word:
+          type: string
+        is_match:
+          type: boolean
+        total_matches:
+          type: integer
+        media:
+          type: object
+    ContextResponse:
+      type: object
+      properties:
+        sentences:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sentence'
+    MediaInfoResponse:
+      type: object
+      properties:
+        stats:
+          $ref: '#/components/schemas/MediaInfoStats'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaInfoData'
+        cursor:
+          type: integer
+          nullable: true
+        hasMoreResults:
+          type: boolean
+    MediaInfoStats:
+      type: object
+      properties:
+        total_animes:
+          type: integer
+        total_segments:
+          type: integer
+        full_total_animes:
+          type: integer
+        full_total_segments:
+          type: integer
+    MediaInfoData:
+      type: object
+      properties:
+        media_id:
+          type: integer
+        category:
+          type: integer

@@ -15,7 +15,7 @@
     "strictFunctionTypes": true,
     "noImplicitThis": true,
     "noUnusedLocals": false,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
@@ -25,6 +25,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
+    "paths": {
+      "@nahkies/typescript-express-runtime/*": ["node_modules/@nahkies/typescript-express-runtime/dist/*"]
+    },
     "noEmit": false,
     "noEmitOnError": false
   },
