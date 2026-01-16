@@ -27,6 +27,135 @@ import { QuerySurroundingSegmentsResponse } from '../models/external/querySurrou
 
 /**
  * =============================================================================
+ * STATISTICS CACHE
+ * =============================================================================
+ *
+ * In-memory LRU cache for Elasticsearch statistics aggregations.
+ *
+ * Why caching helps:
+ * - Statistics queries are expensive (aggregate all matching documents)
+ * - Statistics only depend on query text + filters, NOT on media/season/episode selection
+ * - Same statistics returned for all pagination requests with same query
+ * - Dramatically reduces Elasticsearch load for repeated searches
+ *
+ * Cache keys:
+ * - Sidebar statistics: query + category + status + length + excluded_anime_ids
+ * - Category statistics: query + media + status + length + excluded_anime_ids
+ */
+
+interface CacheEntry {
+  data: SearchResponse;
+  timestamp: number;
+}
+
+class LRUCache {
+  private cache: Map<string, CacheEntry> = new Map();
+  private readonly maxSize: number;
+  private readonly ttlMs: number;
+
+  constructor(maxSize: number = 1000, ttlMinutes: number = 15) {
+    this.maxSize = maxSize;
+    this.ttlMs = ttlMinutes * 60 * 1000;
+  }
+
+  get(key: string): SearchResponse | null {
+    const entry = this.cache.get(key);
+
+    if (!entry) {
+      return null;
+    }
+
+    // Check if expired
+    if (Date.now() - entry.timestamp > this.ttlMs) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    // Move to end (most recently used)
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
+    return entry.data;
+  }
+
+  set(key: string, data: SearchResponse): void {
+    // Remove oldest entry if at capacity
+    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  getStats(): { size: number; maxSize: number; ttlMinutes: number } {
+    return {
+      size: this.cache.size,
+      maxSize: this.maxSize,
+      ttlMinutes: this.ttlMs / (60 * 1000),
+    };
+  }
+}
+
+// Global cache instances
+const sidebarStatisticsCache = new LRUCache(1000, 15); // 1000 entries, 15 min TTL
+const categoryStatisticsCache = new LRUCache(1000, 15);
+
+/**
+ * Generate cache key for sidebar statistics (without media/season/episode filters)
+ */
+function generateSidebarStatsCacheKey(request: QuerySegmentsRequest): string {
+  const parts = [
+    request.query || '',
+    request.uuid || '',
+    request.exact_match ? 'exact' : 'fuzzy',
+    request.status?.sort().join(',') || '',
+    request.category?.sort().join(',') || '',
+    request.min_length || '',
+    request.max_length || '',
+    request.excluded_anime_ids?.sort().join(',') || '',
+  ];
+  return `sidebar:${parts.join('|')}`;
+}
+
+/**
+ * Generate cache key for category statistics (with media filter)
+ */
+function generateCategoryStatsCacheKey(request: QuerySegmentsRequest): string {
+  const mediaKey = request.media
+    ? JSON.stringify(
+        request.media.map((m) => ({
+          id: m.media_id,
+          seasons: m.seasons?.map((s) => ({
+            s: s.season,
+            e: s.episodes?.sort(),
+          })),
+        }))
+      )
+    : '';
+
+  const parts = [
+    request.query || '',
+    request.uuid || '',
+    request.exact_match ? 'exact' : 'fuzzy',
+    request.status?.sort().join(',') || '',
+    mediaKey,
+    request.min_length || '',
+    request.max_length || '',
+    request.excluded_anime_ids?.sort().join(',') || '',
+  ];
+  return `category:${parts.join('|')}`;
+}
+
+/**
+ * =============================================================================
  * ELASTICSEARCH SEARCH ARCHITECTURE
  * =============================================================================
  *
@@ -96,6 +225,27 @@ export const client = new Client({
     password: process.env.ELASTICSEARCH_PASSWORD || '',
   },
 });
+
+/**
+ * Export cache management functions for monitoring and debugging
+ */
+export const statisticsCache = {
+  /**
+   * Get current cache statistics
+   */
+  getStats: () => ({
+    sidebar: sidebarStatisticsCache.getStats(),
+    category: categoryStatisticsCache.getStats(),
+  }),
+  /**
+   * Clear all caches (useful for testing or manual cache invalidation)
+   */
+  clear: () => {
+    sidebarStatisticsCache.clear();
+    categoryStatisticsCache.clear();
+    logger.info('Statistics caches cleared');
+  },
+};
 
 function detectInputScript(query: string): InputScript {
   const hasKanji = /[\u4e00-\u9faf]/.test(query);
@@ -204,67 +354,96 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
   );
   const mustForStatistics = [...must];
 
-  const esNoHitsNoFiltersResponse = client.search({
-    size: 0,
-    sort,
-    index: process.env.ELASTICSEARCH_INDEX,
-    highlight: {
-      fields: {
-        content: {
-          matched_fields: ['content', 'content.readingform', 'content.baseform'],
-          type: 'fvh',
-        },
-        content_english: {
-          matched_fields: ['content_english', 'content_english.exact'],
-          type: 'fvh',
-        },
-        content_spanish: {
-          matched_fields: ['content_spanish', 'content_spanish.exact'],
-          type: 'fvh',
-        },
-      },
-    },
-    query: {
-      bool: {
-        filter: filterForStatisticsWithoutMedia,
-        must: mustForStatistics,
-        must_not: must_notForStatistics,
-      },
-    },
-    search_after: request.cursor,
-    aggs: {
-      group_by_category: {
-        terms: {
-          field: 'Media.category',
-          size: 10000,
-        },
-        aggs: {
-          group_by_media_id: {
-            terms: {
-              field: 'media_id',
-              size: 10000,
+  // Try to get sidebar statistics from cache
+  const sidebarCacheKey = generateSidebarStatsCacheKey(request);
+  let cachedSidebarStats = sidebarStatisticsCache.get(sidebarCacheKey);
+
+  const esNoHitsNoFiltersResponse = cachedSidebarStats
+    ? Promise.resolve(cachedSidebarStats)
+    : client
+        .search({
+          size: 0,
+          sort,
+          index: process.env.ELASTICSEARCH_INDEX,
+          highlight: {
+            fields: {
+              content: {
+                matched_fields: ['content', 'content.readingform', 'content.baseform'],
+                type: 'fvh',
+              },
+              content_english: {
+                matched_fields: ['content_english', 'content_english.exact'],
+                type: 'fvh',
+              },
+              content_spanish: {
+                matched_fields: ['content_spanish', 'content_spanish.exact'],
+                type: 'fvh',
+              },
             },
-            aggs: {
-              group_by_season: {
-                terms: {
-                  field: 'season',
-                  size: 10000,
-                },
-                aggs: {
-                  group_by_episode: {
-                    terms: {
-                      field: 'episode',
-                      size: 10000,
+          },
+          query: {
+            bool: {
+              filter: filterForStatisticsWithoutMedia,
+              must: mustForStatistics,
+              must_not: must_notForStatistics,
+            },
+          },
+          search_after: request.cursor,
+          aggs: {
+            group_by_category: {
+              terms: {
+                field: 'Media.category',
+                size: 10000,
+              },
+              aggs: {
+                group_by_media_id: {
+                  terms: {
+                    field: 'media_id',
+                    size: 10000,
+                  },
+                  aggs: {
+                    group_by_season: {
+                      terms: {
+                        field: 'season',
+                        size: 10000,
+                      },
+                      aggs: {
+                        group_by_episode: {
+                          terms: {
+                            field: 'episode',
+                            size: 10000,
+                          },
+                        },
+                      },
                     },
                   },
                 },
               },
             },
           },
-        },
+        })
+        .then((response) => {
+          // Cache the response for future requests
+          sidebarStatisticsCache.set(sidebarCacheKey, response);
+          logger.debug(
+            {
+              cacheKey: sidebarCacheKey,
+              cacheStats: sidebarStatisticsCache.getStats(),
+            },
+            'Cached sidebar statistics'
+          );
+          return response;
+        });
+
+  if (cachedSidebarStats) {
+    logger.debug(
+      {
+        cacheKey: sidebarCacheKey,
+        cacheStats: sidebarStatisticsCache.getStats(),
       },
-    },
-  });
+      'Sidebar statistics cache HIT'
+    );
+  }
 
   // Create filters for category statistics (with media filter, without category/season/episode filters) - used for top tabs
   // This shows categories for the query + media filter, with all seasons/episodes
@@ -280,49 +459,78 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
     filterWithMediaForCategoryStats.push(buildMediaFilter(request.media));
   }
 
-  const esCategoryStatsResponse = client.search({
-    size: 0,
-    index: process.env.ELASTICSEARCH_INDEX,
-    query: {
-      bool: {
-        filter: filterWithMediaForCategoryStats,
-        must: mustForCategoryStats,
-        must_not: must_notForCategoryStats,
-      },
-    },
-    aggs: {
-      group_by_category: {
-        terms: {
-          field: 'Media.category',
-          size: 10000,
-        },
-        aggs: {
-          group_by_media_id: {
-            terms: {
-              field: 'media_id',
-              size: 10000,
+  // Try to get category statistics from cache
+  const categoryCacheKey = generateCategoryStatsCacheKey(request);
+  let cachedCategoryStats = categoryStatisticsCache.get(categoryCacheKey);
+
+  const esCategoryStatsResponse = cachedCategoryStats
+    ? Promise.resolve(cachedCategoryStats)
+    : client
+        .search({
+          size: 0,
+          index: process.env.ELASTICSEARCH_INDEX,
+          query: {
+            bool: {
+              filter: filterWithMediaForCategoryStats,
+              must: mustForCategoryStats,
+              must_not: must_notForCategoryStats,
             },
-            aggs: {
-              group_by_season: {
-                terms: {
-                  field: 'season',
-                  size: 10000,
-                },
-                aggs: {
-                  group_by_episode: {
-                    terms: {
-                      field: 'episode',
-                      size: 10000,
+          },
+          aggs: {
+            group_by_category: {
+              terms: {
+                field: 'Media.category',
+                size: 10000,
+              },
+              aggs: {
+                group_by_media_id: {
+                  terms: {
+                    field: 'media_id',
+                    size: 10000,
+                  },
+                  aggs: {
+                    group_by_season: {
+                      terms: {
+                        field: 'season',
+                        size: 10000,
+                      },
+                      aggs: {
+                        group_by_episode: {
+                          terms: {
+                            field: 'episode',
+                            size: 10000,
+                          },
+                        },
+                      },
                     },
                   },
                 },
               },
             },
           },
-        },
+        })
+        .then((response) => {
+          // Cache the response for future requests
+          categoryStatisticsCache.set(categoryCacheKey, response);
+          logger.debug(
+            {
+              cacheKey: categoryCacheKey,
+              cacheStats: categoryStatisticsCache.getStats(),
+            },
+            'Cached category statistics'
+          );
+          return response;
+        });
+
+  if (cachedCategoryStats) {
+    logger.debug(
+      {
+        cacheKey: categoryCacheKey,
+        cacheStats: categoryStatisticsCache.getStats(),
       },
-    },
-  });
+      'Category statistics cache HIT'
+    );
+  }
 
   const esResponse = client.search({
     size: request.limit,
