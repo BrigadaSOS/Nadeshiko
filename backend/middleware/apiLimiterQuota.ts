@@ -15,10 +15,17 @@ export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunc
       include: [
         {
           model: User,
+          as: 'user',
           include: [
             {
               model: UserRole,
-              include: [Role],
+              as: 'userRoles',
+              include: [
+                {
+                  model: Role,
+                  as: 'role',
+                },
+              ],
             },
           ],
         },
@@ -29,8 +36,8 @@ export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunc
       throw new Unauthorized('Invalid API Key.');
     }
 
-    const roles = apiAuth.user.UserRoles.map((ur) => ur.role);
-    const maxQuota = Math.max(...roles.map((role) => role.quotaLimit));
+    const roles = (apiAuth.user?.userRoles ?? []).map((ur: any) => ur.role);
+    const maxQuota = Math.max(...roles.map((role: any) => role.quotaLimit));
 
     if (maxQuota === -1) {
       await logApiUsage(req, apiAuth);

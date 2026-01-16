@@ -1,16 +1,16 @@
 import { Sequelize } from 'sequelize-typescript';
-import { Media } from '../models/media/media';
 import { Segment } from '../models/media/segment';
-import { ApiAuth } from '../models/api/apiAuth';
-import { ApiPermission } from '../models/api/apiPermission';
-import { ApiUsageHistory } from '../models/api/apiUsageHistory';
-import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
-import { User } from '../models/user/user';
-import { UserRole } from '../models/user/userRole';
+import { Media } from '../models/media/media';
 import { Role } from '../models/user/role';
-import { UserSearchHistory } from '../models/miscellaneous/userSearchHistory';
+import { UserRole } from '../models/user/userRole';
 import { UserAuth } from '../models/user/userAuth';
 import { UserToken } from '../models/user/userToken';
+import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
+import { ApiPermission } from '../models/api/apiPermission';
+import { ApiAuth } from '../models/api/apiAuth';
+import { ApiUsageHistory } from '../models/api/apiUsageHistory';
+import { User } from '../models/user/user';
+import { UserSearchHistory } from '../models/miscellaneous/userSearchHistory';
 import { Report } from '../models/miscellaneous/report';
 
 import 'dotenv/config';
@@ -46,11 +46,18 @@ const connection = new Sequelize({
   ],
   logging: false,
   pool: {
-    max: 10,
-    min: 0,
+    max: 20,
+    min: 5,
     acquire: 60000,
     idle: 5000,
   },
+});
+
+// Initialize associations after all models are registered
+Object.values(connection.models).forEach((model) => {
+  if ('associate' in model && typeof model.associate === 'function') {
+    model.associate(connection);
+  }
 });
 
 export default connection;
