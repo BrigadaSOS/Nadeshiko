@@ -1,28 +1,41 @@
-import { NextFunction, Request, Response } from 'express';
-import { GeneralError, NotFound } from '../utils/error';
-// HTTP Codes
+import { Request, Response, NextFunction } from 'express';
+import { GeneralError, ErrorCode } from '../utils/error';
 import { StatusCodes } from 'http-status-codes';
 
-export const handleErrors = (error: Error, _req: Request, res: Response, _next: NextFunction) => {
+const GITHUB_BUG_URL = 'https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.md';
+
+interface InternalErrorResponse {
+  error: {
+    message: string;
+    code: ErrorCode;
+    report: {
+      github: string;
+    };
+  };
+}
+
+export const handleErrors = (error: Error, _req: Request, res: Response, next: NextFunction) => {
+  // If headers already sent, delegate to Express default error handler which will close the
+  // connection and fail the request. This is for cases like when an error is thrown
+  // mid-stream, when headers are already set beforehand
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  // Handle our domain errors
   if (error instanceof GeneralError) {
-    return res.status(error.getCode()).json({
-      status: res.statusCode,
-      error: error,
-    });
+    return res.status(error.getStatus()).json(error.toJSON());
   }
 
-  // Verificar si el error es un archivo no encontrado (404)
-  if (error.message.includes('ENOENT')) {
-    const filePath = (error as NodeJS.ErrnoException).path;
-    const notFoundError = new NotFound(`File not found: ${filePath}`);
-    return res.status(notFoundError.getCode()).json({
-      status: res.statusCode,
-      error: notFoundError,
-    });
-  }
+  // Everything else is an unexpected error - return generic 500
+  // (pino-http will log the error automatically)
 
-  return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-    status: res.statusCode,
-    error: error,
-  });
+  const response: InternalErrorResponse = {
+    error: {
+      message: 'An internal error occurred',
+      code: ErrorCode.INTERNAL_ERROR,
+      report: { github: GITHUB_BUG_URL },
+    },
+  };
+  return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(response);
 };
