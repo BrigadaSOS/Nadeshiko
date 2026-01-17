@@ -8,7 +8,6 @@ import express, { Application } from 'express';
 import connection from './database/db_posgres';
 import { handleErrors } from './middleware/errorHandler';
 import { logger, httpLogger } from './utils/log';
-import { perEndpointLimiter } from './middleware/apiLimiterRate';
 
 import bodyParser from 'body-parser';
 import promBundle from 'express-prom-bundle';
@@ -135,7 +134,6 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 // Must go before router
 app.use(httpLogger);
 app.use(metricsMiddleware);
-app.use('/api', perEndpointLimiter);
 app.use('/api', router);
 
 // @ts-expect-error -- error handler type
