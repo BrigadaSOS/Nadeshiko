@@ -1,25 +1,23 @@
 import { ApiAuth } from '../models/api/apiAuth';
 import { User } from '../models/user/user';
-import { Authorized, BadRequest } from '../utils/error';
+import { Unauthorized } from '../utils/error';
 import { Response, NextFunction } from 'express';
 import { ApiPermission } from '../models/api/apiPermission';
 import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
 import { hashApiKey } from '../utils/utils';
 import { parse } from 'url';
-import { logger } from '../utils/log';
 
 import jwt from 'jsonwebtoken';
 export const maxAgeJWT: number = 3 * 24 * 60 * 60; // 3 days
 
 export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
-  return (req: any, res: Response, next: NextFunction): void => {
+  return async (req: any, res: Response, next: NextFunction): Promise<void> => {
     const apiKey = req.headers['x-api-key'];
     const authToken = req.headers.authorization;
     const allowedUrls = process.env.ALLOWED_WEBSITE_URLS?.split(',');
 
     if (!allowedUrls) {
-      res.status(401).json({ error: 'No allowed URLs specified in the environment file.' });
-      return;
+      throw new Unauthorized('No allowed URLs specified in the environment file.');
     }
 
     const requestUrl = parse(req.headers.referer || '');
@@ -40,14 +38,12 @@ export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
       if (options.jwt && authToken && authToken.startsWith('Bearer ')) {
         return isAuthJWT(req, res, next);
       } else if (options.apiKey !== false && apiKey) {
-        void isAuthenticatedAPI(req, res, next);
-        return;
+        return isAuthenticatedAPI(req, res, next);
       } else {
         const missing = [];
         if (options.jwt) missing.push('JWT');
         if (options.apiKey) missing.push('API Key');
-        res.status(401).json({ error: `Authentication required: ${missing.join(' or ')}` });
-        return;
+        throw new Unauthorized(`Authentication required: ${missing.join(' or ')}`);
       }
     } else {
       // Otherwise, skip authentication except for JWT
@@ -60,11 +56,11 @@ export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
   };
 };
 
-export const isAuthJWT = (req: any, _: Response, next: NextFunction): void => {
+export const isAuthJWT = (req: any, _res: Response, next: NextFunction): void => {
   const token = extractTokenFromCookie(req);
 
   if (!token) {
-    return next(new Authorized('JWT token missing'));
+    throw new Unauthorized('JWT token missing');
   }
 
   try {
@@ -75,7 +71,12 @@ export const isAuthJWT = (req: any, _: Response, next: NextFunction): void => {
 
     next();
   } catch (error) {
-    handleErrorJWT(error, next);
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new Unauthorized('JWT token has expired.');
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      throw new Unauthorized('Invalid JWT token.');
+    }
+    throw new Unauthorized('Invalid token...');
   }
 };
 
@@ -94,67 +95,49 @@ function extractTokenFromCookie(req: any): string | null {
 
 function getJwtSecretKey(): string {
   if (!process.env.SECRET_KEY_JWT) {
-    throw new Error('JWT Secret Key no definido en las variables de entorno.');
+    throw new Error('JWT Secret Key not defined in environment variables.');
   }
   return process.env.SECRET_KEY_JWT;
 }
 
-function handleErrorJWT(error: any, next: NextFunction): void {
-  if (error instanceof jwt.TokenExpiredError) {
-    return next(new Authorized('El token JWT ha expirado.'));
-  } else if (error instanceof jwt.JsonWebTokenError) {
-    return next(new Authorized('Token JWT inválido.'));
-  }
-  next(new Authorized('Token inválido...'));
-}
-
-async function isAuthenticatedAPI(req: any, res: Response, next: NextFunction): Promise<void> {
+async function isAuthenticatedAPI(req: any, _res: Response, next: NextFunction): Promise<void> {
   const apiKey = req.headers['x-api-key'];
   req.apiKey = apiKey;
 
   if (!apiKey) {
-    res.status(401).json({ error: 'No API key was provided.' });
-    return;
+    throw new Unauthorized('No API key was provided.');
   }
 
   const hashedKey = hashApiKey(apiKey);
 
-  try {
-    const user = await User.findOne({
-      include: [
-        {
-          model: ApiAuth,
-          where: { token: hashedKey },
-          include: [
-            {
-              model: ApiPermission,
-              through: ApiAuthPermission as any,
-            },
-          ],
-        },
-      ],
-    });
+  const user = await User.findOne({
+    include: [
+      {
+        model: ApiAuth,
+        where: { token: hashedKey },
+        include: [
+          {
+            model: ApiPermission,
+            through: ApiAuthPermission as any,
+          },
+        ],
+      },
+    ],
+  });
 
-    if (!user) {
-      res.status(401).json({ error: 'Invalid API key.' });
-      return;
-    } else {
-      if (!req.user) {
-        req.user = user;
-      }
-    }
-    next();
-  } catch (error) {
-    logger.error({ err: error, apiKeyPresent: !!apiKey }, 'Authentication error');
-    next(new BadRequest('There was an error. Please try again later...'));
+  if (!user) {
+    throw new Unauthorized('Invalid API key.');
   }
+
+  req.user = user;
+  next();
 }
 
 export const requireRoleJWT = (...allowedRoles: number[]) => {
-  return (req: any, _: Response, next: NextFunction): void => {
+  return (req: any, _res: Response, next: NextFunction): void => {
     const roles: number[] = req.jwt.roles;
     if (!roles.some((role) => allowedRoles.includes(role))) {
-      return next(new Authorized('Denied access. Not authorized.'));
+      throw new Unauthorized('Denied access. Not authorized.');
     }
     next();
   };
