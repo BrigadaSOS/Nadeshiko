@@ -45,10 +45,12 @@ export const getUserInfo = async (req: Request, res: Response): Promise<void> =>
     include: [
       {
         model: UserRole,
+        as: 'userRoles',
         required: false,
         include: [
           {
             model: Role,
+            as: 'role',
             required: true,
           },
         ],
@@ -62,7 +64,7 @@ export const getUserInfo = async (req: Request, res: Response): Promise<void> =>
     username: user.username,
     email: user.email,
     roles:
-      user.UserRoles?.map((userRole: any) => ({
+      user.userRoles?.map((userRole: any) => ({
         id_role: userRole.id_role,
         name: userRole.role?.name,
       })) || [],
@@ -118,6 +120,7 @@ export const signUp = async (req: Request, res: Response) => {
     include: [
       {
         model: UserAuth,
+        as: 'userAuths',
         required: false,
       },
     ],
@@ -157,9 +160,9 @@ export const signUp = async (req: Request, res: Response) => {
       email_token: randomTokenEmail,
       is_verified: isTesting, // Auto-verify in testing environment
       is_active: true,
-      UserRoles: userRoles,
+      userRoles: userRoles,
     },
-    { include: UserRole },
+    { include: [{ model: UserRole, as: 'userRoles' }] },
   );
 
   // Send verification email to user (skip in testing environment)
@@ -181,10 +184,12 @@ export const logIn = async (req: Request, res: Response) => {
     include: [
       {
         model: UserAuth,
+        as: 'userAuths',
         required: false,
       },
       {
         model: UserRole,
+        as: 'userRoles',
         required: false,
       },
     ],
@@ -213,6 +218,7 @@ export const logIn = async (req: Request, res: Response) => {
     include: [
       {
         model: Role,
+        as: 'role',
         required: true,
       },
     ],
@@ -233,7 +239,7 @@ export const logIn = async (req: Request, res: Response) => {
     id: user.id,
     username: user.username,
     email: user.email,
-    roles: user?.UserRoles,
+    roles: user?.userRoles,
   };
 
   res.status(StatusCodes.OK).json({
@@ -251,11 +257,13 @@ export const loginGoogle = async (req: Request, res: Response) => {
     include: [
       {
         model: UserAuth,
+        as: 'userAuths',
         where: { providerUserId: userInfo.sub, provider: 'google' },
         required: false,
       },
       {
         model: UserRole,
+        as: 'userRoles',
       },
     ],
   });
@@ -280,9 +288,9 @@ export const loginGoogle = async (req: Request, res: Response) => {
         email: userInfo.email,
         is_verified: true,
         is_active: true,
-        UserRoles: userRoles,
+        userRoles: userRoles,
       },
-      { include: UserRole },
+      { include: [{ model: UserRole, as: 'userRoles' }] },
     );
 
     // Create related data from oAUTH
@@ -299,6 +307,7 @@ export const loginGoogle = async (req: Request, res: Response) => {
     include: [
       {
         model: Role,
+        as: 'role',
         required: true,
       },
     ],
@@ -319,7 +328,7 @@ export const loginGoogle = async (req: Request, res: Response) => {
     id: user.id,
     username: user.username,
     email: user.email,
-    roles: user?.UserRoles,
+    roles: user?.userRoles,
   };
 
   res.status(StatusCodes.OK).json({
@@ -364,11 +373,13 @@ export const loginDiscord = async (req: Request, res: Response) => {
     include: [
       {
         model: UserAuth,
+        as: 'userAuths',
         where: { providerUserId: discordUser.id, provider: 'discord' },
         required: false,
       },
       {
         model: UserRole,
+        as: 'userRoles',
       },
     ],
   });
@@ -391,9 +402,9 @@ export const loginDiscord = async (req: Request, res: Response) => {
         email: discordUser.email,
         is_verified: true,
         is_active: true,
-        UserRoles: userRoles,
+        userRoles: userRoles,
       },
-      { include: UserRole },
+      { include: [{ model: UserRole, as: 'userRoles' }] },
     );
 
     await UserAuth.create({
@@ -406,7 +417,7 @@ export const loginDiscord = async (req: Request, res: Response) => {
   // Create JWT token
   const user_role = await UserRole.findAll({
     where: { id_user: user.id },
-    include: [{ model: Role, required: true }],
+    include: [{ model: Role, as: 'role', required: true }],
   });
 
   const list_roles = user_role.map((user_role) => user_role.id_role);
@@ -423,7 +434,7 @@ export const loginDiscord = async (req: Request, res: Response) => {
     id: user.id,
     username: user.username,
     email: user.email,
-    roles: user?.UserRoles,
+    roles: user?.userRoles,
   };
 
   res.status(StatusCodes.OK).json({

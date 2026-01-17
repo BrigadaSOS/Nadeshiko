@@ -1,7 +1,7 @@
-import { Table, Model, Column, DataType, BelongsTo, BelongsToMany, ForeignKey } from 'sequelize-typescript';
-import { ApiPermission } from './apiPermission';
+import { Table, Model, Column, DataType, ForeignKey } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
+import type { ApiPermission } from './apiPermission';
 import { User } from '../user/user';
-import { ApiAuthPermission } from './ApiAuthPermission';
 
 @Table({
   timestamps: false,
@@ -14,7 +14,7 @@ export class ApiAuth extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.STRING,
@@ -38,7 +38,7 @@ export class ApiAuth extends Model {
     type: DataType.DATE,
     allowNull: true,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({
     type: DataType.BOOLEAN,
@@ -53,9 +53,20 @@ export class ApiAuth extends Model {
   })
   userId!: number;
 
-  @BelongsToMany(() => ApiPermission, () => ApiAuthPermission)
-  permissions!: ApiPermission[];
+  declare permissions?: ApiPermission[];
+  declare user?: User;
 
-  @BelongsTo(() => User)
-  user!: User;
+  static associate(sequelize: Sequelize) {
+    const ApiPermissionModel = sequelize.models.ApiPermission;
+    const ApiAuthPermissionModel = sequelize.models.ApiAuthPermission;
+    const UserModel = sequelize.models.User;
+
+    ApiAuth.belongsToMany(ApiPermissionModel, {
+      through: ApiAuthPermissionModel,
+      foreignKey: 'apiAuthId',
+      otherKey: 'apiPermissionId',
+      as: 'permissions',
+    });
+    ApiAuth.belongsTo(UserModel, { foreignKey: 'userId', as: 'user' });
+  }
 }

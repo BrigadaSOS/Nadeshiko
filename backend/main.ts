@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
 import './external/elasticsearch'; // Initialize client
-import path from 'path';
+import { safePath } from './utils/fs';
 import { router } from './routes/router';
 import express, { Application, ErrorRequestHandler } from 'express';
 import connection from './database/db_posgres';
@@ -46,9 +46,9 @@ const mediaConfigMap: Record<
   { mediaDir: string; cacheDir: string; tmpDir: string; useHighQualityKernel: boolean }
 > = {
   testing: {
-    mediaDir: path.join(__dirname, '/media'),
+    mediaDir: safePath(__dirname, 'media'),
     cacheDir: 'tmp/cache',
-    tmpDir: path.join(__dirname, '/media/tmp'),
+    tmpDir: safePath(__dirname, 'media', 'tmp'),
     useHighQualityKernel: true,
   },
   production: {

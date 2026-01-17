@@ -1,6 +1,6 @@
-import { Table, Model, Column, DataType, BelongsToMany } from 'sequelize-typescript';
-import { ApiAuth } from './apiAuth';
-import { ApiAuthPermission } from './ApiAuthPermission';
+import { Table, Model, Column, DataType } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
+import type { ApiAuth } from './apiAuth';
 
 @Table({
   timestamps: false,
@@ -13,7 +13,7 @@ export class ApiPermission extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.STRING,
@@ -21,6 +21,17 @@ export class ApiPermission extends Model {
   })
   name!: string;
 
-  @BelongsToMany(() => ApiAuth, () => ApiAuthPermission)
-  apiAuths!: ApiAuth[];
+  declare apiAuths?: ApiAuth[];
+
+  static associate(sequelize: Sequelize) {
+    const ApiAuth = sequelize.models.ApiAuth;
+    const ApiAuthPermission = sequelize.models.ApiAuthPermission;
+
+    ApiPermission.belongsToMany(ApiAuth, {
+      through: ApiAuthPermission,
+      foreignKey: 'apiPermissionId',
+      otherKey: 'apiAuthId',
+      as: 'apiAuths',
+    });
+  }
 }

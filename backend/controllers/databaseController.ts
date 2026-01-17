@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { addBasicData, readAnimeDirectories, readSpecificDirectory } from '../database/db_initial';
 import { UserSearchHistory } from '../models/miscellaneous/userSearchHistory';
 import { logger } from '../utils/log';
+import { invalidateMediaCache } from '../external/database_queries';
 
 const mediaDirectory: string = process.env.MEDIA_DIRECTORY!;
 
@@ -15,17 +16,20 @@ export const reSyncDatabase = async (_req: any, res: Response) => {
     await readAnimeDirectories(mediaDirectory, 'anime');
     await readAnimeDirectories(mediaDirectory, 'audiobook');
   });
+  invalidateMediaCache();
   res.status(StatusCodes.OK).json({ message: 'Database re-synced' });
 };
 
 export const reSyncDatabasePartial = async (_req: any, res: Response) => {
   await connection.sync({ alter: true });
+  invalidateMediaCache();
   res.status(StatusCodes.OK).json({ message: 'Database re-synced without deleting everything' });
 };
 
 export const SyncSpecificMedia = async (req: any, res: Response) => {
   const { folder_name, season, episode, force, type } = req.body;
   const message = await readSpecificDirectory(mediaDirectory, folder_name, season, episode, force, type);
+  invalidateMediaCache();
   res.status(StatusCodes.OK).json({ message: message });
 };
 

@@ -67,7 +67,7 @@ function getCachePath(
   const cacheDir = safePath(baseMediaDir, cacheDirSuffix, path.dirname(requestPath));
   const basename = path.basename(requestPath.replace('.webp', ''));
   const sizeSuffix = `${dimensions.width}_${dimensions.height}`;
-  const cachePath = path.join(cacheDir, `${basename}-${sizeSuffix}.webp`);
+  const cachePath = safePath(cacheDir, `${basename}-${sizeSuffix}.webp`);
   return { cacheDir, cachePath };
 }
 

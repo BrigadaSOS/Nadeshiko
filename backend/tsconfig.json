@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "checkJs": false,
-    "target": "es2018",
-    "module": "commonjs",
+    "target": "esnext",
+    "module": "esnext",
     "lib": ["dom", "es2018", "esnext.asynciterable"],
     "sourceMap": true,
     "outDir": "./prod",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "declaration": false,
     "composite": false,
     "removeComments": true,

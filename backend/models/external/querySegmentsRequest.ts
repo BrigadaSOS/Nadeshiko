@@ -1,4 +1,5 @@
-import { FieldValue } from '@elastic/elasticsearch/lib/api/types';
+import { estypes } from '@elastic/elasticsearch';
+type FieldValue = estypes.FieldValue;
 import { SegmentStatus } from '../media/segment';
 
 export interface QuerySegmentsRequest {

@@ -3,7 +3,6 @@ import { User } from '../models/user/user';
 import { Unauthorized } from '../utils/error';
 import { Response, NextFunction } from 'express';
 import { ApiPermission } from '../models/api/apiPermission';
-import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
 import { hashApiKey } from '../utils/utils';
 import { parse } from 'url';
 
@@ -114,11 +113,12 @@ async function isAuthenticatedAPI(req: any, _res: Response, next: NextFunction):
     include: [
       {
         model: ApiAuth,
+        as: 'apiAuth',
         where: { token: hashedKey },
         include: [
           {
             model: ApiPermission,
-            through: ApiAuthPermission as any,
+            as: 'permissions',
           },
         ],
       },

@@ -16,9 +16,6 @@ export function safePath(baseDir: string, ...segments: string[]): string {
   const joined = path.join(resolvedBase, ...segments);
   const resolved = path.resolve(joined);
 
-  // Ensure the resolved path starts with the base directory
-  // Adding path.sep ensures we don't match partial directory names
-  // e.g., /media-backup shouldn't match base /media
   if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) {
     throw new BadRequest('Invalid path');
   }

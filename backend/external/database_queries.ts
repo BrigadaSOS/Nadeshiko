@@ -8,11 +8,18 @@ let MEDIA_TABLE_CACHE: QueryMediaInfoResponse | undefined = undefined;
 // Return data from Media table. This table almost never changes and is quite small, so we can cache it on memory to
 // save extra calls to the DB
 export const queryMediaInfo = async (page: number = 1, pageSize: number = 10): Promise<QueryMediaInfoResponse> => {
-  // TODO: Fix cache
-  //if(MEDIA_TABLE_CACHE === undefined) {
-  //}
+  if (MEDIA_TABLE_CACHE !== undefined) {
+    logger.debug('Using cached Media info');
+    return MEDIA_TABLE_CACHE;
+  }
+
   await refreshMediaInfoCache(page, pageSize);
   return MEDIA_TABLE_CACHE!;
+};
+
+export const invalidateMediaCache = (): void => {
+  logger.info('Invalidating Media table cache');
+  MEDIA_TABLE_CACHE = undefined;
 };
 
 export const refreshMediaInfoCache = async (page: number, pageSize: number) => {

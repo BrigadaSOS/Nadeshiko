@@ -1,4 +1,5 @@
-import { Table, Model, Column, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, ForeignKey } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
 import { User } from './user';
 
 @Table({
@@ -12,7 +13,7 @@ export class UserAuth extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => User)
   @Column({
@@ -33,6 +34,11 @@ export class UserAuth extends Model {
   })
   providerUserId!: string;
 
-  @BelongsTo(() => User)
-  user!: User;
+  declare user?: User;
+
+  static associate(sequelize: Sequelize) {
+    const UserModel = sequelize.models.User;
+
+    UserAuth.belongsTo(UserModel, { foreignKey: 'userId', as: 'user' });
+  }
 }

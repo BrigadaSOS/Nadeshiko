@@ -5,16 +5,16 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/search/media/info?size=20&query=naruto&cursor=0&type=anime
+  url: {{baseUrl}}/v1/search/media/info?size=20&cursor=0&type=anime
   body: none
   auth: inherit
 }
 
 params:query {
   size: 20
-  query: naruto
   cursor: 0
   type: anime
+  ~query: naruto
 }
 
 settings {

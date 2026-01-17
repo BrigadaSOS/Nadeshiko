@@ -7,7 +7,7 @@ import { generateApiKey, generateApiKeyHint, hashApiKey } from '../utils/utils';
 import { ApiPermission } from '../models/api/apiPermission';
 import { ApiAuthPermission } from '../models/api/ApiAuthPermission';
 import { ApiUsageHistory } from '../models/api/apiUsageHistory';
-import { Role } from '../models/user/role';
+import { Role, DEFAULT_QUOTA_LIMIT } from '../models/user/role';
 import { UserRole } from '../models/user/userRole';
 import { Op } from 'sequelize';
 
@@ -124,6 +124,7 @@ export const listAPIKeysByUser = async (req: Request, res: Response) => {
     include: [
       {
         model: ApiPermission,
+        as: 'permissions',
         attributes: ['id', 'name'],
         through: {
           attributes: [],
@@ -151,18 +152,22 @@ export const listAPIKeysByUser = async (req: Request, res: Response) => {
     include: [
       {
         model: User,
+        as: 'user',
         attributes: [],
         where: { id: user_id },
       },
       {
         model: Role,
+        as: 'role',
         attributes: ['quotaLimit'],
       },
     ],
   });
 
-  const hasUnlimitedQuota = userRoles.some((role) => role.role.quotaLimit === -1);
-  const highestQuotaLimit = hasUnlimitedQuota ? -1 : Math.max(...userRoles.map((role) => role.role.quotaLimit));
+  const hasUnlimitedQuota = userRoles.some((role) => role.role?.quotaLimit === -1);
+  const highestQuotaLimit = hasUnlimitedQuota
+    ? -1
+    : Math.max(...userRoles.map((role) => role.role?.quotaLimit ?? DEFAULT_QUOTA_LIMIT));
 
   const keys = apiKeys.map((apiKey) => ({
     id: apiKey.id,
@@ -170,7 +175,7 @@ export const listAPIKeysByUser = async (req: Request, res: Response) => {
     isActive: apiKey.isActive,
     createdAt: apiKey.createdAt,
     hint: apiKey.hint,
-    permissions: apiKey.permissions
+    permissions: (apiKey.permissions ?? [])
       .sort((a, b) => a.id - b.id)
       .map((permission) => ({
         id: permission.id,

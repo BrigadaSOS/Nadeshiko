@@ -4,9 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 import { v3 as uuidv3 } from 'uuid';
 import { logger } from '../utils/log';
 
-import path from 'path';
-import { existsSync } from '../utils/fs';
-import { spawn } from 'child_process';
+import { existsSync, safePath } from '../utils/fs';
 import ffmpegStatic from 'ffmpeg-static';
 import requestIp from 'request-ip';
 
@@ -81,7 +79,7 @@ export const generateURLAudio = async (req: Request, res: Response) => {
  */
 
 async function mergeAudioFiles(urls: string[], randomFilename: string) {
-  const outputFilePath = path.join(tmpDirectory, randomFilename);
+  const outputFilePath = safePath(tmpDirectory, randomFilename);
 
   // Build ffmpeg arguments as array.
   const ffmpegArgs: string[] = [];
@@ -98,20 +96,18 @@ async function mergeAudioFiles(urls: string[], randomFilename: string) {
   ffmpegArgs.push(outputFilePath);
 
   try {
-    await new Promise<void>((resolve, reject) => {
-      const ffmpeg = spawn(ffmpegStatic || 'ffmpeg', ffmpegArgs, { stdio: 'inherit' });
-      ffmpeg.on('close', (code: number) => {
-        if (code === 0) {
-          logger.info({ outputFilePath, urlCount: urls.length }, 'Files merged successfully');
-          resolve();
-        } else {
-          reject(new Error(`ffmpeg exited with code ${code}`));
-        }
-      });
-      ffmpeg.on('error', (error: Error) => {
-        reject(error);
-      });
+    const proc = Bun.spawn([ffmpegStatic || 'ffmpeg', ...ffmpegArgs], {
+      stdio: ['inherit', 'inherit', 'inherit'],
+      env: process.env,
+      cwd: process.cwd(),
     });
+
+    const exitCode = await proc.exited;
+    if (exitCode === 0) {
+      logger.info({ outputFilePath, urlCount: urls.length }, 'Files merged successfully');
+    } else {
+      throw new Error(`ffmpeg exited with code ${exitCode}`);
+    }
   } catch (error) {
     logger.error({ err: error, urls, outputFilePath }, 'Error merging audio files');
   }
