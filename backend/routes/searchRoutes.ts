@@ -11,7 +11,7 @@ import {
   GetWordsMatched,
   SearchAnimeSentencesHealth,
 } from '../controllers/mediaController';
-import { searchFetchLimiter } from '../middleware/apilLimiterRate';
+import { searchFetchLimiter } from '../middleware/apiLimiterRate';
 
 // Get
 router.get('/v1/search/media/info', authenticate({ apiKey: true }), hasPermissionAPI(['READ_MEDIA']), getAllMedia);
