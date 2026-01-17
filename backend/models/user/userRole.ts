@@ -1,4 +1,5 @@
-import { Table, Model, Column, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, ForeignKey } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
 import { User } from './user';
 import { Role } from './role';
 
@@ -13,7 +14,7 @@ export class UserRole extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => User)
   @Column({
@@ -21,8 +22,7 @@ export class UserRole extends Model {
   })
   id_user!: number;
 
-  @BelongsTo(() => User)
-  user!: User;
+  declare user?: User;
 
   @ForeignKey(() => Role)
   @Column({
@@ -30,6 +30,13 @@ export class UserRole extends Model {
   })
   id_role!: number;
 
-  @BelongsTo(() => Role)
-  role!: Role;
+  declare role?: Role;
+
+  static associate(sequelize: Sequelize) {
+    const UserModel = sequelize.models.User;
+    const RoleModel = sequelize.models.Role;
+
+    UserRole.belongsTo(UserModel, { foreignKey: 'id_user', as: 'user' });
+    UserRole.belongsTo(RoleModel, { foreignKey: 'id_role', as: 'role' });
+  }
 }

@@ -1,4 +1,5 @@
-import { SortOrder } from '@elastic/elasticsearch/lib/api/types';
+import { estypes } from '@elastic/elasticsearch';
+type SortOrder = estypes.SortOrder;
 import { SegmentStatus } from '../media/segment';
 
 export interface SearchAnimeSentencesRequest {

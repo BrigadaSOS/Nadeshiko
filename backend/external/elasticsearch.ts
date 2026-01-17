@@ -1,16 +1,15 @@
-import { Client } from '@elastic/elasticsearch';
-import {
-  FieldValue,
-  MsearchRequestItem,
-  MsearchResponse,
-  QueryDslOperator,
-  QueryDslQueryContainer,
-  SearchResponse,
-  SearchResponseBody,
-  SearchTotalHits,
-  Sort,
-  SortOrder,
-} from '@elastic/elasticsearch/lib/api/types';
+import { Client, estypes, HttpConnection } from '@elastic/elasticsearch';
+
+type FieldValue = estypes.FieldValue;
+type MsearchRequestItem = estypes.MsearchRequestItem;
+type MsearchResponse = estypes.MsearchResponse;
+type QueryDslOperator = estypes.QueryDslOperator;
+type QueryDslQueryContainer = estypes.QueryDslQueryContainer;
+type SearchResponse = estypes.SearchResponse;
+type SearchResponseBody = estypes.SearchResponseBody;
+type SearchTotalHits = estypes.SearchTotalHits;
+type Sort = estypes.Sort;
+type SortOrder = estypes.SortOrder;
 import { QueryMediaInfoResponse } from '../models/external/queryMediaInfoResponse';
 import {
   QuerySegmentsResponse,
@@ -95,6 +94,7 @@ export const client = new Client({
     username: 'elastic',
     password: process.env.ELASTICSEARCH_PASSWORD || '',
   },
+  Connection: HttpConnection,
 });
 
 function detectInputScript(query: string): InputScript {

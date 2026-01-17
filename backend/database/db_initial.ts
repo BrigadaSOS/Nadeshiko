@@ -1,4 +1,3 @@
-import path from 'path';
 import { Media, CategoryType } from '../models/media/media';
 import { Segment, SegmentStatus } from '../models/media/segment';
 import { ApiAuth } from '../models/api/apiAuth';
@@ -58,10 +57,13 @@ export async function addBasicData(db: any) {
         createdAt: new Date(),
         isActive: true,
       },
-      UserRoles: userRoles,
+      userRoles: userRoles,
     },
     {
-      include: [ApiAuth, UserRole],
+      include: [
+        { model: ApiAuth, as: 'apiAuth' },
+        { model: UserRole, as: 'userRoles' },
+      ],
     },
   );
 
@@ -73,33 +75,35 @@ export async function addBasicData(db: any) {
     },
   });
 
-  await Promise.all(
-    apiPermissions.map(async (permission) => {
-      await ApiAuthPermission.create({
-        apiAuthId: apiAuth.id,
-        apiPermissionId: permission.id,
-      });
-    }),
-  );
+  if (apiAuth) {
+    await Promise.all(
+      apiPermissions.map(async (permission) => {
+        await ApiAuthPermission.create({
+          apiAuthId: apiAuth.id,
+          apiPermissionId: permission.id,
+        });
+      }),
+    );
+  }
 }
 
 // Function that reads all directories and maps them in the database
 export async function readAnimeDirectories(baseDir: string, type: string) {
   let globalPath = '';
   if (type == 'anime') {
-    globalPath = path.join(baseDir, 'anime');
+    globalPath = safePath(baseDir, 'anime');
   } else if (type == 'jdrama') {
-    globalPath = path.join(baseDir, 'jdrama');
+    globalPath = safePath(baseDir, 'jdrama');
   } else if (type == 'audiobook') {
-    globalPath = path.join(baseDir, 'audiobook');
+    globalPath = safePath(baseDir, 'audiobook');
   }
 
   const animeDirectories = readdirSync(globalPath, { withFileTypes: false });
 
   for (const animeItem of animeDirectories) {
-    const mediaDirPath = path.join(globalPath, animeItem as string);
+    const mediaDirPath = safePath(globalPath, animeItem as string);
     // Before creating the MEDIA, verify the existence of a JSON file with the info
-    const dataJsonPath = path.join(mediaDirPath, 'info.json');
+    const dataJsonPath = safePath(mediaDirPath, 'info.json');
     const dataJsonExists = existsSync(dataJsonPath);
 
     let media_raw = null;
@@ -150,7 +154,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
             continue;
           }
 
-          const tempDirPath = path.join(mediaDirPath, seasonDirname);
+          const tempDirPath = safePath(mediaDirPath, seasonDirname);
           numSeasons += 1;
 
           const media = await Media.findOne({
@@ -163,12 +167,12 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
             const episodeDirectories = readdirSync(tempDirPath, { withFileTypes: false });
 
             for (const episodeDirname of episodeDirectories) {
-              const episodeDirPath = path.join(tempDirPath, episodeDirname as string);
+              const episodeDirPath = safePath(tempDirPath, episodeDirname as string);
               numEpisodes += 1;
 
               const number_episode = parseInt(episodeDirname.replace('E', ''));
 
-              const dataTsvPath = path.join(episodeDirPath, 'data.tsv');
+              const dataTsvPath = safePath(episodeDirPath, 'data.tsv');
               const dataTsvExists = existsSync(dataTsvPath);
 
               if (dataTsvExists) {
@@ -270,7 +274,7 @@ export async function readSpecificDirectory(
   if (folderExists(mediaDirPath)) {
     // Check if the content exists in the database
     // Check the existence of a JSON file with the info
-    const dataJsonPath = path.join(mediaDirPath, 'info.json');
+    const dataJsonPath = safePath(mediaDirPath, 'info.json');
     const dataJsonExists = existsSync(dataJsonPath);
 
     let media_raw = null;
@@ -374,7 +378,7 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
     numSeasons += 1;
 
     // Once the season is mapped, map the episodes
-    const tempDirPath = path.join(mediaDirPath, seasonDirname);
+    const tempDirPath = safePath(mediaDirPath, seasonDirname);
     const isDirectory = statSync(tempDirPath).isDirectory();
     if (isDirectory) {
       const episodeDirectories = readdirSync(tempDirPath, { withFileTypes: false });
@@ -383,8 +387,8 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
         numEpisodes += 1;
 
         // Once the episode is mapped, map the segments according to the TSV file inside the episode folder
-        const episodeDirPath = path.join(tempDirPath, episodeDirname as string);
-        const dataTsvPath = path.join(episodeDirPath, 'data.tsv');
+        const episodeDirPath = safePath(tempDirPath, episodeDirname as string);
+        const dataTsvPath = safePath(episodeDirPath, 'data.tsv');
         const dataTsvExists = existsSync(dataTsvPath);
 
         if (dataTsvExists) {

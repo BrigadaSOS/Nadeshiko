@@ -1,4 +1,5 @@
-import { Table, Model, Column, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, ForeignKey } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
 import { User } from '../user/user';
 import { Segment } from '../media/segment';
 
@@ -28,7 +29,7 @@ export class Report extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Segment)
   @Column({
@@ -89,12 +90,16 @@ export class Report extends Model {
   })
   tags!: string;
 
-  @BelongsTo(() => Segment)
-  segment!: Segment;
+  declare segment?: Segment;
+  declare user?: User;
+  declare corrector?: User;
 
-  @BelongsTo(() => User, 'user_id')
-  user!: User;
+  static associate(sequelize: Sequelize) {
+    const UserModel = sequelize.models.User;
+    const SegmentModel = sequelize.models.Segment;
 
-  @BelongsTo(() => User, 'revised_by')
-  corrector!: User;
+    Report.belongsTo(SegmentModel, { foreignKey: 'segment_id', as: 'segment' });
+    Report.belongsTo(UserModel, { foreignKey: 'user_id', as: 'user' });
+    Report.belongsTo(UserModel, { foreignKey: 'corrected_by', as: 'corrector' });
+  }
 }

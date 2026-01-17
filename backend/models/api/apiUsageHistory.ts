@@ -1,6 +1,8 @@
-import { Table, Model, Column, DataType, BelongsTo, ForeignKey } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, ForeignKey } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
 import { User } from '../user/user';
 import { ApiAuth } from './apiAuth';
+
 @Table({
   timestamps: false,
   tableName: 'ApiUsageHistory',
@@ -20,7 +22,7 @@ export class ApiUsageHistory extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.DATE,
@@ -66,11 +68,8 @@ export class ApiUsageHistory extends Model {
   })
   responseStatus!: number;
 
-  @BelongsTo(() => User)
-  user!: User;
-
-  @BelongsTo(() => ApiAuth)
-  apiAuth!: ApiAuth;
+  declare user?: User;
+  declare apiAuth?: ApiAuth;
 
   @ForeignKey(() => ApiAuth)
   @Column({
@@ -78,4 +77,12 @@ export class ApiUsageHistory extends Model {
     allowNull: false,
   })
   apiAuthId!: number;
+
+  static associate(sequelize: Sequelize) {
+    const UserModel = sequelize.models.User;
+    const ApiAuthModel = sequelize.models.ApiAuth;
+
+    ApiUsageHistory.belongsTo(UserModel, { foreignKey: 'user_id', as: 'user' });
+    ApiUsageHistory.belongsTo(ApiAuthModel, { foreignKey: 'apiAuthId', as: 'apiAuth' });
+  }
 }

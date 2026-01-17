@@ -1,6 +1,6 @@
-import { Table, Model, Column, DataType, HasMany } from 'sequelize-typescript';
-
-import { Segment } from './segment';
+import { Table, Model, Column, DataType } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
+import type { Segment } from './segment';
 
 export enum CategoryType {
   ANIME = 1,
@@ -20,7 +20,7 @@ export class Media extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.INTEGER,
@@ -111,7 +111,7 @@ export class Media extends Model {
     type: DataType.STRING,
     allowNull: false,
   })
-  version!: string;
+  declare version: string;
 
   @Column({
     type: DataType.SMALLINT,
@@ -141,6 +141,11 @@ export class Media extends Model {
   })
   num_episodes!: number;
 
-  @HasMany(() => Segment)
-  segments!: Segment[];
+  declare segments?: Segment[];
+
+  static associate(sequelize: Sequelize) {
+    const Segment = sequelize.models.Segment;
+
+    Media.hasMany(Segment, { foreignKey: 'media_id', as: 'segments' });
+  }
 }

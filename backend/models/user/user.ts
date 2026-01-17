@@ -1,9 +1,10 @@
-import { Table, Model, Column, DataType, HasMany, HasOne } from 'sequelize-typescript';
-import { ApiAuth } from '../api/apiAuth';
-import { ApiUsageHistory } from '../api/apiUsageHistory';
+import { Table, Model, Column, DataType } from 'sequelize-typescript';
 import { DataTypes } from 'sequelize';
-import { UserRole } from './userRole';
-import { UserAuth } from './userAuth';
+import type { Sequelize } from 'sequelize-typescript';
+import type { ApiAuth } from '../api/apiAuth';
+import type { ApiUsageHistory } from '../api/apiUsageHistory';
+import type { UserRole } from './userRole';
+import type { UserAuth } from './userAuth';
 
 @Table({
   timestamps: false,
@@ -16,7 +17,7 @@ export class User extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   // Basic data from user
   @Column({
@@ -71,15 +72,20 @@ export class User extends Model {
   })
   password!: string;
 
-  @HasOne(() => ApiAuth)
-  apiAuth!: ApiAuth;
+  declare apiAuth?: ApiAuth;
+  declare apiUsageHistories?: ApiUsageHistory[];
+  declare userRoles?: UserRole[];
+  declare userAuths?: UserAuth[];
 
-  @HasMany(() => ApiUsageHistory)
-  apiUsageHistories!: ApiUsageHistory[];
+  static associate(sequelize: Sequelize) {
+    const ApiAuth = sequelize.models.ApiAuth;
+    const ApiUsageHistory = sequelize.models.ApiUsageHistory;
+    const UserRole = sequelize.models.UserRole;
+    const UserAuth = sequelize.models.UserAuth;
 
-  @HasMany(() => UserRole)
-  UserRoles!: UserRole[];
-
-  @HasMany(() => UserAuth)
-  userAuths!: UserAuth[];
+    User.hasOne(ApiAuth, { foreignKey: 'userId', as: 'apiAuth' });
+    User.hasMany(ApiUsageHistory, { foreignKey: 'user_id', as: 'apiUsageHistories' });
+    User.hasMany(UserRole, { foreignKey: 'id_user', as: 'userRoles' });
+    User.hasMany(UserAuth, { foreignKey: 'userId', as: 'userAuths' });
+  }
 }
