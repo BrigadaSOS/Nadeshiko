@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { GeneralError, ErrorCode } from '../utils/error';
 import { StatusCodes } from 'http-status-codes';
+import { logger } from '../utils/log';
 
 const GITHUB_BUG_URL = 'https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.md';
 
@@ -28,7 +29,7 @@ export const handleErrors = (error: Error, _req: Request, res: Response, next: N
   }
 
   // Everything else is an unexpected error - return generic 500
-  // (pino-http will log the error automatically)
+  logger.error(error, 'Unhandled error in request');
 
   const response: InternalErrorResponse = {
     error: {

@@ -17,7 +17,7 @@ export class UserSearchHistory extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.DATE,

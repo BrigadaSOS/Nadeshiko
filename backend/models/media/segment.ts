@@ -1,5 +1,6 @@
-import { Table, Model, Column, DataType, ForeignKey, BeforeCreate, BelongsTo } from 'sequelize-typescript';
+import { Table, Model, Column, DataType, ForeignKey, BeforeCreate } from 'sequelize-typescript';
 import { v3 as uuidv3 } from 'uuid';
+import type { Sequelize } from 'sequelize-typescript';
 import { Media } from './media';
 
 export enum SegmentStatus {
@@ -22,7 +23,7 @@ export class Segment extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.STRING,
@@ -148,8 +149,13 @@ export class Segment extends Model {
   })
   media_id!: number;
 
-  @BelongsTo(() => Media)
-  media!: Media;
+  declare media?: Media;
+
+  static associate(sequelize: Sequelize) {
+    const MediaModel = sequelize.models.Media;
+
+    Segment.belongsTo(MediaModel, { foreignKey: 'media_id', as: 'media' });
+  }
 
   @BeforeCreate
   static async generateLength(instance: Segment) {
