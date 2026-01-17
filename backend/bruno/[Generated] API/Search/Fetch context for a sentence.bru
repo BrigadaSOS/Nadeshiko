@@ -1,0 +1,26 @@
+meta {
+  name: Fetch context for a sentence
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v1/search/media/context
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "media_id": 110316,
+    "season": 1,
+    "episode": 5,
+    "segment_position": 1133,
+    "limit": 5
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

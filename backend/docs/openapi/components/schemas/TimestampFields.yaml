@@ -1,0 +1,38 @@
+# Reusable components for timestamp fields across the API
+# These can be referenced using $ref or as pattern definitions
+
+created_at:
+  type: string
+  format: date-time
+  description: Timestamp when the entry was created in the database
+  example: "2024-01-15T10:30:00Z"
+
+updated_at:
+  type: string
+  format: date-time
+  description: Timestamp when the entry was last updated
+  example: "2024-01-20T14:45:00Z"
+
+modified_at:
+  type: string
+  format: date-time
+  description: Timestamp when the entry was last modified
+  example: "2024-01-20T14:45:00Z"
+
+last_login:
+  type: string
+  format: date-time
+  description: Timestamp of the last user login
+  example: "2024-01-20T08:15:00Z"
+
+used_at:
+  type: string
+  format: date-time
+  description: Timestamp when the API request was made
+  example: "2024-01-20T12:00:00Z"
+
+report_fix_timestamp:
+  type: string
+  format: date-time
+  description: Timestamp when the report was marked as fixed
+  example: "2024-01-20T16:30:00Z"

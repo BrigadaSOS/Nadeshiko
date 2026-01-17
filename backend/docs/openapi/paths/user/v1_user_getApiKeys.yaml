@@ -1,0 +1,22 @@
+post:
+  tags:
+    - User
+  summary: Get API keys
+  description: Get all API keys for the authenticated user
+  operationId: getApiKeys
+  x-internal: true
+  security:
+    - jwtCookie: []
+  responses:
+    "200":
+      description: API keys retrieved
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/GetApiKeysResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

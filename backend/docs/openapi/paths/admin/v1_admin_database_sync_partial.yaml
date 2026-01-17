@@ -1,0 +1,29 @@
+post:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: reSyncDatabasePartial
+  summary: Partial Database Sync
+  description: |
+    Sync database schema changes without deleting data.
+
+    **Requirements:**
+    - Required scopes: `RESYNC_DATABASE`
+
+  security:
+    - apiKeyHeader: [RESYNC_DATABASE]
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/DatabaseSyncResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

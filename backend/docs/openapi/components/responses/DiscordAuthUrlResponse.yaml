@@ -1,0 +1,10 @@
+type: object
+description: Discord OAuth URL Response
+required:
+  - url
+properties:
+  url:
+    type: string
+    format: uri
+    description: Discord OAuth Authorization URL
+    exmaple: "https://discord.com/api/oauth2/authorize?client_id=(...)redirect_uri=https://example.com/callback&response_type=code&scope=identify%20email"

@@ -1,0 +1,11 @@
+type: object
+description: Statistics grouped by media category
+properties:
+  category:
+    type: integer
+    description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+    example: 1
+  count:
+    type: integer
+    description: Number of entries in this category
+    example: 1523

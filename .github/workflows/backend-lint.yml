@@ -15,6 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -27,6 +28,11 @@ jobs:
         run: |
           cd backend
           bun install
+
+      - name: Generate artifacts
+        run: |
+          cd backend
+          bun run generate:all
 
       - name: Build backend
         run: |
@@ -47,5 +53,5 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: auto-fix linting and formatting issues"
-            git push
+            git push origin HEAD:${{ github.head_ref }}
           fi
