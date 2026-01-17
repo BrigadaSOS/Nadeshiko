@@ -1,0 +1,8 @@
+summary: User Not Found
+value:
+  code: USER_NOT_FOUND
+  title: User Not Found
+  detail: The requested user account could not be found. The user may have been deleted or the ID is incorrect.
+  type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+  instance: trace-id-placeholder
+  status: 404

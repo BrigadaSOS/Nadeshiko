@@ -1,0 +1,18 @@
+type: object
+description: Authenticated user information
+properties:
+  id:
+    type: integer
+    description: User ID
+  username:
+    type: string
+    description: User's display name
+  email:
+    type: string
+    format: email
+    description: User's email address
+  roles:
+    type: array
+    items:
+      $ref: "./UserRole.yaml"
+    description: User's roles

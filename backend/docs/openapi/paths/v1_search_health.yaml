@@ -1,0 +1,28 @@
+get:
+  tags:
+    - Search
+  operationId: searchHealthCheck
+  summary: Health check for search
+  description: |
+    Tests the search service connectivity and functionality by performing a simple search query.
+
+    **Requirements:**
+    - Required Scopes: `READ_MEDIA`
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../components/responses/SearchHealthCheckResponse.yaml"
+    "401":
+      $ref: "../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../components/responses/InternalServerError.yaml"

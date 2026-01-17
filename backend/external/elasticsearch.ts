@@ -23,6 +23,7 @@ import { logger } from '../utils/log';
 import { QuerySegmentsRequest } from '../models/external/querySegmentsRequest';
 import { QuerySurroundingSegmentsRequest } from '../models/external/querySurroundingSegmentsRequest';
 import { QuerySurroundingSegmentsResponse } from '../models/external/querySurroundingSegmentsResponse';
+import { InvalidRequestError } from 'utils/apiErrors';
 
 /**
  * =============================================================================
@@ -143,7 +144,7 @@ function getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
 
 export const querySegments = async (request: QuerySegmentsRequest): Promise<QuerySegmentsResponse> => {
   if (request.min_length !== undefined && request.max_length !== undefined && request.min_length > request.max_length) {
-    throw new Error('min_length cannot be greater than max_length');
+    throw new InvalidRequestError('min_length cannot be greater than max_length');
   }
 
   const must: QueryDslQueryContainer[] = [];
@@ -364,13 +365,17 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Quer
 
   const mediaInfo = queryMediaInfo(0, 10000000);
 
-  return buildSearchAnimeSentencesResponse(
-    await esResponse,
-    await mediaInfo,
-    await esNoHitsNoFiltersResponse,
-    await esCategoryStatsResponse,
-    request,
-  );
+  // Use Promise.all to ensure all rejections are caught together.
+  // Awaiting sequentially causes unhandled rejections if an early promise rejects
+  // before later ones are awaited.
+  const [esResult, mediaResult, esNoHitsResult, esCategoryResult] = await Promise.all([
+    esResponse,
+    mediaInfo,
+    esNoHitsNoFiltersResponse,
+    esCategoryStatsResponse,
+  ]);
+
+  return buildSearchAnimeSentencesResponse(esResult, mediaResult, esNoHitsResult, esCategoryResult, request);
 };
 
 export const queryWordsMatched = async (words: string[], exact_match: boolean): Promise<QueryWordsMatchedResponse> => {
@@ -556,6 +561,14 @@ const buildSearchAnimeSentencesSegments = (
   esResponse: SearchResponse,
   mediaInfoResponse: QueryMediaInfoResponse,
 ): SearchAnimeSentencesSegment[] => {
+  // Helper to remove empty string properties from an object
+  const removeEmptyStrings = (obj: any) => {
+    Object.keys(obj).forEach((key) => {
+      if (obj[key] === '') delete obj[key];
+    });
+    return obj;
+  };
+
   return esResponse.hits.hits
     .map((hit) => {
       const data: any = hit['_source'];
@@ -586,7 +599,7 @@ const buildSearchAnimeSentencesSegments = (
         : mediaInfo.cover || '';
 
       return {
-        basic_info: {
+        basic_info: removeEmptyStrings({
           id_anime: data['media_id'],
           name_anime_romaji: mediaInfo.romaji_name,
           name_anime_en: mediaInfo.english_name,
@@ -596,8 +609,8 @@ const buildSearchAnimeSentencesSegments = (
           episode: data['episode'],
           season: data['season'],
           category: mediaInfo.category,
-        },
-        segment_info: {
+        }),
+        segment_info: removeEmptyStrings({
           status: data['status'],
           uuid: data['uuid'],
           position: data['position'],
@@ -615,8 +628,8 @@ const buildSearchAnimeSentencesSegments = (
           actor_ja: data['actor_ja'],
           actor_en: data['actor_en'],
           actor_es: data['actor_es'],
-        },
-        media_info: {
+        }),
+        media_info: removeEmptyStrings({
           path_image: coverPath,
           path_audio: [
             getBaseUrlMedia(),
@@ -634,7 +647,7 @@ const buildSearchAnimeSentencesSegments = (
             episodeNumberPath,
             `${data['position']}.mp4`,
           ].join('/'),
-        },
+        }),
       };
     })
     .filter(notEmpty);
@@ -663,17 +676,24 @@ const buildQueryWordsMatchedResponse = (
     let media: WordMatchMediaInfo[] = [];
     if (response.aggregations && 'group_by_media_id' in response.aggregations) {
       // @ts-expect-error -- elasticsearch aggregation type
-      media = response.aggregations['group_by_media_id'].buckets.map((bucket: any): WordMatchMediaInfo => {
-        const mediaInfo = mediaInfoResponse.results[Number(bucket['key'])];
+      media = response.aggregations['group_by_media_id'].buckets
+        .map((bucket: any): WordMatchMediaInfo | null => {
+          const mediaInfo = mediaInfoResponse.results[Number(bucket['key'])];
 
-        return {
-          media_id: mediaInfo['media_id'],
-          english_name: mediaInfo['english_name'],
-          japanese_name: mediaInfo['japanese_name'],
-          romaji_name: mediaInfo['romaji_name'],
-          matches: bucket['doc_count'],
-        };
-      });
+          // Skip if media_id from Elasticsearch doesn't exist in database
+          if (!mediaInfo) {
+            return null;
+          }
+
+          return {
+            media_id: mediaInfo['media_id'],
+            english_name: mediaInfo['english_name'],
+            japanese_name: mediaInfo['japanese_name'],
+            romaji_name: mediaInfo['romaji_name'],
+            matches: bucket['doc_count'],
+          };
+        })
+        .filter((item: WordMatchMediaInfo | null): item is WordMatchMediaInfo => item !== null);
     }
 
     results.push({

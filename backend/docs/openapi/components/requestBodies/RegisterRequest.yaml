@@ -1,0 +1,23 @@
+type: object
+description: Registration request body
+required:
+  - username
+  - email
+  - password
+properties:
+  username:
+    type: string
+    description: User's display name
+    minLength: 1
+    example: newuser
+  email:
+    type: string
+    format: email
+    description: User's email address
+    example: newuser@example.com
+  password:
+    type: string
+    format: password
+    description: User's password
+    minLength: 6
+    example: securepassword123

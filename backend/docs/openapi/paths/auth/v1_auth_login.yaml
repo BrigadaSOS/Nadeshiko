@@ -1,0 +1,69 @@
+post:
+  tags:
+    - Auth
+  x-internal: true
+  operationId: login
+  summary: Login with email and password
+  description: |
+    Authenticate user with email and password. This is not offered to public users, just for internal testing purposes.
+
+  parameters:
+    - name: Referer
+      in: header
+      description: Frontend URL for authentication bypass
+      schema:
+        type: string
+        example: http://localhost:3000
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/LoginRequest.yaml"
+  responses:
+    "200":
+      description: Login successful
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/LoginResponse.yaml"
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+          examples:
+            ValidationFailed:
+              $ref: "../../components/examples/ValidationFailed.yaml"
+            InvalidJson:
+              $ref: "../../components/examples/InvalidJson.yaml"
+            InvalidCredentials:
+              $ref: "../../components/examples/InvalidCredentials.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+          examples:
+            InvalidCredentials:
+              $ref: "../../components/examples/InvalidCredentials.yaml"
+            EmailNotVerified:
+              $ref: "../../components/examples/EmailNotVerified.yaml"
+            AccessDenied:
+              $ref: "../../components/examples/AccessDenied.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+          examples:
+            UserNotFound:
+              $ref: "../../components/examples/UserNotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
