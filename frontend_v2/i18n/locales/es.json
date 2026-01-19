@@ -385,7 +385,8 @@
       "registerButton": "Registrarse",
       "closeSrOnly": "Cerrar",
       "passwordMinLength": "Se requieren 8+ caracteres",
-      "passwordMatchError": "Las contraseñas deben coincidir"
+      "passwordMatchError": "Las contraseñas deben coincidir",
+      "emailValidationError": "Por favor, introduce una dirección de correo válida"
     }
   },
   "auth": {

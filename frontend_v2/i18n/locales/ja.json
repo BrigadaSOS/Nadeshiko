@@ -385,7 +385,8 @@
         "registerButton": "登録",
         "closeSrOnly": "閉じる",
         "passwordMinLength": "8文字以上必要です",
-        "passwordMatchError": "パスワードが一致しません"
+        "passwordMatchError": "パスワードが一致しません",
+        "emailValidationError": "有効なメールアドレスを入力してください"
       }
     },
     "auth": {
