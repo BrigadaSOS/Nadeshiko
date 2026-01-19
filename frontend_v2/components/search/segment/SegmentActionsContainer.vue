@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiText, mdiImage, mdiVideo, mdiContentCopy, mdiClose, mdiShareVariantOutline, mdiPlusBoxOutline, mdiFileDocumentPlusOutline, mdiStarShootingOutline, mdiTrayArrowDown,mdiArrowExpandHorizontal,mdiTransferLeft , mdiDotsHorizontal, mdiVolumeHigh, mdiTransferRight } from '@mdi/js'
-
+import { ankiStore } from '@/stores/anki'
 import type { Sentence } from "@/stores/search";
 
 type Props = {
@@ -9,9 +9,11 @@ type Props = {
 
 let props = defineProps<Props>();
 const anki = ankiStore();
-const isAnkiConfigured = computed(() => {
+const isAnkiConfigured = ref(false);
+
+onMounted(() => {
   const current = anki.ankiPreferences.settings.current;
-  return current.deck !== null && current.model !== null && current.fields.length > 0;
+  isAnkiConfigured.value = current.deck !== null && current.model !== null && current.fields.length > 0;
 });
 
 const emit = defineEmits(['open-context-modal', 'open-anki-modal', 'concat-sentence', 'revert-concat']);
@@ -44,13 +46,21 @@ const openAnkiModal = () => {
     <template #content>
       <SearchDropdownContent>
         <!-- Anki by last added -->
-        <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
-          :iconPath="mdiStarShootingOutline" @click="ankiStore().addSentenceToAnki(content)" />
+        <ClientOnly>
+          <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
+            :iconPath="mdiStarShootingOutline" @click="anki.addSentenceToAnki(content)" />
 
-        <!-- Anki by ID -->
-        <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
-          @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
-          data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection" />
+          <!-- Anki by ID -->
+          <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
+            @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
+            data-hs-overlay="#hs-vertically-centered-scrollable-anki-collection" />
+          <template #fallback>
+            <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"
+              :iconPath="mdiStarShootingOutline" />
+            <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
+              :iconPath="mdiStarShootingOutline" />
+          </template>
+        </ClientOnly>
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>

@@ -89,13 +89,14 @@ export const ankiStore = defineStore("anki", {
       },
     },
   }),
-  persist: {
+  persist: import.meta.client ? {
     key: "settings",
     storage: piniaPluginPersistedstate.localStorage(),
     paths: ["ankiPreferences"],
-  },
+  } : false,
   actions: {
     async executeAction(action: string, params = {}) {
+      if (!import.meta.client) return null;
       try {
         const response = await fetch(this.ankiPreferences.serverAddress, {
           method: "POST",
@@ -122,6 +123,7 @@ export const ankiStore = defineStore("anki", {
     },
 
     async loadAnkiData() {
+      if (!import.meta.client) return;
       try {
         let permission = await this.requestPermission();
         let decks = await this.getAllDeckNames();
@@ -169,6 +171,7 @@ export const ankiStore = defineStore("anki", {
     // Gets n notes (depends on anki) where the ankiPreferences.current.key
     // matches the query
     async getNotesWithCurrentKey(query: string, n: number = 5): Promise<Array<{ noteId: number, value: string }>> {
+      if (!import.meta.client) return [];
 
       try {
         const currentKey = this.ankiPreferences.settings.current.key
@@ -203,10 +206,11 @@ export const ankiStore = defineStore("anki", {
     },
 
     async addSentenceToAnki(sentence: Sentence, id?: number) {
+      if (!import.meta.client) return;
       // TODO: creo que podriamos usar this.$state o this.ankiPreferences (revisar)
       const { $i18n } = useNuxtApp();
 
-      const localSettings = localStorage.getItem('settings');
+      const localSettings = import.meta.client ? localStorage.getItem('settings') : null;
 
       if (!localSettings) {
         useToastError($i18n.t('anki.toast.noSettings'));
