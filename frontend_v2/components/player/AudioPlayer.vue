@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePlayerStore } from '~/stores/player';
 import { mdiPlay, mdiFastForward, mdiRewind, mdiPause, mdiSkipNext, mdiSkipPrevious, mdiClose, mdiAnimationPlay, mdiMotionPauseOutline, mdiFullscreen, mdiFullscreenExit, mdiRepeat } from '@mdi/js';
-import { watch, ref, nextTick } from 'vue';
+import { watch, ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
 
 const playerStore = usePlayerStore();
@@ -11,6 +11,37 @@ const progress = ref(0);
 const isImmersive = ref(false);
 const lyricsContainer = ref<HTMLElement | null>(null);
 const animationFrameId = ref<number | null>(null);
+let lastScrollTime = 0;
+
+const handleGlobalKeydown = (event: KeyboardEvent) => {
+    const target = event.target as HTMLElement;
+    if (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+        return;
+    }
+
+    switch (event.code) {
+        case 'Space':
+            event.preventDefault();
+            playerStore.togglePlay();
+            break;
+        case 'ArrowLeft':
+            event.preventDefault();
+            playerStore.prev();
+            break;
+        case 'ArrowRight':
+            event.preventDefault();
+            playerStore.next();
+            break;
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('keydown', handleGlobalKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleGlobalKeydown);
+});
 
 const toggleImmersive = () => {
     isImmersive.value = !isImmersive.value;
@@ -26,6 +57,11 @@ const waitForElement = async (selector: string, retries = 5, delay = 100) => {
 };
 
 const scrollImmersiveView = async () => {
+    const now = Date.now();
+    const timeSinceLastScroll = now - lastScrollTime;
+    lastScrollTime = now;
+    const behavior = timeSinceLastScroll < 300 ? 'instant' : 'smooth';
+
     const sentence = currentSentence.value;
     if (!sentence || !lyricsContainer.value) return;
 
@@ -39,20 +75,26 @@ const scrollImmersiveView = async () => {
 
         lyricsContainer.value.scrollTo({
             top: elementTop - (containerHeight / 2) + (elementHeight / 2),
-            behavior: 'smooth'
+            behavior,
         });
     }
 };
 
 const scrollMainView = async () => {
+    const now = Date.now();
+    const timeSinceLastScroll = now - lastScrollTime;
+    lastScrollTime = now;
+    const behavior = timeSinceLastScroll < 300 ? 'instant' : 'smooth';
+
     const sentence = currentSentence.value;
     if (!sentence) return;
 
     const mainPageElement = await waitForElement(sentence.segment_info.uuid);
     if (mainPageElement) {
-        mainPageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        mainPageElement.scrollIntoView({ behavior, block: 'center' });
     }
 };
+
 
 const animationLoop = () => {
     if (!playerStore.currentAudio) return;

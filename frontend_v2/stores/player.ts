@@ -35,7 +35,7 @@ export const usePlayerStore = defineStore('player', {
     isPlaying: false,
     showPlayer: false,
     currentAudio: null,
-    autoplay: true,
+    autoplay: false,
     repeat: false,
   }),
 
@@ -60,6 +60,8 @@ export const usePlayerStore = defineStore('player', {
       if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio.onended = null;
+        this.currentAudio.src = '';
+        this.currentAudio.load();
       }
 
       if (this.currentSentence) {
