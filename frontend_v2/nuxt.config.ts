@@ -51,15 +51,22 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en',
     strategy: "no_prefix",
-     detectBrowserLanguage: {
-       useCookie: true,
-       alwaysRedirect: true,
-       cookieKey: 'i18n_redirected',
-       redirectOn: 'root'
-     }
+    detectBrowserLanguage: {
+      useCookie: true,
+      alwaysRedirect: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'root'
+    }
   },
   compatibilityDate: '2024-07-28',
   build: {
     transpile: ['vue-toastification'],
   },
+  nitro: {
+    preset: "cloudflare_module",
+    cloudflare: {
+      deployConfig: true,
+      nodeCompat: true
+    }
+  }
 });
