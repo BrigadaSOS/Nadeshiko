@@ -1,0 +1,7 @@
+{
+    "name": "nadeshiko-worker",
+    "compatibility_date": "2026-01-19",
+    "assets": {
+        "directory": "./dist"
+    }
+}
