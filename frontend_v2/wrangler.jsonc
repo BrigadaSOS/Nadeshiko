@@ -1,5 +1,6 @@
 {
   "name": "nadeshiko-worker",
   "main": ".output/server/index.mjs",
-  "compatibility_date": "2026-01-19"
+  "compatibility_date": "2026-01-19",
+  "pages_build_output_dir": ".output/public"
 }
