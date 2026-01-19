@@ -32,6 +32,14 @@
           </NuxtLink>
 
           <NuxtLink
+            to="/dmca"
+            class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
+            aria-label="DMCA"
+          >
+            {{ $t('navbar.buttons.dmca') }}
+          </NuxtLink>
+
+          <NuxtLink
             to="/about"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="About"

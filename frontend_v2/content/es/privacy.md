@@ -2,7 +2,7 @@
 ::privacidad
 
 # Política de Privacidad
-**Última actualización: 22 de julio de 2024**
+**Última actualización: 19 de enero de 2026**
 
 Esta Política de Privacidad describe nuestras políticas y procedimientos sobre la recopilación, uso y divulgación de su información cuando utiliza nuestro servicio y le informa sobre sus derechos de privacidad y cómo la ley lo protege.
 
@@ -27,8 +27,9 @@ También podemos recopilar información que su navegador envía cada vez que vis
 Nadeshiko le permite crear una cuenta e iniciar sesión para utilizar el servicio a través de los siguientes servicios de redes sociales de terceros:
 
 - Google
+- Discord
 
-Si decide registrarse a través de o de otro modo otorgarnos acceso a un servicio de redes sociales de terceros, es posible que recopilemos datos personales que ya están asociados con la cuenta de su servicio de redes sociales de terceros, como su nombre, su dirección de correo electrónico, sus actividades o su lista de contactos asociada a esa cuenta.
+Si decide registrarse a través de o de otro modo otorgarnos acceso a un servicio de redes sociales de terceros, es posible que recopilemos datos personales que ya están asociados con la cuenta de su servicio de redes sociales de terceros, como su nombre y su dirección de correo electrónico.
 
 También puede tener la opción de compartir información adicional con Nadeshiko a través de la cuenta de su servicio de redes sociales de terceros. Si elige proporcionar dicha información y datos personales, durante el registro o de otra manera, está dando a Nadeshiko permiso para usar, compartir y almacenar la misma de manera coherente con esta Política de Privacidad.
 
@@ -44,7 +45,7 @@ Nadeshiko puede utilizar datos personales para los siguientes propósitos:
 ### Compartir Sus Datos Personales
 Podemos compartir su información personal en las siguientes situaciones:
 
-- **Con otros usuarios**: cuando comparte información personal o interactúa en las áreas públicas con otros usuarios, esa información puede ser vista por todos los usuarios y puede ser distribuida públicamente en el exterior. Si interactúa con otros usuarios o se registra a través de un servicio de redes sociales de terceros, sus contactos en el servicio de redes sociales de terceros pueden ver su nombre, perfil, fotos y descripción de su actividad. De igual manera, otros usuarios podrán ver las descripciones de su actividad, comunicarse con usted y ver su perfil.
+- **Con otros usuarios**: cuando comparte información personal o interactúa en las áreas públicas con otros usuarios, esa información puede ser vista por todos los usuarios y puede ser distribuida públicamente en el exterior. De igual manera, otros usuarios podrán ver las descripciones de su actividad, comunicarse con usted y ver su perfil.
 - **Con su consentimiento**: Podemos divulgar su información personal para cualquier otro propósito con su consentimiento.
 
 **Cualquier dato que recopilemos no será vendido ni compartido intencionalmente con terceros.**

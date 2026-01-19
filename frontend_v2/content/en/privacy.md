@@ -1,7 +1,7 @@
 ::privacy
 
 # Privacy Policy
-**Last updated: July 22, 2024**
+**Last updated: January 19, 2026**
 
 This Privacy Policy describes our policies and procedures on the collection, use, and disclosure of your information when you use our service and tells you about your privacy rights and how the law protects you.
 
@@ -26,8 +26,9 @@ We may also collect information that your browser sends whenever you visit our s
 Nadeshiko allows you to create an account and log in to use the service through the following third-party social media services:
 
 - Google
+- Discord
 
-If you decide to register through or otherwise grant us access to a third-party social media service, we may collect personal data that is already associated with your third-party social media service's account, such as your name, your email address, your activities, or your contact list associated with that account.
+If you decide to register through or otherwise grant us access to a third-party social media service, we may collect personal data that is already associated with your third-party social media service's account, such as your name and email address.
 
 You may also have the option of sharing additional information with Nadeshiko through your third-party social media service's account. If you choose to provide such information and personal data, during registration or otherwise, you are giving Nadeshiko permission to use, share, and store it in a manner consistent with this Privacy Policy.
 
@@ -44,7 +45,7 @@ Nadeshiko may use personal data for the following purposes:
 ### Sharing Your Personal Data
 We may share your personal information in the following situations:
 
-- **With Other Users**: when you share personal information or otherwise interact in the public areas with other users, such information may be viewed by all users and may be publicly distributed outside. If you interact with other users or register through a third-party social media service, your contacts on the third-party social media service may see your name, profile, pictures, and description of your activity. Similarly, other users will be able to view descriptions of your activity, communicate with you, and view your profile.
+- **With Other Users**: when you share personal information or otherwise interact in the public areas with other users, such information may be viewed by all users and may be publicly distributed outside. Other users will be able to view descriptions of your activity, communicate with you, and view your profile.
 - **With Your Consent**: We may disclose your personal information for any other purpose with your consent.
 
 **Any data we do collect will not be sold nor purposefully shared with any third-parties.**
