@@ -9,6 +9,9 @@
   .bg-sgrayhover {
     background-color: #333333;
   }
+  .bg-card {
+    background-color: #262626;
+  }
 }
 
 @layer base {

@@ -44,17 +44,17 @@ const isAuth = computed(() => store.isLoggedIn)
                 aria-labelledby="hs-navbar-example-collapse">
                 <div class="flex flex-col  mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
                     <div class="gap-6 flex flex-col sm:flex-row mr-auto">
-                        <NuxtLink to="/"
-                            class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
-                            {{ $t("navbar.buttons.home") }}
+                        <NuxtLink to="/about"
+                            class="text-xs font-bold mr-auto text-white transition-all duration-200 hover:text-opacity-80">
+                            {{ $t("navbar.buttons.about") }}
+                        </NuxtLink>
+                        <NuxtLink to="/blog"
+                            class="text-xs font-bold mr-auto text-white transition-all duration-200 hover:text-opacity-80">
+                            {{ $t("navbar.buttons.blog") }}
                         </NuxtLink>
                         <NuxtLink to="/api/v1/docs"
                             class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
                             API
-                        </NuxtLink>
-                        <NuxtLink to="/about"
-                            class="text-xs font-bold mr-auto text-white transition-all duration-200 hover:text-opacity-80">
-                            {{ $t("navbar.buttons.about") }}
                         </NuxtLink>
                     </div>
                     <hr class="border-none my-1">
