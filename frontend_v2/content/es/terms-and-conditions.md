@@ -3,12 +3,18 @@
 
 # Términos y Condiciones
 
-**Última actualización: 22 de julio de 2024**
+**Última actualización: 19 de enero de 2026**
 
 Por favor, lea estos términos y condiciones detenidamente antes de usar la aplicación Nadeshiko.
 
 ## Uso Exclusivamente Educativo y Personal
 El contenido proporcionado por Nadeshiko es solo para uso educativo y personal. Usted acepta utilizar el contenido exclusivamente para sus propios fines educativos y no para ningún uso comercial. El contenido disponible en el servicio se proporciona "tal cual" y "según disponibilidad", y Nadeshiko no posee ni reclama la propiedad de ningún contenido a menos que se indique explícitamente lo contrario.
+
+## Derechos de Autor y Cumplimiento de DMCA
+
+Nadeshiko respeta los derechos de propiedad intelectual de otros y espera que los usuarios del servicio hagan lo mismo. Cumplimos con la Digital Millennium Copyright Act (DMCA) y responderemos a los avisos de presunta infracción de derechos de autor que cumplan con la DMCA y otras leyes aplicables.
+
+Para obtener información detallada sobre nuestra política DMCA, incluido cómo enviar un aviso de eliminación o una contra-notificación, consulte nuestra página de [Política DMCA](/dmca).
 
 ## Acceso a la API
 Si se le proporciona acceso a la API, usted acepta utilizarla de acuerdo con estos términos y cualquier término adicional proporcionado junto con su clave de API. El uso de la API está sujeto a las siguientes condiciones:
