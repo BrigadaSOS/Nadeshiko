@@ -151,14 +151,15 @@
 
 ## Créditos y Fuentes de Datos
 
-Este sitio hace uso de materiales y referencias que son propiedad intelectual de sus respectivos autores y poseedores de derechos. Consulte aquí para obtener el listado de contenido utilizado como sus respectivos autores.
+Este sitio hace uso de materiales y referencias que son propiedad intelectual de sus respectivos autores y poseedores de derechos. [Consulte aquí](https://nadeshiko.co/search/media) para obtener el listado de contenido utilizado como sus respectivos autores.
 <br/><br/>
-El uso de estos materiales se realiza bajo la creencia de que cumple con las directrices de "uso justo" para fines educativos y sin ánimo de lucro. Si usted es el titular de los derechos de alguno de estos materiales y cree que no se cumple con las normas de uso justo, por favor, póngase en contacto con nosotros a brigadasosjapones@gmail.com
+Para obtener información sobre derechos de autor y DMCA, consulte nuestra [Política DMCA](/dmca).
 
 ## Contacto
 
 Si desea ponerse en contacto ya sea para dejar algún comentario, sugerencia, contribución o alguna otra cosa, puede hacerlo a través de:
 
-Nuestro correo: brigadasosjapones@gmail.com o en Discord a través del servidor de la Brigada SOS.
+- **Correo electrónico**: contact@nadeshiko.co
+- **Discord**: [Brigada SOS!団](https://discord.gg/ajWm26ADEj)
 
 Este sitio web está bajo la Licencia AGPL-3.0.
