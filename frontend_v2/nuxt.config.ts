@@ -61,12 +61,5 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-07-28',
   build: {
     transpile: ['vue-toastification'],
-  },
-  nitro: {
-    preset: "cloudflare_module",
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: true
-    }
   }
 });
