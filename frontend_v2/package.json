@@ -8,7 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "deploy": "npm run build && npx wrangler pages deploy dist/"
+    "deploy": "bun run build && npx wrangler pages deploy dist/"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
