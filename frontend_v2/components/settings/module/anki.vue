@@ -129,9 +129,6 @@ watch(fieldOptions, (newValue) => {
 watch(ankiconnectAddress, (newValue) => {
   store.ankiPreferences.serverAddress = newValue;
 
-  // Before loading, we clear fieldOptions to hide the table
-  fieldOptions.value = [];
-
   fetchAndLoad();
 });
 
