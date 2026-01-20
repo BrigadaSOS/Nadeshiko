@@ -62,7 +62,7 @@ export default defineNuxtConfig({
     transpile: ['vue-toastification'],
   },
   nitro: {
-    preset: 'cloudflare',
+    // preset: 'cloudflare',
     externals: {
       external: ['@scalar/api-reference', '@scalar/themes', '@scalar/components']
     }
