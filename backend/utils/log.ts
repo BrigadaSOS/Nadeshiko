@@ -56,18 +56,6 @@ const baseOptions: pino.LoggerOptions = {
     },
     res: pino.stdSerializers.res,
   },
-
-  // In production, use JSON; in development, use pretty print
-  transport: isDevelopment
-    ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'SYS:standard',
-          ignore: 'pid,hostname',
-        },
-      }
-    : undefined, // Default JSON output for production
 };
 
 export const logger = pino(baseOptions);
