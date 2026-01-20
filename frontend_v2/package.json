@@ -7,44 +7,36 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "deploy": "bun run build && npx wrangler pages deploy dist/"
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
-    "@nuxt/content": "^3.7.1",
-    "@nuxt/image": "^1.11.0",
-    "@nuxtjs/google-fonts": "^3.2.0",
-    "@nuxtjs/i18n": "^10.0.6",
-    "@pinia/nuxt": "^0.11.2",
+    "@nuxt/content": "^3.11.0",
+    "@nuxt/image": "^2.0.0",
+    "@nuxtjs/i18n": "^10.2.1",
+    "@pinia/nuxt": "^0.11.3",
     "@scalar/api-reference": "^1.43.8",
-    "@vueuse/integrations": "^13.9.0",
-    "better-sqlite3": "^12.2.0",
-    "class-variance-authority": "^0.7.1",
+    "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
-    "focus-trap": "^7.6.5",
-    "lucide-vue-next": "^0.542.0",
-    "pinia": "^3.0.3",
-    "pinia-plugin-persistedstate": "^4.5.0",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
     "preline": "2.5.1",
-    "radix-vue": "^1.9.17",
-    "tailwind-merge": "^3.3.1",
+    "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "vue-toastification": "^2.0.0-rc.5",
-    "vue3-google-login": "^2.0.34",
-    "wrangler": "^4.59.2"
+    "vue3-google-login": "^2.0.34"
   },
   "overrides": {
     "@vue/devtools-kit": "7.7.8"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@types/chrome": "^0.1.6",
-    "@vueuse/core": "^13.9.0",
-    "@vueuse/nuxt": "^13.9.0",
+    "@types/chrome": "^0.1.35",
+    "@vueuse/core": "^14.1.0",
+    "@vueuse/nuxt": "^14.1.0",
     "nuxt": "^4.2.2",
-    "typescript": "^5.9.2",
-    "unplugin-auto-import": "^20.1.0",
-    "unplugin-vue-components": "^29.0.0"
+    "typescript": "^5.9.3",
+    "unplugin-auto-import": "^21.0.0",
+    "unplugin-vue-components": "^31.0.0"
   }
 }
