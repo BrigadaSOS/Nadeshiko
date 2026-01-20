@@ -12,7 +12,6 @@ import { Report, ReportStatus, ReportType } from '../models/miscellaneous/report
 import DiscordOauth2 from 'discord-oauth2';
 import { sendConfirmationEmail } from '../utils/email';
 import { OAuth2Client } from 'google-auth-library';
-import bcrypt from 'bcrypt';
 
 const client = new OAuth2Client({
   clientId: process.env.ID_OAUTH_GOOGLE,
@@ -138,8 +137,10 @@ export const signUp = async (req: Request, res: Response) => {
   }
 
   // encrypt the password
-  const salt: string = await bcrypt.genSalt(10);
-  const encryptedPassword: string = await bcrypt.hash(password.toString(), salt);
+  const encryptedPassword: string = await Bun.password.hash(password.toString(), {
+    algorithm: 'bcrypt',
+    cost: 10,
+  });
   // Generate random email verification token
   const jwtSecretKey: string = process.env.SECRET_KEY_JWT ? process.env.SECRET_KEY_JWT : '';
   const randomTokenEmail: string = jwt.sign({ email: email }, jwtSecretKey);
@@ -206,7 +207,7 @@ export const logIn = async (req: Request, res: Response) => {
   }
 
   // Compare the passwords
-  const password: boolean = await bcrypt.compare(req.body.password.toString(), user.password);
+  const password: boolean = await Bun.password.verify(req.body.password.toString(), user.password);
   if (!password) throw new BadRequest('Wrong email or password. Please try again.');
 
   if (user.is_verified === false)
