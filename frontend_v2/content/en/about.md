@@ -1,13 +1,15 @@
 
 ::about
 
+# About
+
 ## Contribution and Attribution
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
   <div
     class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0" style="--pfp-bg: url('../github/natsume_pfp.jpg')">
       <img
         class="h-full w-full object-contain"
         src="../github/natsume_pfp.jpg"
@@ -50,7 +52,7 @@
   <div
     class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0" style="--pfp-bg: url('../github/davafons_pfp.jpg')">
       <img
         class="h-full w-full object-contain"
         src="../github/davafons_pfp.jpg"
@@ -93,7 +95,7 @@
   <div
     class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0" style="--pfp-bg: url('../github/xyaman_pfp.jpg')">
       <img
         class="h-full w-full object-contain"
         src="../github/xyaman_pfp.jpg"
