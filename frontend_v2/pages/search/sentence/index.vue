@@ -75,17 +75,26 @@ const { data: initialSearchData } = await useAsyncData(
   }
 );
 
+const canonicalUrl = computed(() => {
+  const baseUrl = 'https://nadeshiko.co';
+  return `${baseUrl}${route.fullPath}`;
+});
+
 const metaTags = computed(() => {
-  const defaultDescription = 'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!';
+  const defaultDescription = 'Search Japanese sentences from anime, J-dramas, and audiobooks. Learn Japanese with real native content and example sentences.';
 
   const tags = {
-    title: 'Nadeshiko',
+    title: 'Japanese Sentence Search | Nadeshiko',
     meta: [
       { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: 'Nadeshiko' },
+      { property: 'og:title', content: 'Japanese Sentence Search | Nadeshiko' },
       { property: 'og:description', content: defaultDescription },
       { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonicalUrl.value },
       { name: 'twitter:card', content: 'summary_large_image' },
+    ],
+    link: [
+      { rel: 'canonical', href: canonicalUrl.value }
     ]
   };
 
@@ -104,6 +113,7 @@ const metaTags = computed(() => {
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonicalUrl.value },
       { property: 'og:image', content: sentence.media_info.path_image + '?width=1200&height=630' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
@@ -123,10 +133,10 @@ const metaTags = computed(() => {
     const stats = initialSearchData.value?.categoryStatistics;
     const totalResults = stats?.reduce((sum, s) => sum + s.count, 0) || 0;
 
-    const title = `Search: ${route.query.query} | Nadeshiko`;
+    const title = `${route.query.query} - Japanese sentence search | Nadeshiko`;
     let description = totalResults > 0
-      ? `${totalResults.toLocaleString()} results found`
-      : 'Search for Japanese sentences';
+      ? `Find ${totalResults.toLocaleString()} example sentences for "${route.query.query}" from anime, dramas, and more. Learn Japanese with real native content.`
+      : `Search for Japanese sentences containing "${route.query.query}". Learn Japanese with real examples from anime, dramas, and audiobooks.`;
 
     if (stats && stats.length > 0) {
       const categoryNames = { 1: 'anime', 3: 'live-action', 4: 'audiobook' };
@@ -138,7 +148,7 @@ const metaTags = computed(() => {
         .map(s => `${categoryNames[s.category]}: ${s.count.toLocaleString()}`)
         .join(', ');
       if (breakdown) {
-        description += `\n(${breakdown})`;
+        description += ` (${breakdown})`;
       }
     }
 
@@ -148,6 +158,7 @@ const metaTags = computed(() => {
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonicalUrl.value },
       { name: 'twitter:card', content: 'summary_large_image' },
     ];
   } else if (route.query.media && initialSearchData.value?.sentences?.length > 0) {
@@ -205,6 +216,7 @@ const metaTags = computed(() => {
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonicalUrl.value },
       { property: 'og:image', content: thumbnail + '?width=1200&height=630' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
