@@ -10,7 +10,6 @@ import { logger } from '../utils/log';
 import { hashApiKey, generateApiKeyHint } from '../utils/utils';
 import { statSync, readFileSync, readdirSync, existsSync, createReadStream, safePath } from '../utils/fs';
 
-import bcrypt from 'bcrypt';
 import readline from 'readline';
 import stream from 'stream';
 
@@ -34,8 +33,10 @@ export async function addBasicData(db: any) {
 
   const permissions = ['ADD_MEDIA', 'READ_MEDIA', 'REMOVE_MEDIA', 'UPDATE_MEDIA', 'RESYNC_DATABASE', 'CREATE_USER'];
 
-  const salt: string = await bcrypt.genSalt(10);
-  const encryptedPassword: string = await bcrypt.hash(process.env.PASSWORD_API_NADEDB!, salt);
+  const encryptedPassword: string = await Bun.password.hash(process.env.PASSWORD_API_NADEDB!, {
+    algorithm: 'bcrypt',
+    cost: 10,
+  });
   const roles = [1];
   const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
