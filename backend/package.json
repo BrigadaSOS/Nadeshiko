@@ -6,7 +6,7 @@
   "scripts": {
     "setup": "bun run scripts/setup.ts",
     "setup:db": "bun run scripts/init-db.ts",
-    "dev": "bun --hot main.ts",
+    "dev": "bun --hot main.ts | pino-pretty",
     "build": "bun build ./main.ts --outdir ./prod --target bun",
     "start": "bun prod/main.js",
     "lint": "eslint .",
