@@ -121,9 +121,9 @@ watch(modelKey, async (newValue) => {
   store.ankiPreferences.settings.current.key = newValue;
 });
 
-watch(deckOptions, async (newValue) => {
+watch(fieldOptions, (newValue) => {
   store.ankiPreferences.settings.current.fields = newValue;
-});
+}, { deep: true });
 
 // Every time the address change, we try to connect to anki
 watch(ankiconnectAddress, (newValue) => {
