@@ -14,7 +14,6 @@ export default defineNuxtConfig({
     "@pinia/nuxt",
     "@nuxtjs/i18n",
     "@nuxt/content",
-    "@scalar/nuxt",
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt'
   ],
@@ -61,5 +60,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-07-28',
   build: {
     transpile: ['vue-toastification'],
+  },
+  nitro: {
+    preset: 'cloudflare',
+    externals: {
+      external: ['@scalar/api-reference', '@scalar/themes', '@scalar/components']
+    }
   }
 });
