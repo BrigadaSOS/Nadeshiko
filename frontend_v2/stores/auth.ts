@@ -16,11 +16,11 @@ export const userStore = defineStore("user", {
       return state.userInfo.roles?.some((role: any) => role.id_role === 1); // ADMIN role id = 1
     },
   },
-  persist: {
+  persist: import.meta.client ?  {
     key: "info",
     storage: piniaPluginPersistedstate.localStorage(),
     paths: ["isLoggedIn", "filterPreferences", "userInfo"],
-  },
+  } : false,
   actions: {
     async login(email: string, password: string) {
       const { $i18n } = useNuxtApp();
