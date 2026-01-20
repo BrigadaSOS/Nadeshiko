@@ -156,9 +156,11 @@ export const SearchAnimeSentencesHealth = async (
   req: ControllerRequest<SearchAnimeSentencesRequest>,
   res: ControllerResponse<SearchAnimeSentencesResponse>,
 ) => {
+  req.body = req.body || {};
+
   const response = await querySegments({
     query: 'あ',
-    uuid: req.body.uuid,
+    uuid: req.body.uuid || undefined,
     length_sort_order: req.body.content_sort || 'none',
     limit: req.body.limit || 10,
     status: req.body.status || [1],
