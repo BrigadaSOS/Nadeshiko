@@ -1,13 +1,15 @@
 
 ::about
 
+# About
+
 ## Contribution and Attribution
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
   <div
     class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0" style="--pfp-bg: url('../github/natsume_pfp.jpg')">
       <img
         class="h-full w-full object-contain"
         src="../github/natsume_pfp.jpg"
@@ -50,7 +52,7 @@
   <div
     class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0" style="--pfp-bg: url('../github/davafons_pfp.jpg')">
       <img
         class="h-full w-full object-contain"
         src="../github/davafons_pfp.jpg"
@@ -93,7 +95,7 @@
   <div
     class="border flex flex-col sm:flex-row dark:bg-neutral-800 dark:border-neutral-700 w-full"
   >
-    <div class="relative w-full sm:w-48 h-48 flex-shrink-0">
+    <div class="relative w-full sm:w-48 h-48 flex-shrink-0" style="--pfp-bg: url('../github/xyaman_pfp.jpg')">
       <img
         class="h-full w-full object-contain"
         src="../github/xyaman_pfp.jpg"
@@ -138,14 +140,15 @@
 
 ## Credits and Data Sources
 
-This site uses materials and references that are the intellectual property of their respective authors and rights holders. See here for the list of content used as well as their respective authors.
+This site uses materials and references that are the intellectual property of their respective authors and rights holders. [See here](https://nadeshiko.co/search/media) for the list of content used as well as their respective authors.
 <br/><br/>
-The use of these materials is done under the belief that it complies with the guidelines of "fair use" for educational and non-profit purposes. If you are the rights holder of any of these materials and believe that fair use is not being met, please contact us at brigadasosjapones@gmail.com
+For information regarding copyright and DMCA, please see our [DMCA Policy](/dmca).
 
 ## Contact
 
 If you wish to contact us either to leave a comment, suggestion, contribution, or anything else, you can do so via:
 
-Our email: brigadasosjapones@gmail.com or on Discord through the SOS Brigade server.
+- **Email**: contact@nadeshiko.co
+- **Discord**: [Brigada SOS!団](https://discord.gg/ajWm26ADEj)
 
 This website is under the AGPL-3.0 License.

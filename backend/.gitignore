@@ -33,6 +33,8 @@ dictionaries/jmdict
 /cypress/videos/
 /cypress/screenshots/
 
+/references
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

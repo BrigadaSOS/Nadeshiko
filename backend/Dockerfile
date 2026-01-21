@@ -1,23 +1,19 @@
-# Build
-FROM node:20.5.1-bullseye AS builder
-
+FROM oven/bun:1 AS base
 WORKDIR /app
 
-RUN apt-get update
-
-COPY package*.json ./
-RUN npm install
+FROM base AS build
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN bun build ./main.ts --outdir ./prod --target bun
 
-#Run
-FROM node:20.5.1-bullseye AS server
+FROM oven/bun:1 AS release
 WORKDIR /app
-COPY package*.json .env* ./
-RUN npm install --production
-COPY --from=builder ./app/prod ./prod
+COPY --from=build /app/prod ./prod
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile
 
 ENV NEW_RELIC_NO_CONFIG_FILE=true
 ENV NEW_RELIC_LOG=stdout
 
-CMD [ "npm", "run", "start" ]
+CMD ["bun", "run", "start"]

@@ -6,64 +6,63 @@ import { User } from '../models/user/user';
 import { UserRole } from '../models/user/userRole';
 import { Role } from '../models/user/role';
 import { hashApiKey } from '../utils/utils';
-import { logger } from '../utils/log';
+import { Unauthorized, TooManyRequests } from '../utils/error';
 
-export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunction): Promise<void> => {
+export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunction): Promise<void> => {
   if (req.apiKey) {
-    try {
-      const apiAuth = await ApiAuth.findOne({
-        where: { token: hashApiKey(req.apiKey), isActive: true },
-        include: [
-          {
-            model: User,
-            include: [
-              {
-                model: UserRole,
-                include: [Role],
-              },
-            ],
-          },
-        ],
-      });
-
-      if (!apiAuth || !apiAuth.user) {
-        res.status(401).json({ message: 'Invalid API Key.' });
-        return;
-      }
-
-      const roles = apiAuth.user.UserRoles.map((ur) => ur.role);
-      const maxQuota = Math.max(...roles.map((role) => role.quotaLimit));
-
-      if (maxQuota === -1) {
-        await logApiUsage(req, apiAuth);
-        next();
-        return;
-      }
-
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-
-      const usageCount = await ApiUsageHistory.count({
-        where: {
-          apiAuthId: apiAuth.id,
-          used_at: {
-            [Op.gte]: startOfMonth,
-          },
+    const apiAuth = await ApiAuth.findOne({
+      where: { token: hashApiKey(req.apiKey), isActive: true },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          include: [
+            {
+              model: UserRole,
+              as: 'userRoles',
+              include: [
+                {
+                  model: Role,
+                  as: 'role',
+                },
+              ],
+            },
+          ],
         },
-      });
+      ],
+    });
 
-      if (usageCount >= maxQuota) {
-        res.status(429).json({ message: 'API Key quota exceeded for this month.' });
-        return;
-      }
-
-      await logApiUsage(req, apiAuth);
-      next();
-    } catch (error) {
-      logger.error({ err: error }, 'Rate limit check failed');
-      next(error);
+    if (!apiAuth || !apiAuth.user) {
+      throw new Unauthorized('Invalid API Key.');
     }
+
+    const roles = (apiAuth.user?.userRoles ?? []).map((ur: any) => ur.role);
+    const maxQuota = Math.max(...roles.map((role: any) => role.quotaLimit));
+
+    if (maxQuota === -1) {
+      await logApiUsage(req, apiAuth);
+      return next();
+    }
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const usageCount = await ApiUsageHistory.count({
+      where: {
+        apiAuthId: apiAuth.id,
+        used_at: {
+          [Op.gte]: startOfMonth,
+        },
+      },
+    });
+
+    if (usageCount >= maxQuota) {
+      throw new TooManyRequests('API Key quota exceeded for this month.');
+    }
+
+    await logApiUsage(req, apiAuth);
+    next();
   } else {
     next();
   }

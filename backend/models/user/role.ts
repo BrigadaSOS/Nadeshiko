@@ -1,5 +1,8 @@
-import { Table, Model, Column, DataType, HasMany } from 'sequelize-typescript';
-import { UserRole } from './userRole';
+import { Table, Model, Column, DataType } from 'sequelize-typescript';
+import type { Sequelize } from 'sequelize-typescript';
+import type { UserRole } from './userRole';
+
+export const DEFAULT_QUOTA_LIMIT = 2500;
 
 @Table({
   timestamps: false,
@@ -10,7 +13,7 @@ export class Role extends Model {
     type: DataType.INTEGER,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.STRING,
@@ -24,10 +27,15 @@ export class Role extends Model {
 
   @Column({
     type: DataType.INTEGER,
-    defaultValue: 2500,
+    defaultValue: DEFAULT_QUOTA_LIMIT,
   })
   quotaLimit!: number;
 
-  @HasMany(() => UserRole)
-  UserRoles!: UserRole[];
+  declare userRoles?: UserRole[];
+
+  static associate(sequelize: Sequelize) {
+    const UserRole = sequelize.models.UserRole;
+
+    Role.hasMany(UserRole, { foreignKey: 'id_role', as: 'userRoles' });
+  }
 }

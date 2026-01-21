@@ -16,6 +16,7 @@
       "seeProfile": "Settings",
       "logout": "Logout",
       "privacy": "Privacy",
+      "dmca": "DMCA",
       "terms": "Terms and Conditions",
       "contact": "Contact",
       "settings": "Settings"
@@ -385,7 +386,8 @@
       "registerButton": "Register",
       "closeSrOnly": "Close",
       "passwordMinLength": "8+ characters required",
-      "passwordMatchError": "Passwords must match"
+      "passwordMatchError": "Passwords must match",
+      "emailValidationError": "Please enter a valid email address"
     }
   },
   "auth": {

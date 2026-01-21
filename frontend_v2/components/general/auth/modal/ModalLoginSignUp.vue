@@ -1,9 +1,4 @@
 <script setup lang="ts">
-// Fix for random focus when pressing tab
-import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
-const target = ref();
-const { hasFocus, activate, deactivate } = useFocusTrap(target);
-
 const store = userStore();
 
 // Show email/password login only in development/testing environment

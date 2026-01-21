@@ -8,7 +8,7 @@
       "buttons": {
         "home": "ホーム",
         "faq": "よくある質問",
-        "about": "概要",
+        "about": "About",
         "discord": "ディスコード",
         "guide": "メインページ",
         "login": "ログイン / サインアップ",
@@ -16,6 +16,7 @@
         "seeProfile": "設定",
         "logout": "ログアウト",
         "privacy": "プライバシー",
+        "dmca": "DMCA",
         "terms": "利用規約",
         "contact": "お問い合わせ",
         "settings": "設定"

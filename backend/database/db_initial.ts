@@ -1,4 +1,3 @@
-import path from 'path';
 import { Media, CategoryType } from '../models/media/media';
 import { Segment, SegmentStatus } from '../models/media/segment';
 import { ApiAuth } from '../models/api/apiAuth';
@@ -9,13 +8,12 @@ import { UserRole } from '../models/user/userRole';
 import { refreshMediaInfoCache } from '../external/database_queries';
 import { logger } from '../utils/log';
 import { hashApiKey, generateApiKeyHint } from '../utils/utils';
+import { statSync, readFileSync, readdirSync, existsSync, createReadStream, safePath } from '../utils/fs';
 
-import bcrypt from 'bcrypt';
 import readline from 'readline';
-import fs from 'fs';
 import stream from 'stream';
 
-// Añade el contenido indispensable para el funcionamiento de la base de datos
+// Adds the essential content for the database to function
 export async function addBasicData(db: any) {
   await db.Role.bulkCreate([
     { id: 1, name: 'ADMIN', description: 'Administrator', quotaLimit: -1 },
@@ -35,8 +33,10 @@ export async function addBasicData(db: any) {
 
   const permissions = ['ADD_MEDIA', 'READ_MEDIA', 'REMOVE_MEDIA', 'UPDATE_MEDIA', 'RESYNC_DATABASE', 'CREATE_USER'];
 
-  const salt: string = await bcrypt.genSalt(10);
-  const encryptedPassword: string = await bcrypt.hash(process.env.PASSWORD_API_NADEDB!, salt);
+  const encryptedPassword: string = await Bun.password.hash(process.env.PASSWORD_API_NADEDB!, {
+    algorithm: 'bcrypt',
+    cost: 10,
+  });
   const roles = [1];
   const userRoles = roles.map((roleId) => ({ id_role: roleId }));
 
@@ -58,10 +58,13 @@ export async function addBasicData(db: any) {
         createdAt: new Date(),
         isActive: true,
       },
-      UserRoles: userRoles,
+      userRoles: userRoles,
     },
     {
-      include: [ApiAuth, UserRole],
+      include: [
+        { model: ApiAuth, as: 'apiAuth' },
+        { model: UserRole, as: 'userRoles' },
+      ],
     },
   );
 
@@ -73,41 +76,43 @@ export async function addBasicData(db: any) {
     },
   });
 
-  await Promise.all(
-    apiPermissions.map(async (permission) => {
-      await ApiAuthPermission.create({
-        apiAuthId: apiAuth.id,
-        apiPermissionId: permission.id,
-      });
-    }),
-  );
+  if (apiAuth) {
+    await Promise.all(
+      apiPermissions.map(async (permission) => {
+        await ApiAuthPermission.create({
+          apiAuthId: apiAuth.id,
+          apiPermissionId: permission.id,
+        });
+      }),
+    );
+  }
 }
 
-// Función que lee todos los directorios y los mapea en la base de datos
+// Function that reads all directories and maps them in the database
 export async function readAnimeDirectories(baseDir: string, type: string) {
   let globalPath = '';
   if (type == 'anime') {
-    globalPath = path.join(baseDir, 'anime');
+    globalPath = safePath(baseDir, 'anime');
   } else if (type == 'jdrama') {
-    globalPath = path.join(baseDir, 'jdrama');
+    globalPath = safePath(baseDir, 'jdrama');
   } else if (type == 'audiobook') {
-    globalPath = path.join(baseDir, 'audiobook');
+    globalPath = safePath(baseDir, 'audiobook');
   }
 
-  const animeDirectories = fs.readdirSync(globalPath);
+  const animeDirectories = readdirSync(globalPath, { withFileTypes: false });
 
   for (const animeItem of animeDirectories) {
-    const mediaDirPath = path.join(globalPath, animeItem);
-    // Antes de crear el MEDIA, debe verificar la existencia de un archivo JSON con la info
-    const dataJsonPath = path.join(mediaDirPath, 'info.json');
-    const dataJsonExists = fs.existsSync(dataJsonPath);
+    const mediaDirPath = safePath(globalPath, animeItem as string);
+    // Before creating the MEDIA, verify the existence of a JSON file with the info
+    const dataJsonPath = safePath(mediaDirPath, 'info.json');
+    const dataJsonExists = existsSync(dataJsonPath);
 
     let media_raw = null;
     let media = null;
 
     if (dataJsonExists) {
       try {
-        const jsonString = fs.readFileSync(dataJsonPath, 'utf-8');
+        const jsonString = readFileSync(dataJsonPath, 'utf-8') as string;
         media_raw = JSON.parse(jsonString);
       } catch (error) {
         logger.error({ err: error, dataJsonPath }, 'Error reading JSON file');
@@ -137,11 +142,10 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
         logger.error({ err: error, mediaDirPath }, 'Error creating media');
       }
 
-      if (fs.statSync(mediaDirPath).isDirectory()) {
-        const seasonDirectories = fs
-          .readdirSync(mediaDirPath, { withFileTypes: true })
-          .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
-          .map((dirent: { name: any }) => dirent.name);
+      if (statSync(mediaDirPath).isDirectory()) {
+        const seasonDirectories = readdirSync(mediaDirPath, { withFileTypes: true })
+          .filter((dirent) => dirent.isDirectory())
+          .map((dirent) => dirent.name);
 
         let numSegments = 0;
         let numSeasons = 0;
@@ -151,7 +155,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
             continue;
           }
 
-          const tempDirPath = path.join(mediaDirPath, seasonDirname);
+          const tempDirPath = safePath(mediaDirPath, seasonDirname);
           numSeasons += 1;
 
           const media = await Media.findOne({
@@ -160,24 +164,24 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
 
           const number_season = parseInt(seasonDirname.replace('S', ''));
 
-          if (fs.statSync(tempDirPath).isDirectory()) {
-            const episodeDirectories = fs.readdirSync(tempDirPath);
+          if (statSync(tempDirPath).isDirectory()) {
+            const episodeDirectories = readdirSync(tempDirPath, { withFileTypes: false });
 
             for (const episodeDirname of episodeDirectories) {
-              const episodeDirPath = path.join(tempDirPath, episodeDirname);
+              const episodeDirPath = safePath(tempDirPath, episodeDirname as string);
               numEpisodes += 1;
 
               const number_episode = parseInt(episodeDirname.replace('E', ''));
 
-              const dataTsvPath = path.join(episodeDirPath, 'data.tsv');
-              const dataTsvExists = fs.existsSync(dataTsvPath);
+              const dataTsvPath = safePath(episodeDirPath, 'data.tsv');
+              const dataTsvExists = existsSync(dataTsvPath);
 
               if (dataTsvExists) {
                 logger.info({ dataTsvPath, season: number_season, episode: number_episode }, 'Found media data');
 
-                // Se lee cada linea mediante el stream del TSV y se usa la interfaz para manejarla despues
+                // Read each line through the TSV stream and use the interface to handle it afterwards
                 const rl = readline.createInterface({
-                  input: fs.createReadStream(dataTsvPath, 'utf-8'),
+                  input: createReadStream(dataTsvPath, 'utf-8'),
                   output: new stream.PassThrough(),
                   terminal: false,
                 });
@@ -185,15 +189,15 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
                 const rows = [];
                 let headers;
 
-                // Se lee cada linea de forma manual y creamos nuestro propio diccionario
-                // Para tener la libertad de reemplazar cada linea
+                // Read each line manually and create our own dictionary
+                // To have the freedom to replace each line
                 for await (const line of rl) {
-                  // Elimina las barras invertidas y divide la línea por el delimitador de TSV
+                  // Remove backslashes and split the line by the TSV delimiter
                   const rowArray = line.split('\t').map((s: string) => s.replace(/[\\-]/g, ''));
                   if (!headers) {
                     headers = rowArray;
                   } else {
-                    // Crea un objeto para la fila, usando 'headers' para las claves y 'rowArray' para los valores
+                    // Create an object for the row, using 'headers' for keys and 'rowArray' for values
                     const rowObject = {};
                     headers.forEach((header: string | number, index: string | number) => {
                       // @ts-expect-error -- rowObject index access
@@ -246,7 +250,7 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
   }
 }
 
-// Función que lee un directorio en especifico y lo mapea en la base de datos
+// Function that reads a specific directory and maps it in the database
 export async function readSpecificDirectory(
   baseDir: string,
   folder_name: string,
@@ -258,27 +262,27 @@ export async function readSpecificDirectory(
   let mediaDirPath = '';
 
   if (type == 'anime') {
-    mediaDirPath = path.join(baseDir, 'anime', folder_name);
+    mediaDirPath = safePath(baseDir, 'anime', folder_name);
   } else if (type == 'jdrama') {
-    mediaDirPath = path.join(baseDir, 'jdrama', folder_name);
+    mediaDirPath = safePath(baseDir, 'jdrama', folder_name);
   } else if (type == 'audiobook') {
-    mediaDirPath = path.join(baseDir, 'audiobook', folder_name);
+    mediaDirPath = safePath(baseDir, 'audiobook', folder_name);
   }
 
-  // Define la busqueda del contenido en la base de datos
+  // Define the search for content in the database
   let mediaFound = null;
-  // Verifica si el contenido multimedia existe en el backend
+  // Check if the multimedia content exists in the backend
   if (folderExists(mediaDirPath)) {
-    // Verifica si existe el contenido en la base de datos
-    // Verifica la existencia de un archivo JSON con la info
-    const dataJsonPath = path.join(mediaDirPath, 'info.json');
-    const dataJsonExists = fs.existsSync(dataJsonPath);
+    // Check if the content exists in the database
+    // Check the existence of a JSON file with the info
+    const dataJsonPath = safePath(mediaDirPath, 'info.json');
+    const dataJsonExists = existsSync(dataJsonPath);
 
     let media_raw = null;
 
     if (dataJsonExists) {
       try {
-        const jsonString = fs.readFileSync(dataJsonPath, 'utf-8');
+        const jsonString = readFileSync(dataJsonPath, 'utf-8') as string;
         media_raw = JSON.parse(jsonString);
       } catch (error) {
         logger.error({ err: error, dataJsonPath }, 'Error reading JSON file');
@@ -290,14 +294,14 @@ export async function readSpecificDirectory(
       where: { folder_media_name: folder_name },
     });
 
-    // Si encuentra el anime, empieza a actualizar de acuerdo a los parametros
-    // Caso contrario, lo añade a la base de datos
+    // If the anime is found, start updating according to parameters
+    // Otherwise, add it to the database
     if (mediaFound) {
       if (force) {
-        // Si solo se recibe la temporada, se fuerza la actualización en toda la temporada
-        // Si se recibe la temporada y el episodio, se fuerza la actualización de un episodio en especifico de esa temporada
-        // Si se recibe solo el episodio, no se hace nada
-        // Si no recibe ningún parametro, se fuerza una actualización total del contenido
+        // If only the season is received, force update on the entire season
+        // If both season and episode are received, force update of a specific episode of that season
+        // If only the episode is received, do nothing
+        // If no parameter is received, force a full content update
         // TODO: Leaving this not implemented for now.
         if (season && !episode) {
           return 'Not implemented for now. Please sync the full anime.';
@@ -357,11 +361,10 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
     logger.error({ err: error, mediaDirPath }, 'Error while inserting media info into the database');
   }
 
-  // Lee cada temporada y empieza a mapearla en la base de datos
-  const seasonDirectories = fs
-    .readdirSync(mediaDirPath, { withFileTypes: true })
-    .filter((dirent: { isDirectory: () => any }) => dirent.isDirectory())
-    .map((dirent: { name: any }) => dirent.name);
+  // Read each season and start mapping it in the database
+  const seasonDirectories = readdirSync(mediaDirPath, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name);
 
   let numSegments = 0;
   let numSeasons = 0;
@@ -375,25 +378,26 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
     const number_season = parseInt(seasonDirname.replace('S', ''));
     numSeasons += 1;
 
-    // Una vez mapeada la temporada, mapea los episodios
-    const tempDirPath = path.join(mediaDirPath, seasonDirname);
-    if (fs.statSync(tempDirPath).isDirectory()) {
-      const episodeDirectories = fs.readdirSync(tempDirPath);
+    // Once the season is mapped, map the episodes
+    const tempDirPath = safePath(mediaDirPath, seasonDirname);
+    const isDirectory = statSync(tempDirPath).isDirectory();
+    if (isDirectory) {
+      const episodeDirectories = readdirSync(tempDirPath, { withFileTypes: false });
       for (const episodeDirname of episodeDirectories) {
-        const number_episode = parseInt(episodeDirname.replace('E', ''));
+        const number_episode = parseInt((episodeDirname as string).replace('E', ''));
         numEpisodes += 1;
 
-        // Una vez mapeado el episodio, mapea los segmentos de acuerdo al archivo TSV dentro de la carpeta del episodio
-        const episodeDirPath = path.join(tempDirPath, episodeDirname);
-        const dataTsvPath = path.join(episodeDirPath, 'data.tsv');
-        const dataTsvExists = fs.existsSync(dataTsvPath);
+        // Once the episode is mapped, map the segments according to the TSV file inside the episode folder
+        const episodeDirPath = safePath(tempDirPath, episodeDirname as string);
+        const dataTsvPath = safePath(episodeDirPath, 'data.tsv');
+        const dataTsvExists = existsSync(dataTsvPath);
 
         if (dataTsvExists) {
           logger.info({ dataTsvPath, season: number_season, episode: number_episode }, 'Anime data found');
 
-          // Se lee cada linea mediante el stream del TSV y se usa la interfaz para manejarla despues
+          // Read each line through the TSV stream and use the interface to handle it afterwards
           const rl = readline.createInterface({
-            input: fs.createReadStream(dataTsvPath, 'utf-8'),
+            input: createReadStream(dataTsvPath, 'utf-8'),
             output: new stream.PassThrough(),
             terminal: false,
           });
@@ -401,15 +405,15 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
           const rows = [];
           let headers;
 
-          // Se lee cada linea de forma manual y creamos nuestro propio diccionario
-          // Para tener la libertad de reemplazar cada linea
+          // Read each line manually and create our own dictionary
+          // To have the freedom to replace each line
           for await (const line of rl) {
-            // Elimina las barras invertidas y divide la línea por el delimitador de TSV
+            // Remove backslashes and split the line by the TSV delimiter
             const rowArray = line.split('\t').map((s: string) => s.replace(/[\\-]/g, ''));
             if (!headers) {
               headers = rowArray;
             } else {
-              // Crea un objeto para la fila, usando 'headers' para las claves y 'rowArray' para los valores
+              // Create an object for the row, using 'headers' for keys and 'rowArray' for values
               const rowObject = {};
               headers.forEach((header: string | number, index: string | number) => {
                 // @ts-expect-error -- rowObject index access
@@ -457,10 +461,10 @@ async function fullSyncSpecificMedia(mediaFound: Media | null, media_raw: any, m
   await refreshMediaInfoCache(0, 10);
 }
 
-// Funciones menores
+// Helper functions
 function folderExists(path: string) {
   try {
-    fs.statSync(path);
+    statSync(path);
     return true;
   } catch (err) {
     if (err.code === 'ENOENT') {

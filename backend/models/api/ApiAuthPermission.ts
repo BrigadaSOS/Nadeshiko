@@ -1,6 +1,6 @@
 import { Table, Model, Column, DataType, ForeignKey } from 'sequelize-typescript';
-import { ApiPermission } from './apiPermission';
 import { ApiAuth } from './apiAuth';
+import { ApiPermission } from './apiPermission';
 
 @Table({
   timestamps: false,
@@ -13,7 +13,7 @@ export class ApiAuthPermission extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => ApiAuth)
   @Column
