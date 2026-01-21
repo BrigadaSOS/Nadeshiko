@@ -1,7 +1,11 @@
 <script setup>
 import { mdiArrowUp } from '@mdi/js'
 const showScrollButton = ref(false);
+import { usePlayerStore } from '~/stores/player';
+import { storeToRefs } from 'pinia';
 
+const playerStore = usePlayerStore();
+const { showPlayer } = storeToRefs(playerStore);
 const props = defineProps(['searchData', 'categorySelected', 'media']);
 
 // Get season/episode data for the selected media
@@ -35,8 +39,10 @@ onUnmounted(() => {
 </script>
 <template>
 
-  <div class="fixed right-6 bottom-6 z-50 group">
-    <Transition>
+<div 
+    class="fixed right-6 z-50 group transition-all duration-300 ease-in-out"
+    :class="showPlayer ? 'bottom-40 md:bottom-24' : 'bottom-6'"
+  >    <Transition>
       <button type="button" v-if="showScrollButton" @click="scrollToTop"
         class="flex items-center justify-center outline-none mb-2  bg-sgray rounded-full w-14 h-14 hover:bg-sgrayhover dark:bg-header-background focus:ring-4 focus:outline-none">
         <UiBaseIcon :path="mdiArrowUp" w="5" h="5" size="20" fill="white" strokewidth="1" stroke="white" />

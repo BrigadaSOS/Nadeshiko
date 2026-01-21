@@ -1,5 +1,6 @@
 <script setup>
 import { mdiRefresh } from '@mdi/js'
+import { usePlayerStore } from '~/stores/player';
 
 const props = defineProps({
   initialData: {
@@ -12,6 +13,7 @@ const { t } = useI18n();
 const apiSearch = useApiSearch();
 const route = useRoute();
 const router = useRouter();
+const playerStore = usePlayerStore();
 const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 // Main variables
@@ -68,6 +70,11 @@ const animeTabName = computed(() => {
 const fetchSentences = async (fromButton = false) => {
     try {
         if (endOfResults.value || isLoading.value) return;
+
+        // If it's a new search (not loading more), hide the player.
+        if (cursor.value === null) {
+            playerStore.hidePlayer();
+        }
 
         isLoading.value = true;
         showLoadMoreButton.value = false;

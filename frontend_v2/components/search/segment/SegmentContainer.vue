@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import { mdiTranslate, mdiVolumeHigh, mdiChevronRight, mdiClose, mdiChevronLeft, mdiArrowExpandHorizontal } from '@mdi/js'
+import { usePlayerStore } from '~/stores/player';
 
 type Props = {
   searchData: any;
@@ -11,6 +12,10 @@ type Props = {
 // const props = defineProps(['searchData', 'ankiNotesQuery', 'isLoading']);
 const props = defineProps<Props>();
 let locale = ref('en');
+
+const playerStore = usePlayerStore();
+const { isPlaying, currentSentence } = storeToRefs(playerStore);
+
 
 let selectedSentence = ref(null);
 let searchNoteSentence: Ref<Sentence | null> = ref(null);
@@ -230,10 +235,10 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     <SearchModalAnkiNotes :sentence="searchNoteSentence"
       :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
 
-    <div v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.position"
-      :id="sentence.segment_info.position"
+    <div v-for="(sentence, index) in searchData.sentences" :key="sentence.segment_info.uuid"
+      :id="sentence.segment_info.uuid"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
-      :class="{ 'bg-neutral-800 hover:bg-neutral-800': sentence.segment_info.position === props.currentSentenceIndex }">
+      :class="{ 'bg-neutral-800 hover:bg-neutral-800': currentSentence && sentence.segment_info.uuid === currentSentence.segment_info.uuid }">
       <!-- Image -->
       <div class="h-auto shrink-0 w-auto lg:w-[25rem] min-w-[200px] min-h-[140px] flex justify-center">
         <img loading="lazy" :src="sentence.media_info.path_image + '?width=960&height=540'"
@@ -249,12 +254,11 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button -->
-            <button
-              @click="playAudio(sentence.media_info.blob_audio_url ? sentence.media_info.blob_audio_url : sentence.media_info.path_audio, sentence.segment_info.uuid)"
+            <button @click="playerStore.setPlaylist(searchData.sentences, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
-              <UiBaseIcon v-if="!isAudioPlaying[sentence.segment_info.uuid]" w="w-5" h="h-5" size="24"
+              <UiBaseIcon v-if="!(isPlaying && currentSentence && currentSentence.segment_info.uuid === sentence.segment_info.uuid)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
-              <span v-else="isAudioPlaying"
+              <span v-else
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
                 role="status" aria-label="loading"></span>
             </button>
