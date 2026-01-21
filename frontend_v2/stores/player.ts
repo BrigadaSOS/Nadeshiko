@@ -26,6 +26,7 @@ interface PlayerState {
   currentAudio: HTMLAudioElement | null;
   autoplay: boolean;
   repeat: boolean;
+  isImmersive: boolean;
 }
 
 export const usePlayerStore = defineStore('player', {
@@ -37,6 +38,7 @@ export const usePlayerStore = defineStore('player', {
     currentAudio: null,
     autoplay: false,
     repeat: false,
+    isImmersive: false,
   }),
 
   getters: {
@@ -53,6 +55,7 @@ export const usePlayerStore = defineStore('player', {
       this.playlist = sentences;
       this.currentIndex = startIndex;
       this.showPlayer = true;
+      this.isImmersive = false;
       this.playCurrent();
     },
 
@@ -121,6 +124,10 @@ export const usePlayerStore = defineStore('player', {
       this.repeat = !this.repeat;
     },
 
+    toggleImmersive() {
+      this.isImmersive = !this.isImmersive;
+    },
+
     next() {
       if (this.currentIndex !== null && this.currentIndex < this.playlist.length - 1) {
         this.currentIndex++;
@@ -146,6 +153,7 @@ export const usePlayerStore = defineStore('player', {
         this.currentIndex = null;
         this.isPlaying = false;
         this.currentAudio = null;
+        this.isImmersive = false;
     }
   },
 });

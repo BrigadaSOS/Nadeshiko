@@ -5,10 +5,9 @@ import { watch, ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
 
 const playerStore = usePlayerStore();
-const { currentSentence, isPlaying, showPlayer, autoplay, currentAudio, playlist, currentIndex, repeat } = storeToRefs(playerStore);
+const { currentSentence, isPlaying, showPlayer, autoplay, currentAudio, playlist, currentIndex, repeat, isImmersive } = storeToRefs(playerStore);
 
 const progress = ref(0);
-const isImmersive = ref(false);
 const lyricsContainer = ref<HTMLElement | null>(null);
 const animationFrameId = ref<number | null>(null);
 let lastScrollTime = 0;
@@ -42,10 +41,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleGlobalKeydown);
 });
-
-const toggleImmersive = () => {
-    isImmersive.value = !isImmersive.value;
-};
 
 const waitForElement = async (selector: string, retries = 5, delay = 100) => {
     for (let i = 0; i < retries; i++) {
@@ -279,7 +274,7 @@ const getAnimeImage = (sentence: any) => {
                                 <UiBaseIcon :path="mdiRepeat" :size="20" />
                             </button>
                             <div class="w-px h-4 bg-white/20 mx-1"></div>
-                            <button @click="toggleImmersive"
+                            <button @click="playerStore.toggleImmersive()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
                                 <UiBaseIcon :path="mdiFullscreenExit" :size="20" />
                             </button>
@@ -409,7 +404,7 @@ const getAnimeImage = (sentence: any) => {
                             :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }" title="Repeat">
                             <UiBaseIcon :path="mdiRepeat" :size="20" />
                         </button>
-                        <button @click="toggleImmersive"
+                        <button @click="playerStore.toggleImmersive()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70">
                             <UiBaseIcon :path="mdiFullscreen" :size="20" />
                         </button>
