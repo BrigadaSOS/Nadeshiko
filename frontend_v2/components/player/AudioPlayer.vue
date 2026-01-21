@@ -266,28 +266,7 @@ const getAnimeImage = (sentence: any) => {
                                 currentSentence.basic_info.name_anime_en }}</span>
                         </div>
 
-                        <div
-                            class="flex items-center gap-2 bg-white/5 backdrop-blur-md rounded-full p-1 border border-white/10">
-                            <button @click="playerStore.toggleAutoplay()"
-                                class="p-2 rounded-full hover:bg-white/10 transition-colors"
-                                :class="{ 'text-red-400': autoplay, 'text-white/60': !autoplay }" title="Autoplay">
-                                <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
-                            </button>
-                            <button @click="playerStore.toggleRepeat()"
-                                class="p-2 rounded-full hover:bg-white/10 transition-colors"
-                                :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }" title="Repeat">
-                                <UiBaseIcon :path="mdiRepeat" :size="20" />
-                            </button>
-                            <div class="w-px h-4 bg-white/20 mx-1"></div>
-                            <button @click="playerStore.toggleImmersive()"
-                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
-                                <UiBaseIcon :path="mdiFullscreenExit" :size="20" />
-                            </button>
-                            <button @click="playerStore.hidePlayer()"
-                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
-                                <UiBaseIcon :path="mdiClose" :size="20" />
-                            </button>
-                        </div>
+
                     </div>
 
                     <div
@@ -351,6 +330,27 @@ const getAnimeImage = (sentence: any) => {
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
+                        </div>
+
+                        <div class="flex items-center justify-center gap-2 mt-8">
+                            <button @click="playerStore.toggleAutoplay()"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors"
+                                :class="{ 'text-red-400': autoplay, 'text-white/60': !autoplay }" title="Autoplay">
+                                <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
+                            </button>
+                            <button @click="playerStore.toggleRepeat()"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors"
+                                :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }" title="Repeat">
+                                <UiBaseIcon :path="mdiRepeat" :size="20" />
+                            </button>
+                            <button @click="playerStore.toggleImmersive()"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
+                                <UiBaseIcon :path="mdiFullscreenExit" :size="20" />
+                            </button>
+                            <button @click="playerStore.hidePlayer()"
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
+                                <UiBaseIcon :path="mdiClose" :size="20" />
+                            </button>
                         </div>
                     </div>
 
