@@ -1,40 +1,4 @@
-let currentAudio: HTMLAudioElement | null = null;
 
-// TODO: Find a better way to do this
-export const isAudioPlaying: Record<string, boolean> = reactive({});
-
-export async function playAudio(url: string, uuid: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-
-    // Detener el audio actual si se está reproduciendo
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-
-      const playingUuid = Object.keys(isAudioPlaying).find(key => isAudioPlaying[key]);
-      if (playingUuid) {
-        // Limpiar el estado del audio que se detuvo
-        delete isAudioPlaying[playingUuid];
-      }
-    }
-
-    currentAudio = new Audio(url);
-    currentAudio.play();
-    isAudioPlaying[uuid] = true;
-
-    currentAudio.onended = () => {
-      isAudioPlaying[uuid] = false;
-      delete isAudioPlaying[uuid];
-      resolve();
-    };
-
-    currentAudio.onerror = (error) => {
-      isAudioPlaying[uuid] = false;
-      delete isAudioPlaying[uuid];
-      reject(error);
-    };
-  });
-}
 
 type ConcatenatedAudio = {
   blob: Blob,
