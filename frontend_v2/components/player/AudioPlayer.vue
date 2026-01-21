@@ -31,6 +31,11 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
             event.preventDefault();
             playerStore.next();
             break;
+        case 'Escape':
+            if (isImmersive.value) {
+                playerStore.toggleImmersive();
+            }
+            break;
     }
 };
 
