@@ -375,7 +375,7 @@ const getAnimeImage = (sentence: any) => {
 
 
                     <div class="flex items-center gap-1 md:gap-3">
-                        <button @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors">
+                        <button @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block">
                             <UiBaseIcon :path="mdiRewind" :size="24"
                                 class="text-white/70 group-hover:text-white transition-colors" />
                         </button>
@@ -391,7 +391,7 @@ const getAnimeImage = (sentence: any) => {
                             class="p-2 text-white/70 hover:text-white transition-colors">
                             <UiBaseIcon :path="mdiSkipNext" :size="24" />
                         </button>
-                        <button @click="seekForward" class="p-2 text-white/70 hover:text-white transition-colors">
+                        <button @click="seekForward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block">
                             <UiBaseIcon :path="mdiFastForward" :size="24"
                                 class="text-white/70 group-hover:text-white transition-colors" />
                         </button>
