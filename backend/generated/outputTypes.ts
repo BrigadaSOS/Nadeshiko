@@ -54,9 +54,9 @@ export type SearchResponseOutput = z.output<typeof schemas.s_SearchResponse>;
 // ============================================
 
 export const fetchMediaInfoQuerySchema = z.object({
-    size: z.coerce.number().optional().default(20),
-    cursor: z.coerce.number().optional().default(0),
-    query: z.string().optional(),
-    type: z.enum(["anime", "liveaction", "audiobook"]).optional(),
-  });
+  size: z.coerce.number().optional().default(20),
+  cursor: z.coerce.number().optional().default(0),
+  query: z.string().optional(),
+  type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
+});
 export type FetchMediaInfoQueryOutput = z.output<typeof fetchMediaInfoQuerySchema>;
