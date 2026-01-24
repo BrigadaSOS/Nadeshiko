@@ -1,0 +1,8 @@
+type: object
+description: Deactivate API key response
+properties:
+  message:
+    type: string
+    description: Success message
+required:
+  - message

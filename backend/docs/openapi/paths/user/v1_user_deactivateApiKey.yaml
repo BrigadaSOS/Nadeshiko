@@ -1,0 +1,50 @@
+post:
+  tags:
+    - User
+  summary: Deactivate API key
+  description: Deactivate an API key for the authenticated user
+  operationId: deactivateApiKey
+  x-internal: true
+  security:
+    - jwtCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/DeactivateApiKeyRequest.yaml"
+        example:
+          api_key_id: 123
+  responses:
+    "200":
+      description: API key deactivated
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/DeactivateApiKeyResponse.yaml"
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+          examples:
+            ValidationFailed:
+              $ref: "../../components/examples/ValidationFailed.yaml"
+            InvalidJson:
+              $ref: "../../components/examples/InvalidJson.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+          examples:
+            NotFound:
+              $ref: "../../components/examples/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

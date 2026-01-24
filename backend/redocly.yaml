@@ -1,0 +1,10 @@
+apis:
+  # Production version - removes all x-internal endpoints
+  main:
+    root: docs/openapi/openapi.yaml
+    decorators:
+      remove-x-internal: on
+
+  # Internal version - keeps all endpoints (for local dev)
+  internal:
+    root: docs/openapi/openapi.yaml

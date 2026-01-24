@@ -1,0 +1,47 @@
+post:
+  tags:
+    - Auth
+  x-internal: true
+  operationId: loginDiscord
+  summary: (OAuth) Login with Discord
+  description: |
+    Receive the callback from Discord OAuth2 and authenticate or register the user properly.
+
+  parameters:
+    - name: Referer
+      in: header
+      description: Frontend URL for authentication bypass
+      schema:
+        type: string
+        example: http://localhost:3000
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/DiscordLoginRequest.yaml"
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/LoginResponse.yaml"
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error.yaml"
+          examples:
+            ValidationFailed:
+              $ref: "../../components/examples/ValidationFailed.yaml"
+            InvalidJson:
+              $ref: "../../components/examples/InvalidJson.yaml"
+    "409":
+      $ref: "../../components/responses/Conflict.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

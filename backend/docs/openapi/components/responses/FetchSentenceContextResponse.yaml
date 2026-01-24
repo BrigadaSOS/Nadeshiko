@@ -1,0 +1,8 @@
+type: object
+required:
+  - sentences
+properties:
+  sentences:
+    type: array
+    items:
+      $ref: "../schemas/Sentence.yaml"

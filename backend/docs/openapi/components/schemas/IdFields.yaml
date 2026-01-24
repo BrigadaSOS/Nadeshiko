@@ -1,0 +1,28 @@
+# Reusable components for ID fields across the API
+# These can be referenced using $ref or as pattern definitions
+
+media_id:
+  type: integer
+  description: Unique identifier for the media entry
+  example: 110316
+
+anime_id:
+  type: integer
+  description: Unique identifier for the anime/media (alternative naming)
+  example: 110316
+
+id_anime:
+  type: integer
+  description: Unique identifier for the anime (alternative naming)
+  example: 110316
+
+segment_id:
+  type: integer
+  description: Unique identifier for the segment
+  example: 12345678
+
+uuid:
+  type: string
+  format: uuid
+  description: Unique UUID identifier for the segment
+  example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"

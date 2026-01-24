@@ -254,10 +254,10 @@ export async function readAnimeDirectories(baseDir: string, type: string) {
 export async function readSpecificDirectory(
   baseDir: string,
   folder_name: string,
-  season: string,
-  episode: string,
   force: boolean,
   type: string,
+  season?: number,
+  episode?: number,
 ) {
   let mediaDirPath = '';
 

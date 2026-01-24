@@ -1,0 +1,16 @@
+type: object
+description: User quota information
+properties:
+  quotaUsed:
+    type: integer
+    description: Number of API requests used this month
+  quotaLimit:
+    oneOf:
+      - type: integer
+        description: Maximum allowed requests per month
+      - type: string
+        enum: [NO_LIMIT]
+        description: Unlimited quota
+required:
+  - quotaUsed
+  - quotaLimit

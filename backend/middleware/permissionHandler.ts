@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import { Forbidden } from '../utils/error';
+import { InsufficientPermissionsError } from '../utils/apiErrors';
 
 export const hasPermissionAPI = (permissions: string[]) => {
   return async (req: any, _res: Response, next: NextFunction): Promise<void> => {
@@ -14,7 +14,9 @@ export const hasPermissionAPI = (permissions: string[]) => {
         // Create a string with the missing permissions for the error message
         const missingPermissionsString = missingPermissions.join(', ');
 
-        throw new Forbidden(`Access forbidden: missing the following permissions: ${missingPermissionsString}.`);
+        throw new InsufficientPermissionsError(
+          `Access forbidden: missing the following permissions: ${missingPermissionsString}.`,
+        );
       }
       return next();
     }

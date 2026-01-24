@@ -1,0 +1,27 @@
+type: object
+description: User info response
+properties:
+  status:
+    type: integer
+    description: HTTP status code
+  user:
+    type: object
+    properties:
+      username:
+        type: string
+        description: User's display name
+      email:
+        type: string
+        format: email
+        description: User's email address
+      roles:
+        type: array
+        items:
+          $ref: "../schemas/UserRole.yaml"
+        description: User's roles
+    required:
+      - username
+      - email
+      - roles
+required:
+  - user

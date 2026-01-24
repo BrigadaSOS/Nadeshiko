@@ -1,0 +1,10 @@
+description: Too Many Requests
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/Error.yaml"
+    examples:
+      RateLimitExceeded:
+        $ref: "../examples/RateLimitExceeded.yaml"
+      QuotaExceeded:
+        $ref: "../examples/QuotaExceeded.yaml"

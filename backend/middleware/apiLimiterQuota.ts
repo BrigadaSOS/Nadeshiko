@@ -6,7 +6,7 @@ import { User } from '../models/user/user';
 import { UserRole } from '../models/user/userRole';
 import { Role } from '../models/user/role';
 import { hashApiKey } from '../utils/utils';
-import { Unauthorized, TooManyRequests } from '../utils/error';
+import { AuthCredentialsInvalidError, QuotaExceededError } from '../utils/apiErrors';
 
 export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunction): Promise<void> => {
   if (req.apiKey) {
@@ -33,7 +33,7 @@ export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunc
     });
 
     if (!apiAuth || !apiAuth.user) {
-      throw new Unauthorized('Invalid API Key.');
+      throw new AuthCredentialsInvalidError('Invalid API Key.');
     }
 
     const roles = (apiAuth.user?.userRoles ?? []).map((ur: any) => ur.role);
@@ -58,7 +58,7 @@ export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunc
     });
 
     if (usageCount >= maxQuota) {
-      throw new TooManyRequests('API Key quota exceeded for this month.');
+      throw new QuotaExceededError('API Key quota exceeded for this month.');
     }
 
     await logApiUsage(req, apiAuth);
@@ -69,11 +69,12 @@ export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunc
 };
 
 async function logApiUsage(req: any, apiAuth: any) {
+  const requestBody = JSON.stringify(req.body ?? {});
   await ApiUsageHistory.create({
     apiAuthId: apiAuth.id,
     user_id: apiAuth.userId,
     used_at: new Date(),
-    request: JSON.stringify(req.body),
+    request: requestBody.slice(0, 255),
     endpoint: req.path,
     method: req.method,
     responseStatus: req.statusCode,

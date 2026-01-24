@@ -1,0 +1,12 @@
+type: object
+description: Fallback error for undocumented/unknown error codes
+properties:
+  error:
+    type: string
+    description: An error code not documented in the OpenAPI spec
+  message:
+    type: string
+    description: Human-readable error message
+required:
+  - error
+  - message

@@ -1,0 +1,26 @@
+meta {
+  name: Health check for search
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/search/health
+  body: none
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,12 @@
+type: object
+description: API key permission
+properties:
+  id:
+    type: integer
+    description: Permission ID
+  name:
+    type: string
+    description: Permission name
+required:
+  - id
+  - name

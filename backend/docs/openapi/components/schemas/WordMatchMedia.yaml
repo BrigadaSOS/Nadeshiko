@@ -1,0 +1,23 @@
+type: object
+description: Media entry containing word matches
+properties:
+  media_id:
+    type: integer
+    description: Unique identifier for the media
+    example: 110316
+  english_name:
+    type: string
+    description: English translation of the media name
+    example: "Steins;Gate"
+  japanese_name:
+    type: string
+    description: Original Japanese name of the media
+    example: "シュタインズ・ゲート"
+  romaji_name:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Steins;Gate"
+  matches:
+    type: integer
+    description: Number of times the word appears in this media
+    example: 234

@@ -1,6 +1,12 @@
 import { ApiAuth } from '../models/api/apiAuth';
 import { User } from '../models/user/user';
-import { Unauthorized } from '../utils/error';
+import {
+  AuthCredentialsRequiredError,
+  AuthCredentialsInvalidError,
+  AuthCredentialsExpiredError,
+  AccessDeniedError,
+  InternalServerError,
+} from '../utils/apiErrors';
 import { Response, NextFunction } from 'express';
 import { ApiPermission } from '../models/api/apiPermission';
 import { hashApiKey } from '../utils/utils';
@@ -16,7 +22,7 @@ export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
     const allowedUrls = process.env.ALLOWED_WEBSITE_URLS?.split(',');
 
     if (!allowedUrls) {
-      throw new Unauthorized('No allowed URLs specified in the environment file.');
+      throw new InternalServerError('No allowed URLs specified in the environment file.');
     }
 
     const requestUrl = parse(req.headers.referer || '');
@@ -32,26 +38,34 @@ export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
       return parsedUrl.host === requestUrl.host && parsedUrl.protocol === requestUrl.protocol;
     });
 
-    // If petition comes from an unknown source, we must verify API Key or JWT
-    if (!requestFromAllowedUrl) {
-      if (options.jwt && authToken && authToken.startsWith('Bearer ')) {
+    // Determine if request is from unknown source (not SSR, not in allowed URLs)
+    const isUnknownSource = !requestFromAllowedUrl;
+
+    if (isUnknownSource) {
+      // Unknown source - require explicit authentication
+      const hasBearerToken = authToken && authToken.startsWith('Bearer ');
+      const hasJwtCookie = extractTokenFromCookie(req) !== null;
+
+      if (options.jwt && (hasBearerToken || hasJwtCookie)) {
         return isAuthJWT(req, res, next);
-      } else if (options.apiKey !== false && apiKey) {
+      }
+
+      if (options.apiKey !== false && apiKey) {
         return isAuthenticatedAPI(req, res, next);
-      } else {
-        const missing = [];
-        if (options.jwt) missing.push('JWT');
-        if (options.apiKey) missing.push('API Key');
-        throw new Unauthorized(`Authentication required: ${missing.join(' or ')}`);
       }
-    } else {
-      // Otherwise, skip authentication except for JWT
-      if (options.jwt) {
-        return isAuthJWT(req, res, next);
-      } else {
-        next();
-      }
+
+      // No valid authentication provided
+      const missing: string[] = [];
+      if (options.jwt && !hasBearerToken && !hasJwtCookie) missing.push('JWT Token');
+      if (options.apiKey && !apiKey) missing.push('API Key');
+      throw new AuthCredentialsRequiredError(`Authentication required: ${missing.join(' or ')}`);
     }
+
+    // Known source or SSR request
+    if (options.jwt) {
+      return isAuthJWT(req, res, next);
+    }
+    next();
   };
 };
 
@@ -59,7 +73,7 @@ export const isAuthJWT = (req: any, _res: Response, next: NextFunction): void =>
   const token = extractTokenFromCookie(req);
 
   if (!token) {
-    throw new Unauthorized('JWT token missing');
+    throw new AuthCredentialsRequiredError('JWT token missing');
   }
 
   try {
@@ -71,11 +85,11 @@ export const isAuthJWT = (req: any, _res: Response, next: NextFunction): void =>
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw new Unauthorized('JWT token has expired.');
+      throw new AuthCredentialsExpiredError('JWT token has expired.');
     } else if (error instanceof jwt.JsonWebTokenError) {
-      throw new Unauthorized('Invalid JWT token.');
+      throw new AuthCredentialsInvalidError('Invalid JWT token.');
     }
-    throw new Unauthorized('Invalid token...');
+    throw new AuthCredentialsInvalidError('Invalid token...');
   }
 };
 
@@ -104,17 +118,29 @@ async function isAuthenticatedAPI(req: any, _res: Response, next: NextFunction):
   req.apiKey = apiKey;
 
   if (!apiKey) {
-    throw new Unauthorized('No API key was provided.');
+    throw new AuthCredentialsRequiredError('No API key was provided.');
   }
 
   const hashedKey = hashApiKey(apiKey);
+
+  const apiAuth = await ApiAuth.findOne({
+    where: { token: hashedKey },
+  });
+
+  if (!apiAuth) {
+    throw new AuthCredentialsInvalidError('Invalid API key.');
+  }
+
+  if (!apiAuth.isActive) {
+    throw new AuthCredentialsExpiredError('API key has been deactivated.');
+  }
 
   const user = await User.findOne({
     include: [
       {
         model: ApiAuth,
         as: 'apiAuth',
-        where: { token: hashedKey },
+        where: { token: hashedKey, isActive: true },
         include: [
           {
             model: ApiPermission,
@@ -126,7 +152,7 @@ async function isAuthenticatedAPI(req: any, _res: Response, next: NextFunction):
   });
 
   if (!user) {
-    throw new Unauthorized('Invalid API key.');
+    throw new AuthCredentialsInvalidError('Invalid API key.');
   }
 
   req.user = user;
@@ -137,7 +163,7 @@ export const requireRoleJWT = (...allowedRoles: number[]) => {
   return (req: any, _res: Response, next: NextFunction): void => {
     const roles: number[] = req.jwt.roles;
     if (!roles.some((role) => allowedRoles.includes(role))) {
-      throw new Unauthorized('Denied access. Not authorized.');
+      throw new AccessDeniedError('Denied access. Not authorized.');
     }
     next();
   };

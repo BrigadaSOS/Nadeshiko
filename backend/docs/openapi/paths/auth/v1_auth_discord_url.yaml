@@ -1,0 +1,28 @@
+get:
+  tags:
+    - Auth
+  x-internal: true
+  operationId: getDiscordAuthUrl
+  summary: (OAuth) Get Discord Login URL
+  description: |
+    Get the Discord OAuth authorization URL for login
+
+  parameters:
+    - name: Referer
+      in: header
+      description: Frontend URL for authentication bypass
+      schema:
+        type: string
+        example: http://localhost:3000
+
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/DiscordAuthUrlResponse.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

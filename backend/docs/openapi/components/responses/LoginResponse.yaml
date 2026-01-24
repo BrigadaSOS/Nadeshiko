@@ -1,0 +1,15 @@
+type: object
+description: Login Response
+required:
+  - message
+  - user
+  - token
+properties:
+  message:
+    type: string
+    description: Success message
+  user:
+    $ref: "../schemas/AuthUser.yaml"
+  token:
+    type: string
+    description: JWT access token

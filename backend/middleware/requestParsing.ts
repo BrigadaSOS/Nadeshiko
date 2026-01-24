@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { ValidationError } from '../utils/error';
+import { InvalidJsonError } from '../utils/apiErrors';
 
 export const handleJsonParseErrors = (err: any, _req: Request, res: Response, next: NextFunction): void => {
   if (err instanceof SyntaxError && 'body' in err) {
-    const error = new ValidationError('Invalid JSON in request body');
-    res.status(error.getStatus()).json(error.toJSON());
+    const error = new InvalidJsonError('Invalid JSON in request body');
+    res.status(error.status).json(error.toJSON());
     return;
   }
   next(err);

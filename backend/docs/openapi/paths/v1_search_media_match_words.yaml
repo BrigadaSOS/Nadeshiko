@@ -1,0 +1,53 @@
+post:
+  tags:
+    - Search
+  operationId: searchMultiple
+  summary: Search by multiple queries
+  description: |
+    Searches for multiple words simultaneously and aggregates results by media.
+
+    Unlike the main search endpoint, this returns a summary of matches per media rather than individual sentence segments.
+
+    **Use Cases**
+    - Vocabulary discovery across media library
+    - Finding anime/dramas that use specific words
+    - Comparing word usage across different titles
+
+    **Requirements:**
+    - Required Scopes: `READ_MEDIA`
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../components/requestBodies/SearchMultipleRequest.yaml"
+        example:
+          words: ["彼女", "私"]
+          exact_match: false
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../components/responses/SearchMultipleResponse.yaml"
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/Error.yaml"
+          examples:
+            ValidationFailed:
+              $ref: "../components/examples/ValidationFailed.yaml"
+            InvalidJson:
+              $ref: "../components/examples/InvalidJson.yaml"
+    "401":
+      $ref: "../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../components/responses/InternalServerError.yaml"

@@ -1,0 +1,82 @@
+type: object
+description: Detailed information about a subtitle segment
+required:
+  - status
+  - uuid
+  - position
+  - start_time
+  - end_time
+  - content_jp
+  - content_en_mt
+  - content_es_mt
+  - is_nsfw
+properties:
+  status:
+    type: integer
+    description: Segment status (0=Deleted, 1=Active, 2=Suspended, 3=Verified, 100=Invalid Sentence, 101=Sentence Too Long)
+    example: 1
+  uuid:
+    type: string
+    format: uuid
+    description: Unique identifier for the segment
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  position:
+    type: integer
+    description: Position of the segment within the episode
+    example: 1133
+  start_time:
+    type: string
+    description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment starts
+    example: "0:33:27.255000"
+  end_time:
+    type: string
+    description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment ends
+    example: "0:33:28.464000"
+  content_jp:
+    type: string
+    description: Original Japanese content of the segment
+    example: "僕は僕で、君は君だ。"
+  content_jp_highlight:
+    type: string
+    description: Japanese content with search terms highlighted
+    example: "<em>僕</em>は<em>僕</em>で、<em>君</em>は<em>君</em>だ。"
+  content_en:
+    type: string
+    description: English translation of the segment content
+    example: "I am me, and you are you."
+  content_en_highlight:
+    type: string
+    description: English content with search terms highlighted
+    example: "<em>I</em> am <em>me</em>, and <em>you</em> are <em>you</em>."
+  content_en_mt:
+    type: boolean
+    description: Indicates whether the English translation was machine-translated
+    example: false
+  content_es:
+    type: string
+    description: Spanish translation of the segment content
+    example: "Yo soy yo, y tú eres tú."
+  content_es_highlight:
+    type: string
+    description: Spanish content with search terms highlighted
+    example: "<em>Yo</em> soy <em>yo</em>, y <em>tú</em> eres <em>tú</em>."
+  content_es_mt:
+    type: boolean
+    description: Indicates whether the Spanish translation was machine-translated
+    example: false
+  is_nsfw:
+    type: boolean
+    description: Indicates whether the segment contains NSFW (Not Safe For Work) content
+    example: false
+  actor_ja:
+    type: string
+    description: Name of the Japanese voice actor for this segment
+    example: "Mamoru Miyano"
+  actor_en:
+    type: string
+    description: Name of the English voice actor for this segment
+    example: "J. Michael Tatum"
+  actor_es:
+    type: string
+    description: Name of the Spanish voice actor for this segment
+    example: "Alejandro Levis"

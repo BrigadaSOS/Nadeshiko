@@ -1,0 +1,6 @@
+type: object
+properties:
+  results:
+    type: array
+    items:
+      $ref: "../schemas/WordMatch.yaml"
