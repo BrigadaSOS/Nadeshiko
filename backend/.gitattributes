@@ -1,0 +1,2 @@
+# Generated OpenAPI spec - treat as binary to avoid diffs
+docs/generated/openapi.yaml -diff

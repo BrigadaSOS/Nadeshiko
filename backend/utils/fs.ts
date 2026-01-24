@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { PathLike, MakeDirectoryOptions } from 'fs';
-import { BadRequest, NotFound } from './error';
+import { InvalidRequestError, NotFoundError } from './apiErrors';
 
 /**
  * Safely join path segments with a base directory, preventing path traversal.
@@ -17,7 +17,7 @@ export function safePath(baseDir: string, ...segments: string[]): string {
   const resolved = path.resolve(joined);
 
   if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) {
-    throw new BadRequest('Invalid path');
+    throw new InvalidRequestError('Invalid path');
   }
 
   return resolved;
@@ -100,7 +100,7 @@ export function createReadStream(
 
 export function handleFsNotFound(err: unknown, notFoundMessage: string): never {
   if (err instanceof Error && (err as NodeJS.ErrnoException).code === 'ENOENT') {
-    throw new NotFound(notFoundMessage);
+    throw new NotFoundError(notFoundMessage);
   }
   throw err;
 }

@@ -1,0 +1,8 @@
+type: object
+description: Deactivate API key request
+required:
+  - api_key_id
+properties:
+  api_key_id:
+    type: integer
+    description: ID of the API key to deactivate

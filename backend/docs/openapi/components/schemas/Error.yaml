@@ -1,0 +1,36 @@
+# Single error schema for all error types
+# 1. Create exception class in utils/apiErrors.ts
+# 2. Create example file in docs/openapi/components/examples/ErrorCodeName.yaml
+# 3. Update relevant response files to include the new example
+type: object
+description: Error Response schema for all cases
+required:
+  - code
+  - title
+  - detail
+  - status
+properties:
+  code:
+    type: string
+    description: Specific error code for programmatic handling
+  title:
+    type: string
+    description: A short, human-readable summary of the problem
+  detail:
+    type: string
+    description: A human-readable explanation specific to this occurrence
+  type:
+    type: string
+    format: uri
+    description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+  instance:
+    type: string
+    description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+  status:
+    type: integer
+    description: The HTTP status code
+  errors:
+    type: object
+    additionalProperties:
+      type: string
+    description: Optional map of field names to their error messages (for validation errors)

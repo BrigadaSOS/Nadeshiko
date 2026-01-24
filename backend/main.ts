@@ -8,12 +8,16 @@ import { router } from './routes/router';
 import express, { Application, ErrorRequestHandler } from 'express';
 import connection from './database/db_posgres';
 import { handleErrors } from './middleware/errorHandler';
+import { requestIdMiddleware } from './middleware/requestId';
 import { logger, httpLogger } from './utils/log';
+import { NotFoundError } from './utils/apiErrors';
 import { mediaLimiter, perEndpointLimiter } from './middleware/apiLimiterRate';
 import { createImageMiddleware } from './middleware/imageMiddleware';
 import { corsMiddleware } from './middleware/cors';
 import { handleJsonParseErrors } from './middleware/requestParsing';
 import { metricsMiddleware } from './middleware/metrics';
+import { responseBodyLogger } from './middleware/responseBodyLogger';
+import { rawBodySaver } from './middleware/rawBodySaver';
 
 const PORT = process.env.PORT || 5000;
 const app: Application = express();
@@ -29,13 +33,35 @@ process.on('uncaughtException', (error) => {
   logger.fatal(error, 'Uncaught Exception');
 });
 
-process.on('unhandledRejection', (error) => {
-  logger.fatal(error, 'Unhandled Rejection');
+process.on('unhandledRejection', (reason, promise) => {
+  logger.fatal(
+    {
+      reason: reason,
+      reasonType: typeof reason,
+      reasonString: String(reason),
+      stack: reason instanceof Error ? reason.stack : new Error('Unhandled Rejection').stack,
+    },
+    'Unhandled Rejection',
+  );
 });
+
+// Generate requestId for each request FIRST (so all logs and middleware have access to it)
+app.use(requestIdMiddleware);
 
 app.use(corsMiddleware);
 
-// Log and measure ALL requests (must be before routes)
+// Capture response bodies BEFORE logging (must be before httpLogger)
+app.use(responseBodyLogger);
+
+// Parse incoming request bodies BEFORE httpLogger so req.rawBody is available for logging
+// - json(): parses application/json payloads (up to 10MB)
+// - urlencoded(): parses form submissions (up to 10MB)
+// The verify callback in both captures the raw body to req.rawBody for logging
+app.use(express.json({ limit: '10mb', verify: rawBodySaver as any }));
+app.use(express.urlencoded({ extended: true, limit: '10mb', verify: rawBodySaver as any }));
+app.use(handleJsonParseErrors);
+
+// Log and measure ALL requests (must be after body parsers to include req.rawBody)
 app.use(httpLogger);
 app.use(metricsMiddleware);
 
@@ -70,15 +96,15 @@ if (mediaConfig) {
   app.use('/api/media/tmp', mediaLimiter, express.static(mediaConfig.tmpDir, { fallthrough: false }));
 }
 
-// Parse incoming request bodies
-// - json(): parses application/json payloads (up to 10MB)
-// - urlencoded(): parses form submissions (up to 10MB)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(handleJsonParseErrors);
-
 // Actual route endpoints
 app.use('/api', perEndpointLimiter, router);
+
+// Catch-all 404 handler - must be after all routes, before error handler
+app.use((req, res) => {
+  const error = new NotFoundError(`Cannot ${req.method} ${req.originalUrl}`);
+  error.instance = req.requestId;
+  res.status(error.status).json(error.toJSON());
+});
 
 // Error handling middleware
 app.use(handleErrors as ErrorRequestHandler);

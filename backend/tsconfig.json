@@ -26,7 +26,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "noEmit": false,
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "rewriteRelativeImportExtensions": true
   },
   "include": ["./**/*"],
   "exclude": ["node_modules", "client"]

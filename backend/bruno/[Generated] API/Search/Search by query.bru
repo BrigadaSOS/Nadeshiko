@@ -1,0 +1,66 @@
+meta {
+  name: Search by query
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/search/media/sentence
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "query": "彼女",
+    "limit": 10,
+    "uuid": "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e",
+    "category": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "anime_id": 5,
+    "season": [
+      1
+    ],
+    "episode": [
+      5,
+      8
+    ],
+    "random_seed": 0.5,
+    "content_sort": "none",
+    "cursor": [
+      23.31727,
+      7
+    ],
+    "exact_match": false,
+    "extra": false,
+    "min_length": 10,
+    "max_length": 50,
+    "excluded_anime_ids": [],
+    "status": [
+      1
+    ],
+    "media": [
+      {
+        "media_id": "123",
+        "seasons": [
+          {
+            "season": 1,
+            "episodes": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,8 @@
+description: Forbidden
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/Error.yaml"
+    examples:
+      InsufficientPermissions:
+        $ref: "../examples/InsufficientPermissions.yaml"

@@ -1,0 +1,36 @@
+meta {
+  name: Sync Specific Media
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/v1/management/media/sync/media
+  body: json
+  auth: apikey
+}
+
+headers {
+  X-API-Key: {{apiKey}}
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{apiKey}}
+  placement: header
+}
+
+body:json {
+  {
+    "folder_name": "my_media",
+    "season": 1,
+    "episode": 1,
+    "force": false,
+    "type": "anime"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

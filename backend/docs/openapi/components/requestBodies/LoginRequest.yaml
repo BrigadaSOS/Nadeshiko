@@ -1,0 +1,16 @@
+type: object
+description: Login request body
+required:
+  - email
+  - password
+properties:
+  email:
+    type: string
+    format: email
+    description: User's email address
+    example: admin@admin.com
+  password:
+    type: string
+    format: password
+    description: User's password
+    example: admin

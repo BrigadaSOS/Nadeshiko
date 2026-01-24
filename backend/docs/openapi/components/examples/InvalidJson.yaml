@@ -1,0 +1,8 @@
+summary: Invalid JSON
+value:
+  code: INVALID_JSON
+  title: Invalid JSON
+  detail: The request body contains invalid JSON that could not be parsed. Please check the syntax.
+  type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+  instance: trace-id-placeholder
+  status: 400

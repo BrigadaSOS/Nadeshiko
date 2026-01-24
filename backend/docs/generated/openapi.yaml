@@ -1,0 +1,1143 @@
+openapi: 3.1.0
+info:
+  title: Nadeshiko API
+  description: |
+    Welcome to the Nadeshiko API.
+
+    ## Getting Started
+
+    Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
+
+    If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
+
+    ### Quotas and Limits
+    The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message:
+    > "Too many requests. Please try again later."
+
+    Additionally, each account has a monthly quota limit based on the user's roles. Once the monthly quota is exceeded, the API key will be temporarily disabled for the rest of the month, and any further requests will receive the message:
+    > "API Key quota exceeded for this month."
+
+    | Role         | Quota (Monthly) |
+    |--------------|-----------------|
+    | Normal User  | 5000 requests   |
+
+    To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
+  version: 1.0.0
+  contact:
+    name: Nadeshiko Team
+    url: https://nadeshiko.co
+servers:
+  - description: Local server
+    url: http://localhost:5000/api
+  - description: Production server
+    url: https://api.brigadasos.xyz/api
+security:
+  - apiKeyHeader: []
+  - jwtCookie: []
+tags:
+  - name: Search
+    description: |
+      Search endpoints for querying Japanese sentences across indexed media (anime, J-Drama, audiobooks).
+
+      ## Authentication & Permissions
+
+      All search endpoints require:
+
+      | Requirement | Value |
+      |-------------|-------|
+      | **Authentication** | API Key via `X-API-Key` header (or SSR requests from allowed URLs) |
+      | **Permission** | `READ_MEDIA` - The API key must have this permission |
+      | **Rate Limit** | 2000 requests per 5 minutes (per IP address) |
+      | **Monthly Quota** | Role-based (e.g., 5000 requests/month for Normal Users) |
+
+      ## Error Codes
+
+      - `401 Unauthorized` - Missing, invalid, or inactive API key
+      - `403 Forbidden` - API key lacks `READ_MEDIA` permission
+      - `429 Too Many Requests` - Rate limit or monthly quota exceeded
+
+      ## Search Features
+
+      - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
+      - **Boolean Operators:** `AND`, `OR`, `NOT` supported
+      - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`)
+      - **Wildcards:** `te*t` format (leading wildcards not supported)
+      - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
+paths:
+  /v1/search/health:
+    get:
+      tags:
+        - Search
+      operationId: searchHealthCheck
+      summary: Health check for search
+      description: |
+        Tests the search service connectivity and functionality by performing a simple search query.
+
+        **Requirements:**
+        - Required Scopes: `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchHealthCheckResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/search/media/sentence:
+    post:
+      tags:
+        - Search
+      operationId: search
+      summary: Search by query
+      description: |
+        The primary search endpoint for finding Japanese sentences and their translations across indexed media (anime, J-Drama, audiobooks).
+
+        This endpoint uses Elasticsearch with advanced Japanese text analysis supporting multiple input types (romaji, kanji, kana) and providing intelligent field-based boosting.
+
+        **Query Features**
+        - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
+        - **Boolean Operators:** `AND`, `OR`, `NOT` supported (e.g., `(cat OR dog) AND bird`)
+        - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`), or pass `exact_match: true` to the request body
+        - **Wildcards:** `te*t` format (leading wildcards not supported)
+        - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
+
+        **Input Type Handling**
+        | Input Type | Search Strategy |
+        |------------|-----------------|
+        | **Romaji** (`go`, `taberu`) | Boosts EN/ES translations, reading form (pronunciation), and base form |
+        | **Kanji** (`食べる`, `彼女`) | Searches content and base form (dictionary form). Ignores matches by reading (homophones). |
+        | **Kana** (`たべる`, `かのじょ`) | Standard search across content, base form, and reading form |
+        | **English/Spanish** | Direct translation search |
+
+        **Requirements**
+        - API Key with `READ_MEDIA` permission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                ValidationFailed:
+                  $ref: "#/components/examples/ValidationFailed"
+                InvalidJson:
+                  $ref: "#/components/examples/InvalidJson"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/search/media/match/words:
+    post:
+      tags:
+        - Search
+      operationId: searchMultiple
+      summary: Search by multiple queries
+      description: |
+        Searches for multiple words simultaneously and aggregates results by media.
+
+        Unlike the main search endpoint, this returns a summary of matches per media rather than individual sentence segments.
+
+        **Use Cases**
+        - Vocabulary discovery across media library
+        - Finding anime/dramas that use specific words
+        - Comparing word usage across different titles
+
+        **Requirements:**
+        - Required Scopes: `READ_MEDIA`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchMultipleRequest"
+            example:
+              words:
+                - 彼女
+                - 私
+              exact_match: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchMultipleResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                ValidationFailed:
+                  $ref: "#/components/examples/ValidationFailed"
+                InvalidJson:
+                  $ref: "#/components/examples/InvalidJson"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/search/media/context:
+    post:
+      tags:
+        - Search
+      operationId: fetchSentenceContext
+      summary: Fetch context for a sentence
+      description: |
+        Retrieves sentences surrounding a specific segment position within an episode.
+        Returns segments both before and after the target position, providing context for understanding how a sentence is used in dialogue.
+
+        **Requirements:**
+        - Required scopes: `READ_MEDIA`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FetchSentenceContextRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FetchSentenceContextResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                ValidationFailed:
+                  $ref: "#/components/examples/ValidationFailed"
+                InvalidJson:
+                  $ref: "#/components/examples/InvalidJson"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NotFound:
+                  $ref: "#/components/examples/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/search/media/info:
+    get:
+      tags:
+        - Search
+      operationId: fetchMediaInfo
+      summary: Fetch media info
+      description: |
+        Lists available media with metadata and supports filtering by type and search query.
+
+        Returns paginated results with comprehensive media information including cover/banner images, episode counts, and genres.
+
+        **Use Cases**
+        - Browsing the media library
+        - Getting media metadata for display
+
+        **Requirements:**
+        - Required Scopes: `READ_MEDIA`
+      parameters:
+        - name: size
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 20
+        - name: cursor
+          in: query
+          description: Pagination cursor offset
+          schema:
+            type: integer
+            default: 0
+        - name: query
+          in: query
+          description: Search query for filtering media
+          schema:
+            type: string
+            example: steins
+        - name: type
+          in: query
+          description: Filter by media category
+          schema:
+            type: string
+            enum:
+              - anime
+              - liveaction
+              - audiobook
+            example: anime
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FetchMediaInfoResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedApiKey"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key authentication via X-API-Key header
+    jwtCookie:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: JWT authentication via access_token cookie
+  schemas:
+    Statistic:
+      type: object
+      description: Search result statistics grouped by anime/media
+      properties:
+        anime_id:
+          type: integer
+          description: Unique identifier for the anime/media
+          example: 110316
+        category:
+          type: integer
+          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+          example: 1
+        name_anime_romaji:
+          type: string
+          description: Romaji transliteration of the anime name
+          example: Steins;Gate
+        name_anime_en:
+          type: string
+          description: English translation of the anime name
+          example: Steins;Gate
+        name_anime_jp:
+          type: string
+          description: Original Japanese name of the anime
+          example: シュタインズ・ゲート
+        amount_sentences_found:
+          type: integer
+          description: Total number of sentences found for this anime
+          example: 42
+        season_with_episode_hits:
+          type: object
+          description: Nested object mapping seasons to episodes with hit counts
+          example:
+            "1":
+              "1": 5
+              "2": 8
+              "3": 3
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: integer
+    CategoryStatistic:
+      type: object
+      description: Statistics grouped by media category
+      properties:
+        category:
+          type: integer
+          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+          example: 1
+        count:
+          type: integer
+          description: Number of entries in this category
+          example: 1523
+    BasicInfo:
+      type: object
+      description: Basic anime/media information included in search results
+      required:
+        - id_anime
+        - name_anime_romaji
+        - episode
+        - season
+        - category
+      properties:
+        id_anime:
+          type: integer
+          description: Unique identifier for the anime/media
+          example: 110316
+        name_anime_romaji:
+          type: string
+          description: Romaji transliteration of the anime name
+          example: Steins;Gate
+        name_anime_en:
+          type: string
+          description: English translation of the anime name
+          example: Steins;Gate
+        name_anime_jp:
+          type: string
+          description: Original Japanese name of the anime
+          example: シュタインズ・ゲート
+        cover:
+          type: string
+          format: uri
+          description: URL to the cover image
+          example: https://example.com/media/anime/steins-gate/cover.jpg
+        banner:
+          type: string
+          format: uri
+          description: URL to the banner image
+          example: https://example.com/media/anime/steins-gate/banner.jpg
+        episode:
+          type: integer
+          description: Episode number where the segment appears
+          example: 1
+        season:
+          type: integer
+          description: Season number where the segment appears
+          example: 1
+        category:
+          type: integer
+          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+          example: 1
+    SegmentInfo:
+      type: object
+      description: Detailed information about a subtitle segment
+      required:
+        - status
+        - uuid
+        - position
+        - start_time
+        - end_time
+        - content_jp
+        - content_en_mt
+        - content_es_mt
+        - is_nsfw
+      properties:
+        status:
+          type: integer
+          description: Segment status (0=Deleted, 1=Active, 2=Suspended, 3=Verified, 100=Invalid Sentence, 101=Sentence Too Long)
+          example: 1
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the segment
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        position:
+          type: integer
+          description: Position of the segment within the episode
+          example: 1133
+        start_time:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment starts
+          example: "0:33:27.255000"
+        end_time:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment ends
+          example: "0:33:28.464000"
+        content_jp:
+          type: string
+          description: Original Japanese content of the segment
+          example: 僕は僕で、君は君だ。
+        content_jp_highlight:
+          type: string
+          description: Japanese content with search terms highlighted
+          example: <em>僕</em>は<em>僕</em>で、<em>君</em>は<em>君</em>だ。
+        content_en:
+          type: string
+          description: English translation of the segment content
+          example: I am me, and you are you.
+        content_en_highlight:
+          type: string
+          description: English content with search terms highlighted
+          example: <em>I</em> am <em>me</em>, and <em>you</em> are <em>you</em>.
+        content_en_mt:
+          type: boolean
+          description: Indicates whether the English translation was machine-translated
+          example: false
+        content_es:
+          type: string
+          description: Spanish translation of the segment content
+          example: Yo soy yo, y tú eres tú.
+        content_es_highlight:
+          type: string
+          description: Spanish content with search terms highlighted
+          example: <em>Yo</em> soy <em>yo</em>, y <em>tú</em> eres <em>tú</em>.
+        content_es_mt:
+          type: boolean
+          description: Indicates whether the Spanish translation was machine-translated
+          example: false
+        is_nsfw:
+          type: boolean
+          description: Indicates whether the segment contains NSFW (Not Safe For Work) content
+          example: false
+        actor_ja:
+          type: string
+          description: Name of the Japanese voice actor for this segment
+          example: Mamoru Miyano
+        actor_en:
+          type: string
+          description: Name of the English voice actor for this segment
+          example: J. Michael Tatum
+        actor_es:
+          type: string
+          description: Name of the Spanish voice actor for this segment
+          example: Alejandro Levis
+    MediaInfoPath:
+      type: object
+      description: URLs to media resources for a segment
+      properties:
+        path_image:
+          type: string
+          format: uri
+          description: URL to the subtitle image snapshot
+          example: https://example.com/media/anime/steins-gate/segments/1133.jpg
+        path_audio:
+          type: string
+          format: uri
+          description: URL to the audio clip for this segment
+          example: https://example.com/media/anime/steins-gate/audio/1133.mp3
+        path_video:
+          type: string
+          format: uri
+          description: URL to the video clip for this segment
+          example: https://example.com/media/anime/steins-gate/video/1133.mp4
+    Sentence:
+      type: object
+      description: A complete sentence result combining basic info, segment details, and media paths
+      required:
+        - basic_info
+        - segment_info
+        - media_info
+      properties:
+        basic_info:
+          $ref: "#/components/schemas/BasicInfo"
+          description: Basic anime/media information
+        segment_info:
+          $ref: "#/components/schemas/SegmentInfo"
+          description: Detailed segment information including translations
+        media_info:
+          $ref: "#/components/schemas/MediaInfoPath"
+          description: URLs to media resources (images, audio, video)
+    SearchHealthCheckResponse:
+      type: object
+      properties:
+        statistics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Statistic"
+        categoryStatistics:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryStatistic"
+        sentences:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sentence"
+        cursor:
+          type: array
+          items:
+            type: number
+          description: Cursor for pagination
+    Error:
+      type: object
+      description: Error Response schema for all cases
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+        title:
+          type: string
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    SearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Text or sentence to search (null to search without query)
+          example: 彼女
+        limit:
+          type: integer
+          description: Max amount of entries by response
+          default: 10
+        uuid:
+          type: string
+          format: uuid
+          description: Unique ID from sentence (Useful to get a specific sentence)
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        category:
+          type: array
+          description: Media category filter (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+          items:
+            type: integer
+          default:
+            - 1
+            - 2
+            - 3
+            - 4
+        anime_id:
+          type: integer
+          description: Unique ID from media
+          example: 5
+        season:
+          type: array
+          description: Array of seasons to get
+          items:
+            type: integer
+          example:
+            - 1
+        episode:
+          type: array
+          description: Array of episodes to get
+          items:
+            type: integer
+          example:
+            - 5
+            - 8
+        random_seed:
+          type: number
+          format: float
+          description: A value from 0 to 1 for random sorting
+          minimum: 0
+          maximum: 1
+          example: 0.5
+        content_sort:
+          type: string
+          description: Order by amount of characters
+          enum:
+            - asc
+            - desc
+            - none
+            - time_asc
+            - time_desc
+            - random
+          example: none
+          default: none
+        cursor:
+          type: array
+          description: Current page of search
+          items:
+            type: number
+          example:
+            - 23.31727
+            - 7
+        exact_match:
+          type: boolean
+          description: Whether to use exact phrase matching
+          default: false
+        extra:
+          type: boolean
+          description: Include extra content
+          default: false
+        min_length:
+          type: integer
+          description: Minimum content length
+          example: 10
+        max_length:
+          type: integer
+          description: Maximum content length
+          example: 50
+        excluded_anime_ids:
+          type: array
+          items:
+            type: integer
+          description: Anime IDs to exclude from results
+          default: []
+        status:
+          type: array
+          description: Segment status filter
+          items:
+            type: integer
+          default:
+            - 1
+        media:
+          type: array
+          description: Media filter with seasons and episodes
+          items:
+            type: object
+            required:
+              - media_id
+              - seasons
+            properties:
+              media_id:
+                type: string
+                example: "123"
+              seasons:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - season
+                    - episodes
+                  properties:
+                    season:
+                      type: number
+                      example: 1
+                    episodes:
+                      type: array
+                      items:
+                        type: number
+                      example:
+                        - 1
+                        - 2
+    SearchResponse:
+      type: object
+      properties:
+        statistics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Statistic"
+        categoryStatistics:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryStatistic"
+        sentences:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sentence"
+        cursor:
+          type: array
+          nullable: true
+          items:
+            type: number
+          description: Cursor for pagination
+    SearchMultipleRequest:
+      type: object
+      properties:
+        words:
+          type: array
+          items:
+            type: string
+          description: List of words to search for
+          example:
+            - 彼女
+            - 私
+        exact_match:
+          type: boolean
+          default: false
+          description: Whether to use exact matching
+          example: false
+      required:
+        - words
+    WordMatchMedia:
+      type: object
+      description: Media entry containing word matches
+      properties:
+        media_id:
+          type: integer
+          description: Unique identifier for the media
+          example: 110316
+        english_name:
+          type: string
+          description: English translation of the media name
+          example: Steins;Gate
+        japanese_name:
+          type: string
+          description: Original Japanese name of the media
+          example: シュタインズ・ゲート
+        romaji_name:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Steins;Gate
+        matches:
+          type: integer
+          description: Number of times the word appears in this media
+          example: 234
+    WordMatch:
+      type: object
+      description: Word matching result with occurrences across media
+      properties:
+        word:
+          type: string
+          description: The word that was searched for
+          example: 彼女
+        is_match:
+          type: boolean
+          description: Indicates whether the word was found in any segment
+          example: true
+        total_matches:
+          type: integer
+          description: Total number of times this word appears across all media
+          example: 1523
+        media:
+          type: array
+          description: List of media containing this word
+          items:
+            $ref: "#/components/schemas/WordMatchMedia"
+    SearchMultipleResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/WordMatch"
+    FetchSentenceContextRequest:
+      type: object
+      required:
+        - media_id
+        - season
+        - episode
+        - segment_position
+      properties:
+        media_id:
+          type: integer
+          description: Media ID
+          example: 110316
+        season:
+          type: integer
+          description: Season number
+          minimum: 0
+          example: 1
+        episode:
+          type: integer
+          description: Episode number
+          minimum: 0
+          example: 5
+        segment_position:
+          type: integer
+          description: Segment position in the episode
+          minimum: 0
+          example: 1133
+        limit:
+          type: integer
+          description: Number of surrounding segments to retrieve
+          minimum: 0
+          default: 5
+          example: 5
+    FetchSentenceContextResponse:
+      type: object
+      required:
+        - sentences
+      properties:
+        sentences:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sentence"
+    MediaInfoStats:
+      type: object
+      description: Statistics about media and segments in the database
+      properties:
+        total_animes:
+          type: integer
+          description: Number of anime/media entries in the current result set
+          example: 15
+        total_segments:
+          type: integer
+          description: Number of subtitle segments in the current result set
+          example: 150
+        full_total_animes:
+          type: integer
+          description: Total number of anime/media entries in the entire database
+          example: 5234
+        full_total_segments:
+          type: integer
+          description: Total number of subtitle segments in the entire database
+          example: 1523847
+    MediaInfoData:
+      type: object
+      description: Complete information about a media/anime entry
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the media
+          example: 110316
+        id_anilist:
+          type: integer
+          nullable: true
+          description: AniList database ID for the media
+          example: 21459
+        id_tmdb:
+          type: integer
+          nullable: true
+          description: TMDB (The Movie Database) ID for the media
+          example: 63726
+        category:
+          type: integer
+          description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the media entry was created in the database
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: integer
+          description: Timestamp when the media entry was last updated
+          example: 1705769100
+        romaji_name:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Steins;Gate
+        english_name:
+          type: string
+          description: English translation of the media name
+          example: Steins;Gate
+        japanese_name:
+          type: string
+          description: Original Japanese name of the media
+          example: シュタインズ・ゲート
+        airing_format:
+          type: string
+          description: Format of the media release (e.g., TV, OVA, Movie)
+          example: TV
+        airing_status:
+          type: string
+          description: Current airing status (FINISHED, RELEASING)
+          example: FINISHED
+        release_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Original release date of the media (null if unknown)
+          example: "2011-04-06T00:00:00Z"
+        folder_media_name:
+          type: string
+          description: Folder name used for storing media files
+          example: steins-gate
+        genres:
+          type: array
+          items:
+            type: string
+          description: List of genres associated with the media
+          example:
+            - Sci-Fi
+            - Thriller
+            - Romance
+        cover:
+          type: string
+          format: uri
+          description: URL to the cover image
+          example: https://example.com/media/anime/steins-gate/cover.jpg
+        banner:
+          type: string
+          format: uri
+          description: URL to the banner image
+          example: https://example.com/media/anime/steins-gate/banner.jpg
+        version:
+          type: string
+          description: Version identifier for the media entry
+          example: v1.0
+        num_segments:
+          type: integer
+          description: Total number of subtitle segments available
+          example: 18542
+        num_seasons:
+          type: integer
+          description: Total number of seasons available
+          example: 1
+        num_episodes:
+          type: integer
+          description: Total number of episodes available
+          example: 24
+      required:
+        - id
+    FetchMediaInfoResponse:
+      type: object
+      properties:
+        stats:
+          $ref: "#/components/schemas/MediaInfoStats"
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaInfoData"
+        cursor:
+          type: integer
+          description: Next cursor for pagination
+        hasMoreResults:
+          type: boolean
+          description: Whether more results are available
+  examples:
+    AuthCredentialsRequired:
+      summary: Authentication Credentials Required
+      value:
+        code: AUTH_CREDENTIALS_REQUIRED
+        title: Authentication Credentials Required
+        detail: No API key or JWT token was provided. Please include an X-API-Key header or a valid Authorization Bearer token.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 401
+    AuthCredentialsInvalid:
+      summary: Invalid Authentication Credentials
+      value:
+        code: AUTH_CREDENTIALS_INVALID
+        title: Invalid Authentication Credentials
+        detail: The provided API key or JWT token is invalid. Please check your credentials and try again.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 401
+    AuthCredentialsExpired:
+      summary: Expired Authentication Credentials
+      value:
+        status: 401
+        code: AUTH_CREDENTIALS_EXPIRED
+        title: Expired Authentication Credentials
+        detail: Your credentials are not valid anymore. Please login in to get a new JWT token or create a new API key.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+    InsufficientPermissions:
+      summary: Insufficient Permissions
+      value:
+        code: INSUFFICIENT_PERMISSIONS
+        title: Insufficient Permissions
+        detail: "Your account lacks the required permissions to perform this action. Required permissions: {permissions}."
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 403
+    RateLimitExceeded:
+      summary: Rate Limit Exceeded
+      value:
+        code: RATE_LIMIT_EXCEEDED
+        title: Rate Limit Exceeded
+        detail: You have made too many requests. Please slow down and try again later.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 429
+    QuotaExceeded:
+      summary: Quota Exceeded
+      value:
+        code: QUOTA_EXCEEDED
+        title: Quota Exceeded
+        detail: You have exceeded your monthly API quota. Please upgrade your plan or wait until next month.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 429
+    InternalServerError:
+      summary: Internal Server Error
+      value:
+        code: INTERNAL_SERVER_EXCEPTION
+        title: Internal Server Error
+        detail: An unexpected error occurred on our end. Please try again later. If the problem persists, please report this issue.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 500
+    ValidationFailed:
+      summary: Validation Failed
+      value:
+        code: VALIDATION_FAILED
+        title: Validation Failed
+        detail: The request data did not pass validation rules. Please check the errors field for details.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 400
+        errors:
+          query: Required
+          limit: Must be a positive integer
+          email: Invalid email format
+    InvalidJson:
+      summary: Invalid JSON
+      value:
+        code: INVALID_JSON
+        title: Invalid JSON
+        detail: The request body contains invalid JSON that could not be parsed. Please check the syntax.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 400
+    NotFound:
+      summary: Not Found
+      value:
+        code: NOT_FOUND
+        title: Not Found
+        detail: The requested resource could not be found. Please check the URL and try again.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 404
+  responses:
+    UnauthorizedApiKey:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            AuthCredentialsRequired:
+              $ref: "#/components/examples/AuthCredentialsRequired"
+            AuthCredentialsInvalid:
+              $ref: "#/components/examples/AuthCredentialsInvalid"
+            AuthCredentialsExpired:
+              $ref: "#/components/examples/AuthCredentialsExpired"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            InsufficientPermissions:
+              $ref: "#/components/examples/InsufficientPermissions"
+    TooManyRequests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            RateLimitExceeded:
+              $ref: "#/components/examples/RateLimitExceeded"
+            QuotaExceeded:
+              $ref: "#/components/examples/QuotaExceeded"
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            InternalServerError:
+              $ref: "#/components/examples/InternalServerError"

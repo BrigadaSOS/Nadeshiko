@@ -1,0 +1,9 @@
+type: object
+description: User role information
+properties:
+  id_role:
+    type: integer
+    description: Role ID
+  name:
+    type: string
+    description: Role name

@@ -1,0 +1,8 @@
+summary: Internal Server Error
+value:
+  code: INTERNAL_SERVER_EXCEPTION
+  title: Internal Server Error
+  detail: An unexpected error occurred on our end. Please try again later. If the problem persists, please report this issue.
+  type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+  instance: trace-id-placeholder
+  status: 500

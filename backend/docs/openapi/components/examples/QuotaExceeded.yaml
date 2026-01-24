@@ -1,0 +1,8 @@
+summary: Quota Exceeded
+value:
+  code: QUOTA_EXCEEDED
+  title: Quota Exceeded
+  detail: You have exceeded your monthly API quota. Please upgrade your plan or wait until next month.
+  type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+  instance: trace-id-placeholder
+  status: 429

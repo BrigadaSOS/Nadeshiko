@@ -1,0 +1,20 @@
+type: object
+description: Word matching result with occurrences across media
+properties:
+  word:
+    type: string
+    description: The word that was searched for
+    example: "彼女"
+  is_match:
+    type: boolean
+    description: Indicates whether the word was found in any segment
+    example: true
+  total_matches:
+    type: integer
+    description: Total number of times this word appears across all media
+    example: 1523
+  media:
+    type: array
+    description: List of media containing this word
+    items:
+      $ref: "./WordMatchMedia.yaml"

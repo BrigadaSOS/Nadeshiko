@@ -1,0 +1,9 @@
+type: object
+description: Discord OAuth Login Request
+required:
+  - code
+properties:
+  code:
+    type: string
+    description: Discord OAuth authorization code
+    example: "1234567890"

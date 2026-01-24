@@ -1,0 +1,12 @@
+type: object
+description: Create API key response
+properties:
+  message:
+    type: string
+    description: Success message
+  key:
+    type: string
+    description: The generated API key (only shown once)
+required:
+  - message
+  - key

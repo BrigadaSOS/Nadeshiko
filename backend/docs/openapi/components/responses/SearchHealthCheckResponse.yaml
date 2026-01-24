@@ -1,0 +1,19 @@
+type: object
+properties:
+  statistics:
+    type: array
+    items:
+      $ref: "../schemas/Statistic.yaml"
+  categoryStatistics:
+    type: array
+    items:
+      $ref: "../schemas/CategoryStatistic.yaml"
+  sentences:
+    type: array
+    items:
+      $ref: "../schemas/Sentence.yaml"
+  cursor:
+    type: array
+    items:
+      type: number
+    description: Cursor for pagination
