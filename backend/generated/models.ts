@@ -2,335 +2,335 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type EmptyObject = { [key: string]: never }
+export type EmptyObject = { [key: string]: never };
 
 export type t_ApiKey = {
-  createdAt: string
-  hint: string
-  id: number
-  isActive: boolean
-  name: string
-  permissions: t_ApiKeyPermission[]
-}
+  createdAt: string;
+  hint: string;
+  id: number;
+  isActive: boolean;
+  name: string;
+  permissions: t_ApiKeyPermission[];
+};
 
 export type t_ApiKeyPermission = {
-  id: number
-  name: string
-}
+  id: number;
+  name: string;
+};
 
 export type t_AuthUser = {
-  email?: string
-  id?: number
-  roles?: t_UserRole[]
-  username?: string
-}
+  email?: string;
+  id?: number;
+  roles?: t_UserRole[];
+  username?: string;
+};
 
 export type t_BasicInfo = {
-  banner?: string
-  category: number
-  cover?: string
-  episode: number
-  id_anime: number
-  name_anime_en?: string
-  name_anime_jp?: string
-  name_anime_romaji: string
-  season: number
-}
+  banner?: string;
+  category: number;
+  cover?: string;
+  episode: number;
+  id_anime: number;
+  name_anime_en?: string;
+  name_anime_jp?: string;
+  name_anime_romaji: string;
+  season: number;
+};
 
 export type t_CategoryStatistic = {
-  category?: number
-  count?: number
-}
+  category?: number;
+  count?: number;
+};
 
 export type t_CreateApiKeyResponse = {
-  key: string
-  message: string
-}
+  key: string;
+  message: string;
+};
 
 export type t_DatabaseSyncResponse = {
-  message: string
-}
+  message: string;
+};
 
 export type t_DeactivateApiKeyResponse = {
-  message: string
-}
+  message: string;
+};
 
 export type t_DiscordAuthUrlResponse = {
-  url: string
-}
+  url: string;
+};
 
 export type t_Error = {
-  code: string
-  detail: string
+  code: string;
+  detail: string;
   errors?: {
-    [key: string]: string | undefined
-  }
-  instance?: string
-  status: number
-  title: string
-  type?: string
-}
+    [key: string]: string | undefined;
+  };
+  instance?: string;
+  status: number;
+  title: string;
+  type?: string;
+};
 
 export type t_FetchMediaInfoResponse = {
-  cursor?: number
-  hasMoreResults?: boolean
-  results?: t_MediaInfoData[]
-  stats?: t_MediaInfoStats
-}
+  cursor?: number;
+  hasMoreResults?: boolean;
+  results?: t_MediaInfoData[];
+  stats?: t_MediaInfoStats;
+};
 
 export type t_FetchSentenceContextResponse = {
-  sentences: t_Sentence[]
-}
+  sentences: t_Sentence[];
+};
 
 export type t_GetApiKeysResponse = {
-  keys: t_ApiKey[]
-  quota: t_QuotaInfo
-}
+  keys: t_ApiKey[];
+  quota: t_QuotaInfo;
+};
 
 export type t_LoginResponse = {
-  message: string
-  token: string
-  user: t_AuthUser
-}
+  message: string;
+  token: string;
+  user: t_AuthUser;
+};
 
 export type t_LogoutResponse = {
-  message: string
-  status?: number
-}
+  message: string;
+  status?: number;
+};
 
 export type t_MediaInfoData = {
-  airing_format?: string
-  airing_status?: string
-  banner?: string
-  category?: number
-  cover?: string
-  created_at?: string
-  english_name?: string
-  folder_media_name?: string
-  genres?: string[]
-  id: number
-  id_anilist?: number | null
-  id_tmdb?: number | null
-  japanese_name?: string
-  num_episodes?: number
-  num_seasons?: number
-  num_segments?: number
-  release_date?: string | null
-  romaji_name?: string
-  updated_at?: number
-  version?: string
-}
+  airing_format?: string;
+  airing_status?: string;
+  banner?: string;
+  category?: number;
+  cover?: string;
+  created_at?: string;
+  english_name?: string;
+  folder_media_name?: string;
+  genres?: string[];
+  id: number;
+  id_anilist?: number | null;
+  id_tmdb?: number | null;
+  japanese_name?: string;
+  num_episodes?: number;
+  num_seasons?: number;
+  num_segments?: number;
+  release_date?: string | null;
+  romaji_name?: string;
+  updated_at?: number;
+  version?: string;
+};
 
 export type t_MediaInfoPath = {
-  path_audio?: string
-  path_image?: string
-  path_video?: string
-}
+  path_audio?: string;
+  path_image?: string;
+  path_video?: string;
+};
 
 export type t_MediaInfoStats = {
-  full_total_animes?: number
-  full_total_segments?: number
-  total_animes?: number
-  total_segments?: number
-}
+  full_total_animes?: number;
+  full_total_segments?: number;
+  total_animes?: number;
+  total_segments?: number;
+};
 
 export type t_QuotaInfo = {
-  quotaLimit: number | "NO_LIMIT"
-  quotaUsed: number
-}
+  quotaLimit: number | 'NO_LIMIT';
+  quotaUsed: number;
+};
 
 export type t_RegisterResponse = {
-  message: string
-  user: EmptyObject
-}
+  message: string;
+  user: EmptyObject;
+};
 
 export type t_SearchHealthCheckResponse = {
-  categoryStatistics?: t_CategoryStatistic[]
-  cursor?: number[]
-  sentences?: t_Sentence[]
-  statistics?: t_Statistic[]
-}
+  categoryStatistics?: t_CategoryStatistic[];
+  cursor?: number[];
+  sentences?: t_Sentence[];
+  statistics?: t_Statistic[];
+};
 
 export type t_SearchMultipleResponse = {
-  results?: t_WordMatch[]
-}
+  results?: t_WordMatch[];
+};
 
 export type t_SearchResponse = {
-  categoryStatistics?: t_CategoryStatistic[]
-  cursor?: number[] | null
-  sentences?: t_Sentence[]
-  statistics?: t_Statistic[]
-}
+  categoryStatistics?: t_CategoryStatistic[];
+  cursor?: number[] | null;
+  sentences?: t_Sentence[];
+  statistics?: t_Statistic[];
+};
 
 export type t_SegmentInfo = {
-  actor_en?: string
-  actor_es?: string
-  actor_ja?: string
-  content_en?: string
-  content_en_highlight?: string
-  content_en_mt: boolean
-  content_es?: string
-  content_es_highlight?: string
-  content_es_mt: boolean
-  content_jp: string
-  content_jp_highlight?: string
-  end_time: string
-  is_nsfw: boolean
-  position: number
-  start_time: string
-  status: number
-  uuid: string
-}
+  actor_en?: string;
+  actor_es?: string;
+  actor_ja?: string;
+  content_en?: string;
+  content_en_highlight?: string;
+  content_en_mt: boolean;
+  content_es?: string;
+  content_es_highlight?: string;
+  content_es_mt: boolean;
+  content_jp: string;
+  content_jp_highlight?: string;
+  end_time: string;
+  is_nsfw: boolean;
+  position: number;
+  start_time: string;
+  status: number;
+  uuid: string;
+};
 
 export type t_Sentence = {
-  basic_info: t_BasicInfo
-  media_info: t_MediaInfoPath
-  segment_info: t_SegmentInfo
-}
+  basic_info: t_BasicInfo;
+  media_info: t_MediaInfoPath;
+  segment_info: t_SegmentInfo;
+};
 
 export type t_Statistic = {
-  amount_sentences_found?: number
-  anime_id?: number
-  category?: number
-  name_anime_en?: string
-  name_anime_jp?: string
-  name_anime_romaji?: string
+  amount_sentences_found?: number;
+  anime_id?: number;
+  category?: number;
+  name_anime_en?: string;
+  name_anime_jp?: string;
+  name_anime_romaji?: string;
   season_with_episode_hits?: {
     [key: string]:
       | {
-          [key: string]: number | undefined
+          [key: string]: number | undefined;
         }
-      | undefined
-  }
-}
+      | undefined;
+  };
+};
 
 export type t_UserInfoResponse = {
-  status?: number
+  status?: number;
   user: {
-    email: string
-    roles: t_UserRole[]
-    username: string
-  }
-}
+    email: string;
+    roles: t_UserRole[];
+    username: string;
+  };
+};
 
 export type t_UserRole = {
-  id_role?: number
-  name?: string
-}
+  id_role?: number;
+  name?: string;
+};
 
 export type t_WordMatch = {
-  is_match?: boolean
-  media?: t_WordMatchMedia[]
-  total_matches?: number
-  word?: string
-}
+  is_match?: boolean;
+  media?: t_WordMatchMedia[];
+  total_matches?: number;
+  word?: string;
+};
 
 export type t_WordMatchMedia = {
-  english_name?: string
-  japanese_name?: string
-  matches?: number
-  media_id?: number
-  romaji_name?: string
-}
+  english_name?: string;
+  japanese_name?: string;
+  matches?: number;
+  media_id?: number;
+  romaji_name?: string;
+};
 
 export type t_CreateApiKeyRequestBodySchema = {
-  name: string
-  permissions?: string[]
-}
+  name: string;
+  permissions?: string[];
+};
 
 export type t_DeactivateApiKeyRequestBodySchema = {
-  api_key_id: number
-}
+  api_key_id: number;
+};
 
 export type t_FetchMediaInfoQuerySchema = {
-  cursor?: number
-  query?: string
-  size?: number
-  type?: "anime" | "liveaction" | "audiobook"
-}
+  cursor?: number;
+  query?: string;
+  size?: number;
+  type?: 'anime' | 'liveaction' | 'audiobook';
+};
 
 export type t_FetchSentenceContextRequestBodySchema = {
-  episode: number
-  limit?: number
-  media_id: number
-  season: number
-  segment_position: number
-}
+  episode: number;
+  limit?: number;
+  media_id: number;
+  season: number;
+  segment_position: number;
+};
 
 export type t_GetDiscordAuthUrlRequestHeaderSchema = {
-  referer?: string
-}
+  referer?: string;
+};
 
 export type t_LoginRequestBodySchema = {
-  email: string
-  password: string
-}
+  email: string;
+  password: string;
+};
 
 export type t_LoginRequestHeaderSchema = {
-  referer?: string
-}
+  referer?: string;
+};
 
 export type t_LoginDiscordRequestBodySchema = {
-  code: string
-}
+  code: string;
+};
 
 export type t_LoginDiscordRequestHeaderSchema = {
-  referer?: string
-}
+  referer?: string;
+};
 
 export type t_LoginGoogleRequestBodySchema = {
-  code: string
-}
+  code: string;
+};
 
 export type t_LoginGoogleRequestHeaderSchema = {
-  referer?: string
-}
+  referer?: string;
+};
 
 export type t_RegisterRequestBodySchema = {
-  email: string
-  password: string
-  username: string
-}
+  email: string;
+  password: string;
+  username: string;
+};
 
 export type t_RegisterRequestHeaderSchema = {
-  referer?: string
-}
+  referer?: string;
+};
 
 export type t_SearchRequestBodySchema = {
-  anime_id?: number
-  category?: number[]
-  content_sort?: "asc" | "desc" | "none" | "time_asc" | "time_desc" | "random"
-  cursor?: number[]
-  episode?: number[]
-  exact_match?: boolean
-  excluded_anime_ids?: number[]
-  extra?: boolean
-  limit?: number
-  max_length?: number
+  anime_id?: number;
+  category?: number[];
+  content_sort?: 'asc' | 'desc' | 'none' | 'time_asc' | 'time_desc' | 'random';
+  cursor?: number[];
+  episode?: number[];
+  exact_match?: boolean;
+  excluded_anime_ids?: number[];
+  extra?: boolean;
+  limit?: number;
+  max_length?: number;
   media?: {
-    media_id: string
+    media_id: string;
     seasons: {
-      episodes: number[]
-      season: number
-    }[]
-  }[]
-  min_length?: number
-  query?: string
-  random_seed?: number
-  season?: number[]
-  status?: number[]
-  uuid?: string
-}
+      episodes: number[];
+      season: number;
+    }[];
+  }[];
+  min_length?: number;
+  query?: string;
+  random_seed?: number;
+  season?: number[];
+  status?: number[];
+  uuid?: string;
+};
 
 export type t_SearchMultipleRequestBodySchema = {
-  exact_match?: boolean
-  words: string[]
-}
+  exact_match?: boolean;
+  words: string[];
+};
 
 export type t_SyncSpecificMediaRequestBodySchema = {
-  episode?: number
-  folder_name: string
-  force?: boolean
-  season?: number
-  type: "anime" | "jdrama" | "audiobook"
-}
+  episode?: number;
+  folder_name: string;
+  force?: boolean;
+  season?: number;
+  type: 'anime' | 'jdrama' | 'audiobook';
+};

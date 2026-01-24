@@ -31,7 +31,6 @@ import { createRouter as createAdminRouter } from 'generated/routes/admin';
 
 const router = express.Router();
 
-
 const AuthRoutes = createAuthRouter({
   login,
   register,

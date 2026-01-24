@@ -2,41 +2,27 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import {
-  ExpressRuntimeError,
-  RequestInputType,
-} from "@nahkies/typescript-express-runtime/errors"
+import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
   type Params,
   SkipResponse,
   type StatusCode,
-} from "@nahkies/typescript-express-runtime/server"
-import {
-  parseRequestInput,
-  responseValidationFactory,
-} from "@nahkies/typescript-express-runtime/zod-v3"
-import { type NextFunction, type Request, type Response, Router } from "express"
-import type {
-  t_DatabaseSyncResponse,
-  t_Error,
-  t_SyncSpecificMediaRequestBodySchema,
-} from "../models.ts"
+} from '@nahkies/typescript-express-runtime/server';
+import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
+import { type NextFunction, type Request, type Response, Router } from 'express';
+import type { t_DatabaseSyncResponse, t_Error, t_SyncSpecificMediaRequestBodySchema } from '../models.ts';
 import type { SyncSpecificMediaRequestOutput } from '../outputTypes.ts';
-import {
-  s_DatabaseSyncResponse,
-  s_Error,
-  s_SyncSpecificMediaRequest,
-} from "../schemas.ts"
+import { s_DatabaseSyncResponse, s_Error, s_SyncSpecificMediaRequest } from '../schemas.ts';
 
 export type ReSyncDatabaseResponder = {
-  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>
-  with401(): ExpressRuntimeResponse<t_Error>
-  with403(): ExpressRuntimeResponse<t_Error>
-  with429(): ExpressRuntimeResponse<t_Error>
-  with500(): ExpressRuntimeResponse<t_Error>
-} & ExpressRuntimeResponder
+  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
 
 export type ReSyncDatabase = (
   params: Params<void, void, void, void>,
@@ -44,15 +30,15 @@ export type ReSyncDatabase = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type ReSyncDatabasePartialResponder = {
-  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>
-  with401(): ExpressRuntimeResponse<t_Error>
-  with403(): ExpressRuntimeResponse<t_Error>
-  with429(): ExpressRuntimeResponse<t_Error>
-  with500(): ExpressRuntimeResponse<t_Error>
-} & ExpressRuntimeResponder
+  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
 
 export type ReSyncDatabasePartial = (
   params: Params<void, void, void, void>,
@@ -60,16 +46,16 @@ export type ReSyncDatabasePartial = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type SyncSpecificMediaResponder = {
-  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>
-  with400(): ExpressRuntimeResponse<t_Error>
-  with401(): ExpressRuntimeResponse<t_Error>
-  with403(): ExpressRuntimeResponse<t_Error>
-  with429(): ExpressRuntimeResponse<t_Error>
-  with500(): ExpressRuntimeResponse<t_Error>
-} & ExpressRuntimeResponder
+  with200(): ExpressRuntimeResponse<t_DatabaseSyncResponse>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
 
 export type SyncSpecificMedia = (
   params: Params<void, void, SyncSpecificMediaRequestOutput, void>,
@@ -77,248 +63,220 @@ export type SyncSpecificMedia = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AdminImplementation = {
-  reSyncDatabase: ReSyncDatabase
-  reSyncDatabasePartial: ReSyncDatabasePartial
-  syncSpecificMedia: SyncSpecificMedia
-}
+  reSyncDatabase: ReSyncDatabase;
+  reSyncDatabasePartial: ReSyncDatabasePartial;
+  syncSpecificMedia: SyncSpecificMedia;
+};
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
-  const router = Router()
+  const router = Router();
 
   const reSyncDatabaseResponseBodyValidator = responseValidationFactory(
     [
-      ["200", s_DatabaseSyncResponse],
-      ["401", s_Error],
-      ["403", s_Error],
-      ["429", s_Error],
-      ["500", s_Error],
+      ['200', s_DatabaseSyncResponse],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
     ],
     undefined,
-  )
+  );
 
   // reSyncDatabase
-  router.post(
-    `/v1/admin/database/sync/full`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: undefined,
-          query: undefined,
-          body: undefined,
-          headers: undefined,
-        }
+  router.post(`/v1/admin/database/sync/full`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
 
-        const responder = {
-          with200() {
-            return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200)
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error>(401)
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error>(403)
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error>(429)
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error>(500)
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status)
-          },
-        }
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
 
-        const response = await implementation
-          .reSyncDatabase(input, responder, req, res, next)
-          .catch((err) => {
-            throw ExpressRuntimeError.HandlerError(err)
-          })
+      const response = await implementation.reSyncDatabase(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
 
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return
-        }
-
-        const { status, body } =
-          response instanceof ExpressRuntimeResponse
-            ? response.unpack()
-            : response
-
-        res.status(status)
-
-        if (body !== undefined) {
-          res.json(reSyncDatabaseResponseBodyValidator(status, body))
-        } else {
-          res.end()
-        }
-      } catch (error) {
-        next(error)
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
       }
-    },
-  )
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(reSyncDatabaseResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
 
   const reSyncDatabasePartialResponseBodyValidator = responseValidationFactory(
     [
-      ["200", s_DatabaseSyncResponse],
-      ["401", s_Error],
-      ["403", s_Error],
-      ["429", s_Error],
-      ["500", s_Error],
+      ['200', s_DatabaseSyncResponse],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
     ],
     undefined,
-  )
+  );
 
   // reSyncDatabasePartial
-  router.post(
-    `/v1/admin/database/sync/partial`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: undefined,
-          query: undefined,
-          body: undefined,
-          headers: undefined,
-        }
+  router.post(`/v1/admin/database/sync/partial`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
 
-        const responder = {
-          with200() {
-            return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200)
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error>(401)
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error>(403)
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error>(429)
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error>(500)
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status)
-          },
-        }
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
 
-        const response = await implementation
-          .reSyncDatabasePartial(input, responder, req, res, next)
-          .catch((err) => {
-            throw ExpressRuntimeError.HandlerError(err)
-          })
+      const response = await implementation.reSyncDatabasePartial(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
 
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return
-        }
-
-        const { status, body } =
-          response instanceof ExpressRuntimeResponse
-            ? response.unpack()
-            : response
-
-        res.status(status)
-
-        if (body !== undefined) {
-          res.json(reSyncDatabasePartialResponseBodyValidator(status, body))
-        } else {
-          res.end()
-        }
-      } catch (error) {
-        next(error)
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
       }
-    },
-  )
 
-  const syncSpecificMediaRequestBodySchema = s_SyncSpecificMediaRequest
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(reSyncDatabasePartialResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const syncSpecificMediaRequestBodySchema = s_SyncSpecificMediaRequest;
 
   const syncSpecificMediaResponseBodyValidator = responseValidationFactory(
     [
-      ["200", s_DatabaseSyncResponse],
-      ["400", s_Error],
-      ["401", s_Error],
-      ["403", s_Error],
-      ["429", s_Error],
-      ["500", s_Error],
+      ['200', s_DatabaseSyncResponse],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
     ],
     undefined,
-  )
+  );
 
   // syncSpecificMedia
-  router.post(
-    `/v1/management/media/sync/media`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: undefined,
-          query: undefined,
-          body: parseRequestInput(
-            syncSpecificMediaRequestBodySchema,
-            req.body,
-            RequestInputType.RequestBody,
-          ),
-          headers: undefined,
-        }
+  router.post(`/v1/management/media/sync/media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(syncSpecificMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
 
-        const responder = {
-          with200() {
-            return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200)
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error>(400)
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error>(401)
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error>(403)
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error>(429)
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error>(500)
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status)
-          },
-        }
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_DatabaseSyncResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
 
-        const response = await implementation
-          .syncSpecificMedia(input, responder, req, res, next)
-          .catch((err) => {
-            throw ExpressRuntimeError.HandlerError(err)
-          })
+      const response = await implementation.syncSpecificMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
 
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return
-        }
-
-        const { status, body } =
-          response instanceof ExpressRuntimeResponse
-            ? response.unpack()
-            : response
-
-        res.status(status)
-
-        if (body !== undefined) {
-          res.json(syncSpecificMediaResponseBodyValidator(status, body))
-        } else {
-          res.end()
-        }
-      } catch (error) {
-        next(error)
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
       }
-    },
-  )
 
-  return router
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(syncSpecificMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
 }
 
-export { createAdminRouter as createRouter }
-export type { AdminImplementation as Implementation }
+export { createAdminRouter as createRouter };
+export type { AdminImplementation as Implementation };

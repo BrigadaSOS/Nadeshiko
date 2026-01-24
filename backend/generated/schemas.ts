@@ -2,21 +2,21 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { z } from "zod/v3"
+import { z } from 'zod/v3';
 
 export const PermissiveBoolean = z.preprocess((value) => {
-  if (typeof value === "string" && (value === "true" || value === "false")) {
-    return value === "true"
-  } else if (typeof value === "number" && (value === 1 || value === 0)) {
-    return value === 1
+  if (typeof value === 'string' && (value === 'true' || value === 'false')) {
+    return value === 'true';
+  } else if (typeof value === 'number' && (value === 1 || value === 0)) {
+    return value === 1;
   }
-  return value
-}, z.boolean())
+  return value;
+}, z.boolean());
 
 export const s_ApiKeyPermission = z.object({
   id: z.coerce.number(),
   name: z.string(),
-})
+});
 
 export const s_BasicInfo = z.object({
   id_anime: z.coerce.number(),
@@ -28,34 +28,34 @@ export const s_BasicInfo = z.object({
   episode: z.coerce.number(),
   season: z.coerce.number(),
   category: z.coerce.number(),
-})
+});
 
 export const s_CategoryStatistic = z.object({
   category: z.coerce.number().optional(),
   count: z.coerce.number().optional(),
-})
+});
 
 export const s_CreateApiKeyRequest = z.object({
   name: z.string(),
   permissions: z.array(z.string()).optional(),
-})
+});
 
 export const s_CreateApiKeyResponse = z.object({
   message: z.string(),
   key: z.string(),
-})
+});
 
-export const s_DatabaseSyncResponse = z.object({ message: z.string() })
+export const s_DatabaseSyncResponse = z.object({ message: z.string() });
 
 export const s_DeactivateApiKeyRequest = z.object({
   api_key_id: z.coerce.number(),
-})
+});
 
-export const s_DeactivateApiKeyResponse = z.object({ message: z.string() })
+export const s_DeactivateApiKeyResponse = z.object({ message: z.string() });
 
-export const s_DiscordAuthUrlResponse = z.object({ url: z.string() })
+export const s_DiscordAuthUrlResponse = z.object({ url: z.string() });
 
-export const s_DiscordLoginRequest = z.object({ code: z.string() })
+export const s_DiscordLoginRequest = z.object({ code: z.string() });
 
 export const s_Error = z.object({
   code: z.string(),
@@ -65,7 +65,7 @@ export const s_Error = z.object({
   instance: z.string().optional(),
   status: z.coerce.number(),
   errors: z.record(z.string()).optional(),
-})
+});
 
 export const s_FetchSentenceContextRequest = z.object({
   media_id: z.coerce.number(),
@@ -73,19 +73,19 @@ export const s_FetchSentenceContextRequest = z.object({
   episode: z.coerce.number().min(0),
   segment_position: z.coerce.number().min(0),
   limit: z.coerce.number().min(0).optional().default(5),
-})
+});
 
-export const s_GoogleLoginRequest = z.object({ code: z.string() })
+export const s_GoogleLoginRequest = z.object({ code: z.string() });
 
 export const s_LoginRequest = z.object({
   email: z.string().email(),
   password: z.string(),
-})
+});
 
 export const s_LogoutResponse = z.object({
   status: z.coerce.number().optional(),
   message: z.string(),
-})
+});
 
 export const s_MediaInfoData = z.object({
   id: z.coerce.number(),
@@ -108,41 +108,41 @@ export const s_MediaInfoData = z.object({
   num_segments: z.coerce.number().optional(),
   num_seasons: z.coerce.number().optional(),
   num_episodes: z.coerce.number().optional(),
-})
+});
 
 export const s_MediaInfoPath = z.object({
   path_image: z.string().optional(),
   path_audio: z.string().optional(),
   path_video: z.string().optional(),
-})
+});
 
 export const s_MediaInfoStats = z.object({
   total_animes: z.coerce.number().optional(),
   total_segments: z.coerce.number().optional(),
   full_total_animes: z.coerce.number().optional(),
   full_total_segments: z.coerce.number().optional(),
-})
+});
 
 export const s_QuotaInfo = z.object({
   quotaUsed: z.coerce.number(),
-  quotaLimit: z.union([z.coerce.number(), z.enum(["NO_LIMIT"])]),
-})
+  quotaLimit: z.union([z.coerce.number(), z.enum(['NO_LIMIT'])]),
+});
 
 export const s_RegisterRequest = z.object({
   username: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
-})
+});
 
 export const s_RegisterResponse = z.object({
   message: z.string(),
   user: z.object({}),
-})
+});
 
 export const s_SearchMultipleRequest = z.object({
   words: z.array(z.string()),
   exact_match: PermissiveBoolean.optional().default(false),
-})
+});
 
 export const s_SearchRequest = z.object({
   query: z.string().optional(),
@@ -153,10 +153,7 @@ export const s_SearchRequest = z.object({
   season: z.array(z.coerce.number()).optional(),
   episode: z.array(z.coerce.number()).optional(),
   random_seed: z.coerce.number().min(0).max(1).optional(),
-  content_sort: z
-    .enum(["asc", "desc", "none", "time_asc", "time_desc", "random"])
-    .optional()
-    .default("none"),
+  content_sort: z.enum(['asc', 'desc', 'none', 'time_asc', 'time_desc', 'random']).optional().default('none'),
   cursor: z.array(z.coerce.number()).optional(),
   exact_match: PermissiveBoolean.optional().default(false),
   extra: PermissiveBoolean.optional().default(false),
@@ -177,7 +174,7 @@ export const s_SearchRequest = z.object({
       }),
     )
     .optional(),
-})
+});
 
 export const s_SegmentInfo = z.object({
   status: z.coerce.number(),
@@ -197,7 +194,7 @@ export const s_SegmentInfo = z.object({
   actor_ja: z.string().optional(),
   actor_en: z.string().optional(),
   actor_es: z.string().optional(),
-})
+});
 
 export const s_Statistic = z.object({
   anime_id: z.coerce.number().optional(),
@@ -207,20 +204,20 @@ export const s_Statistic = z.object({
   name_anime_jp: z.string().optional(),
   amount_sentences_found: z.coerce.number().optional(),
   season_with_episode_hits: z.record(z.record(z.coerce.number())).optional(),
-})
+});
 
 export const s_SyncSpecificMediaRequest = z.object({
   folder_name: z.string().min(1).max(255),
   season: z.coerce.number().min(0).optional(),
   episode: z.coerce.number().min(0).optional(),
   force: PermissiveBoolean.optional().default(false),
-  type: z.enum(["anime", "jdrama", "audiobook"]),
-})
+  type: z.enum(['anime', 'jdrama', 'audiobook']),
+});
 
 export const s_UserRole = z.object({
   id_role: z.coerce.number().optional(),
   name: z.string().optional(),
-})
+});
 
 export const s_WordMatchMedia = z.object({
   media_id: z.coerce.number().optional(),
@@ -228,7 +225,7 @@ export const s_WordMatchMedia = z.object({
   japanese_name: z.string().optional(),
   romaji_name: z.string().optional(),
   matches: z.coerce.number().optional(),
-})
+});
 
 export const s_ApiKey = z.object({
   id: z.coerce.number(),
@@ -237,27 +234,27 @@ export const s_ApiKey = z.object({
   createdAt: z.string().datetime({ offset: true }),
   hint: z.string(),
   permissions: z.array(s_ApiKeyPermission),
-})
+});
 
 export const s_AuthUser = z.object({
   id: z.coerce.number().optional(),
   username: z.string().optional(),
   email: z.string().email().optional(),
   roles: z.array(s_UserRole).optional(),
-})
+});
 
 export const s_FetchMediaInfoResponse = z.object({
   stats: s_MediaInfoStats.optional(),
   results: z.array(s_MediaInfoData).optional(),
   cursor: z.coerce.number().optional(),
   hasMoreResults: PermissiveBoolean.optional(),
-})
+});
 
 export const s_Sentence = z.object({
   basic_info: s_BasicInfo,
   segment_info: s_SegmentInfo,
   media_info: s_MediaInfoPath,
-})
+});
 
 export const s_UserInfoResponse = z.object({
   status: z.coerce.number().optional(),
@@ -266,44 +263,44 @@ export const s_UserInfoResponse = z.object({
     email: z.string().email(),
     roles: z.array(s_UserRole),
   }),
-})
+});
 
 export const s_WordMatch = z.object({
   word: z.string().optional(),
   is_match: PermissiveBoolean.optional(),
   total_matches: z.coerce.number().optional(),
   media: z.array(s_WordMatchMedia).optional(),
-})
+});
 
 export const s_FetchSentenceContextResponse = z.object({
   sentences: z.array(s_Sentence),
-})
+});
 
 export const s_GetApiKeysResponse = z.object({
   keys: z.array(s_ApiKey),
   quota: s_QuotaInfo,
-})
+});
 
 export const s_LoginResponse = z.object({
   message: z.string(),
   user: s_AuthUser,
   token: z.string(),
-})
+});
 
 export const s_SearchHealthCheckResponse = z.object({
   statistics: z.array(s_Statistic).optional(),
   categoryStatistics: z.array(s_CategoryStatistic).optional(),
   sentences: z.array(s_Sentence).optional(),
   cursor: z.array(z.coerce.number()).optional(),
-})
+});
 
 export const s_SearchMultipleResponse = z.object({
   results: z.array(s_WordMatch).optional(),
-})
+});
 
 export const s_SearchResponse = z.object({
   statistics: z.array(s_Statistic).optional(),
   categoryStatistics: z.array(s_CategoryStatistic).optional(),
   sentences: z.array(s_Sentence).optional(),
   cursor: z.array(z.coerce.number()).nullable().optional(),
-})
+});
