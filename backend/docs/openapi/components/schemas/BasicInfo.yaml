@@ -1,0 +1,47 @@
+type: object
+description: Basic anime/media information included in search results
+required:
+  - id_anime
+  - name_anime_romaji
+  - episode
+  - season
+  - category
+properties:
+  id_anime:
+    type: integer
+    description: Unique identifier for the anime/media
+    example: 110316
+  name_anime_romaji:
+    type: string
+    description: Romaji transliteration of the anime name
+    example: "Steins;Gate"
+  name_anime_en:
+    type: string
+    description: English translation of the anime name
+    example: "Steins;Gate"
+  name_anime_jp:
+    type: string
+    description: Original Japanese name of the anime
+    example: "シュタインズ・ゲート"
+  cover:
+    type: string
+    format: uri
+    description: URL to the cover image
+    example: "https://example.com/media/anime/steins-gate/cover.jpg"
+  banner:
+    type: string
+    format: uri
+    description: URL to the banner image
+    example: "https://example.com/media/anime/steins-gate/banner.jpg"
+  episode:
+    type: integer
+    description: Episode number where the segment appears
+    example: 1
+  season:
+    type: integer
+    description: Season number where the segment appears
+    example: 1
+  category:
+    type: integer
+    description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+    example: 1

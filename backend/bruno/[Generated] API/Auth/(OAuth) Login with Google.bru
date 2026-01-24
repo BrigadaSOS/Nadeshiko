@@ -1,0 +1,35 @@
+meta {
+  name: (OAuth) Login with Google
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/google
+  body: json
+  auth: inherit
+}
+
+headers {
+  Referer: {{frontendUrl}}
+}
+
+body:json {
+  {
+    "code": "1234567890"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:post-response {
+  if (res.getStatus() >= 200 && res.getStatus() < 300) {
+      const json = res.getBody();
+      if (json.token) {
+          bru.setEnvVar("jwtToken", json.token);
+      }
+  }
+}

@@ -1,0 +1,31 @@
+type: object
+description: Sync specific media request
+required:
+  - folder_name
+  - type
+properties:
+  folder_name:
+    type: string
+    minLength: 1
+    maxLength: 255
+    description: Name of the media folder
+    example: "my_media"
+  season:
+    type: integer
+    minimum: 0
+    description: Season number or identifier
+    example: 1
+  episode:
+    type: integer
+    minimum: 0
+    description: Episode number or identifier
+    example: 1
+  force:
+    type: boolean
+    description: Force re-sync even if already synced. This will remove and reinsert all segments from the DB.
+    default: false
+  type:
+    type: string
+    description: Type of media
+    enum: [anime, jdrama, audiobook]
+    example: anime

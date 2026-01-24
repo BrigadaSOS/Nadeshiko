@@ -1,0 +1,39 @@
+type: object
+description: Search result statistics grouped by anime/media
+properties:
+  anime_id:
+    type: integer
+    description: Unique identifier for the anime/media
+    example: 110316
+  category:
+    type: integer
+    description: Media category (1=Anime, 2=Unknown, 3=J-Drama, 4=Audiobook)
+    example: 1
+  name_anime_romaji:
+    type: string
+    description: Romaji transliteration of the anime name
+    example: "Steins;Gate"
+  name_anime_en:
+    type: string
+    description: English translation of the anime name
+    example: "Steins;Gate"
+  name_anime_jp:
+    type: string
+    description: Original Japanese name of the anime
+    example: "シュタインズ・ゲート"
+  amount_sentences_found:
+    type: integer
+    description: Total number of sentences found for this anime
+    example: 42
+  season_with_episode_hits:
+    type: object
+    description: Nested object mapping seasons to episodes with hit counts
+    example:
+      1:
+        1: 5
+        2: 8
+        3: 3
+    additionalProperties:
+      type: object
+      additionalProperties:
+        type: integer

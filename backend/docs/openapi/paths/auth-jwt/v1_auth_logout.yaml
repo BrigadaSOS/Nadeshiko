@@ -1,0 +1,23 @@
+post:
+  tags:
+    - AuthJwt
+  x-internal: true
+  operationId: logout
+  summary: Logout the user
+  description: |
+    Logout the current user and clear the JWT token cookie
+  security:
+    - jwtCookie: []
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/LogoutResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

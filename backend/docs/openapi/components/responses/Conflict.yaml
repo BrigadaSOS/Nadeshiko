@@ -1,0 +1,8 @@
+description: Conflict
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/Error.yaml"
+    examples:
+      AccountConflict:
+        $ref: "../examples/AccountConflict.yaml"

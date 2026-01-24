@@ -1,3 +1,3 @@
-import type { GetContextAnimeRequest } from '../controller/GetContextAnimeRequest';
+import type { t_FetchSentenceContextRequestBodySchema } from '../../generated/models';
 
-export type QuerySurroundingSegmentsRequest = GetContextAnimeRequest;
+export type QuerySurroundingSegmentsRequest = t_FetchSentenceContextRequestBodySchema;

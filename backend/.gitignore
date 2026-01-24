@@ -30,6 +30,9 @@ prod
 dictionaries/jmdict
 ~/
 
+# Local dev OpenAPI docs (includes internal endpoints)
+docs/generated/openapi-internal.yaml
+
 /cypress/videos/
 /cypress/screenshots/
 

@@ -125,7 +125,7 @@ export const useApiSearch = defineStore("search", {
             sorted: true,
             query: params.query || '',
             cursor: params.cursor || 0,
-            type: params.type || '', 
+            ...(params.type && { type: params.type }),
           },
           mode: "cors",
           headers: {
