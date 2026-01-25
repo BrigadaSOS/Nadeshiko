@@ -44,7 +44,7 @@ spec:
     spec:
       containers:
         - name: pgroonga
-          image: groonga/pgroonga:latest
+          image: groonga/pgroonga:4.0.5-alpine-17
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 5432
