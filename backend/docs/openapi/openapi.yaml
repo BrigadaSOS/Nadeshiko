@@ -119,12 +119,6 @@ paths:
     $ref: "./paths/user/v1_user_deactivateApiKey.yaml"
 
   # Admin endpoints
-  "/v1/admin/database/sync/full":
-    $ref: "./paths/admin/v1_admin_database_sync_full.yaml"
-  "/v1/admin/database/sync/partial":
-    $ref: "./paths/admin/v1_admin_database_sync_partial.yaml"
-  "/v1/management/media/sync/media":
-    $ref: "./paths/admin/v1_management_media_sync.yaml"
 
 components:
   securitySchemes:

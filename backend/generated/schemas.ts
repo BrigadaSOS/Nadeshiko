@@ -45,8 +45,6 @@ export const s_CreateApiKeyResponse = z.object({
   key: z.string(),
 });
 
-export const s_DatabaseSyncResponse = z.object({ message: z.string() });
-
 export const s_DeactivateApiKeyRequest = z.object({
   api_key_id: z.coerce.number(),
 });
@@ -89,8 +87,8 @@ export const s_LogoutResponse = z.object({
 
 export const s_MediaInfoData = z.object({
   id: z.coerce.number(),
-  id_anilist: z.coerce.number().nullable().optional(),
-  id_tmdb: z.coerce.number().nullable().optional(),
+  anilist_id: z.coerce.number().nullable().optional(),
+  tmdb_id: z.coerce.number().nullable().optional(),
   category: z.coerce.number().optional(),
   created_at: z.string().datetime({ offset: true }).optional(),
   updated_at: z.coerce.number().optional(),
@@ -204,14 +202,6 @@ export const s_Statistic = z.object({
   name_anime_jp: z.string().optional(),
   amount_sentences_found: z.coerce.number().optional(),
   season_with_episode_hits: z.record(z.record(z.coerce.number())).optional(),
-});
-
-export const s_SyncSpecificMediaRequest = z.object({
-  folder_name: z.string().min(1).max(255),
-  season: z.coerce.number().min(0).optional(),
-  episode: z.coerce.number().min(0).optional(),
-  force: PermissiveBoolean.optional().default(false),
-  type: z.enum(['anime', 'jdrama', 'audiobook']),
 });
 
 export const s_UserRole = z.object({
