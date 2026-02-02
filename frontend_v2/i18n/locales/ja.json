@@ -392,6 +392,8 @@
     "auth": {
       "registrationSuccess": "登録成功",
       "registrationError": "登録に失敗しました。もう一度お試しください"
+    },
+    "maintenance": {
+        "message": "現在、移行作業のため数日間メンテナンス中です。ご不便をおかけして申し訳ありません。"
     }
   }
-
