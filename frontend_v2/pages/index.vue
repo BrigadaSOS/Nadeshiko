@@ -1,5 +1,5 @@
 <script setup>
-import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js'
+import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh, mdiAlert } from '@mdi/js'
 
 useSeoMeta({
     title: 'Nadeshiko',
@@ -26,6 +26,10 @@ const {
 
 <template>
     <NuxtLayout>
+        <div class="bg-red-500 text-white text-center p-20 text-lg font-bold flex justify-center items-center">
+            <UiBaseIcon :path="mdiAlert" w="w-10" h="h-10" class="mr-2" />
+            <p>{{ $t('maintenance.message') }}</p>
+        </div>
         <div class="mx-auto">
             <div class="relative text-white">
                 <div class="py-2">
@@ -354,3 +358,6 @@ const {
         </div>
     </NuxtLayout>
 </template>
+
+
+

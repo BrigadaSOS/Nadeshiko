@@ -393,5 +393,8 @@
   "auth": {
     "registrationSuccess": "Registro exitoso",
     "registrationError": "Registro fallido. Intentelo nuevamente"
+  },
+  "maintenance": {
+    "message": "Nadeshiko se encuentra en mantenimiento por unos días mientras se migra. Disculpen las molestias."
   }
 }
