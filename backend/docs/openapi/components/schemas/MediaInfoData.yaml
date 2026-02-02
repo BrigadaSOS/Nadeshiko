@@ -48,12 +48,17 @@ properties:
     type: string
     description: Current airing status (FINISHED, RELEASING)
     example: "FINISHED"
-  release_date:
+  start_date:
+    type: string
+    format: date-time
+    description: Start date of the media
+    example: "2011-04-06T00:00:00Z"
+  end_date:
     type: string
     format: date-time
     nullable: true
-    description: Original release date of the media (null if unknown)
-    example: "2011-04-06T00:00:00Z"
+    description: End date of the media (null if unknown)
+    example: "2011-09-14T00:00:00Z"
   folder_media_name:
     type: string
     description: Folder name used for storing media files

@@ -48,14 +48,14 @@ export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
         return isAuthJWT(req, res, next);
       }
 
-      if (options.apiKey !== false && apiKey) {
+      if (options.apiKey !== false && (apiKey || hasBearerToken)) {
         return isAuthenticatedAPI(req, res, next);
       }
 
       // No valid authentication provided
       const missing: string[] = [];
       if (options.jwt && !hasBearerToken && !hasJwtCookie) missing.push('JWT Token');
-      if (options.apiKey && !apiKey) missing.push('API Key');
+      if (options.apiKey && !apiKey && !hasBearerToken) missing.push('API Key');
       throw new AuthCredentialsRequiredError(`Authentication required: ${missing.join(' or ')}`);
     }
 
@@ -112,7 +112,22 @@ function getJwtSecretKey(): string {
 }
 
 async function isAuthenticatedAPI(req: any, _res: Response, next: NextFunction): Promise<void> {
-  const apiKey = req.headers['x-api-key'];
+  // Extract API key from Authorization: Bearer <token> header (preferred) or X-API-Key header (fallback)
+  let apiKey: string | undefined;
+
+  // Try Authorization: Bearer <token> first
+  if (req.headers.authorization) {
+    const authHeader = req.headers.authorization as string;
+    if (authHeader.startsWith('Bearer ')) {
+      apiKey = authHeader.slice(7); // Remove 'Bearer ' prefix
+    }
+  }
+
+  // Fall back to X-API-Key header
+  if (!apiKey) {
+    apiKey = req.headers['x-api-key'] as string | undefined;
+  }
+
   req.apiKey = apiKey;
 
   if (!apiKey) {

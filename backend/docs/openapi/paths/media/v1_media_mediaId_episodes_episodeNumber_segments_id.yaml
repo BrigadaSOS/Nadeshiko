@@ -56,7 +56,7 @@ patch:
     Update an existing segment with partial data
 
   security:
-    - apiKeyHeader: [WRITE_MEDIA]
+    - apiKeyHeader: [UPDATE_MEDIA]
   parameters:
     - name: mediaId
       in: path

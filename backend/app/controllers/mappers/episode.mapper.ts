@@ -13,9 +13,6 @@ export const toEpisodeDTO = (episode: Episode): t_Episode => ({
   lengthSeconds: episode.lengthSeconds,
   thumbnailUrl: episode.thumbnailUrl,
   numSegments: episode.numSegments,
-  createdAt: episode.createdAt.toISOString(),
-  updatedAt: episode.updatedAt?.toISOString() || new Date().toISOString(),
-  deletedAt: episode.deletedAt?.toISOString(),
 });
 
 export const toEpisodeListDTO = (episodes: Episode[]): t_Episode[] => episodes.map(toEpisodeDTO);

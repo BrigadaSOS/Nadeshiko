@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import DiscordOauth2 from 'discord-oauth2';
-import { User, UserRole, UserAuth } from '@app/entities';
+import { User, UserRole } from '@app/entities';
 import { createToken, maxAgeJWT } from '@app/middleware/authentication';
 import { sendConfirmationEmail } from '@lib/utils/email';
 import { logger } from '@lib/utils/log';
@@ -90,23 +90,19 @@ export const register: Register = async ({ body }, respond) => {
 
   const isTesting = process.env.ENVIRONMENT === 'testing';
 
-  // Create user
-  const user = User.create({
+  // Create user with cascade
+  await User.save({
     username: body.username,
     email: body.email.toLowerCase(),
     password: encryptedPassword,
     isVerified: isTesting,
     isActive: true,
+    userRoles: [
+      {
+        roleId: 3, // Normal user
+      },
+    ],
   });
-
-  await user.save();
-
-  // Create user roles
-  const userRole = UserRole.create({
-    userId: user.id,
-    roleId: 3, // Normal user
-  });
-  await userRole.save();
 
   if (!isTesting) {
     await sendConfirmationEmail(body.username, body.email.toLowerCase(), randomTokenEmail);
@@ -139,37 +135,23 @@ export const loginGoogle: LoginGoogle = async ({ body }, respond, _req, res) => 
   }
 
   if (!user) {
-    // Create user
-    user = User.create({
+    // Create user with cascade
+    user = await User.save({
       username: userInfo.name,
       email: userInfo.email,
       isVerified: true,
       isActive: true,
-    });
-    await user.save();
-
-    // Create user role
-    const userRole = UserRole.create({
-      userId: user.id,
-      roleId: 3, // Normal user
-    });
-    await userRole.save();
-
-    // Create user auth
-    const userAuth = UserAuth.create({
-      userId: user.id,
-      provider: 'google',
-      providerUserId: userInfo.sub,
-    });
-    await userAuth.save();
-
-    // Reload user with relations
-    user = await User.findOne({
-      where: { id: user.id },
-      relations: {
-        userAuths: true,
-        userRoles: true,
-      },
+      userRoles: [
+        {
+          roleId: 3, // Normal user
+        },
+      ],
+      userAuths: [
+        {
+          provider: 'google',
+          providerUserId: userInfo.sub,
+        },
+      ],
     });
   }
 
@@ -259,37 +241,23 @@ export const loginDiscord: LoginDiscord = async ({ body }, respond, _req, res) =
   }
 
   if (!user) {
-    // Create user
-    user = User.create({
+    // Create user with cascade
+    user = await User.save({
       username: discordUser.username,
       email: discordUser.email ?? '',
       isVerified: true,
       isActive: true,
-    });
-    await user.save();
-
-    // Create user role
-    const userRole = UserRole.create({
-      userId: user.id,
-      roleId: 3, // Normal user
-    });
-    await userRole.save();
-
-    // Create user auth
-    const userAuth = UserAuth.create({
-      userId: user.id,
-      provider: 'discord',
-      providerUserId: discordUser.id,
-    });
-    await userAuth.save();
-
-    // Reload user with relations
-    user = await User.findOne({
-      where: { id: user.id },
-      relations: {
-        userAuths: true,
-        userRoles: true,
-      },
+      userRoles: [
+        {
+          roleId: 3, // Normal user
+        },
+      ],
+      userAuths: [
+        {
+          provider: 'discord',
+          providerUserId: discordUser.id,
+        },
+      ],
     });
   }
 

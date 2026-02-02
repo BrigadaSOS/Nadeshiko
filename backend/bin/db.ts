@@ -26,24 +26,7 @@ async function runSeed(): Promise<void> {
 async function drop(): Promise<void> {
   logger.info('Dropping all tables...');
 
-  // Drop all tables (cascade to handle foreign keys)
-  await AppDataSource.query('DROP TABLE IF EXISTS "ApiAuthPermission" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "ApiAuth" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "Segment" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "Media" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "UserToken" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "UserAuth" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "UserRole" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "User" CASCADE');
-  await AppDataSource.query('DROP TABLE IF EXISTS "Role" CASCADE');
-
-  // Drop enum types
-  await AppDataSource.query('DROP TYPE IF EXISTS "api_permission_enum" CASCADE');
-  await AppDataSource.query('DROP TYPE IF EXISTS "category_type" CASCADE');
-
-  // Drop migrations table
-  await AppDataSource.query('DROP TABLE IF EXISTS "migrations" CASCADE');
-
+  await AppDataSource.dropDatabase();
   logger.info('All tables dropped');
 }
 

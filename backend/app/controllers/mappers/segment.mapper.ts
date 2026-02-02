@@ -22,8 +22,6 @@ export const toSegmentDTO = (segment: Segment): t_Segment => ({
   actorEn: segment.actorEn,
   episode: segment.episode,
   mediaId: segment.mediaId,
-  createdAt: segment.createdAt.toISOString(),
-  updatedAt: segment.updatedAt?.toISOString(),
 });
 
 export const toSegmentListDTO = (segments: Segment[]): t_Segment[] => segments.map(toSegmentDTO);

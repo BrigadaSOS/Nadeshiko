@@ -13,7 +13,6 @@ required:
   - isNsfw
   - episode
   - mediaId
-  - createdAt
 properties:
   id:
     type: integer
@@ -106,14 +105,3 @@ properties:
     type: integer
     description: Media ID this segment belongs to
     example: 7674
-  createdAt:
-    type: string
-    format: date-time
-    description: When the segment was created
-    example: "2024-01-01T00:00:00Z"
-  updatedAt:
-    type: string
-    format: date-time
-    nullable: true
-    description: When the segment was last updated
-    example: "2024-01-01T00:00:00Z"

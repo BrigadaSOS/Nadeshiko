@@ -39,11 +39,16 @@ properties:
     type: string
     description: Full URL to the banner image
     example: "https://cdn.example.com/media/anime/bakuman/banner.webp"
-  releaseDate:
+  startDate:
     type: string
     format: date-time
-    description: Original release date of the media
+    description: Start date of the media (first airing/release)
     example: "2010-10-02T00:00:00Z"
+  endDate:
+    type: string
+    format: date-time
+    description: End date of the media (last airing/release)
+    example: "2011-04-02T00:00:00Z"
   category:
     type: string
     enum: [ANIME, AUDIOBOOK]
@@ -61,3 +66,25 @@ properties:
     type: string
     description: Hash salt for data integrity verification
     example: "ba0cbe173ed310528f16130273662a60"
+  studio:
+    type: string
+    description: Animation studio that produced the media
+    example: "J.C.STAFF"
+  seasonName:
+    type: string
+    description: Season when the media aired (WINTER, SPRING, SUMMER, FALL)
+    example: "FALL"
+  seasonYear:
+    type: integer
+    description: Year when the media aired
+    example: 2010
+  characters:
+    type: array
+    items:
+      $ref: "./CharacterInput.yaml"
+    description: List of characters appearing in the media with their voice actors
+  lists:
+    type: array
+    items:
+      $ref: "./ListInput.yaml"
+    description: Lists to add this media to (e.g., series, franchise)

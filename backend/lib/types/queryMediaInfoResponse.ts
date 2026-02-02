@@ -20,7 +20,8 @@ export interface MediaInfoData {
   japanese_name: string;
   airing_format: string;
   airing_status: string;
-  release_date: Date;
+  start_date: Date;
+  end_date?: Date;
   folder_media_name: string;
   genres: string[];
   cover: string;

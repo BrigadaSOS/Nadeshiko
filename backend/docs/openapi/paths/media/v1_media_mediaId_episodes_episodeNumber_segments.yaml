@@ -68,7 +68,7 @@ post:
     Create a new segment for a specific episode
 
   security:
-    - apiKeyHeader: [WRITE_MEDIA]
+    - apiKeyHeader: [UPDATE_MEDIA]
   parameters:
     - name: mediaId
       in: path

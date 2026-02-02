@@ -41,6 +41,9 @@ tags:
   - name: Media
     description: |
       Media CRUD endpoints for managing anime and j-drama entries.
+  - name: Lists
+    description: |
+      List endpoints for managing media collections and watch orders.
 paths:
   /v1/search/health:
     get:
@@ -57,20 +60,20 @@ paths:
         - apiKeyHeader:
             - READ_MEDIA
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SearchHealthCheckResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                $ref: '#/components/schemas/SearchHealthCheckResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/search/media/sentence:
     post:
       tags:
@@ -103,33 +106,33 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SearchRequest"
+              $ref: '#/components/schemas/SearchRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SearchResponse"
-        "400":
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
               examples:
                 ValidationFailed:
-                  $ref: "#/components/examples/ValidationFailed"
+                  $ref: '#/components/examples/ValidationFailed'
                 InvalidJson:
-                  $ref: "#/components/examples/InvalidJson"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                  $ref: '#/components/examples/InvalidJson'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/search/media/match/words:
     post:
       tags:
@@ -153,38 +156,38 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SearchMultipleRequest"
+              $ref: '#/components/schemas/SearchMultipleRequest'
             example:
               words:
                 - 彼女
                 - 私
               exact_match: false
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SearchMultipleResponse"
-        "400":
+                $ref: '#/components/schemas/SearchMultipleResponse'
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
               examples:
                 ValidationFailed:
-                  $ref: "#/components/examples/ValidationFailed"
+                  $ref: '#/components/examples/ValidationFailed'
                 InvalidJson:
-                  $ref: "#/components/examples/InvalidJson"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                  $ref: '#/components/examples/InvalidJson'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/search/media/context:
     post:
       tags:
@@ -202,42 +205,42 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/FetchSentenceContextRequest"
+              $ref: '#/components/schemas/FetchSentenceContextRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FetchSentenceContextResponse"
-        "400":
+                $ref: '#/components/schemas/FetchSentenceContextResponse'
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
               examples:
                 ValidationFailed:
-                  $ref: "#/components/examples/ValidationFailed"
+                  $ref: '#/components/examples/ValidationFailed'
                 InvalidJson:
-                  $ref: "#/components/examples/InvalidJson"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
+                  $ref: '#/components/examples/InvalidJson'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
           description: Not Found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
               examples:
                 NotFound:
-                  $ref: "#/components/examples/NotFound"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                  $ref: '#/components/examples/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/search/media/info:
     get:
       tags:
@@ -285,20 +288,20 @@ paths:
               - audiobook
             example: anime
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FetchMediaInfoResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                $ref: '#/components/schemas/FetchMediaInfoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media:
     get:
       tags:
@@ -336,22 +339,22 @@ paths:
               - JDRAMA
             example: ANIME
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MediaListResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                $ref: '#/components/schemas/MediaListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{id}:
     get:
       tags:
@@ -372,24 +375,24 @@ paths:
             type: integer
             example: 7674
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Media"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                $ref: '#/components/schemas/Media'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes:
     get:
       operationId: episodeIndex
@@ -428,20 +431,20 @@ paths:
           description: Episode number to start from (for pagination)
           example: 10
       responses:
-        "200":
-          $ref: "#/components/responses/EpisodeListResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/EpisodeListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes/{episodeNumber}:
     get:
       operationId: episodeShow
@@ -469,20 +472,20 @@ paths:
           description: Episode number
           example: 1
       responses:
-        "200":
-          $ref: "#/components/responses/EpisodeResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/EpisodeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
     get:
       operationId: segmentShow
@@ -517,27 +520,31 @@ paths:
           description: Segment ID
           example: 12345
       responses:
-        "200":
-          $ref: "#/components/responses/SegmentResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/UnauthorizedApiKey"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/SegmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/segments/{uuid}:
     get:
-      operationId: segmentShowByUuid
       tags:
         - Media
+      operationId: segmentShowByUuid
       summary: Get segment by UUID
-      description: Get a specific segment by its UUID
+      description: |
+        Get a specific segment by its UUID
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
       parameters:
         - name: uuid
           in: path
@@ -547,22 +554,198 @@ paths:
           description: Segment UUID
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       responses:
-        "200":
-          description: Single segment response
+        '200':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Segment"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Segment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/characters/{id}:
+    get:
+      tags:
+        - Media
+      operationId: characterShow
+      summary: Get character details
+      description: |
+        Returns a character with their seiyuu and all media appearances.
       security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      x-permission: READ_MEDIA
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: AniList character ID
+          schema:
+            type: integer
+            example: 14545
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CharacterWithMedia'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/seiyuu/{id}:
+    get:
+      tags:
+        - Media
+      operationId: seiyuuShow
+      summary: Get seiyuu details
+      description: |
+        Returns a voice actor with all characters they voiced and media appearances.
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: AniList staff ID
+          schema:
+            type: integer
+            example: 95991
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeiyuuWithRoles'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/lists:
+    get:
+      tags:
+        - Lists
+      operationId: listIndex
+      summary: List all lists
+      description: |
+        Returns all lists matching the query filters. Can filter by media ID to find lists containing a specific media. Public lists are visible to all users.
+      security:
+        - apiKeyHeader:
+            - READ_LISTS
+      parameters:
+        - name: visibility
+          in: query
+          description: Filter by visibility
+          schema:
+            type: string
+            enum:
+              - public
+              - private
+            example: public
+        - name: type
+          in: query
+          description: Filter by list type
+          schema:
+            type: string
+            enum:
+              - SERIES
+              - CUSTOM
+            example: SERIES
+        - name: userId
+          in: query
+          description: Filter by list owner user ID
+          schema:
+            type: integer
+            example: 1
+        - name: mediaId
+          in: query
+          description: Filter lists containing this media ID
+          schema:
+            type: integer
+            example: 12345
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/lists/{id}:
+    get:
+      tags:
+        - Lists
+      operationId: listShow
+      summary: Get list details
+      description: |
+        Returns a list with all media in order (sorted by position).
+      security:
+        - apiKeyHeader:
+            - READ_LISTS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListWithMedia'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     apiKeyHeader:
@@ -608,10 +791,10 @@ components:
           type: object
           description: Nested object mapping seasons to episodes with hit counts
           example:
-            "1":
-              "1": 5
-              "2": 8
-              "3": 3
+            '1':
+              '1': 5
+              '2': 8
+              '3': 3
           additionalProperties:
             type: object
             additionalProperties:
@@ -706,11 +889,11 @@ components:
         start_time:
           type: string
           description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment starts
-          example: "0:33:27.255000"
+          example: '0:33:27.255000'
         end_time:
           type: string
           description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment ends
-          example: "0:33:28.464000"
+          example: '0:33:28.464000'
         content_jp:
           type: string
           description: Original Japanese content of the segment
@@ -787,13 +970,13 @@ components:
         - media_info
       properties:
         basic_info:
-          $ref: "#/components/schemas/BasicInfo"
+          $ref: '#/components/schemas/BasicInfo'
           description: Basic anime/media information
         segment_info:
-          $ref: "#/components/schemas/SegmentInfo"
+          $ref: '#/components/schemas/SegmentInfo'
           description: Detailed segment information including translations
         media_info:
-          $ref: "#/components/schemas/MediaInfoPath"
+          $ref: '#/components/schemas/MediaInfoPath'
           description: URLs to media resources (images, audio, video)
     SearchHealthCheckResponse:
       type: object
@@ -801,15 +984,15 @@ components:
         statistics:
           type: array
           items:
-            $ref: "#/components/schemas/Statistic"
+            $ref: '#/components/schemas/Statistic'
         categoryStatistics:
           type: array
           items:
-            $ref: "#/components/schemas/CategoryStatistic"
+            $ref: '#/components/schemas/CategoryStatistic'
         sentences:
           type: array
           items:
-            $ref: "#/components/schemas/Sentence"
+            $ref: '#/components/schemas/Sentence'
         cursor:
           type: array
           items:
@@ -960,7 +1143,7 @@ components:
             properties:
               media_id:
                 type: string
-                example: "123"
+                example: '123'
               seasons:
                 type: array
                 items:
@@ -985,15 +1168,15 @@ components:
         statistics:
           type: array
           items:
-            $ref: "#/components/schemas/Statistic"
+            $ref: '#/components/schemas/Statistic'
         categoryStatistics:
           type: array
           items:
-            $ref: "#/components/schemas/CategoryStatistic"
+            $ref: '#/components/schemas/CategoryStatistic'
         sentences:
           type: array
           items:
-            $ref: "#/components/schemas/Sentence"
+            $ref: '#/components/schemas/Sentence'
         cursor:
           type: array
           nullable: true
@@ -1062,14 +1245,14 @@ components:
           type: array
           description: List of media containing this word
           items:
-            $ref: "#/components/schemas/WordMatchMedia"
+            $ref: '#/components/schemas/WordMatchMedia'
     SearchMultipleResponse:
       type: object
       properties:
         results:
           type: array
           items:
-            $ref: "#/components/schemas/WordMatch"
+            $ref: '#/components/schemas/WordMatch'
     FetchSentenceContextRequest:
       type: object
       required:
@@ -1111,7 +1294,7 @@ components:
         sentences:
           type: array
           items:
-            $ref: "#/components/schemas/Sentence"
+            $ref: '#/components/schemas/Sentence'
     MediaInfoStats:
       type: object
       description: Statistics about media and segments in the database
@@ -1158,7 +1341,7 @@ components:
           type: string
           format: date-time
           description: Timestamp when the media entry was created in the database
-          example: "2024-01-15T10:30:00Z"
+          example: '2024-01-15T10:30:00Z'
         updated_at:
           type: integer
           description: Timestamp when the media entry was last updated
@@ -1183,12 +1366,17 @@ components:
           type: string
           description: Current airing status (FINISHED, RELEASING)
           example: FINISHED
-        release_date:
+        start_date:
+          type: string
+          format: date-time
+          description: Start date of the media
+          example: '2011-04-06T00:00:00Z'
+        end_date:
           type: string
           format: date-time
           nullable: true
-          description: Original release date of the media (null if unknown)
-          example: "2011-04-06T00:00:00Z"
+          description: End date of the media (null if unknown)
+          example: '2011-09-14T00:00:00Z'
         folder_media_name:
           type: string
           description: Folder name used for storing media files
@@ -1234,17 +1422,125 @@ components:
       type: object
       properties:
         stats:
-          $ref: "#/components/schemas/MediaInfoStats"
+          $ref: '#/components/schemas/MediaInfoStats'
         results:
           type: array
           items:
-            $ref: "#/components/schemas/MediaInfoData"
+            $ref: '#/components/schemas/MediaInfoData'
         cursor:
           type: integer
           description: Next cursor for pagination
         hasMoreResults:
           type: boolean
           description: Whether more results are available
+    Seiyuu:
+      type: object
+      description: Japanese voice actor (seiyuu)
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+      properties:
+        id:
+          type: integer
+          description: AniList staff ID
+          example: 95991
+        nameJapanese:
+          type: string
+          description: Japanese name of the voice actor
+          example: 阿部敦
+        nameEnglish:
+          type: string
+          description: English name of the voice actor
+          example: Atsushi Abe
+        imageUrl:
+          type: string
+          format: uri
+          description: Profile image URL
+          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
+    Character:
+      type: object
+      description: Anime character
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+        - seiyuu
+      properties:
+        id:
+          type: integer
+          description: AniList character ID
+          example: 14545
+        nameJapanese:
+          type: string
+          description: Japanese name of the character
+          example: 真城最高
+        nameEnglish:
+          type: string
+          description: English name of the character
+          example: Moritaka Mashiro
+        imageUrl:
+          type: string
+          format: uri
+          description: Character image URL
+          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
+        seiyuu:
+          $ref: '#/components/schemas/Seiyuu'
+    MediaCharacter:
+      type: object
+      description: Character appearing in a media with their role
+      required:
+        - character
+        - role
+      properties:
+        character:
+          $ref: '#/components/schemas/Character'
+        role:
+          type: string
+          enum:
+            - MAIN
+            - SUPPORTING
+            - BACKGROUND
+          description: Character's role in the media
+          example: MAIN
+    List:
+      type: object
+      description: Media collection list
+      required:
+        - id
+        - name
+        - type
+        - userId
+        - visibility
+      properties:
+        id:
+          type: integer
+          description: List ID
+          example: 123
+        name:
+          type: string
+          description: Name of the list
+          example: Bakuman Series
+        type:
+          type: string
+          enum:
+            - SERIES
+            - CUSTOM
+          description: Type of list
+          example: SERIES
+        userId:
+          type: integer
+          description: User ID who owns the list (1 = admin)
+          example: 1
+        visibility:
+          type: string
+          enum:
+            - PUBLIC
+            - PRIVATE
+          description: Visibility of the list
+          example: PUBLIC
     Media:
       type: object
       description: Media entry with full metadata
@@ -1259,9 +1555,12 @@ components:
         - genres
         - coverUrl
         - bannerUrl
-        - releaseDate
+        - startDate
         - category
         - version
+        - studio
+        - seasonName
+        - seasonYear
       properties:
         id:
           type: integer
@@ -1311,11 +1610,17 @@ components:
           format: uri
           description: Full URL to the banner image
           example: https://cdn.example.com/media/anime/bakuman/banner.webp
-        releaseDate:
+        startDate:
           type: string
           format: date-time
-          description: Original release date of the media
-          example: "2010-10-02T00:00:00Z"
+          description: Start date of the media (first airing/release)
+          example: '2010-10-02T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date of the media (last airing/release)
+          example: '2011-04-02T00:00:00Z'
         category:
           type: string
           enum:
@@ -1336,7 +1641,29 @@ components:
         version:
           type: string
           description: Version identifier for the media entry
-          example: "6"
+          example: '6'
+        studio:
+          type: string
+          description: Animation studio that produced the media
+          example: J.C.STAFF
+        seasonName:
+          type: string
+          description: Season when the media aired (WINTER, SPRING, SUMMER, FALL)
+          example: FALL
+        seasonYear:
+          type: integer
+          description: Year when the media aired
+          example: 2010
+        characters:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaCharacter'
+          description: Characters appearing in the media with their voice actors
+        lists:
+          type: array
+          items:
+            $ref: '#/components/schemas/List'
+          description: Lists that contain this media
     MediaListResponse:
       type: object
       required:
@@ -1346,7 +1673,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Media"
+            $ref: '#/components/schemas/Media'
         cursor:
           type: integer
           description: Next cursor for pagination (undefined if no more results)
@@ -1359,8 +1686,6 @@ components:
         - mediaId
         - episodeNumber
         - numSegments
-        - createdAt
-        - updatedAt
       properties:
         mediaId:
           type: integer
@@ -1400,7 +1725,7 @@ components:
           format: date-time
           nullable: true
           description: When the episode originally aired
-          example: "2024-01-15T09:00:00Z"
+          example: '2024-01-15T09:00:00Z'
         lengthSeconds:
           type: integer
           nullable: true
@@ -1415,33 +1740,16 @@ components:
           type: integer
           description: Number of segments in this episode
           example: 450
-        createdAt:
-          type: string
-          format: date-time
-          description: When the episode record was created
-          example: "2024-01-01T00:00:00Z"
-        updatedAt:
-          type: string
-          format: date-time
-          description: When the episode record was last updated
-          example: "2024-01-01T00:00:00Z"
-        deletedAt:
-          type: string
-          format: date-time
-          nullable: true
-          description: When the episode was deleted
-          example: null
     EpisodeListResponse:
       type: object
       required:
         - data
-        - cursor
         - hasMoreResults
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Episode"
+            $ref: '#/components/schemas/Episode'
           description: Array of episode objects
         cursor:
           type: integer
@@ -1467,7 +1775,6 @@ components:
         - isNsfw
         - episode
         - mediaId
-        - createdAt
       properties:
         id:
           type: integer
@@ -1495,11 +1802,11 @@ components:
         startTime:
           type: string
           description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
-          example: "0:33:27.255000"
+          example: '0:33:27.255000'
         endTime:
           type: string
           description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
-          example: "0:33:28.464000"
+          example: '0:33:28.464000'
         content:
           type: string
           maxLength: 500
@@ -1566,17 +1873,146 @@ components:
           type: integer
           description: Media ID this segment belongs to
           example: 7674
-        createdAt:
+    CharacterWithMedia:
+      type: object
+      description: Character with all media appearances
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+        - seiyuu
+        - mediaAppearances
+      properties:
+        id:
+          type: integer
+          description: AniList character ID
+          example: 14545
+        nameJapanese:
           type: string
-          format: date-time
-          description: When the segment was created
-          example: "2024-01-01T00:00:00Z"
-        updatedAt:
+          description: Japanese name of the character
+          example: 真城最高
+        nameEnglish:
           type: string
-          format: date-time
-          nullable: true
-          description: When the segment was last updated
-          example: "2024-01-01T00:00:00Z"
+          description: English name of the character
+          example: Moritaka Mashiro
+        imageUrl:
+          type: string
+          format: uri
+          description: Character image URL
+          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
+        seiyuu:
+          $ref: '#/components/schemas/Seiyuu'
+        mediaAppearances:
+          type: array
+          description: All media this character appears in
+          items:
+            type: object
+            properties:
+              media:
+                $ref: '#/components/schemas/Media'
+              role:
+                type: string
+                enum:
+                  - MAIN
+                  - SUPPORTING
+                  - BACKGROUND
+                description: Character role in this media
+                example: MAIN
+    SeiyuuWithRoles:
+      type: object
+      description: Seiyuu with all voice acting roles
+      required:
+        - id
+        - nameJapanese
+        - nameEnglish
+        - imageUrl
+        - roles
+      properties:
+        id:
+          type: integer
+          description: AniList staff ID
+          example: 95991
+        nameJapanese:
+          type: string
+          description: Japanese name of the voice actor
+          example: 阿部敦
+        nameEnglish:
+          type: string
+          description: English name of the voice actor
+          example: Atsushi Abe
+        imageUrl:
+          type: string
+          format: uri
+          description: Profile image URL
+          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
+        roles:
+          type: array
+          description: All characters voiced by this seiyuu with their media appearances
+          items:
+            type: object
+            properties:
+              character:
+                $ref: '#/components/schemas/Character'
+              media:
+                $ref: '#/components/schemas/Media'
+              role:
+                type: string
+                enum:
+                  - MAIN
+                  - SUPPORTING
+                  - BACKGROUND
+                description: Character role in this media
+                example: MAIN
+    ListWithMedia:
+      type: object
+      description: List with all media in order
+      required:
+        - id
+        - name
+        - type
+        - userId
+        - visibility
+        - media
+      properties:
+        id:
+          type: integer
+          description: List ID
+          example: 123
+        name:
+          type: string
+          description: Name of the list
+          example: Bakuman Series
+        type:
+          type: string
+          enum:
+            - SERIES
+            - CUSTOM
+          description: Type of list
+          example: SERIES
+        userId:
+          type: integer
+          description: User ID who owns the list (1 = admin)
+          example: 1
+        visibility:
+          type: string
+          enum:
+            - PUBLIC
+            - PRIVATE
+          description: Visibility of the list
+          example: PUBLIC
+        media:
+          type: array
+          description: All media in the list, sorted by position
+          items:
+            type: object
+            properties:
+              position:
+                type: integer
+                description: Position in the list (1-indexed)
+                example: 1
+              media:
+                $ref: '#/components/schemas/Media'
   examples:
     AuthCredentialsRequired:
       summary: Authentication Credentials Required
@@ -1610,7 +2046,7 @@ components:
       value:
         code: INSUFFICIENT_PERMISSIONS
         title: Insufficient Permissions
-        detail: "Your account lacks the required permissions to perform this action. Required permissions: {permissions}."
+        detail: 'Your account lacks the required permissions to perform this action. Required permissions: {permissions}.'
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
         status: 403
@@ -1678,78 +2114,78 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
             AuthCredentialsRequired:
-              $ref: "#/components/examples/AuthCredentialsRequired"
+              $ref: '#/components/examples/AuthCredentialsRequired'
             AuthCredentialsInvalid:
-              $ref: "#/components/examples/AuthCredentialsInvalid"
+              $ref: '#/components/examples/AuthCredentialsInvalid'
             AuthCredentialsExpired:
-              $ref: "#/components/examples/AuthCredentialsExpired"
+              $ref: '#/components/examples/AuthCredentialsExpired'
     Forbidden:
       description: Forbidden
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
             InsufficientPermissions:
-              $ref: "#/components/examples/InsufficientPermissions"
+              $ref: '#/components/examples/InsufficientPermissions'
     TooManyRequests:
       description: Too Many Requests
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
             RateLimitExceeded:
-              $ref: "#/components/examples/RateLimitExceeded"
+              $ref: '#/components/examples/RateLimitExceeded'
             QuotaExceeded:
-              $ref: "#/components/examples/QuotaExceeded"
+              $ref: '#/components/examples/QuotaExceeded'
     InternalServerError:
       description: Internal Server Error
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
             InternalServerError:
-              $ref: "#/components/examples/InternalServerError"
+              $ref: '#/components/examples/InternalServerError'
     BadRequest:
       description: Bad Request
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
             ValidationFailed:
-              $ref: "#/components/examples/ValidationFailed"
+              $ref: '#/components/examples/ValidationFailed'
             InvalidJson:
-              $ref: "#/components/examples/InvalidJson"
+              $ref: '#/components/examples/InvalidJson'
     NotFound:
       description: Not Found
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
             NotFound:
-              $ref: "#/components/examples/NotFound"
+              $ref: '#/components/examples/NotFound'
     EpisodeListResponse:
       description: Paginated list of episodes
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/EpisodeListResponse"
+            $ref: '#/components/schemas/EpisodeListResponse'
     EpisodeResponse:
       description: Single episode response
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Episode"
+            $ref: '#/components/schemas/Episode'
     SegmentResponse:
       description: Single segment response
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Segment"
+            $ref: '#/components/schemas/Segment'

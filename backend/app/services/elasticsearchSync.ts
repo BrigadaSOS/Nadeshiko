@@ -40,11 +40,15 @@ function buildSegmentDocument(segment: Segment, media: Media): SegmentDocument {
       genres: media.genres,
       cover_url: media.coverUrl,
       banner_url: media.bannerUrl,
-      release_date: media.releaseDate,
+      start_date: media.startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+      end_date: media.endDate ? media.endDate.toISOString().split('T')[0] : undefined,
       version: media.version,
       category: media.category,
       num_segments: media.numSegments,
       num_episodes: media.episodes?.length ?? 0,
+      studio: media.studio,
+      season_name: media.seasonName,
+      season_year: media.seasonYear,
     },
   };
 }

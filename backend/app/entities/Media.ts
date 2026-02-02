@@ -1,6 +1,7 @@
 import { Entity, PrimaryColumn, Column, OneToMany, DeleteDateColumn, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
+import { MediaCharacter } from './MediaCharacter';
 
 export enum CategoryType {
   ANIME = 'ANIME',
@@ -42,8 +43,21 @@ export class Media extends BaseEntity {
   @Column({ name: 'banner_url', type: 'varchar' })
   bannerUrl!: string;
 
-  @Column({ name: 'release_date', type: 'varchar', nullable: false })
-  releaseDate!: string;
+  @Column({ name: 'start_date', type: 'date' })
+  startDate!: Date;
+
+  @Column({ name: 'end_date', type: 'date', nullable: true })
+  endDate?: Date;
+
+  @Column({ type: 'varchar' })
+  studio!: string;
+
+  @Column({ name: 'season_name', type: 'varchar' })
+  seasonName!: string;
+
+  @Index()
+  @Column({ name: 'season_year', type: 'int' })
+  seasonYear!: number;
 
   @Column({
     type: 'enum',
@@ -67,6 +81,12 @@ export class Media extends BaseEntity {
   @OneToMany('Segment', 'media')
   segments!: any[];
 
-  @OneToMany('Episode', 'media')
+  @OneToMany('Episode', 'media', { cascade: true })
   episodes!: Episode[];
+
+  @OneToMany('MediaCharacter', 'media', { cascade: true })
+  characters!: MediaCharacter[];
+
+  @OneToMany('ListItem', 'media')
+  listItems!: any[];
 }

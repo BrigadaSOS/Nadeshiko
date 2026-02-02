@@ -11,6 +11,11 @@ import {
   Episode,
   ApiAuth,
   ApiAuthPermission,
+  Character,
+  Seiyuu,
+  MediaCharacter,
+  List,
+  ListItem,
 } from '@app/entities';
 import { logger } from '@lib/utils/log';
 
@@ -21,7 +26,23 @@ export const AppDataSource = new DataSource({
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DB,
-  entities: [User, Role, UserRole, UserAuth, UserToken, Media, Segment, Episode, ApiAuth, ApiAuthPermission],
+  entities: [
+    User,
+    Role,
+    UserRole,
+    UserAuth,
+    UserToken,
+    Media,
+    Segment,
+    Episode,
+    ApiAuth,
+    ApiAuthPermission,
+    Character,
+    Seiyuu,
+    MediaCharacter,
+    List,
+    ListItem,
+  ],
   migrations: ['./db/migrations/**/*.ts'],
   synchronize: false, // Use migrations instead!
   logging: false,

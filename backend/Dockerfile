@@ -20,7 +20,4 @@ COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY package.json bun.lock ./
 RUN bun install --production --frozen-lockfile
 
-ENV NEW_RELIC_NO_CONFIG_FILE=true
-ENV NEW_RELIC_LOG=stdout
-
 CMD ["bun", "run", "start"]

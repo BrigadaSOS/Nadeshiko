@@ -37,10 +37,10 @@ export class User extends BaseEntity {
   @OneToOne('ApiAuth', 'user')
   apiAuth?: any;
 
-  @OneToMany(() => UserRole, (userRole) => userRole.user)
+  @OneToMany(() => UserRole, (userRole) => userRole.user, { cascade: true })
   userRoles!: UserRole[];
 
-  @OneToMany(() => UserAuth, (userAuth) => userAuth.user)
+  @OneToMany(() => UserAuth, (userAuth) => userAuth.user, { cascade: true })
   userAuths!: UserAuth[];
 
   @OneToMany(() => UserToken, (token) => token.user)

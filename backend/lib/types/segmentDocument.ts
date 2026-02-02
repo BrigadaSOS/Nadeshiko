@@ -11,11 +11,15 @@ export interface MediaDocument {
   genres?: string[];
   cover_url?: string;
   banner_url?: string;
-  release_date?: string;
+  start_date: string;
+  end_date?: string;
   version: string;
   category: string;
   num_segments: number;
   num_episodes: number;
+  studio: string;
+  season_name: string;
+  season_year: number;
 }
 
 export interface SegmentDocument {

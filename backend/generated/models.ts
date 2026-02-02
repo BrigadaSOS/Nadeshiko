@@ -42,6 +42,38 @@ export type t_CategoryStatistic = {
   count?: number;
 };
 
+export type t_Character = {
+  id: number;
+  imageUrl: string;
+  nameEnglish: string;
+  nameJapanese: string;
+  seiyuu: t_Seiyuu;
+};
+
+export type t_CharacterInput = {
+  characterId: number;
+  characterImageUrl: string;
+  characterNameEnglish: string;
+  characterNameJapanese: string;
+  characterRole: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
+  seiyuuId: number;
+  seiyuuImageUrl: string;
+  seiyuuNameEnglish: string;
+  seiyuuNameJapanese: string;
+};
+
+export type t_CharacterWithMedia = {
+  id: number;
+  imageUrl: string;
+  mediaAppearances: {
+    media?: t_Media;
+    role?: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
+  }[];
+  nameEnglish: string;
+  nameJapanese: string;
+  seiyuu: t_Seiyuu;
+};
+
 export type t_CreateApiKeyResponse = {
   key: string;
   message: string;
@@ -58,8 +90,6 @@ export type t_DiscordAuthUrlResponse = {
 export type t_Episode = {
   airedAt?: string | null;
   anilistEpisodeId?: number | null;
-  createdAt: string;
-  deletedAt?: string | null;
   description?: string | null;
   episodeNumber: number;
   lengthSeconds?: number | null;
@@ -69,7 +99,6 @@ export type t_Episode = {
   titleEnglish?: string | null;
   titleJapanese?: string | null;
   titleRomaji?: string | null;
-  updatedAt: string;
 };
 
 export type t_EpisodeListResponse = {
@@ -106,6 +135,34 @@ export type t_GetApiKeysResponse = {
   quota: t_QuotaInfo;
 };
 
+export type t_List = {
+  id: number;
+  name: string;
+  type: 'SERIES' | 'CUSTOM';
+  userId: number;
+  visibility: 'PUBLIC' | 'PRIVATE';
+};
+
+export type t_ListInput = {
+  listId?: number | null;
+  listName?: string | null;
+  listType?: 'SERIES' | 'CUSTOM' | null;
+  listVisibility?: 'PUBLIC' | 'PRIVATE' | null;
+  position: number;
+};
+
+export type t_ListWithMedia = {
+  id: number;
+  media: {
+    media?: t_Media;
+    position?: number;
+  }[];
+  name: string;
+  type: 'SERIES' | 'CUSTOM';
+  userId: number;
+  visibility: 'PUBLIC' | 'PRIVATE';
+};
+
 export type t_LoginResponse = {
   message: string;
   token: string;
@@ -123,16 +180,27 @@ export type t_Media = {
   anilistId: number;
   bannerUrl: string;
   category: 'ANIME' | 'BOOK' | 'JDRAMA' | 'AUDIOBOOK';
+  characters?: t_MediaCharacter[];
   coverUrl: string;
+  endDate?: string | null;
   englishName: string;
   genres: string[];
   id: number;
   japaneseName: string;
+  lists?: t_List[];
   numEpisodes?: number;
   numSegments?: number;
-  releaseDate: string;
   romajiName: string;
+  seasonName: string;
+  seasonYear: number;
+  startDate: string;
+  studio: string;
   version: string;
+};
+
+export type t_MediaCharacter = {
+  character: t_Character;
+  role: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
 };
 
 export type t_MediaInfoData = {
@@ -143,6 +211,7 @@ export type t_MediaInfoData = {
   category?: number;
   cover?: string;
   created_at?: string;
+  end_date?: string | null;
   english_name?: string;
   folder_media_name?: string;
   genres?: string[];
@@ -151,8 +220,8 @@ export type t_MediaInfoData = {
   num_episodes?: number;
   num_seasons?: number;
   num_segments?: number;
-  release_date?: string | null;
   romaji_name?: string;
+  start_date?: string;
   tmdb_id?: number | null;
   updated_at?: number;
   version?: string;
@@ -216,7 +285,6 @@ export type t_Segment = {
   contentLength: number;
   contentSpanish?: string | null;
   contentSpanishMt: boolean;
-  createdAt: string;
   endTime: string;
   episode: number;
   id: number;
@@ -226,7 +294,6 @@ export type t_Segment = {
   position: number;
   startTime: string;
   status: 0 | 1 | 2 | 3 | 100 | 101;
-  updatedAt?: string | null;
   uuid: string;
 };
 
@@ -254,6 +321,25 @@ export type t_SegmentListResponse = {
   cursor?: number;
   data: t_Segment[];
   hasMoreResults: boolean;
+};
+
+export type t_Seiyuu = {
+  id: number;
+  imageUrl: string;
+  nameEnglish: string;
+  nameJapanese: string;
+};
+
+export type t_SeiyuuWithRoles = {
+  id: number;
+  imageUrl: string;
+  nameEnglish: string;
+  nameJapanese: string;
+  roles: {
+    character?: t_Character;
+    media?: t_Media;
+    role?: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
+  }[];
 };
 
 export type t_Sentence = {
@@ -305,6 +391,10 @@ export type t_WordMatchMedia = {
   matches?: number;
   media_id?: number;
   romaji_name?: string;
+};
+
+export type t_CharacterShowParamSchema = {
+  id: number;
 };
 
 export type t_CreateApiKeyRequestBodySchema = {
@@ -386,6 +476,60 @@ export type t_GetDiscordAuthUrlRequestHeaderSchema = {
   referer?: string;
 };
 
+export type t_ListAddItemParamSchema = {
+  id: number;
+};
+
+export type t_ListAddItemRequestBodySchema = {
+  mediaId: number;
+  position: number;
+};
+
+export type t_ListCreateRequestBodySchema = {
+  name: string;
+  type?: 'SERIES' | 'CUSTOM';
+  userId?: number;
+  visibility?: 'PUBLIC' | 'PRIVATE';
+};
+
+export type t_ListDestroyParamSchema = {
+  id: number;
+};
+
+export type t_ListIndexQuerySchema = {
+  mediaId?: number;
+  type?: 'SERIES' | 'CUSTOM';
+  userId?: number;
+  visibility?: 'public' | 'private';
+};
+
+export type t_ListRemoveItemParamSchema = {
+  id: number;
+  mediaId: number;
+};
+
+export type t_ListShowParamSchema = {
+  id: number;
+};
+
+export type t_ListUpdateParamSchema = {
+  id: number;
+};
+
+export type t_ListUpdateRequestBodySchema = {
+  name?: string;
+  visibility?: 'PUBLIC' | 'PRIVATE';
+};
+
+export type t_ListUpdateItemParamSchema = {
+  id: number;
+  mediaId: number;
+};
+
+export type t_ListUpdateItemRequestBodySchema = {
+  position: number;
+};
+
 export type t_LoginRequestBodySchema = {
   email: string;
   password: string;
@@ -415,15 +559,21 @@ export type t_MediaCreateRequestBodySchema = {
   airingFormat: string;
   airingStatus: string;
   anilistId: number;
-  bannerUrl?: string;
+  bannerUrl: string;
   category: 'ANIME' | 'BOOK' | 'JDRAMA' | 'AUDIOBOOK';
-  coverUrl?: string;
+  characters?: t_CharacterInput[];
+  coverUrl: string;
+  endDate?: string;
   englishName: string;
   genres: string[];
-  hashSalt?: string;
+  hashSalt: string;
   japaneseName: string;
-  releaseDate?: string;
+  lists?: t_ListInput[];
   romajiName: string;
+  seasonName: string;
+  seasonYear: number;
+  startDate: string;
+  studio: string;
   version: string;
 };
 
@@ -451,14 +601,20 @@ export type t_MediaUpdateRequestBodySchema = {
   anilistId?: number;
   bannerUrl?: string;
   category?: 'ANIME' | 'AUDIOBOOK';
+  characters?: t_CharacterInput[];
   coverUrl?: string;
+  endDate?: string;
   englishName?: string;
   genres?: string[];
   hashSalt?: string;
   japaneseName?: string;
+  lists?: t_ListInput[];
   numSegments?: number;
-  releaseDate?: string;
   romajiName?: string;
+  seasonName?: string;
+  seasonYear?: number;
+  startDate?: string;
+  studio?: string;
   version?: string;
 };
 
@@ -575,4 +731,8 @@ export type t_SegmentUpdateRequestBodySchema = {
   position?: number;
   startTime?: string;
   status?: 0 | 1 | 2 | 3 | 100 | 101;
+};
+
+export type t_SeiyuuShowParamSchema = {
+  id: number;
 };

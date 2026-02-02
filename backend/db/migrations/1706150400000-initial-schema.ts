@@ -11,9 +11,10 @@ export class InitialSchema1706150400000 implements MigrationInterface {
         'READ_MEDIA',
         'REMOVE_MEDIA',
         'UPDATE_MEDIA',
-        'WRITE_MEDIA',
-        'RESYNC_DATABASE',
-        'CREATE_USER'
+        'READ_LISTS',
+        'CREATE_LISTS',
+        'UPDATE_LISTS',
+        'DELETE_LISTS'
       );
     `);
 
@@ -23,6 +24,28 @@ export class InitialSchema1706150400000 implements MigrationInterface {
         'BOOK',
         'JDRAMA',
         'AUDIOBOOK'
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE TYPE "character_role" AS ENUM (
+        'MAIN',
+        'SUPPORTING',
+        'BACKGROUND'
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE TYPE "list_type" AS ENUM (
+        'SERIES',
+        'CUSTOM'
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE TYPE "list_visibility" AS ENUM (
+        'PUBLIC',
+        'PRIVATE'
       );
     `);
 
@@ -92,15 +115,102 @@ export class InitialSchema1706150400000 implements MigrationInterface {
         "genres" text[] NOT NULL,
         "cover_url" varchar NOT NULL,
         "banner_url" varchar NOT NULL,
-        "release_date" varchar NOT NULL,
+        "start_date" date NOT NULL,
+        "end_date" date,
         "category" category_type DEFAULT 'ANIME' NOT NULL,
         "num_segments" integer DEFAULT 0 NOT NULL,
         "version" varchar NOT NULL,
         "hash_salt" varchar,
+        "studio" varchar NOT NULL DEFAULT 'UNKNOWN',
+        "season_name" varchar NOT NULL DEFAULT 'UNKNOWN',
+        "season_year" integer NOT NULL DEFAULT 0,
         "deleted_at" timestamp,
         "created_at" timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
         "updated_at" timestamp
       );
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "Seiyuu" (
+        "id" integer PRIMARY KEY,
+        "name_japanese" varchar NOT NULL,
+        "name_english" varchar NOT NULL,
+        "image_url" varchar NOT NULL,
+        "created_at" timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updated_at" timestamp
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "Character" (
+        "id" integer PRIMARY KEY,
+        "name_japanese" varchar NOT NULL,
+        "name_english" varchar NOT NULL,
+        "image_url" varchar NOT NULL,
+        "seiyuu_id" integer NOT NULL,
+        "created_at" timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updated_at" timestamp,
+        CONSTRAINT "Character_seiyuu_fkey" FOREIGN KEY ("seiyuu_id") REFERENCES "Seiyuu"("id")
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX "IDX_Character_seiyuu_id" ON "Character" ("seiyuu_id");
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "MediaCharacter" (
+        "id" SERIAL PRIMARY KEY,
+        "media_id" integer NOT NULL,
+        "character_id" integer NOT NULL,
+        "role" character_role NOT NULL,
+        "created_at" timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updated_at" timestamp,
+        CONSTRAINT "MediaCharacter_media_fkey" FOREIGN KEY ("media_id") REFERENCES "Media"("id") ON DELETE CASCADE,
+        CONSTRAINT "MediaCharacter_character_fkey" FOREIGN KEY ("character_id") REFERENCES "Character"("id")
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE UNIQUE INDEX "IDX_MediaCharacter_media_character" ON "MediaCharacter" ("media_id", "character_id");
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "List" (
+        "id" SERIAL PRIMARY KEY,
+        "name" varchar NOT NULL,
+        "type" list_type NOT NULL,
+        "user_id" integer NOT NULL,
+        "visibility" list_visibility DEFAULT 'PRIVATE' NOT NULL,
+        "created_at" timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updated_at" timestamp,
+        CONSTRAINT "List_user_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id")
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX "IDX_List_user_id" ON "List" ("user_id");
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "ListItem" (
+        "id" SERIAL PRIMARY KEY,
+        "list_id" integer NOT NULL,
+        "media_id" integer NOT NULL,
+        "position" integer NOT NULL,
+        "created_at" timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updated_at" timestamp,
+        CONSTRAINT "ListItem_list_fkey" FOREIGN KEY ("list_id") REFERENCES "List"("id") ON DELETE CASCADE,
+        CONSTRAINT "ListItem_media_fkey" FOREIGN KEY ("media_id") REFERENCES "Media"("id")
+      );
+    `);
+
+    await queryRunner.query(`
+      CREATE UNIQUE INDEX "IDX_ListItem_list_media" ON "ListItem" ("list_id", "media_id");
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX "IDX_ListItem_media_id" ON "ListItem" ("media_id");
     `);
 
     await queryRunner.query(`
@@ -162,6 +272,10 @@ export class InitialSchema1706150400000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
+      CREATE INDEX "IDX_Segment_media_episode" ON "Segment" ("media_id", "episode");
+    `);
+
+    await queryRunner.query(`
       CREATE TABLE "ApiAuth" (
         "id" SERIAL PRIMARY KEY,
         "name" varchar NOT NULL,
@@ -209,9 +323,26 @@ export class InitialSchema1706150400000 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "ApiAuth";`);
 
     // Media domain tables
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_Segment_media_episode";`);
     await queryRunner.query(`DROP TABLE "Segment";`);
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_Episode_anilist_episode_id";`);
     await queryRunner.query(`DROP TABLE "Episode";`);
+
+    // List tables
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_ListItem_media_id";`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_ListItem_list_media";`);
+    await queryRunner.query(`DROP TABLE "ListItem";`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_List_user_id";`);
+    await queryRunner.query(`DROP TABLE "List";`);
+
+    // Character tables
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_MediaCharacter_media_character";`);
+    await queryRunner.query(`DROP TABLE "MediaCharacter";`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_Character_seiyuu_id";`);
+    await queryRunner.query(`DROP TABLE "Character";`);
+    await queryRunner.query(`DROP TABLE "Seiyuu";`);
+
+    // Media table
     await queryRunner.query(`DROP TABLE "Media";`);
 
     // User domain tables
@@ -223,6 +354,9 @@ export class InitialSchema1706150400000 implements MigrationInterface {
 
     // Drop enum types
     await queryRunner.query(`DROP TYPE "api_permission_enum";`);
+    await queryRunner.query(`DROP TYPE "list_visibility";`);
+    await queryRunner.query(`DROP TYPE "list_type";`);
+    await queryRunner.query(`DROP TYPE "character_role";`);
     await queryRunner.query(`DROP TYPE "category_type";`);
   }
 }

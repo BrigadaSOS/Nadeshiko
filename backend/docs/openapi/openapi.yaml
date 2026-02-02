@@ -62,6 +62,10 @@ tags:
     description: |
       JWT-protected authentication endpoints
 
+  - name: Lists
+    description: |
+      List endpoints for managing media collections and watch orders.
+
 paths:
   # Search endpoints
   "/v1/search/health":
@@ -122,6 +126,24 @@ paths:
   # Segment standalone UUID query
   "/v1/media/segments/{uuid}":
     $ref: "./paths/media/v1_media_segments_uuid.yaml"
+
+  # Character endpoints (nested under media)
+  "/v1/media/characters/{id}":
+    $ref: "./paths/media/v1_media_characters_id.yaml"
+
+  # Seiyuu endpoints (nested under media)
+  "/v1/media/seiyuu/{id}":
+    $ref: "./paths/media/v1_media_seiyuu_id.yaml"
+
+  # List endpoints
+  "/v1/lists":
+    $ref: "./paths/lists/v1_lists.yaml"
+  "/v1/lists/{id}":
+    $ref: "./paths/lists/v1_lists_id.yaml"
+  "/v1/lists/{id}/items":
+    $ref: "./paths/lists/v1_lists_id_items.yaml"
+  "/v1/lists/{id}/items/{mediaId}":
+    $ref: "./paths/lists/v1_lists_id_items_mediaId.yaml"
 
 components:
   securitySchemes:

@@ -26,6 +26,18 @@ import {
   deactivateApiKey,
 } from '@app/controllers/userController';
 import { mediaIndex, mediaCreate, mediaShow, mediaUpdate, mediaDestroy } from '@app/controllers/mediaController';
+import { characterShow } from '@app/controllers/characterController';
+import { seiyuuShow } from '@app/controllers/seiyuuController';
+import {
+  listIndex,
+  listShow,
+  listCreate,
+  listUpdate,
+  listDestroy,
+  listAddItem,
+  listUpdateItem,
+  listRemoveItem,
+} from '@app/controllers/listController';
 import {
   episodeIndex,
   episodeCreate,
@@ -48,6 +60,7 @@ import { createRouter as createAuthRouter } from 'generated/routes/auth';
 import { createRouter as createAuthJwtRouter } from 'generated/routes/authjwt';
 import { createRouter as createUserRouter } from 'generated/routes/user';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
+import { createRouter as createListsRouter } from 'generated/routes/lists';
 
 const router = express.Router();
 
@@ -86,6 +99,8 @@ const MediaRoutes = createMediaRouter({
   mediaShow,
   mediaUpdate,
   mediaDestroy,
+  characterShow,
+  seiyuuShow,
   episodeIndex,
   episodeCreate,
   episodeShow,
@@ -97,6 +112,17 @@ const MediaRoutes = createMediaRouter({
   segmentUpdate,
   segmentDestroy,
   segmentShowByUuid,
+});
+
+const ListsRoutes = createListsRouter({
+  listIndex,
+  listCreate,
+  listShow,
+  listUpdate,
+  listDestroy,
+  listAddItem,
+  listUpdateItem,
+  listRemoveItem,
 });
 
 // ============================================================
@@ -126,6 +152,13 @@ router.post('/v1/media/{*path}', hasPermissionAPI(['ADD_MEDIA']));
 router.patch('/v1/media/{*path}', hasPermissionAPI(['UPDATE_MEDIA']));
 router.delete('/v1/media/{*path}', hasPermissionAPI(['REMOVE_MEDIA']));
 
+// List endpoints - GET uses READ_LISTS, POST uses CREATE_LISTS, PATCH uses UPDATE_LISTS, DELETE uses DELETE_LISTS
+router.all('/v1/lists/{*path}', authenticate({ apiKey: true }), rateLimitApiQuota);
+router.get('/v1/lists/{*path}', hasPermissionAPI(['READ_LISTS']));
+router.post('/v1/lists/{*path}', hasPermissionAPI(['CREATE_LISTS']));
+router.patch('/v1/lists/{*path}', hasPermissionAPI(['UPDATE_LISTS']));
+router.delete('/v1/lists/{*path}', hasPermissionAPI(['DELETE_LISTS']));
+
 // ============================================================
 // 2. Mount routers (no middleware needed - auth already checked)
 // ============================================================
@@ -144,6 +177,9 @@ router.use('/', SearchRoutes);
 
 // Media - /v1/media/* (auth already checked)
 router.use('/', MediaRoutes);
+
+// Lists - /v1/lists/* (auth already checked)
+router.use('/', ListsRoutes);
 
 // Serve the OpenAPI specification file (publicly accessible, no auth required)
 const __filename = fileURLToPath(import.meta.url);

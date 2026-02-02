@@ -14,6 +14,8 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
+  t_CharacterShowParamSchema,
+  t_CharacterWithMedia,
   t_Episode,
   t_EpisodeCreateParamSchema,
   t_EpisodeCreateRequestBodySchema,
@@ -44,6 +46,8 @@ import type {
   t_SegmentShowParamSchema,
   t_SegmentUpdateParamSchema,
   t_SegmentUpdateRequestBodySchema,
+  t_SeiyuuShowParamSchema,
+  t_SeiyuuWithRoles,
 } from '../models.ts';
 import type {
   EpisodeCreateRequestOutput,
@@ -57,6 +61,7 @@ import type {
   SegmentUpdateRequestOutput,
 } from '../outputTypes.ts';
 import {
+  s_CharacterWithMedia,
   s_Episode,
   s_EpisodeCreateRequest,
   s_EpisodeListResponse,
@@ -70,6 +75,7 @@ import {
   s_SegmentCreateRequest,
   s_SegmentListResponse,
   s_SegmentUpdateRequest,
+  s_SeiyuuWithRoles,
 } from '../schemas.ts';
 
 export type MediaIndexResponder = {
@@ -361,6 +367,42 @@ export type SegmentShowByUuid = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type CharacterShowResponder = {
+  with200(): ExpressRuntimeResponse<t_CharacterWithMedia>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type CharacterShow = (
+  params: Params<t_CharacterShowParamSchema, void, void, void>,
+  respond: CharacterShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type SeiyuuShowResponder = {
+  with200(): ExpressRuntimeResponse<t_SeiyuuWithRoles>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type SeiyuuShow = (
+  params: Params<t_SeiyuuShowParamSchema, void, void, void>,
+  respond: SeiyuuShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type MediaImplementation = {
   mediaIndex: MediaIndex;
   mediaCreate: MediaCreate;
@@ -378,6 +420,8 @@ export type MediaImplementation = {
   segmentUpdate: SegmentUpdate;
   segmentDestroy: SegmentDestroy;
   segmentShowByUuid: SegmentShowByUuid;
+  characterShow: CharacterShow;
+  seiyuuShow: SeiyuuShow;
 };
 
 export function createMediaRouter(implementation: MediaImplementation): Router {
@@ -1648,6 +1692,156 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
       if (body !== undefined) {
         res.json(segmentShowByUuidResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const characterShowParamSchema = z.object({ id: z.coerce.number() });
+
+  const characterShowResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_CharacterWithMedia],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // characterShow
+  router.get(`/v1/media/characters/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(characterShowParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_CharacterWithMedia>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.characterShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(characterShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const seiyuuShowParamSchema = z.object({ id: z.coerce.number() });
+
+  const seiyuuShowResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SeiyuuWithRoles],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // seiyuuShow
+  router.get(`/v1/media/seiyuu/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(seiyuuShowParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_SeiyuuWithRoles>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.seiyuuShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(seiyuuShowResponseBodyValidator(status, body));
       } else {
         res.end();
       }

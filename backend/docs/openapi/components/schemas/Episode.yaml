@@ -3,8 +3,6 @@ required:
   - mediaId
   - episodeNumber
   - numSegments
-  - createdAt
-  - updatedAt
 properties:
   mediaId:
     type: integer
@@ -59,19 +57,3 @@ properties:
     type: integer
     description: Number of segments in this episode
     example: 450
-  createdAt:
-    type: string
-    format: date-time
-    description: When the episode record was created
-    example: "2024-01-01T00:00:00Z"
-  updatedAt:
-    type: string
-    format: date-time
-    description: When the episode record was last updated
-    example: "2024-01-01T00:00:00Z"
-  deletedAt:
-    type: string
-    format: date-time
-    nullable: true
-    description: When the episode was deleted
-    example: null

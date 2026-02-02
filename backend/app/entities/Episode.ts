@@ -44,6 +44,6 @@ export class Episode extends BaseEntity {
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
 
-  @OneToMany('Segment', 'episodeRelation')
+  @OneToMany('Segment', 'episodeRelation', { cascade: true })
   segments!: any[];
 }

@@ -11,9 +11,12 @@ required:
   - genres
   - coverUrl
   - bannerUrl
-  - releaseDate
+  - startDate
   - category
   - version
+  - studio
+  - seasonName
+  - seasonYear
 properties:
   id:
     type: integer
@@ -59,11 +62,17 @@ properties:
     format: uri
     description: Full URL to the banner image
     example: "https://cdn.example.com/media/anime/bakuman/banner.webp"
-  releaseDate:
+  startDate:
     type: string
     format: date-time
-    description: Original release date of the media
+    description: Start date of the media (first airing/release)
     example: "2010-10-02T00:00:00Z"
+  endDate:
+    type: string
+    format: date-time
+    nullable: true
+    description: End date of the media (last airing/release)
+    example: "2011-04-02T00:00:00Z"
   category:
     type: string
     enum: [ANIME, BOOK, JDRAMA, AUDIOBOOK]
@@ -81,3 +90,25 @@ properties:
     type: string
     description: Version identifier for the media entry
     example: "6"
+  studio:
+    type: string
+    description: Animation studio that produced the media
+    example: "J.C.STAFF"
+  seasonName:
+    type: string
+    description: Season when the media aired (WINTER, SPRING, SUMMER, FALL)
+    example: "FALL"
+  seasonYear:
+    type: integer
+    description: Year when the media aired
+    example: 2010
+  characters:
+    type: array
+    items:
+      $ref: "./MediaCharacter.yaml"
+    description: Characters appearing in the media with their voice actors
+  lists:
+    type: array
+    items:
+      $ref: "./List.yaml"
+    description: Lists that contain this media

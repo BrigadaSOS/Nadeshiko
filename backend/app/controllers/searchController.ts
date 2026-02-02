@@ -6,10 +6,17 @@ import type {
   SearchHealthCheck,
   SearchMultiple,
 } from 'generated/routes/search';
+import type { t_FetchMediaInfoResponse } from 'generated/models';
 import { CategoryType, Media } from '@app/entities';
 import { Like } from 'typeorm';
 import { queryMediaInfo } from '@lib/external/database_queries';
-import { getBaseUrlMedia } from '@lib/utils/utils';
+import {
+  toSearchResponse,
+  toSearchHealthCheckResponse,
+  toSearchMultipleResponse,
+  toFetchSentenceContextResponse,
+  toMediaInfoData,
+} from './mappers/search.mapper';
 import { MediaInfoStats } from '@lib/types/queryMediaInfoResponse';
 
 export const searchHealthCheck: SearchHealthCheck = async (_params, respond) => {
@@ -20,7 +27,7 @@ export const searchHealthCheck: SearchHealthCheck = async (_params, respond) => 
     status: [1],
   });
 
-  return respond.with200().body(searchResults as any);
+  return respond.with200().body(toSearchHealthCheckResponse(searchResults));
 };
 
 export const search: Search = async ({ body }, respond) => {
@@ -44,13 +51,13 @@ export const search: Search = async ({ body }, respond) => {
     excluded_anime_ids: body.excluded_anime_ids,
   });
 
-  return respond.with200().body(searchResults as any);
+  return respond.with200().body(toSearchResponse(searchResults));
 };
 
 export const searchMultiple: SearchMultiple = async ({ body }, respond) => {
   const searchResults = await queryWordsMatched(body.words, body.exact_match);
 
-  return respond.with200().body(searchResults as any);
+  return respond.with200().body(toSearchMultipleResponse(searchResults));
 };
 
 export const fetchSentenceContext: FetchSentenceContext = async ({ body }, respond) => {
@@ -62,7 +69,7 @@ export const fetchSentenceContext: FetchSentenceContext = async ({ body }, respo
     limit: body.limit || 5,
   });
 
-  return respond.with200().body(searchResults as any);
+  return respond.with200().body(toFetchSentenceContextResponse(searchResults));
 };
 
 export const fetchMediaInfo: FetchMediaInfo = async ({ query }, respond) => {
@@ -79,7 +86,7 @@ export const fetchMediaInfo: FetchMediaInfo = async ({ query }, respond) => {
     audiobook: CategoryType.AUDIOBOOK,
   };
 
-  const whereClause: any = {};
+  const whereClause: Record<string, unknown> = {};
   if (type && categoryMap[type]) {
     whereClause.category = categoryMap[type];
   }
@@ -101,38 +108,19 @@ export const fetchMediaInfo: FetchMediaInfo = async ({ query }, respond) => {
 
   const mediaInfo = await queryMediaInfo(page, pageSize);
 
-  const paginatedResults = rows.map((media) => {
-    const mediaData: any = { ...media };
-    const location_media =
-      mediaData.category === CategoryType.ANIME
-        ? 'anime'
-        : mediaData.category === CategoryType.JDRAMA
-          ? 'jdrama'
-          : 'audiobook';
-    mediaData.cover = [getBaseUrlMedia(), location_media, mediaData.cover].join('/');
-    mediaData.banner = [getBaseUrlMedia(), location_media, mediaData.banner].join('/');
-    // Serialize Date objects to ISO strings for created_at
-    if (mediaData.createdAt instanceof Date) {
-      mediaData.created_at = mediaData.createdAt.toISOString();
-    }
-    // release_date can be null, ensure it stays as-is or convert Date to string
-    if (mediaData.releaseDate instanceof Date) {
-      mediaData.release_date = mediaData.releaseDate.toISOString();
-    }
-    return mediaData;
-  });
+  const paginatedResults = rows.map(toMediaInfoData);
 
   const nextCursor = cursor + paginatedResults.length;
   const hasMoreResults = nextCursor < count;
 
   const stats: MediaInfoStats = {
     total_animes: count,
-    total_segments: paginatedResults.reduce((sum, media) => sum + media.numSegments, 0),
+    total_segments: paginatedResults.reduce((sum, media) => sum + (media.num_segments ?? 0), 0),
     full_total_animes: mediaInfo.stats.full_total_animes,
     full_total_segments: mediaInfo.stats.full_total_segments,
   };
 
-  const searchResults = {
+  const searchResults: t_FetchMediaInfoResponse = {
     stats,
     results: paginatedResults,
     cursor: hasMoreResults ? nextCursor : undefined,

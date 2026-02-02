@@ -11,6 +11,7 @@ import * as schemas from './schemas';
 export type ApiKeyPermissionOutput = z.output<typeof schemas.s_ApiKeyPermission>;
 export type BasicInfoOutput = z.output<typeof schemas.s_BasicInfo>;
 export type CategoryStatisticOutput = z.output<typeof schemas.s_CategoryStatistic>;
+export type CharacterInputOutput = z.output<typeof schemas.s_CharacterInput>;
 export type CreateApiKeyRequestOutput = z.output<typeof schemas.s_CreateApiKeyRequest>;
 export type CreateApiKeyResponseOutput = z.output<typeof schemas.s_CreateApiKeyResponse>;
 export type DeactivateApiKeyRequestOutput = z.output<typeof schemas.s_DeactivateApiKeyRequest>;
@@ -23,14 +24,14 @@ export type EpisodeUpdateRequestOutput = z.output<typeof schemas.s_EpisodeUpdate
 export type ErrorOutput = z.output<typeof schemas.s_Error>;
 export type FetchSentenceContextRequestOutput = z.output<typeof schemas.s_FetchSentenceContextRequest>;
 export type GoogleLoginRequestOutput = z.output<typeof schemas.s_GoogleLoginRequest>;
+export type ListOutput = z.output<typeof schemas.s_List>;
+export type ListCreateRequestOutput = z.output<typeof schemas.s_ListCreateRequest>;
+export type ListInputOutput = z.output<typeof schemas.s_ListInput>;
 export type LoginRequestOutput = z.output<typeof schemas.s_LoginRequest>;
 export type LogoutResponseOutput = z.output<typeof schemas.s_LogoutResponse>;
-export type MediaOutput = z.output<typeof schemas.s_Media>;
-export type MediaCreateRequestOutput = z.output<typeof schemas.s_MediaCreateRequest>;
 export type MediaInfoDataOutput = z.output<typeof schemas.s_MediaInfoData>;
 export type MediaInfoPathOutput = z.output<typeof schemas.s_MediaInfoPath>;
 export type MediaInfoStatsOutput = z.output<typeof schemas.s_MediaInfoStats>;
-export type MediaUpdateRequestOutput = z.output<typeof schemas.s_MediaUpdateRequest>;
 export type QuotaInfoOutput = z.output<typeof schemas.s_QuotaInfo>;
 export type RegisterRequestOutput = z.output<typeof schemas.s_RegisterRequest>;
 export type RegisterResponseOutput = z.output<typeof schemas.s_RegisterResponse>;
@@ -40,14 +41,17 @@ export type SegmentOutput = z.output<typeof schemas.s_Segment>;
 export type SegmentCreateRequestOutput = z.output<typeof schemas.s_SegmentCreateRequest>;
 export type SegmentInfoOutput = z.output<typeof schemas.s_SegmentInfo>;
 export type SegmentUpdateRequestOutput = z.output<typeof schemas.s_SegmentUpdateRequest>;
+export type SeiyuuOutput = z.output<typeof schemas.s_Seiyuu>;
 export type StatisticOutput = z.output<typeof schemas.s_Statistic>;
 export type UserRoleOutput = z.output<typeof schemas.s_UserRole>;
 export type WordMatchMediaOutput = z.output<typeof schemas.s_WordMatchMedia>;
 export type ApiKeyOutput = z.output<typeof schemas.s_ApiKey>;
 export type AuthUserOutput = z.output<typeof schemas.s_AuthUser>;
+export type CharacterOutput = z.output<typeof schemas.s_Character>;
 export type EpisodeListResponseOutput = z.output<typeof schemas.s_EpisodeListResponse>;
 export type FetchMediaInfoResponseOutput = z.output<typeof schemas.s_FetchMediaInfoResponse>;
-export type MediaListResponseOutput = z.output<typeof schemas.s_MediaListResponse>;
+export type MediaCreateRequestOutput = z.output<typeof schemas.s_MediaCreateRequest>;
+export type MediaUpdateRequestOutput = z.output<typeof schemas.s_MediaUpdateRequest>;
 export type SegmentListResponseOutput = z.output<typeof schemas.s_SegmentListResponse>;
 export type SentenceOutput = z.output<typeof schemas.s_Sentence>;
 export type UserInfoResponseOutput = z.output<typeof schemas.s_UserInfoResponse>;
@@ -55,9 +59,15 @@ export type WordMatchOutput = z.output<typeof schemas.s_WordMatch>;
 export type FetchSentenceContextResponseOutput = z.output<typeof schemas.s_FetchSentenceContextResponse>;
 export type GetApiKeysResponseOutput = z.output<typeof schemas.s_GetApiKeysResponse>;
 export type LoginResponseOutput = z.output<typeof schemas.s_LoginResponse>;
+export type MediaCharacterOutput = z.output<typeof schemas.s_MediaCharacter>;
 export type SearchHealthCheckResponseOutput = z.output<typeof schemas.s_SearchHealthCheckResponse>;
 export type SearchMultipleResponseOutput = z.output<typeof schemas.s_SearchMultipleResponse>;
 export type SearchResponseOutput = z.output<typeof schemas.s_SearchResponse>;
+export type MediaOutput = z.output<typeof schemas.s_Media>;
+export type CharacterWithMediaOutput = z.output<typeof schemas.s_CharacterWithMedia>;
+export type ListWithMediaOutput = z.output<typeof schemas.s_ListWithMedia>;
+export type MediaListResponseOutput = z.output<typeof schemas.s_MediaListResponse>;
+export type SeiyuuWithRolesOutput = z.output<typeof schemas.s_SeiyuuWithRoles>;
 
 // ============================================
 // Inline query schemas and their output types
@@ -81,6 +91,14 @@ export const segmentIndexQuerySchema = z.object({
   cursor: z.coerce.number().optional().default(0),
 });
 export type SegmentIndexQueryOutput = z.output<typeof segmentIndexQuerySchema>;
+
+export const listIndexQuerySchema = z.object({
+  visibility: z.enum(['public', 'private']).optional(),
+  type: z.enum(['SERIES', 'CUSTOM']).optional(),
+  userId: z.coerce.number().optional(),
+  mediaId: z.coerce.number().optional(),
+});
+export type ListIndexQueryOutput = z.output<typeof listIndexQuerySchema>;
 
 export const fetchMediaInfoQuerySchema = z.object({
   size: z.coerce.number().optional().default(20),
