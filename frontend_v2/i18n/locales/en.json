@@ -393,8 +393,5 @@
   "auth": {
     "registrationSuccess": "Registration successful",
     "registrationError": "Registration failed. Please try again"
-  },
-  "maintenance": {
-    "message": "Nadeshiko is under maintenance for a few days while it is being migrated. We apologize for the inconvenience."
   }
 }
