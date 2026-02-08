@@ -2,8 +2,6 @@ import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import {
   User,
-  Role,
-  UserRole,
   AccountQuotaUsage,
   Media,
   Segment,
@@ -16,19 +14,20 @@ import {
   List,
   ListItem,
 } from '@app/entities';
+import { getAppPostgresConfig } from '@lib/postgresConfig';
 import { logger } from '@lib/utils/log';
+
+const postgres = getAppPostgresConfig();
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.POSTGRES_HOST,
-  port: Number(process.env.POSTGRES_PORT),
-  username: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_DB,
+  host: postgres.host,
+  port: postgres.port,
+  username: postgres.user,
+  password: postgres.password,
+  database: postgres.database,
   entities: [
     User,
-    Role,
-    UserRole,
     AccountQuotaUsage,
     Media,
     Segment,

@@ -1,6 +1,6 @@
 import type { t_Segment } from 'generated/models';
 import type { Segment } from '@app/entities';
-import { getSegmentImageUrl, getSegmentAudioUrl } from '@lib/utils/storage';
+import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 
 export const toSegmentDTO = (segment: Segment): t_Segment => ({
   id: segment.id,
@@ -18,6 +18,7 @@ export const toSegmentDTO = (segment: Segment): t_Segment => ({
   isNsfw: segment.isNsfw,
   imageUrl: getSegmentImageUrl(segment),
   audioUrl: getSegmentAudioUrl(segment),
+  videoUrl: getSegmentVideoUrl(segment),
   actorJa: segment.actorJa,
   actorEs: segment.actorEs,
   actorEn: segment.actorEn,

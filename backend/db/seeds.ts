@@ -1,32 +1,30 @@
-import { ApiAuth, User, ApiPermission, ApiAuthPermission, UserRole, Role } from '@app/entities';
+import { User, ApiPermission, UserRoleType } from '@app/entities';
+import { AppDataSource } from '@config/database';
+import { getAppEnvironment } from '@lib/environment';
 import { logger } from '@lib/utils/log';
-import { hashApiKey, generateApiKeyHint } from '@lib/utils/utils';
+import { defaultKeyHasher } from 'better-auth/plugins';
+
+const SEEDED_MASTER_KEY_NAME = 'Local Master Key';
+const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
+
+function inferApiKeyPrefix(apiKey: string): string | null {
+  const separatorIndex = apiKey.indexOf('_');
+  if (separatorIndex <= 0) {
+    return null;
+  }
+  return apiKey.slice(0, separatorIndex + 1);
+}
 
 /**
  * Seed function for all environments.
- * Creates default roles, an admin user with API key and full permissions.
+ * Creates an admin user and a deterministic Better Auth API key.
  *
  * Safe to run in production because credentials come from environment variables.
- * Only creates the user if it doesn't already exist (idempotent).
+ * Idempotent: updates existing records when needed.
  */
 export async function seed() {
-  const environment = process.env.ENVIRONMENT || 'development';
+  const environment = getAppEnvironment();
   logger.info({ environment }, 'Running seeds for environment');
-
-  // Insert default roles
-  const roles = [
-    { id: 1, name: 'ADMIN', description: 'Administrator' },
-    { id: 2, name: 'MOD', description: 'Moderator' },
-    { id: 3, name: 'USER', description: 'User' },
-    { id: 5, name: 'PATREON', description: 'Patreon' },
-  ];
-
-  for (const roleData of roles) {
-    const role = Role.create(roleData);
-    await role.save();
-  }
-
-  logger.info('Default roles created');
 
   // Get credentials from environment variables
   const email = process.env.EMAIL_API_NADEDB;
@@ -39,66 +37,77 @@ export async function seed() {
     return;
   }
 
-  // Check if admin user already exists
+  // Ensure admin user exists
   const existingUser = await User.findOne({
     where: { email },
   });
 
-  if (existingUser) {
-    logger.info({ email }, 'Admin user already exists, skipping creation');
-    return;
+  let user: User;
+  if (!existingUser) {
+    user = User.create({
+      username,
+      email,
+      isActive: true,
+      isVerified: true,
+      role: UserRoleType.ADMIN,
+    });
+    await user.save();
+    logger.info({ userId: user.id, email }, 'Admin user created');
+  } else {
+    user = existingUser;
+    if (!user.isActive || !user.isVerified || user.username !== username || user.role !== UserRoleType.ADMIN) {
+      user.username = username;
+      user.isActive = true;
+      user.isVerified = true;
+      user.role = UserRoleType.ADMIN;
+      await user.save();
+    }
+    logger.info({ userId: user.id, email }, 'Admin user ensured');
   }
 
-  // Create admin user (social account can be linked later by migration/import)
-  const user = User.create({
-    username,
-    email,
-    isActive: true,
-    isVerified: true,
+  // Seed deterministic Better Auth API key for local/dev testing.
+  const hashedApiKey = await defaultKeyHasher(apiKey);
+  const keyPrefix = inferApiKeyPrefix(apiKey);
+  const permissions = JSON.stringify({
+    [BETTER_AUTH_PERMISSION_RESOURCE]: Object.values(ApiPermission),
   });
-  await user.save();
-
-  logger.info({ userId: user.id, email }, 'Admin user created');
-
-  // Create API auth
-  const apiKeyHashed = hashApiKey(apiKey);
-  const apiKeyHint = generateApiKeyHint(apiKey);
-
-  const apiAuth = ApiAuth.create({
-    name: 'Default Admin Key',
-    hint: apiKeyHint,
-    token: apiKeyHashed,
-    createdAt: new Date(),
-    isActive: true,
-    userId: user.id,
+  const metadata = JSON.stringify({
+    keyType: 'service',
+    source: 'seed',
   });
-  await apiAuth.save();
 
-  logger.info({ apiAuthId: apiAuth.id }, 'API key created');
-
-  // Assign admin role
-  const userRole = UserRole.create({
-    userId: user.id,
-    roleId: 1, // Admin role
-  });
-  await userRole.save();
-
-  logger.info({ userId: user.id, roleId: 1 }, 'Admin role assigned');
-
-  // Assign all permissions to API key using the enum
-  const allPermissions = Object.values(ApiPermission);
-
-  await Promise.all(
-    allPermissions.map(async (permission) => {
-      const authPermission = ApiAuthPermission.create({
-        apiAuthId: apiAuth.id,
-        apiPermission: permission,
-      });
-      await authPermission.save();
-    }),
+  await AppDataSource.query(
+    `
+      INSERT INTO "apikey" (
+        "name",
+        "start",
+        "prefix",
+        "key",
+        "userId",
+        "enabled",
+        "rateLimitEnabled",
+        "metadata",
+        "permissions",
+        "createdAt",
+        "updatedAt"
+      )
+      VALUES ($1, $2, $3, $4, $5, true, false, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT ("key")
+      DO UPDATE SET
+        "name" = EXCLUDED."name",
+        "start" = EXCLUDED."start",
+        "prefix" = EXCLUDED."prefix",
+        "userId" = EXCLUDED."userId",
+        "enabled" = true,
+        "rateLimitEnabled" = false,
+        "metadata" = EXCLUDED."metadata",
+        "permissions" = EXCLUDED."permissions",
+        "updatedAt" = CURRENT_TIMESTAMP
+    `,
+    [SEEDED_MASTER_KEY_NAME, apiKey.slice(0, 6), keyPrefix, hashedApiKey, user.id, metadata, permissions],
   );
 
-  logger.info({ apiAuthId: apiAuth.id, permissionCount: allPermissions.length }, 'All permissions assigned');
+  logger.info({ userId: user.id, keyName: SEEDED_MASTER_KEY_NAME }, 'Better Auth API key ensured');
 
   logger.info('Seed completed successfully');
 }

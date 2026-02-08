@@ -6,3 +6,5 @@ content:
     examples:
       AccountConflict:
         $ref: "../examples/AccountConflict.yaml"
+      DuplicateKey:
+        $ref: "../examples/DuplicateKey.yaml"

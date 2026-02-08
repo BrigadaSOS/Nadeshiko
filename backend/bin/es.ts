@@ -1,47 +1,63 @@
 import 'dotenv/config';
 import { client } from '@lib/external/elasticsearch';
 import { logger } from '@lib/utils/log';
+import { reindexSegments } from '@app/services/elasticsearchSync';
+import { Segment } from '@app/entities';
+import { AppDataSource } from '@config/database';
+import { ensureDestructiveAllowed } from './destructiveGuard';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 
 const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
+const commandArgs = process.argv.slice(3);
 
-async function reset(): Promise<void> {
-  logger.info(`Resetting Elasticsearch index '${INDEX_NAME}'...`);
+async function reindex(): Promise<void> {
+  logger.info(`Reindexing Elasticsearch index '${INDEX_NAME}'...`);
 
-  // Check if index exists
-  const indexExists = await client.indices.exists({ index: INDEX_NAME });
+  const { resetElasticsearchIndex } = await import('@lib/external/elasticsearch');
+  await resetElasticsearchIndex();
 
-  if (indexExists) {
-    logger.info(`Deleting existing index '${INDEX_NAME}'...`);
-    await client.indices.delete({ index: INDEX_NAME });
-    logger.info(`Index '${INDEX_NAME}' deleted`);
+  const result = await reindexSegments();
+  if (!result.success) {
+    throw new Error(result.message);
   }
 
-  // Create new index with schema
-  logger.info(`Creating new index '${INDEX_NAME}' with mappings from config/elasticsearch-schema.json`);
-  await client.indices.create({
-    index: INDEX_NAME,
-    settings: elasticsearchSchema.settings as any,
-    mappings: elasticsearchSchema.mappings as any,
-  });
-
-  logger.info(`Elasticsearch index '${INDEX_NAME}' created successfully`);
-  logger.info('Run the reindex API endpoint to populate the index with data');
+  logger.info(
+    `Reindex complete: ${result.stats.successfulIndexes}/${result.stats.totalSegments} segments indexed (${result.stats.failedIndexes} failed)`,
+  );
 }
 
 async function status(): Promise<void> {
   logger.info(`Checking Elasticsearch index '${INDEX_NAME}'...`);
 
+  const dbSegmentCount = await Segment.count();
+
   const exists = await client.indices.exists({ index: INDEX_NAME });
   if (!exists) {
-    logger.info(`Index '${INDEX_NAME}' does not exist`);
+    logger.warn(`Index '${INDEX_NAME}' does not exist`);
+    logger.info(`DB segments: ${dbSegmentCount}`);
+    logger.info(`ES documents: 0`);
+    logger.warn(`Out of sync: DB has ${dbSegmentCount} more segment(s) than Elasticsearch`);
     return;
   }
 
-  const stats = await client.indices.stats({ index: INDEX_NAME });
-  // @ts-expect-error -- elasticsearch stats type
-  const docCount = stats.indices[INDEX_NAME]?.total?.docs?.count ?? 0;
-  logger.info(`Index '${INDEX_NAME}' exists with ${docCount} documents`);
+  const countResponse = await client.count({ index: INDEX_NAME });
+  const esDocumentCount = countResponse.count ?? 0;
+  const delta = esDocumentCount - dbSegmentCount;
+
+  logger.info(`DB segments: ${dbSegmentCount}`);
+  logger.info(`ES documents: ${esDocumentCount}`);
+
+  if (delta === 0) {
+    logger.info('Elasticsearch index is in sync with database segment count');
+    return;
+  }
+
+  if (delta > 0) {
+    logger.warn(`Out of sync: Elasticsearch has ${delta} more document(s) than DB segments`);
+    return;
+  }
+
+  logger.warn(`Out of sync: DB has ${Math.abs(delta)} more segment(s) than Elasticsearch`);
 }
 
 function printUsage(): void {
@@ -49,10 +65,10 @@ function printUsage(): void {
 Usage: bun run bin/es.ts <command>
 
 Commands:
-  reset   Delete and recreate the Elasticsearch index (destructive!)
-  status  Show index status and document count
+  reindex  Reset and repopulate Elasticsearch index from database (destructive)
+  status  Compare DB segment count vs Elasticsearch document count
 
-Note: After running 'reset', use the /v1/admin/reindex API endpoint to populate data
+For destructive commands in prod, add: --allow-prod-destructive
 `);
 }
 
@@ -64,22 +80,31 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  if (command !== 'reindex' && command !== 'status') {
+    logger.error(`Unknown command: ${command}`);
+    printUsage();
+    process.exit(1);
+  }
+
   try {
+    await AppDataSource.initialize();
+
     switch (command) {
-      case 'reset':
-        await reset();
+      case 'reindex':
+        ensureDestructiveAllowed('es:reindex', commandArgs);
+        await reindex();
         break;
       case 'status':
         await status();
         break;
-      default:
-        logger.error(`Unknown command: ${command}`);
-        printUsage();
-        process.exit(1);
     }
   } catch (error) {
     logger.error(error);
     process.exit(1);
+  } finally {
+    if (AppDataSource.isInitialized) {
+      await AppDataSource.destroy();
+    }
   }
 }
 

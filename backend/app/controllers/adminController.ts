@@ -15,6 +15,7 @@ import {
   getFailedJobs as fetchFailedJobs,
   purgeFailedJobs as deleteFailedJobs,
 } from '@lib/queue/pgBoss';
+import { invalidateSearchExtraStatsCache } from '@lib/cache/searchExtraStatsCache';
 
 export const reindexElasticsearch: ReindexElasticsearch = async ({ body }, respond) => {
   const media = body?.media?.map(
@@ -26,6 +27,7 @@ export const reindexElasticsearch: ReindexElasticsearch = async ({ body }, respo
   );
 
   const result = await reindexSegments(media);
+  invalidateSearchExtraStatsCache();
 
   const response: t_ReindexResponse = {
     success: result.success,

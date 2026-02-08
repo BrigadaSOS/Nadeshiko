@@ -1,5 +1,11 @@
 import { Entity, PrimaryColumn, Column, OneToOne, OneToMany, Index, CreateDateColumn, BaseEntity } from 'typeorm';
-import { UserRole } from './UserRole';
+
+export enum UserRoleType {
+  ADMIN = 'ADMIN',
+  MOD = 'MOD',
+  USER = 'USER',
+  PATREON = 'PATREON',
+}
 
 @Entity('User')
 @Index(['email'])
@@ -31,15 +37,15 @@ export class User extends BaseEntity {
   @Column({ name: 'is_active', type: 'boolean', default: false })
   isActive!: boolean;
 
+  @Column({ name: 'role', type: 'enum', enum: UserRoleType, default: UserRoleType.USER })
+  role!: UserRoleType;
+
   @Column({ name: 'monthly_quota_limit', type: 'bigint', default: 2500 })
   monthlyQuotaLimit!: string;
 
   // Relations
   @OneToOne('ApiAuth', 'user')
   apiAuth?: any;
-
-  @OneToMany(() => UserRole, (userRole) => userRole.user, { cascade: true })
-  userRoles!: UserRole[];
 
   @OneToMany('AccountQuotaUsage', 'user')
   accountQuotaUsages?: any[];

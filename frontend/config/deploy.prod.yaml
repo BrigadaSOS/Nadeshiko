@@ -1,0 +1,39 @@
+service: nadeshiko-frontend
+image: nadeshiko-frontend
+
+servers:
+  web:
+    hosts:
+      - nadeshiko-production
+
+registry:
+  server: localhost:5555
+
+proxy:
+  ssl: true
+  host: nadeshiko.co
+  app_port: 3000
+  forward_headers: true
+
+env:
+  secret:
+    - NUXT_NADESHIKO_API_KEY
+
+  clear:
+    NUXT_APP_ENVIRONMENT: prod
+    NUXT_BACKEND_INTERNAL_URL: https://api.nadeshiko.co
+    PORT: 3000
+    NODE_ENV: production
+    LOG_LEVEL: info
+
+aliases:
+  console: app exec --interactive --reuse "bash"
+  logs: app logs -f
+
+builder:
+  arch: amd64
+
+ssh:
+  user: docker
+  keys: ["~/.ssh/vps"]
+  keys_only: true

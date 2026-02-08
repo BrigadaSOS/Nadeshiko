@@ -1,2 +1,5 @@
 # Ignore secret key files
 *.key
+
+# Keep destination-specific secret templates in git
+!secrets.*

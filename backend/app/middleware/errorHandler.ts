@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors';
-import { EntityNotFoundError, QueryFailedError } from 'typeorm';
+import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
 import { logger } from '@lib/utils/log';
 import { ApiError, ValidationFailedError, NotFoundError, isApiError } from '@lib/utils/apiErrors';
 
@@ -79,6 +79,20 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
         notFoundError.instance = requestId;
         return notFoundError;
       }
+      // Handle TypeORM QueryFailedError from handler (duplicate keys, etc.)
+      if (cause instanceof QueryFailedError) {
+        if (cause.driverError?.code === '23505') {
+          const duplicateError = createDuplicateKeyError(cause, requestId);
+          return duplicateError;
+        }
+        logger.warn({ err: cause, requestId }, 'Database query failed in handler');
+        return createInternalError(requestId);
+      }
+      // Handle other TypeORM errors from handler
+      if (cause instanceof TypeORMError) {
+        logger.warn({ err: cause, requestId }, 'TypeORM error in handler');
+        return createInternalError(requestId);
+      }
       // Unknown error from handler
       logger.error({ err: cause, requestId }, 'Unhandled error in handler');
       return createInternalError(requestId);
@@ -146,7 +160,6 @@ function entityNameToDetail(entityName: string): string {
     Episode: 'Episode not found',
     Segment: 'Segment not found',
     ApiAuth: 'API key not found',
-    Role: 'Role not found',
   };
 
   return entityMap[entityName] ?? `${entityName} not found`;

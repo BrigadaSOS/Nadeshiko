@@ -7,9 +7,13 @@
 
 export type Storage = 'local' | 'r2';
 
+const getLocalBaseUrl = (): string => {
+  return '/media';
+};
+
 const STORAGE_BASE_URLS: Record<Storage, string> = {
-  r2: process.env.R2_BASE_URL || 'https://cdn.nadeshiko.co/media',
-  local: process.env.LOCAL_BASE_URL || '/assets',
+  r2: process.env.R2_BASE_URL!,
+  local: getLocalBaseUrl(),
 };
 
 /**

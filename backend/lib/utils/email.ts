@@ -3,6 +3,7 @@ import { SES } from '@aws-sdk/client-ses';
 import { logger } from './log';
 import { buildWelcomeEmail, buildAnnouncementEmail } from './emailTemplates';
 import { sendEmailJob } from '@lib/queue/pgBoss';
+import { APP_ENVIRONMENT, getAppEnvironment } from '@lib/environment';
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -14,23 +15,24 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
     return transporter;
   }
 
-  const environment = process.env.ENVIRONMENT || 'development';
+  const environment = getAppEnvironment();
+  const isAutomatedTest = process.env.NODE_ENV === 'test';
 
-  // In testing mode, use json transport for logging
-  if (environment === 'testing') {
+  // In automated test runs, keep transport fully local and deterministic.
+  if (isAutomatedTest) {
     transporter = nodemailer.createTransport({
       jsonTransport: true,
     });
     return transporter;
   }
 
-  // In development mode without SES config, use Ethereal for email previews
-  if (environment === 'development') {
+  // In local/dev, prefer SES when configured, otherwise use Ethereal previews.
+  if (environment === APP_ENVIRONMENT.LOCAL || environment === APP_ENVIRONMENT.DEV) {
     const region = process.env.SES_AWS_REGION;
     const accessKeyId = process.env.SES_AWS_ACCESS_KEY_ID;
     const secretAccessKey = process.env.SES_AWS_SECRET_ACCESS_KEY;
 
-    // If SES is configured in development, use it
+    // If SES is configured, use it.
     if (region && accessKeyId && secretAccessKey && accessKeyId !== '') {
       const ses = new SES({
         region,
@@ -44,11 +46,11 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
         SES: { ses, aws: { Ses: SES } },
       } as any);
 
-      logger.info('Email transport configured with Amazon SES (development)');
+      logger.info({ environment }, 'Email transport configured with Amazon SES');
       return transporter;
     }
 
-    // Otherwise, use Ethereal for email previews
+    // Otherwise, use Ethereal for email previews.
     const testAccount = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
       host: testAccount.smtp.host,
@@ -60,7 +62,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
       },
     });
 
-    logger.info(`Email transport configured with Ethereal (development). Preview URLs will be logged.`);
+    logger.info({ environment }, 'Email transport configured with Ethereal. Preview URLs will be logged.');
     return transporter;
   }
 
@@ -71,7 +73,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
 
   if (!region || !accessKeyId || !secretAccessKey) {
     throw new Error(
-      'SES configuration is required in production. Set SES_AWS_REGION, SES_AWS_ACCESS_KEY_ID, and SES_AWS_SECRET_ACCESS_KEY.',
+      'SES configuration is required in prod. Set SES_AWS_REGION, SES_AWS_ACCESS_KEY_ID, and SES_AWS_SECRET_ACCESS_KEY.',
     );
   }
 
@@ -87,7 +89,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
     SES: { ses, aws: { Ses: SES } },
   } as any);
 
-  logger.info('Email transport configured with Amazon SES (production)');
+  logger.info('Email transport configured with Amazon SES (prod)');
   return transporter;
 }
 
@@ -105,19 +107,20 @@ export interface EmailOptions {
  * Sends an email directly (synchronous, for use by workers).
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const environment = process.env.ENVIRONMENT || 'development';
+  const environment = getAppEnvironment();
+  const isAutomatedTest = process.env.NODE_ENV === 'test';
   const fromEmail = process.env.SES_FROM_EMAIL || 'noreply@nadeshiko.co';
   const fromName = process.env.SES_FROM_NAME || 'Nadeshiko';
 
-  // In testing mode, just log
-  if (environment === 'testing') {
+  if (isAutomatedTest) {
     logger.info(
       {
+        environment,
         to: options.to,
         subject: options.subject,
         text: options.text,
       },
-      'Email sent (testing mode - logged only)',
+      'Email sent (test mode - logged only)',
     );
     return;
   }
@@ -133,7 +136,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       text: options.text,
     });
 
-    // Log preview URL if available (Ethereal in development)
+    // Log preview URL when Ethereal transport is used.
     if (nodemailer.getTestMessageUrl) {
       const previewUrl = nodemailer.getTestMessageUrl(info);
       if (previewUrl) {

@@ -24,7 +24,7 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
         segmentId: event.entity.id,
         operation: 'CREATE',
       }).catch((error) => {
-        console.error(`Failed to enqueue ES sync job for segment ${event.entity!.id} after create:`, error);
+        console.error(`Failed to enqueue ES sync job for segment ${event.entity?.id} after create:`, error);
       });
     }
   }
@@ -36,7 +36,7 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
         segmentId: event.entity.id,
         operation: 'UPDATE',
       }).catch((error) => {
-        console.error(`Failed to enqueue ES sync job for segment ${event.entity!.id} after update:`, error);
+        console.error(`Failed to enqueue ES sync job for segment ${event.entity?.id} after update:`, error);
       });
     }
   }

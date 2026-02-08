@@ -1,4 +1,5 @@
 import { PgBoss } from 'pg-boss';
+import { getAppPostgresConfig } from '@lib/postgresConfig';
 import { logger } from '@lib/utils/log';
 
 // Export job data type for use in workers
@@ -37,15 +38,16 @@ export async function initPgBoss(config: PgBossConfig = {}): Promise<PgBoss> {
 
   // Construct DATABASE_URL from individual env vars if not provided
   if (!databaseUrl) {
-    const host = process.env.POSTGRES_HOST;
-    const port = process.env.POSTGRES_PORT;
-    const user = process.env.POSTGRES_USER;
-    const password = process.env.POSTGRES_PASSWORD;
-    const database = process.env.POSTGRES_DB;
+    const postgres = getAppPostgresConfig();
+    const host = postgres.host;
+    const port = postgres.port;
+    const user = postgres.user;
+    const password = postgres.password;
+    const database = postgres.database;
 
     if (!host || !port || !user || !password || !database) {
       throw new Error(
-        'Missing required database environment variables (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)',
+        'Missing required database env vars (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)',
       );
     }
 

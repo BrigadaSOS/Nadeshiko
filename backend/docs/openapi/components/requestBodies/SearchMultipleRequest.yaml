@@ -6,7 +6,7 @@ properties:
       type: string
     description: List of words to search for
     example: ["彼女", "私"]
-  exact_match:
+  exactMatch:
     type: boolean
     default: false
     description: Whether to use exact matching

@@ -75,10 +75,9 @@ export const s_Error = z.object({
 });
 
 export const s_FetchSentenceContextRequest = z.object({
-  media_id: z.coerce.number(),
-  season: z.coerce.number().min(0),
+  mediaId: z.coerce.number(),
   episode: z.coerce.number().min(0),
-  segment_position: z.coerce.number().min(0),
+  segmentPosition: z.coerce.number().min(0),
   limit: z.coerce.number().min(0).optional().default(5),
 });
 
@@ -106,9 +105,9 @@ export const s_ListInput = z.object({
 });
 
 export const s_MediaInfoPath = z.object({
-  path_image: z.string().optional(),
-  path_audio: z.string().optional(),
-  path_video: z.string().optional(),
+  pathImage: z.string().optional(),
+  pathAudio: z.string().optional(),
+  pathVideo: z.string().optional(),
 });
 
 export const s_MediaInfoStats = z.object({
@@ -119,14 +118,7 @@ export const s_MediaInfoStats = z.object({
 });
 
 export const s_ReindexRequest = z.object({
-  media: z
-    .array(
-      z.object({
-        mediaId: z.coerce.number(),
-        episodes: z.array(z.coerce.number()).optional(),
-      }),
-    )
-    .optional(),
+  media: z.array(z.object({ mediaId: z.coerce.number(), episodes: z.array(z.coerce.number()).optional() })).optional(),
 });
 
 export const s_ReindexResponse = z.object({
@@ -140,19 +132,12 @@ export const s_ReindexResponse = z.object({
       mediaProcessed: z.coerce.number().optional(),
     })
     .optional(),
-  errors: z
-    .array(
-      z.object({
-        segmentId: z.coerce.number().optional(),
-        error: z.string().optional(),
-      }),
-    )
-    .optional(),
+  errors: z.array(z.object({ segmentId: z.coerce.number().optional(), error: z.string().optional() })).optional(),
 });
 
 export const s_SearchMultipleRequest = z.object({
   words: z.array(z.string()),
-  exact_match: PermissiveBoolean.optional().default(false),
+  exactMatch: PermissiveBoolean.optional().default(false),
 });
 
 export const s_Segment = z.object({
@@ -171,6 +156,7 @@ export const s_Segment = z.object({
   isNsfw: PermissiveBoolean,
   imageUrl: z.string().nullable().optional(),
   audioUrl: z.string().nullable().optional(),
+  videoUrl: z.string().nullable().optional(),
   actorJa: z.string().nullable().optional(),
   actorEs: z.string().nullable().optional(),
   actorEn: z.string().nullable().optional(),
@@ -251,10 +237,10 @@ export const s_Seiyuu = z.object({
 });
 
 export const s_WordMatchMedia = z.object({
-  media_id: z.coerce.number().optional(),
-  english_name: z.string().optional(),
-  japanese_name: z.string().optional(),
-  romaji_name: z.string().optional(),
+  mediaId: z.coerce.number().optional(),
+  englishName: z.string().optional(),
+  japaneseName: z.string().optional(),
+  romajiName: z.string().optional(),
   matches: z.coerce.number().optional(),
 });
 
@@ -266,14 +252,10 @@ export const s_BasicInfo = z.object({
   cover: z.string().optional(),
   banner: z.string().optional(),
   episode: z.coerce.number(),
-  season: z.coerce.number(),
   category: s_Category,
 });
 
-export const s_CategoryStatistic = z.object({
-  category: s_Category.optional(),
-  count: z.coerce.number().optional(),
-});
+export const s_CategoryStatistic = z.object({ category: s_Category.optional(), count: z.coerce.number().optional() });
 
 export const s_Character = z.object({
   id: z.coerce.number(),
@@ -361,31 +343,18 @@ export const s_SearchRequest = z.object({
   limit: z.coerce.number().optional().default(10),
   uuid: z.string().optional(),
   category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']),
-  anime_id: z.coerce.number().optional(),
-  season: z.array(z.coerce.number()).optional(),
+  animeId: z.coerce.number().optional(),
   episode: z.array(z.coerce.number()).optional(),
-  random_seed: z.coerce.number().min(0).max(1).optional(),
-  content_sort: z.enum(['asc', 'desc', 'none', 'time_asc', 'time_desc', 'random']).optional().default('none'),
+  randomSeed: z.coerce.number().min(0).optional(),
+  contentSort: z.enum(['asc', 'desc', 'none', 'time_asc', 'time_desc', 'random']).optional().default('none'),
   cursor: z.array(z.coerce.number()).optional(),
-  exact_match: PermissiveBoolean.optional().default(false),
+  exactMatch: PermissiveBoolean.optional().default(false),
   extra: PermissiveBoolean.optional().default(false),
-  min_length: z.coerce.number().optional(),
-  max_length: z.coerce.number().optional(),
-  excluded_anime_ids: z.array(z.coerce.number()).optional().default([]),
+  minLength: z.coerce.number().optional(),
+  maxLength: z.coerce.number().optional(),
+  excludedAnimeIds: z.array(z.coerce.number()).optional().default([]),
   status: z.array(z.coerce.number()).optional().default([1]),
-  media: z
-    .array(
-      z.object({
-        media_id: z.string(),
-        seasons: z.array(
-          z.object({
-            season: z.coerce.number(),
-            episodes: z.array(z.coerce.number()),
-          }),
-        ),
-      }),
-    )
-    .optional(),
+  media: z.array(z.object({ mediaId: z.coerce.number(), episodes: z.array(z.coerce.number()) })).optional(),
 });
 
 export const s_SegmentListResponse = z.object({
@@ -406,8 +375,8 @@ export const s_Statistic = z.object({
 
 export const s_WordMatch = z.object({
   word: z.string().optional(),
-  is_match: PermissiveBoolean.optional(),
-  total_matches: z.coerce.number().optional(),
+  isMatch: PermissiveBoolean.optional(),
+  totalMatches: z.coerce.number().optional(),
   media: z.array(s_WordMatchMedia).optional(),
 });
 
@@ -423,19 +392,11 @@ export const s_MediaCharacter = z.object({
   role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']),
 });
 
-export const s_SearchMultipleResponse = z.object({
-  results: z.array(s_WordMatch).optional(),
-});
+export const s_SearchMultipleResponse = z.object({ results: z.array(s_WordMatch).optional() });
 
-export const s_Sentence = z.object({
-  basicInfo: s_BasicInfo,
-  segmentInfo: s_SegmentInfo,
-  mediaInfo: s_MediaInfoPath,
-});
+export const s_Sentence = z.object({ basicInfo: s_BasicInfo, segmentInfo: s_SegmentInfo, mediaInfo: s_MediaInfoPath });
 
-export const s_FetchSentenceContextResponse = z.object({
-  sentences: z.array(s_Sentence),
-});
+export const s_FetchSentenceContextResponse = z.object({ sentences: z.array(s_Sentence) });
 
 export const s_Media = z.object({
   id: z.coerce.number(),
@@ -482,10 +443,7 @@ export const s_CharacterWithMedia = z.object({
   imageUrl: z.string(),
   seiyuu: s_Seiyuu,
   mediaAppearances: z.array(
-    z.object({
-      media: s_Media.optional(),
-      role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']).optional(),
-    }),
+    z.object({ media: s_Media.optional(), role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']).optional() }),
   ),
 });
 
@@ -495,12 +453,7 @@ export const s_ListWithMedia = z.object({
   type: z.enum(['SERIES', 'CUSTOM']),
   userId: z.coerce.number(),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
-  media: z.array(
-    z.object({
-      position: z.coerce.number().optional(),
-      media: s_Media.optional(),
-    }),
-  ),
+  media: z.array(z.object({ position: z.coerce.number().optional(), media: s_Media.optional() })),
 });
 
 export const s_MediaListResponse = z.object({
