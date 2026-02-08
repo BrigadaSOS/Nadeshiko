@@ -84,6 +84,11 @@ properties:
     nullable: true
     description: URL to segment audio file (generated from storage + hashedId)
     example: "https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.mp3"
+  videoUrl:
+    type: string
+    nullable: true
+    description: URL to segment video file (generated from storage + hashedId)
+    example: "https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.mp4"
   actorJa:
     type: string
     nullable: true

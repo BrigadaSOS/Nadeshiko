@@ -13,6 +13,7 @@ const BRUNO_DIR = join(__dirname, '../docs/bruno');
 const GENERATED_SUBFOLDER = '[Generated] API';
 const GENERATED_DIR = join(BRUNO_DIR, GENERATED_SUBFOLDER);
 const COLLECTION_NAME = 'Nadeshiko';
+const API_KEY_AUTH_FOLDERS = new Set(['Search', 'Media', 'Lists', 'Admin']);
 
 interface OpenAPISpec {
   openapi: string;
@@ -57,11 +58,7 @@ const EMAIL_PASSWORD_ENDPOINT_PATHS = new Set([
   '/change-password',
 ]);
 
-const PUBLIC_BETTER_AUTH_ENDPOINT_PATHS = new Set([
-  '/sign-in/social',
-  '/ok',
-  '/error',
-]);
+const PUBLIC_BETTER_AUTH_ENDPOINT_PATHS = new Set(['/sign-in/social', '/ok', '/error']);
 
 // Pre-request script for session cookie auth
 const SESSION_COOKIE_PRE_REQUEST_SCRIPT = `const sessionToken = bru.getEnvVar("sessionToken");
@@ -87,6 +84,14 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
   if (item.type !== 'http-request') return;
 
   const request = item.request;
+  const authKey =
+    request.auth?.apikey?.key === 'x-api-key' ? 'Authorization' : request.auth?.apikey?.key || 'Authorization';
+  const rawAuthValue = String(request.auth?.apikey?.value || 'apiKey');
+  const wrappedAuthValue = rawAuthValue.startsWith('{{') ? rawAuthValue : `{{${rawAuthValue}}}`;
+  const bearerTokenValue = wrappedAuthValue.startsWith('Bearer ')
+    ? wrappedAuthValue.slice('Bearer '.length).trim()
+    : wrappedAuthValue;
+  const shouldUseBearerAuth = request.auth?.mode === 'apikey' && authKey === 'Authorization';
   const fileName = sanitizeName(item.name) + '.bru';
   const filePath = join(folderPath, fileName);
 
@@ -120,7 +125,7 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
   } else if (request.auth?.mode === 'inherit') {
     content += `  auth: inherit\n`;
   } else if (request.auth?.mode === 'apikey') {
-    content += `  auth: apikey\n`;
+    content += `  auth: ${shouldUseBearerAuth ? 'bearer' : 'apikey'}\n`;
   }
 
   content += `}\n\n`;
@@ -154,18 +159,17 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
 
   // Only output auth:apikey block for non-cookie-auth endpoints
   if (request.auth?.mode === 'apikey' && !request._isCookieAuth) {
-    const authKey =
-      request.auth.apikey?.key === 'x-api-key' ? 'Authorization' : request.auth.apikey?.key || 'Authorization';
-    const rawValue = String(request.auth.apikey?.value || 'apiKey');
-    const wrappedValue = rawValue.startsWith('{{') ? rawValue : `{{${rawValue}}}`;
-    const formattedValue =
-      authKey === 'Authorization' && !wrappedValue.startsWith('Bearer ') ? `Bearer ${wrappedValue}` : wrappedValue;
-
-    content += `auth:apikey {\n`;
-    content += `  key: ${authKey}\n`;
-    content += `  value: ${formattedValue}\n`;
-    content += `  placement: ${request.auth.apikey?.placement || 'header'}\n`;
-    content += `}\n\n`;
+    if (shouldUseBearerAuth) {
+      content += `auth:bearer {\n`;
+      content += `  token: ${bearerTokenValue}\n`;
+      content += `}\n\n`;
+    } else {
+      content += `auth:apikey {\n`;
+      content += `  key: ${authKey}\n`;
+      content += `  value: ${wrappedAuthValue}\n`;
+      content += `  placement: ${request.auth.apikey?.placement || 'header'}\n`;
+      content += `}\n\n`;
+    }
   }
 
   if (request.body?.mode === 'json' && request.body?.json) {
@@ -212,14 +216,12 @@ function writeFolderBruFile(folderPath: string, item: BrunoItem): void {
   content += `  name: ${sanitizeName(item.name)}\n`;
   content += `}\n\n`;
 
-  if (item.name === 'Search') {
+  if (API_KEY_AUTH_FOLDERS.has(item.name)) {
     content += `auth {\n`;
-    content += `  mode: apikey\n`;
+    content += `  mode: bearer\n`;
     content += `}\n\n`;
-    content += `auth:apikey {\n`;
-    content += `  key: Authorization\n`;
-    content += `  value: Bearer {{apiKey}}\n`;
-    content += `  placement: header\n`;
+    content += `auth:bearer {\n`;
+    content += `  token: {{apiKey}}\n`;
     content += `}\n`;
   }
   // Note: User folder requests use pre-request scripts for session cookie auth

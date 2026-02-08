@@ -86,6 +86,8 @@ post:
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
+    "409":
+      $ref: "../../components/responses/Conflict.yaml"
     "429":
       $ref: "../../components/responses/TooManyRequests.yaml"
     "500":

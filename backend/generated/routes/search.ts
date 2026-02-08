@@ -25,12 +25,7 @@ import type {
   t_SearchRequestBodySchema,
   t_SearchResponse,
 } from '../models.ts';
-import type {
-  FetchMediaInfoQueryOutput,
-  FetchSentenceContextRequestOutput,
-  SearchMultipleRequestOutput,
-  SearchRequestOutput,
-} from '../outputTypes.ts';
+import type { FetchMediaInfoQueryOutput, FetchSentenceContextRequestOutput, SearchMultipleRequestOutput, SearchRequestOutput } from '../outputTypes.ts';
 import {
   s_Error,
   s_FetchMediaInfoResponse,

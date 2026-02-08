@@ -79,6 +79,8 @@ post:
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
+    "409":
+      $ref: "../../components/responses/Conflict.yaml"
     "429":
       $ref: "../../components/responses/TooManyRequests.yaml"
     "500":

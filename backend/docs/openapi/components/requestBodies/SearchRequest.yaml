@@ -19,30 +19,22 @@ properties:
     items:
       $ref: "../schemas/Category.yaml"
     default: [ANIME, JDRAMA]
-  anime_id:
+  animeId:
     type: integer
     description: Unique ID from media
     example: 5
-  season:
-    type: array
-    description: Array of seasons to get
-    items:
-      type: integer
-    example: [1]
   episode:
     type: array
     description: Array of episodes to get
     items:
       type: integer
     example: [5, 8]
-  random_seed:
-    type: number
-    format: float
-    description: A value from 0 to 1 for random sorting
+  randomSeed:
+    type: integer
+    description: Non-negative integer seed for deterministic random sorting
     minimum: 0
-    maximum: 1
-    example: 0.5
-  content_sort:
+    example: 42
+  contentSort:
     type: string
     description: Order by amount of characters
     enum: [asc, desc, none, time_asc, time_desc, random]
@@ -54,7 +46,7 @@ properties:
     items:
       type: number
     example: [23.31727, 7]
-  exact_match:
+  exactMatch:
     type: boolean
     description: Whether to use exact phrase matching
     default: false
@@ -62,15 +54,15 @@ properties:
     type: boolean
     description: Include extra content
     default: false
-  min_length:
+  minLength:
     type: integer
     description: Minimum content length
     example: 10
-  max_length:
+  maxLength:
     type: integer
     description: Maximum content length
     example: 50
-  excluded_anime_ids:
+  excludedAnimeIds:
     type: array
     items:
       type: integer
@@ -84,29 +76,19 @@ properties:
     default: [1]
   media:
     type: array
-    description: Media filter with seasons and episodes
+    description: Media filter with episodes
     items:
       type: object
       required:
-        - media_id
-        - seasons
+        - mediaId
+        - episodes
       properties:
-        media_id:
-          type: string
-          example: "123"
-        seasons:
+        mediaId:
+          type: integer
+          example: 123
+        episodes:
           type: array
+          description: Array of episode numbers
           items:
-            type: object
-            required:
-              - season
-              - episodes
-            properties:
-              season:
-                type: number
-                example: 1
-              episodes:
-                type: array
-                items:
-                  type: number
-                example: [1, 2]
+            type: number
+          example: [1, 2]

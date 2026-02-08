@@ -48,13 +48,13 @@ function readOpenApiLines(): string[] {
 }
 
 function getOpenApiVersionIndex(lines: string[]): number {
-  const infoIndex = lines.findIndex(line => line.trim() === 'info:');
+  const infoIndex = lines.findIndex((line) => line.trim() === 'info:');
   if (infoIndex === -1) fail('Could not find `info:` block in docs/openapi/openapi.yaml');
 
   for (let i = infoIndex + 1; i < lines.length; i += 1) {
     const line = lines[i] ?? '';
     if (/^\S/.test(line)) break;
-    if (/^  version:\s*/.test(line)) return i;
+    if (/^ {2}version:\s*/.test(line)) return i;
   }
 
   fail('Could not find `info.version` in docs/openapi/openapi.yaml');
@@ -63,7 +63,7 @@ function getOpenApiVersionIndex(lines: string[]): number {
 function readOpenApiVersion(): string {
   const lines = readOpenApiLines();
   const versionLine = lines[getOpenApiVersionIndex(lines)] ?? '';
-  const rawVersion = versionLine.replace(/^  version:\s*/, '').trim();
+  const rawVersion = versionLine.replace(/^ {2}version:\s*/, '').trim();
   return normalizeVersion(rawVersion, 'docs/openapi/openapi.yaml info.version');
 }
 
@@ -72,7 +72,7 @@ function writeOpenApiVersion(version: string): string {
   const versionIndex = getOpenApiVersionIndex(lines);
   const currentLine = lines[versionIndex] ?? '';
   const previous = normalizeVersion(
-    currentLine.replace(/^  version:\s*/, '').trim(),
+    currentLine.replace(/^ {2}version:\s*/, '').trim(),
     'docs/openapi/openapi.yaml info.version',
   );
 
@@ -99,10 +99,7 @@ function runCheck(expectedInput?: unknown): void {
       ? undefined
       : normalizeVersion(expectedInput, 'expected version');
 
-  const packageVersion = normalizeVersion(
-    readPackageJson().version,
-    'backend/package.json version',
-  );
+  const packageVersion = normalizeVersion(readPackageJson().version, 'backend/package.json version');
   const openApiVersion = readOpenApiVersion();
 
   if (expected && packageVersion !== expected) {

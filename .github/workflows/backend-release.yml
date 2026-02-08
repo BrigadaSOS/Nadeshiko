@@ -23,14 +23,14 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Install backend dependencies
         run: |
           cd backend
+          bun install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
           bun install --frozen-lockfile
 
       - name: Validate release tag and version consistency
@@ -45,7 +45,6 @@ jobs:
             exit 1
           fi
 
-          cd backend
           bun run release:check-version "${VERSION}"
 
       - name: Generate OpenAPI spec for release

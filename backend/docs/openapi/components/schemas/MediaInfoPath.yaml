@@ -1,17 +1,17 @@
 type: object
 description: URLs to media resources for a segment
 properties:
-  path_image:
+  pathImage:
     type: string
     format: uri
     description: URL to the subtitle image snapshot
     example: "https://example.com/media/anime/steins-gate/segments/1133.jpg"
-  path_audio:
+  pathAudio:
     type: string
     format: uri
     description: URL to the audio clip for this segment
     example: "https://example.com/media/anime/steins-gate/audio/1133.mp3"
-  path_video:
+  pathVideo:
     type: string
     format: uri
     description: URL to the video clip for this segment

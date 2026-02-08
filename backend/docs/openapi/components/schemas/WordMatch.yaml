@@ -5,11 +5,11 @@ properties:
     type: string
     description: The word that was searched for
     example: "彼女"
-  is_match:
+  isMatch:
     type: boolean
     description: Indicates whether the word was found in any segment
     example: true
-  total_matches:
+  totalMatches:
     type: integer
     description: Total number of times this word appears across all media
     example: 1523

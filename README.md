@@ -11,6 +11,57 @@ Nadeshiko is an online sentence search engine designed to display content from a
 - **Downloadable Content**: Download any content for offline study and reference.
 - **Public API:** Integrate our database and search features into your own applications.
 
+## Development
+### Prerequisites
+- `bun` (see `.tool-versions`)
+- Docker and Docker Compose
+
+### Quick start
+```bash
+# Start local services (Postgres/Elasticsearch/Kibana)
+cd backend && docker compose up -d
+
+# Install dependencies
+cd ..
+bun install --cwd backend
+bun install --cwd frontend
+
+# Create env files
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# Prepare backend data
+bun run --cwd backend setup
+
+# Run apps
+bun run dev:backend
+bun run dev:frontend
+```
+
+### Common root commands
+```bash
+bun run lint
+bun run typecheck
+bun run build
+bun run check
+bun run docs:verify
+```
+
+## Release Versioning
+From the repository root:
+
+```bash
+bun run release:set-version 1.2.3
+bun run release:check-version
+```
+
+Tag and push the release:
+
+```bash
+git tag -a v1.2.3 -m "Release v1.2.3"
+git push origin v1.2.3
+```
+
 ## Contribution and Attribution
 <table>
 <tr>
@@ -41,5 +92,4 @@ Nadeshiko is an online sentence search engine designed to display content from a
 
 This search engine makes use of materials and references that are the intellectual property of their respective authors and rights holders. Please consult [here](https://nadeshiko.co/search/media) for the list of content used and its respective authors.
 
-The use of these materials is carried out under the belief that it complies with the guidelines of "fair use" for educational purposes and without profit motive. If you are the holder of the rights to any of these materials and believe that the fair use standards are not being met, please [contact us](brigadasosjapones@gmail.com).
-
+The use of these materials is carried out under the belief that it complies with the guidelines of "fair use" for educational purposes and without profit motive. If you are the holder of the rights to any of these materials and believe that the fair use standards are not being met, please [contact us](https://nadeshiko.co/dmca).

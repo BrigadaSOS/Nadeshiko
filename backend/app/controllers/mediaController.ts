@@ -3,6 +3,7 @@ import type { DeepPartial } from 'typeorm';
 import { CategoryType, Media, MediaCharacter, CharacterRole } from '@app/entities';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
 import { AppDataSource } from '@config/database';
+import { invalidateSearchExtraStatsCache } from '@lib/cache/searchExtraStatsCache';
 
 export const mediaIndex: MediaIndex = async ({ query }, respond) => {
   const [mediaList, count] = await Media.findAndCount({
@@ -64,6 +65,9 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
     });
   });
 
+  Media.invalidateCache();
+  invalidateSearchExtraStatsCache();
+
   return respond.with201().body(toMediaDTO(media));
 };
 
@@ -85,8 +89,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
     const media = await manager.findOneOrFail(Media, { where: { id: params.id } });
 
     // Extract only the fields we want to update (exclude relations and computed fields)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { characters, lists, numSegments, ...updateFields } = body;
+    const { characters, lists: _lists, numSegments: _numSegments, ...updateFields } = body;
 
     Media.merge(media, updateFields as DeepPartial<Media>);
 
@@ -116,6 +119,8 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
     return await manager.save(media);
   });
 
+  Media.invalidateCache();
+
   return respond.with200().body(toMediaDTO(media));
 };
 
@@ -125,6 +130,8 @@ export const mediaDestroy: MediaDestroy = async ({ params }, respond) => {
   });
 
   await media.softRemove();
+  Media.invalidateCache();
+  invalidateSearchExtraStatsCache();
 
   return respond.with200().body({
     message: 'Media deleted successfully',

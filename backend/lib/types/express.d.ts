@@ -1,14 +1,20 @@
 import 'express-serve-static-core';
+import type { UserRoleType } from '@app/entities';
 
 declare module 'express-serve-static-core' {
   interface Request {
-    jwt?: any;
+    jwt?: {
+      user_id: number;
+      role: UserRoleType;
+    };
     user?: any;
     apiKey?: string;
     apiKeyPermissions?: string[];
     auth?: {
-      type: 'session' | 'dev-impersonation' | 'api-key-better-auth' | 'api-key-legacy';
+      type: 'session' | 'api-key-better-auth' | 'api-key-legacy';
       user_id: number;
+      apiKeyId?: string;
+      apiKeyKind?: 'service' | 'user';
     };
     accountQuota?: {
       periodYyyymm: number;

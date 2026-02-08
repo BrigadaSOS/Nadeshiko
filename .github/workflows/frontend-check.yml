@@ -1,0 +1,41 @@
+name: Frontend Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  frontend-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          bun install --frozen-lockfile
+
+      - name: Lint frontend
+        run: |
+          cd frontend
+          bun run lint
+
+      - name: Typecheck frontend
+        run: |
+          cd frontend
+          bun run typecheck
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          bun run build

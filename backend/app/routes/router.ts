@@ -1,7 +1,6 @@
 import express from 'express';
-import { searchFetchLimiter } from '@app/middleware/apiLimiterRate';
-import { authenticate } from '@app/middleware/authentication';
-import { hasPermissionAPI } from '@app/middleware/permissionHandler';
+import { requireApiKeyAuth, requireSessionAuth } from '@app/middleware/authentication';
+import { requirePermissions } from '@app/middleware/authorization';
 import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
 import {
   searchHealthCheck,
@@ -19,6 +18,7 @@ import {
   purgeFailedJobs,
 } from '@app/controllers/adminController';
 import { impersonateUserForDevelopment, clearDevelopmentImpersonation } from '@app/controllers/devAuthController';
+import { isLocalEnvironment } from '@lib/environment';
 import { mediaIndex, mediaCreate, mediaShow, mediaUpdate, mediaDestroy } from '@app/controllers/mediaController';
 import { characterShow } from '@app/controllers/characterController';
 import { seiyuuShow } from '@app/controllers/seiyuuController';
@@ -104,43 +104,43 @@ const AdminRoutes = createAdminRouter({
   retryQueueJobs,
 });
 
-router.post('/v1/dev/auth/impersonate', impersonateUserForDevelopment);
-router.post('/v1/dev/auth/impersonate/clear', clearDevelopmentImpersonation);
-router.get('/v1/user/quota', authenticate({ session: true }), getCurrentUserQuota);
+const apiKeyOnly = [requireApiKeyAuth, rateLimitApiQuota] as const;
 
-router.all(
-  '/v1/search',
-  searchFetchLimiter,
-  authenticate({ apiKey: true }),
-  hasPermissionAPI(['READ_MEDIA']),
-  rateLimitApiQuota,
-);
-router.all(
-  '/v1/search/*path',
-  searchFetchLimiter,
-  authenticate({ apiKey: true }),
-  hasPermissionAPI(['READ_MEDIA']),
-  rateLimitApiQuota,
-);
+const searchAccess = [requireApiKeyAuth, requirePermissions('READ_MEDIA'), rateLimitApiQuota] as const;
+const adminAccess = [requireApiKeyAuth, requirePermissions('ADD_MEDIA'), rateLimitApiQuota] as const;
 
-router.all('/v1/admin', authenticate({ apiKey: true }), hasPermissionAPI(['ADD_MEDIA']), rateLimitApiQuota);
-router.all('/v1/admin/*path', authenticate({ apiKey: true }), hasPermissionAPI(['ADD_MEDIA']), rateLimitApiQuota);
+const mediaReadPermission = [requirePermissions('READ_MEDIA')] as const;
+const mediaAddPermission = [requirePermissions('ADD_MEDIA')] as const;
+const mediaUpdatePermission = [requirePermissions('UPDATE_MEDIA')] as const;
+const mediaRemovePermission = [requirePermissions('REMOVE_MEDIA')] as const;
 
-router.all('/v1/media', authenticate({ apiKey: true }), rateLimitApiQuota);
-router.all('/v1/media/*path', authenticate({ apiKey: true }), rateLimitApiQuota);
-router.get('/v1/media', hasPermissionAPI(['READ_MEDIA']), rateLimitApiQuota);
-router.get('/v1/media/*path', hasPermissionAPI(['READ_MEDIA']), rateLimitApiQuota);
-router.post('/v1/media/*path', hasPermissionAPI(['ADD_MEDIA']), rateLimitApiQuota);
-router.patch('/v1/media/*path', hasPermissionAPI(['UPDATE_MEDIA']), rateLimitApiQuota);
-router.delete('/v1/media/*path', hasPermissionAPI(['REMOVE_MEDIA']), rateLimitApiQuota);
+const listsReadPermission = [requirePermissions('READ_LISTS')] as const;
+const listsCreatePermission = [requirePermissions('CREATE_LISTS')] as const;
+const listsUpdatePermission = [requirePermissions('UPDATE_LISTS')] as const;
+const listsDeletePermission = [requirePermissions('DELETE_LISTS')] as const;
 
-router.all('/v1/lists', authenticate({ apiKey: true }), rateLimitApiQuota);
-router.all('/v1/lists/*path', authenticate({ apiKey: true }), rateLimitApiQuota);
-router.get('/v1/lists', hasPermissionAPI(['READ_LISTS']), rateLimitApiQuota);
-router.get('/v1/lists/*path', hasPermissionAPI(['READ_LISTS']), rateLimitApiQuota);
-router.post('/v1/lists/*path', hasPermissionAPI(['CREATE_LISTS']), rateLimitApiQuota);
-router.patch('/v1/lists/*path', hasPermissionAPI(['UPDATE_LISTS']), rateLimitApiQuota);
-router.delete('/v1/lists/*path', hasPermissionAPI(['DELETE_LISTS']), rateLimitApiQuota);
+if (isLocalEnvironment()) {
+  router.post('/v1/dev/auth/impersonate', impersonateUserForDevelopment);
+  router.post('/v1/dev/auth/impersonate/clear', clearDevelopmentImpersonation);
+}
+router.get('/v1/user/quota', requireSessionAuth, getCurrentUserQuota);
+
+router.use('/v1/search', ...searchAccess);
+router.use('/v1/admin', ...adminAccess);
+router.use('/v1/media', ...apiKeyOnly);
+router.use('/v1/lists', ...apiKeyOnly);
+
+router.get('/v1/media', ...mediaReadPermission);
+router.get('/v1/media/*path', ...mediaReadPermission);
+router.post('/v1/media/*path', ...mediaAddPermission);
+router.patch('/v1/media/*path', ...mediaUpdatePermission);
+router.delete('/v1/media/*path', ...mediaRemovePermission);
+
+router.get('/v1/lists', ...listsReadPermission);
+router.get('/v1/lists/*path', ...listsReadPermission);
+router.post('/v1/lists/*path', ...listsCreatePermission);
+router.patch('/v1/lists/*path', ...listsUpdatePermission);
+router.delete('/v1/lists/*path', ...listsDeletePermission);
 
 router.use('/', SearchRoutes);
 router.use('/', MediaRoutes);

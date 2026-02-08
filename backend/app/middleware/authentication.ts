@@ -1,58 +1,29 @@
-import { ApiAuth, User, UserRole } from '@app/entities';
+import { ApiAuth, User } from '@app/entities';
 import {
-  AccessDeniedError,
   AuthCredentialsExpiredError,
   AuthCredentialsInvalidError,
   AuthCredentialsRequiredError,
+  QuotaExceededError,
+  RateLimitExceededError,
 } from '@lib/utils/apiErrors';
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { hashApiKey } from '@lib/utils/utils';
-import { auth, BETTER_AUTH_SESSION_COOKIE_ALIASES } from '@lib/auth';
+import { auth } from '@lib/auth';
 import { fromNodeHeaders } from 'better-auth/node';
-import { DEV_IMPERSONATION_COOKIE, getDevImpersonationSession } from '@app/services/devImpersonation';
 
-type RequestAuthType = 'session' | 'dev-impersonation' | 'api-key-better-auth' | 'api-key-legacy';
+type RequestAuthType = 'session' | 'api-key-better-auth' | 'api-key-legacy';
+type ApiKeyKind = 'service' | 'user';
 
 const LEGACY_API_KEY_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LEGACY_MASTER_API_KEY = process.env.API_KEY_MASTER?.trim();
+const SERVICE_API_KEY_IDS = new Set(
+  (process.env.SERVICE_API_KEY_IDS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
 
-export const authenticate = (options: { session?: boolean; apiKey?: boolean }) => {
-  return async (req: any, res: Response, next: NextFunction): Promise<void> => {
-    const hasBearerToken = extractBearerToken(req) !== undefined;
-    const hasSessionCookie = BETTER_AUTH_SESSION_COOKIE_ALIASES.some((cookieName) =>
-      extractCookieValue(req, cookieName),
-    );
-    const hasDevCookie = extractCookieValue(req, DEV_IMPERSONATION_COOKIE) !== null;
-
-    if (options.session && (hasSessionCookie || hasDevCookie)) {
-      return isAuthSession(req, res, next);
-    }
-
-    if (options.apiKey && hasBearerToken) {
-      return isAuthenticatedAPI(req, res, next);
-    }
-
-    const missing: string[] = [];
-    if (options.session && !hasSessionCookie && !hasDevCookie) missing.push('Session');
-    if (options.apiKey && !hasBearerToken) missing.push('API Key (Authorization Bearer)');
-    throw new AuthCredentialsRequiredError(`Authentication required: ${missing.join(' or ')}`);
-  };
-};
-
-export const isAuthSession = async (req: any, _res: Response, next: NextFunction): Promise<void> => {
-  const isNonProduction = process.env.ENVIRONMENT !== 'production';
-  const devToken = extractCookieValue(req, DEV_IMPERSONATION_COOKIE);
-
-  if (isNonProduction && devToken) {
-    const devSession = getDevImpersonationSession(devToken);
-    if (!devSession) {
-      throw new AuthCredentialsExpiredError('Development impersonation session has expired.');
-    }
-    await attachJwtPayloadToRequest(req, devSession.userId, 'dev-impersonation');
-    next();
-    return;
-  }
-
+export const requireSessionAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     const sessionData = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
@@ -67,34 +38,70 @@ export const isAuthSession = async (req: any, _res: Response, next: NextFunction
       throw new AuthCredentialsInvalidError('Invalid session user id.');
     }
 
-    await attachJwtPayloadToRequest(req, userId, 'session');
+    await attachAuthPayloadToRequest(req, userId, 'session');
     next();
   } catch (error) {
-    if (
-      error instanceof AuthCredentialsRequiredError ||
-      error instanceof AuthCredentialsExpiredError ||
-      error instanceof AuthCredentialsInvalidError
-    ) {
+    if (isKnownAuthError(error)) {
       throw error;
     }
     throw new AuthCredentialsInvalidError('Invalid or expired session.');
   }
 };
 
-function extractCookieValue(req: any, cookieName: string): string | null {
-  const cookies: string | undefined = req.headers['cookie'];
-  if (!cookies) return null;
-  for (const cookie of cookies.split(';')) {
-    const [name, value] = cookie.split('=').map((c) => c.trim());
-    if (name === cookieName) {
-      return decodeURIComponent(value);
+export const requireApiKeyAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+  const apiKey = extractBearerToken(req);
+  req.apiKey = apiKey;
+
+  if (!apiKey) {
+    throw new AuthCredentialsRequiredError('No API key was provided in Authorization header.');
+  }
+
+  const isLegacy = looksLikeLegacyApiKey(apiKey);
+
+  // Legacy format keys (UUIDs) go directly to legacy authentication
+  if (isLegacy) {
+    await authenticateLegacyApiKey(req, apiKey);
+    next();
+    return;
+  }
+
+  // All other keys (including master API key) try Better Auth first
+  try {
+    await authenticateBetterAuthApiKey(req, apiKey);
+    next();
+    return;
+  } catch (error) {
+    if (!isKnownAuthError(error)) {
+      throw error;
     }
   }
-  return null;
+
+  // Fallback to legacy authentication for non-UUID keys
+  try {
+    await authenticateLegacyApiKey(req, apiKey);
+    next();
+    return;
+  } catch (error) {
+    if (!isKnownAuthError(error)) {
+      throw error;
+    }
+  }
+
+  throw new AuthCredentialsInvalidError('Invalid API key.');
+};
+
+function isKnownAuthError(
+  error: unknown,
+): error is AuthCredentialsRequiredError | AuthCredentialsInvalidError | AuthCredentialsExpiredError {
+  return (
+    error instanceof AuthCredentialsRequiredError ||
+    error instanceof AuthCredentialsInvalidError ||
+    error instanceof AuthCredentialsExpiredError
+  );
 }
 
-function extractBearerToken(req: any): string | undefined {
-  const authorization = req.headers.authorization as string | undefined;
+function extractBearerToken(req: Request): string | undefined {
+  const authorization = req.headers.authorization;
   if (!authorization || !authorization.startsWith('Bearer ')) {
     return undefined;
   }
@@ -123,7 +130,80 @@ function flattenBetterAuthPermissions(rawPermissions: unknown): string[] {
   return Array.from(new Set(permissions));
 }
 
-function mapBetterAuthApiKeyError(error: unknown): AuthCredentialsInvalidError | AuthCredentialsExpiredError | null {
+function parseApiKeyMetadata(rawMetadata: unknown): Record<string, unknown> | null {
+  if (!rawMetadata) {
+    return null;
+  }
+
+  if (typeof rawMetadata === 'object' && !Array.isArray(rawMetadata)) {
+    return rawMetadata as Record<string, unknown>;
+  }
+
+  if (typeof rawMetadata !== 'string') {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawMetadata);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapBetterAuthApiKeyCode(
+  code: unknown,
+): AuthCredentialsInvalidError | AuthCredentialsExpiredError | RateLimitExceededError | QuotaExceededError | null {
+  if (typeof code !== 'string') {
+    return null;
+  }
+
+  if (code === 'RATE_LIMITED') {
+    return new RateLimitExceededError('API key rate limit exceeded. Please try again later.');
+  }
+
+  if (code === 'USAGE_EXCEEDED') {
+    return new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.');
+  }
+
+  if (code === 'KEY_DISABLED' || code === 'KEY_EXPIRED') {
+    return new AuthCredentialsExpiredError('API key is disabled or expired.');
+  }
+
+  if (code === 'INVALID_API_KEY') {
+    return new AuthCredentialsInvalidError('Invalid API key.');
+  }
+
+  if (code === 'KEY_NOT_FOUND') {
+    return new AuthCredentialsInvalidError('Invalid API key.');
+  }
+
+  return null;
+}
+
+function inferApiKeyKind(apiKey: { id?: string | number; metadata?: unknown }): ApiKeyKind {
+  if (apiKey.id !== undefined && apiKey.id !== null && SERVICE_API_KEY_IDS.has(String(apiKey.id))) {
+    return 'service';
+  }
+
+  const metadata = parseApiKeyMetadata(apiKey.metadata);
+  if (!metadata) {
+    return 'user';
+  }
+
+  const keyType = typeof metadata.keyType === 'string' ? metadata.keyType.toLowerCase() : null;
+  const isService = metadata.isService === true;
+
+  if (keyType === 'service' || isService) {
+    return 'service';
+  }
+
+  return 'user';
+}
+
+function mapBetterAuthApiKeyError(
+  error: unknown,
+): AuthCredentialsInvalidError | AuthCredentialsExpiredError | RateLimitExceededError | QuotaExceededError | null {
   if (!error || typeof error !== 'object') {
     return null;
   }
@@ -138,98 +218,65 @@ function mapBetterAuthApiKeyError(error: unknown): AuthCredentialsInvalidError |
     };
   };
 
-  const code = typeof maybeError.body?.code === 'string' ? maybeError.body.code : '';
-
-  if (code === 'KEY_DISABLED' || code === 'KEY_EXPIRED' || code === 'USAGE_EXCEEDED') {
-    return new AuthCredentialsExpiredError('API key is disabled or expired.');
-  }
-
-  if (code === 'INVALID_API_KEY') {
-    return new AuthCredentialsInvalidError('Invalid API key.');
+  const mappedFromCode = mapBetterAuthApiKeyCode(maybeError.body?.code);
+  if (mappedFromCode) {
+    return mappedFromCode;
   }
 
   const status = typeof maybeError.status === 'string' ? maybeError.status : '';
   const statusCode = typeof maybeError.statusCode === 'number' ? maybeError.statusCode : -1;
   const message = typeof maybeError.message === 'string' ? maybeError.message : '';
   const bodyMessage = typeof maybeError.body?.message === 'string' ? maybeError.body.message : '';
+  const combinedMessage = `${message} ${bodyMessage}`.trim();
 
-  if (
-    (statusCode === 401 || status === 'UNAUTHORIZED') &&
-    /invalid api key/i.test(`${message} ${bodyMessage}`.trim())
-  ) {
+  if (statusCode === 429 || status === 'TOO_MANY_REQUESTS') {
+    if (/usage exceeded/i.test(combinedMessage)) {
+      return new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.');
+    }
+    return new RateLimitExceededError('API key rate limit exceeded. Please try again later.');
+  }
+
+  if ((statusCode === 401 || status === 'UNAUTHORIZED') && /invalid api key/i.test(combinedMessage)) {
     return new AuthCredentialsInvalidError('Invalid API key.');
   }
 
   return null;
 }
 
-async function attachJwtPayloadToRequest(req: any, userId: number, authType: RequestAuthType): Promise<void> {
+async function attachAuthPayloadToRequest(
+  req: Request,
+  userId: number,
+  authType: RequestAuthType,
+  options: { apiKeyId?: string; apiKeyKind?: ApiKeyKind } = {},
+): Promise<void> {
   const user = await User.findOne({ where: { id: userId } });
   if (!user || !user.isActive) {
     throw new AuthCredentialsInvalidError('User is invalid or inactive.');
   }
 
-  const userRoles = await UserRole.find({ where: { userId } });
   req.jwt = {
     user_id: userId,
-    roles: userRoles.map((userRole) => userRole.roleId),
+    role: user.role,
   };
   req.auth = {
     type: authType,
     user_id: userId,
+    ...(options.apiKeyId ? { apiKeyId: options.apiKeyId } : {}),
+    ...(options.apiKeyKind ? { apiKeyKind: options.apiKeyKind } : {}),
   };
 }
 
-async function isAuthenticatedAPI(req: any, _res: Response, next: NextFunction): Promise<void> {
-  const apiKey = extractBearerToken(req);
-  req.apiKey = apiKey;
-
-  if (!apiKey) {
-    throw new AuthCredentialsRequiredError('No API key was provided in Authorization header.');
-  }
-
-  if (looksLikeLegacyApiKey(apiKey) || isLegacyMasterApiKey(apiKey)) {
-    await authenticateLegacyApiKey(req, apiKey);
-    next();
-    return;
-  }
-
-  if (await tryAuthenticateBetterAuthApiKey(req, apiKey)) {
-    next();
-    return;
-  }
-
-  if (await tryAuthenticateLegacyApiKey(req, apiKey)) {
-    next();
-    return;
-  }
-
-  throw new AuthCredentialsInvalidError('Invalid API key.');
-}
-
-async function tryAuthenticateBetterAuthApiKey(req: any, apiKey: string): Promise<boolean> {
-  try {
-    await authenticateBetterAuthApiKey(req, apiKey);
-    return true;
-  } catch (error) {
-    if (error instanceof AuthCredentialsInvalidError || error instanceof AuthCredentialsExpiredError) {
-      return false;
-    }
-    throw error;
-  }
-}
-
-async function authenticateBetterAuthApiKey(req: any, apiKey: string): Promise<void> {
+async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promise<void> {
   let verification: {
     valid?: boolean;
     key?: {
-      id?: string;
+      id?: string | number;
       userId?: string | number;
       permissions?: unknown;
+      metadata?: unknown;
     } | null;
     error?: {
       code?: string;
-      message?: string;
     } | null;
   };
 
@@ -248,9 +295,9 @@ async function authenticateBetterAuthApiKey(req: any, apiKey: string): Promise<v
   }
 
   if (!verification?.valid || !verification.key) {
-    const code = verification?.error?.code;
-    if (code === 'KEY_DISABLED' || code === 'KEY_EXPIRED' || code === 'USAGE_EXCEEDED') {
-      throw new AuthCredentialsExpiredError('API key is disabled or expired.');
+    const mappedError = mapBetterAuthApiKeyCode(verification?.error?.code);
+    if (mappedError) {
+      throw mappedError;
     }
     throw new AuthCredentialsInvalidError('Invalid API key.');
   }
@@ -260,28 +307,20 @@ async function authenticateBetterAuthApiKey(req: any, apiKey: string): Promise<v
     throw new AuthCredentialsInvalidError('Invalid API key owner.');
   }
 
-  await attachJwtPayloadToRequest(req, userId, 'api-key-better-auth');
+  const apiKeyId =
+    verification.key.id !== undefined && verification.key.id !== null ? String(verification.key.id) : undefined;
+  const apiKeyKind = inferApiKeyKind(verification.key);
+  const permissions = flattenBetterAuthPermissions(verification.key.permissions);
+
+  await attachAuthPayloadToRequest(req, userId, 'api-key-better-auth', {
+    apiKeyId,
+    apiKeyKind,
+  });
   req.user = undefined;
-  req.apiKeyPermissions = flattenBetterAuthPermissions(verification.key.permissions);
+  req.apiKeyPermissions = permissions;
 }
 
-async function tryAuthenticateLegacyApiKey(req: any, apiKey: string): Promise<boolean> {
-  try {
-    await authenticateLegacyApiKey(req, apiKey);
-    return true;
-  } catch (error) {
-    if (
-      error instanceof AuthCredentialsRequiredError ||
-      error instanceof AuthCredentialsInvalidError ||
-      error instanceof AuthCredentialsExpiredError
-    ) {
-      return false;
-    }
-    throw error;
-  }
-}
-
-async function authenticateLegacyApiKey(req: any, apiKey: string): Promise<void> {
+async function authenticateLegacyApiKey(req: Request, apiKey: string): Promise<void> {
   const hashedKey = hashApiKey(apiKey);
 
   const apiAuth = await ApiAuth.findOne({
@@ -314,19 +353,11 @@ async function authenticateLegacyApiKey(req: any, apiKey: string): Promise<void>
     throw new AuthCredentialsInvalidError('Invalid API key.');
   }
 
-  await attachJwtPayloadToRequest(req, user.id, 'api-key-legacy');
+  await attachAuthPayloadToRequest(req, user.id, 'api-key-legacy', {
+    apiKeyKind: isLegacyMasterApiKey(apiKey) ? 'service' : 'user',
+  });
   req.user = user;
   req.apiKeyPermissions = (user.apiAuth?.permissions ?? []).map(
     (permission: { apiPermission: string }) => permission.apiPermission,
   );
 }
-
-export const requireRoleJWT = (...allowedRoles: number[]) => {
-  return (req: any, _res: Response, next: NextFunction): void => {
-    const roles: number[] = req.jwt.roles;
-    if (!roles.some((role) => allowedRoles.includes(role))) {
-      throw new AccessDeniedError('Denied access. Not authorized.');
-    }
-    next();
-  };
-};
