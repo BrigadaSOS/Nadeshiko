@@ -47,15 +47,16 @@ export class InitialSchema1706150400000 implements MigrationInterface {
       );
     `);
 
-    // ===== BASE TABLES =====
     await queryRunner.query(`
-      CREATE TABLE "Role" (
-        "id" integer PRIMARY KEY,
-        "name" varchar NOT NULL,
-        "description" varchar
+      CREATE TYPE "user_role_enum" AS ENUM (
+        'ADMIN',
+        'MOD',
+        'USER',
+        'PATREON'
       );
     `);
 
+    // ===== BASE TABLES =====
     await queryRunner.query(`
       CREATE TABLE "User" (
         "id" SERIAL PRIMARY KEY,
@@ -67,17 +68,8 @@ export class InitialSchema1706150400000 implements MigrationInterface {
         "last_login" timestamp,
         "is_verified" boolean DEFAULT false NOT NULL,
         "is_active" boolean DEFAULT false NOT NULL,
+        "role" "user_role_enum" DEFAULT 'USER' NOT NULL,
         "monthly_quota_limit" bigint DEFAULT 2500 NOT NULL
-      );
-    `);
-
-    await queryRunner.query(`
-      CREATE TABLE "UserRole" (
-        "id" SERIAL PRIMARY KEY,
-        "user_id" integer NOT NULL,
-        "role_id" integer NOT NULL,
-        CONSTRAINT "UserRole_user_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id"),
-        CONSTRAINT "UserRole_role_fkey" FOREIGN KEY ("role_id") REFERENCES "Role"("id")
       );
     `);
 
@@ -455,11 +447,10 @@ export class InitialSchema1706150400000 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_session_expires_at";`);
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_session_user_id";`);
     await queryRunner.query(`DROP TABLE "session";`);
-    await queryRunner.query(`DROP TABLE "UserRole";`);
     await queryRunner.query(`DROP TABLE "User";`);
-    await queryRunner.query(`DROP TABLE "Role";`);
 
     // Drop enum types
+    await queryRunner.query(`DROP TYPE "user_role_enum";`);
     await queryRunner.query(`DROP TYPE "api_permission_enum";`);
     await queryRunner.query(`DROP TYPE "list_visibility";`);
     await queryRunner.query(`DROP TYPE "list_type";`);

@@ -45,7 +45,7 @@ async function setup(): Promise<void> {
   await migrate();
   await runSeed();
   await setupPgBoss();
-  await setupElasticsearch();
+  await setupElasticsearchUserAndRole();
   logger.info('Setup complete');
 }
 
@@ -84,6 +84,43 @@ async function setupElasticsearch(): Promise<void> {
   } catch (error) {
     logger.error(error, 'Elasticsearch index setup failed');
     throw error; // Re-throw since ES is required for the app to function
+  }
+}
+
+async function setupElasticsearchUserAndRole(): Promise<void> {
+  logger.info('Setting up Elasticsearch user and role...');
+  try {
+    const { setupElasticsearchUser, initializeElasticsearchIndexWithClient } = await import('@lib/external/elasticsearch');
+    const { Client } = await import('@elastic/elasticsearch');
+
+    // Create admin client
+    const adminUser = process.env.ELASTICSEARCH_ADMIN_USER || 'elastic';
+    const adminPassword = process.env.ELASTICSEARCH_ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      logger.info('ELASTICSEARCH_ADMIN_PASSWORD not set, skipping user/role creation');
+      return;
+    }
+
+    const { HttpConnection } = await import('@elastic/elasticsearch');
+    const adminClient = new Client({
+      node: process.env.ELASTICSEARCH_HOST,
+      auth: {
+        username: adminUser,
+        password: adminPassword,
+      },
+      Connection: HttpConnection,
+    });
+
+    // Create user and role first
+    const username = await setupElasticsearchUser();
+
+    // Use admin client to create the index (since app user may not exist yet)
+    logger.info('Using admin client to create index');
+    await initializeElasticsearchIndexWithClient(adminClient);
+  } catch (error) {
+    logger.error(error, 'Elasticsearch user setup failed');
+    throw error;
   }
 }
 

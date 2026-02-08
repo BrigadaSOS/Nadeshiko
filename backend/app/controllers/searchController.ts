@@ -15,7 +15,7 @@ import { MediaInfoStats } from '@lib/types/queryMediaInfoResponse';
 export const searchHealthCheck: SearchHealthCheck = async (_params, respond) => {
   const searchResults = await querySegments({
     query: 'あ',
-    length_sort_order: 'none',
+    lengthSortOrder: 'none',
     limit: 10,
     status: [1],
   });
@@ -27,38 +27,36 @@ export const search: Search = async ({ body }, respond) => {
   const searchResults = await querySegments({
     query: body.query,
     uuid: body.uuid,
-    length_sort_order: body.content_sort,
+    lengthSortOrder: body.contentSort,
     limit: body.limit,
     status: body.status,
     cursor: body.cursor,
-    random_seed: body.random_seed,
+    randomSeed: body.randomSeed,
     media: body.media,
-    anime_id: body.anime_id,
-    exact_match: body.exact_match,
-    season: body.season,
+    animeId: body.animeId,
+    exactMatch: body.exactMatch,
     episode: body.episode,
     category: body.category, // Already string[] enum values
     extra: body.extra,
-    min_length: body.min_length,
-    max_length: body.max_length,
-    excluded_anime_ids: body.excluded_anime_ids,
+    minLength: body.minLength,
+    maxLength: body.maxLength,
+    excludedAnimeIds: body.excludedAnimeIds,
   });
 
   return respond.with200().body(searchResults);
 };
 
 export const searchMultiple: SearchMultiple = async ({ body }, respond) => {
-  const searchResults = await queryWordsMatched(body.words, body.exact_match);
+  const searchResults = await queryWordsMatched(body.words, body.exactMatch);
 
   return respond.with200().body(searchResults);
 };
 
 export const fetchSentenceContext: FetchSentenceContext = async ({ body }, respond) => {
   const searchResults = await querySurroundingSegments({
-    media_id: body.media_id,
-    season: body.season,
+    mediaId: body.mediaId,
     episode: body.episode,
-    segment_position: body.segment_position,
+    segmentPosition: body.segmentPosition,
     limit: body.limit || 5,
   });
 
@@ -94,6 +92,7 @@ export const fetchMediaInfo: FetchMediaInfo = async ({ query }, respond) => {
     order: { createdAt: 'DESC' },
     take: pageSize,
     skip: cursor,
+    relations: ['episodes'],
   });
 
   const globalStats = await Media.getGlobalStats();

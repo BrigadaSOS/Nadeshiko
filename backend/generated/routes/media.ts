@@ -49,17 +49,7 @@ import type {
   t_SeiyuuShowParamSchema,
   t_SeiyuuWithRoles,
 } from '../models.ts';
-import type {
-  EpisodeCreateRequestOutput,
-  EpisodeIndexQueryOutput,
-  EpisodeUpdateRequestOutput,
-  MediaCreateRequestOutput,
-  MediaIndexQueryOutput,
-  MediaUpdateRequestOutput,
-  SegmentCreateRequestOutput,
-  SegmentIndexQueryOutput,
-  SegmentUpdateRequestOutput,
-} from '../outputTypes.ts';
+import type { EpisodeCreateRequestOutput, EpisodeIndexQueryOutput, EpisodeUpdateRequestOutput, MediaCreateRequestOutput, MediaIndexQueryOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentIndexQueryOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
   s_CharacterWithMedia,
   s_Episode,
@@ -729,13 +719,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
   const mediaDestroyResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          message: z.string().optional(),
-          id: z.coerce.number().optional(),
-        }),
-      ],
+      ['200', z.object({ message: z.string().optional(), id: z.coerce.number().optional() })],
       ['400', s_Error],
       ['401', s_Error],
       ['403', s_Error],
@@ -966,10 +950,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const episodeShowParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-  });
+  const episodeShowParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
   const episodeShowResponseBodyValidator = responseValidationFactory(
     [
@@ -1044,10 +1025,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const episodeUpdateParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-  });
+  const episodeUpdateParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
   const episodeUpdateRequestBodySchema = s_EpisodeUpdateRequest;
 
@@ -1127,10 +1105,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const episodeDestroyParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-  });
+  const episodeDestroyParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
   const episodeDestroyResponseBodyValidator = responseValidationFactory(
     [
@@ -1208,10 +1183,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentIndexParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-  });
+  const segmentIndexParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
   const segmentIndexQuerySchema = z.object({
     size: z.coerce.number().min(1).max(100).optional().default(50),
@@ -1294,10 +1266,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentCreateParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-  });
+  const segmentCreateParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
   const segmentCreateRequestBodySchema = s_SegmentCreateRequest;
 

@@ -5,15 +5,9 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments
+  url: {{baseUrl}}/v1/media/7674/episodes/1/segments
   body: none
-}
-
-params:query {
-  mediaId:
-  episodeNumber:
-  size:
-  cursor:
+  auth: inherit
 }
 
 settings {

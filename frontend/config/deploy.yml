@@ -1,5 +1,6 @@
-service: nadeshiko-frontend
-image: nadeshiko-frontend
+# Development is the default Kamal target for frontend.
+service: nadeshiko-frontend-dev
+image: nadeshiko-frontend-dev
 
 servers:
   web:
@@ -20,8 +21,8 @@ env:
     - NUXT_NADESHIKO_API_KEY
 
   clear:
-    NUXT_APP_ENVIRONMENT: production
-    NUXT_PUBLIC_BACKEND_URL: https://api.nadeshiko.co
+    NUXT_APP_ENVIRONMENT: dev
+    NUXT_BACKEND_INTERNAL_URL: https://api-dev.nadeshiko.co
     PORT: 3000
     NODE_ENV: production
     LOG_LEVEL: info

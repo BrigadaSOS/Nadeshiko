@@ -503,13 +503,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
 
   const listDestroyResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          message: z.string().optional(),
-          id: z.coerce.number().optional(),
-        }),
-      ],
+      ['200', z.object({ message: z.string().optional(), id: z.coerce.number().optional() })],
       ['400', s_Error],
       ['401', s_Error],
       ['403', s_Error],
@@ -585,10 +579,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
 
   const listAddItemParamSchema = z.object({ id: z.coerce.number() });
 
-  const listAddItemRequestBodySchema = z.object({
-    mediaId: z.coerce.number(),
-    position: z.coerce.number(),
-  });
+  const listAddItemRequestBodySchema = z.object({ mediaId: z.coerce.number(), position: z.coerce.number() });
 
   const listAddItemResponseBodyValidator = responseValidationFactory(
     [
@@ -665,14 +656,9 @@ export function createListsRouter(implementation: ListsImplementation): Router {
     }
   });
 
-  const listUpdateItemParamSchema = z.object({
-    id: z.coerce.number(),
-    mediaId: z.coerce.number(),
-  });
+  const listUpdateItemParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
 
-  const listUpdateItemRequestBodySchema = z.object({
-    position: z.coerce.number(),
-  });
+  const listUpdateItemRequestBodySchema = z.object({ position: z.coerce.number() });
 
   const listUpdateItemResponseBodyValidator = responseValidationFactory(
     [
@@ -749,10 +735,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
     }
   });
 
-  const listRemoveItemParamSchema = z.object({
-    id: z.coerce.number(),
-    mediaId: z.coerce.number(),
-  });
+  const listRemoveItemParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
 
   const listRemoveItemResponseBodyValidator = responseValidationFactory(
     [

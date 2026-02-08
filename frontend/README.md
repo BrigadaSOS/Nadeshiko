@@ -3,19 +3,17 @@
 ## Development Setup
 
 ### Prerequisites
-- node
-- npm
+- bun
 - Backend API running (see backend README)
 
-### 1. Clone the Repository
+### 1. Go to frontend
 ```bash
-git clone https://github.com/your-repo/nadedb.git
-cd nadedb/frontend_v2
+cd frontend
 ```
 
 ### 2. Install Dependencies
 ```bash
-npm install
+bun install
 ```
 
 ### 3. Configure Environment
@@ -26,21 +24,42 @@ cp .env.example .env
 
 ### 4. Start Development Server
 ```bash
-npm run dev
+bun run dev
 ```
 App will be available at: `http://localhost:3000`
 
 ## Development Scripts
 ```bash
 # Lint code
-npm run lint
+bun run lint
+
+# Typecheck
+bun run typecheck
 
 # Build for production
-npm run build
+bun run build
 
 # Preview production build
-npm run preview
+bun run preview
+```
 
-# Generate static site
-npm run generate
+## Deployment (Kamal)
+
+Run Kamal from the `frontend` directory.
+
+Secret files:
+
+- `dev`: `.kamal/dev.key`
+- `prod`: `.kamal/prod.key`
+
+Development:
+
+```bash
+kamal deploy -d dev
+```
+
+Production:
+
+```bash
+kamal deploy -d prod
 ```

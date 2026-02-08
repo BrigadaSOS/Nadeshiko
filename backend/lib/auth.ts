@@ -1,4 +1,5 @@
-import { ApiPermission, UserRole } from '@app/entities';
+import { ApiPermission, User, UserRoleType } from '@app/entities';
+import { isProdEnvironment } from '@lib/environment';
 import { betterAuth } from 'better-auth';
 import { apiKey } from 'better-auth/plugins';
 import { Pool } from 'pg';
@@ -11,13 +12,21 @@ const pool = new Pool({
   database: process.env.POSTGRES_DB,
 });
 
-const isProduction = process.env.ENVIRONMENT === 'production';
+const isProduction = isProdEnvironment();
 const cookieDomain = process.env.COOKIE_DOMAIN?.trim();
 const resolvedCookieDomain = cookieDomain && cookieDomain !== 'localhost' ? cookieDomain : undefined;
 const trustedOrigins = (process.env.ALLOWED_WEBSITE_URLS || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const API_KEY_RATE_LIMIT_WINDOW_MS = parsePositiveInteger(process.env.API_KEY_RATE_LIMIT_WINDOW_MS, 5 * 60 * 1000);
+const API_KEY_RATE_LIMIT_MAX = parsePositiveInteger(process.env.API_KEY_RATE_LIMIT_MAX, 2000);
 
 const socialProviders: Record<string, Record<string, unknown>> = {};
 
@@ -133,6 +142,12 @@ export const auth = betterAuth({
   plugins: [
     apiKey({
       apiKeyHeaders: 'authorization',
+      defaultPrefix: 'nade_',
+      rateLimit: {
+        enabled: true,
+        timeWindow: API_KEY_RATE_LIMIT_WINDOW_MS,
+        maxRequests: API_KEY_RATE_LIMIT_MAX,
+      },
       customAPIKeyGetter: (ctx) => {
         const authorization = ctx.headers?.get('authorization');
         if (!authorization || !authorization.startsWith('Bearer ')) {
@@ -153,10 +168,10 @@ export const auth = betterAuth({
             };
           }
 
-          const userRoles = await UserRole.find({
-            where: { userId: numericUserId },
+          const user = await User.findOne({
+            where: { id: numericUserId },
           });
-          const isAdmin = userRoles.some((role) => role.roleId === 1);
+          const isAdmin = user?.role === UserRoleType.ADMIN;
 
           return {
             [BETTER_AUTH_API_PERMISSION_RESOURCE]: isAdmin ? Object.values(ApiPermission) : defaultReadOnly,
@@ -176,18 +191,6 @@ export const auth = betterAuth({
               emailVerified: true,
             },
           };
-        },
-        after: async (user) => {
-          // Preserve current role behavior: every newly created user gets role 3.
-          const existingRole = await UserRole.findOne({
-            where: { userId: Number(user.id), roleId: 3 },
-          });
-          if (!existingRole) {
-            await UserRole.insert({
-              userId: Number(user.id),
-              roleId: 3,
-            });
-          }
         },
       },
     },

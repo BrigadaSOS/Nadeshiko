@@ -1305,17 +1305,17 @@ components:
       type: object
       description: URLs to media resources for a segment
       properties:
-        path_image:
+        pathImage:
           type: string
           format: uri
           description: URL to the subtitle image snapshot
           example: https://example.com/media/anime/steins-gate/segments/1133.jpg
-        path_audio:
+        pathAudio:
           type: string
           format: uri
           description: URL to the audio clip for this segment
           example: https://example.com/media/anime/steins-gate/audio/1133.mp3
-        path_video:
+        pathVideo:
           type: string
           format: uri
           description: URL to the video clip for this segment
@@ -1414,7 +1414,7 @@ components:
           default:
             - ANIME
             - JDRAMA
-        anime_id:
+        animeId:
           type: integer
           description: Unique ID from media
           example: 5
@@ -1433,14 +1433,12 @@ components:
           example:
             - 5
             - 8
-        random_seed:
-          type: number
-          format: float
-          description: A value from 0 to 1 for random sorting
+        randomSeed:
+          type: integer
+          description: Non-negative integer seed for deterministic random sorting
           minimum: 0
-          maximum: 1
-          example: 0.5
-        content_sort:
+          example: 42
+        contentSort:
           type: string
           description: Order by amount of characters
           enum:
@@ -1460,7 +1458,7 @@ components:
           example:
             - 23.31727
             - 7
-        exact_match:
+        exactMatch:
           type: boolean
           description: Whether to use exact phrase matching
           default: false
@@ -1468,15 +1466,15 @@ components:
           type: boolean
           description: Include extra content
           default: false
-        min_length:
+        minLength:
           type: integer
           description: Minimum content length
           example: 10
-        max_length:
+        maxLength:
           type: integer
           description: Maximum content length
           example: 50
-        excluded_anime_ids:
+        excludedAnimeIds:
           type: array
           items:
             type: integer
@@ -1495,12 +1493,12 @@ components:
           items:
             type: object
             required:
-              - media_id
+              - mediaId
               - seasons
             properties:
-              media_id:
-                type: string
-                example: '123'
+              mediaId:
+                type: integer
+                example: 123
               seasons:
                 type: array
                 items:
@@ -1551,7 +1549,7 @@ components:
           example:
             - 彼女
             - 私
-        exact_match:
+        exactMatch:
           type: boolean
           default: false
           description: Whether to use exact matching
@@ -1562,19 +1560,19 @@ components:
       type: object
       description: Media entry containing word matches
       properties:
-        media_id:
+        mediaId:
           type: integer
           description: Unique identifier for the media
           example: 110316
-        english_name:
+        englishName:
           type: string
           description: English translation of the media name
           example: Steins;Gate
-        japanese_name:
+        japaneseName:
           type: string
           description: Original Japanese name of the media
           example: シュタインズ・ゲート
-        romaji_name:
+        romajiName:
           type: string
           description: Romaji transliteration of the media name
           example: Steins;Gate
@@ -1590,11 +1588,11 @@ components:
           type: string
           description: The word that was searched for
           example: 彼女
-        is_match:
+        isMatch:
           type: boolean
           description: Indicates whether the word was found in any segment
           example: true
-        total_matches:
+        totalMatches:
           type: integer
           description: Total number of times this word appears across all media
           example: 1523
@@ -1613,12 +1611,12 @@ components:
     FetchSentenceContextRequest:
       type: object
       required:
-        - media_id
+        - mediaId
         - season
         - episode
-        - segment_position
+        - segmentPosition
       properties:
-        media_id:
+        mediaId:
           type: integer
           description: Media ID
           example: 110316
@@ -1632,7 +1630,7 @@ components:
           description: Episode number
           minimum: 0
           example: 5
-        segment_position:
+        segmentPosition:
           type: integer
           description: Segment position in the episode
           minimum: 0
@@ -2463,7 +2461,7 @@ components:
       value:
         code: AUTH_CREDENTIALS_INVALID
         title: Invalid Authentication Credentials
-        detail: The provided API key or JWT token is invalid. Please check your credentials and try again.
+        detail: The provided API key or session credentials are invalid. Please check your credentials and try again.
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
         status: 401
@@ -2473,7 +2471,7 @@ components:
         status: 401
         code: AUTH_CREDENTIALS_EXPIRED
         title: Expired Authentication Credentials
-        detail: Your credentials are not valid anymore. Please login in to get a new JWT token or create a new API key.
+        detail: Your credentials are not valid anymore. Please sign in again or create a new API key.
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
     InsufficientPermissions:

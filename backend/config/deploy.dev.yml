@@ -1,0 +1,82 @@
+service: nadeshiko-backend-dev
+image: nadeshiko-backend-dev
+
+servers:
+  web:
+    hosts:
+      - nadeshiko-production
+
+registry:
+  server: localhost:5555
+
+proxy:
+  ssl: true
+  host: api-dev.nadeshiko.co
+  forward_headers: true
+
+env:
+  secret:
+    - ALLOWED_WEBSITE_URLS
+    - API_KEY_MASTER
+    - BETTER_AUTH_SECRET
+
+    - EMAIL_API_NADEDB
+    - USERNAME_API_NADEDB
+
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    - POSTGRES_DB
+
+    - ELASTICSEARCH_USER
+    - ELASTICSEARCH_PASSWORD
+
+    - DISCORD_CLIENT_ID
+    - DISCORD_CLIENT_SECRET
+    - DISCORD_REDIRECT_URI
+
+    - ID_OAUTH_GOOGLE
+    - SECRET_OAUTH_GOOGLE
+    - URI_ALLOWED_GOOGLE
+
+    - SES_AWS_REGION
+    - SES_AWS_ACCESS_KEY_ID
+    - SES_AWS_SECRET_ACCESS_KEY
+
+  clear:
+    ENVIRONMENT: dev
+    PORT: 80
+    BASE_URL: https://api-dev.nadeshiko.co
+    COOKIE_DOMAIN: .nadeshiko.co
+
+    SES_FROM_EMAIL: noreply@nadeshiko.co
+    SES_FROM_NAME: Nadeshiko
+
+    # Shared accessories are managed by the production target.
+    POSTGRES_HOST: "nadeshiko-backend-postgres"
+    POSTGRES_PORT: 5432
+
+    ELASTICSEARCH_HOST: "http://nadeshiko-backend-elasticsearch:9200"
+    ELASTICSEARCH_INDEX: nadedb_dev
+
+    # R2 CDN URL - Images are served directly from Cloudflare R2
+    R2_BASE_URL: https://cdn.nadeshiko.co/media
+    # Local storage URL - Used when storage backend is set to 'local'
+    LOCAL_BASE_URL: /assets
+
+aliases:
+  console: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  db-setup: app exec --interactive --reuse "bun run db:setup"
+  db-migrate: app exec --interactive --reuse "bun run db:migrate"
+  db-prepare: app exec --interactive --reuse "bun run db:prepare"
+  db-seed: app exec --interactive --reuse "bun run db:seed"
+  db-rollback: app exec --interactive --reuse "bun run db:rollback"
+  routes: app exec --reuse "bun run routes"
+
+builder:
+  arch: amd64
+
+ssh:
+  user: docker
+  keys: ["~/.ssh/vps"]
+  keys_only: true

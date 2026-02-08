@@ -1,5 +1,5 @@
 import { Client, HttpConnection } from '@elastic/elasticsearch';
-import type { estypes } from '@elastic/elasticsearch';
+import type * as estypes from '@elastic/elasticsearch/lib/api/types';
 import { QueryMediaInfoResponse } from '@lib/types/queryMediaInfoResponse';
 import { Media } from '@app/entities';
 import { notEmpty } from '@lib/utils/utils';
@@ -31,21 +31,21 @@ import type {
  * |----------------------|----------------------------|----------------------------|
  * | content              | Exact text matching        | Tokens: 食べ, ました        |
  * | content.baseform     | Dictionary form matching   | Tokens: 食べる, ます        |
- * | content.readingform  | Pronunciation/reading match| Tokens: タベ, マシタ        |
+ * | content.kana         | Pronunciation/reading match| Tokens: タベ, マシタ        |
  * -----------------------------------------------------------------------------
  *
  * FIELD SELECTION BY INPUT TYPE (AUTO-DETECTED)
  * -----------------------------------------------------------------------------
  * | Input Type       | Fields (with boosts)                          | Rationale           |
  * |------------------|-----------------------------------------------|---------------------|
- * | Romaji (go)      | EN/ES^10, readingform^3, content^2, base^1    | Prefer EN/ES        |
- * | Kanji (食べる)    | content^10, baseform^5 (NO readingform)       | Avoid homophones    |
- * | Kana (たべる)     | content^10, baseform^5, readingform^3         | Standard search     |
+ * | Romaji (go)      | EN/ES^10, kana^3, content^2, base^1           | Prefer EN/ES        |
+ * | Kanji (食べる)    | content^10, baseform^5 (NO kana)              | Avoid homophones    |
+ * | Kana (たべる)     | content^10, baseform^5, kana^3                | Standard search     |
  * -----------------------------------------------------------------------------
  *
  * SCORING (boost_mode: replace for length-based, multiply for random)
  * -----------------------------------------------------------------------------
- * Length scoring (when min_length not specified):
+ * Length scoring (when minLength not specified):
  *   Uses gaussian (bell curve) distribution centered at 27 chars (μ=27, σ=6)
  *   - Provides smooth, organic scoring without artificial tier boundaries
  *   - Peak score (100) at ideal length (27 chars)
@@ -79,25 +79,139 @@ enum InputScript {
 interface ScriptBoostConfig {
   japanese: number;
   japaneseBaseform: number;
-  japaneseReadingform: number;
+  japaneseKana: number;
   english: number;
   spanish: number;
 }
 
+type QueryParserMode = 'strict' | 'safe';
+
 export const client = new Client({
   node: process.env.ELASTICSEARCH_HOST,
   auth: {
-    username: process.env.ELASTICSEARCH_USERNAME || 'elastic',
-    password: process.env.ELASTICSEARCH_PASSWORD || '',
+    username: process.env.ELASTICSEARCH_USER!,
+    password: process.env.ELASTICSEARCH_PASSWORD!,
   },
   Connection: HttpConnection,
 });
 
 const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
+const IMPROVED_LENGTH_TIERS = buildImprovedLengthTiers();
+
+/**
+ * Create an admin client using ELASTICSEARCH_ADMIN_* credentials.
+ * Only used for setup operations (creating users/roles).
+ */
+function createAdminClient(): Client {
+  const adminUser = process.env.ELASTICSEARCH_ADMIN_USER || 'elastic';
+  const adminPassword = process.env.ELASTICSEARCH_ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    throw new Error('ELASTICSEARCH_ADMIN_PASSWORD is required for admin operations');
+  }
+
+  return new Client({
+    node: process.env.ELASTICSEARCH_HOST,
+    auth: {
+      username: adminUser,
+      password: adminPassword,
+    },
+    Connection: HttpConnection,
+  });
+}
+
+/**
+ * Sets up the Elasticsearch application user and role.
+ * Creates an index-scoped user that can only access the configured index.
+ *
+ * This function uses ADMIN credentials and is idempotent - safe to run multiple times.
+ * It will skip creation if the user already exists.
+ *
+ * @returns The username that was created (or already existed)
+ */
+export async function setupElasticsearchUser(): Promise<string> {
+  const indexName = INDEX_NAME;
+  const appUsername = process.env.ELASTICSEARCH_USER;
+  const appPassword = process.env.ELASTICSEARCH_PASSWORD;
+
+  // Skip if admin credentials not available
+  if (!process.env.ELASTICSEARCH_ADMIN_PASSWORD) {
+    logger.info('ELASTICSEARCH_ADMIN_PASSWORD not set, skipping user/role setup');
+    return appUsername || 'elastic';
+  }
+
+  if (!appPassword) {
+    throw new Error('ELASTICSEARCH_PASSWORD is required to create the application user');
+  }
+
+  // Generate username from index if not provided
+  const username = appUsername || `${indexName.replace(/[^a-zA-Z0-9]/g, '_')}_user`;
+  const roleName = `${username}_role`;
+
+  const adminClient = createAdminClient();
+
+  try {
+    // Check if user already exists
+    const userExists = await adminClient.security
+      .getUser({ username })
+      .then(() => true)
+      .catch((error) => {
+        if (error.meta.statusCode === 404) return false;
+        throw error;
+      });
+
+    if (userExists) {
+      logger.info({ username }, 'Elasticsearch user already exists, skipping creation');
+      return username;
+    }
+
+    // Create role with index-scoped permissions
+    logger.info({ roleName, indexName }, 'Creating Elasticsearch role');
+    await adminClient.security.putRole({
+      name: roleName,
+      indices: [
+        {
+          names: [indexName],
+          privileges: ['all'],
+          allow_restricted_indices: false,
+        },
+      ],
+    });
+
+    // Create user with the role
+    logger.info({ username, roleName }, 'Creating Elasticsearch user');
+    await adminClient.security.putUser({
+      username,
+      password: appPassword,
+      roles: [roleName],
+      full_name: `Nadeshiko App User for ${indexName}`,
+    });
+
+    logger.info({ username, roleName, indexName }, 'Elasticsearch user and role created successfully');
+    return username;
+  } catch (error) {
+    logger.error(error, 'Failed to setup Elasticsearch user/role');
+    throw error;
+  }
+}
+
+/**
+ * Initializes the Elasticsearch index using the provided client.
+ * If no client is provided, uses the default app user client.
+ *
+ * @param esClient Optional client to use (use admin client for setup)
+ */
+export async function initializeElasticsearchIndexWithClient(esClient?: Client): Promise<void> {
+  const clientToUse = esClient || client;
+  await initializeElasticsearchIndexInternal(clientToUse);
+}
 
 export async function initializeElasticsearchIndex(): Promise<void> {
-  const indexExists = await client.indices.exists({ index: INDEX_NAME });
+  await initializeElasticsearchIndexWithClient(client);
+}
 
+async function initializeElasticsearchIndexInternal(clientToUse: Client): Promise<void> {
+  const indexExists = await clientToUse.indices.exists({ index: INDEX_NAME });
   if (indexExists) {
     logger.info(`Elasticsearch index '${INDEX_NAME}' already exists`);
     return;
@@ -105,7 +219,7 @@ export async function initializeElasticsearchIndex(): Promise<void> {
 
   logger.info(`Creating Elasticsearch index '${INDEX_NAME}' with mappings from config/elasticsearch-schema.json`);
 
-  await client.indices.create({
+  await clientToUse.indices.create({
     index: INDEX_NAME,
     settings: elasticsearchSchema.settings as any,
     mappings: elasticsearchSchema.mappings as any,
@@ -135,21 +249,21 @@ function getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
     [InputScript.KANJI]: {
       japanese: 10,
       japaneseBaseform: 5,
-      japaneseReadingform: 0,
+      japaneseKana: 0,
       english: 1,
       spanish: 1,
     },
     [InputScript.KANA]: {
       japanese: 10,
       japaneseBaseform: 5,
-      japaneseReadingform: 3,
+      japaneseKana: 3,
       english: 1,
       spanish: 1,
     },
     [InputScript.ROMAJI]: {
       japanese: 2,
       japaneseBaseform: 1,
-      japaneseReadingform: 3,
+      japaneseKana: 3,
       english: 10,
       spanish: 10,
     },
@@ -158,9 +272,12 @@ function getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
   return boostConfigs[detectedScript];
 }
 
-export const querySegments = async (request: QuerySegmentsRequest): Promise<SearchResponseOutput> => {
-  if (request.min_length !== undefined && request.max_length !== undefined && request.min_length > request.max_length) {
-    throw new InvalidRequestError('min_length cannot be greater than max_length');
+export const querySegments = async (
+  request: QuerySegmentsRequest,
+  parserMode: QueryParserMode = 'strict',
+): Promise<SearchResponseOutput> => {
+  if (request.minLength !== undefined && request.maxLength !== undefined && request.minLength > request.maxLength) {
+    throw new InvalidRequestError('minLength cannot be greater than maxLength');
   }
 
   const must: estypes.QueryDslQueryContainer[] = [];
@@ -173,11 +290,11 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Sear
   const hasQuery = !request.uuid && !!request.query;
 
   if (isMatchAll) {
-    if (request.min_length === undefined && request.max_length === undefined) {
+    if (request.minLength === undefined && request.maxLength === undefined) {
       must.push({
         function_score: {
           query: { match_all: {} },
-          functions: buildImprovedLengthTiers(),
+          functions: IMPROVED_LENGTH_TIERS,
           score_mode: 'first',
           boost_mode: 'replace',
         },
@@ -186,17 +303,19 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Sear
       must.push({ match_all: {} });
     }
   } else if (hasQuery) {
+    const query = request.query;
     const textQuery = buildTextSearchQuery(
-      request.query!,
-      request.exact_match || false,
-      request.min_length !== undefined || request.max_length !== undefined,
+      query as string,
+      request.exactMatch || false,
+      request.minLength !== undefined || request.maxLength !== undefined,
+      parserMode,
     );
     must.push(textQuery);
   }
 
   const { filter, must_not } = buildCommonFilters(request);
 
-  if (hasQuery && request.media) {
+  if (request.media && request.media.length > 0) {
     filter.push(buildMediaFilter(request.media));
   }
 
@@ -210,69 +329,54 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Sear
     }
   }
 
-  // Create filters for statistics (without media, season, episode filters) - used for sidebar
-  // This shows all titles matching the query + category filter, but with all seasons/episodes
-  const { filter: filterForStatistics, must_not: must_notForStatistics } = buildCommonFilters(request);
-  // Remove anime_id/media, season, and episode filters from statistics filter (for sidebar)
-  const filterForStatisticsWithoutMedia = filterForStatistics.filter(
-    (f) =>
-      !('term' in f && f.term && 'mediaId' in f.term) && // Remove media filter
-      !('terms' in f && f.terms && ('season' in f.terms || 'episode' in f.terms)), // Remove season/episode filters
-  );
-  const mustForStatistics = [...must];
+  let esNoHitsNoFiltersResponse: Promise<estypes.SearchResponse> | null = null;
+  let esCategoryStatsResponse: Promise<estypes.SearchResponse> | null = null;
 
-  const esNoHitsNoFiltersResponse = client.search({
-    size: 0,
-    sort,
-    index: process.env.ELASTICSEARCH_INDEX,
-    highlight: {
-      fields: {
-        content: {
-          matched_fields: ['content', 'content.readingform', 'content.baseform'],
-          type: 'fvh',
-        },
-        contentEnglish: {
-          matched_fields: ['contentEnglish', 'contentEnglish.exact'],
-          type: 'fvh',
-        },
-        contentSpanish: {
-          matched_fields: ['contentSpanish', 'contentSpanish.exact'],
-          type: 'fvh',
+  if (request.extra) {
+    // Create filters for statistics (without media, episode filters) - used for sidebar
+    // This shows all titles matching the query + category filter, but with all episodes
+    const { filter: filterForStatistics, must_not: must_notForStatistics } = buildCommonFilters(request);
+    // Remove animeId/media and episode filters from statistics filter (for sidebar)
+    const filterForStatisticsWithoutMedia = filterForStatistics.filter((f) => {
+      if (!f) {
+        return false;
+      }
+
+      const isMediaFilter = 'term' in f && f.term && 'mediaId' in f.term;
+      const isEpisodeFilter = 'terms' in f && f.terms && 'episode' in f.terms;
+
+      // Remove media and episode filters for sidebar statistics.
+      return !isMediaFilter && !isEpisodeFilter;
+    });
+    const mustForStatistics = [...must];
+
+    esNoHitsNoFiltersResponse = client.search({
+      size: 0,
+      index: INDEX_NAME,
+      query: {
+        bool: {
+          filter: filterForStatisticsWithoutMedia,
+          must: mustForStatistics,
+          must_not: must_notForStatistics,
         },
       },
-    },
-    query: {
-      bool: {
-        filter: filterForStatisticsWithoutMedia,
-        must: mustForStatistics,
-        must_not: must_notForStatistics,
-      },
-    },
-    search_after: request.cursor,
-    aggs: {
-      group_by_category: {
-        terms: {
-          field: 'Media.category',
-          size: 10000,
-        },
-        aggs: {
-          group_by_media_id: {
-            terms: {
-              field: 'mediaId',
-              size: 10000,
-            },
-            aggs: {
-              group_by_season: {
-                terms: {
-                  field: 'season',
-                  size: 10000,
-                },
-                aggs: {
-                  group_by_episode: {
-                    terms: {
-                      field: 'episode',
-                      size: 10000,
-                    },
+      aggs: {
+        group_by_category: {
+          terms: {
+            field: 'category',
+            size: 10000,
+          },
+          aggs: {
+            group_by_media_id: {
+              terms: {
+                field: 'mediaId',
+                size: 10000,
+              },
+              aggs: {
+                group_by_episode: {
+                  terms: {
+                    field: 'episode',
+                    size: 10000,
                   },
                 },
               },
@@ -280,75 +384,66 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Sear
           },
         },
       },
-    },
-  });
+    });
 
-  // Create filters for category statistics (with media filter, without category/season/episode filters) - used for top tabs
-  // This shows categories for the query + media filter, with all seasons/episodes
-  const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = buildCommonFilters({
-    ...request,
-    category: undefined, // Remove category filter for category statistics
-    season: undefined, // Remove season filter for category statistics
-    episode: undefined, // Remove episode filter for category statistics
-  });
-  const filterWithMediaForCategoryStats = [...filterForCategoryStats];
-  const mustForCategoryStats = [...must];
-  if (hasQuery && request.media) {
-    filterWithMediaForCategoryStats.push(buildMediaFilter(request.media));
+    // Create filters for category statistics (with media filter, without category/episode filters) - used for top tabs
+    // This shows categories for the query + media filter, with all episodes
+    const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = buildCommonFilters({
+      ...request,
+      category: undefined, // Remove category filter for category statistics
+      episode: undefined, // Remove episode filter for category statistics
+    });
+    const filterWithMediaForCategoryStats = [...filterForCategoryStats];
+    const mustForCategoryStats = [...must];
+    if (request.media && request.media.length > 0) {
+      filterWithMediaForCategoryStats.push(buildMediaFilter(request.media));
+    }
+
+    esCategoryStatsResponse = client.search({
+      size: 0,
+      index: INDEX_NAME,
+      query: {
+        bool: {
+          filter: filterWithMediaForCategoryStats,
+          must: mustForCategoryStats,
+          must_not: must_notForCategoryStats,
+        },
+      },
+      aggs: {
+        group_by_category: {
+          terms: {
+            field: 'category',
+            size: 10000,
+          },
+          aggs: {
+            group_by_media_id: {
+              terms: {
+                field: 'mediaId',
+                size: 10000,
+              },
+              aggs: {
+                group_by_episode: {
+                  terms: {
+                    field: 'episode',
+                    size: 10000,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
   }
-
-  const esCategoryStatsResponse = client.search({
-    size: 0,
-    index: process.env.ELASTICSEARCH_INDEX,
-    query: {
-      bool: {
-        filter: filterWithMediaForCategoryStats,
-        must: mustForCategoryStats,
-        must_not: must_notForCategoryStats,
-      },
-    },
-    aggs: {
-      group_by_category: {
-        terms: {
-          field: 'Media.category',
-          size: 10000,
-        },
-        aggs: {
-          group_by_media_id: {
-            terms: {
-              field: 'mediaId',
-              size: 10000,
-            },
-            aggs: {
-              group_by_season: {
-                terms: {
-                  field: 'season',
-                  size: 10000,
-                },
-                aggs: {
-                  group_by_episode: {
-                    terms: {
-                      field: 'episode',
-                      size: 10000,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
 
   const esResponse = client.search({
     size: request.limit,
     sort,
-    index: process.env.ELASTICSEARCH_INDEX,
+    index: INDEX_NAME,
     highlight: {
       fields: {
         content: {
-          matched_fields: ['content', 'content.readingform', 'content.baseform'],
+          matched_fields: ['content', 'content.kana', 'content.baseform'],
           type: 'fvh',
         },
         contentEnglish: {
@@ -384,43 +479,59 @@ export const querySegments = async (request: QuerySegmentsRequest): Promise<Sear
   // Use Promise.all to ensure all rejections are caught together.
   // Awaiting sequentially causes unhandled rejections if an early promise rejects
   // before later ones are awaited.
-  const [esResult, mediaResult, esNoHitsResult, esCategoryResult] = await Promise.all([
-    esResponse,
-    mediaInfo,
-    esNoHitsNoFiltersResponse,
-    esCategoryStatsResponse,
-  ]);
+  try {
+    const [esResult, mediaResult, esNoHitsResult, esCategoryResult] = await Promise.all([
+      esResponse,
+      mediaInfo,
+      esNoHitsNoFiltersResponse ?? Promise.resolve(null),
+      esCategoryStatsResponse ?? Promise.resolve(null),
+    ]);
 
-  return buildSearchAnimeSentencesResponse(esResult, mediaResult, esNoHitsResult, esCategoryResult, request);
+    return buildSearchAnimeSentencesResponse(esResult, mediaResult, esNoHitsResult, esCategoryResult, request);
+  } catch (error) {
+    if (hasQuery && parserMode === 'strict' && isQuerySyntaxError(error)) {
+      logger.warn({ query: request.query }, 'Invalid query syntax; retrying search with safe query parser');
+      return querySegments(request, 'safe');
+    }
+    throw error;
+  }
 };
 
 export const queryWordsMatched = async (
   words: string[],
-  exact_match: boolean,
+  exactMatch: boolean,
+  parserMode: QueryParserMode = 'strict',
 ): Promise<SearchMultipleResponseOutput> => {
-  const searches: estypes.MsearchRequestItem[] = words
-    .map((word) => {
-      return [
-        {},
-        {
-          size: 0,
-          query: buildMultiLanguageQuery(word, exact_match),
-          aggs: {
-            group_by_media_id: {
-              terms: {
-                field: 'mediaId',
-              },
+  const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
+    return [
+      {},
+      {
+        size: 0,
+        query: buildMultiLanguageQuery(word, exactMatch, parserMode),
+        aggs: {
+          group_by_media_id: {
+            terms: {
+              field: 'mediaId',
             },
           },
         },
-      ];
-    })
-    .flat();
-
-  const esResponse = await client.msearch({
-    index: process.env.ELASTICSEARCH_INDEX,
-    searches,
+      },
+    ];
   });
+
+  let esResponse: estypes.MsearchResponse;
+  try {
+    esResponse = await client.msearch({
+      index: INDEX_NAME,
+      searches,
+    });
+  } catch (error) {
+    if (parserMode === 'strict' && isQuerySyntaxError(error)) {
+      logger.warn({ wordsCount: words.length }, 'Invalid query syntax in word match; retrying with safe query parser');
+      return queryWordsMatched(words, exactMatch, 'safe');
+    }
+    throw error;
+  }
 
   const mediaMapData = await Media.getMediaInfoMap();
   return buildQueryWordsMatchedResponse(words, esResponse, mediaMapData);
@@ -440,10 +551,10 @@ export const querySurroundingSegments = async (
         },
       ],
       size: request.limit ? request.limit + 1 : 16,
-      query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+      query: buildUuidContextQuery(request.mediaId, request.episode, {
         range: {
           position: {
-            gte: request.segment_position,
+            gte: request.segmentPosition,
           },
         },
       }),
@@ -458,10 +569,10 @@ export const querySurroundingSegments = async (
         },
       ],
       size: request.limit || 14,
-      query: buildUuidContextQuery(request.media_id, request.season, request.episode, {
+      query: buildUuidContextQuery(request.mediaId, request.episode, {
         range: {
           position: {
-            lt: request.segment_position,
+            lt: request.segmentPosition,
           },
         },
       }),
@@ -469,7 +580,7 @@ export const querySurroundingSegments = async (
   ];
 
   const esResponse = await client.msearch({
-    index: process.env.ELASTICSEARCH_INDEX,
+    index: INDEX_NAME,
     searches: contextSearches,
   });
 
@@ -500,15 +611,19 @@ export const querySurroundingSegments = async (
 const buildSearchAnimeSentencesResponse = (
   esResponse: estypes.SearchResponse,
   mediaInfoResponse: QueryMediaInfoResponse,
-  esNoHitsNoFiltersResponse: estypes.SearchResponse,
-  esCategoryStatsResponse: estypes.SearchResponse,
+  esNoHitsNoFiltersResponse: estypes.SearchResponse | null,
+  esCategoryStatsResponse: estypes.SearchResponse | null,
   request: QuerySegmentsRequest,
 ): SearchResponseOutput => {
   const sentences: SentenceOutput[] = buildSearchAnimeSentencesSegments(esResponse, mediaInfoResponse);
 
   // Build category statistics from esCategoryStatsResponse (filtered by media, not by category)
   let categoryStatistics = [];
-  if (esCategoryStatsResponse.aggregations && 'group_by_category' in esCategoryStatsResponse.aggregations) {
+  if (
+    esCategoryStatsResponse &&
+    esCategoryStatsResponse.aggregations &&
+    'group_by_category' in esCategoryStatsResponse.aggregations
+  ) {
     // @ts-expect-error -- elasticsearch aggregation type
     categoryStatistics = esCategoryStatsResponse.aggregations['group_by_category'].buckets.map((bucket) => ({
       category: bucket['key'],
@@ -517,8 +632,8 @@ const buildSearchAnimeSentencesResponse = (
   }
 
   // Helper function to build statistics from aggregation response
-  const buildStatisticsFromAggs = (aggResponse: estypes.SearchResponse): StatisticOutput[] => {
-    if (!aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) {
+  const buildStatisticsFromAggs = (aggResponse: estypes.SearchResponse | null): StatisticOutput[] => {
+    if (!aggResponse || !aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) {
       return [];
     }
     // @ts-expect-error -- elasticsearch aggregation type
@@ -530,15 +645,9 @@ const buildSearchAnimeSentencesResponse = (
             return undefined;
           }
           // @ts-expect-error -- elasticsearch aggregation type
-          const seasonsWithResults = mediaBucket['group_by_season'].buckets.reduce((seasonsAcc, seasonBucket) => {
-            // @ts-expect-error -- elasticsearch aggregation type
-            const episodes = seasonBucket['group_by_episode'].buckets.reduce((episodesAcc, episodeBucket) => {
-              episodesAcc[episodeBucket['key']] = episodeBucket['doc_count'];
-              return episodesAcc;
-            }, {});
-
-            seasonsAcc[seasonBucket['key']] = episodes;
-            return seasonsAcc;
+          const episodesWithResults = mediaBucket['group_by_episode'].buckets.reduce((episodesAcc, episodeBucket) => {
+            episodesAcc[episodeBucket['key']] = episodeBucket['doc_count'];
+            return episodesAcc;
           }, {});
 
           return {
@@ -548,7 +657,7 @@ const buildSearchAnimeSentencesResponse = (
             nameAnimeEn: mediaInfo.englishName,
             nameAnimeJp: mediaInfo.japaneseName,
             amountSentencesFound: mediaBucket['doc_count'],
-            seasonWithEpisodeHits: seasonsWithResults,
+            seasonWithEpisodeHits: { 0: episodesWithResults },
           };
         })
         .filter(notEmpty);
@@ -558,7 +667,7 @@ const buildSearchAnimeSentencesResponse = (
   // Build statistics from esNoHitsNoFiltersResponse (filtered by category, not by media) - for sidebar
   const statistics: StatisticOutput[] = buildStatisticsFromAggs(esNoHitsNoFiltersResponse);
 
-  let cursor: number[] | undefined = undefined;
+  let cursor: number[] | undefined;
   if (esResponse.hits.hits.length >= 1) {
     const sortValue = esResponse.hits.hits[esResponse.hits.hits.length - 1]['sort'];
     if (sortValue) {
@@ -596,7 +705,7 @@ const buildSearchAnimeSentencesSegments = (
   };
 
   return esResponse.hits.hits
-    .map((hit) => {
+    .map((hit: any) => {
       const data: any = hit['_source'];
       const highlight: any = hit['highlight'] || {};
       const mediaInfo = mediaInfoResponse.results.get(Number(data['mediaId']));
@@ -607,17 +716,17 @@ const buildSearchAnimeSentencesSegments = (
 
       if (!mediaInfo) {
         logger.error({ mediaId: data['mediaId'] }, 'Media Info not found');
-        return;
+        return null;
       }
 
-      // Extract hashed_id from path_image or path_audio (remove extension)
-      // ES stores just filename like '0d39e46b14.webp'
-      const hashedId = data['path_image']?.replace(/\.[^.]+$/, '') || data['path_audio']?.replace(/\.[^.]+$/, '') || '';
+      // Read hashedId and storage from Elasticsearch
+      const hashedId = data['hashedId'] || '';
+      const storage: 'local' | 'r2' = data['storage'] || 'r2';
 
       const segment = {
         mediaId: data['mediaId'],
         episode: data['episode'],
-        storage: 'r2' as const, // Default to r2, could be enhanced to read from ES if needed
+        storage: storage,
         hashedId: hashedId,
       };
 
@@ -635,7 +744,6 @@ const buildSearchAnimeSentencesSegments = (
           cover: mediaInfo.cover,
           banner: mediaInfo.banner,
           episode: data['episode'],
-          season: data['season'],
           category: mediaInfo.category,
         }),
         segmentInfo: removeEmptyStrings({
@@ -679,31 +787,32 @@ const buildQueryWordsMatchedResponse = (
     word,
     esResponse.responses[i] as estypes.SearchResponseBody,
   ])) {
-    let is_match = false;
-    let total_matches = 0;
+    let isMatch = false;
+    let totalMatches = 0;
 
     if (response.hits !== undefined && response.hits.total !== undefined) {
-      is_match = (response.hits.total as estypes.SearchTotalHits).value > 0;
-      total_matches = (response.hits.total as estypes.SearchTotalHits).value;
+      isMatch = (response.hits.total as estypes.SearchTotalHits).value > 0;
+      totalMatches = (response.hits.total as estypes.SearchTotalHits).value;
     }
 
     let media: WordMatchMediaOutput[] = [];
     if (response.aggregations && 'group_by_media_id' in response.aggregations) {
-      // @ts-expect-error -- elasticsearch aggregation type
-      media = response.aggregations['group_by_media_id'].buckets
+      const mediaBuckets =
+        (response.aggregations as Record<string, { buckets?: unknown[] }>).group_by_media_id?.buckets ?? [];
+      media = mediaBuckets
         .map((bucket: any): WordMatchMediaOutput | null => {
           const mediaInfo = mediaInfoResponse.results.get(Number(bucket['key']));
 
-          // Skip if media_id from Elasticsearch doesn't exist in database
+          // Skip if mediaId from Elasticsearch doesn't exist in database
           if (!mediaInfo) {
             return null;
           }
 
           return {
-            media_id: mediaInfo.mediaId,
-            english_name: mediaInfo.englishName,
-            japanese_name: mediaInfo.japaneseName,
-            romaji_name: mediaInfo.romajiName,
+            mediaId: mediaInfo.mediaId,
+            englishName: mediaInfo.englishName,
+            japaneseName: mediaInfo.japaneseName,
+            romajiName: mediaInfo.romajiName,
             matches: bucket['doc_count'],
           };
         })
@@ -712,8 +821,8 @@ const buildQueryWordsMatchedResponse = (
 
     results.push({
       word,
-      is_match,
-      total_matches,
+      isMatch,
+      totalMatches,
       media,
     });
   }
@@ -723,39 +832,39 @@ const buildQueryWordsMatchedResponse = (
   };
 };
 
-const buildMultiLanguageQuery = (query: string, exact_match: boolean): estypes.QueryDslQueryContainer => {
-  const queryText = exact_match ? `"${query}"` : query;
+const buildMultiLanguageQuery = (
+  query: string,
+  exactMatch: boolean,
+  parserMode: QueryParserMode = 'strict',
+): estypes.QueryDslQueryContainer => {
+  const queryText = exactMatch ? `"${query}"` : query;
   const detectedScript = detectInputScript(query);
   const boosts = getScriptBoosts(detectedScript);
 
-  const japaneseQuery: estypes.QueryDslQueryContainer = {
-    query_string: {
-      query: queryText,
-      analyze_wildcard: true,
-      allow_leading_wildcard: false,
-      fuzzy_transpositions: false,
-      fields: [`content^${boosts.japanese}`, `content.baseform^${boosts.japaneseBaseform}`],
-      default_operator: 'AND',
-      quote_analyzer: 'ja_original_search_analyzer',
-    },
-  };
+  const japaneseQuery = buildStringQuery({
+    query: queryText,
+    parserMode,
+    analyzeWildcard: true,
+    fields: [`content^${boosts.japanese}`, `content.baseform^${boosts.japaneseBaseform}`],
+    quoteAnalyzer: 'ja_original_search_analyzer',
+    defaultOperator: 'AND',
+  });
 
   const languageQueries: estypes.QueryDslQueryContainer[] = [japaneseQuery];
 
-  if (boosts.japaneseReadingform > 0) {
+  if (boosts.japaneseKana > 0) {
     languageQueries.push({
-      query_string: {
+      ...buildStringQuery({
         query: queryText,
-        allow_leading_wildcard: false,
-        fuzzy_transpositions: false,
-        fields: [`content.readingform^${boosts.japaneseReadingform}`],
-        default_operator: 'AND',
-        analyzer: 'ja_readingform_search_analyzer',
-      },
+        parserMode,
+        fields: [`content.kana^${boosts.japaneseKana}`],
+        analyzer: 'ja_kana_search_analyzer',
+        defaultOperator: 'AND',
+      }),
     });
   }
 
-  if (exact_match) {
+  if (exactMatch) {
     languageQueries.push(
       ...[
         {
@@ -776,26 +885,24 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): estypes.Q
     languageQueries.push(
       ...[
         {
-          query_string: {
+          ...buildStringQuery({
             query,
-            analyze_wildcard: true,
-            allow_leading_wildcard: false,
-            fuzzy_transpositions: false,
+            parserMode,
+            analyzeWildcard: true,
             fields: [`contentSpanish^${boosts.spanish}`, 'contentSpanish.exact^1'],
-            default_operator: 'AND' as estypes.QueryDslOperator,
-            quote_field_suffix: '.exact',
-          },
+            defaultOperator: 'AND' as estypes.QueryDslOperator,
+            quoteFieldSuffix: '.exact',
+          }),
         },
         {
-          query_string: {
+          ...buildStringQuery({
             query,
-            analyze_wildcard: true,
-            allow_leading_wildcard: false,
-            fuzzy_transpositions: false,
+            parserMode,
+            analyzeWildcard: true,
             fields: [`contentEnglish^${boosts.english}`, 'contentEnglish.exact^1'],
-            default_operator: 'AND' as estypes.QueryDslOperator,
-            quote_field_suffix: '.exact',
-          },
+            defaultOperator: 'AND' as estypes.QueryDslOperator,
+            quoteFieldSuffix: '.exact',
+          }),
         },
       ],
     );
@@ -811,7 +918,6 @@ const buildMultiLanguageQuery = (query: string, exact_match: boolean): estypes.Q
 
 const buildUuidContextQuery = (
   mediaId: number,
-  season: number,
   episode: number,
   rangeQuery: estypes.QueryDslQueryContainer,
 ): estypes.QueryDslQueryContainer => {
@@ -820,12 +926,7 @@ const buildUuidContextQuery = (
       filter: [
         {
           term: {
-            media_id: mediaId,
-          },
-        },
-        {
-          term: {
-            season,
+            mediaId: mediaId,
           },
         },
         {
@@ -847,23 +948,19 @@ const buildCommonFilters = (
 
   filter.push({ terms: { status: request.status } });
 
-  if (request.min_length !== undefined || request.max_length !== undefined) {
+  if (request.minLength !== undefined || request.maxLength !== undefined) {
     const rangeFilter: { gte?: number; lte?: number } = {};
-    if (request.min_length !== undefined) rangeFilter.gte = request.min_length;
-    if (request.max_length !== undefined) rangeFilter.lte = request.max_length;
+    if (request.minLength !== undefined) rangeFilter.gte = request.minLength;
+    if (request.maxLength !== undefined) rangeFilter.lte = request.maxLength;
     filter.push({ range: { contentLength: rangeFilter } });
   }
 
-  if (request.anime_id) {
-    filter.push({ term: { mediaId: request.anime_id } });
+  if (request.animeId) {
+    filter.push({ term: { mediaId: request.animeId } });
   }
 
-  if (request.excluded_anime_ids && request.excluded_anime_ids.length > 0) {
-    must_not.push({ terms: { mediaId: request.excluded_anime_ids } });
-  }
-
-  if (request.season) {
-    filter.push({ terms: { season: request.season } });
+  if (request.excludedAnimeIds && request.excludedAnimeIds.length > 0) {
+    must_not.push({ terms: { mediaId: request.excludedAnimeIds } });
   }
 
   if (request.episode) {
@@ -871,7 +968,7 @@ const buildCommonFilters = (
   }
 
   if (request.category && request.category.length > 0) {
-    filter.push({ terms: { 'Media.category': request.category } });
+    filter.push({ terms: { category: request.category } });
   }
 
   return { filter, must_not };
@@ -884,13 +981,13 @@ const buildSortAndRandomScore = (
   let sort: estypes.Sort = [];
   let randomScoreQuery: estypes.QueryDslQueryContainer | null = null;
 
-  // Determine if we're using length-based scoring (no min_length filter)
-  const useLengthScoring = request.min_length === undefined;
+  // Determine if we're using length-based scoring (no minLength filter)
+  const useLengthScoring = request.minLength === undefined;
 
-  if (request.length_sort_order === 'random') {
+  if (request.lengthSortOrder === 'random') {
     // Generate a deterministic seed based on current day if not provided
     // This allows "random but repeatable" results within the same day
-    const seed = request.random_seed ?? Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    const seed = request.randomSeed ?? Math.floor(Date.now() / (1000 * 60 * 60 * 24));
 
     randomScoreQuery = {
       function_score: {
@@ -905,50 +1002,43 @@ const buildSortAndRandomScore = (
         boost_mode: isMatchAll ? 'replace' : 'multiply',
       },
     };
-    sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc' } }];
-  } else if (request.length_sort_order === 'time_asc') {
-    // Sort by time: earliest first (season -> episode -> position)
-    sort = [
-      { season: { order: 'asc' as estypes.SortOrder } },
-      { episode: { order: 'asc' as estypes.SortOrder } },
-      { position: { order: 'asc' as estypes.SortOrder } },
-    ];
-  } else if (request.length_sort_order === 'time_desc') {
-    // Sort by time: latest first (season -> episode -> position, descending)
-    sort = [
-      { season: { order: 'desc' as estypes.SortOrder } },
-      { episode: { order: 'desc' as estypes.SortOrder } },
-      { position: { order: 'desc' as estypes.SortOrder } },
-    ];
-  } else if (!request.length_sort_order || request.length_sort_order === 'none') {
+    sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc', unmapped_type: 'short' } }];
+  } else if (request.lengthSortOrder === 'time_asc') {
+    // Sort by time: earliest first (episode -> position)
+    sort = [{ episode: { order: 'asc' as estypes.SortOrder } }, { position: { order: 'asc' as estypes.SortOrder } }];
+  } else if (request.lengthSortOrder === 'time_desc') {
+    // Sort by time: latest first (episode -> position, descending)
+    sort = [{ episode: { order: 'desc' as estypes.SortOrder } }, { position: { order: 'desc' as estypes.SortOrder } }];
+  } else if (!request.lengthSortOrder || request.lengthSortOrder === 'none') {
     // When browsing media without query and no length filter, sort by length score (25-30 chars prioritized)
-    // Otherwise for match_all with min_length filter, sort by contentLength ascending
+    // Otherwise for match_all with minLength filter, sort by contentLength ascending
     if (isMatchAll && useLengthScoring) {
-      sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc' } }];
+      sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc', unmapped_type: 'short' } }];
     } else if (isMatchAll) {
-      sort = [{ contentLength: { order: 'asc' } }];
+      sort = [{ contentLength: { order: 'asc', unmapped_type: 'short' } }];
     } else {
-      sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc' } }];
+      sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc', unmapped_type: 'short' } }];
     }
   } else {
-    sort = [{ contentLength: { order: request.length_sort_order as estypes.SortOrder } }];
+    sort = [{ contentLength: { order: request.lengthSortOrder as estypes.SortOrder, unmapped_type: 'short' } }];
   }
 
-  return { sort, randomScoreQuery };
+  return { sort: withStableSortTieBreakers(sort), randomScoreQuery };
 };
 
 const buildTextSearchQuery = (
   query: string,
   exactMatch: boolean,
   hasLengthConstraints: boolean,
+  parserMode: QueryParserMode = 'strict',
 ): estypes.QueryDslQueryContainer => {
-  const baseQuery = buildMultiLanguageQuery(query, exactMatch);
+  const baseQuery = buildMultiLanguageQuery(query, exactMatch, parserMode);
 
   if (!hasLengthConstraints) {
     return {
       function_score: {
         query: baseQuery,
-        functions: buildImprovedLengthTiers(),
+        functions: IMPROVED_LENGTH_TIERS,
         score_mode: 'first',
         boost_mode: 'replace',
       },
@@ -967,7 +1057,7 @@ function buildImprovedLengthTiers(): any[] {
   const buckets: any[] = [];
 
   for (let length = 1; length <= 80; length += 1) {
-    const gaussianScore = maxScore * Math.exp(-0.5 * Math.pow((length - mean) / stddev, 2));
+    const gaussianScore = maxScore * Math.exp(-0.5 * ((length - mean) / stddev) ** 2);
     const score = Math.max(minScore, Math.round(gaussianScore));
 
     buckets.push({
@@ -984,40 +1074,130 @@ function buildImprovedLengthTiers(): any[] {
   return buckets;
 }
 
+function withStableSortTieBreakers(sort: estypes.Sort): estypes.Sort {
+  const sortArray = (Array.isArray(sort) ? [...sort] : [sort]) as Record<string, any>[];
+  const existingSortFields = new Set(
+    sortArray.flatMap((item) => {
+      if (!item || typeof item !== 'object') {
+        return [];
+      }
+      return Object.keys(item);
+    }),
+  );
+
+  const appendIfMissing = (field: string, spec: Record<string, unknown>) => {
+    if (!existingSortFields.has(field)) {
+      sortArray.push({ [field]: spec });
+      existingSortFields.add(field);
+    }
+  };
+
+  appendIfMissing('mediaId', { order: 'asc', unmapped_type: 'integer' });
+  appendIfMissing('episode', { order: 'asc', unmapped_type: 'integer' });
+  appendIfMissing('position', { order: 'asc', unmapped_type: 'integer' });
+
+  return sortArray;
+}
+
+function buildStringQuery({
+  query,
+  parserMode,
+  fields,
+  defaultOperator,
+  analyzeWildcard = false,
+  analyzer,
+  quoteAnalyzer,
+  quoteFieldSuffix,
+}: {
+  query: string;
+  parserMode: QueryParserMode;
+  fields: string[];
+  defaultOperator: estypes.QueryDslOperator;
+  analyzeWildcard?: boolean;
+  analyzer?: string;
+  quoteAnalyzer?: string;
+  quoteFieldSuffix?: string;
+}): estypes.QueryDslQueryContainer {
+  if (parserMode === 'safe') {
+    return {
+      simple_query_string: {
+        query,
+        fields,
+        analyzer,
+        analyze_wildcard: analyzeWildcard,
+        default_operator: defaultOperator,
+        quote_field_suffix: quoteFieldSuffix,
+      },
+    };
+  }
+
+  return {
+    query_string: {
+      query,
+      analyze_wildcard: analyzeWildcard,
+      allow_leading_wildcard: false,
+      fuzzy_transpositions: false,
+      fields,
+      analyzer,
+      default_operator: defaultOperator,
+      quote_analyzer: quoteAnalyzer,
+      quote_field_suffix: quoteFieldSuffix,
+    },
+  };
+}
+
+function isQuerySyntaxError(error: unknown): boolean {
+  const elasticError = error as {
+    message?: string;
+    meta?: {
+      body?: {
+        error?: {
+          type?: string;
+          reason?: string;
+          root_cause?: Array<{ type?: string; reason?: string }>;
+          failed_shards?: Array<{ reason?: { type?: string; reason?: string } }>;
+        };
+      };
+    };
+  };
+
+  const errorMeta = elasticError.meta?.body?.error;
+  const errorCauses = [
+    { type: errorMeta?.type, reason: errorMeta?.reason },
+    ...(errorMeta?.root_cause ?? []),
+    ...(errorMeta?.failed_shards?.map((item) => item.reason ?? {}) ?? []),
+  ];
+
+  if (errorCauses.some((cause) => cause.type === 'parse_exception' || cause.type === 'parsing_exception')) {
+    return true;
+  }
+
+  const message = [elasticError.message, ...errorCauses.map((cause) => cause.reason)].join(' ').toLowerCase();
+  return (
+    message.includes('failed to parse query') ||
+    message.includes('cannot parse') ||
+    message.includes('lexical error') ||
+    message.includes('token_mgr_error')
+  );
+}
+
 const buildMediaFilter = (media: QuerySegmentsRequest['media']): estypes.QueryDslQueryContainer => {
   if (!media) return { match_all: {} };
 
   const mediaQueries: estypes.QueryDslQueryContainer[] = media.flatMap((mediaFilter) => {
-    if (!mediaFilter.seasons) {
+    if (!mediaFilter.episodes) {
       return {
         bool: {
-          must: [{ term: { mediaId: { value: mediaFilter.media_id } } }],
+          must: [{ term: { mediaId: { value: mediaFilter.mediaId } } }],
         },
       };
     }
 
-    return mediaFilter.seasons.flatMap((season) => {
-      if (!season.episodes) {
-        return {
-          bool: {
-            must: [
-              { term: { mediaId: { value: mediaFilter.media_id } } },
-              { term: { season: { value: season.season } } },
-            ],
-          },
-        };
-      }
-
-      return season.episodes.map((episode) => ({
-        bool: {
-          must: [
-            { term: { mediaId: { value: mediaFilter.media_id } } },
-            { term: { season: { value: season.season } } },
-            { term: { episode: { value: episode } } },
-          ],
-        },
-      }));
-    });
+    return mediaFilter.episodes.map((episode) => ({
+      bool: {
+        must: [{ term: { mediaId: { value: mediaFilter.mediaId } } }, { term: { episode: { value: episode } } }],
+      },
+    }));
   });
 
   return { bool: { should: mediaQueries } };

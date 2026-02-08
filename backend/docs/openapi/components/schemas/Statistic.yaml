@@ -25,9 +25,9 @@ properties:
     example: 42
   seasonWithEpisodeHits:
     type: object
-    description: Nested object mapping seasons to episodes with hit counts
+    description: Nested object mapping seasons to episodes with hit counts (season 0 contains all episodes)
     example:
-      1:
+      0:
         1: 5
         2: 8
         3: 3

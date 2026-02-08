@@ -1,33 +1,18 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
-export const searchFetchLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  limit: 2000,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: {
-    message: 'Too many requests. Please try again later.',
-  },
-});
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
 
-export const perEndpointLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  limit: 300,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    // Unique limit per IP + endpoint path
-    // Use ipKeyGenerator to properly normalize IPv6 addresses
-    const ip = req.ip ?? 'unknown';
-    return ipKeyGenerator(ip) + ':' + req.path;
-  },
-  message: { message: 'Too many requests. Please try again later.' },
-});
+const ORIGIN_SAFETY_WINDOW_MS = parsePositiveInteger(process.env.ORIGIN_SAFETY_WINDOW_MS, 60 * 1000);
+const ORIGIN_SAFETY_LIMIT = parsePositiveInteger(process.env.ORIGIN_SAFETY_LIMIT, 2000);
 
-export const mediaLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  limit: 2000,
+export const originSafetyLimiter = rateLimit({
+  windowMs: ORIGIN_SAFETY_WINDOW_MS,
+  limit: ORIGIN_SAFETY_LIMIT,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
   message: { message: 'Too many requests. Please try again later.' },
 });

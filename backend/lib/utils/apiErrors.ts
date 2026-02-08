@@ -222,10 +222,6 @@ export class NotFoundError extends ApiError {
   static forApiKey(): NotFoundError {
     return new NotFoundError('API key not found');
   }
-
-  static forRole(): NotFoundError {
-    return new NotFoundError('Role not found');
-  }
 }
 
 // ============================================================================

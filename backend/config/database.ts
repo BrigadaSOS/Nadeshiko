@@ -2,8 +2,6 @@ import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import {
   User,
-  Role,
-  UserRole,
   AccountQuotaUsage,
   Media,
   Segment,
@@ -27,8 +25,6 @@ export const AppDataSource = new DataSource({
   database: process.env.POSTGRES_DB,
   entities: [
     User,
-    Role,
-    UserRole,
     AccountQuotaUsage,
     Media,
     Segment,

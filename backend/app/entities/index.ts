@@ -2,9 +2,7 @@
 export { BaseEntity } from './base.entity';
 
 // User domain
-export { User } from './User';
-export { Role } from './Role';
-export { UserRole } from './UserRole';
+export { User, UserRoleType } from './User';
 export { AccountQuotaUsage } from './AccountQuotaUsage';
 
 // Media domain

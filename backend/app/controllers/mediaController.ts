@@ -85,8 +85,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
     const media = await manager.findOneOrFail(Media, { where: { id: params.id } });
 
     // Extract only the fields we want to update (exclude relations and computed fields)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { characters, lists, numSegments, ...updateFields } = body;
+    const { characters, lists: _lists, numSegments: _numSegments, ...updateFields } = body;
 
     Media.merge(media, updateFields as DeepPartial<Media>);
 

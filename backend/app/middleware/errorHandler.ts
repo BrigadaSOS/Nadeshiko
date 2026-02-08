@@ -146,7 +146,6 @@ function entityNameToDetail(entityName: string): string {
     Episode: 'Episode not found',
     Segment: 'Segment not found',
     ApiAuth: 'API key not found',
-    Role: 'Role not found',
   };
 
   return entityMap[entityName] ?? `${entityName} not found`;

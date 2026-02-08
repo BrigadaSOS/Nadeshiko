@@ -7,22 +7,12 @@ meta {
 post {
   url: {{baseUrl}}/v1/admin/reindex
   body: json
+  auth: inherit
 }
 
 body:json {
   {
-    "media": [
-      {
-        "mediaId": 5,
-        "episodes": [
-          1,
-          3
-        ]
-      },
-      {
-        "mediaId": 10
-      }
-    ]
+    "media": []
   }
 }
 

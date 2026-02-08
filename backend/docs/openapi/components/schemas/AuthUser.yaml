@@ -11,8 +11,6 @@ properties:
     type: string
     format: email
     description: User's email address
-  roles:
-    type: array
-    items:
-      $ref: "./UserRole.yaml"
-    description: User's roles
+  role:
+    $ref: "./UserRole.yaml"
+    description: User's role

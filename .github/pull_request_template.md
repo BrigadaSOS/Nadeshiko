@@ -24,6 +24,11 @@ Closes #
 ## Testing
 <!-- Describe the tests you ran and how to reproduce them -->
 - [ ] I have tested these changes locally
+- [ ] I ran `bun run check` (or documented why not)
+<!-- Paste output snippets for lint/typecheck/build below -->
+```text
+<paste check output>
+```
 <!-- Also add screenshots to help explain your changes if necessary -->
 
 ## Checklist
@@ -31,6 +36,8 @@ Closes #
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
 - [ ] I have checked for any breaking changes
+- [ ] I confirmed whether this PR changes API/OpenAPI contracts
+- [ ] I confirmed whether this PR requires a database migration
 
 ## Additional Notes
 <!-- Any additional information or context for reviewers -->

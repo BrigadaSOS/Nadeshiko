@@ -18,7 +18,8 @@ The API uses two authentication methods.
 
 ### API Key Authentication
 
-Most endpoints use API key authentication via the `Authorization: Bearer <apiKey>` header.
+Most endpoints use API key authentication via the
+`Authorization: Bearer <apiKey>` header.
 
 ### Session Cookie Authentication
 
