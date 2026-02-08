@@ -1,0 +1,14 @@
+type: object
+properties:
+  stats:
+    $ref: "../schemas/MediaInfoStats.yaml"
+  results:
+    type: array
+    items:
+      $ref: "../schemas/MediaInfoData.yaml"
+  cursor:
+    type: integer
+    description: Next cursor for pagination
+  hasMoreResults:
+    type: boolean
+    description: Whether more results are available

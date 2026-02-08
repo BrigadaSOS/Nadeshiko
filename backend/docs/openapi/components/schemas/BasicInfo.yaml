@@ -1,0 +1,45 @@
+type: object
+description: Basic anime/media information included in search results
+required:
+  - animeId
+  - nameAnimeRomaji
+  - episode
+  - season
+  - category
+properties:
+  animeId:
+    type: integer
+    description: Unique identifier for the anime/media
+    example: 110316
+  nameAnimeRomaji:
+    type: string
+    description: Romaji transliteration of the anime name
+    example: "Steins;Gate"
+  nameAnimeEn:
+    type: string
+    description: English translation of the anime name
+    example: "Steins;Gate"
+  nameAnimeJp:
+    type: string
+    description: Original Japanese name of the anime
+    example: "シュタインズ・ゲート"
+  cover:
+    type: string
+    format: uri
+    description: URL to the cover image
+    example: "https://example.com/media/anime/steins-gate/cover.jpg"
+  banner:
+    type: string
+    format: uri
+    description: URL to the banner image
+    example: "https://example.com/media/anime/steins-gate/banner.jpg"
+  episode:
+    type: integer
+    description: Episode number where the segment appears
+    example: 1
+  season:
+    type: integer
+    description: Season number where the segment appears
+    example: 1
+  category:
+    $ref: "./Category.yaml"

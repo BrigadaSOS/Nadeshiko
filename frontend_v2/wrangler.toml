@@ -1,6 +1,0 @@
-name = "nadeshiko"
-main = ".output/server/index.mjs"
-compatibility_date = "2025-01-19"
-
-[assets]
-directory = ".output/public"

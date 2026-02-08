@@ -1,0 +1,19 @@
+meta {
+  name: Get single media
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/v1/media/:id
+  body: none
+}
+
+params:query {
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,12 @@
+description: Unauthorized
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/Error.yaml"
+    examples:
+      AuthCredentialsRequired:
+        $ref: "../examples/AuthCredentialsRequired.yaml"
+      AuthCredentialsInvalid:
+        $ref: "../examples/AuthCredentialsInvalid.yaml"
+      AuthCredentialsExpired:
+        $ref: "../examples/AuthCredentialsExpired.yaml"

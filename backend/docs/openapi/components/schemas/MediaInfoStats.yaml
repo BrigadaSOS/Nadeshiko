@@ -1,0 +1,19 @@
+type: object
+description: Statistics about media and segments in the database
+properties:
+  totalAnimes:
+    type: integer
+    description: Number of anime/media entries in the current result set
+    example: 15
+  totalSegments:
+    type: integer
+    description: Number of subtitle segments in the current result set
+    example: 150
+  fullTotalAnimes:
+    type: integer
+    description: Total number of anime/media entries in the entire database
+    example: 5234
+  fullTotalSegments:
+    type: integer
+    description: Total number of subtitle segments in the entire database
+    example: 1523847

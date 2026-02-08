@@ -1,0 +1,32 @@
+type: object
+required:
+  - media_id
+  - season
+  - episode
+  - segment_position
+properties:
+  media_id:
+    type: integer
+    description: Media ID
+    example: 110316
+  season:
+    type: integer
+    description: Season number
+    minimum: 0
+    example: 1
+  episode:
+    type: integer
+    description: Episode number
+    minimum: 0
+    example: 5
+  segment_position:
+    type: integer
+    description: Segment position in the episode
+    minimum: 0
+    example: 1133
+  limit:
+    type: integer
+    description: Number of surrounding segments to retrieve
+    minimum: 0
+    default: 5
+    example: 5

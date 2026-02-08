@@ -1,0 +1,16 @@
+type: object
+description: A complete sentence result combining basic info, segment details, and media paths
+required:
+  - basicInfo
+  - segmentInfo
+  - mediaInfo
+properties:
+  basicInfo:
+    $ref: "./BasicInfo.yaml"
+    description: Basic anime/media information
+  segmentInfo:
+    $ref: "./SegmentInfo.yaml"
+    description: Detailed segment information including translations
+  mediaInfo:
+    $ref: "./MediaInfoPath.yaml"
+    description: URLs to media resources (images, audio, video)

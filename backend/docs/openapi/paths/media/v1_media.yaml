@@ -1,0 +1,85 @@
+get:
+  tags:
+    - Media
+  operationId: mediaIndex
+  summary: List all media
+  description: |
+    Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
+  parameters:
+    - name: limit
+      in: query
+      description: Number of results per page
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 40
+    - name: cursor
+      in: query
+      description: Pagination cursor offset
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    - name: category
+      in: query
+      description: Filter by media category
+      schema:
+        type: string
+        enum: [ANIME, JDRAMA]
+        example: ANIME
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/MediaListResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+post:
+  tags:
+    - Media
+  operationId: mediaCreate
+  x-internal: true
+  summary: Create new media
+  description: |
+    Creates a new media entry in the database.
+
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/MediaCreateRequest.yaml"
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/MediaResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

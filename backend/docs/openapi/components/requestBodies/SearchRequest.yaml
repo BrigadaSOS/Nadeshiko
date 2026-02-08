@@ -1,0 +1,112 @@
+type: object
+properties:
+  query:
+    type: string
+    description: Text or sentence to search (null to search without query)
+    example: 彼女
+  limit:
+    type: integer
+    description: Max amount of entries by response
+    default: 10
+  uuid:
+    type: string
+    format: uuid
+    description: Unique ID from sentence (Useful to get a specific sentence)
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  category:
+    type: array
+    description: Media category filter
+    items:
+      $ref: "../schemas/Category.yaml"
+    default: [ANIME, JDRAMA]
+  anime_id:
+    type: integer
+    description: Unique ID from media
+    example: 5
+  season:
+    type: array
+    description: Array of seasons to get
+    items:
+      type: integer
+    example: [1]
+  episode:
+    type: array
+    description: Array of episodes to get
+    items:
+      type: integer
+    example: [5, 8]
+  random_seed:
+    type: number
+    format: float
+    description: A value from 0 to 1 for random sorting
+    minimum: 0
+    maximum: 1
+    example: 0.5
+  content_sort:
+    type: string
+    description: Order by amount of characters
+    enum: [asc, desc, none, time_asc, time_desc, random]
+    example: none
+    default: none
+  cursor:
+    type: array
+    description: Current page of search
+    items:
+      type: number
+    example: [23.31727, 7]
+  exact_match:
+    type: boolean
+    description: Whether to use exact phrase matching
+    default: false
+  extra:
+    type: boolean
+    description: Include extra content
+    default: false
+  min_length:
+    type: integer
+    description: Minimum content length
+    example: 10
+  max_length:
+    type: integer
+    description: Maximum content length
+    example: 50
+  excluded_anime_ids:
+    type: array
+    items:
+      type: integer
+    description: Anime IDs to exclude from results
+    default: []
+  status:
+    type: array
+    description: Segment status filter
+    items:
+      type: integer
+    default: [1]
+  media:
+    type: array
+    description: Media filter with seasons and episodes
+    items:
+      type: object
+      required:
+        - media_id
+        - seasons
+      properties:
+        media_id:
+          type: string
+          example: "123"
+        seasons:
+          type: array
+          items:
+            type: object
+            required:
+              - season
+              - episodes
+            properties:
+              season:
+                type: number
+                example: 1
+              episodes:
+                type: array
+                items:
+                  type: number
+                example: [1, 2]

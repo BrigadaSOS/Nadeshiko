@@ -1,0 +1,10 @@
+# Reusable component for media category field
+type: string
+description: Media category type
+enum: [ANIME, JDRAMA]
+example: "ANIME"
+x-enum-descriptions:
+  - value: ANIME
+    description: Anime
+  - value: JDRAMA
+    description: Japanese Drama

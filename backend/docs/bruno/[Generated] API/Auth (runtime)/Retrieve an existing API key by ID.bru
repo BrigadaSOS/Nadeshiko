@@ -1,0 +1,23 @@
+meta {
+  name: Retrieve an existing API key by ID
+  type: http
+  seq: 40
+}
+
+get {
+  url: {{baseUrl}}/api/auth/api-key/get
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

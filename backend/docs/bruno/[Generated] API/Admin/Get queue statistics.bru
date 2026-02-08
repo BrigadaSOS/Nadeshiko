@@ -1,0 +1,15 @@
+meta {
+  name: Get queue statistics
+  type: http
+  seq: 33
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/queues/stats
+  body: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

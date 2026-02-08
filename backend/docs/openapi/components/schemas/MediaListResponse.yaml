@@ -1,0 +1,18 @@
+type: object
+description: Paginated list of media entries
+properties:
+  data:
+    type: array
+    items:
+      $ref: "./Media.yaml"
+  cursor:
+    type: integer
+    description: Next cursor for pagination
+    example: 20
+  hasMoreResults:
+    type: boolean
+    description: Whether more results are available
+    example: true
+required:
+  - data
+  - hasMoreResults

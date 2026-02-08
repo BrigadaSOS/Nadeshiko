@@ -1,0 +1,37 @@
+type: object
+description: Search result statistics grouped by anime/media
+properties:
+  animeId:
+    type: integer
+    description: Unique identifier for the anime/media
+    example: 110316
+  category:
+    $ref: "./Category.yaml"
+  nameAnimeRomaji:
+    type: string
+    description: Romaji transliteration of the anime name
+    example: "Steins;Gate"
+  nameAnimeEn:
+    type: string
+    description: English translation of the anime name
+    example: "Steins;Gate"
+  nameAnimeJp:
+    type: string
+    description: Original Japanese name of the anime
+    example: "シュタインズ・ゲート"
+  amountSentencesFound:
+    type: integer
+    description: Total number of sentences found for this anime
+    example: 42
+  seasonWithEpisodeHits:
+    type: object
+    description: Nested object mapping seasons to episodes with hit counts
+    example:
+      1:
+        1: 5
+        2: 8
+        3: 3
+    additionalProperties:
+      type: object
+      additionalProperties:
+        type: integer

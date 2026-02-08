@@ -1,0 +1,15 @@
+type: object
+properties:
+  words:
+    type: array
+    items:
+      type: string
+    description: List of words to search for
+    example: ["彼女", "私"]
+  exact_match:
+    type: boolean
+    default: false
+    description: Whether to use exact matching
+    example: false
+required:
+  - words

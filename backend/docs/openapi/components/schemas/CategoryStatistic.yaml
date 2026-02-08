@@ -1,0 +1,9 @@
+type: object
+description: Statistics grouped by media category
+properties:
+  category:
+    $ref: "./Category.yaml"
+  count:
+    type: integer
+    description: Number of entries in this category
+    example: 1523

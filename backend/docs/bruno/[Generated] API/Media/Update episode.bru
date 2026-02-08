@@ -1,0 +1,33 @@
+meta {
+  name: Update episode
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber
+  body: json
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+}
+
+body:json {
+  {
+    "anilistEpisodeId": 0,
+    "titleEnglish": "",
+    "titleRomaji": "",
+    "titleJapanese": "",
+    "description": "",
+    "airedAt": "",
+    "lengthSeconds": 0,
+    "thumbnailUrl": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

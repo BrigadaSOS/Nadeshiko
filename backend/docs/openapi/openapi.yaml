@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  title: Nadeshiko API
+  description: |
+    Welcome to the Nadeshiko API.
+
+    ## Getting Started
+
+    Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
+
+    If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
+
+    ### Quotas and Limits
+    The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message:
+    > "Too many requests. Please try again later."
+
+    Additionally, each account has a monthly quota limit. Once the monthly quota is exceeded, further requests will receive the message:
+    > "API Key quota exceeded for this month."
+
+    | Account Type | Quota (Monthly) |
+    |--------------|-----------------|
+    | Default      | 2500 requests   |
+
+    To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
+
+  version: 1.3.0
+  contact:
+    name: Nadeshiko Team
+    url: https://nadeshiko.co
+
+servers:
+  - description: Local server
+    url: http://localhost:5000
+  - description: Production server
+    url: https://api.nadeshiko.co
+
+security:
+  - apiKeyHeader: []
+  - sessionCookie: []
+
+tags:
+  - name: Search
+    description: |
+      Search endpoints for querying Japanese sentences across indexed media.
+
+  - name: Admin
+    x-internal: true
+    description: |
+      Administrative endpoints for system management and operations.
+
+  - name: Media
+    description: |
+      Media CRUD endpoints for managing anime and j-drama entries.
+
+  - name: Lists
+    description: |
+      List endpoints for managing media collections and watch orders.
+
+paths:
+  # Search endpoints
+  "/v1/search/health":
+    $ref: "./paths/search/v1_search_health.yaml"
+  "/v1/search/media/sentence":
+    $ref: "./paths/search/v1_search_media_sentence.yaml"
+  "/v1/search/media/match/words":
+    $ref: "./paths/search/v1_search_media_match_words.yaml"
+  "/v1/search/media/context":
+    $ref: "./paths/search/v1_search_media_context.yaml"
+  "/v1/search/media/info":
+    $ref: "./paths/search/v1_search_media_info.yaml"
+
+  # Media endpoints
+  "/v1/media":
+    $ref: "./paths/media/v1_media.yaml"
+  "/v1/media/{id}":
+    $ref: "./paths/media/v1_media_id.yaml"
+
+  # Episode endpoints (nested under media)
+  "/v1/media/{mediaId}/episodes":
+    $ref: "./paths/media/v1_media_mediaId_episodes.yaml"
+  "/v1/media/{mediaId}/episodes/{episodeNumber}":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber.yaml"
+
+  # Segment endpoints (nested under episodes)
+  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments.yaml"
+  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_id.yaml"
+
+  # Segment standalone UUID query
+  "/v1/media/segments/{uuid}":
+    $ref: "./paths/media/v1_media_segments_uuid.yaml"
+
+  # Character endpoints (nested under media)
+  "/v1/media/characters/{id}":
+    $ref: "./paths/media/v1_media_characters_id.yaml"
+
+  # Seiyuu endpoints (nested under media)
+  "/v1/media/seiyuu/{id}":
+    $ref: "./paths/media/v1_media_seiyuu_id.yaml"
+
+  # List endpoints
+  "/v1/lists":
+    $ref: "./paths/lists/v1_lists.yaml"
+  "/v1/lists/{id}":
+    $ref: "./paths/lists/v1_lists_id.yaml"
+  "/v1/lists/{id}/items":
+    $ref: "./paths/lists/v1_lists_id_items.yaml"
+  "/v1/lists/{id}/items/{mediaId}":
+    $ref: "./paths/lists/v1_lists_id_items_mediaId.yaml"
+
+  # Admin endpoints
+  "/v1/admin/reindex":
+    $ref: "./paths/admin/v1_admin_reindex.yaml"
+  "/v1/admin/queues/stats":
+    $ref: "./paths/admin/v1_admin_queues_stats.yaml"
+  "/v1/admin/queues/{queueName}":
+    $ref: "./paths/admin/v1_admin_queues__queueName_.yaml"
+  "/v1/admin/queues/{queueName}/failed":
+    $ref: "./paths/admin/v1_admin_queues__queueName__failed.yaml"
+  "/v1/admin/queues/{queueName}/retry":
+    $ref: "./paths/admin/v1_admin_queues__queueName__retry.yaml"
+  "/v1/admin/queues/{queueName}/purge":
+    $ref: "./paths/admin/v1_admin_queues__queueName__purge.yaml"
+
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
+      description: API key authentication via Authorization Bearer header
+
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: nadeshiko.session_token
+      description: Session authentication via better-auth cookie

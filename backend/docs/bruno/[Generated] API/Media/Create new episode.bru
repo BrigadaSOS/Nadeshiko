@@ -1,0 +1,33 @@
+meta {
+  name: Create new episode
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes
+  body: json
+}
+
+params:query {
+  mediaId:
+}
+
+body:json {
+  {
+    "anilistEpisodeId": 0,
+    "titleEnglish": "",
+    "titleRomaji": "",
+    "titleJapanese": "",
+    "description": "",
+    "airedAt": "",
+    "lengthSeconds": 0,
+    "thumbnailUrl": "",
+    "episodeNumber": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

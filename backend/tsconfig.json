@@ -25,8 +25,15 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
+    "paths": {
+      "@app/*": ["./app/*"],
+      "@config/*": ["./config/*"],
+      "@db/*": ["./db/*"],
+      "@lib/*": ["./lib/*"]
+    },
     "noEmit": false,
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "rewriteRelativeImportExtensions": true
   },
   "include": ["./**/*"],
   "exclude": ["node_modules", "client"]

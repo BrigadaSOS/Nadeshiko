@@ -1,0 +1,97 @@
+type: object
+description: Complete information about a media/anime entry
+properties:
+  id:
+    type: integer
+    description: Unique identifier for the media
+    example: 110316
+  anilistId:
+    type: integer
+    nullable: true
+    description: AniList database ID for the media
+    example: 21459
+  tmdbId:
+    type: integer
+    nullable: true
+    description: TMDB (The Movie Database) ID for the media
+    example: 63726
+  category:
+    $ref: "./Category.yaml"
+  createdAt:
+    type: string
+    format: date-time
+    description: Timestamp when the media entry was created in the database
+    example: "2024-01-15T10:30:00Z"
+  updatedAt:
+    type: integer
+    description: Timestamp when the media entry was last updated
+    example: 1705769100
+  romajiName:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Steins;Gate"
+  englishName:
+    type: string
+    description: English translation of the media name
+    example: "Steins;Gate"
+  japaneseName:
+    type: string
+    description: Original Japanese name of the media
+    example: "シュタインズ・ゲート"
+  airingFormat:
+    type: string
+    description: Format of the media release (e.g., TV, OVA, Movie)
+    example: "TV"
+  airingStatus:
+    type: string
+    description: Current airing status (FINISHED, RELEASING)
+    example: "FINISHED"
+  startDate:
+    type: string
+    format: date
+    description: Start date of the media (YYYY-MM-DD)
+    example: "2011-04-06"
+  endDate:
+    type: string
+    format: date
+    nullable: true
+    description: End date of the media (null if unknown) (YYYY-MM-DD)
+    example: "2011-09-14"
+  folderMediaName:
+    type: string
+    description: Folder name used for storing media files
+    example: "steins-gate"
+  genres:
+    type: array
+    items:
+      type: string
+    description: List of genres associated with the media
+    example: ["Sci-Fi", "Thriller", "Romance"]
+  cover:
+    type: string
+    format: uri
+    description: URL to the cover image
+    example: "https://example.com/media/anime/steins-gate/cover.jpg"
+  banner:
+    type: string
+    format: uri
+    description: URL to the banner image
+    example: "https://example.com/media/anime/steins-gate/banner.jpg"
+  version:
+    type: string
+    description: Version identifier for the media entry
+    example: "v1.0"
+  numSegments:
+    type: integer
+    description: Total number of subtitle segments available
+    example: 18542
+  numSeasons:
+    type: integer
+    description: Total number of seasons available
+    example: 1
+  numEpisodes:
+    type: integer
+    description: Total number of episodes available
+    example: 24
+required:
+  - id
