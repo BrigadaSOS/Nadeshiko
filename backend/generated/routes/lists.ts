@@ -131,6 +131,7 @@ export type ListAddItemResponder = {
   with401(): ExpressRuntimeResponse<t_Error>;
   with403(): ExpressRuntimeResponse<t_Error>;
   with404(): ExpressRuntimeResponse<t_Error>;
+  with409(): ExpressRuntimeResponse<t_Error>;
   with429(): ExpressRuntimeResponse<t_Error>;
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
@@ -503,13 +504,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
 
   const listDestroyResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          message: z.string().optional(),
-          id: z.coerce.number().optional(),
-        }),
-      ],
+      ['200', z.object({ message: z.string().optional(), id: z.coerce.number().optional() })],
       ['400', s_Error],
       ['401', s_Error],
       ['403', s_Error],
@@ -585,10 +580,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
 
   const listAddItemParamSchema = z.object({ id: z.coerce.number() });
 
-  const listAddItemRequestBodySchema = z.object({
-    mediaId: z.coerce.number(),
-    position: z.coerce.number(),
-  });
+  const listAddItemRequestBodySchema = z.object({ mediaId: z.coerce.number(), position: z.coerce.number() });
 
   const listAddItemResponseBodyValidator = responseValidationFactory(
     [
@@ -597,6 +589,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
       ['401', s_Error],
       ['403', s_Error],
       ['404', s_Error],
+      ['409', s_Error],
       ['429', s_Error],
       ['500', s_Error],
     ],
@@ -630,6 +623,9 @@ export function createListsRouter(implementation: ListsImplementation): Router {
         },
         with404() {
           return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with409() {
+          return new ExpressRuntimeResponse<t_Error>(409);
         },
         with429() {
           return new ExpressRuntimeResponse<t_Error>(429);
@@ -665,14 +661,9 @@ export function createListsRouter(implementation: ListsImplementation): Router {
     }
   });
 
-  const listUpdateItemParamSchema = z.object({
-    id: z.coerce.number(),
-    mediaId: z.coerce.number(),
-  });
+  const listUpdateItemParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
 
-  const listUpdateItemRequestBodySchema = z.object({
-    position: z.coerce.number(),
-  });
+  const listUpdateItemRequestBodySchema = z.object({ position: z.coerce.number() });
 
   const listUpdateItemResponseBodyValidator = responseValidationFactory(
     [
@@ -749,10 +740,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
     }
   });
 
-  const listRemoveItemParamSchema = z.object({
-    id: z.coerce.number(),
-    mediaId: z.coerce.number(),
-  });
+  const listRemoveItemParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
 
   const listRemoveItemResponseBodyValidator = responseValidationFactory(
     [

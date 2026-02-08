@@ -13,7 +13,7 @@ import { handleErrors } from '@app/middleware/errorHandler';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 import { logger, httpLogger } from '@lib/utils/log';
 import { NotFoundError } from '@lib/utils/apiErrors';
-import { perEndpointLimiter } from '@app/middleware/apiLimiterRate';
+import { originSafetyLimiter } from '@app/middleware/apiLimiterRate';
 import { corsMiddleware } from '@app/middleware/cors';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
 import { metricsMiddleware } from '@app/middleware/metrics';
@@ -21,6 +21,7 @@ import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
 import { rawBodySaver } from '@app/middleware/rawBodySaver';
 import { auth } from '@lib/auth';
 import { toNodeHandler } from 'better-auth/node';
+import { getAppEnvironment } from '@lib/environment';
 
 const PORT = process.env.PORT || 5000;
 const app: Application = express();
@@ -82,8 +83,8 @@ app.use(metricsMiddleware);
 // Route endpoints
 app.get('/up', (_req, res) => res.status(200).send('OK'));
 app.all('/api/auth', toNodeHandler(auth));
-app.all('/api/auth/*path', toNodeHandler(auth));
-app.use('/', perEndpointLimiter, router);
+app.all('/api/auth/*splat', toNodeHandler(auth));
+app.use('/', originSafetyLimiter, router);
 
 // Catch-all 404 handler
 app.use((req, res) => {
@@ -96,8 +97,10 @@ app.use((req, res) => {
 app.use(handleErrors as ErrorRequestHandler);
 
 app.listen(PORT, async () => {
+  const environment = getAppEnvironment();
+
   logger.info('===================================');
-  logger.info(`Current environment: [${process.env.ENVIRONMENT}]`);
+  logger.info(`Current environment: [${environment}]`);
   logger.info('API is now available. Waiting for database...');
 
   try {

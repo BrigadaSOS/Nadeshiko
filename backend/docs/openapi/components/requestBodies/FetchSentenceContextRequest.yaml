@@ -1,25 +1,19 @@
 type: object
 required:
-  - media_id
-  - season
+  - mediaId
   - episode
-  - segment_position
+  - segmentPosition
 properties:
-  media_id:
+  mediaId:
     type: integer
     description: Media ID
     example: 110316
-  season:
-    type: integer
-    description: Season number
-    minimum: 0
-    example: 1
   episode:
     type: integer
     description: Episode number
     minimum: 0
     example: 5
-  segment_position:
+  segmentPosition:
     type: integer
     description: Segment position in the episode
     minimum: 0

@@ -22,7 +22,6 @@ export const toMediaInfoData = (media: Media): t_MediaInfoData => {
     category: media.category as t_Category, // Direct mapping - CategoryType matches t_Category
     numSegments: media.numSegments,
     numEpisodes: media.episodes?.length ?? 0,
-    numSeasons: 1,
     version: media.version,
     folderMediaName: `${media.romajiName.replace(/[^a-zA-Z0-9]/g, '_')}`,
     createdAt: media.createdAt.toISOString(),

@@ -1,33 +1,27 @@
-import { estypes } from '@elastic/elasticsearch';
+import type * as estypes from '@elastic/elasticsearch/lib/api/types';
 type FieldValue = estypes.FieldValue;
 import { SegmentStatus } from '@app/entities';
 
 export interface QuerySegmentsRequest {
   readonly query?: string;
   readonly uuid?: string;
-  readonly length_sort_order: string;
-  readonly min_length?: number;
-  readonly max_length?: number;
-  readonly random_seed?: number;
+  readonly lengthSortOrder: string;
+  readonly minLength?: number;
+  readonly maxLength?: number;
+  readonly randomSeed?: number;
   readonly limit: number;
   readonly status: SegmentStatus[];
   readonly cursor?: FieldValue[];
-  readonly exact_match?: boolean;
-  readonly anime_id?: number; // To be deprecated
-  readonly season?: number[];
+  readonly exactMatch?: boolean;
+  readonly animeId?: number; // To be deprecated
   readonly episode?: number[];
   readonly category?: string[]; // "ANIME", "JDRAMA"
   readonly media?: QuerySegmentsAnimeFilter[];
   readonly extra?: boolean;
-  readonly excluded_anime_ids?: number[];
+  readonly excludedAnimeIds?: number[];
 }
 
 export interface QuerySegmentsAnimeFilter {
-  readonly media_id: string;
-  readonly seasons: QuerySegmentsSeasonFilter[];
-}
-
-export interface QuerySegmentsSeasonFilter {
-  readonly season: number;
+  readonly mediaId: number;
   readonly episodes: number[];
 }

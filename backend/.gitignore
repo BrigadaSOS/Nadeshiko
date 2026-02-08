@@ -4,8 +4,6 @@ node_modules
 prod
 logs
 *.log
-media/
-
 # Local dev OpenAPI docs (includes internal endpoints)
 docs/generated/openapi-internal.yaml
 

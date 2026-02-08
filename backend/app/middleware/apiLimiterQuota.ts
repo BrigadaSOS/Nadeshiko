@@ -15,6 +15,11 @@ export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunc
     return;
   }
 
+  if (req.auth?.apiKeyKind === 'service') {
+    next();
+    return;
+  }
+
   const userId = Number(req.auth?.user_id);
   if (!Number.isInteger(userId) || userId <= 0) {
     throw new AuthCredentialsInvalidError('Invalid API key owner.');

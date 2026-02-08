@@ -3,11 +3,9 @@ meta {
 }
 
 auth {
-  mode: apikey
+  mode: bearer
 }
 
-auth:apikey {
-  key: Authorization
-  value: Bearer {{apiKey}}
-  placement: header
+auth:bearer {
+  token: {{apiKey}}
 }

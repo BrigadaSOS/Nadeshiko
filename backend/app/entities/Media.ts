@@ -101,24 +101,24 @@ export class Media extends BaseEntity {
     };
   }> {
     // Return cache if available
-    if (this.MEDIA_INFO_CACHE && this.TOTAL_STATS_CACHE) {
-      const totalSegments = Array.from(this.MEDIA_INFO_CACHE.values()).reduce(
+    if (Media.MEDIA_INFO_CACHE && Media.TOTAL_STATS_CACHE) {
+      const totalSegments = Array.from(Media.MEDIA_INFO_CACHE.values()).reduce(
         (sum, m) => sum + (m.numSegments ?? 0),
         0,
       );
       return {
-        results: this.MEDIA_INFO_CACHE,
+        results: Media.MEDIA_INFO_CACHE,
         stats: {
-          totalAnimes: this.MEDIA_INFO_CACHE.size,
+          totalAnimes: Media.MEDIA_INFO_CACHE.size,
           totalSegments,
-          fullTotalAnimes: this.TOTAL_STATS_CACHE.fullTotalAnimes,
-          fullTotalSegments: this.TOTAL_STATS_CACHE.fullTotalSegments,
+          fullTotalAnimes: Media.TOTAL_STATS_CACHE.fullTotalAnimes,
+          fullTotalSegments: Media.TOTAL_STATS_CACHE.fullTotalSegments,
         },
       };
     }
 
     // Fetch all media with episodes relation
-    const allMedia = await this.find({
+    const allMedia = await Media.find({
       relations: ['episodes'],
       order: { createdAt: 'DESC' },
     });
@@ -128,17 +128,17 @@ export class Media extends BaseEntity {
     let totalSegments = 0;
 
     for (const media of allMedia) {
-      const info = this.toMediaInfoData(media);
+      const info = Media.toMediaInfoData(media);
       mediaMap.set(media.id, info);
       totalSegments += info.numSegments ?? 0;
     }
 
     // Get global counts
-    const stats = await this.getGlobalStats();
+    const stats = await Media.getGlobalStats();
 
     // Cache the results
-    this.MEDIA_INFO_CACHE = mediaMap;
-    this.TOTAL_STATS_CACHE = stats;
+    Media.MEDIA_INFO_CACHE = mediaMap;
+    Media.TOTAL_STATS_CACHE = stats;
 
     return {
       results: mediaMap,
@@ -167,7 +167,7 @@ export class Media extends BaseEntity {
   }> {
     const offset = (page - 1) * pageSize;
 
-    const media = await this.find({
+    const media = await Media.find({
       relations: ['episodes'],
       order: { createdAt: 'DESC' },
       take: pageSize,
@@ -178,13 +178,13 @@ export class Media extends BaseEntity {
     let totalSegments = 0;
 
     for (const m of media) {
-      const info = this.toMediaInfoData(m);
+      const info = Media.toMediaInfoData(m);
       results[m.id] = info;
       totalSegments += info.numSegments ?? 0;
     }
 
     // Get global stats
-    const globalStats = await this.getGlobalStats();
+    const globalStats = await Media.getGlobalStats();
 
     return {
       results,
@@ -205,7 +205,7 @@ export class Media extends BaseEntity {
     fullTotalSegments: number;
   }> {
     const [mediaCount, segmentCount] = await Promise.all([
-      this.count(),
+      Media.count(),
       Segment.count({ where: { status: Not(SegmentStatus.DELETED) } }),
     ]);
 
@@ -220,8 +220,8 @@ export class Media extends BaseEntity {
    * Call this when media/segments are added/updated
    */
   static invalidateCache(): void {
-    this.MEDIA_INFO_CACHE = null;
-    this.TOTAL_STATS_CACHE = null;
+    Media.MEDIA_INFO_CACHE = null;
+    Media.TOTAL_STATS_CACHE = null;
   }
 
   /**
@@ -248,7 +248,6 @@ export class Media extends BaseEntity {
       folderMediaName: media.romajiName.replace(/[^a-zA-Z0-9]/g, '_'),
       version: media.version,
       numSegments: media.numSegments,
-      numSeasons: 1,
       numEpisodes: media.episodes?.length ?? 0,
     };
   }

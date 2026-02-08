@@ -1,0 +1,22 @@
+{
+  "name": "nadeshiko-root",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run dev:backend & bun run dev:frontend",
+    "dev:backend": "bun run --cwd backend dev",
+    "dev:frontend": "bun run --cwd frontend dev",
+    "build": "bun run --cwd backend build && bun run --cwd frontend build",
+    "lint": "bun run --cwd backend lint && bun run --cwd frontend lint",
+    "typecheck": "bun run --cwd backend typecheck",
+    "typecheck:frontend": "bun run --cwd frontend typecheck",
+    "check": "bun run lint && bun run typecheck && bun run build",
+    "ci": "bun run check",
+    "lint:fix": "bun run --cwd backend lint:fix && bun run --cwd frontend lint:fix",
+    "format": "bun run --cwd backend format && bun run --cwd frontend format",
+    "docs:verify": "bun run --cwd backend docs:bundle && test -f backend/docs/generated/openapi.yaml",
+    "test:smoke": "bun run --cwd backend test:smoke",
+    "release:set-version": "bun run scripts/releaseVersion.ts set",
+    "release:check-version": "bun run scripts/releaseVersion.ts check"
+  }
+}

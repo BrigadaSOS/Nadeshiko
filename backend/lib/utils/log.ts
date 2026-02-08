@@ -1,7 +1,18 @@
 import pino from 'pino';
 import pinoHttp from 'pino-http';
+import { basename } from 'path';
+import { isDevEnvironment, isLocalEnvironment } from '@lib/environment';
 
-const isDevelopment = process.env.ENVIRONMENT === 'testing' || process.env.ENVIRONMENT === 'development';
+const isDevelopment = isLocalEnvironment() || isDevEnvironment();
+
+function shouldUsePrettyLogsForEntrypoint(): boolean {
+  const entrypoint = basename(process.argv[1] ?? '');
+  return (
+    entrypoint === 'db.ts' || entrypoint === 'es.ts' || entrypoint === 'setup.ts' || entrypoint === 'dbBootstrap.ts'
+  );
+}
+
+const usePrettyLogs = shouldUsePrettyLogsForEntrypoint();
 
 // Helper function to safely parse JSON, returns original value if parsing fails
 const safeParseJson = (value: string): any => {
@@ -47,7 +58,7 @@ const baseOptions: pino.LoggerOptions = {
     'req.body.username', // Potential PII
 
     // Sensitive data in response body - tokens and keys
-    'res.body.token', // JWT tokens
+    'res.body.token', // Authentication tokens
     'res.body.key', // API keys
     'res.body.apiKey',
     'res.body.api_key',
@@ -79,7 +90,21 @@ const baseOptions: pino.LoggerOptions = {
   },
 };
 
-export const logger = pino(baseOptions);
+const loggerOptions: pino.LoggerOptions = usePrettyLogs
+  ? {
+      ...baseOptions,
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'SYS:standard',
+          ignore: 'pid,hostname',
+        },
+      },
+    }
+  : baseOptions;
+
+export const logger = pino(loggerOptions);
 export const createLogger = (context: string) => logger.child({ context });
 
 // HTTP request logger configuration
@@ -125,12 +150,10 @@ export const httpLogger = pinoHttp({
     }
     return 'info';
   },
-  customSuccessMessage: function (req: any, res: any) {
-    return `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} completed with ${res.statusCode}`;
-  },
-  customErrorMessage: function (req: any, res: any, error: any) {
-    return `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} failed with ${res.statusCode} - ${error?.message}`;
-  },
+  customSuccessMessage: (req: any, res: any) =>
+    `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} completed with ${res.statusCode}`,
+  customErrorMessage: (req: any, res: any, error: any) =>
+    `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} failed with ${res.statusCode} - ${error?.message}`,
 } as any);
 
 export default logger;

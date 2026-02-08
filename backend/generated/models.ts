@@ -11,7 +11,6 @@ export type t_BasicInfo = {
   nameAnimeEn?: string;
   nameAnimeJp?: string;
   nameAnimeRomaji: string;
-  season: number;
 };
 
 export type t_Category = 'ANIME' | 'JDRAMA';
@@ -178,9 +177,9 @@ export type t_MediaInfoData = {
 };
 
 export type t_MediaInfoPath = {
-  path_audio?: string;
-  path_image?: string;
-  path_video?: string;
+  pathAudio?: string;
+  pathImage?: string;
+  pathVideo?: string;
 };
 
 export type t_MediaInfoStats = {
@@ -252,6 +251,7 @@ export type t_Segment = {
   status: 0 | 1 | 2 | 3 | 100 | 101;
   storage: 'local' | 'r2';
   uuid: string;
+  videoUrl?: string | null;
 };
 
 export type t_SegmentInfo = {
@@ -322,18 +322,18 @@ export type t_Statistic = {
 };
 
 export type t_WordMatch = {
-  is_match?: boolean;
+  isMatch?: boolean;
   media?: t_WordMatchMedia[];
-  total_matches?: number;
+  totalMatches?: number;
   word?: string;
 };
 
 export type t_WordMatchMedia = {
-  english_name?: string;
-  japanese_name?: string;
+  englishName?: string;
+  japaneseName?: string;
   matches?: number;
-  media_id?: number;
-  romaji_name?: string;
+  mediaId?: number;
+  romajiName?: string;
 };
 
 export type t_CharacterShowParamSchema = {
@@ -401,9 +401,8 @@ export type t_FetchMediaInfoQuerySchema = {
 export type t_FetchSentenceContextRequestBodySchema = {
   episode: number;
   limit?: number;
-  media_id: number;
-  season: number;
-  segment_position: number;
+  mediaId: number;
+  segmentPosition: number;
 };
 
 export type t_GetFailedJobsParamSchema = {
@@ -545,33 +544,29 @@ export type t_RetryQueueJobsParamSchema = {
 };
 
 export type t_SearchRequestBodySchema = {
-  anime_id?: number;
+  animeId?: number;
   category?: t_Category[];
-  content_sort?: 'asc' | 'desc' | 'none' | 'time_asc' | 'time_desc' | 'random';
+  contentSort?: 'asc' | 'desc' | 'none' | 'time_asc' | 'time_desc' | 'random';
   cursor?: number[];
   episode?: number[];
-  exact_match?: boolean;
-  excluded_anime_ids?: number[];
+  exactMatch?: boolean;
+  excludedAnimeIds?: number[];
   extra?: boolean;
   limit?: number;
-  max_length?: number;
+  maxLength?: number;
   media?: {
-    media_id: string;
-    seasons: {
-      episodes: number[];
-      season: number;
-    }[];
+    episodes: number[];
+    mediaId: number;
   }[];
-  min_length?: number;
+  minLength?: number;
   query?: string;
-  random_seed?: number;
-  season?: number[];
+  randomSeed?: number;
   status?: number[];
   uuid?: string;
 };
 
 export type t_SearchMultipleRequestBodySchema = {
-  exact_match?: boolean;
+  exactMatch?: boolean;
   words: string[];
 };
 

@@ -18,6 +18,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@pgadmin.com
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_LISTEN_PORT: 80
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
     volumes:
       - nadeshiko_pgadmin:/var/lib/pgadmin
     ports:
@@ -31,12 +32,14 @@ services:
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
-      - xpack.security.enabled=false
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTICSEARCH_ADMIN_PASSWORD}
       - network.host=127.0.0.1
       - http.host=0.0.0.0
     ports:
-      - 9200:9200
-      - 9300:9300
+      - 127.0.0.1:9200:9200
+      - 127.0.0.1:9300:9300
     command: >
       bash -c '
         if [ ! "-d" "/usr/share/elasticsearch/plugins/analysis-icu" ]; then
@@ -60,7 +63,7 @@ services:
     volumes:
       - nadeshiko_kibana_data:/usr/share/kibana/config
     environment:
-      ELASTICSEARCH_URL: "http://elasticsearch:9200/"
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
     restart: always
     depends_on:
       - elasticsearch

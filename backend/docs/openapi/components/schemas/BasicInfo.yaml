@@ -4,7 +4,6 @@ required:
   - animeId
   - nameAnimeRomaji
   - episode
-  - season
   - category
 properties:
   animeId:
@@ -36,10 +35,6 @@ properties:
   episode:
     type: integer
     description: Episode number where the segment appears
-    example: 1
-  season:
-    type: integer
-    description: Season number where the segment appears
     example: 1
   category:
     $ref: "./Category.yaml"

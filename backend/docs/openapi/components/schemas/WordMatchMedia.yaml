@@ -1,19 +1,19 @@
 type: object
 description: Media entry containing word matches
 properties:
-  media_id:
+  mediaId:
     type: integer
     description: Unique identifier for the media
     example: 110316
-  english_name:
+  englishName:
     type: string
     description: English translation of the media name
     example: "Steins;Gate"
-  japanese_name:
+  japaneseName:
     type: string
     description: Original Japanese name of the media
     example: "シュタインズ・ゲート"
-  romaji_name:
+  romajiName:
     type: string
     description: Romaji transliteration of the media name
     example: "Steins;Gate"

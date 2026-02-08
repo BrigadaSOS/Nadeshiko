@@ -7,11 +7,12 @@ meta {
 get {
   url: {{baseUrl}}/v1/media?limit=20&category=ANIME
   body: none
+  auth: inherit
 }
 
 params:query {
   limit: 20
-  cursor:
+  cursor: 
   category: ANIME
 }
 
