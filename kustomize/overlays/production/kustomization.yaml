@@ -5,7 +5,7 @@ resources:
 - pgroonga.yaml
 - pgsync.yaml
 #  - ../../base
-namespace: nadedb
+namespace: nadeshiko
 images:
 - name: brigadasos-db
   newName: ghcr.io/brigadasos/nadeshiko
