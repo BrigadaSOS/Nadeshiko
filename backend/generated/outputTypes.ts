@@ -64,14 +64,6 @@ export const fetchMediaInfoQuerySchema = z.object({
   });
 export type FetchMediaInfoQueryOutput = z.output<typeof fetchMediaInfoQuerySchema>;
 
-export const listIndexQuerySchema = z.object({
-    visibility: z.enum(['public', 'private']).optional(),
-    type: z.enum(['SERIES', 'CUSTOM']).optional(),
-    userId: z.coerce.number().optional(),
-    mediaId: z.coerce.number().optional(),
-  });
-export type ListIndexQueryOutput = z.output<typeof listIndexQuerySchema>;
-
 export const mediaIndexQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.coerce.number().min(0).optional().default(0),
@@ -90,3 +82,11 @@ export const segmentIndexQuerySchema = z.object({
     cursor: z.coerce.number().optional().default(0),
   });
 export type SegmentIndexQueryOutput = z.output<typeof segmentIndexQuerySchema>;
+
+export const listIndexQuerySchema = z.object({
+    visibility: z.enum(['public', 'private']).optional(),
+    type: z.enum(['SERIES', 'CUSTOM']).optional(),
+    userId: z.coerce.number().optional(),
+    mediaId: z.coerce.number().optional(),
+  });
+export type ListIndexQueryOutput = z.output<typeof listIndexQuerySchema>;

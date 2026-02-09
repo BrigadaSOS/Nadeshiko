@@ -6,7 +6,7 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
 
 export default defineNuxtConfig({
   devtools: {
-    enabled: process.env.NODE_ENV === 'development',
+    enabled: process.env.NODE_ENV === 'dev',
 
     timeline: {
       enabled: true,

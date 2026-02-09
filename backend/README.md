@@ -68,7 +68,7 @@ kamal deploy -d prod
 ```
 
 Shared accessories (`postgres`, `elasticsearch`, `grafana`, etc.) are defined only in
-`config/deploy.prod.yaml`. Manage accessory lifecycle with the `prod` destination.
+`config/deploy.prod.yml`. Manage accessory lifecycle with the `prod` destination.
 
 ### Shared PostgreSQL + Isolated Users (dev/prod)
 
