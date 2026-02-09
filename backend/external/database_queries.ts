@@ -53,14 +53,14 @@ export const refreshMediaInfoCache = async (page: number, pageSize: number) => {
     'num_episodes', me.num_episodes
   ) AS media_info
     FROM 
-      nadedb.public."Media" me
+      nadeshiko.public."Media" me
     GROUP BY 
       me.id, me.romaji_name, me.english_name, me.japanese_name
     ORDER BY me.created_at DESC
     ${size_position_filter}`;
 
   const sql_full =
-    'SELECT ( SELECT COUNT(*) FROM nadedb.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadedb.public."Segment" ) AS count2';
+    'SELECT ( SELECT COUNT(*) FROM nadeshiko.public."Media" ) AS count1, ( SELECT COUNT(*) FROM nadeshiko.public."Segment" ) AS count2';
 
   const queryResponse = await connection.query(sql);
   const queryResponseFull = await connection.query(sql_full);
