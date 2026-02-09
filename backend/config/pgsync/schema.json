@@ -1,7 +1,7 @@
 [
   {
-    "database": "nadedb",
-    "index": "nadedb",
+    "database": "nadeshiko",
+    "index": "nadeshiko",
     "setting": {
       "analysis": {
         "char_filter": {
