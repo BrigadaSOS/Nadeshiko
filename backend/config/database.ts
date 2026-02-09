@@ -14,6 +14,7 @@ import {
   List,
   ListItem,
 } from '@app/entities';
+import { SegmentSubscriber } from '@app/subscribers';
 import { getAppPostgresConfig } from '@lib/postgresConfig';
 import { logger } from '@lib/utils/log';
 
@@ -40,6 +41,7 @@ export const AppDataSource = new DataSource({
     List,
     ListItem,
   ],
+  subscribers: [SegmentSubscriber],
   migrations: ['./db/migrations/**/*.ts'],
   synchronize: false, // Use migrations instead!
   logging: false,

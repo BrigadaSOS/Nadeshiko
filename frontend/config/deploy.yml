@@ -1,0 +1,19 @@
+servers:
+  web:
+    hosts:
+      - nadeshiko-production
+
+registry:
+  server: localhost:5555
+
+aliases:
+  console: app exec --interactive --reuse "bash"
+  logs: app logs -f
+
+builder:
+  arch: amd64
+
+ssh:
+  user: docker
+  keys: ["~/.ssh/vps"]
+  keys_only: true
