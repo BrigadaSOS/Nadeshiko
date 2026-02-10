@@ -27,5 +27,8 @@ function getTargetUrl(event: H3Event): string {
 export function proxyToBackend(event: H3Event): Promise<any> {
   return proxyRequest(event, getTargetUrl(event), {
     headers: getProxyRequestHeaders(event, { host: false }),
+    fetchOptions: {
+      redirect: 'manual',
+    },
   });
 }

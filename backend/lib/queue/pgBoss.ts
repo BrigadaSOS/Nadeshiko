@@ -145,9 +145,9 @@ export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null>
   const queueName = `es-sync-${data.operation.toLowerCase()}`;
 
   try {
-    // Use sendDebounced with 0 seconds to ensure only one job per segmentId
-    // If a job for this segment already exists, it will be replaced with the new data
-    const jobId = await boss.sendDebounced(queueName, data, null, 0, `${data.segmentId}`);
+    // Use sendDebounced with a 1-second window to deduplicate rapid updates for the same segment.
+    // A value of 0 causes a SQL division-by-zero in pg-boss's singleton_on calculation.
+    const jobId = await boss.sendDebounced(queueName, data, null, 1, `${data.segmentId}`);
     logger.info(`Enqueued ES sync job ${jobId} for segment ${data.segmentId} (${data.operation})`);
     return jobId;
   } catch (error) {

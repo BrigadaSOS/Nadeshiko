@@ -36,7 +36,7 @@ export function getMediaBannerUrl(media: { id: number; storage: Storage }): stri
 
 /**
  * Get the segment image URL.
- * Path pattern: {mediaId}/{episodeNumber}/{hashedId}p.webp
+ * Path pattern: {mediaId}/{episodeNumber}/{hashedId}.webp
  */
 export function getSegmentImageUrl(segment: {
   mediaId: number;
@@ -45,7 +45,7 @@ export function getSegmentImageUrl(segment: {
   hashedId: string;
 }): string {
   const baseUrl = STORAGE_BASE_URLS[segment.storage];
-  return `${baseUrl}/${segment.mediaId}/${segment.episode}/${segment.hashedId}p.webp`;
+  return `${baseUrl}/${segment.mediaId}/${segment.episode}/${segment.hashedId}.webp`;
 }
 
 /**
