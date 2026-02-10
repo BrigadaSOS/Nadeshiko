@@ -7,12 +7,17 @@ meta {
 patch {
   url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id
   body: json
+  auth: bearer
 }
 
 params:query {
   mediaId:
   episodeNumber:
   id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 body:json {

@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
+import { initTelemetry, shutdownTelemetry } from '@lib/telemetry';
+initTelemetry();
+
 import '@lib/external/elasticsearch'; // Initialize client
 import '@app/subscribers'; // Import TypeORM subscribers
 import { initPgBoss, stopPgBoss } from '@lib/queue/pgBoss';
@@ -16,7 +19,7 @@ import { NotFoundError } from '@lib/utils/apiErrors';
 import { originSafetyLimiter } from '@app/middleware/apiLimiterRate';
 import { corsMiddleware } from '@app/middleware/cors';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
-import { metricsMiddleware } from '@app/middleware/metrics';
+import { tracingMiddleware } from '@app/middleware/tracing';
 import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
 import { rawBodySaver } from '@app/middleware/rawBodySaver';
 import { auth } from '@lib/auth';
@@ -53,6 +56,7 @@ async function shutdown(signal: string) {
   logger.info(`Received ${signal}, shutting down gracefully...`);
 
   try {
+    await shutdownTelemetry();
     await stopPgBoss();
     logger.info('PgBoss stopped');
     process.exit(0);
@@ -78,7 +82,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb', verify: rawBodySaver
 app.use(handleJsonParseErrors);
 
 app.use(httpLogger);
-app.use(metricsMiddleware);
+app.use(tracingMiddleware);
 
 // Route endpoints
 app.get('/up', (_req, res) => res.status(200).send('OK'));

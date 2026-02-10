@@ -7,12 +7,17 @@ meta {
 get {
   url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id
   body: none
+  auth: bearer
 }
 
 params:query {
   mediaId:
   episodeNumber:
   id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

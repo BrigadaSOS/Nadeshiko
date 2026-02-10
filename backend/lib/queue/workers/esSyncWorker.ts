@@ -5,28 +5,46 @@ import { logger } from '@lib/utils/log';
 import type { EsSyncJobData } from '../pgBoss';
 
 export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
+  const workerOptions = {
+    batchSize: 20, // Process 20 jobs at a time
+    teamSize: 3, // Use 3 concurrent workers per queue
+    // pollingIntervalSeconds defaults to 2 seconds
+  };
+
   // Handler for CREATE operations
-  await boss.work('es-sync-create', async (jobs: Job<EsSyncJobData>[]) => {
-    for (const job of jobs) {
-      await handleCreateJob(job);
-    }
-  });
+  await boss.work(
+    'es-sync-create',
+    workerOptions,
+    async (jobs: Job<EsSyncJobData>[]) => {
+      for (const job of jobs) {
+        await handleCreateJob(job);
+      }
+    },
+  );
 
   // Handler for UPDATE operations
-  await boss.work('es-sync-update', async (jobs: Job<EsSyncJobData>[]) => {
-    for (const job of jobs) {
-      await handleUpdateJob(job);
-    }
-  });
+  await boss.work(
+    'es-sync-update',
+    workerOptions,
+    async (jobs: Job<EsSyncJobData>[]) => {
+      for (const job of jobs) {
+        await handleUpdateJob(job);
+      }
+    },
+  );
 
   // Handler for DELETE operations
-  await boss.work('es-sync-delete', async (jobs: Job<EsSyncJobData>[]) => {
-    for (const job of jobs) {
-      await handleDeleteJob(job);
-    }
-  });
+  await boss.work(
+    'es-sync-delete',
+    workerOptions,
+    async (jobs: Job<EsSyncJobData>[]) => {
+      for (const job of jobs) {
+        await handleDeleteJob(job);
+      }
+    },
+  );
 
-  logger.info('ES sync workers registered');
+  logger.info('ES sync workers registered with batchSize=20, teamSize=3');
 }
 
 async function handleCreateJob(job: Job<EsSyncJobData>): Promise<void> {

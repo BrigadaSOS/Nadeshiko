@@ -7,10 +7,15 @@ meta {
 get {
   url: {{baseUrl}}/v1/media/seiyuu/:id
   body: none
+  auth: bearer
 }
 
 params:query {
   id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

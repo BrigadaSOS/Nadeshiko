@@ -8,7 +8,8 @@ export default defineNuxtPlugin(() => {
     store.isLoggedIn = Boolean(cookieMain.value || cookieSecure.value || cookieHost.value);
   }
 
-  if (import.meta.client && store.isLoggedIn) {
+  if (import.meta.client) {
+    // Always check session on client init - this catches OAuth redirects
     store.getBasicInfo();
   }
 });

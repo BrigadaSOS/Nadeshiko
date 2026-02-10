@@ -20,3 +20,6 @@ env:
     NUXT_BACKEND_INTERNAL_URL: https://api.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info
+
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://nadeshiko-backend-prod-alloy:4318"
+    OTEL_SERVICE_NAME: nadeshiko-frontend

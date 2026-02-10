@@ -3,20 +3,23 @@ global:
   evaluation_interval: 15s
   external_labels:
     environment: "production"
-    service: "nadeshiko-backend"
+    service: "nadeshiko"
 
 scrape_configs:
-  - job_name: "nadeshiko-backend"
-    static_configs:
-      - targets: ["nadeshiko-backend-web:5000"]
-        labels:
-          instance: "backend"
-    metrics_path: "/metrics"
-    scrape_interval: 10s
-    scrape_timeout: 5s
-
   - job_name: "prometheus"
     static_configs:
       - targets: ["localhost:9090"]
         labels:
           instance: "prometheus"
+
+  - job_name: "alloy"
+    static_configs:
+      - targets: ["nadeshiko-backend-prod-alloy:12345"]
+        labels:
+          instance: "alloy"
+
+  - job_name: "node"
+    static_configs:
+      - targets: ["nadeshiko-backend-prod-node-exporter:9100"]
+        labels:
+          instance: "nadeshiko-production"

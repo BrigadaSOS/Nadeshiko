@@ -17,8 +17,6 @@ const {
   refresh,
 } = await useAsyncData('recentMedia', () => apiSearch.getRecentMedia({ size: 10 }), {
   default: () => null,
-  // Use server data on client, don't re-fetch during hydration
-  getCachedData: (key) => useNuxtData(key).data.value,
 });
 </script>
 

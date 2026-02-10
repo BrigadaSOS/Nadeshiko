@@ -7,11 +7,16 @@ meta {
 delete {
   url: {{baseUrl}}/v1/lists/:id/items/:mediaId
   body: none
+  auth: bearer
 }
 
 params:query {
   id:
   mediaId:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {
