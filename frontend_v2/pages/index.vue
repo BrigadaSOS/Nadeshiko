@@ -48,17 +48,18 @@ const dismissAnnouncement = () => {
                                     <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
                                 </svg>
                                 <span class="sr-only">Info</span>
-                                <h3 class="text-lg font-medium text-red-800 dark:text-red-200">Important Notice</h3>
+                                <h3 class="text-lg font-medium text-red-800 dark:text-red-200">{{ $t('home.announcement.title') }}</h3>
                             </div>
                             <div class="mt-2 mb-4 text-sm">
-                                Starting February 8, we’re updating how the API works internally.
-                                As a precaution, <span class="font-bold">all existing API keys have been invalidated.</span>
-                                Please generate a new API key to continue using the API.
-                                We apologize for any inconvenience this may cause and appreciate your understanding.
+                                <i18n-t keypath="home.announcement.description">
+                                    <template #invalidated_keys>
+                                        <span class="font-bold">{{ $t('home.announcement.invalidated_keys') }}</span>
+                                    </template>
+                                </i18n-t>
                             </div>
                             <div class="flex">
-                                <button @click="dismissAnnouncement" type="button" class="text-red-700 bg-transparent border border-red-700 hover:bg-red-200 focus:ring-4 focus:outline-none focus:ring-red-100 font-medium rounded-lg text-xs px-3 py-1.5 text-center dark:text-red-300 dark:border-red-500 dark:hover:bg-red-700 dark:hover:text-white dark:focus:ring-red-800" data-dismiss-target="#alert-additional-content-1" aria-label="Close">
-                                    Dismiss
+                                <button @click="dismissAnnouncement" type="button" class="text-red-700 bg-transparent border border-red-700 hover:bg-red-200 focus:ring-4 focus:outline-none focus:ring-red-100 font-medium rounded-lg text-xs px-3 py-1.5 text-center dark:text-red-300 dark:border-red-500 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-red-800" data-dismiss-target="#alert-additional-content-1" aria-label="Close">
+                                    {{ $t('home.announcement.dismiss') }}
                                 </button>
                             </div>
                         </div>
