@@ -55,6 +55,12 @@
         "title": "全体統計",
         "sentenceCount": "文",
         "mediaCount": "総コンテンツ数"
+      },
+      "announcement": {
+        "title": "重要なお知らせ",
+        "description": "2月8日より、APIの内部的な動作方法を更新します。予防措置として、{invalidated_keys}。APIを引き続き使用するには、新しいAPIキーを生成してください。ご不便をおかけして申し訳ございませんが、ご理解のほどよろしくお願いいたします。",
+        "invalidated_keys": "既存のすべてのAPIキーが無効になりました",
+        "dismiss": "閉じる"
       }
     },
     "batchSearch": {

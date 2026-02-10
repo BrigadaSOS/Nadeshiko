@@ -55,6 +55,12 @@
       "title": "Estadísticas generales",
       "sentenceCount": "Oraciones",
       "mediaCount": "Contenido total"
+    },
+    "announcement": {
+      "title": "Aviso Importante",
+      "description": "A partir del 8 de febrero, actualizaremos cómo funciona internamente la API. Como medida de precaución, {invalidated_keys}. Por favor, genere una nueva clave de API para continuar utilizando la API. Pedimos disculpas por cualquier inconveniente que esto pueda causar y agradecemos su comprensión.",
+      "invalidated_keys": "todas las claves de API existentes han sido invalidadas",
+      "dismiss": "Descartar"
     }
   },
   "batchSearch": {
