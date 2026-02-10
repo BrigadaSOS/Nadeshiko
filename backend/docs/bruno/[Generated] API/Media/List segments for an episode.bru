@@ -7,6 +7,7 @@ meta {
 get {
   url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments
   body: none
+  auth: bearer
 }
 
 params:query {
@@ -14,6 +15,10 @@ params:query {
   episodeNumber:
   size:
   cursor:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

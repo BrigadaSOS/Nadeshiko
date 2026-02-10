@@ -7,10 +7,15 @@ meta {
 get {
   url: {{baseUrl}}/v1/admin/queues/:queueName
   body: none
+  auth: bearer
 }
 
 params:query {
   queueName:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

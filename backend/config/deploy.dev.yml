@@ -14,6 +14,7 @@ env:
 
     - EMAIL_API_NADEDB
     - USERNAME_API_NADEDB
+    - UUID_NAMESPACE
 
     - POSTGRES_USER
     - POSTGRES_PASSWORD
@@ -54,3 +55,6 @@ env:
     ELASTICSEARCH_INDEX: nadedb_dev
 
     R2_BASE_URL: https://cdn.nadeshiko.co/media
+
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://nadeshiko-backend-prod-alloy:4318"
+    OTEL_SERVICE_NAME: nadeshiko-backend-dev

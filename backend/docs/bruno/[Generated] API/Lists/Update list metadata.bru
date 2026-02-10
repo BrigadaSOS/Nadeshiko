@@ -7,10 +7,15 @@ meta {
 patch {
   url: {{baseUrl}}/v1/lists/:id
   body: json
+  auth: bearer
 }
 
 params:query {
   id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 body:json {

@@ -13,7 +13,6 @@ const BRUNO_DIR = join(__dirname, '../docs/bruno');
 const GENERATED_SUBFOLDER = '[Generated] API';
 const GENERATED_DIR = join(BRUNO_DIR, GENERATED_SUBFOLDER);
 const COLLECTION_NAME = 'Nadeshiko';
-const API_KEY_AUTH_FOLDERS = new Set(['Search', 'Media', 'Lists', 'Admin']);
 
 interface OpenAPISpec {
   openapi: string;
@@ -84,16 +83,11 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
   if (item.type !== 'http-request') return;
 
   const request = item.request;
-  const authKey =
-    request.auth?.apikey?.key === 'x-api-key' ? 'Authorization' : request.auth?.apikey?.key || 'Authorization';
-  const rawAuthValue = String(request.auth?.apikey?.value || 'apiKey');
-  const wrappedAuthValue = rawAuthValue.startsWith('{{') ? rawAuthValue : `{{${rawAuthValue}}}`;
-  const bearerTokenValue = wrappedAuthValue.startsWith('Bearer ')
-    ? wrappedAuthValue.slice('Bearer '.length).trim()
-    : wrappedAuthValue;
-  const shouldUseBearerAuth = request.auth?.mode === 'apikey' && authKey === 'Authorization';
   const fileName = sanitizeName(item.name) + '.bru';
   const filePath = join(folderPath, fileName);
+
+  // Extract bearer token value for auth block
+  const bearerToken = request.auth?.bearer?.token || '{{apiKey}}';
 
   let content = `meta {\n`;
   content += `  name: ${sanitizeName(item.name)}\n`;
@@ -120,12 +114,13 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
   const hasJsonBody = request.body?.mode === 'json' && request.body?.json;
   content += `  body: ${hasJsonBody ? 'json' : 'none'}\n`;
 
+  // Write auth mode based on extracted security scheme
   if (request._isCookieAuth) {
     content += `  auth: none\n`;
-  } else if (request.auth?.mode === 'inherit') {
-    content += `  auth: inherit\n`;
-  } else if (request.auth?.mode === 'apikey') {
-    content += `  auth: ${shouldUseBearerAuth ? 'bearer' : 'apikey'}\n`;
+  } else if (request.auth?.mode === 'bearer') {
+    content += `  auth: bearer\n`;
+  } else if (request.auth?.mode === 'none') {
+    content += `  auth: none\n`;
   }
 
   content += `}\n\n`;
@@ -157,19 +152,11 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
     content += `}\n\n`;
   }
 
-  // Only output auth:apikey block for non-cookie-auth endpoints
-  if (request.auth?.mode === 'apikey' && !request._isCookieAuth) {
-    if (shouldUseBearerAuth) {
-      content += `auth:bearer {\n`;
-      content += `  token: ${bearerTokenValue}\n`;
-      content += `}\n\n`;
-    } else {
-      content += `auth:apikey {\n`;
-      content += `  key: ${authKey}\n`;
-      content += `  value: ${wrappedAuthValue}\n`;
-      content += `  placement: ${request.auth.apikey?.placement || 'header'}\n`;
-      content += `}\n\n`;
-    }
+  // Write auth block for bearer token authentication
+  if (request.auth?.mode === 'bearer' && !request._isCookieAuth) {
+    content += `auth:bearer {\n`;
+    content += `  token: ${bearerToken}\n`;
+    content += `}\n\n`;
   }
 
   if (request.body?.mode === 'json' && request.body?.json) {
@@ -214,18 +201,10 @@ function writeFolderBruFile(folderPath: string, item: BrunoItem): void {
 
   let content = `meta {\n`;
   content += `  name: ${sanitizeName(item.name)}\n`;
-  content += `}\n\n`;
+  content += `}\n`;
 
-  if (API_KEY_AUTH_FOLDERS.has(item.name)) {
-    content += `auth {\n`;
-    content += `  mode: bearer\n`;
-    content += `}\n\n`;
-    content += `auth:bearer {\n`;
-    content += `  token: {{apiKey}}\n`;
-    content += `}\n`;
-  }
-  // Note: User folder requests use pre-request scripts for session cookie auth
-  // (set in individual request files), not folder-level auth
+  // No folder-level auth - authentication is set directly on each endpoint
+  // based on the OpenAPI security scheme
 
   writeBruFile(filePath, content);
 }
@@ -344,9 +323,12 @@ function appendBetterAuthRuntimeItems(brunoCollection: { items?: BrunoItem[] }):
     };
 
     if (route.cookieAuth) {
+      // Auth endpoints that require cookie authentication
       request._isCookieAuth = true;
+      request.auth = { mode: 'none' };
     } else {
-      request.auth = { mode: 'inherit' };
+      // Public auth endpoints (no authentication required)
+      request.auth = { mode: 'none' };
     }
 
     return {
@@ -365,26 +347,48 @@ function appendBetterAuthRuntimeItems(brunoCollection: { items?: BrunoItem[] }):
   return runtimeItems.length;
 }
 
-function detectCookieAuth(openApiSpec: OpenAPISpec, request: any): void {
+function extractSecurityScheme(openApiSpec: OpenAPISpec, request: any): void {
   const cleanUrl = request.url.replace('{{baseUrl}}', '');
 
+  // Normalize URL by converting :param to {param} for matching with OpenAPI spec
+  const normalizedUrl = cleanUrl.replace(/:([^/]+)/g, '{$1}');
+
   for (const [path, pathItem] of Object.entries(openApiSpec.paths)) {
-    if (path === cleanUrl) {
+    if (path === normalizedUrl) {
       const operation = (pathItem as any)[request.method.toLowerCase()];
-      if (operation?.security) {
-        for (const securityItem of operation.security) {
-          for (const [schemeName] of Object.entries(securityItem)) {
-            const scheme = openApiSpec.components?.securitySchemes?.[schemeName];
-            if (scheme?.in === 'cookie') {
-              // Flag as cookie auth - will use pre-request script instead of auth:apikey
-              request._isCookieAuth = true;
-              return;
-            }
+      const securityArray = operation?.security || openApiSpec.security || [];
+
+      // Check each security requirement
+      for (const securityItem of securityArray) {
+        for (const [schemeName] of Object.entries(securityItem)) {
+          const scheme = openApiSpec.components?.securitySchemes?.[schemeName];
+
+          if (scheme?.in === 'cookie') {
+            // Cookie auth - will use pre-request script
+            request._isCookieAuth = true;
+            request.auth = { mode: 'none' };
+            return;
+          } else if (scheme?.type === 'http' && scheme?.scheme === 'bearer') {
+            // Bearer token auth
+            request.auth = {
+              mode: 'bearer',
+              bearer: {
+                token: '{{apiKey}}'
+              }
+            };
+            return;
           }
         }
       }
+
+      // No security defined - no auth required
+      request.auth = { mode: 'none' };
+      return;
     }
   }
+
+  // Default to no auth if endpoint not found in spec
+  request.auth = { mode: 'none' };
 }
 
 function processItems(
@@ -424,7 +428,7 @@ function processItems(
         request.headers = headerParams;
       }
 
-      detectCookieAuth(openApiSpec, request);
+      extractSecurityScheme(openApiSpec, request);
 
       writeRequestBruFile(baseFolder, { ...item, request }, seqCounter.value++);
     }

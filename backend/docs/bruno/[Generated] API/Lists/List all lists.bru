@@ -7,6 +7,7 @@ meta {
 get {
   url: {{baseUrl}}/v1/lists?visibility=public&type=SERIES&userId=1&mediaId=12345
   body: none
+  auth: bearer
 }
 
 params:query {
@@ -14,6 +15,10 @@ params:query {
   type: SERIES
   userId: 1
   mediaId: 12345
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

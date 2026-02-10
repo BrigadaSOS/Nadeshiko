@@ -1,10 +1,17 @@
 import pino from 'pino';
+import { trace } from '@opentelemetry/api';
 
 const isDevelopment = process.env.NODE_ENV === 'dev';
 
 const baseOptions: pino.LoggerOptions = {
   level: process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
   timestamp: pino.stdTimeFunctions.isoTime,
+  mixin() {
+    const span = trace.getActiveSpan();
+    if (!span) return {};
+    const ctx = span.spanContext();
+    return { traceId: ctx.traceId, spanId: ctx.spanId };
+  },
   // Add more redaction paths from backend
   redact: [
     // Sensitive headers
