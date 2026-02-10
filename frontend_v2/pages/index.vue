@@ -1,6 +1,6 @@
 <script setup>
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js'
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
 useSeoMeta({
     title: 'Nadeshiko',
@@ -23,17 +23,14 @@ const {
 
 );
 
-const announcementDismissed = ref(false)
-
-onBeforeMount(() => {
-    if (sessionStorage.getItem('announcementDismissed') === 'true') {
-        announcementDismissed.value = true
-    }
-})
+const announcementDismissed = ref(false);
+if (import.meta.client) {
+    announcementDismissed.value = sessionStorage.getItem('announcementDismissed') === 'true';
+}
 
 const dismissAnnouncement = () => {
-    announcementDismissed.value = true
-    sessionStorage.setItem('announcementDismissed', 'true')
+    announcementDismissed.value = true;
+    sessionStorage.setItem('announcementDismissed', 'true');
 }
 
 </script>
@@ -44,26 +41,28 @@ const dismissAnnouncement = () => {
             <div class="relative text-white">
                 <div class="py-2">
                     <div class="max-w-[92%] mx-auto">
-                        <div v-if="!announcementDismissed" class="p-4 my-4 text-sm text-blue-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-blue-400" role="alert">
+                    <ClientOnly>
+                        <div v-if="!announcementDismissed" class="p-4 my-4 text-sm text-red-700 rounded-lg bg-red-100 dark:bg-red-900/60 dark:text-red-300 border border-red-300 dark:border-red-500" role="alert">
                             <div class="flex items-center">
                                 <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
                                 </svg>
                                 <span class="sr-only">Info</span>
-                                <h3 class="text-lg font-medium">Important Notice</h3>
+                                <h3 class="text-lg font-medium text-red-800 dark:text-red-200">Important Notice</h3>
                             </div>
                             <div class="mt-2 mb-4 text-sm">
                                 We are making a change to how access to the API is handled.
-                                As a precaution, <b>all existing API keys have been invalidated.</b>
+                                As a precaution, <span class="font-bold">all existing API keys have been invalidated.</span>
                                 Users are required to generate a new API key to continue using the API.
                                 We apologize for any inconvenience this may cause and appreciate your understanding.
                             </div>
                             <div class="flex">
-                                <button @click="dismissAnnouncement" type="button" class="text-blue-800 bg-transparent border border-blue-800 hover:bg-blue-900 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-200 font-medium rounded-lg text-xs px-3 py-1.5 text-center dark:hover:bg-blue-600 dark:border-blue-600 dark:text-blue-400 dark:hover:text-white dark:focus:ring-blue-800" data-dismiss-target="#alert-additional-content-1" aria-label="Close">
+                                <button @click="dismissAnnouncement" type="button" class="text-red-700 bg-transparent border border-red-700 hover:bg-red-200 focus:ring-4 focus:outline-none focus:ring-red-100 font-medium rounded-lg text-xs px-3 py-1.5 text-center dark:text-red-300 dark:border-red-500 dark:hover:bg-red-700 dark:hover:text-white dark:focus:ring-red-800" data-dismiss-target="#alert-additional-content-1" aria-label="Close">
                                     Dismiss
                                 </button>
                             </div>
                         </div>
+                        </ClientOnly>
                         <SearchBaseInputSegment />
                         <div class="py-2 xl:py-4">
                             <div class="flex dark:text-white/80 gap-10 flex-col xl:flex-row justify-between">
