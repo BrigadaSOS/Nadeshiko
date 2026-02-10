@@ -73,17 +73,9 @@ SegmentFields: &segmentFields
     description: English voice actor name
     example: "J. Michael Tatum"
 
-# Create-only field (uuid - immutable after creation)
-UuidField: &uuidField
-  uuid:
-    type: string
-    description: Unique identifier for the segment
-    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
-
 SegmentCreateRequest:
   type: object
   required:
-    - uuid
     - position
     - startTime
     - endTime
@@ -92,7 +84,6 @@ SegmentCreateRequest:
     - hashedId
   properties:
     <<: *segmentFields
-    <<: *uuidField
 
 SegmentUpdateRequest:
   type: object

@@ -133,6 +133,54 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/search/media/stats:
+    post:
+      tags:
+        - Search
+      operationId: fetchSearchStats
+      summary: Fetch search stats
+      description: |
+        Returns statistics for search filters and category tabs without fetching sentence rows.
+
+        This endpoint is optimized for UI filter panels:
+        - `mediaStatistics` powers the media dropdown on the right side.
+        - `categoryStatistics` powers category tabs below the search bar.
+
+        The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
+
+        **Requirements**
+        - API Key with `READ_MEDIA` permission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchStatsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchStatsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ValidationFailed:
+                  $ref: '#/components/examples/ValidationFailed'
+                InvalidJson:
+                  $ref: '#/components/examples/InvalidJson'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/search/media/match/words:
     post:
       tags:
@@ -1124,54 +1172,6 @@ components:
           description: Anime
         - value: JDRAMA
           description: Japanese Drama
-    Statistic:
-      type: object
-      description: Search result statistics grouped by anime/media
-      properties:
-        animeId:
-          type: integer
-          description: Unique identifier for the anime/media
-          example: 110316
-        category:
-          $ref: '#/components/schemas/Category'
-        nameAnimeRomaji:
-          type: string
-          description: Romaji transliteration of the anime name
-          example: Steins;Gate
-        nameAnimeEn:
-          type: string
-          description: English translation of the anime name
-          example: Steins;Gate
-        nameAnimeJp:
-          type: string
-          description: Original Japanese name of the anime
-          example: シュタインズ・ゲート
-        amountSentencesFound:
-          type: integer
-          description: Total number of sentences found for this anime
-          example: 42
-        seasonWithEpisodeHits:
-          type: object
-          description: Nested object mapping seasons to episodes with hit counts
-          example:
-            '1':
-              '1': 5
-              '2': 8
-              '3': 3
-          additionalProperties:
-            type: object
-            additionalProperties:
-              type: integer
-    CategoryStatistic:
-      type: object
-      description: Statistics grouped by media category
-      properties:
-        category:
-          $ref: '#/components/schemas/Category'
-        count:
-          type: integer
-          description: Number of entries in this category
-          example: 1523
     BasicInfo:
       type: object
       description: Basic anime/media information included in search results
@@ -1179,7 +1179,6 @@ components:
         - animeId
         - nameAnimeRomaji
         - episode
-        - season
         - category
       properties:
         animeId:
@@ -1211,10 +1210,6 @@ components:
         episode:
           type: integer
           description: Episode number where the segment appears
-          example: 1
-        season:
-          type: integer
-          description: Season number where the segment appears
           example: 1
         category:
           $ref: '#/components/schemas/Category'
@@ -1337,21 +1332,38 @@ components:
         mediaInfo:
           $ref: '#/components/schemas/MediaInfoPath'
           description: URLs to media resources (images, audio, video)
+    QueryStats:
+      type: object
+      description: Lightweight metadata for the current sentence search query
+      properties:
+        returnedCount:
+          type: integer
+          description: Number of sentences returned in this page
+          example: 20
+        hasMoreResults:
+          type: boolean
+          description: Whether there are more sentence results after this page
+          example: true
+        estimatedTotalHits:
+          type: integer
+          description: Estimated total number of matching segments
+          example: 12456
+        estimatedTotalHitsRelation:
+          type: string
+          description: Whether estimatedTotalHits is exact (`eq`) or a lower bound (`gte`)
+          enum:
+            - eq
+            - gte
+          example: gte
     SearchHealthCheckResponse:
       type: object
       properties:
-        statistics:
-          type: array
-          items:
-            $ref: '#/components/schemas/Statistic'
-        categoryStatistics:
-          type: array
-          items:
-            $ref: '#/components/schemas/CategoryStatistic'
         sentences:
           type: array
           items:
             $ref: '#/components/schemas/Sentence'
+        queryStats:
+          $ref: '#/components/schemas/QueryStats'
         cursor:
           type: array
           items:
@@ -1418,13 +1430,6 @@ components:
           type: integer
           description: Unique ID from media
           example: 5
-        season:
-          type: array
-          description: Array of seasons to get
-          items:
-            type: integer
-          example:
-            - 1
         episode:
           type: array
           description: Array of episodes to get
@@ -1462,10 +1467,6 @@ components:
           type: boolean
           description: Whether to use exact phrase matching
           default: false
-        extra:
-          type: boolean
-          description: Include extra content
-          default: false
         minLength:
           type: integer
           description: Minimum content length
@@ -1489,38 +1490,128 @@ components:
             - 1
         media:
           type: array
-          description: Media filter with seasons and episodes
+          description: Media filter with episodes
           items:
             type: object
             required:
               - mediaId
-              - seasons
+              - episodes
             properties:
               mediaId:
                 type: integer
                 example: 123
-              seasons:
+              episodes:
                 type: array
+                description: Array of episode numbers
                 items:
-                  type: object
-                  required:
-                    - season
-                    - episodes
-                  properties:
-                    season:
-                      type: number
-                      example: 1
-                    episodes:
-                      type: array
-                      items:
-                        type: number
-                      example:
-                        - 1
-                        - 2
+                  type: number
+                example:
+                  - 1
+                  - 2
     SearchResponse:
       type: object
       properties:
-        statistics:
+        sentences:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sentence'
+        queryStats:
+          $ref: '#/components/schemas/QueryStats'
+        cursor:
+          type: array
+          nullable: true
+          items:
+            type: number
+          description: Cursor for pagination
+    SearchStatsRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Text or sentence to search
+          example: 彼女
+        category:
+          type: array
+          description: Media category filter
+          items:
+            $ref: '#/components/schemas/Category'
+          default:
+            - ANIME
+            - JDRAMA
+        exactMatch:
+          type: boolean
+          description: Whether to use exact phrase matching
+          default: false
+        minLength:
+          type: integer
+          description: Minimum content length
+          example: 10
+        maxLength:
+          type: integer
+          description: Maximum content length
+          example: 50
+        excludedAnimeIds:
+          type: array
+          items:
+            type: integer
+          description: Anime IDs to exclude from results
+          default: []
+        status:
+          type: array
+          description: Segment status filter
+          items:
+            type: integer
+          default:
+            - 1
+    Statistic:
+      type: object
+      description: Search result statistics grouped by anime/media
+      properties:
+        animeId:
+          type: integer
+          description: Unique identifier for the anime/media
+          example: 110316
+        category:
+          $ref: '#/components/schemas/Category'
+        nameAnimeRomaji:
+          type: string
+          description: Romaji transliteration of the anime name
+          example: Steins;Gate
+        nameAnimeEn:
+          type: string
+          description: English translation of the anime name
+          example: Steins;Gate
+        nameAnimeJp:
+          type: string
+          description: Original Japanese name of the anime
+          example: シュタインズ・ゲート
+        amountSentencesFound:
+          type: integer
+          description: Total number of sentences found for this anime
+          example: 42
+        episodeHits:
+          type: object
+          description: Mapping of episode numbers to sentence hit counts
+          example:
+            '1': 5
+            '2': 8
+            '3': 3
+          additionalProperties:
+            type: integer
+    CategoryStatistic:
+      type: object
+      description: Statistics grouped by media category
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+        count:
+          type: integer
+          description: Number of entries in this category
+          example: 1523
+    SearchStatsResponse:
+      type: object
+      properties:
+        mediaStatistics:
           type: array
           items:
             $ref: '#/components/schemas/Statistic'
@@ -1528,16 +1619,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryStatistic'
-        sentences:
-          type: array
-          items:
-            $ref: '#/components/schemas/Sentence'
-        cursor:
-          type: array
-          nullable: true
-          items:
-            type: number
-          description: Cursor for pagination
     SearchMultipleRequest:
       type: object
       properties:
@@ -1612,7 +1693,6 @@ components:
       type: object
       required:
         - mediaId
-        - season
         - episode
         - segmentPosition
       properties:
@@ -1620,11 +1700,6 @@ components:
           type: integer
           description: Media ID
           example: 110316
-        season:
-          type: integer
-          description: Season number
-          minimum: 0
-          example: 1
         episode:
           type: integer
           description: Episode number
@@ -1761,10 +1836,6 @@ components:
           type: integer
           description: Total number of subtitle segments available
           example: 18542
-        numSeasons:
-          type: integer
-          description: Total number of seasons available
-          example: 1
         numEpisodes:
           type: integer
           description: Total number of episodes available
@@ -1994,11 +2065,11 @@ components:
           example: J.C.STAFF
         seasonName:
           type: string
-          description: Season when the media aired (WINTER, SPRING, SUMMER, FALL)
+          description: Airing season label for the media
           example: FALL
         seasonYear:
           type: integer
-          description: Year when the media aired
+          description: Airing year for the media
           example: 2010
         characters:
           type: array
@@ -2198,6 +2269,11 @@ components:
           nullable: true
           description: URL to segment audio file (generated from storage + hashedId)
           example: https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.mp3
+        videoUrl:
+          type: string
+          nullable: true
+          description: URL to segment video file (generated from storage + hashedId)
+          example: https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.mp4
         actorJa:
           type: string
           nullable: true

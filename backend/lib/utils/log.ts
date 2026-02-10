@@ -73,7 +73,7 @@ const baseOptions: pino.LoggerOptions = {
 
     // Sentence content in response body (search results)
     'res.body.sentences',
-    'res.body.statistics',
+    'res.body.mediaStatistics',
     'res.body.categoryStatistics',
   ],
 

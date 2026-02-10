@@ -5,10 +5,14 @@ const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const props = defineProps(['searchData', 'categorySelected']);
-const statistics = ref([]);
+const mediaStatistics = ref([]);
 const querySearchMedia = ref('');
 const debouncedQuerySearchMedia = ref('');
 const categorySelected = ref(props.categorySelected);
+const categoryApiMapping = {
+  anime: 'ANIME',
+  liveaction: 'JDRAMA',
+};
 
 // Cache translated strings outside computed to avoid repeated lookups
 const allLabel = computed(() => t('searchpage.main.labels.all'));
@@ -29,10 +33,10 @@ watch(
 watch(
   () => props.searchData,
   (newData) => {
-    if (newData?.statistics) {
-      statistics.value = newData.statistics;
+    if (newData?.mediaStatistics) {
+      mediaStatistics.value = newData.mediaStatistics;
     } else {
-      statistics.value = [];
+      mediaStatistics.value = [];
     }
   },
   { immediate: true },
@@ -44,15 +48,14 @@ watch(
     if (newCategory !== null && newCategory !== undefined) {
       categorySelected.value = newCategory;
     } else {
-      categorySelected.value = 0;
+      categorySelected.value = 'all';
     }
   },
   { immediate: true },
 );
 
-// Pre-compute lowercase names once when statistics change
 const normalizedStatistics = computed(() => {
-  return statistics.value.map((item) => ({
+  return mediaStatistics.value.map((item) => ({
     ...item,
     nameAnimeEnLower: item?.nameAnimeEn?.toLowerCase() || '',
     nameAnimeJpLower: item?.nameAnimeJp?.toLowerCase() || '',
@@ -61,14 +64,13 @@ const normalizedStatistics = computed(() => {
 });
 
 const filteredMedia = computed(() => {
-  // Calculate total count for "All" from all statistics before filtering
+  const selectedCategory = categoryApiMapping[categorySelected.value];
   const totalCount = normalizedStatistics.value
-    .filter((item) => categorySelected.value === 0 || item.category === categorySelected.value)
+    .filter((item) => categorySelected.value === 'all' || item.category === selectedCategory)
     .reduce((a, b) => a + parseInt(b.amountSentencesFound || 0, 10), 0);
 
   const filteredItems = normalizedStatistics.value.filter((item) => {
-    const categoryFilter = categorySelected.value === 0 || item.category === categorySelected.value;
-    // Use pre-computed lowercase names and debounced search query
+    const categoryFilter = categorySelected.value === 'all' || item.category === selectedCategory;
     const nameFilterEnglish = item.nameAnimeEnLower.includes(debouncedQuerySearchMedia.value);
     const nameFilterJapanese = item.nameAnimeJpLower.includes(debouncedQuerySearchMedia.value);
     const nameFilterRomaji = item.nameAnimeRomajiLower.includes(debouncedQuerySearchMedia.value);
@@ -76,7 +78,6 @@ const filteredMedia = computed(() => {
     return categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji);
   });
 
-  // Build "All" option separately to avoid sorting it
   const allOption = {
     animeId: 0,
     nameAnimeEn: allLabel.value,
@@ -87,7 +88,6 @@ const filteredMedia = computed(() => {
     return [allOption];
   }
 
-  // Sort only the filtered items, then prepend "All"
   const sortedItems = filteredItems.sort((a, b) => {
     const nameA = a.nameAnimeEnLower;
     const nameB = b.nameAnimeEnLower;
@@ -134,7 +134,7 @@ const clearFilters = () => {
                 <button
                     @click="clearFilters"
                     class="text-xs text-gray-400 hover:text-gray-200 dark:hover:text-white absolute right-4">
-                    {{ $t('seasonEpisodeFilter.clear') }}
+                    {{ $t('episodeFilter.clear') }}
                 </button>
             </div>
             <div class="flex flex-inline">

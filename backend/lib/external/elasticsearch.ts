@@ -7,12 +7,15 @@ import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib
 import { secondsToTime } from '@lib/utils/time';
 import { logger } from '@lib/utils/log';
 import { QuerySegmentsRequest } from '@lib/types/querySegmentsRequest';
+import { QuerySearchStatsRequest } from '@lib/types/querySearchStatsRequest';
 import { QuerySurroundingSegmentsRequest } from '@lib/types/querySurroundingSegmentsRequest';
 import { InvalidRequestError } from '@lib/utils/apiErrors';
-import { getCachedSearchExtraStatistics, setCachedSearchExtraStatistics } from '@lib/cache/searchExtraStatsCache';
+import { getCachedSearchStatistics, setCachedSearchStatistics } from '@lib/cache/searchStatsCache';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 import type {
+  QueryStatsOutput,
   SearchResponseOutput,
+  SearchStatsResponseOutput,
   SearchMultipleResponseOutput,
   FetchSentenceContextResponseOutput,
   SentenceOutput,
@@ -98,7 +101,7 @@ export const client = new Client({
 
 const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
 const IMPROVED_LENGTH_TIERS = buildImprovedLengthTiers();
-type ExtraStatisticsOutput = Pick<SearchResponseOutput, 'statistics' | 'categoryStatistics'>;
+type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'mediaStatistics' | 'categoryStatistics'>;
 
 /**
  * Create an admin client using ELASTICSEARCH_ADMIN_* credentials.
@@ -331,27 +334,16 @@ function normalizeStringArray(values?: readonly string[]): string[] {
   return [...new Set(values)].sort();
 }
 
-function buildExtraStatsCacheKey(request: QuerySegmentsRequest, parserMode: QueryParserMode): string {
-  const normalizedMedia = (request.media ?? [])
-    .map((item) => ({
-      mediaId: item.mediaId,
-      episodes: normalizeNumberArray(item.episodes),
-    }))
-    .sort((a, b) => a.mediaId - b.mediaId);
-
+function buildSearchStatsCacheKey(request: QuerySearchStatsRequest, parserMode: QueryParserMode): string {
   return JSON.stringify({
     parserMode,
     query: request.query ?? null,
-    uuid: request.uuid ?? null,
     exactMatch: Boolean(request.exactMatch),
     minLength: request.minLength ?? null,
     maxLength: request.maxLength ?? null,
-    animeId: request.animeId ?? null,
     status: normalizeNumberArray(request.status),
     category: normalizeStringArray(request.category),
-    episode: normalizeNumberArray(request.episode),
     excludedAnimeIds: normalizeNumberArray(request.excludedAnimeIds),
-    media: normalizedMedia,
   });
 }
 
@@ -385,7 +377,7 @@ const buildStatisticsFromAggs = (
         nameAnimeEn: mediaInfo.englishName,
         nameAnimeJp: mediaInfo.japaneseName,
         amountSentencesFound: mediaBucket['doc_count'],
-        seasonWithEpisodeHits: { 0: episodesWithResults },
+        episodeHits: episodesWithResults,
       };
     })
     .filter(notEmpty);
@@ -393,7 +385,7 @@ const buildStatisticsFromAggs = (
 
 const buildCategoryStatisticsFromAggs = (
   aggResponse: estypes.SearchResponse,
-): ExtraStatisticsOutput['categoryStatistics'] => {
+): SearchStatisticsOutput['categoryStatistics'] => {
   if (!aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) {
     return [];
   }
@@ -405,39 +397,29 @@ const buildCategoryStatisticsFromAggs = (
   }));
 };
 
-const queryExtraStatistics = async (
-  request: QuerySegmentsRequest,
+const querySearchStatisticsWithMustQueries = async (
+  request: QuerySearchStatsRequest,
   mustQueries: estypes.QueryDslQueryContainer[],
   mediaInfoPromise: Promise<QueryMediaInfoResponse>,
   parserMode: QueryParserMode,
-): Promise<ExtraStatisticsOutput> => {
-  const cacheKey = buildExtraStatsCacheKey(request, parserMode);
-  const cached = getCachedSearchExtraStatistics(cacheKey);
+): Promise<SearchStatisticsOutput> => {
+  const cacheKey = buildSearchStatsCacheKey(request, parserMode);
+  const cached = getCachedSearchStatistics(cacheKey);
   if (cached) {
     return cached;
   }
 
-  // Sidebar statistics: query + category filters, with all media/episodes included
-  const { filter: filterForStatistics, must_not: must_notForStatistics } = buildCommonFilters(request);
-  const filterForStatisticsWithoutMedia = filterForStatistics.filter((f) => {
-    if (!f) {
-      return false;
-    }
+  // Sidebar media dropdown: query + category filters
+  const { filter: filterForMediaStatistics, must_not: must_notForMediaStatistics } = buildCommonFilters(request);
 
-    const isMediaFilter = 'term' in f && f.term && 'mediaId' in f.term;
-    const isEpisodeFilter = 'terms' in f && f.terms && 'episode' in f.terms;
-
-    return !isMediaFilter && !isEpisodeFilter;
-  });
-
-  const esNoHitsNoFiltersResponse = client.search({
+  const esMediaStatsResponse = client.search({
     size: 0,
     index: INDEX_NAME,
     query: {
       bool: {
-        filter: filterForStatisticsWithoutMedia,
+        filter: filterForMediaStatistics,
         must: [...mustQueries],
-        must_not: must_notForStatistics,
+        must_not: must_notForMediaStatistics,
       },
     },
     aggs: {
@@ -458,23 +440,18 @@ const queryExtraStatistics = async (
     },
   });
 
-  // Top category tabs: query + media filters, without category/episode filters
+  // Top category tabs: query filters only (category removed)
   const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = buildCommonFilters({
     ...request,
     category: undefined,
-    episode: undefined,
   });
-  const filterWithMediaForCategoryStats = [...filterForCategoryStats];
-  if (request.media && request.media.length > 0) {
-    filterWithMediaForCategoryStats.push(buildMediaFilter(request.media));
-  }
 
   const esCategoryStatsResponse = client.search({
     size: 0,
     index: INDEX_NAME,
     query: {
       bool: {
-        filter: filterWithMediaForCategoryStats,
+        filter: filterForCategoryStats,
         must: [...mustQueries],
         must_not: must_notForCategoryStats,
       },
@@ -489,29 +466,29 @@ const queryExtraStatistics = async (
     },
   });
 
-  const [esNoHitsResult, esCategoryResult, mediaInfoResponse] = await Promise.all([
-    esNoHitsNoFiltersResponse,
+  const [esMediaStatsResult, esCategoryResult, mediaInfoResponse] = await Promise.all([
+    esMediaStatsResponse,
     esCategoryStatsResponse,
     mediaInfoPromise,
   ]);
 
-  const value: ExtraStatisticsOutput = {
-    statistics: buildStatisticsFromAggs(esNoHitsResult, mediaInfoResponse),
+  const value: SearchStatisticsOutput = {
+    mediaStatistics: buildStatisticsFromAggs(esMediaStatsResult, mediaInfoResponse),
     categoryStatistics: buildCategoryStatisticsFromAggs(esCategoryResult),
   };
 
-  setCachedSearchExtraStatistics(cacheKey, value);
+  setCachedSearchStatistics(cacheKey, value);
   return value;
 };
 
-export const querySegments = async (
-  request: QuerySegmentsRequest,
-  parserMode: QueryParserMode = 'strict',
-): Promise<SearchResponseOutput> => {
-  if (request.minLength !== undefined && request.maxLength !== undefined && request.minLength > request.maxLength) {
-    throw new InvalidRequestError('minLength cannot be greater than maxLength');
-  }
-
+const buildSearchMustQueries = (
+  request: Pick<QuerySegmentsRequest, 'uuid' | 'query' | 'exactMatch' | 'minLength' | 'maxLength'>,
+  parserMode: QueryParserMode,
+): {
+  must: estypes.QueryDslQueryContainer[];
+  isMatchAll: boolean;
+  hasQuery: boolean;
+} => {
   const must: estypes.QueryDslQueryContainer[] = [];
 
   if (request.uuid) {
@@ -535,15 +512,31 @@ export const querySegments = async (
       must.push({ match_all: {} });
     }
   } else if (hasQuery) {
-    const query = request.query;
     const textQuery = buildTextSearchQuery(
-      query as string,
+      request.query as string,
       request.exactMatch || false,
       request.minLength !== undefined || request.maxLength !== undefined,
       parserMode,
     );
     must.push(textQuery);
   }
+
+  return {
+    must,
+    isMatchAll,
+    hasQuery,
+  };
+};
+
+export const querySegments = async (
+  request: QuerySegmentsRequest,
+  parserMode: QueryParserMode = 'strict',
+): Promise<SearchResponseOutput> => {
+  if (request.minLength !== undefined && request.maxLength !== undefined && request.minLength > request.maxLength) {
+    throw new InvalidRequestError('minLength cannot be greater than maxLength');
+  }
+
+  const { must, isMatchAll, hasQuery } = buildSearchMustQueries(request, parserMode);
 
   const { filter, must_not } = buildCommonFilters(request);
 
@@ -589,32 +582,42 @@ export const querySegments = async (
       },
     },
     search_after: request.cursor,
-    aggs: {
-      group_by_media_id: {
-        terms: {
-          field: 'mediaId',
-          size: 10000,
-        },
-      },
-    },
   });
 
   const mediaInfo = Media.getMediaInfoMap();
-  const extraStatistics = request.extra
-    ? queryExtraStatistics(request, must, mediaInfo, parserMode)
-    : Promise.resolve<ExtraStatisticsOutput | null>(null);
 
   // Use Promise.all to ensure all rejections are caught together.
   // Awaiting sequentially causes unhandled rejections if an early promise rejects
   // before later ones are awaited.
   try {
-    const [esResult, mediaResult, extraStatisticsResult] = await Promise.all([esResponse, mediaInfo, extraStatistics]);
-
-    return buildSearchAnimeSentencesResponse(esResult, mediaResult, extraStatisticsResult, request);
+    const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
+    return buildSearchAnimeSentencesResponse(esResult, mediaResult);
   } catch (error) {
     if (hasQuery && parserMode === 'strict' && isQuerySyntaxError(error)) {
       logger.warn({ query: request.query }, 'Invalid query syntax; retrying search with safe query parser');
       return querySegments(request, 'safe');
+    }
+    throw error;
+  }
+};
+
+export const querySearchStats = async (
+  request: QuerySearchStatsRequest,
+  parserMode: QueryParserMode = 'strict',
+): Promise<SearchStatsResponseOutput> => {
+  if (request.minLength !== undefined && request.maxLength !== undefined && request.minLength > request.maxLength) {
+    throw new InvalidRequestError('minLength cannot be greater than maxLength');
+  }
+
+  const { must, hasQuery } = buildSearchMustQueries(request, parserMode);
+  const mediaInfo = Media.getMediaInfoMap();
+
+  try {
+    return await querySearchStatisticsWithMustQueries(request, must, mediaInfo, parserMode);
+  } catch (error) {
+    if (hasQuery && parserMode === 'strict' && isQuerySyntaxError(error)) {
+      logger.warn({ query: request.query }, 'Invalid query syntax; retrying search stats with safe query parser');
+      return querySearchStats(request, 'safe');
     }
     throw error;
   }
@@ -734,8 +737,6 @@ export const querySurroundingSegments = async (
 const buildSearchAnimeSentencesResponse = (
   esResponse: estypes.SearchResponse,
   mediaInfoResponse: QueryMediaInfoResponse,
-  extraStatistics: ExtraStatisticsOutput | null,
-  request: QuerySegmentsRequest,
 ): SearchResponseOutput => {
   const sentences: SentenceOutput[] = buildSearchAnimeSentencesSegments(esResponse, mediaInfoResponse);
 
@@ -747,22 +748,33 @@ const buildSearchAnimeSentencesResponse = (
     }
   }
 
-  const extra = request.extra
-    ? (extraStatistics ?? {
-        statistics: [],
-        categoryStatistics: [],
-      })
-    : {
-        statistics: [],
-        categoryStatistics: [],
-      };
+  const queryStats = buildQueryStats(esResponse, cursor);
 
   return {
-    statistics: extra.statistics,
-    categoryStatistics: extra.categoryStatistics,
     sentences,
+    queryStats,
     cursor: cursor ?? undefined,
   } as SearchResponseOutput;
+};
+
+const buildQueryStats = (esResponse: estypes.SearchResponse, cursor?: number[]): QueryStatsOutput => {
+  const totalHits = esResponse.hits.total;
+  let estimatedTotalHits = 0;
+  let estimatedTotalHitsRelation: 'eq' | 'gte' = 'eq';
+
+  if (typeof totalHits === 'number') {
+    estimatedTotalHits = totalHits;
+  } else if (totalHits && typeof totalHits === 'object') {
+    estimatedTotalHits = totalHits.value;
+    estimatedTotalHitsRelation = totalHits.relation === 'gte' ? 'gte' : 'eq';
+  }
+
+  return {
+    returnedCount: esResponse.hits.hits.length,
+    hasMoreResults: Boolean(cursor),
+    estimatedTotalHits,
+    estimatedTotalHitsRelation,
+  };
 };
 
 const buildSearchAnimeSentencesSegments = (
@@ -1013,8 +1025,13 @@ const buildUuidContextQuery = (
   };
 };
 
+type CommonFiltersRequest = Pick<
+  QuerySegmentsRequest,
+  'status' | 'minLength' | 'maxLength' | 'animeId' | 'excludedAnimeIds' | 'episode' | 'category'
+>;
+
 const buildCommonFilters = (
-  request: QuerySegmentsRequest,
+  request: CommonFiltersRequest,
 ): { filter: estypes.QueryDslQueryContainer[]; must_not: estypes.QueryDslQueryContainer[] } => {
   const filter: estypes.QueryDslQueryContainer[] = [];
   const must_not: estypes.QueryDslQueryContainer[] = [];

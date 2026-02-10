@@ -226,7 +226,7 @@ export class Media extends BaseEntity {
 
   /**
    * Convert Media entity to MediaInfoData format
-   * Includes computed fields: cover, banner, num_episodes, num_seasons, folder_media_name
+   * Includes computed fields: cover, banner, num_episodes, folder_media_name
    */
   private static toMediaInfoData(media: Media): MediaInfoData {
     return {

@@ -62,6 +62,8 @@ paths:
     $ref: "./paths/search/v1_search_health.yaml"
   "/v1/search/media/sentence":
     $ref: "./paths/search/v1_search_media_sentence.yaml"
+  "/v1/search/media/stats":
+    $ref: "./paths/search/v1_search_media_stats.yaml"
   "/v1/search/media/match/words":
     $ref: "./paths/search/v1_search_media_match_words.yaml"
   "/v1/search/media/context":

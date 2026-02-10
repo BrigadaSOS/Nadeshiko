@@ -1,20 +1,16 @@
 <script setup>
-const { t } = useI18n();
 const route = useRoute();
 
 const categoryMapping = {
-  all: 0,
-  anime: 1,
-  liveaction: 3,
-  audiobook: 4,
+  anime: 'ANIME',
+  liveaction: 'JDRAMA',
 };
 
-const fetchSearchData = async () => {
+const fetchSentenceData = async () => {
   try {
     const apiSearch = useApiSearch();
     const body = {
       limit: 20,
-      extra: true,
     };
 
     if (route.query.query) {
@@ -25,8 +21,8 @@ const fetchSearchData = async () => {
       body.uuid = route.query.uuid;
     }
 
-    const categoryValue = categoryMapping[route.query.category] ?? 0;
-    if (categoryValue !== 0) {
+    const categoryValue = categoryMapping[route.query.category];
+    if (categoryValue) {
       body.category = [categoryValue];
     }
 
@@ -44,27 +40,57 @@ const fetchSearchData = async () => {
 
     return await apiSearch.getSentenceV1(body);
   } catch (error) {
-    console.error('Error fetching search data:', error);
+    console.error('Error fetching sentence data:', error);
     return null;
   }
 };
 
-const cacheKey = computed(() => {
+const fetchStatsData = async () => {
+  try {
+    const apiSearch = useApiSearch();
+    const body = {};
+
+    if (route.query.query) {
+      body.query = route.query.query;
+    }
+
+    const categoryValue = categoryMapping[route.query.category];
+    if (categoryValue) {
+      body.category = [categoryValue];
+    }
+
+    return await apiSearch.getSearchStatsV1(body);
+  } catch (error) {
+    console.error('Error fetching search stats:', error);
+    return null;
+  }
+};
+
+const sentenceCacheKey = computed(() => {
   const params = [
     route.query.query,
     route.query.uuid,
     route.query.category,
     route.query.media,
-    route.query.season,
     route.query.episode,
     route.query.sort,
   ]
     .filter(Boolean)
     .join('-');
-  return `search-${params || 'default'}`;
+  return `search-sentences-${params || 'default'}`;
 });
 
-const { data: initialSearchData } = await useAsyncData(cacheKey.value, () => fetchSearchData(), {
+const statsCacheKey = computed(() => {
+  const params = [route.query.query, route.query.category].filter(Boolean).join('-');
+  return `search-stats-${params || 'default'}`;
+});
+
+const { data: initialSentenceData } = await useAsyncData(sentenceCacheKey.value, () => fetchSentenceData(), {
+  server: true,
+  lazy: false,
+});
+
+const { data: initialStatsData } = await useAsyncData(statsCacheKey.value, () => fetchStatsData(), {
   server: true,
   lazy: false,
 });
@@ -84,13 +110,10 @@ const metaTags = computed(() => {
     ],
   };
 
-  const sentence = initialSearchData.value?.sentences?.[0];
-  if (route.query.uuid && sentence) {
-    const mediaInfo =
-      sentence.basicInfo.season === 0
-        ? 'Movie'
-        : `Season ${sentence.basicInfo.season}, Episode ${sentence.basicInfo.episode}`;
+  const sentence = initialSentenceData.value?.sentences?.[0];
 
+  if (route.query.uuid && sentence) {
+    const mediaInfo = `Episode ${sentence.basicInfo.episode}`;
     const title = `${sentence.basicInfo.nameAnimeEn} | Nadeshiko`;
     const description = `「${sentence.segmentInfo.contentJp}」\n${mediaInfo}`;
 
@@ -116,16 +139,17 @@ const metaTags = computed(() => {
       );
     }
   } else if (route.query.query) {
-    const stats = initialSearchData.value?.categoryStatistics;
-    const totalResults = stats?.reduce((sum, s) => sum + s.count, 0) || 0;
+    const stats = initialStatsData.value?.categoryStatistics;
+    const queryStats = initialSentenceData.value?.queryStats;
+    const totalResults = queryStats?.estimatedTotalHits || stats?.reduce((sum, s) => sum + s.count, 0) || 0;
+    const isLowerBound = queryStats?.estimatedTotalHitsRelation === 'gte';
 
     const title = `Search: ${route.query.query} | Nadeshiko`;
-    let description =
-      totalResults > 0 ? `${totalResults.toLocaleString()} results found` : 'Search for Japanese sentences';
+    let description = totalResults > 0 ? `${isLowerBound ? 'At least ' : ''}${totalResults.toLocaleString()} results found` : 'Search for Japanese sentences';
 
     if (stats && stats.length > 0) {
-      const categoryNames = { 1: 'anime', 3: 'live-action', 4: 'audiobook' };
-      const order = [1, 3, 4];
+      const categoryNames = { ANIME: 'anime', JDRAMA: 'live-action' };
+      const order = ['ANIME', 'JDRAMA'];
       const breakdown = order
         .map((cat) => stats.find((s) => s.category === cat))
         .filter(Boolean)
@@ -145,52 +169,31 @@ const metaTags = computed(() => {
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
     ];
-  } else if (route.query.media && initialSearchData.value?.sentences?.length > 0) {
-    const firstSentence = initialSearchData.value.sentences[0];
+  } else if (route.query.media && initialSentenceData.value?.sentences?.length > 0) {
+    const firstSentence = initialSentenceData.value.sentences[0];
     const animeName = firstSentence.basicInfo.nameAnimeEn;
     const animeId = firstSentence.basicInfo.animeId;
 
-    const animeStats = initialSearchData.value?.statistics?.find((s) => s.animeId === Number(animeId));
+    const mediaStats = initialStatsData.value?.mediaStatistics?.find((s) => s.animeId === Number(animeId));
 
-    const filterSeason = route.query.season ? route.query.season.split(',').map(Number) : null;
     const filterEpisode = route.query.episode ? Number(route.query.episode) : null;
 
-    let totalResults = animeStats?.amountSentencesFound || 0;
-    const seasonData = animeStats?.seasonWithEpisodeHits;
+    let totalResults = mediaStats?.amountSentencesFound || 0;
+    const episodeHits = mediaStats?.episodeHits;
 
-    if (seasonData && filterSeason && filterSeason.length === 1) {
-      const episodes = seasonData[filterSeason[0]] || {};
-      if (filterEpisode) {
-        totalResults = episodes[filterEpisode] || 0;
-      } else {
-        totalResults = Object.values(episodes).reduce((sum, count) => sum + count, 0);
-      }
+    if (episodeHits && filterEpisode) {
+      totalResults = episodeHits[filterEpisode] || 0;
     }
 
     const title = `${animeName} | Nadeshiko`;
     let description = `${totalResults.toLocaleString()} sentences`;
 
-    if (seasonData && Object.keys(seasonData).length > 0) {
-      const seasons = Object.keys(seasonData)
-        .map(Number)
-        .sort((a, b) => a - b);
-      if (seasons.length === 1 && seasons[0] === 0) {
-        description += '\nMovie';
+    if (episodeHits && Object.keys(episodeHits).length > 0) {
+      const episodeCount = Object.keys(episodeHits).length;
+      if (filterEpisode) {
+        description = `${totalResults.toLocaleString()} sentences\nEpisode ${filterEpisode}`;
       } else {
-        description += `\n${seasons.length} season${seasons.length > 1 ? 's' : ''}`;
-
-        if (filterSeason && filterSeason.length === 1) {
-          const episodes = seasonData[filterSeason[0]] || {};
-          const episodeCount = Object.keys(episodes).length;
-          if (filterEpisode) {
-            description = `${totalResults.toLocaleString()} sentences\nSeason ${filterSeason[0]}, Episode ${filterEpisode}`;
-          } else {
-            description += `\nSeason ${filterSeason[0]}: ${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
-          }
-        } else if (!filterSeason) {
-          const episodeCount = Object.values(seasonData).reduce((sum, s) => sum + Object.keys(s).length, 0);
-          description += `, ${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
-        }
+        description += `\n${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
       }
     }
 
@@ -223,7 +226,7 @@ useHead(metaTags);
                 <div class="pt-2">
                     <div class="md:max-w-[92%] mx-auto">
                         <SearchBaseInputSegment />
-                        <SearchContainer :initial-data="initialSearchData" />
+                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
                     </div>
                 </div>
             </div>

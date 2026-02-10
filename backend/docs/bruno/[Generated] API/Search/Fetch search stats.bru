@@ -1,0 +1,33 @@
+meta {
+  name: Fetch search stats
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/search/media/stats
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "query": "彼女",
+    "category": [
+      "ANIME",
+      "JDRAMA"
+    ],
+    "exactMatch": false,
+    "minLength": 10,
+    "maxLength": 50,
+    "excludedAnimeIds": [],
+    "status": [
+      1
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

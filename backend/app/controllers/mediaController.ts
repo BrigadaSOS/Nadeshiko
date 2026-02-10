@@ -3,7 +3,7 @@ import type { DeepPartial } from 'typeorm';
 import { CategoryType, Media, MediaCharacter, CharacterRole } from '@app/entities';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
 import { AppDataSource } from '@config/database';
-import { invalidateSearchExtraStatsCache } from '@lib/cache/searchExtraStatsCache';
+import { invalidateSearchStatsCache } from '@lib/cache/searchStatsCache';
 
 export const mediaIndex: MediaIndex = async ({ query }, respond) => {
   const [mediaList, count] = await Media.findAndCount({
@@ -66,7 +66,7 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
   });
 
   Media.invalidateCache();
-  invalidateSearchExtraStatsCache();
+  invalidateSearchStatsCache();
 
   return respond.with201().body(toMediaDTO(media));
 };
@@ -131,7 +131,7 @@ export const mediaDestroy: MediaDestroy = async ({ params }, respond) => {
 
   await media.softRemove();
   Media.invalidateCache();
-  invalidateSearchExtraStatsCache();
+  invalidateSearchStatsCache();
 
   return respond.with200().body({
     message: 'Media deleted successfully',
