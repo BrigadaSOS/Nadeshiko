@@ -62,6 +62,7 @@ export const userStore = defineStore('user', {
         const result = await auth.signIn.social({
           provider: 'google',
           callbackURL: window.location.href,
+          errorCallbackURL: window.location.href,
         });
 
         if (result?.error) {
@@ -80,6 +81,7 @@ export const userStore = defineStore('user', {
         const result = await auth.signIn.social({
           provider: 'discord',
           callbackURL: window.location.href,
+          errorCallbackURL: window.location.href,
         });
 
         if (result?.error) {

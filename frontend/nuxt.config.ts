@@ -21,7 +21,7 @@ export default defineNuxtConfig({
     fallbackRateLimitMaxRequests: Number(process.env.NUXT_FALLBACK_RATE_LIMIT_MAX_REQUESTS || 300),
     public: {
       appVersion: frontendPackageJson.version,
-      environment: process.env.NUXT_APP_ENVIRONMENT || 'local',
+      environment: process.env.NUXT_PUBLIC_ENVIRONMENT || 'prod',
     },
   },
   pages: true,
