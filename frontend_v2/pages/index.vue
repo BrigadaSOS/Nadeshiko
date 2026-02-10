@@ -51,9 +51,9 @@ const dismissAnnouncement = () => {
                                 <h3 class="text-lg font-medium text-red-800 dark:text-red-200">Important Notice</h3>
                             </div>
                             <div class="mt-2 mb-4 text-sm">
-                                We are making a change to how access to the API is handled.
+                                Starting February 8, we’re updating how the API works internally.
                                 As a precaution, <span class="font-bold">all existing API keys have been invalidated.</span>
-                                Users are required to generate a new API key to continue using the API.
+                                Please generate a new API key to continue using the API.
                                 We apologize for any inconvenience this may cause and appreciate your understanding.
                             </div>
                             <div class="flex">
