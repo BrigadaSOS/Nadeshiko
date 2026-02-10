@@ -55,6 +55,12 @@
       "title": "General Stats",
       "sentenceCount": "Sentences",
       "mediaCount": "Total content"
+    },
+    "announcement": {
+      "title": "Important Notice",
+      "description": "Starting February 8, we’re updating how the API works internally. As a precaution, {invalidated_keys}. Please generate a new API key to continue using the API. We apologize for any inconvenience this may cause and appreciate your understanding.",
+      "invalidated_keys": "all existing API keys have been invalidated",
+      "dismiss": "Dismiss"
     }
   },
   "batchSearch": {
