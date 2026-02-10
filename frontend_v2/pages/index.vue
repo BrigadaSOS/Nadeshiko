@@ -27,7 +27,7 @@ const announcementDismissed = ref(false)
 
 onBeforeMount(() => {
     if (sessionStorage.getItem('announcementDismissed') === 'true') {
-        //announcementDismissed.value = true
+        announcementDismissed.value = true
     }
 })
 
