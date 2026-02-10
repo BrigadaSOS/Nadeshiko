@@ -1,0 +1,139 @@
+// =============================================================================
+// OTLP receiver - accepts metrics and traces from application OTel SDKs
+// =============================================================================
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// =============================================================================
+// Batch processor - batches before export for efficiency
+// =============================================================================
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+    traces  = [otelcol.exporter.otlphttp.tempo.input]
+  }
+}
+
+// =============================================================================
+// Export metrics to Prometheus via remote_write
+// =============================================================================
+
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://nadeshiko-backend-prod-prometheus:9090/api/v1/write"
+  }
+}
+
+// =============================================================================
+// Export traces to Tempo via OTLP HTTP
+// =============================================================================
+
+otelcol.exporter.otlphttp "tempo" {
+  client {
+    endpoint = "http://nadeshiko-backend-prod-tempo:4318"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// =============================================================================
+// Docker log discovery - collect stdout from containers on kamal network
+// =============================================================================
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name = "network"
+    values = ["kamal"]
+  }
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container"
+  }
+
+  // Extract clean service name: /prefix-service-env-component-env-hash -> prefix-service-component
+  // /nadeshiko-backend-dev-web-dev-abc123... -> nadeshiko-backend-web
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "service_name"
+    regex         = "^/([^-.]+)-([^-]+)-[^-]+-([^-]+)-[^-]+-.*"
+    replacement   = "${1}-${2}-${3}"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.process.json_logs.receiver]
+}
+
+// =============================================================================
+// Parse JSON logs - extract traceId/spanId as structured metadata for Loki
+// =============================================================================
+
+loki.process "json_logs" {
+  stage.json {
+    expressions = {
+      trace_id      = "traceId",
+      span_id       = "spanId",
+      level         = "level",
+      req_method    = "req.method",
+      req_url       = "req.url",
+      req_id        = "req.requestId",
+      res_status    = "res.statusCode",
+      response_time = "responseTime",
+      msg           = "msg",
+    }
+  }
+
+  stage.structured_metadata {
+    values = {
+      trace_id      = "trace_id",
+      span_id       = "span_id",
+      req_method    = "req_method",
+      req_url       = "req_url",
+      req_id        = "req_id",
+      res_status    = "res_status",
+      response_time = "response_time",
+      container_name = "container",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level      = "",
+      req_method = "",
+      res_status = "",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://nadeshiko-backend-prod-loki:3100/loki/api/v1/push"
+  }
+}

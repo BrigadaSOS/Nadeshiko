@@ -14,6 +14,7 @@ env:
 
     - EMAIL_API_NADEDB
     - USERNAME_API_NADEDB
+    - UUID_NAMESPACE
 
     - POSTGRES_USER
     - POSTGRES_PASSWORD
@@ -54,6 +55,9 @@ env:
     ELASTICSEARCH_INDEX: nadedb_prod
 
     R2_BASE_URL: https://cdn.nadeshiko.co/media
+
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://nadeshiko-backend-prod-alloy:4318"
+    OTEL_SERVICE_NAME: nadeshiko-backend
 
 accessories:
   postgres:
@@ -109,10 +113,11 @@ accessories:
     volumes:
       - nadeshiko-prometheus-data:/prometheus
     files:
-      - config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - config/prometheus.yaml:/etc/prometheus/prometheus.yml
     cmd: >
       --config.file=/etc/prometheus/prometheus.yml
       --storage.tsdb.path=/prometheus
+      --web.enable-remote-write-receiver
 
   grafana:
     image: grafana/grafana:latest
@@ -126,7 +131,58 @@ accessories:
         - GF_SECURITY_ADMIN_PASSWORD
     volumes:
       - nadeshiko-grafana-data:/var/lib/grafana
-      - nadeshiko-grafana-provisioning:/etc/grafana/provisioning
+    files:
+      - config/grafana-provisioning/datasources/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - config/grafana-provisioning/dashboards/dashboard-provider.yaml:/etc/grafana/provisioning/dashboards/dashboard-provider.yaml
+      - config/grafana-provisioning/dashboards/nadeshiko:/etc/grafana/provisioning/dashboards/nadeshiko
+
+  loki:
+    image: grafana/loki:3.4
+    host: nadeshiko-production
+    port: 127.0.0.1:3100:3100
+    volumes:
+      - nadeshiko-loki-data:/loki
+    files:
+      - config/loki.yaml:/etc/loki/config.yaml
+    cmd: -config.file=/etc/loki/config.yaml
+
+  tempo:
+    image: grafana/tempo:2.6.0
+    host: nadeshiko-production
+    port: 127.0.0.1:3200:3200
+    volumes:
+      - nadeshiko-tempo-data:/var/tempo
+    files:
+      - config/tempo.yaml:/etc/tempo/config.yaml
+    cmd: -config.file=/etc/tempo/config.yaml
+
+  alloy:
+    image: grafana/alloy:v1.13.0
+    host: nadeshiko-production
+    port: 127.0.0.1:4318:4318
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nadeshiko-alloy-data:/var/lib/alloy
+    files:
+      - config/alloy.alloy:/etc/alloy/config.alloy
+    cmd: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    options:
+      user: "0"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    host: nadeshiko-production
+    cmd: >
+      --path.procfs=/host/proc
+      --path.sysfs=/host/sys
+      --path.rootfs=/host
+      --collector.filesystem.mount-points-exclude=^/\(sys\|proc\|dev\|host\|etc\)\($$\|/\)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    options:
+      user: "0"
 
   kibana:
     image: docker.elastic.co/kibana/kibana:9.2.4

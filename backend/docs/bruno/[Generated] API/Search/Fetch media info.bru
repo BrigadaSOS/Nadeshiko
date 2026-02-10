@@ -7,7 +7,7 @@ meta {
 get {
   url: {{baseUrl}}/v1/search/media/info?size=20&query=steins&type=anime
   body: none
-  auth: inherit
+  auth: bearer
 }
 
 params:query {
@@ -15,6 +15,10 @@ params:query {
   cursor:
   query: steins
   type: anime
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

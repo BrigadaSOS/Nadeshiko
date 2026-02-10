@@ -7,11 +7,16 @@ meta {
 patch {
   url: {{baseUrl}}/v1/lists/:id/items/:mediaId
   body: json
+  auth: bearer
 }
 
 params:query {
   id:
   mediaId:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 body:json {

@@ -7,6 +7,11 @@ meta {
 post {
   url: {{baseUrl}}/v1/media
   body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 body:json {

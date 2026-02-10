@@ -7,10 +7,15 @@ meta {
 post {
   url: {{baseUrl}}/v1/media/:mediaId/episodes
   body: json
+  auth: bearer
 }
 
 params:query {
   mediaId:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 body:json {

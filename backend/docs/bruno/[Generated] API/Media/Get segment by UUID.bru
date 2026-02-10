@@ -7,10 +7,15 @@ meta {
 get {
   url: {{baseUrl}}/v1/media/segments/:uuid
   body: none
+  auth: bearer
 }
 
 params:query {
   uuid:
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {
