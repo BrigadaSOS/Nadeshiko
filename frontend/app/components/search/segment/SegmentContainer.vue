@@ -2,10 +2,10 @@
 import { mdiVolumeHigh, mdiTranslate } from '@mdi/js';
 
 import { usePlayerStore } from '~/stores/player';
-import type { ResponseV1, Sentence } from '~/stores/search';
+import type { Sentence, SentenceSearchResponse } from '~/stores/search';
 
 type Props = {
-  searchData: ResponseV1 | null;
+  searchData: SentenceSearchResponse | null;
   isLoading: boolean;
   currentSentenceIndex?: number | null;
 };
@@ -13,6 +13,7 @@ type Props = {
 // const props = defineProps(['searchData', 'ankiNotesQuery', 'isLoading']);
 const props = defineProps<Props>();
 const { locale } = useI18n();
+const sentenceList = computed(() => props.searchData?.sentences ?? []);
 
 const playerStore = usePlayerStore();
 const { isPlaying, currentSentence } = storeToRefs(playerStore);
@@ -239,7 +240,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     <SearchModalAnkiNotes :sentence="searchNoteSentence"
       :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
 
-    <div v-for="(sentence, index) in searchData.sentences" :key="sentence.segmentInfo.uuid"
+    <div v-for="(sentence, index) in sentenceList" :key="sentence.segmentInfo.uuid"
       :id="sentence.segmentInfo.uuid"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{ 'bg-neutral-800 hover:bg-neutral-800': currentSentence && sentence.segmentInfo.uuid === currentSentence.segmentInfo.uuid }">
@@ -258,7 +259,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button -->
-            <button @click="playerStore.setPlaylist(searchData.sentences, index)"
+            <button @click="playerStore.setPlaylist(sentenceList, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
               <UiBaseIcon v-if="!(isPlaying && currentSentence && currentSentence.segmentInfo.uuid === sentence.segmentInfo.uuid)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
@@ -338,14 +339,11 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
                 {{ sentence.basicInfo.nameAnimeEn }}
               </button>
               &bull;
-              <template v-if="sentence.basicInfo.category === 4">{{ $t('searchpage.main.labels.audiobook') }}</template>
-              <template v-else>
-                <button
-                  @click="filterByMedia(sentence.basicInfo.animeId, sentence.basicInfo.episode)"
-                  class="hover:text-white hover:underline transition-colors cursor-pointer">
-                  {{ $t('searchpage.main.labels.episode') }} {{ sentence.basicInfo.episode }}
-                </button>
-              </template>
+              <button
+                @click="filterByMedia(sentence.basicInfo.animeId, sentence.basicInfo.episode)"
+                class="hover:text-white hover:underline transition-colors cursor-pointer">
+                {{ $t('searchpage.main.labels.episode') }} {{ sentence.basicInfo.episode }}
+              </button>
               &bull; {{ sentence.segmentInfo.startTime.split('.')[0] }}
             </p>
           </div>

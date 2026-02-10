@@ -47,11 +47,140 @@ env:
     SES_FROM_EMAIL: noreply@nadeshiko.co
     SES_FROM_NAME: Nadeshiko
 
-    POSTGRES_HOST: "nadeshiko-backend-postgres"
+    POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432
 
-    ELASTICSEARCH_HOST: "http://nadeshiko-backend-elasticsearch:9200"
+    ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
     ELASTICSEARCH_INDEX: nadedb_prod
 
     R2_BASE_URL: https://cdn.nadeshiko.co/media
 
+accessories:
+  postgres:
+    image: postgres:17
+    host: nadeshiko-production
+    port: 127.0.0.1:5432:5432
+    env:
+      secret:
+        # Shared instance bootstrap/admin credentials.
+        - POSTGRES_USER:POSTGRES_ADMIN_USER
+        - POSTGRES_PASSWORD:POSTGRES_ADMIN_PASSWORD
+        - POSTGRES_DB
+    volumes:
+      - nadeshiko-postgres-data:/var/lib/postgresql/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.4
+    host: nadeshiko-production
+    port: 127.0.0.1:9200:9200
+    env:
+      secret:
+        - ELASTICSEARCH_ADMIN_PASSWORD
+      clear:
+        discovery.type: single-node
+        ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+        xpack.security.enabled: "true"
+        xpack.security.http.ssl.enabled: "false"
+        http.host: "0.0.0.0"
+    volumes:
+      - nadeshiko-elasticsearch-data:/usr/share/elasticsearch/data
+      - nadeshiko-elasticsearch-config:/usr/share/elasticsearch/config
+      - nadeshiko-elasticsearch-plugins:/usr/share/elasticsearch/plugins
+    cmd: >
+      bash -c '
+        export ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD";
+        if [ ! -d "/usr/share/elasticsearch/plugins/analysis-icu" ]; then
+          ./bin/elasticsearch-plugin install analysis-icu;
+        fi;
+        if [ ! -d "/usr/share/elasticsearch/plugins/analysis-kuromoji" ]; then
+          ./bin/elasticsearch-plugin install analysis-kuromoji;
+        fi;
+        ./bin/elasticsearch
+      '
+    options:
+      ulimit:
+        - nofile=65536:65536
+        - memlock=-1:-1
+
+  prometheus:
+    image: prom/prometheus:latest
+    host: nadeshiko-production
+    port: 127.0.0.1:9091:9090
+    volumes:
+      - nadeshiko-prometheus-data:/prometheus
+    files:
+      - config/prometheus.yml:/etc/prometheus/prometheus.yml
+    cmd: >
+      --config.file=/etc/prometheus/prometheus.yml
+      --storage.tsdb.path=/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    host: nadeshiko-production
+    port: 127.0.0.1:3000:3000
+    env:
+      clear:
+        GF_SERVER_ROOT_URL: "https://grafana.davafons.cc"
+        GF_SECURITY_ADMIN_USER: admin
+      secret:
+        - GF_SECURITY_ADMIN_PASSWORD
+    volumes:
+      - nadeshiko-grafana-data:/var/lib/grafana
+      - nadeshiko-grafana-provisioning:/etc/grafana/provisioning
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.2.4
+    host: nadeshiko-production
+    port: 127.0.0.1:5601:5601
+    env:
+      secret:
+        - ELASTICSEARCH_USER
+        - ELASTICSEARCH_PASSWORD
+      clear:
+        ELASTICSEARCH_HOSTS: "http://nadeshiko-backend-prod-elasticsearch:9200"
+    volumes:
+      - nadeshiko-kibana-data:/usr/share/kibana/config
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    host: nadeshiko-production
+    port: 127.0.0.1:5050:5050
+    env:
+      secret:
+        - PGADMIN_DEFAULT_EMAIL
+        - PGADMIN_DEFAULT_PASSWORD
+      clear:
+        PGADMIN_LISTEN_PORT: "5050"
+    volumes:
+      - nadeshiko-pgadmin-data:/var/lib/pgadmin
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    host: nadeshiko-production
+    cmd: tunnel run
+    env:
+      secret:
+        - TUNNEL_TOKEN:CLOUDFLARE_TUNNEL_TOKEN
+
+  pg-backup:
+    image: kartoza/pg-backup:17-3.5
+    host: nadeshiko-production
+    env:
+      clear:
+        CRON_SCHEDULE: "0 2 * * *"
+        REMOVE_BEFORE: "30"
+        STORAGE_BACKEND: "S3"
+        CONSOLE_LOGGING: "True"
+        SSL_SECURE: "True"
+        POSTGRES_MAJOR_VERSION: "17"
+        POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
+        POSTGRES_PORT: "5432"
+        DEFAULT_REGION: "auto"
+      secret:
+        - POSTGRES_USER:POSTGRES_ADMIN_USER
+        - POSTGRES_PASS:POSTGRES_ADMIN_PASSWORD
+        - ACCESS_KEY_ID:R2_BACKUP_ACCESS_KEY_ID
+        - SECRET_ACCESS_KEY:R2_BACKUP_SECRET_ACCESS_KEY
+        - BUCKET:R2_BACKUP_BUCKET
+        - HOST_BASE:R2_BACKUP_HOST_BASE
+        - HOST_BUCKET:R2_BACKUP_HOST_BUCKET

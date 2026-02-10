@@ -23,15 +23,12 @@ properties:
     type: integer
     description: Total number of sentences found for this anime
     example: 42
-  seasonWithEpisodeHits:
+  episodeHits:
     type: object
-    description: Nested object mapping seasons to episodes with hit counts (season 0 contains all episodes)
+    description: Mapping of episode numbers to sentence hit counts
     example:
-      0:
-        1: 5
-        2: 8
-        3: 3
+      1: 5
+      2: 8
+      3: 3
     additionalProperties:
-      type: object
-      additionalProperties:
-        type: integer
+      type: integer

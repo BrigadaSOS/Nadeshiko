@@ -7,6 +7,7 @@ import type {
   SegmentShowByUuid,
 } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
+import { v3 as uuidv3 } from 'uuid';
 import { Segment, Episode } from '@app/entities';
 import { toSegmentDTO, toSegmentListDTO } from './mappers/segment.mapper';
 import { updateEpisodeSegmentCount } from '@app/utils/updateSegmentCounts';
@@ -34,9 +35,12 @@ export const segmentIndex: SegmentIndex = async ({ params, query }, respond) => 
 export const segmentCreate: SegmentCreate = async ({ params, body }, respond) => {
   await Episode.findOneOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
 
+  const uniqueBaseId = `${params.mediaId}-1-${params.episodeNumber}-${body.position}`;
+  const uuid = uuidv3(uniqueBaseId, process.env.UUID_NAMESPACE!);
+
   const segment = Segment.create({
     mediaId: params.mediaId,
-    uuid: body.uuid,
+    uuid,
     position: body.position,
     status: body.status,
     startTime: body.startTime,

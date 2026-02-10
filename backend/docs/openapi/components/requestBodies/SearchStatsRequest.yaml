@@ -1,0 +1,36 @@
+type: object
+properties:
+  query:
+    type: string
+    description: Text or sentence to search
+    example: 彼女
+  category:
+    type: array
+    description: Media category filter
+    items:
+      $ref: "../schemas/Category.yaml"
+    default: [ANIME, JDRAMA]
+  exactMatch:
+    type: boolean
+    description: Whether to use exact phrase matching
+    default: false
+  minLength:
+    type: integer
+    description: Minimum content length
+    example: 10
+  maxLength:
+    type: integer
+    description: Maximum content length
+    example: 50
+  excludedAnimeIds:
+    type: array
+    items:
+      type: integer
+    description: Anime IDs to exclude from results
+    default: []
+  status:
+    type: array
+    description: Segment status filter
+    items:
+      type: integer
+    default: [1]

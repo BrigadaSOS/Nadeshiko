@@ -93,7 +93,6 @@
     "sentenceCount": "oraciones",
     "romajiName": "Nombre",
     "japaneseName": "Nombre en Japonés",
-    "seasons": "Temporadas",
     "episodes": "Episodios",
     "genres": "Géneros",
     "sentenceCountLabel": "Cantidad de Oraciones:",
@@ -169,7 +168,7 @@
   "filterContent": {
     "searchPlaceholder": "Buscar aquí"
   },
-  "seasonEpisodeFilter": {
+  "episodeFilter": {
     "title": "Episodio",
     "clear": "Limpiar",
     "noEpisodes": "No se encontraron episodios"
@@ -215,7 +214,6 @@
         "errorMessage2": "Vuelve a intentarlo en unos minutos.",
         "contentList": "Contenido",
         "noresults": "No hay resultados...",
-        "season": "Temporada",
         "episode": "Episodio",
         "translation": "Traducción (EN/ES)",
         "movie": "Película",
@@ -352,7 +350,6 @@
     "seoDescriptionDefault": "Busca frases de anime y live action en Nadeshiko",
     "mediaInfo": "{jpSentence} de {animeName}, {mediaType}",
     "mediaTypeMovie": "Película",
-    "mediaTypeSeason": "Temporada {season}, Episodio {episode}",
     "categoryAll": "Todo",
     "categoryAnime": "Anime",
     "categoryLiveaction": "Live Action",

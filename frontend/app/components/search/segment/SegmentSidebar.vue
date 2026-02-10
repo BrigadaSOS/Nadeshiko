@@ -9,13 +9,12 @@ const playerStore = usePlayerStore();
 const { showPlayer } = storeToRefs(playerStore);
 const props = defineProps(['searchData', 'categorySelected', 'media']);
 
-// Get season/episode data for the selected media
-const getSeasonEpisodeData = () => {
-  if (!props.media || !props.searchData?.statistics) return {};
+const getEpisodeHitsData = () => {
+  if (!props.media || !props.searchData?.mediaStatistics) return {};
   const mediaId = Number(props.media);
   if (Number.isNaN(mediaId)) return {};
-  const selectedAnime = props.searchData.statistics.find((stat) => stat.animeId === mediaId);
-  return selectedAnime?.seasonWithEpisodeHits || {};
+  const selectedMedia = props.searchData.mediaStatistics.find((stat) => stat.animeId === mediaId);
+  return selectedMedia?.episodeHits || {};
 };
 
 const handleScroll = () => {
@@ -75,9 +74,9 @@ onUnmounted(() => {
     <div v-if="searchData?.sentences?.length > 0" class="p-2 mx-auto">
         <SearchSegmentFilterSortContent />
         <SearchSegmentFilterContent :searchData="searchData" :categorySelected="categorySelected" />
-        <SearchSegmentFilterSeasonEpisodeFilter
+        <SearchSegmentFilterEpisodeFilter
             v-if="media"
-            :seasonWithEpisodeHits="getSeasonEpisodeData()"
+            :episodeHits="getEpisodeHitsData()"
             :selectedMediaId="media"
         />
       </div>

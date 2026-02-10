@@ -1,5 +1,4 @@
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent, RemoveEvent } from 'typeorm';
-import { nanoid } from 'nanoid';
 import { Segment, Media } from '@app/entities';
 import { sendEsSyncJob } from '@lib/queue/pgBoss';
 
@@ -7,14 +6,6 @@ import { sendEsSyncJob } from '@lib/queue/pgBoss';
 export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
   listenTo() {
     return Segment;
-  }
-
-  beforeInsert(event: InsertEvent<Segment>) {
-    if (!event.entity) return;
-
-    if (!event.entity.uuid) {
-      event.entity.uuid = nanoid();
-    }
   }
 
   afterInsert(event: InsertEvent<Segment>) {

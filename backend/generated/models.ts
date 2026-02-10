@@ -167,7 +167,6 @@ export type t_MediaInfoData = {
   id: number;
   japaneseName?: string;
   numEpisodes?: number;
-  numSeasons?: number;
   numSegments?: number;
   romajiName?: string;
   startDate?: string;
@@ -195,6 +194,13 @@ export type t_MediaListResponse = {
   hasMoreResults: boolean;
 };
 
+export type t_QueryStats = {
+  estimatedTotalHits?: number;
+  estimatedTotalHitsRelation?: 'eq' | 'gte';
+  hasMoreResults?: boolean;
+  returnedCount?: number;
+};
+
 export type t_ReindexResponse = {
   errors?: {
     error?: string;
@@ -211,10 +217,9 @@ export type t_ReindexResponse = {
 };
 
 export type t_SearchHealthCheckResponse = {
-  categoryStatistics?: t_CategoryStatistic[];
   cursor?: number[];
+  queryStats?: t_QueryStats;
   sentences?: t_Sentence[];
-  statistics?: t_Statistic[];
 };
 
 export type t_SearchMultipleResponse = {
@@ -222,10 +227,14 @@ export type t_SearchMultipleResponse = {
 };
 
 export type t_SearchResponse = {
-  categoryStatistics?: t_CategoryStatistic[];
   cursor?: number[] | null;
+  queryStats?: t_QueryStats;
   sentences?: t_Sentence[];
-  statistics?: t_Statistic[];
+};
+
+export type t_SearchStatsResponse = {
+  categoryStatistics?: t_CategoryStatistic[];
+  mediaStatistics?: t_Statistic[];
 };
 
 export type t_Segment = {
@@ -309,16 +318,12 @@ export type t_Statistic = {
   amountSentencesFound?: number;
   animeId?: number;
   category?: t_Category;
+  episodeHits?: {
+    [key: string]: number | undefined;
+  };
   nameAnimeEn?: string;
   nameAnimeJp?: string;
   nameAnimeRomaji?: string;
-  seasonWithEpisodeHits?: {
-    [key: string]:
-      | {
-          [key: string]: number | undefined;
-        }
-      | undefined;
-  };
 };
 
 export type t_WordMatch = {
@@ -396,6 +401,16 @@ export type t_FetchMediaInfoQuerySchema = {
   query?: string;
   size?: number;
   type?: 'anime' | 'liveaction' | 'audiobook';
+};
+
+export type t_FetchSearchStatsRequestBodySchema = {
+  category?: t_Category[];
+  exactMatch?: boolean;
+  excludedAnimeIds?: number[];
+  maxLength?: number;
+  minLength?: number;
+  query?: string;
+  status?: number[];
 };
 
 export type t_FetchSentenceContextRequestBodySchema = {
@@ -551,7 +566,6 @@ export type t_SearchRequestBodySchema = {
   episode?: number[];
   exactMatch?: boolean;
   excludedAnimeIds?: number[];
-  extra?: boolean;
   limit?: number;
   maxLength?: number;
   media?: {
@@ -591,7 +605,6 @@ export type t_SegmentCreateRequestBodySchema = {
   startTime: string;
   status?: 0 | 1 | 2 | 3 | 100 | 101;
   storage: 'local' | 'r2';
-  uuid: string;
 };
 
 export type t_SegmentDestroyParamSchema = {

@@ -29,6 +29,5 @@ export interface MediaInfoData {
   banner: string;
   version: string;
   numSegments: number;
-  numSeasons: number;
   numEpisodes: number;
 }

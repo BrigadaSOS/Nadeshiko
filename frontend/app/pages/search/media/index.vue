@@ -1,113 +1,161 @@
 <script setup>
 import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight } from '@mdi/js';
-import { useRouter, useRoute } from 'vue-router';
 
 const apiSearch = useApiSearch();
-const media = ref([]);
 const router = useRouter();
 const route = useRoute();
 
-// Filter variables
-const query = ref('');
-const searchQuery = ref('');
-const filterType = ref('');
-
-// Pagination variables
-const currentView = ref('grid');
-const page = ref(1);
-const pageSize = ref(28);
-const hasMore = ref(false);
-
-// States and misc variables
-const loading = ref(false);
+const allowedFilterTypes = new Set(['anime', 'liveaction', 'audiobook']);
+const pageSize = 28;
 let debounceTimeout = null;
 
-// Fetch media function
-const fetchMedia = async () => {
-  loading.value = true;
-
-  try {
-    const response = await apiSearch.getRecentMedia({
-      cursor: (page.value - 1) * pageSize.value,
-      query: searchQuery.value,
-      size: pageSize.value,
-      type: filterType.value,
-    });
-    media.value = response.results || [];
-    hasMore.value = response.hasMoreResults && response.results.length > 0;
-  } catch (error) {
-    console.error('Error fetching media:', error);
-  } finally {
-    loading.value = false;
-    scrollToTop();
-  }
+const normalizePage = (value) => {
+  const parsed = Number.parseInt(String(value || '1'), 10);
+  return Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
 };
 
-// View change functions
+const normalizeView = (value) => (value === 'list' ? 'list' : 'grid');
+const normalizeQuery = (value) => (typeof value === 'string' ? value : '');
+const normalizeType = (value) => {
+  const type = typeof value === 'string' ? value : '';
+  return allowedFilterTypes.has(type) ? type : '';
+};
+
+const page = computed(() => normalizePage(route.query.page));
+const currentView = computed(() => normalizeView(route.query.view));
+const searchQuery = computed(() => normalizeQuery(route.query.query));
+const filterType = computed(() => normalizeType(route.query.type));
+
+const buildQueryParams = (params = {}) => {
+  const nextPage = normalizePage(params.page ?? page.value);
+  const nextView = normalizeView(params.view ?? currentView.value);
+  const nextQuery = normalizeQuery(params.query ?? searchQuery.value);
+  const nextType = normalizeType(params.type ?? filterType.value);
+
+  return {
+    page: String(nextPage),
+    view: nextView,
+    query: nextQuery || undefined,
+    type: nextType || undefined,
+  };
+};
+
+const isSameQuery = (nextQuery) => {
+  const current = buildQueryParams();
+  return (
+    current.page === nextQuery.page &&
+    current.view === nextQuery.view &&
+    (current.query || '') === (nextQuery.query || '') &&
+    (current.type || '') === (nextQuery.type || '')
+  );
+};
+
+const updateUrl = async (params = {}) => {
+  const nextQuery = buildQueryParams(params);
+
+  if (isSameQuery(nextQuery)) {
+    return;
+  }
+
+  await router.push({ query: nextQuery });
+};
+
+const { data: mediaResponse, pending, error } = await useAsyncData(
+  () => `search-media-${page.value}-${searchQuery.value}-${filterType.value}`,
+  () =>
+    apiSearch.getRecentMedia({
+      cursor: (page.value - 1) * pageSize,
+      query: searchQuery.value,
+      size: pageSize,
+      type: filterType.value,
+    }),
+  {
+    watch: [page, searchQuery, filterType],
+    server: true,
+    lazy: false,
+    default: () => ({
+      results: [],
+      hasMoreResults: false,
+    }),
+  },
+);
+
+const media = computed(() => mediaResponse.value?.results || []);
+const hasMore = computed(() => Boolean(mediaResponse.value?.hasMoreResults && media.value.length > 0));
+const loading = computed(() => pending.value);
+const query = ref(searchQuery.value);
+
+watch(searchQuery, (value) => {
+  if (value !== query.value) {
+    query.value = value;
+  }
+});
+
+watch(query, (value) => {
+  if (value === searchQuery.value) {
+    return;
+  }
+
+  if (debounceTimeout) {
+    clearTimeout(debounceTimeout);
+  }
+
+  debounceTimeout = setTimeout(() => {
+    updateUrl({
+      page: 1,
+      query: value.trim(),
+    });
+  }, 300);
+});
+
+watch(error, (fetchError) => {
+  if (fetchError) {
+    console.error('Error fetching media:', fetchError);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (debounceTimeout) {
+    clearTimeout(debounceTimeout);
+  }
+});
+
 const setGridView = () => {
-  currentView.value = 'grid';
+  updateUrl({ view: 'grid' });
 };
 
 const setListView = () => {
-  currentView.value = 'list';
+  updateUrl({ view: 'list' });
 };
 
 const nextPage = () => {
-  page.value++;
+  updateUrl({ page: page.value + 1 });
 };
 
 const beforePage = () => {
-  page.value--;
+  updateUrl({ page: page.value - 1 });
 };
 
 const scrollToTop = () => {
+  if (!import.meta.client) {
+    return;
+  }
+
   window.scrollTo({
     top: 0,
     behavior: 'smooth',
   });
 };
 
-// Filter handling
 const handleFilterChange = (type) => {
-  page.value = 1;
-  filterType.value = type;
-  updateUrl();
-  fetchMedia();
+  updateUrl({
+    page: 1,
+    type,
+  });
 };
 
-const updateUrl = () => {
-  const params = {
-    page: page.value,
-    view: currentView.value,
-    query: searchQuery.value || undefined,
-    type: filterType.value || undefined,
-  };
-  router.push({ query: params });
-};
-
-// Lifecycle
-onMounted(() => {
-  loading.value = true;
-  page.value = parseInt(route.query.page, 10) || 1;
-  currentView.value = route.query.view === 'list' ? 'list' : 'grid';
-  query.value = route.query.query || '';
-  searchQuery.value = query.value;
-  filterType.value = route.query.type || '';
-  fetchMedia();
-});
-
-watch(query, () => {
-  if (debounceTimeout) clearTimeout(debounceTimeout);
-  debounceTimeout = setTimeout(() => {
-    page.value = 1;
-    searchQuery.value = query.value.trim();
-    filterType.value = type;
-  }, 300);
-});
-
-watch([page, currentView, searchQuery], () => {
-  updateUrl();
-  fetchMedia();
+watch([page, currentView, searchQuery, filterType], () => {
+  scrollToTop();
 });
 </script>
 

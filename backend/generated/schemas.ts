@@ -117,6 +117,13 @@ export const s_MediaInfoStats = z.object({
   fullTotalSegments: z.coerce.number().optional(),
 });
 
+export const s_QueryStats = z.object({
+  returnedCount: z.coerce.number().optional(),
+  hasMoreResults: PermissiveBoolean.optional(),
+  estimatedTotalHits: z.coerce.number().optional(),
+  estimatedTotalHitsRelation: z.enum(['eq', 'gte']).optional(),
+});
+
 export const s_ReindexRequest = z.object({
   media: z.array(z.object({ mediaId: z.coerce.number(), episodes: z.array(z.coerce.number()).optional() })).optional(),
 });
@@ -185,7 +192,6 @@ export const s_SegmentCreateRequest = z.object({
   actorJa: z.string().optional(),
   actorEs: z.string().optional(),
   actorEn: z.string().optional(),
-  uuid: z.string(),
 });
 
 export const s_SegmentInfo = z.object({
@@ -312,7 +318,6 @@ export const s_MediaInfoData = z.object({
   banner: z.string().optional(),
   version: z.string().optional(),
   numSegments: z.coerce.number().optional(),
-  numSeasons: z.coerce.number().optional(),
   numEpisodes: z.coerce.number().optional(),
 });
 
@@ -349,12 +354,21 @@ export const s_SearchRequest = z.object({
   contentSort: z.enum(['asc', 'desc', 'none', 'time_asc', 'time_desc', 'random']).optional().default('none'),
   cursor: z.array(z.coerce.number()).optional(),
   exactMatch: PermissiveBoolean.optional().default(false),
-  extra: PermissiveBoolean.optional().default(false),
   minLength: z.coerce.number().optional(),
   maxLength: z.coerce.number().optional(),
   excludedAnimeIds: z.array(z.coerce.number()).optional().default([]),
   status: z.array(z.coerce.number()).optional().default([1]),
   media: z.array(z.object({ mediaId: z.coerce.number(), episodes: z.array(z.coerce.number()) })).optional(),
+});
+
+export const s_SearchStatsRequest = z.object({
+  query: z.string().optional(),
+  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']),
+  exactMatch: PermissiveBoolean.optional().default(false),
+  minLength: z.coerce.number().optional(),
+  maxLength: z.coerce.number().optional(),
+  excludedAnimeIds: z.array(z.coerce.number()).optional().default([]),
+  status: z.array(z.coerce.number()).optional().default([1]),
 });
 
 export const s_SegmentListResponse = z.object({
@@ -370,7 +384,7 @@ export const s_Statistic = z.object({
   nameAnimeEn: z.string().optional(),
   nameAnimeJp: z.string().optional(),
   amountSentencesFound: z.coerce.number().optional(),
-  seasonWithEpisodeHits: z.record(z.record(z.coerce.number())).optional(),
+  episodeHits: z.record(z.coerce.number()).optional(),
 });
 
 export const s_WordMatch = z.object({
@@ -393,6 +407,11 @@ export const s_MediaCharacter = z.object({
 });
 
 export const s_SearchMultipleResponse = z.object({ results: z.array(s_WordMatch).optional() });
+
+export const s_SearchStatsResponse = z.object({
+  mediaStatistics: z.array(s_Statistic).optional(),
+  categoryStatistics: z.array(s_CategoryStatistic).optional(),
+});
 
 export const s_Sentence = z.object({ basicInfo: s_BasicInfo, segmentInfo: s_SegmentInfo, mediaInfo: s_MediaInfoPath });
 
@@ -423,16 +442,14 @@ export const s_Media = z.object({
 });
 
 export const s_SearchHealthCheckResponse = z.object({
-  statistics: z.array(s_Statistic).optional(),
-  categoryStatistics: z.array(s_CategoryStatistic).optional(),
   sentences: z.array(s_Sentence).optional(),
+  queryStats: s_QueryStats.optional(),
   cursor: z.array(z.coerce.number()).optional(),
 });
 
 export const s_SearchResponse = z.object({
-  statistics: z.array(s_Statistic).optional(),
-  categoryStatistics: z.array(s_CategoryStatistic).optional(),
   sentences: z.array(s_Sentence).optional(),
+  queryStats: s_QueryStats.optional(),
   cursor: z.array(z.coerce.number()).nullable().optional(),
 });
 
