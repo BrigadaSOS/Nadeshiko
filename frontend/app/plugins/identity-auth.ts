@@ -7,4 +7,8 @@ export default defineNuxtPlugin(() => {
     const cookieHost = useCookie('__Host-nadeshiko.session_token');
     store.isLoggedIn = Boolean(cookieMain.value || cookieSecure.value || cookieHost.value);
   }
+
+  if (import.meta.client && store.isLoggedIn) {
+    store.getBasicInfo();
+  }
 });

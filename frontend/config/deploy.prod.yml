@@ -1,6 +1,10 @@
 service: nadeshiko-frontend-prod
 image: nadeshiko-frontend-prod
 
+builder:
+  args:
+    NUXT_PUBLIC_ENVIRONMENT: prod
+
 proxy:
   ssl: true
   host: new.nadeshiko.co
@@ -13,7 +17,6 @@ env:
 
   clear:
     NODE_ENV: prod 
-    NUXT_APP_ENVIRONMENT: prod
     NUXT_BACKEND_INTERNAL_URL: https://api.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info

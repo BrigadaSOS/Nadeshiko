@@ -1,6 +1,6 @@
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent, RemoveEvent } from 'typeorm';
 import { nanoid } from 'nanoid';
-import { Segment } from '@app/entities';
+import { Segment, Media } from '@app/entities';
 import { sendEsSyncJob } from '@lib/queue/pgBoss';
 
 @EventSubscriber()
@@ -19,6 +19,8 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
 
   afterInsert(event: InsertEvent<Segment>) {
     if (event.entity) {
+      Media.invalidateCache();
+
       // Enqueue ES sync job with retry
       sendEsSyncJob({
         segmentId: event.entity.id,
@@ -44,6 +46,8 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
   afterRemove(event: RemoveEvent<Segment>) {
     // databaseEntity contains the full entity before deletion
     if (event.databaseEntity) {
+      Media.invalidateCache();
+
       // Enqueue ES sync job with retry
       sendEsSyncJob({
         segmentId: event.databaseEntity.id,

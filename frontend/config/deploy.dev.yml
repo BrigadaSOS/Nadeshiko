@@ -1,6 +1,10 @@
 service: nadeshiko-frontend-dev
 image: nadeshiko-frontend-dev
 
+builder:
+  args:
+    NUXT_PUBLIC_ENVIRONMENT: dev
+
 proxy:
   ssl: true
   host: dev.nadeshiko.co
@@ -13,7 +17,6 @@ env:
 
   clear:
     NODE_ENV: dev 
-    NUXT_APP_ENVIRONMENT: dev
     NUXT_BACKEND_INTERNAL_URL: https://api-dev.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info
