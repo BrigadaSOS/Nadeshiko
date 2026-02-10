@@ -4,7 +4,11 @@ import { mdiRefresh } from '@mdi/js';
 import { usePlayerStore } from '~/stores/player';
 
 const props = defineProps({
-  initialData: {
+  initialSentenceData: {
+    type: Object,
+    default: null,
+  },
+  initialStatsData: {
     type: Object,
     default: null,
   },
@@ -15,40 +19,44 @@ const apiSearch = useApiSearch();
 const route = useRoute();
 const router = useRouter();
 const playerStore = usePlayerStore();
-const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// Main variables
-const searchData = ref(props.initialData);
+const sentenceData = ref(props.initialSentenceData);
+const statsData = ref(props.initialStatsData);
 const isLoading = ref(false);
 const endOfResults = ref(false);
 const hasMoreResults = ref(true);
 const showLoadMoreButton = ref(false);
 const initialError = ref(false);
 
-// Available params for search
 const query = ref('');
-const previousQuery = ref('');
-const category = ref(0);
+const category = ref('all');
 const cursor = ref(null);
 const media = ref(null);
 const sort = ref(null);
 const uuid = ref(null);
 const episode = ref(null);
 
-// Category mapping
-const categoryMapping = {
-  all: 0,
-  anime: 1,
-  liveaction: 3,
-  audiobook: 4,
+const categoryApiMapping = {
+  anime: 'ANIME',
+  liveaction: 'JDRAMA',
 };
 
-// Get anime name for tab when filtering by specific media
+const searchData = computed(() => {
+  const sentencePayload = sentenceData.value || {};
+  const statsPayload = statsData.value || {};
+
+  return {
+    sentences: sentencePayload.sentences || [],
+    cursor: sentencePayload.cursor,
+    queryStats: sentencePayload.queryStats,
+    categoryStatistics: statsPayload.categoryStatistics || [],
+    mediaStatistics: statsPayload.mediaStatistics || [],
+  };
+});
+
 const animeTabName = computed(() => {
   if (media.value && searchData.value?.sentences?.length > 0) {
     let name = searchData.value.sentences[0].basicInfo.nameAnimeEn;
-
-    // Add episode if selected
     if (episode.value !== null) {
       name += `, ${t('searchpage.main.labels.episode')} ${episode.value}`;
     }
@@ -58,14 +66,44 @@ const animeTabName = computed(() => {
   return t('searchContainer.categoryAll');
 });
 
-////////////////////////////////
+const applyRouteQuery = (queryParams) => {
+  query.value = typeof queryParams.query === 'string' ? queryParams.query : '';
+  category.value = queryParams.category === 'anime' || queryParams.category === 'liveaction' ? queryParams.category : 'all';
+  media.value = queryParams.media || null;
+  sort.value = queryParams.sort || null;
+  uuid.value = queryParams.uuid || null;
+  episode.value = queryParams.episode ? Number(queryParams.episode) : null;
+};
 
-// Fetch sentences with an infinite scroll
-const fetchSentences = async (_fromButton = false) => {
+const fetchStats = async () => {
   try {
-    if (endOfResults.value || isLoading.value) return;
+    const body = {};
 
-    // If it's a new search (not loading more), hide the player.
+    if (query.value) {
+      body.query = query.value;
+    }
+
+    const mappedCategory = categoryApiMapping[category.value];
+    if (mappedCategory) {
+      body.category = [mappedCategory];
+    }
+
+    statsData.value = await apiSearch.getSearchStatsV1(body);
+  } catch (error) {
+    console.error('Error fetching search stats:', error);
+    statsData.value = {
+      mediaStatistics: [],
+      categoryStatistics: [],
+    };
+  }
+};
+
+const fetchSentences = async () => {
+  try {
+    if (endOfResults.value || isLoading.value) {
+      return;
+    }
+
     if (cursor.value === null) {
       playerStore.hidePlayer();
     }
@@ -73,24 +111,21 @@ const fetchSentences = async (_fromButton = false) => {
     isLoading.value = true;
     showLoadMoreButton.value = false;
 
-    // Build request body
     const body = {
       limit: 20,
-      extra: true,
     };
 
-    // Only add query if it exists (to avoid ES filters when no query is provided)
     if (query.value) {
       body.query = query.value;
     }
 
-    // Add optional parameters, omit category if it is 'all'
-    if (category.value !== 0) {
-      body.category = [category.value];
+    const mappedCategory = categoryApiMapping[category.value];
+    if (mappedCategory) {
+      body.category = [mappedCategory];
     }
 
-    if (media.value !== 0) {
-      body.animeId = media.value;
+    if (media.value) {
+      body.animeId = Number(media.value);
     }
 
     if (episode.value !== null) {
@@ -109,41 +144,36 @@ const fetchSentences = async (_fromButton = false) => {
       body.uuid = uuid.value;
     }
 
-    // Define the behaviour of elements based on params
-    if (previousQuery.value === query.value) {
-      if (!cursor.value) {
-        if (searchData.value?.sentences) {
-          searchData.value.sentences = null;
-        }
-      }
-    } else {
-      searchData.value = null;
-    }
-
-    // Fetch data from API
     const response = await apiSearch.getSentenceV1(body);
-    // await delay(5000)
+    const incomingSentences = response?.sentences || [];
 
-    // Update search data
     if (cursor.value === null) {
-      searchData.value = response;
+      sentenceData.value = {
+        ...response,
+        sentences: incomingSentences,
+      };
     } else {
-      searchData.value.sentences.push(...response.sentences);
+      const previousSentences = sentenceData.value?.sentences || [];
+      sentenceData.value = {
+        ...sentenceData.value,
+        ...response,
+        sentences: [...previousSentences, ...incomingSentences],
+      };
     }
-    cursor.value = response.cursor || null;
 
-    if (!response.cursor) {
+    cursor.value = response?.cursor || null;
+
+    if (!response?.cursor) {
       endOfResults.value = true;
       hasMoreResults.value = false;
     } else {
       hasMoreResults.value = true;
     }
 
-    previousQuery.value = query.value;
     initialError.value = false;
   } catch (error) {
     console.error('Error fetching sentences:', error);
-    if (!searchData.value || !searchData.value.sentences || searchData.value.sentences.length === 0) {
+    if (!sentenceData.value?.sentences || sentenceData.value.sentences.length === 0) {
       initialError.value = true;
     }
     hasMoreResults.value = false;
@@ -153,84 +183,94 @@ const fetchSentences = async (_fromButton = false) => {
   }
 };
 
-const loadMore = () => {
-  fetchSentences(true);
-};
-
-// Get count of sentences for a specific category
-const getCategoryCount = (category) => {
-  if (category === 0) {
-    return searchData.value.categoryStatistics.reduce((total, item) => total + item.count, 0);
-  }
-  const item = searchData.value.categoryStatistics.find((item) => item.category === category);
-  return item ? item.count : 0;
-};
-
-// Filter sentences by category
-const categoryFilter = (filter) => {
-  router.push({
-    query: {
-      ...route.query,
-      category: Object.keys(categoryMapping).find((key) => categoryMapping[key] === filter),
-    },
-  });
-};
-
-// Get season/episode data for the selected media
-const getSeasonEpisodeData = () => {
-  if (!media.value || !searchData.value?.statistics) return {};
-  const mediaId = Number(media.value);
-  if (Number.isNaN(mediaId)) return {};
-  const selectedAnime = searchData.value.statistics.find((stat) => stat.animeId === mediaId);
-  return selectedAnime?.seasonWithEpisodeHits || {};
-};
-
-const handleRandomLogic = () => {
+const resetSentencePagination = () => {
   cursor.value = null;
   endOfResults.value = false;
-  searchData.value.sentences = null;
+  hasMoreResults.value = true;
+  sentenceData.value = {
+    ...sentenceData.value,
+    sentences: [],
+  };
+};
+
+const loadMore = () => {
   fetchSentences();
 };
 
-// Lifecycle hooks
-onMounted(async () => {
-  query.value = route.query.query;
-  category.value = categoryMapping[route.query.category] ?? 0;
-  media.value = route.query.media;
-  sort.value = route.query.sort;
-  uuid.value = route.query.uuid;
-  episode.value = route.query.episode ? Number(route.query.episode) : null;
+const getCategoryCount = (categoryKey) => {
+  const stats = searchData.value?.categoryStatistics || [];
 
-  if (category.value === undefined) {
-    category.value = 0;
+  if (categoryKey === 'all') {
+    return stats.reduce((total, item) => total + item.count, 0);
   }
 
-  if (props.initialData) {
-    cursor.value = props.initialData.cursor || null;
-    if (!props.initialData.cursor) {
+  const mappedCategory = categoryApiMapping[categoryKey];
+  const item = stats.find((entry) => entry.category === mappedCategory);
+  return item ? item.count : 0;
+};
+
+const categoryFilter = (categoryKey) => {
+  const queryParams = {
+    ...route.query,
+  };
+
+  if (categoryKey === 'all') {
+    delete queryParams.category;
+  } else {
+    queryParams.category = categoryKey;
+  }
+
+  router.push({ query: queryParams });
+};
+
+const getEpisodeHitsData = () => {
+  if (!media.value || !searchData.value?.mediaStatistics) {
+    return {};
+  }
+
+  const mediaId = Number(media.value);
+  if (Number.isNaN(mediaId)) {
+    return {};
+  }
+
+  const selectedMedia = searchData.value.mediaStatistics.find((stat) => stat.animeId === mediaId);
+  return selectedMedia?.episodeHits || {};
+};
+
+const handleRandomLogic = () => {
+  resetSentencePagination();
+  fetchSentences();
+};
+
+onMounted(async () => {
+  applyRouteQuery(route.query);
+
+  if (props.initialSentenceData) {
+    cursor.value = props.initialSentenceData.cursor || null;
+    if (!props.initialSentenceData.cursor) {
       endOfResults.value = true;
       hasMoreResults.value = false;
     }
-    previousQuery.value = query.value;
   } else {
+    resetSentencePagination();
     await fetchSentences();
+  }
+
+  if (!props.initialStatsData) {
+    await fetchStats();
   }
 });
 
-onBeforeRouteUpdate(async (to, _from) => {
-  query.value = to.query.query;
-  category.value = categoryMapping[to.query.category] ?? 0;
-  media.value = to.query.media;
-  sort.value = to.query.sort;
-  uuid.value = to.query.uuid;
-  episode.value = to.query.episode ? Number(to.query.episode) : null;
+onBeforeRouteUpdate(async (to, from) => {
+  const statsScopeChanged = to.query.query !== from.query.query || to.query.category !== from.query.category;
 
-  if (category.value === undefined) {
-    category.value = 0;
+  applyRouteQuery(to.query);
+  resetSentencePagination();
+
+  if (statsScopeChanged) {
+    await fetchStats();
   }
 
-  cursor.value = null;
-  endOfResults.value = false;
   await fetchSentences();
 });
 </script>
@@ -282,17 +322,14 @@ onBeforeRouteUpdate(async (to, _from) => {
         <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
             <CommonTabsContainer>
                 <CommonTabsHeader>
-                    <CommonTabsItem category="0" :categoryName="animeTabName" :count="getCategoryCount(0)"
-                        :isActive="category === 0 || media" @click="categoryFilter(0)" />
-                    <CommonTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 1)"
-                        category="1" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount(1)" :isActive="category === 1"
-                        @click="categoryFilter(1)" />
-                    <CommonTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 3)"
-                        category="3" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount(3)" :isActive="category === 3"
-                        @click="categoryFilter(3)" />
-                    <CommonTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 4)"
-                        category="4" :categoryName="t('searchContainer.categoryAudiobook')" :count="getCategoryCount(4)" :isActive="category === 4"
-                        @click="categoryFilter(4)" />
+                    <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')"
+                        :isActive="category === 'all' || media" @click="categoryFilter('all')" />
+                    <CommonTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 'ANIME')"
+                        category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :isActive="category === 'anime'"
+                        @click="categoryFilter('anime')" />
+                    <CommonTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 'JDRAMA')"
+                        category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :isActive="category === 'liveaction'"
+                        @click="categoryFilter('liveaction')" />
                 </CommonTabsHeader>
             </CommonTabsContainer>
         </div>
@@ -324,12 +361,12 @@ onBeforeRouteUpdate(async (to, _from) => {
             </div>
             <!-- Filters -->
             <div class="2xl:min-w-[18rem] 2xl:max-w-[18rem]">
-                <div v-if="searchData?.statistics?.length > 0" class="p-2 mx-auto hidden 2xl:block">
+                <div v-if="searchData?.mediaStatistics?.length > 0" class="p-2 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
-                    <SearchSegmentFilterSeasonEpisodeFilter
+                    <SearchSegmentFilterEpisodeFilter
                         v-if="media"
-                        :seasonWithEpisodeHits="getSeasonEpisodeData()"
+                        :episodeHits="getEpisodeHitsData()"
                         :selectedMediaId="media"
                     />
                 </div>

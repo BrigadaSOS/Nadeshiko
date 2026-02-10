@@ -17,6 +17,7 @@ import type {
   t_Error,
   t_FetchMediaInfoQuerySchema,
   t_FetchMediaInfoResponse,
+  t_FetchSearchStatsRequestBodySchema,
   t_FetchSentenceContextRequestBodySchema,
   t_FetchSentenceContextResponse,
   t_SearchHealthCheckResponse,
@@ -24,8 +25,9 @@ import type {
   t_SearchMultipleResponse,
   t_SearchRequestBodySchema,
   t_SearchResponse,
+  t_SearchStatsResponse,
 } from '../models.ts';
-import type { FetchMediaInfoQueryOutput, FetchSentenceContextRequestOutput, SearchMultipleRequestOutput, SearchRequestOutput } from '../outputTypes.ts';
+import type { FetchMediaInfoQueryOutput, FetchSentenceContextRequestOutput, SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput } from '../outputTypes.ts';
 import {
   s_Error,
   s_FetchMediaInfoResponse,
@@ -36,6 +38,8 @@ import {
   s_SearchMultipleResponse,
   s_SearchRequest,
   s_SearchResponse,
+  s_SearchStatsRequest,
+  s_SearchStatsResponse,
 } from '../schemas.ts';
 
 export type SearchHealthCheckResponder = {
@@ -66,6 +70,23 @@ export type SearchResponder = {
 export type Search = (
   params: Params<void, void, SearchRequestOutput, void>,
   respond: SearchResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type FetchSearchStatsResponder = {
+  with200(): ExpressRuntimeResponse<t_SearchStatsResponse>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type FetchSearchStats = (
+  params: Params<void, void, SearchStatsRequestOutput, void>,
+  respond: FetchSearchStatsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -125,6 +146,7 @@ export type FetchMediaInfo = (
 export type SearchImplementation = {
   searchHealthCheck: SearchHealthCheck;
   search: Search;
+  fetchSearchStats: FetchSearchStats;
   searchMultiple: SearchMultiple;
   fetchSentenceContext: FetchSentenceContext;
   fetchMediaInfo: FetchMediaInfo;
@@ -261,6 +283,77 @@ export function createSearchRouter(implementation: SearchImplementation): Router
 
       if (body !== undefined) {
         res.json(searchResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const fetchSearchStatsRequestBodySchema = s_SearchStatsRequest;
+
+  const fetchSearchStatsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SearchStatsResponse],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // fetchSearchStats
+  router.post(`/v1/search/media/stats`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(fetchSearchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_SearchStatsResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.fetchSearchStats(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(fetchSearchStatsResponseBodyValidator(status, body));
       } else {
         res.end();
       }

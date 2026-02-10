@@ -93,7 +93,6 @@
     "sentenceCount": "sentences",
     "romajiName": "Name",
     "japaneseName": "Japanese",
-    "seasons": "Seasons",
     "episodes": "Episodes",
     "genres": "Genres",
     "sentenceCountLabel": "Sentence Count:",
@@ -169,7 +168,7 @@
   "filterContent": {
     "searchPlaceholder": "Search here"
   },
-  "seasonEpisodeFilter": {
+  "episodeFilter": {
     "title": "Episode",
     "clear": "Clear",
     "noEpisodes": "No episodes found"
@@ -215,7 +214,6 @@
         "errorMessage2": "Please try again later.",
         "contentList": "Content",
         "noresults": "No results found...",
-        "season": "Season",
         "episode": "Episode",
         "translation": "Translation (EN/ES)",
         "movie": "Movie",
@@ -352,7 +350,6 @@
     "seoDescriptionDefault": "Search anime and live action phrases in Nadeshiko",
     "mediaInfo": "{jpSentence} from {animeName}, {mediaType}",
     "mediaTypeMovie": "Movie",
-    "mediaTypeSeason": "Season {season}, Episode {episode}",
     "categoryAll": "All",
     "categoryAnime": "Anime",
     "categoryLiveaction": "Live Action",

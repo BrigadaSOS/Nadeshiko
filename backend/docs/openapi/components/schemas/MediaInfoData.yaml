@@ -85,10 +85,6 @@ properties:
     type: integer
     description: Total number of subtitle segments available
     example: 18542
-  numSeasons:
-    type: integer
-    description: Total number of seasons available
-    example: 1
   numEpisodes:
     type: integer
     description: Total number of episodes available

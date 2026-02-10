@@ -1,6 +1,7 @@
-import { querySegments, querySurroundingSegments, queryWordsMatched } from '@lib/external/elasticsearch';
+import { querySearchStats, querySegments, querySurroundingSegments, queryWordsMatched } from '@lib/external/elasticsearch';
 import type {
   FetchMediaInfo,
+  FetchSearchStats,
   FetchSentenceContext,
   Search,
   SearchHealthCheck,
@@ -37,13 +38,26 @@ export const search: Search = async ({ body }, respond) => {
     exactMatch: body.exactMatch,
     episode: body.episode,
     category: body.category, // Already string[] enum values
-    extra: body.extra,
     minLength: body.minLength,
     maxLength: body.maxLength,
     excludedAnimeIds: body.excludedAnimeIds,
   });
 
   return respond.with200().body(searchResults);
+};
+
+export const fetchSearchStats: FetchSearchStats = async ({ body }, respond) => {
+  const stats = await querySearchStats({
+    query: body.query,
+    exactMatch: body.exactMatch,
+    category: body.category,
+    minLength: body.minLength,
+    maxLength: body.maxLength,
+    excludedAnimeIds: body.excludedAnimeIds,
+    status: body.status,
+  });
+
+  return respond.with200().body(stats);
 };
 
 export const searchMultiple: SearchMultiple = async ({ body }, respond) => {

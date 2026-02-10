@@ -93,11 +93,11 @@ properties:
     example: "J.C.STAFF"
   seasonName:
     type: string
-    description: Season when the media aired (WINTER, SPRING, SUMMER, FALL)
+    description: Airing season label for the media
     example: "FALL"
   seasonYear:
     type: integer
-    description: Year when the media aired
+    description: Airing year for the media
     example: 2010
   characters:
     type: array

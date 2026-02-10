@@ -1,18 +1,17 @@
 meta {
   name: List all media
   type: http
-  seq: 6
+  seq: 7
 }
 
 get {
   url: {{baseUrl}}/v1/media?limit=20&category=ANIME
   body: none
-  auth: inherit
 }
 
 params:query {
   limit: 20
-  cursor: 
+  cursor:
   category: ANIME
 }
 

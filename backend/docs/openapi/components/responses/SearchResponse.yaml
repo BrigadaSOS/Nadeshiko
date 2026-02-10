@@ -1,17 +1,11 @@
 type: object
 properties:
-  statistics:
-    type: array
-    items:
-      $ref: "../schemas/Statistic.yaml"
-  categoryStatistics:
-    type: array
-    items:
-      $ref: "../schemas/CategoryStatistic.yaml"
   sentences:
     type: array
     items:
       $ref: "../schemas/Sentence.yaml"
+  queryStats:
+    $ref: "../schemas/QueryStats.yaml"
   cursor:
     type: array
     nullable: true

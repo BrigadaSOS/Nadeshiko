@@ -1,13 +1,19 @@
 meta {
   name: List segments for an episode
   type: http
-  seq: 16
+  seq: 17
 }
 
 get {
-  url: {{baseUrl}}/v1/media/7674/episodes/1/segments
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments
   body: none
-  auth: inherit
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+  size:
+  cursor:
 }
 
 settings {

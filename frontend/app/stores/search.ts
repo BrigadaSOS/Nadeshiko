@@ -1,8 +1,14 @@
-export type ResponseV1 = {
-  statistics: Statistic[];
-  categoryStatistics: CategoryStatistic[];
-  sentences: Sentence[];
-  cursor: number[];
+export type SearchCategory = 'ANIME' | 'JDRAMA';
+
+export type SentenceSearchResponse = {
+  sentences?: Sentence[];
+  cursor?: number[] | null;
+  queryStats?: QueryStats;
+};
+
+export type SearchStatsResponse = {
+  mediaStatistics?: Statistic[];
+  categoryStatistics?: CategoryStatistic[];
 };
 
 export type ResponseV2 = {
@@ -16,8 +22,15 @@ export type ContextResponse = {
   sentences: Sentence[];
 };
 
+export type QueryStats = {
+  returnedCount: number;
+  hasMoreResults: boolean;
+  estimatedTotalHits: number;
+  estimatedTotalHitsRelation: 'eq' | 'gte';
+};
+
 export type CategoryStatistic = {
-  category: number;
+  category: SearchCategory;
   count: number;
 };
 
@@ -35,7 +48,7 @@ export type BasicInfo = {
   cover: string;
   banner: string;
   episode: number;
-  category: number;
+  category: SearchCategory;
 };
 
 export type MediaInfo = {
@@ -71,17 +84,15 @@ export type SegmentInfo = {
 
 export type Statistic = {
   animeId: number;
-  category: number;
+  category: SearchCategory;
   nameAnimeRomaji: string;
   nameAnimeEn: string;
   nameAnimeJp: string;
   amountSentencesFound: number;
-  seasonWithEpisodeHits: SeasonWithEpisodeHits;
+  episodeHits: EpisodeHits;
 };
 
-export type SeasonWithEpisodeHits = {
-  '1': { [key: string]: number };
-};
+export type EpisodeHits = Record<string, number>;
 
 export interface MediaInfoStats {
   readonly totalAnimes: number;
@@ -92,7 +103,8 @@ export interface MediaInfoStats {
 
 export interface MediaInfoData {
   id: number;
-  category: number;
+  category: SearchCategory;
+  anilistId: number;
   createdAt: string;
   updatedAt?: number;
   romajiName: string;
@@ -108,7 +120,6 @@ export interface MediaInfoData {
   banner: string;
   version: string;
   numSegments: number;
-  numSeasons: number;
   numEpisodes: number;
 }
 
@@ -116,16 +127,28 @@ type SentenceRequest = {
   query?: string;
   limit?: number;
   uuid?: string;
-  category?: number;
+  category?: SearchCategory[];
   animeId?: number;
-  episode?: number;
+  episode?: number[];
   randomSeed?: number;
   contentSort?: string;
   cursor?: number[];
-  extra?: unknown;
   excludedAnimeIds?: number[];
   minLength?: number;
   maxLength?: number;
+  exactMatch?: boolean;
+  status?: number[];
+  media?: Array<{ mediaId: number; episodes: number[] }>;
+};
+
+type SearchStatsRequest = {
+  query?: string;
+  category?: SearchCategory[];
+  exactMatch?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  excludedAnimeIds?: number[];
+  status?: number[];
 };
 
 type MultiSearchRequest = {
@@ -157,8 +180,8 @@ export const useApiSearch = defineStore('search', {
         },
       });
     },
-    async getSentenceV1(body: SentenceRequest): Promise<ResponseV1> {
-      return await $fetch<ResponseV1>('/internal-api/search/media/sentence', {
+    async getSentenceV1(body: SentenceRequest): Promise<SentenceSearchResponse> {
+      return await $fetch<SentenceSearchResponse>('/internal-api/search/media/sentence', {
         method: 'POST',
         body: {
           query: body.query,
@@ -170,10 +193,26 @@ export const useApiSearch = defineStore('search', {
           randomSeed: body.randomSeed,
           contentSort: body.contentSort,
           cursor: body.cursor,
-          extra: body.extra,
           excludedAnimeIds: body.excludedAnimeIds,
           minLength: body.minLength,
           maxLength: body.maxLength,
+          exactMatch: body.exactMatch,
+          status: body.status,
+          media: body.media,
+        },
+      });
+    },
+    async getSearchStatsV1(body: SearchStatsRequest): Promise<SearchStatsResponse> {
+      return await $fetch<SearchStatsResponse>('/internal-api/search/media/stats', {
+        method: 'POST',
+        body: {
+          query: body.query,
+          category: body.category,
+          exactMatch: body.exactMatch,
+          minLength: body.minLength,
+          maxLength: body.maxLength,
+          excludedAnimeIds: body.excludedAnimeIds,
+          status: body.status,
         },
       });
     },

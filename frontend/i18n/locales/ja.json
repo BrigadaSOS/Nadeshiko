@@ -93,7 +93,6 @@
     "sentenceCount": "文",
     "romajiName": "名前（ローマ字）",
     "japaneseName": "日本語名",
-    "seasons": "シーズン",
     "episodes": "エピソード",
     "genres": "ジャンル",
     "sentenceCountLabel": "文:",
@@ -169,7 +168,7 @@
   "filterContent": {
     "searchPlaceholder": "ここで検索"
   },
-  "seasonEpisodeFilter": {
+  "episodeFilter": {
     "title": "エピソード",
     "clear": "クリア",
     "noEpisodes": "エピソードが見つかりませんでした"
@@ -215,7 +214,6 @@
         "errorMessage2": "しばらくしてから再試行してください。",
         "contentList": "コンテンツ",
         "noresults": "結果が見つかりませんでした...",
-        "season": "シーズン",
         "episode": "エピソード",
         "translation": "翻訳（EN/ES）",
         "movie": "映画",
@@ -352,7 +350,6 @@
     "seoDescriptionDefault": "アニメと実写のフレーズをNadeshikoで検索",
     "mediaInfo": "{animeName}、{mediaType}の{jpSentence}",
     "mediaTypeMovie": "映画",
-    "mediaTypeSeason": "シーズン{season}、エピソード{episode}",
     "categoryAll": "すべて",
     "categoryAnime": "アニメ",
     "categoryLiveaction": "実写",

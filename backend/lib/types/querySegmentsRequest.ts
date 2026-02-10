@@ -17,7 +17,6 @@ export interface QuerySegmentsRequest {
   readonly episode?: number[];
   readonly category?: string[]; // "ANIME", "JDRAMA"
   readonly media?: QuerySegmentsAnimeFilter[];
-  readonly extra?: boolean;
   readonly excludedAnimeIds?: number[];
 }
 

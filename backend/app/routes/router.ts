@@ -5,6 +5,7 @@ import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
 import {
   searchHealthCheck,
   search,
+  fetchSearchStats,
   searchMultiple,
   fetchSentenceContext,
   fetchMediaInfo,
@@ -58,6 +59,7 @@ const router = express.Router();
 const SearchRoutes = createSearchRouter({
   searchHealthCheck,
   search,
+  fetchSearchStats,
   searchMultiple,
   fetchSentenceContext,
   fetchMediaInfo,
