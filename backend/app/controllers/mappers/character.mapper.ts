@@ -1,5 +1,5 @@
 import type { t_CharacterWithMedia } from 'generated/models';
-import type { Character } from '@app/entities';
+import type { Character } from '@app/models';
 import { toCharacterDTO, toMediaBaseDTO } from './shared.mapper';
 
 export { toCharacterDTO } from './shared.mapper';

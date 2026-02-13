@@ -1,5 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import { config } from '@lib/config';
+import { config } from '@config/config';
 
 export const originSafetyLimiter = rateLimit({
   windowMs: config.ORIGIN_SAFETY_WINDOW_MS,

@@ -23,7 +23,7 @@
     }
   },
   "home": {
-    "version": "v",
+    "version": "v{version}",
     "nadeDbDescription": "さまざまな文脈から日本語の文を検索できるツール。",
     "nadeDbDescriptionJpSearch": "日本語で検索",
     "nadeDbDescriptionOtherSearch": "英語またはスペイン語で検索",

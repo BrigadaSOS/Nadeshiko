@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors';
 import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
-import { logger } from '@lib/utils/log';
-import { ApiError, ValidationFailedError, NotFoundError, isApiError } from '@lib/utils/apiErrors';
+import { logger } from '@config/log';
+import { ApiError, ValidationFailedError, NotFoundError, isApiError } from '@app/errors';
 
 export function handleErrors(error: Error, req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) {

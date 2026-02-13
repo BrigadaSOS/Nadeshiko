@@ -1,5 +1,5 @@
 import type { t_Episode } from 'generated/models';
-import type { Episode } from '@app/entities';
+import type { Episode } from '@app/models';
 
 export const toEpisodeDTO = (episode: Episode): t_Episode => ({
   mediaId: episode.mediaId,

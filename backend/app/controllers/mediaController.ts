@@ -1,9 +1,39 @@
 import type { MediaIndex, MediaCreate, MediaShow, MediaUpdate, MediaDestroy } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
-import { CategoryType, Media, MediaCharacter, CharacterRole } from '@app/entities';
+import { CategoryType, Media, MediaCharacter, CharacterRole } from '@app/models';
+import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
 import { AppDataSource } from '@config/database';
-import { invalidateSearchStatsCache } from '@lib/cache/searchStatsCache';
+import { Cache } from '@lib/cache';
+import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
+
+function toCharacterData(char: {
+  characterId: number;
+  characterNameJapanese?: string;
+  characterNameEnglish?: string;
+  characterImageUrl?: string;
+  characterRole: string;
+  seiyuuId?: number;
+  seiyuuNameJapanese?: string;
+  seiyuuNameEnglish?: string;
+  seiyuuImageUrl?: string;
+}) {
+  return {
+    role: char.characterRole as CharacterRole,
+    character: {
+      id: char.characterId,
+      nameJapanese: char.characterNameJapanese,
+      nameEnglish: char.characterNameEnglish,
+      imageUrl: char.characterImageUrl,
+      seiyuu: {
+        id: char.seiyuuId,
+        nameJapanese: char.seiyuuNameJapanese,
+        nameEnglish: char.seiyuuNameEnglish,
+        imageUrl: char.seiyuuImageUrl,
+      },
+    },
+  };
+}
 
 export const mediaIndex: MediaIndex = async ({ query }, respond) => {
   const [mediaList, count] = await Media.findAndCount({
@@ -18,8 +48,8 @@ export const mediaIndex: MediaIndex = async ({ query }, respond) => {
     skip: query.cursor,
   });
 
-  const nextCursor = query.cursor + count;
-  const hasMoreResults = nextCursor < count;
+  const nextCursor = query.cursor + mediaList.length;
+  const hasMoreResults = mediaList.length === query.limit;
 
   return respond.with200().body({
     data: toMediaListDTO(mediaList),
@@ -47,26 +77,12 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
       studio: body.studio,
       seasonName: body.seasonName,
       seasonYear: body.seasonYear,
-      characters: body.characters?.map((char) => ({
-        role: char.characterRole as CharacterRole,
-        character: {
-          id: char.characterId,
-          nameJapanese: char.characterNameJapanese,
-          nameEnglish: char.characterNameEnglish,
-          imageUrl: char.characterImageUrl,
-          seiyuu: {
-            id: char.seiyuuId,
-            nameJapanese: char.seiyuuNameJapanese,
-            nameEnglish: char.seiyuuNameEnglish,
-            imageUrl: char.seiyuuImageUrl,
-          },
-        },
-      })),
+      characters: body.characters?.map(toCharacterData),
     });
   });
 
-  Media.invalidateCache();
-  invalidateSearchStatsCache();
+  Cache.invalidate(MEDIA_INFO_CACHE);
+  Cache.invalidate(SEARCH_STATS_CACHE);
 
   return respond.with201().body(toMediaDTO(media));
 };
@@ -99,19 +115,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
         manager.create(MediaCharacter, {
           mediaId: media.id,
           characterId: char.characterId,
-          role: char.characterRole as CharacterRole,
-          character: {
-            id: char.characterId,
-            nameJapanese: char.characterNameJapanese,
-            nameEnglish: char.characterNameEnglish,
-            imageUrl: char.characterImageUrl,
-            seiyuu: {
-              id: char.seiyuuId,
-              nameJapanese: char.seiyuuNameJapanese,
-              nameEnglish: char.seiyuuNameEnglish,
-              imageUrl: char.seiyuuImageUrl,
-            },
-          },
+          ...toCharacterData(char),
         }),
       );
     }
@@ -119,7 +123,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
     return await manager.save(media);
   });
 
-  Media.invalidateCache();
+  Cache.invalidate(MEDIA_INFO_CACHE);
 
   return respond.with200().body(toMediaDTO(media));
 };
@@ -130,8 +134,8 @@ export const mediaDestroy: MediaDestroy = async ({ params }, respond) => {
   });
 
   await media.softRemove();
-  Media.invalidateCache();
-  invalidateSearchStatsCache();
+  Cache.invalidate(MEDIA_INFO_CACHE);
+  Cache.invalidate(SEARCH_STATS_CACHE);
 
   return respond.with200().body({
     message: 'Media deleted successfully',

@@ -28,6 +28,7 @@ export type SegmentCreateRequestOutput = z.output<typeof schemas.s_SegmentCreate
 export type SegmentInfoOutput = z.output<typeof schemas.s_SegmentInfo>;
 export type SegmentUpdateRequestOutput = z.output<typeof schemas.s_SegmentUpdateRequest>;
 export type SeiyuuOutput = z.output<typeof schemas.s_Seiyuu>;
+export type UserQuotaResponseOutput = z.output<typeof schemas.s_UserQuotaResponse>;
 export type WordMatchMediaOutput = z.output<typeof schemas.s_WordMatchMedia>;
 export type BasicInfoOutput = z.output<typeof schemas.s_BasicInfo>;
 export type CategoryStatisticOutput = z.output<typeof schemas.s_CategoryStatistic>;
@@ -59,14 +60,6 @@ export type SeiyuuWithRolesOutput = z.output<typeof schemas.s_SeiyuuWithRoles>;
 // Inline query schemas and their output types
 // ============================================
 
-export const fetchMediaInfoQuerySchema = z.object({
-    size: z.coerce.number().optional().default(20),
-    cursor: z.coerce.number().optional().default(0),
-    query: z.string().optional(),
-    type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
-  });
-export type FetchMediaInfoQueryOutput = z.output<typeof fetchMediaInfoQuerySchema>;
-
 export const mediaIndexQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.coerce.number().min(0).optional().default(0),
@@ -93,3 +86,11 @@ export const listIndexQuerySchema = z.object({
     mediaId: z.coerce.number().optional(),
   });
 export type ListIndexQueryOutput = z.output<typeof listIndexQuerySchema>;
+
+export const fetchMediaInfoQuerySchema = z.object({
+    size: z.coerce.number().optional().default(20),
+    cursor: z.coerce.number().optional().default(0),
+    query: z.string().optional(),
+    type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
+  });
+export type FetchMediaInfoQueryOutput = z.output<typeof fetchMediaInfoQuerySchema>;

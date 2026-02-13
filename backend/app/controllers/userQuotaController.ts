@@ -1,18 +1,17 @@
-import { Request, Response } from 'express';
-import { AuthCredentialsInvalidError } from '@lib/utils/apiErrors';
-import { getUserQuota, getQuotaWindow } from '@app/services/accountQuota';
+import type { GetUserQuota } from 'generated/routes/user';
+import { AuthCredentialsInvalidError } from '@app/errors';
+import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 
-export const getCurrentUserQuota = async (req: Request, res: Response): Promise<void> => {
-  const userId = Number(req.auth?.user_id);
-
-  if (!Number.isInteger(userId) || userId <= 0) {
+export const getUserQuota: GetUserQuota = async (_params, respond, req) => {
+  const user = req.user;
+  if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
   }
 
-  const quota = await getUserQuota(userId);
-  const window = getQuotaWindow(quota.periodYyyymm);
+  const quota = await AccountQuotaUsage.getForUser(user.id, Number(user.monthlyQuotaLimit));
+  const window = AccountQuotaUsage.getQuotaWindow(quota.periodYyyymm);
 
-  res.status(200).json({
+  return respond.with200().body({
     quotaUsed: quota.quotaUsed,
     quotaLimit: quota.quotaLimit,
     quotaRemaining: quota.quotaRemaining,

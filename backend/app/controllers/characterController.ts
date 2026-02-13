@@ -1,5 +1,5 @@
 import type { CharacterShow } from 'generated/routes/media';
-import { Character } from '@app/entities';
+import { Character } from '@app/models';
 import { toCharacterWithMediaDTO } from './mappers/character.mapper';
 
 export const characterShow: CharacterShow = async ({ params }, respond) => {
