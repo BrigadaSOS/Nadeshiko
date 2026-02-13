@@ -1,38 +1,38 @@
 import { Response, NextFunction } from 'express';
-import { AuthCredentialsInvalidError, QuotaExceededError } from '@lib/utils/apiErrors';
-import { incrementAndGetUserQuota } from '@app/services/accountQuota';
+import { AuthCredentialsInvalidError, QuotaExceededError } from '@app/errors';
+import { ApiKeyKind, AuthType } from '@app/models';
+import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 
-export const rateLimitApiQuota = async (req: any, _res: Response, next: NextFunction): Promise<void> => {
-  if (req._accountQuotaApplied === true) {
+export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunction): Promise<void> => {
+  if (req.auth?.type !== AuthType.API_KEY && req.auth?.type !== AuthType.API_KEY_LEGACY) {
     next();
     return;
   }
 
-  req._accountQuotaApplied = true;
-
-  if (!req.apiKey || !req.auth?.type?.startsWith('api-key')) {
+  if (req.auth.apiKey?.kind === ApiKeyKind.SERVICE) {
     next();
     return;
   }
 
-  if (req.auth?.apiKeyKind === 'service') {
-    next();
-    return;
-  }
-
-  const userId = Number(req.auth?.user_id);
-  if (!Number.isInteger(userId) || userId <= 0) {
+  const user = req.user;
+  if (!user) {
     throw new AuthCredentialsInvalidError('Invalid API key owner.');
   }
 
-  const quota = await incrementAndGetUserQuota(userId);
+  const quota = await AccountQuotaUsage.getForUser(user.id, Number(user.monthlyQuotaLimit));
   req.accountQuota = quota;
 
-  if (quota.quotaUsed > quota.quotaLimit) {
+  if (quota.quotaUsed >= quota.quotaLimit) {
     throw new QuotaExceededError(
       `Monthly quota exceeded: used ${quota.quotaUsed} of ${quota.quotaLimit} requests for this account.`,
     );
   }
+
+  res.on('finish', () => {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      AccountQuotaUsage.incrementForUser(user.id).catch(() => {});
+    }
+  });
 
   next();
 };

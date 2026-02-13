@@ -1,5 +1,5 @@
 import type { t_SeiyuuWithRoles } from 'generated/models';
-import type { Seiyuu } from '@app/entities';
+import type { Seiyuu } from '@app/models';
 import { toSeiyuuDTO, toCharacterDTO, toMediaBaseDTO } from './shared.mapper';
 
 export { toSeiyuuDTO } from './shared.mapper';

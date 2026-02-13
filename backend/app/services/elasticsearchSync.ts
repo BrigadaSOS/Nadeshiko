@@ -1,30 +1,13 @@
-import { client } from '@lib/external/elasticsearch';
-import { logger } from '@lib/utils/log';
-import { SegmentDocument } from '@lib/types/segmentDocument';
-import { Segment, Media } from '@app/entities';
+import { client } from '@app/services/elasticsearch';
+import { logger } from '@config/log';
+import { SegmentDocument } from '@app/types/segmentDocument';
+import { Segment, Media } from '@app/models';
 import { timeToSeconds } from '@lib/utils/time';
 import { In } from 'typeorm';
+import type { t_ReindexResponse } from 'generated/models';
 
 const INDEX_NAME = process.env.ELASTICSEARCH_SYNC_INDEX || process.env.ELASTICSEARCH_INDEX || 'nadedb';
 
-interface ReindexStats {
-  totalSegments: number;
-  successfulIndexes: number;
-  failedIndexes: number;
-  mediaProcessed: number;
-}
-
-interface ReindexError {
-  segmentId: number;
-  error: string;
-}
-
-interface ReindexResult {
-  success: boolean;
-  message: string;
-  stats: ReindexStats;
-  errors: ReindexError[];
-}
 
 export interface ReindexMediaItem {
   mediaId: number;
@@ -157,14 +140,14 @@ export async function deleteSegmentFromES(id: number): Promise<boolean> {
  *                If media is not provided, all segments will be reindexed.
  * @returns Reindex result with statistics and errors
  */
-export async function reindexSegments(media?: ReindexMediaItem[]): Promise<ReindexResult> {
-  const stats: ReindexStats = {
+export async function reindexSegments(media?: ReindexMediaItem[]): Promise<t_ReindexResponse> {
+  const stats = {
     totalSegments: 0,
     successfulIndexes: 0,
     failedIndexes: 0,
     mediaProcessed: 0,
   };
-  const errors: ReindexError[] = [];
+  const errors: { segmentId: number; error: string }[] = [];
 
   try {
     let allSegments: Segment[] = [];
@@ -245,21 +228,11 @@ export async function reindexSegments(media?: ReindexMediaItem[]): Promise<Reind
       `Reindex completed: ${stats.successfulIndexes}/${stats.totalSegments} segments indexed for ${stats.mediaProcessed} media`,
     );
 
-    return {
-      success: true,
-      message: 'Reindex operation completed',
-      stats,
-      errors,
-    };
+    return { success: true, message: 'Reindex operation completed', stats, errors };
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`Reindex operation failed: ${errorMessage}`);
 
-    return {
-      success: false,
-      message: errorMessage,
-      stats,
-      errors,
-    };
+    return { success: false, message: errorMessage, stats, errors };
   }
 }

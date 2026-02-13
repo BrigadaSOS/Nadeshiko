@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'fs';
 import * as yaml from 'js-yaml';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { auth } from '@lib/auth';
+import { auth } from '@config/auth';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -290,7 +290,7 @@ const formatDate = (value?: string) => {
                                                 <span class="block py-2 px-3 text-xs font-medium item uppercase text-gray-400 dark:text-gray-500">
                                                     {{ $t('accountSettings.developer.options') }}
                                                 </span>
-                                                <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-gray-300"
+                                                <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-white"
                                                     @click="deactivateApiKey(item)">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                         xmlns:xlink="http://www.w3.org/1999/xlink" width="20"

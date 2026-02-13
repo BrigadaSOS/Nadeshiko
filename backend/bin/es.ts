@@ -1,8 +1,8 @@
 import 'dotenv/config';
-import { client } from '@lib/external/elasticsearch';
-import { logger } from '@lib/utils/log';
+import { client } from '@app/services/elasticsearch';
+import { logger } from '@config/log';
 import { reindexSegments } from '@app/services/elasticsearchSync';
-import { Segment } from '@app/entities';
+import { Segment } from '@app/models';
 import { AppDataSource } from '@config/database';
 import { ensureDestructiveAllowed } from './destructiveGuard';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
@@ -13,7 +13,7 @@ const commandArgs = process.argv.slice(3);
 async function reindex(): Promise<void> {
   logger.info(`Reindexing Elasticsearch index '${INDEX_NAME}'...`);
 
-  const { resetElasticsearchIndex } = await import('@lib/external/elasticsearch');
+  const { resetElasticsearchIndex } = await import('@app/services/elasticsearch');
   await resetElasticsearchIndex();
 
   const result = await reindexSegments();
@@ -22,7 +22,7 @@ async function reindex(): Promise<void> {
   }
 
   logger.info(
-    `Reindex complete: ${result.stats.successfulIndexes}/${result.stats.totalSegments} segments indexed (${result.stats.failedIndexes} failed)`,
+    `Reindex complete: ${result.stats!.successfulIndexes}/${result.stats!.totalSegments} segments indexed (${result.stats!.failedIndexes} failed)`,
   );
 }
 

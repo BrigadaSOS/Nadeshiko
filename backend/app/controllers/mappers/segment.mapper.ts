@@ -1,5 +1,5 @@
 import type { t_Segment } from 'generated/models';
-import type { Segment } from '@app/entities';
+import type { Segment } from '@app/models';
 import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 
 export const toSegmentDTO = (segment: Segment): t_Segment => ({

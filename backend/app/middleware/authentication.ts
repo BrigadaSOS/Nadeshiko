@@ -1,20 +1,22 @@
-import { ApiAuth, User } from '@app/entities';
+import { ApiAuth, ApiKeyKind, ApiPermission, AuthType, User } from '@app/models';
 import {
   AuthCredentialsExpiredError,
   AuthCredentialsInvalidError,
   AuthCredentialsRequiredError,
   QuotaExceededError,
   RateLimitExceededError,
-} from '@lib/utils/apiErrors';
+} from '@app/errors';
+import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
-import { hashApiKey } from '@lib/utils/utils';
-import { auth } from '@lib/auth';
+import { auth } from '@config/auth';
 import { fromNodeHeaders } from 'better-auth/node';
+import { defaultKeyHasher } from 'better-auth/plugins';
+import { AppDataSource } from '@config/database';
+import { logger } from '@config/log';
 
-type RequestAuthType = 'session' | 'api-key-better-auth' | 'api-key-legacy';
-type ApiKeyKind = 'service' | 'user';
 
-const LEGACY_API_KEY_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const BETTER_AUTH_PREFIX = 'nade_';
+const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
 const LEGACY_MASTER_API_KEY = process.env.API_KEY_MASTER?.trim();
 const SERVICE_API_KEY_IDS = new Set(
   (process.env.SERVICE_API_KEY_IDS || '')
@@ -38,7 +40,7 @@ export const requireSessionAuth = async (req: Request, _res: Response, next: Nex
       throw new AuthCredentialsInvalidError('Invalid session user id.');
     }
 
-    await attachAuthPayloadToRequest(req, userId, 'session');
+    await attachAuthPayloadToRequest(req, userId, AuthType.SESSION);
     next();
   } catch (error) {
     if (isKnownAuthError(error)) {
@@ -50,44 +52,20 @@ export const requireSessionAuth = async (req: Request, _res: Response, next: Nex
 
 export const requireApiKeyAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   const apiKey = extractBearerToken(req);
-  req.apiKey = apiKey;
 
   if (!apiKey) {
     throw new AuthCredentialsRequiredError('No API key was provided in Authorization header.');
   }
 
-  const isLegacy = looksLikeLegacyApiKey(apiKey);
-
-  // Legacy format keys (UUIDs) go directly to legacy authentication
-  if (isLegacy) {
-    await authenticateLegacyApiKey(req, apiKey);
-    next();
-    return;
-  }
-
-  // All other keys (including master API key) try Better Auth first
-  try {
+  if (apiKey.startsWith(BETTER_AUTH_PREFIX)) {
+    // Keys with the Better Auth prefix go directly to Better Auth
     await authenticateBetterAuthApiKey(req, apiKey);
-    next();
-    return;
-  } catch (error) {
-    if (!isKnownAuthError(error)) {
-      throw error;
-    }
-  }
-
-  // Fallback to legacy authentication for non-UUID keys
-  try {
+  } else {
+    // All other keys use legacy auth (with auto-migration to Better Auth)
     await authenticateLegacyApiKey(req, apiKey);
-    next();
-    return;
-  } catch (error) {
-    if (!isKnownAuthError(error)) {
-      throw error;
-    }
   }
 
-  throw new AuthCredentialsInvalidError('Invalid API key.');
+  next();
 };
 
 function isKnownAuthError(
@@ -100,6 +78,10 @@ function isKnownAuthError(
   );
 }
 
+function hashApiKey(apiKey: string): string {
+  return crypto.createHash('sha256').update(apiKey).digest('hex');
+}
+
 function extractBearerToken(req: Request): string | undefined {
   const authorization = req.headers.authorization;
   if (!authorization || !authorization.startsWith('Bearer ')) {
@@ -110,22 +92,20 @@ function extractBearerToken(req: Request): string | undefined {
   return token.length > 0 ? token : undefined;
 }
 
-function looksLikeLegacyApiKey(apiKey: string): boolean {
-  return LEGACY_API_KEY_REGEX.test(apiKey);
-}
-
 function isLegacyMasterApiKey(apiKey: string): boolean {
   return Boolean(LEGACY_MASTER_API_KEY) && apiKey === LEGACY_MASTER_API_KEY;
 }
 
-function flattenBetterAuthPermissions(rawPermissions: unknown): string[] {
+const VALID_PERMISSIONS = new Set<string>(Object.values(ApiPermission));
+
+function flattenBetterAuthPermissions(rawPermissions: unknown): ApiPermission[] {
   if (!rawPermissions || typeof rawPermissions !== 'object') {
     return [];
   }
 
   const permissions = Object.values(rawPermissions as Record<string, unknown>)
     .flatMap((value) => (Array.isArray(value) ? value : []))
-    .filter((value): value is string => typeof value === 'string');
+    .filter((value): value is ApiPermission => typeof value === 'string' && VALID_PERMISSIONS.has(value));
 
   return Array.from(new Set(permissions));
 }
@@ -183,22 +163,22 @@ function mapBetterAuthApiKeyCode(
 
 function inferApiKeyKind(apiKey: { id?: string | number; metadata?: unknown }): ApiKeyKind {
   if (apiKey.id !== undefined && apiKey.id !== null && SERVICE_API_KEY_IDS.has(String(apiKey.id))) {
-    return 'service';
+    return ApiKeyKind.SERVICE;
   }
 
   const metadata = parseApiKeyMetadata(apiKey.metadata);
   if (!metadata) {
-    return 'user';
+    return ApiKeyKind.USER;
   }
 
   const keyType = typeof metadata.keyType === 'string' ? metadata.keyType.toLowerCase() : null;
   const isService = metadata.isService === true;
 
   if (keyType === 'service' || isService) {
-    return 'service';
+    return ApiKeyKind.SERVICE;
   }
 
-  return 'user';
+  return ApiKeyKind.USER;
 }
 
 function mapBetterAuthApiKeyError(
@@ -246,23 +226,18 @@ function mapBetterAuthApiKeyError(
 async function attachAuthPayloadToRequest(
   req: Request,
   userId: number,
-  authType: RequestAuthType,
-  options: { apiKeyId?: string; apiKeyKind?: ApiKeyKind } = {},
+  authType: AuthType,
+  apiKey?: { id?: string; kind?: ApiKeyKind; permissions: ApiPermission[] },
 ): Promise<void> {
   const user = await User.findOne({ where: { id: userId } });
   if (!user || !user.isActive) {
     throw new AuthCredentialsInvalidError('User is invalid or inactive.');
   }
 
-  req.jwt = {
-    user_id: userId,
-    role: user.role,
-  };
+  req.user = user;
   req.auth = {
     type: authType,
-    user_id: userId,
-    ...(options.apiKeyId ? { apiKeyId: options.apiKeyId } : {}),
-    ...(options.apiKeyKind ? { apiKeyKind: options.apiKeyKind } : {}),
+    ...(apiKey ? { apiKey } : {}),
   };
 }
 
@@ -312,12 +287,11 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
   const apiKeyKind = inferApiKeyKind(verification.key);
   const permissions = flattenBetterAuthPermissions(verification.key.permissions);
 
-  await attachAuthPayloadToRequest(req, userId, 'api-key-better-auth', {
-    apiKeyId,
-    apiKeyKind,
+  await attachAuthPayloadToRequest(req, userId, AuthType.API_KEY, {
+    id: apiKeyId,
+    kind: apiKeyKind,
+    permissions,
   });
-  req.user = undefined;
-  req.apiKeyPermissions = permissions;
 }
 
 async function authenticateLegacyApiKey(req: Request, apiKey: string): Promise<void> {
@@ -335,29 +309,69 @@ async function authenticateLegacyApiKey(req: Request, apiKey: string): Promise<v
     throw new AuthCredentialsExpiredError('API key has been deactivated.');
   }
 
-  const user = await User.findOne({
-    relations: {
-      apiAuth: {
-        permissions: true,
-      },
-    },
-    where: {
-      apiAuth: {
-        token: hashedKey,
-        isActive: true,
-      },
-    },
-  });
+  const isServiceKey = isLegacyMasterApiKey(apiKey) || SERVICE_API_KEY_IDS.has(String(apiAuth.id));
 
-  if (!user) {
-    throw new AuthCredentialsInvalidError('Invalid API key.');
+  if (apiAuth.userId == null) {
+    throw new AuthCredentialsInvalidError('API key has no associated user.');
   }
 
-  await attachAuthPayloadToRequest(req, user.id, 'api-key-legacy', {
-    apiKeyKind: isLegacyMasterApiKey(apiKey) ? 'service' : 'user',
+  await attachAuthPayloadToRequest(req, apiAuth.userId, AuthType.API_KEY_LEGACY, {
+    kind: isServiceKey ? ApiKeyKind.SERVICE : ApiKeyKind.USER,
+    permissions: isServiceKey ? Object.values(ApiPermission) : [ApiPermission.READ_MEDIA],
   });
-  req.user = user;
-  req.apiKeyPermissions = (user.apiAuth?.permissions ?? []).map(
-    (permission: { apiPermission: string }) => permission.apiPermission,
+
+  // Auto-migrate non-service keys to Better Auth — service/master keys stay legacy-only
+  if (!isServiceKey) {
+    migrateLegacyKeyToBetterAuth(apiKey, apiAuth).catch((error) => {
+      logger.warn({ error, apiAuthId: apiAuth.id }, 'Legacy API key migration failed (non-fatal)');
+    });
+  }
+}
+
+async function migrateLegacyKeyToBetterAuth(plaintextKey: string, legacyRecord: ApiAuth): Promise<void> {
+  const hashedKey = await defaultKeyHasher(plaintextKey);
+
+  const separatorIndex = plaintextKey.indexOf('_');
+  const keyPrefix = separatorIndex > 0 ? plaintextKey.slice(0, separatorIndex + 1) : null;
+
+  const permissions = JSON.stringify({ [BETTER_AUTH_PERMISSION_RESOURCE]: [ApiPermission.READ_MEDIA] });
+  const metadata = JSON.stringify({ source: 'legacy-migration' });
+
+  await AppDataSource.query(
+    `
+      INSERT INTO "apikey" (
+        "name",
+        "start",
+        "prefix",
+        "key",
+        "userId",
+        "enabled",
+        "rateLimitEnabled",
+        "metadata",
+        "permissions",
+        "createdAt",
+        "updatedAt"
+      )
+      VALUES ($1, $2, $3, $4, $5, true, false, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT ("key") DO NOTHING
+    `,
+    [
+      `Migrated Legacy Key #${legacyRecord.id}`,
+      plaintextKey.slice(0, 6),
+      keyPrefix,
+      hashedKey,
+      legacyRecord.userId,
+      metadata,
+      permissions,
+    ],
+  );
+
+  // Deactivate the legacy record
+  legacyRecord.isActive = false;
+  await legacyRecord.save();
+
+  logger.info(
+    { apiAuthId: legacyRecord.id, userId: legacyRecord.userId },
+    'Legacy API key migrated to Better Auth',
   );
 }

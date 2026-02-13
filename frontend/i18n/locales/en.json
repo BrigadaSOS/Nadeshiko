@@ -23,7 +23,7 @@
     }
   },
   "home": {
-    "version": "v",
+    "version": "v{version}",
     "nadeDbDescription": "A tool for searching japanese sentences from multiple contexts.",
     "nadeDbDescriptionJpSearch": "Search in Japanese",
     "nadeDbDescriptionOtherSearch": "Search in English or Spanish",

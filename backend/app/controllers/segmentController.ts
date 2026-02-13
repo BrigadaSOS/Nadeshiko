@@ -8,10 +8,9 @@ import type {
 } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
 import { v3 as uuidv3 } from 'uuid';
-import { config } from '@lib/config';
-import { Segment, Episode } from '@app/entities';
+import { config } from '@config/config';
+import { Segment, Episode } from '@app/models';
 import { toSegmentDTO, toSegmentListDTO } from './mappers/segment.mapper';
-import { updateEpisodeSegmentCount } from '@app/utils/updateSegmentCounts';
 
 export const segmentIndex: SegmentIndex = async ({ params, query }, respond) => {
   await Episode.findOneOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
@@ -63,7 +62,7 @@ export const segmentCreate: SegmentCreate = async ({ params, body }, respond) =>
 
   await segment.save();
 
-  await updateEpisodeSegmentCount(params.mediaId, params.episodeNumber);
+  await Episode.updateSegmentCount(params.mediaId, params.episodeNumber);
 
   return respond.with201().body(toSegmentDTO(segment));
 };
@@ -107,7 +106,7 @@ export const segmentDestroy: SegmentDestroy = async ({ params }, respond) => {
 
   await segment.softRemove();
 
-  await updateEpisodeSegmentCount(params.mediaId, params.episodeNumber);
+  await Episode.updateSegmentCount(params.mediaId, params.episodeNumber);
 
   return respond.with204();
 };

@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import { execFileSync } from 'child_process';
 import { existsSync } from 'fs';
-import { isLocalEnvironment } from '@lib/environment';
-import { logger } from '@lib/utils/log';
+import { isLocalEnvironment } from '@config/environment';
+import { logger } from '@config/log';
 
 interface EnvConfig {
   EMAIL_API_NADEDB: string;

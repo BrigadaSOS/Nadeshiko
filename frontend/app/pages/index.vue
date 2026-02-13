@@ -38,7 +38,7 @@ const {
                                             </h2>
                                             <h3
                                                 class="inline-flex ml-2 rounded-full items-end text-base font-medium text-white/80">
-                                                {{ $t('home.version') }} {{ config.public.appVersion }}
+                                                {{ $t('home.version', { version: config.public.appVersion }) }}
                                             </h3>
                                         </div>
 

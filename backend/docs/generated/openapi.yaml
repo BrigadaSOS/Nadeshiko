@@ -41,6 +41,9 @@ tags:
   - name: Media
     description: |
       Media CRUD endpoints for managing anime and j-drama entries.
+  - name: User
+    description: |
+      User endpoints for account-specific data such as quota usage.
   - name: Lists
     description: |
       List endpoints for managing media collections and watch orders.
@@ -693,6 +696,30 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/quota:
+    get:
+      tags:
+        - User
+      operationId: getUserQuota
+      summary: Get current monthly API quota
+      description: |
+        Returns the authenticated user's API quota usage for the current billing period.
+
+        **Requirements:**
+        - Requires session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserQuotaResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/lists:
@@ -2399,6 +2426,42 @@ components:
                   - BACKGROUND
                 description: Character role in this media
                 example: MAIN
+    UserQuotaResponse:
+      type: object
+      required:
+        - quotaUsed
+        - quotaLimit
+        - quotaRemaining
+        - periodYyyymm
+        - periodStart
+        - periodEnd
+      properties:
+        quotaUsed:
+          type: integer
+          description: Number of API requests used in the current billing period.
+          example: 342
+        quotaLimit:
+          type: integer
+          description: Maximum number of API requests allowed in the current billing period.
+          example: 2500
+        quotaRemaining:
+          type: integer
+          description: Number of API requests remaining in the current billing period.
+          example: 2158
+        periodYyyymm:
+          type: integer
+          description: Current billing period in YYYYMM format.
+          example: 202602
+        periodStart:
+          type: string
+          format: date-time
+          description: Start of the current billing period (UTC).
+          example: '2026-02-01T00:00:00.000Z'
+        periodEnd:
+          type: string
+          format: date-time
+          description: End of the current billing period (UTC).
+          example: '2026-02-28T23:59:59.999Z'
     ListWithMedia:
       type: object
       description: List with all media in order
