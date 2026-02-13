@@ -257,6 +257,9 @@ function loadBetterAuthRuntimeRoutes(): BetterAuthRuntimeRoute[] {
   const disabledPaths = new Set(authOptions?.disabledPaths ?? []);
   const isEmailPasswordDisabled = authOptions?.emailAndPassword?.enabled === false;
 
+  // Get basePath from auth configuration
+  const basePath = (auth as any).basePath || '/v1/auth';
+
   for (const [operationId, endpoint] of Object.entries(auth.api as Record<string, any>)) {
     const path = endpoint?.path;
     const method = endpoint?.options?.method;
@@ -274,7 +277,7 @@ function loadBetterAuthRuntimeRoutes(): BetterAuthRuntimeRoute[] {
       continue;
     }
 
-    const fullPath = path.startsWith('/') ? `/api/auth${path}` : `/api/auth/${path}`;
+    const fullPath = path.startsWith('/') ? `${basePath}${path}` : `${basePath}/${path}`;
     const upperMethod = method.toUpperCase();
     const key = getRouteKey(upperMethod, fullPath);
     if (seen.has(key)) {

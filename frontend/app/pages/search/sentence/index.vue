@@ -145,7 +145,10 @@ const metaTags = computed(() => {
     const isLowerBound = queryStats?.estimatedTotalHitsRelation === 'gte';
 
     const title = `Search: ${route.query.query} | Nadeshiko`;
-    let description = totalResults > 0 ? `${isLowerBound ? 'At least ' : ''}${totalResults.toLocaleString()} results found` : 'Search for Japanese sentences';
+    let description =
+      totalResults > 0
+        ? `${isLowerBound ? 'At least ' : ''}${totalResults.toLocaleString()} results found`
+        : 'Search for Japanese sentences';
 
     if (stats && stats.length > 0) {
       const categoryNames = { ANIME: 'anime', JDRAMA: 'live-action' };

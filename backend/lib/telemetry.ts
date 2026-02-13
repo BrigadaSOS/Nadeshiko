@@ -3,17 +3,18 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { config } from '@lib/config';
 
 let sdk: NodeSDK | undefined;
 
 export function initTelemetry() {
-  const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  const endpoint = config.OTEL_EXPORTER_OTLP_ENDPOINT;
   if (!endpoint) return;
 
   const resource = resourceFromAttributes({
-    'service.name': process.env.OTEL_SERVICE_NAME || 'nadeshiko-backend',
+    'service.name': config.OTEL_SERVICE_NAME || 'nadeshiko-backend',
     'service.version': process.env.npm_package_version || '0.0.0',
-    'deployment.environment': process.env.ENVIRONMENT || 'development',
+    'deployment.environment': config.ENVIRONMENT || 'development',
   });
 
   sdk = new NodeSDK({

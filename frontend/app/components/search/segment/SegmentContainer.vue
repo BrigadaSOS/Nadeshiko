@@ -7,7 +7,7 @@ import type { Sentence, SentenceSearchResponse } from '~/stores/search';
 type Props = {
   searchData: SentenceSearchResponse | null;
   isLoading: boolean;
-  currentSentenceIndex?: number | null;
+  highlightedPosition?: number | null;
 };
 
 // const props = defineProps(['searchData', 'ankiNotesQuery', 'isLoading']);
@@ -243,7 +243,10 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
     <div v-for="(sentence, index) in sentenceList" :key="sentence.segmentInfo.uuid"
       :id="sentence.segmentInfo.uuid"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
-      :class="{ 'bg-neutral-800 hover:bg-neutral-800': currentSentence && sentence.segmentInfo.uuid === currentSentence.segmentInfo.uuid }">
+      :class="{
+        'bg-neutral-800 hover:bg-neutral-800': currentSentence && sentence.segmentInfo.uuid === currentSentence.segmentInfo.uuid,
+        'ring-2 ring-indigo-500/70 bg-indigo-950/30': highlightedPosition != null && sentence.segmentInfo.position === highlightedPosition,
+      }">
       <!-- Image -->
       <div class="h-auto shrink-0 w-auto lg:w-[25rem] min-w-[200px] min-h-[140px] flex justify-center">
         <img loading="lazy" :src="sentence.mediaInfo.pathImage"

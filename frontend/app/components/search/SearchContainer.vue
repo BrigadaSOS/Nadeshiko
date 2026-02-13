@@ -68,7 +68,8 @@ const animeTabName = computed(() => {
 
 const applyRouteQuery = (queryParams) => {
   query.value = typeof queryParams.query === 'string' ? queryParams.query : '';
-  category.value = queryParams.category === 'anime' || queryParams.category === 'liveaction' ? queryParams.category : 'all';
+  category.value =
+    queryParams.category === 'anime' || queryParams.category === 'liveaction' ? queryParams.category : 'all';
   media.value = queryParams.media || null;
   sort.value = queryParams.sort || null;
   uuid.value = queryParams.uuid || null;

@@ -4,13 +4,12 @@ export default defineNuxtPlugin(() => {
   const route = useRoute();
 
   // Check if we're returning from an OAuth callback
-  // better-auth uses error and error_description params for errors
   if (import.meta.client) {
     const hasOAuthError = route.query.error;
     const isOAuthCallback = hasOAuthError || route.query.code || route.query.state;
 
     if (isOAuthCallback) {
-      // Give better-auth time to process the callback
+      // Give the auth callback time to complete
       setTimeout(async () => {
         const wasLoggedIn = store.isLoggedIn;
 

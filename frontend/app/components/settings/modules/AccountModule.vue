@@ -1,29 +1,56 @@
-<script setup>
-// Language configuration
+<script setup lang="ts">
+import { getRequestHeader } from 'h3';
 import { useI18n } from 'vue-i18n';
+
+import type { UserSession } from '@/stores/auth';
+import { authApiRequest } from '~/utils/authApi';
+
 const { t } = useI18n();
 
 const user_store = userStore();
-const dataUser = ref(null);
-const isLoading = ref(false);
-const error = ref(null);
-const userInfo = ref(null);
 const isAuth = computed(() => user_store.isLoggedIn);
 
-const sessionRows = ref([]);
-const sessionsLoading = ref(false);
 const sessionsActionLoading = ref(false);
 const sessionsError = ref('');
 const deletingAccount = ref(false);
 
-const formatDate = (value) => {
+// SSR-compatible sessions fetch
+const {
+  data: sessionsData,
+  status,
+  refresh,
+} = await useAsyncData('account-sessions', async () => {
+  if (import.meta.server) {
+    const event = useRequestEvent();
+    if (!event) return [];
+    const config = useRuntimeConfig();
+    const cookieHeader = getRequestHeader(event, 'cookie');
+    const headers: Record<string, string> = { cookie: cookieHeader || '' };
+    if (config.backendHostHeader) {
+      headers.host = String(config.backendHostHeader);
+    }
+    const baseUrl = config.backendInternalUrl;
+
+    const raw = await $fetch<unknown[]>(`${baseUrl}/v1/auth/list-sessions`, { headers }).catch(() => []);
+    return Array.isArray(raw) ? (raw as UserSession[]) : [];
+  }
+
+  // Client-side
+  const response = await authApiRequest<UserSession[]>('/v1/auth/list-sessions', { method: 'GET' });
+  return Array.isArray(response.data) ? response.data : [];
+});
+
+const sessionRows = computed(() => sessionsData.value ?? []);
+const sessionsLoading = computed(() => status.value === 'pending');
+
+const formatDate = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleString();
 };
 
-const detectDeviceType = (userAgent) => {
+const detectDeviceType = (userAgent?: string | null) => {
   if (!userAgent) return 'Unknown device';
 
   const ua = userAgent.toLowerCase();
@@ -32,7 +59,7 @@ const detectDeviceType = (userAgent) => {
   return 'Desktop';
 };
 
-const detectOperatingSystem = (userAgent) => {
+const detectOperatingSystem = (userAgent?: string | null) => {
   if (!userAgent) return 'Unknown OS';
 
   const ua = userAgent.toLowerCase();
@@ -45,7 +72,7 @@ const detectOperatingSystem = (userAgent) => {
   return 'Unknown OS';
 };
 
-const detectBrowser = (userAgent) => {
+const detectBrowser = (userAgent?: string | null) => {
   if (!userAgent) return 'Unknown browser';
 
   const ua = userAgent.toLowerCase();
@@ -57,45 +84,17 @@ const detectBrowser = (userAgent) => {
   return 'Unknown browser';
 };
 
-const formatUserAgent = (userAgent) => {
+const formatUserAgent = (userAgent?: string | null) => {
   if (!userAgent) return '-';
 
   return [detectDeviceType(userAgent), detectOperatingSystem(userAgent), detectBrowser(userAgent)].join(' | ');
 };
 
-const getUserInfo = async () => {
-  isLoading.value = true;
-  try {
-    userInfo.value = await user_store.getBasicInfo();
-    dataUser.value = userInfo.value;
-    error.value = null;
-  } catch (e) {
-    error.value = t('accountSettings.account.dataLoadError');
-    console.error(e);
-  } finally {
-    isLoading.value = false;
-  }
+const isCurrentSession = (token?: string) => {
+  return token && token === user_store.currentSessionToken;
 };
 
-const loadSessions = async () => {
-  if (!isAuth.value) {
-    sessionRows.value = [];
-    return;
-  }
-
-  sessionsLoading.value = true;
-  sessionsError.value = '';
-  try {
-    sessionRows.value = await user_store.listSessions();
-  } catch (e) {
-    sessionsError.value = 'Unable to load active sessions.';
-    console.error(e);
-  } finally {
-    sessionsLoading.value = false;
-  }
-};
-
-const revokeSingleSession = async (token) => {
+const revokeSingleSession = async (token?: string) => {
   if (!token || sessionsActionLoading.value) return;
 
   sessionsActionLoading.value = true;
@@ -107,11 +106,8 @@ const revokeSingleSession = async (token) => {
       return;
     }
 
-    await user_store.getBasicInfo();
     if (user_store.isLoggedIn) {
-      await loadSessions();
-    } else {
-      sessionRows.value = [];
+      await refresh();
     }
   } finally {
     sessionsActionLoading.value = false;
@@ -130,7 +126,7 @@ const revokeOtherUserSessions = async () => {
       return;
     }
 
-    await loadSessions();
+    await refresh();
   } finally {
     sessionsActionLoading.value = false;
   }
@@ -171,13 +167,6 @@ const deleteCurrentAccount = async () => {
     deletingAccount.value = false;
   }
 };
-
-onMounted(async () => {
-  if (isAuth.value && isAuth.value != null) {
-    await getUserInfo();
-    await loadSessions();
-  }
-});
 </script>
 
 <template>
@@ -189,19 +178,13 @@ onMounted(async () => {
       <div class="flex justify-between items-center">
         <div>
           <p class="text-gray-400">{{ $t('accountSettings.account.usernameLabel') }}</p>
-          <div v-if="isLoading">
-            <div class="w-32 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
-          </div>
-          <p v-else class="text-white font-semibold">{{ dataUser?.user?.username || $t('accountSettings.account.notAvailable') }}</p>
+          <p class="text-white font-semibold">{{ user_store.userName || $t('accountSettings.account.notAvailable') }}</p>
         </div>
       </div>
       <div class="flex justify-between items-center mt-3">
         <div>
           <p class="text-gray-400">{{ $t('accountSettings.account.emailLabel') }}</p>
-          <div v-if="isLoading">
-            <div class="w-40 h-4 mt-2 bg-gray-200 rounded-lg dark:bg-sgray"></div>
-          </div>
-          <p v-else class="text-white font-semibold">{{ dataUser?.user?.email || $t('accountSettings.account.notAvailable') }}</p>
+          <p class="text-white font-semibold">{{ user_store.userEmail || $t('accountSettings.account.notAvailable') }}</p>
         </div>
       </div>
     </div>
@@ -215,7 +198,7 @@ onMounted(async () => {
         <button
           class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
-          @click="loadSessions"
+          @click="refresh()"
         >
           Refresh
         </button>
@@ -253,13 +236,19 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="session in sessionRows" :key="session.token">
+          <tr v-for="session in sessionRows" :key="session.token" :class="{ 'bg-white/5': isCurrentSession(session.token) }">
             <td class="py-3 text-sm text-gray-200">{{ session.ipAddress || '-' }}</td>
-            <td class="py-3 text-sm text-gray-200">{{ formatUserAgent(session.userAgent) }}</td>
+            <td class="py-3 text-sm text-gray-200">
+              {{ formatUserAgent(session.userAgent) }}
+              <span v-if="isCurrentSession(session.token)" class="ml-2 inline-flex items-center rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">
+                Current
+              </span>
+            </td>
             <td class="py-3 text-sm text-gray-200">{{ formatDate(session.createdAt) }}</td>
             <td class="py-3 text-sm text-gray-200">{{ formatDate(session.expiresAt) }}</td>
             <td class="py-3 text-sm text-right">
               <button
+                v-if="!isCurrentSession(session.token)"
                 class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-1 px-3 rounded disabled:opacity-50"
                 :disabled="sessionsActionLoading"
                 @click="revokeSingleSession(session.token)"

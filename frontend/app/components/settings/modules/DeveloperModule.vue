@@ -1,28 +1,84 @@
 <script setup lang="ts">
+import { getRequestHeader } from 'h3';
 import { mdiPlus, mdiCheckBold } from '@mdi/js';
 
-import type { ApiKeyListItem, ApiKeysByUserResponse } from '@/stores/api';
+import type { ApiKeyListItem } from '@/stores/api';
+import { normalizeApiKey, asObject } from '@/stores/api';
+import { authApiRequest } from '~/utils/authApi';
 
-const auth_store = userStore();
 const api_store = apiStore();
 const isLoading = ref(false);
 const isError = ref(false);
 const isSuccess = ref(false);
-const fieldOptions = ref<ApiKeysByUserResponse>({
-  status: 200,
-  keys: [],
-  quota: {
-    quotaUsed: 0,
-    quotaLimit: 2500,
-    quotaRemaining: 2500,
-  },
-});
 const generatedApiKey = ref<string | null>(null);
 const deactivatedApiKey = ref(false);
-const quotaPercentage = ref(0);
 
 // Modal state
 const modalKeyName = ref('');
+
+// SSR-compatible API key + quota fetch
+const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
+  if (import.meta.server) {
+    const event = useRequestEvent();
+    if (!event) return { keys: [], quota: { quotaUsed: 0, quotaLimit: 2500, quotaRemaining: 0 } };
+    const config = useRuntimeConfig();
+    const cookieHeader = getRequestHeader(event, 'cookie');
+    const headers: Record<string, string> = { cookie: cookieHeader || '' };
+    if (config.backendHostHeader) {
+      headers.host = String(config.backendHostHeader);
+    }
+    const baseUrl = config.backendInternalUrl;
+
+    const [keysRaw, quotaRaw] = await Promise.all([
+      $fetch<unknown[]>(`${baseUrl}/v1/auth/api-key/list`, { headers }).catch(() => []),
+      $fetch<Record<string, unknown>>(`${baseUrl}/v1/user/quota`, { headers }).catch(() => ({})),
+    ]);
+
+    const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey).filter((k) => k.isActive);
+    const q = asObject(quotaRaw);
+    return {
+      keys,
+      quota: {
+        quotaUsed: Number(q.quotaUsed ?? 0),
+        quotaLimit: Number(q.quotaLimit ?? 2500),
+        quotaRemaining: Number(q.quotaRemaining ?? 0),
+      },
+    };
+  }
+
+  // Client-side: use authApiRequest
+  const [keysResponse, quotaResponse] = await Promise.all([
+    authApiRequest<unknown[]>('/v1/auth/api-key/list', { method: 'GET' }),
+    authApiRequest<Record<string, unknown>>('/v1/user/quota', { method: 'GET' }),
+  ]);
+
+  const keys = (Array.isArray(keysResponse.data) ? keysResponse.data : [])
+    .map(normalizeApiKey)
+    .filter((k) => k.isActive);
+  const q = quotaResponse.ok ? asObject(quotaResponse.data) : {};
+  return {
+    keys,
+    quota: {
+      quotaUsed: Number(q.quotaUsed ?? 0),
+      quotaLimit: Number(q.quotaLimit ?? 2500),
+      quotaRemaining: Number(q.quotaRemaining ?? 0),
+    },
+  };
+});
+
+const fieldOptions = computed(
+  () =>
+    apiData.value ?? {
+      keys: [] as ApiKeyListItem[],
+      quota: { quotaUsed: 0, quotaLimit: 2500, quotaRemaining: 2500 },
+    },
+);
+
+const quotaPercentage = computed(() => {
+  const used = fieldOptions.value.quota.quotaUsed;
+  const limit = Math.max(1, fieldOptions.value.quota.quotaLimit);
+  return (used / limit) * 100;
+});
 
 const openCreateModal = () => {
   modalKeyName.value = '';
@@ -93,41 +149,11 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
   }
 };
 
-const refreshApiKeys = async () => {
-  isError.value = false;
-  isSuccess.value = false;
-  isLoading.value = true;
-  try {
-    const response = await api_store.getApiKeysByUser();
-    fieldOptions.value = response;
-    fieldOptions.value.keys = fieldOptions.value.keys.filter((key) => key.isActive);
-
-    if (response?.status === 404) {
-      isSuccess.value = false;
-    } else {
-      isSuccess.value = true;
-    }
-    const quotaUsed = fieldOptions.value.quota?.quotaUsed || 0;
-    const quotaLimit = Number(fieldOptions.value.quota?.quotaLimit || 1);
-    quotaPercentage.value = (quotaUsed / Math.max(1, quotaLimit)) * 100;
-  } catch (error) {
-    isError.value = true;
-    console.error(error);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
 const formatDate = (value?: string) => {
   const iso = new Date(value || '2025-03-01').toISOString();
   const day = iso.split('T')[0] ?? '2025-03-01';
   return day.replaceAll('-', '/');
 };
-
-onMounted(async () => {
-  await auth_store.getBasicInfo();
-  await refreshApiKeys();
-});
 </script>
 
 <template>
@@ -191,7 +217,7 @@ onMounted(async () => {
         <div class="border-b pt-4 border-white/10" />
 
         <div class="mt-6">
-            <div class="border rounded-lg overflow-hidden dark:border-modal-border">
+            <div class="border rounded-lg dark:border-modal-border">
                 <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
                     <thead>
                         <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
@@ -258,7 +284,7 @@ onMounted(async () => {
                                             </svg>
                                         </button>
 
-                                        <div class="nd-dropdown-menu z-30 transition-[opacity,margin] duration nd-dropdown-open:opacity-100 nd-dropdown-open:!block opacity-0 hidden min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                                        <div class="nd-dropdown-menu absolute right-0 top-full z-30 min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                                             aria-labelledby="nd-dropdown-with-title">
                                             <div class="py-2 first:pt-0 last:pb-0">
                                                 <span class="block py-2 px-3 text-xs font-medium item uppercase text-gray-400 dark:text-gray-500">
@@ -322,7 +348,7 @@ onMounted(async () => {
                         </div>
                     </div>
                 </section>
-                <section v-else-if="fieldOptions.keys.length === 0 && !isLoading" class="rounded-xl mx-auto">
+                <section v-else-if="fieldOptions.keys.length === 0" class="rounded-xl mx-auto">
                     <div class="flex items-center text-center h-96 dark:border-gray-700 bg-sgrayhover">
                         <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
                             <div class="p-3 mx-auto text-sred bg-blue-100 rounded-full dark:bg-sgray">

@@ -1,4 +1,5 @@
 import { PgBoss } from 'pg-boss';
+import { config } from '@lib/config';
 import { getAppPostgresConfig } from '@lib/postgresConfig';
 import { logger } from '@lib/utils/log';
 
@@ -29,12 +30,12 @@ export function getPgBoss(): PgBoss {
   return bossInstance;
 }
 
-export async function initPgBoss(config: PgBossConfig = {}): Promise<PgBoss> {
+export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBoss> {
   if (bossInstance) {
     return bossInstance;
   }
 
-  let databaseUrl = config.databaseUrl || process.env.DATABASE_URL;
+  let databaseUrl = pgBossConfig.databaseUrl || config.DATABASE_URL;
 
   // Construct DATABASE_URL from individual env vars if not provided
   if (!databaseUrl) {
@@ -56,7 +57,7 @@ export async function initPgBoss(config: PgBossConfig = {}): Promise<PgBoss> {
 
   const boss = new PgBoss({
     connectionString: databaseUrl,
-    schema: config.schema || 'pgboss',
+    schema: pgBossConfig.schema || 'pgboss',
     application_name: 'nadeshiko-backend',
   });
 

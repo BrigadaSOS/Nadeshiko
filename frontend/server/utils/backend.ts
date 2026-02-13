@@ -36,6 +36,10 @@ export async function backendFetch<T>(path: string, options: FetchOptions = {}):
       headers.Authorization = `Bearer ${apiKey}`;
     }
 
+    if (config.backendHostHeader) {
+      headers.Host = String(config.backendHostHeader);
+    }
+
     const requestId = crypto.randomUUID();
     span.setAttributes({
       'http.method': method,

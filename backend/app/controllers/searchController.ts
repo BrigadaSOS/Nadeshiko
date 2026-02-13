@@ -1,4 +1,9 @@
-import { querySearchStats, querySegments, querySurroundingSegments, queryWordsMatched } from '@lib/external/elasticsearch';
+import {
+  querySearchStats,
+  querySegments,
+  querySurroundingSegments,
+  queryWordsMatched,
+} from '@lib/external/elasticsearch';
 import type {
   FetchMediaInfo,
   FetchSearchStats,

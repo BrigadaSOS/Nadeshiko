@@ -60,7 +60,11 @@ const updateUrl = async (params = {}) => {
   await router.push({ query: nextQuery });
 };
 
-const { data: mediaResponse, pending, error } = await useAsyncData(
+const {
+  data: mediaResponse,
+  pending,
+  error,
+} = await useAsyncData(
   () => `search-media-${page.value}-${searchQuery.value}-${filterType.value}`,
   () =>
     apiSearch.getRecentMedia({

@@ -1,13 +1,14 @@
 import { useNuxtApp } from '#app';
 import { defineStore } from 'pinia';
 import { authApiRequest } from '~/utils/authApi';
+import { signInSocial, signOut as authSignOut } from '~/utils/authClient';
 
 type UserRole = {
   id_role: number;
   name?: string;
 };
 
-type UserSession = {
+export type UserSession = {
   token: string;
   expiresAt?: string;
   createdAt?: string;
@@ -24,17 +25,12 @@ type BasicInfoResponse = {
   };
 } | null;
 
-function getAuthClient(): any {
-  const nuxtApp = useNuxtApp() as any;
-  if (!nuxtApp.$auth) {
-    throw new Error('better-auth client is not available');
-  }
-  return nuxtApp.$auth;
-}
-
 export const userStore = defineStore('user', {
   state: () => ({
     isLoggedIn: false,
+    userName: null as string | null,
+    userEmail: null as string | null,
+    currentSessionToken: null as string | null,
     filterPreferences: {
       exactMatch: false,
     },
@@ -55,11 +51,10 @@ export const userStore = defineStore('user', {
     : false,
   actions: {
     async loginGoogle() {
-      const auth = getAuthClient();
       const { $i18n } = useNuxtApp();
 
       try {
-        const result = await auth.signIn.social({
+        const result = await signInSocial({
           provider: 'google',
           callbackURL: window.location.href,
           errorCallbackURL: window.location.href,
@@ -74,11 +69,10 @@ export const userStore = defineStore('user', {
     },
 
     async loginDiscord() {
-      const auth = getAuthClient();
       const { $i18n } = useNuxtApp();
 
       try {
-        const result = await auth.signIn.social({
+        const result = await signInSocial({
           provider: 'discord',
           callbackURL: window.location.href,
           errorCallbackURL: window.location.href,
@@ -123,6 +117,9 @@ export const userStore = defineStore('user', {
       } finally {
         this.$patch((state) => {
           state.isLoggedIn = false;
+          state.userName = null;
+          state.userEmail = null;
+          state.currentSessionToken = null;
           state.userInfo = { roles: [] };
           state.activeSessions = [];
         });
@@ -130,18 +127,20 @@ export const userStore = defineStore('user', {
     },
 
     async logout(msg?: string) {
-      const auth = getAuthClient();
       const router = useRouter();
       const { $i18n } = useNuxtApp();
 
       try {
-        await auth.signOut();
+        await authSignOut();
       } catch {
         // no-op: clear local auth state even if sign out request fails
       }
 
       this.$patch((state) => {
         state.isLoggedIn = false;
+        state.userName = null;
+        state.userEmail = null;
+        state.currentSessionToken = null;
         state.userInfo = { roles: [] };
         state.activeSessions = [];
       });
@@ -151,16 +150,24 @@ export const userStore = defineStore('user', {
     },
 
     async getBasicInfo(): Promise<BasicInfoResponse> {
-      const auth = getAuthClient();
-
       try {
-        const session = await auth.getSession();
-        const sessionUser = session?.data?.user;
-        const hasSession = Boolean(sessionUser || session?.data?.session);
+        // Fetch session from backend (cookies are HttpOnly, can't read from JS)
+        const response = await $fetch<{ user?: any; session?: any }>('/v1/auth/get-session', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        console.log('[getBasicInfo] Session response:', response);
+
+        const sessionUser = response?.user;
+        const hasSession = Boolean(sessionUser || response?.session);
 
         if (!hasSession) {
           this.$patch((state) => {
             state.isLoggedIn = false;
+            state.userName = null;
+            state.userEmail = null;
+            state.currentSessionToken = null;
             state.userInfo = { roles: [] };
             state.activeSessions = [];
           });
@@ -177,13 +184,20 @@ export const userStore = defineStore('user', {
 
         this.$patch((state) => {
           state.isLoggedIn = true;
+          state.userName = sessionUser?.name ?? null;
+          state.userEmail = sessionUser?.email ?? null;
+          state.currentSessionToken = response?.session?.token ?? null;
           state.userInfo = { roles: [] };
         });
 
         return responseData;
-      } catch {
+      } catch (error) {
+        console.error('[getBasicInfo] Error fetching session:', error);
         this.$patch((state) => {
           state.isLoggedIn = false;
+          state.userName = null;
+          state.userEmail = null;
+          state.currentSessionToken = null;
           state.userInfo = { roles: [] };
           state.activeSessions = [];
         });
@@ -193,7 +207,7 @@ export const userStore = defineStore('user', {
 
     async listSessions(): Promise<UserSession[]> {
       try {
-        const response = await authApiRequest<UserSession[]>('/api/auth/list-sessions', {
+        const response = await authApiRequest<UserSession[]>('/v1/auth/list-sessions', {
           method: 'GET',
         });
 
@@ -219,7 +233,7 @@ export const userStore = defineStore('user', {
 
     async revokeSession(token: string): Promise<boolean> {
       try {
-        const response = await authApiRequest('/api/auth/revoke-session', {
+        const response = await authApiRequest('/v1/auth/revoke-session', {
           method: 'POST',
           body: { token },
         });
@@ -239,7 +253,7 @@ export const userStore = defineStore('user', {
 
     async revokeSessions(): Promise<boolean> {
       try {
-        const response = await authApiRequest('/api/auth/revoke-sessions', {
+        const response = await authApiRequest('/v1/auth/revoke-sessions', {
           method: 'POST',
         });
 
@@ -257,7 +271,7 @@ export const userStore = defineStore('user', {
 
     async revokeOtherSessions(): Promise<boolean> {
       try {
-        const response = await authApiRequest('/api/auth/revoke-other-sessions', {
+        const response = await authApiRequest('/v1/auth/revoke-other-sessions', {
           method: 'POST',
         });
 
@@ -275,7 +289,7 @@ export const userStore = defineStore('user', {
 
     async deleteAccount(): Promise<boolean> {
       try {
-        const response = await authApiRequest('/api/auth/delete-user', {
+        const response = await authApiRequest('/v1/auth/delete-user', {
           method: 'POST',
           body: {},
         });
@@ -286,6 +300,9 @@ export const userStore = defineStore('user', {
 
         this.$patch((state) => {
           state.isLoggedIn = false;
+          state.userName = null;
+          state.userEmail = null;
+          state.currentSessionToken = null;
           state.userInfo = { roles: [] };
           state.activeSessions = [];
         });
