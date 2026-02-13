@@ -27,9 +27,11 @@ export function getNadeshikoSdkClient(): NadeshikoClient {
   }
 
   if (!cachedClient || cachedBaseUrl !== baseUrl || cachedApiKey !== apiKey) {
+    const hostHeader = String(config.backendHostHeader || '');
     cachedClient = createClient({
       apiKey,
       baseUrl,
+      ...(hostHeader ? { headers: { Host: hostHeader } } : {}),
     });
     cachedBaseUrl = baseUrl;
     cachedApiKey = apiKey;

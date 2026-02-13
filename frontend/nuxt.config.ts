@@ -16,6 +16,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     nadeshikoApiKey: process.env.NUXT_NADESHIKO_API_KEY,
     backendInternalUrl: process.env.NUXT_BACKEND_INTERNAL_URL,
+    backendHostHeader: process.env.NUXT_BACKEND_HOST_HEADER,
     mediaFilesPath: process.env.NUXT_MEDIA_FILES_PATH,
     fallbackRateLimitWindowMs: Number(process.env.NUXT_FALLBACK_RATE_LIMIT_WINDOW_MS || 60000),
     fallbackRateLimitMaxRequests: Number(process.env.NUXT_FALLBACK_RATE_LIMIT_MAX_REQUESTS || 300),
@@ -78,6 +79,16 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-07-28',
   build: {
     transpile: ['vue-toastification'],
+  },
+  routeRules: {
+    // SSR pages vary by user (auth, language) — never cache on CDN
+    '/**': {
+      headers: { 'CDN-Cache-Control': 'no-store' },
+    },
+    // Static assets are fine to cache (Nuxt fingerprints them)
+    '/_nuxt/**': {
+      headers: { 'CDN-Cache-Control': 'public, max-age=31536000, immutable' },
+    },
   },
   nitro: {
     preset: 'bun',

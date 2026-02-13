@@ -31,6 +31,7 @@
         "request-ip": "^3.3.0",
         "typeorm": "^0.3.20",
         "uuid": "^13.0.0",
+        "zod": "^3.25.67",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.3.14",

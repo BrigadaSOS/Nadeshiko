@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { SES } from '@aws-sdk/client-ses';
+import { config } from '@lib/config';
 import { logger } from './log';
 import { buildWelcomeEmail, buildAnnouncementEmail } from './emailTemplates';
 import { sendEmailJob } from '@lib/queue/pgBoss';
@@ -16,7 +17,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   }
 
   const environment = getAppEnvironment();
-  const isAutomatedTest = process.env.NODE_ENV === 'test';
+  const isAutomatedTest = config.NODE_ENV === 'test';
 
   // In automated test runs, keep transport fully local and deterministic.
   if (isAutomatedTest) {
@@ -28,12 +29,12 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
 
   // In local/dev, prefer SES when configured, otherwise use Ethereal previews.
   if (environment === APP_ENVIRONMENT.LOCAL || environment === APP_ENVIRONMENT.DEV) {
-    const region = process.env.SES_AWS_REGION;
-    const accessKeyId = process.env.SES_AWS_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.SES_AWS_SECRET_ACCESS_KEY;
+    const region = config.SES_AWS_REGION;
+    const accessKeyId = config.SES_AWS_ACCESS_KEY_ID;
+    const secretAccessKey = config.SES_AWS_SECRET_ACCESS_KEY;
 
     // If SES is configured, use it.
-    if (region && accessKeyId && secretAccessKey && accessKeyId !== '') {
+    if (region && accessKeyId && secretAccessKey) {
       const ses = new SES({
         region,
         credentials: {
@@ -67,9 +68,9 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   }
 
   // Production - require SES configuration
-  const region = process.env.SES_AWS_REGION;
-  const accessKeyId = process.env.SES_AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.SES_AWS_SECRET_ACCESS_KEY;
+  const region = config.SES_AWS_REGION;
+  const accessKeyId = config.SES_AWS_ACCESS_KEY_ID;
+  const secretAccessKey = config.SES_AWS_SECRET_ACCESS_KEY;
 
   if (!region || !accessKeyId || !secretAccessKey) {
     throw new Error(
@@ -108,9 +109,9 @@ export interface EmailOptions {
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
   const environment = getAppEnvironment();
-  const isAutomatedTest = process.env.NODE_ENV === 'test';
-  const fromEmail = process.env.SES_FROM_EMAIL || 'noreply@nadeshiko.co';
-  const fromName = process.env.SES_FROM_NAME || 'Nadeshiko';
+  const isAutomatedTest = config.NODE_ENV === 'test';
+  const fromEmail = config.SES_FROM_EMAIL;
+  const fromName = config.SES_FROM_NAME;
 
   if (isAutomatedTest) {
     logger.info(

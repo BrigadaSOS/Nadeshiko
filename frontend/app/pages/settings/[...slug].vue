@@ -43,19 +43,25 @@ const navigateToTab = (path) => {
 
 onMounted(() => {
   isMounted.value = true;
-
-  // Redirigir a /settings/account si estamos en /settings
-  if (route.path === '/settings' && isAuth.value) {
-    router.replace('/settings/account');
-  } else if (route.path === '/settings' && !isAuth.value) {
-    router.replace('/settings/sync');
-  }
 });
 
-/* Block access page for not authenticated users 
 definePageMeta({
-    middleware: 'auth'
-})*/
+  middleware: defineNuxtRouteMiddleware((to) => {
+    const store = userStore();
+    if (store.isLoggedIn) {
+      // Logged-in users hitting bare /settings → default to account
+      if (to.path === '/settings') {
+        return navigateTo('/settings/account', { replace: true });
+      }
+      return;
+    }
+    // Not logged in: only /settings/sync is allowed
+    if (to.path.startsWith('/settings/sync')) {
+      return;
+    }
+    return navigateTo('/', { replace: true });
+  }),
+});
 </script>
 
 <template>

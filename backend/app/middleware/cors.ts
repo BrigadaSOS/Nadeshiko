@@ -1,8 +1,8 @@
 import cors, { CorsOptions } from 'cors';
+import { config } from '@lib/config';
 
 const allowedOrigins = new Set(
-  (process.env.ALLOWED_WEBSITE_URLS || '')
-    .split(',')
+  config.ALLOWED_WEBSITE_URLS.split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
 );

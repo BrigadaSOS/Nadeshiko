@@ -12,37 +12,25 @@ export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
   };
 
   // Handler for CREATE operations
-  await boss.work(
-    'es-sync-create',
-    workerOptions,
-    async (jobs: Job<EsSyncJobData>[]) => {
-      for (const job of jobs) {
-        await handleCreateJob(job);
-      }
-    },
-  );
+  await boss.work('es-sync-create', workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
+    for (const job of jobs) {
+      await handleCreateJob(job);
+    }
+  });
 
   // Handler for UPDATE operations
-  await boss.work(
-    'es-sync-update',
-    workerOptions,
-    async (jobs: Job<EsSyncJobData>[]) => {
-      for (const job of jobs) {
-        await handleUpdateJob(job);
-      }
-    },
-  );
+  await boss.work('es-sync-update', workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
+    for (const job of jobs) {
+      await handleUpdateJob(job);
+    }
+  });
 
   // Handler for DELETE operations
-  await boss.work(
-    'es-sync-delete',
-    workerOptions,
-    async (jobs: Job<EsSyncJobData>[]) => {
-      for (const job of jobs) {
-        await handleDeleteJob(job);
-      }
-    },
-  );
+  await boss.work('es-sync-delete', workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
+    for (const job of jobs) {
+      await handleDeleteJob(job);
+    }
+  });
 
   logger.info('ES sync workers registered with batchSize=20, teamSize=3');
 }

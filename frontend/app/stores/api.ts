@@ -34,7 +34,7 @@ interface ApiKeyActionResponse extends ApiResponse {
   key?: string;
 }
 
-function normalizePermissionList(permissions: unknown): ApiKeyPermission[] {
+export function normalizePermissionList(permissions: unknown): ApiKeyPermission[] {
   if (!permissions || typeof permissions !== 'object') {
     return [];
   }
@@ -53,7 +53,7 @@ function normalizePermissionList(permissions: unknown): ApiKeyPermission[] {
   }));
 }
 
-function normalizeApiKey(key: unknown): ApiKeyListItem {
+export function normalizeApiKey(key: unknown): ApiKeyListItem {
   const normalizedKey = asObject(key);
 
   return {
@@ -66,7 +66,7 @@ function normalizeApiKey(key: unknown): ApiKeyListItem {
   };
 }
 
-function asObject(data: unknown): Record<string, unknown> {
+export function asObject(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 }
 
@@ -75,7 +75,7 @@ export const apiStore = defineStore('api', {
     async getApiKeysByUser(): Promise<ApiKeysByUserResponse> {
       try {
         const [keysResponse, quotaResponse] = await Promise.all([
-          authApiRequest<unknown[]>('/api/auth/api-key/list', {
+          authApiRequest<unknown[]>('/v1/auth/api-key/list', {
             method: 'GET',
           }),
           authApiRequest<Record<string, unknown>>('/v1/user/quota', {
@@ -134,7 +134,7 @@ export const apiStore = defineStore('api', {
 
     async deactivateApiKey(apiKeyId: string): Promise<ApiResponse> {
       try {
-        const response = await authApiRequest('/api/auth/api-key/update', {
+        const response = await authApiRequest('/v1/auth/api-key/update', {
           method: 'POST',
           body: {
             keyId: apiKeyId,
@@ -154,7 +154,7 @@ export const apiStore = defineStore('api', {
 
     async createApiKeyGeneral(nameApiKey: string): Promise<ApiKeyActionResponse> {
       try {
-        const response = await authApiRequest('/api/auth/api-key/create', {
+        const response = await authApiRequest('/v1/auth/api-key/create', {
           method: 'POST',
           body: {
             name: nameApiKey,

@@ -5,15 +5,13 @@
  * stored in different backends (local, R2/CDN).
  */
 
+import { config } from '@lib/config';
+
 export type Storage = 'local' | 'r2';
 
-const getLocalBaseUrl = (): string => {
-  return '/media';
-};
-
 const STORAGE_BASE_URLS: Record<Storage, string> = {
-  r2: process.env.R2_BASE_URL!,
-  local: getLocalBaseUrl(),
+  r2: config.R2_BASE_URL,
+  local: '/media',
 };
 
 /**

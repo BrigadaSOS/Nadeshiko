@@ -26,7 +26,6 @@
     "@opentelemetry/sdk-node": "^0.211.0",
     "@pinia/nuxt": "^0.11.3",
     "@scalar/api-reference": "^1.43.8",
-    "better-auth": "^1.4.18",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "pino": "^10.3.0",

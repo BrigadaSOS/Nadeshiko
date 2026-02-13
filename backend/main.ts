@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
+import { config } from '@lib/config';
 import { initTelemetry, shutdownTelemetry } from '@lib/telemetry';
 initTelemetry();
 
@@ -26,7 +27,7 @@ import { auth } from '@lib/auth';
 import { toNodeHandler } from 'better-auth/node';
 import { getAppEnvironment } from '@lib/environment';
 
-const PORT = process.env.PORT || 5000;
+const PORT = config.PORT;
 const app: Application = express();
 
 // Trust X-Forwarded-* headers from reverse proxy (nginx, Cloudflare, etc.)
@@ -83,11 +84,15 @@ app.use(handleJsonParseErrors);
 
 app.use(httpLogger);
 app.use(tracingMiddleware);
-
 // Route endpoints
 app.get('/up', (_req, res) => res.status(200).send('OK'));
-app.all('/api/auth', toNodeHandler(auth));
-app.all('/api/auth/*splat', toNodeHandler(auth));
+const noCache = (_req: any, res: any, next: any) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  next();
+};
+app.all('/v1/auth', noCache, toNodeHandler(auth));
+app.all('/v1/auth/*splat', noCache, toNodeHandler(auth));
 app.use('/', originSafetyLimiter, router);
 
 // Catch-all 404 handler
