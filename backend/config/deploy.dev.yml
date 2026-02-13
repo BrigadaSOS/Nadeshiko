@@ -29,11 +29,9 @@ env:
 
     - DISCORD_CLIENT_ID
     - DISCORD_CLIENT_SECRET
-    - DISCORD_REDIRECT_URI
 
     - ID_OAUTH_GOOGLE
     - SECRET_OAUTH_GOOGLE
-    - URI_ALLOWED_GOOGLE
 
     - SES_AWS_REGION
     - SES_AWS_ACCESS_KEY_ID
@@ -42,8 +40,7 @@ env:
   clear:
     ENVIRONMENT: dev
     PORT: 80
-    BASE_URL: https://api-dev.nadeshiko.co
-    COOKIE_DOMAIN: .nadeshiko.co
+    BASE_URL: https://dev.nadeshiko.co
 
     SES_FROM_EMAIL: noreply@nadeshiko.co
     SES_FROM_NAME: Nadeshiko

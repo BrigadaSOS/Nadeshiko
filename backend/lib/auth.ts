@@ -1,6 +1,8 @@
 import { ApiPermission, User, UserRoleType } from '@app/entities';
+import { config } from '@lib/config';
 import { isProdEnvironment } from '@lib/environment';
 import { getAppPostgresConfig } from '@lib/postgresConfig';
+import { sendWelcomeEmail } from '@lib/utils/email';
 import { betterAuth } from 'better-auth';
 import { apiKey } from 'better-auth/plugins';
 import { Pool } from 'pg';
@@ -16,41 +18,27 @@ const pool = new Pool({
 });
 
 const isProduction = isProdEnvironment();
-const cookieDomain = process.env.COOKIE_DOMAIN?.trim();
-const resolvedCookieDomain = cookieDomain && cookieDomain !== 'localhost' ? cookieDomain : undefined;
-const trustedOrigins = (process.env.ALLOWED_WEBSITE_URLS || '')
-  .split(',')
+const trustedOrigins = config.ALLOWED_WEBSITE_URLS.split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-function parsePositiveInteger(value: string | undefined, fallback: number): number {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-const API_KEY_RATE_LIMIT_WINDOW_MS = parsePositiveInteger(process.env.API_KEY_RATE_LIMIT_WINDOW_MS, 5 * 60 * 1000);
-const API_KEY_RATE_LIMIT_MAX = parsePositiveInteger(process.env.API_KEY_RATE_LIMIT_MAX, 2000);
-
 const socialProviders: Record<string, Record<string, unknown>> = {};
 
-if (process.env.ID_OAUTH_GOOGLE && process.env.SECRET_OAUTH_GOOGLE) {
+if (config.ID_OAUTH_GOOGLE && config.SECRET_OAUTH_GOOGLE) {
   socialProviders.google = {
-    clientId: process.env.ID_OAUTH_GOOGLE,
-    clientSecret: process.env.SECRET_OAUTH_GOOGLE,
-    redirectURI: process.env.URI_ALLOWED_GOOGLE || undefined,
-    // Only pre-imported users are allowed to authenticate.
-    disableSignUp: true,
-    disableImplicitSignUp: true,
+    clientId: config.ID_OAUTH_GOOGLE,
+    clientSecret: config.SECRET_OAUTH_GOOGLE,
+    disableSignUp: false,
+    disableImplicitSignUp: false,
   };
 }
 
-if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
+if (config.DISCORD_CLIENT_ID && config.DISCORD_CLIENT_SECRET) {
   socialProviders.discord = {
-    clientId: process.env.DISCORD_CLIENT_ID,
-    clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    redirectURI: process.env.DISCORD_REDIRECT_URI || undefined,
-    disableSignUp: true,
-    disableImplicitSignUp: true,
+    clientId: config.DISCORD_CLIENT_ID,
+    clientSecret: config.DISCORD_CLIENT_SECRET,
+    disableSignUp: false,
+    disableImplicitSignUp: false,
   };
 }
 
@@ -63,8 +51,8 @@ export const BETTER_AUTH_SESSION_COOKIE_ALIASES = [
 export const BETTER_AUTH_API_PERMISSION_RESOURCE = 'api';
 
 export const auth = betterAuth({
-  basePath: '/api/auth',
-  baseURL: process.env.BASE_URL,
+  basePath: '/v1/auth',
+  baseURL: config.BASE_URL,
   database: pool,
   trustedOrigins: trustedOrigins.length > 0 ? trustedOrigins : undefined,
   disabledPaths: [
@@ -148,8 +136,8 @@ export const auth = betterAuth({
       defaultPrefix: 'nade_',
       rateLimit: {
         enabled: true,
-        timeWindow: API_KEY_RATE_LIMIT_WINDOW_MS,
-        maxRequests: API_KEY_RATE_LIMIT_MAX,
+        timeWindow: config.API_KEY_RATE_LIMIT_WINDOW_MS,
+        maxRequests: config.API_KEY_RATE_LIMIT_MAX,
       },
       customAPIKeyGetter: (ctx) => {
         const authorization = ctx.headers?.get('authorization');
@@ -195,6 +183,17 @@ export const auth = betterAuth({
             },
           };
         },
+        after: async (user) => {
+          // Send welcome email to new users
+          if (user.email && user.name && user.id) {
+            try {
+              await sendWelcomeEmail(Number(user.id), user.name, user.email);
+            } catch (error) {
+              // Log error but don't fail user creation
+              console.error('Failed to send welcome email:', error);
+            }
+          }
+        },
       },
     },
   },
@@ -207,7 +206,6 @@ export const auth = betterAuth({
     defaultCookieAttributes: {
       sameSite: 'lax',
       secure: isProduction,
-      ...(resolvedCookieDomain ? { domain: resolvedCookieDomain } : {}),
     },
   },
 });

@@ -17,8 +17,8 @@
   transition: opacity 300ms ease-out;
 }
 
-.nd-overlay.nd-overlay-open > div {
-  opacity: 1 !important;
+.nd-overlay.nd-overlay-open.nd-overlay-open > div {
+  opacity: 1;
 }
 
 @layer base {

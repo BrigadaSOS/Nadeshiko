@@ -170,7 +170,7 @@ export const useApiSearch = defineStore('search', {
       cursor?: number;
       type?: string;
     }): Promise<ResponseV2> {
-      return await $fetch<ResponseV2>('/internal-api/search/media/info', {
+      return await $fetch<ResponseV2>('/api/search/media', {
         method: 'GET',
         params: {
           size: params.size,
@@ -181,7 +181,7 @@ export const useApiSearch = defineStore('search', {
       });
     },
     async getSentenceV1(body: SentenceRequest): Promise<SentenceSearchResponse> {
-      return await $fetch<SentenceSearchResponse>('/internal-api/search/media/sentence', {
+      return await $fetch<SentenceSearchResponse>('/api/search/sentence', {
         method: 'POST',
         body: {
           query: body.query,
@@ -203,7 +203,7 @@ export const useApiSearch = defineStore('search', {
       });
     },
     async getSearchStatsV1(body: SearchStatsRequest): Promise<SearchStatsResponse> {
-      return await $fetch<SearchStatsResponse>('/internal-api/search/media/stats', {
+      return await $fetch<SearchStatsResponse>('/api/search/stats', {
         method: 'POST',
         body: {
           query: body.query,
@@ -217,7 +217,7 @@ export const useApiSearch = defineStore('search', {
       });
     },
     async getMultipleSearch(body: MultiSearchRequest) {
-      return await $fetch('/internal-api/search/media/match/words', {
+      return await $fetch('/api/search/match-words', {
         method: 'POST',
         body: {
           words: body.words,
@@ -225,7 +225,7 @@ export const useApiSearch = defineStore('search', {
       });
     },
     async getContextSentence(body: ContextSentenceRequest): Promise<ContextResponse> {
-      return await $fetch<ContextResponse>('/internal-api/search/media/context', {
+      return await $fetch<ContextResponse>('/api/search/context', {
         method: 'POST',
         body: {
           mediaId: body.mediaId,

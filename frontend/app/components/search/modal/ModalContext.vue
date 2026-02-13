@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const props = defineProps(['sentence']);
@@ -7,7 +7,7 @@ const apiSearch = useApiSearch();
 
 const isLoading = ref(false);
 const finalsentences = ref([]);
-const currentSentenceIndex = ref(null);
+const highlightedPosition = ref<number | null>(null);
 
 const getContextSentence = async () => {
   if (!props.sentence || isLoading.value) return;
@@ -22,9 +22,13 @@ const getContextSentence = async () => {
       limit: 15,
     });
     finalsentences.value = response;
-    currentSentenceIndex.value = props.sentence.segmentInfo.position;
+    highlightedPosition.value = props.sentence.segmentInfo.position;
     await nextTick();
-    scrollToElement(currentSentenceIndex.value);
+
+    const match = response?.sentences?.find((s: any) => s.segmentInfo.position === props.sentence.segmentInfo.position);
+    if (match) {
+      scrollToElement(match.segmentInfo.uuid);
+    }
   } catch (error) {
     console.error('Error fetching context sentences:', error);
   } finally {
@@ -75,7 +79,7 @@ const scrollToElement = (pos) => {
       <div class="flex-grow overflow-y-auto p-6">
         <template v-if="finalsentences">
           <SearchSegmentContainer :searchData="finalsentences" :isLoading="isLoading"
-            :currentSentenceIndex="currentSentenceIndex" class="w-full h-full" />
+            :highlightedPosition="highlightedPosition" class="w-full h-full" />
         </template>
       </div>
       <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">

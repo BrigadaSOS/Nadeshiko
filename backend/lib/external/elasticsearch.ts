@@ -1,5 +1,6 @@
 import { Client, HttpConnection } from '@elastic/elasticsearch';
 import type * as estypes from '@elastic/elasticsearch/lib/api/types';
+import { config } from '@lib/config';
 import { QueryMediaInfoResponse } from '@lib/types/queryMediaInfoResponse';
 import { Media } from '@app/entities';
 import { notEmpty } from '@lib/utils/utils';
@@ -91,15 +92,15 @@ interface ScriptBoostConfig {
 type QueryParserMode = 'strict' | 'safe';
 
 export const client = new Client({
-  node: process.env.ELASTICSEARCH_HOST,
+  node: config.ELASTICSEARCH_HOST,
   auth: {
-    username: process.env.ELASTICSEARCH_USER!,
-    password: process.env.ELASTICSEARCH_PASSWORD!,
+    username: config.ELASTICSEARCH_USER,
+    password: config.ELASTICSEARCH_PASSWORD,
   },
   Connection: HttpConnection,
 });
 
-const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
+const INDEX_NAME = config.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
 const IMPROVED_LENGTH_TIERS = buildImprovedLengthTiers();
 type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'mediaStatistics' | 'categoryStatistics'>;
 
@@ -108,15 +109,15 @@ type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'mediaStatistics' 
  * Only used for setup operations (creating users/roles).
  */
 function createAdminClient(): Client {
-  const adminUser = process.env.ELASTICSEARCH_ADMIN_USER || 'elastic';
-  const adminPassword = process.env.ELASTICSEARCH_ADMIN_PASSWORD;
+  const adminUser = config.ELASTICSEARCH_ADMIN_USER || 'elastic';
+  const adminPassword = config.ELASTICSEARCH_ADMIN_PASSWORD;
 
   if (!adminPassword) {
     throw new Error('ELASTICSEARCH_ADMIN_PASSWORD is required for admin operations');
   }
 
   return new Client({
-    node: process.env.ELASTICSEARCH_HOST,
+    node: config.ELASTICSEARCH_HOST,
     auth: {
       username: adminUser,
       password: adminPassword,
@@ -137,11 +138,11 @@ function createAdminClient(): Client {
 export async function setupElasticsearchUser(options: { recreateIfExists?: boolean } = {}): Promise<string> {
   const { recreateIfExists = false } = options;
   const indexName = INDEX_NAME;
-  const appUsername = process.env.ELASTICSEARCH_USER;
-  const appPassword = process.env.ELASTICSEARCH_PASSWORD;
+  const appUsername = config.ELASTICSEARCH_USER;
+  const appPassword = config.ELASTICSEARCH_PASSWORD;
 
   // Skip if admin credentials not available
-  if (!process.env.ELASTICSEARCH_ADMIN_PASSWORD) {
+  if (!config.ELASTICSEARCH_ADMIN_PASSWORD) {
     logger.info('ELASTICSEARCH_ADMIN_PASSWORD not set, skipping user/role setup');
     return appUsername || 'elastic';
   }
@@ -545,6 +546,18 @@ export const querySegments = async (
   }
 
   const { sort, randomScoreQuery } = buildSortAndRandomScore(request, isMatchAll);
+
+  // Validate cursor length matches expected sort field count
+  if (request.cursor && request.cursor.length > 0) {
+    const sortArray = Array.isArray(sort) ? sort : [sort];
+    const expectedCursorLength = sortArray.length;
+    if (request.cursor.length !== expectedCursorLength) {
+      throw new InvalidRequestError(
+        `Cursor length mismatch: expected ${expectedCursorLength} values but got ${request.cursor.length}. ` +
+          `The cursor must match the current sort configuration.`,
+      );
+    }
+  }
 
   if (randomScoreQuery && (isMatchAll || hasQuery)) {
     const lastQuery = must.pop();
