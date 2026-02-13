@@ -242,6 +242,15 @@ export const s_Seiyuu = z.object({
   imageUrl: z.string(),
 });
 
+export const s_UserQuotaResponse = z.object({
+  quotaUsed: z.coerce.number(),
+  quotaLimit: z.coerce.number(),
+  quotaRemaining: z.coerce.number(),
+  periodYyyymm: z.coerce.number(),
+  periodStart: z.string().datetime({ offset: true }),
+  periodEnd: z.string().datetime({ offset: true }),
+});
+
 export const s_WordMatchMedia = z.object({
   mediaId: z.coerce.number().optional(),
   englishName: z.string().optional(),

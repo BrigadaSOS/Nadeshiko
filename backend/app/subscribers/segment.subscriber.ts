@@ -1,6 +1,8 @@
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent, RemoveEvent } from 'typeorm';
-import { Segment, Media } from '@app/entities';
-import { sendEsSyncJob } from '@lib/queue/pgBoss';
+import { Segment } from '@app/models';
+import { MEDIA_INFO_CACHE } from '@app/models/Media';
+import { Cache } from '@lib/cache';
+import { sendEsSyncJob } from '@app/workers/pgBoss';
 
 @EventSubscriber()
 export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
@@ -10,9 +12,8 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
 
   afterInsert(event: InsertEvent<Segment>) {
     if (event.entity) {
-      Media.invalidateCache();
+      Cache.invalidate(MEDIA_INFO_CACHE);
 
-      // Enqueue ES sync job with retry
       sendEsSyncJob({
         segmentId: event.entity.id,
         operation: 'CREATE',
@@ -24,7 +25,6 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
 
   afterUpdate(event: UpdateEvent<Segment>) {
     if (event.entity) {
-      // Enqueue ES sync job with retry
       sendEsSyncJob({
         segmentId: event.entity.id,
         operation: 'UPDATE',
@@ -35,9 +35,8 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
   }
 
   afterRemove(event: RemoveEvent<Segment>) {
-    // databaseEntity contains the full entity before deletion
     if (event.databaseEntity) {
-      Media.invalidateCache();
+      Cache.invalidate(MEDIA_INFO_CACHE);
 
       // Enqueue ES sync job with retry
       sendEsSyncJob({

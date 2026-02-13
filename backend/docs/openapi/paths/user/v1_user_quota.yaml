@@ -1,0 +1,24 @@
+get:
+  tags:
+    - User
+  operationId: getUserQuota
+  summary: Get current monthly API quota
+  description: |
+    Returns the authenticated user's API quota usage for the current billing period.
+
+    **Requirements:**
+    - Requires session authentication (cookie-based).
+
+  security:
+    - sessionCookie: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/UserQuotaResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

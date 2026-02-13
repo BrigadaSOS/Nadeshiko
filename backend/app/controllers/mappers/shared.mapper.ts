@@ -1,5 +1,5 @@
 import type { t_Seiyuu, t_Character, t_Media, t_List, t_MediaCharacter } from 'generated/models';
-import type { Seiyuu, Character, Media, List, MediaCharacter } from '@app/entities';
+import type { Seiyuu, Character, Media, List, MediaCharacter } from '@app/models';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 
 export const toSeiyuuDTO = (seiyuu: Seiyuu): t_Seiyuu => ({

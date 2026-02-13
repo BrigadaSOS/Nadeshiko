@@ -1,11 +1,4 @@
-/**
- * Storage abstraction layer for media assets.
- *
- * This module provides a unified interface for generating URLs to media assets
- * stored in different backends (local, R2/CDN).
- */
-
-import { config } from '@lib/config';
+import { config } from '@config/config';
 
 export type Storage = 'local' | 'r2';
 

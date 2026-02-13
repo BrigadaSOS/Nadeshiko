@@ -8,7 +8,7 @@ import type {
   ListUpdateItem,
   ListRemoveItem,
 } from 'generated/routes/lists';
-import { List, ListItem, ListType, ListVisibility } from '@app/entities';
+import { List, ListItem, ListType, ListVisibility } from '@app/models';
 import { toListDTO, toListWithMediaDTO } from './mappers/list.mapper';
 
 export const listIndex: ListIndex = async ({ query }, respond) => {

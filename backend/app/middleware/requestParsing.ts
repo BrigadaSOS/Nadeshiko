@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { InvalidJsonError } from '@lib/utils/apiErrors';
+import { InvalidJsonError } from '@app/errors';
 
 export const handleJsonParseErrors = (err: any, req: Request, res: Response, next: NextFunction): void => {
   if (err instanceof SyntaxError && 'body' in err) {
