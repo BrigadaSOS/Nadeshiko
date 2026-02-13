@@ -1,5 +1,5 @@
 import type { t_ListWithMedia } from 'generated/models';
-import type { List } from '@app/entities';
+import type { List } from '@app/models';
 import { toListDTO, toMediaBaseDTO } from './shared.mapper';
 
 export { toListDTO } from './shared.mapper';

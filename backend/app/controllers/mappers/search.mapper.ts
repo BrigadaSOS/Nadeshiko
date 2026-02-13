@@ -1,5 +1,5 @@
 import type { t_MediaInfoData, t_Category } from 'generated/models';
-import { Media } from '@app/entities';
+import { Media } from '@app/models';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 
 /**

@@ -82,13 +82,6 @@ const scrollToElement = (pos) => {
             :highlightedPosition="highlightedPosition" class="w-full h-full" />
         </template>
       </div>
-      <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
-        <button type="button"
-          class="nd-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
-          data-nd-overlay="#nd-vertically-centered-scrollable-context">
-          {{ t("batchSearch.close") }}
-        </button>
-      </div>
     </div>
   </div>
 </template>

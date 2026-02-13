@@ -1,7 +1,7 @@
-import { User, ApiPermission, UserRoleType } from '@app/entities';
+import { User, ApiPermission, UserRoleType } from '@app/models';
 import { AppDataSource } from '@config/database';
-import { getAppEnvironment } from '@lib/environment';
-import { logger } from '@lib/utils/log';
+import { getAppEnvironment } from '@config/environment';
+import { logger } from '@config/log';
 import { defaultKeyHasher } from 'better-auth/plugins';
 
 const SEEDED_MASTER_KEY_NAME = 'Local Master Key';

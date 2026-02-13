@@ -1,5 +1,5 @@
 import type { SeiyuuShow } from 'generated/routes/media';
-import { Seiyuu } from '@app/entities';
+import { Seiyuu } from '@app/models';
 import { toSeiyuuWithRolesDTO } from './mappers/seiyuu.mapper';
 
 export const seiyuuShow: SeiyuuShow = async ({ params }, respond) => {

@@ -28,6 +28,7 @@ export type SegmentCreateRequestOutput = z.output<typeof schemas.s_SegmentCreate
 export type SegmentInfoOutput = z.output<typeof schemas.s_SegmentInfo>;
 export type SegmentUpdateRequestOutput = z.output<typeof schemas.s_SegmentUpdateRequest>;
 export type SeiyuuOutput = z.output<typeof schemas.s_Seiyuu>;
+export type UserQuotaResponseOutput = z.output<typeof schemas.s_UserQuotaResponse>;
 export type WordMatchMediaOutput = z.output<typeof schemas.s_WordMatchMedia>;
 export type BasicInfoOutput = z.output<typeof schemas.s_BasicInfo>;
 export type CategoryStatisticOutput = z.output<typeof schemas.s_CategoryStatistic>;

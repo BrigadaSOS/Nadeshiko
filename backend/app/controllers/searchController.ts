@@ -3,7 +3,7 @@ import {
   querySegments,
   querySurroundingSegments,
   queryWordsMatched,
-} from '@lib/external/elasticsearch';
+} from '@app/services/elasticsearch';
 import type {
   FetchMediaInfo,
   FetchSearchStats,
@@ -13,10 +13,10 @@ import type {
   SearchMultiple,
 } from 'generated/routes/search';
 import type { t_FetchMediaInfoResponse, t_SearchHealthCheckResponse } from 'generated/models';
-import { CategoryType, Media } from '@app/entities';
+import { CategoryType, Media } from '@app/models';
 import { Like } from 'typeorm';
 import { toMediaInfoData } from './mappers/search.mapper';
-import { MediaInfoStats } from '@lib/types/queryMediaInfoResponse';
+import { MediaInfoStats } from '@app/types/queryMediaInfoResponse';
 
 export const searchHealthCheck: SearchHealthCheck = async (_params, respond) => {
   const searchResults = await querySegments({

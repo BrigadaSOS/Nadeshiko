@@ -1,8 +1,10 @@
-import { User } from '@app/entities';
-import { DEV_IMPERSONATION_COOKIE } from '@app/services/devImpersonation';
-import { auth, BETTER_AUTH_SESSION_COOKIE_ALIASES } from '@lib/auth';
-import { isLocalEnvironment } from '@lib/environment';
-import { AccessDeniedError, InvalidRequestError, NotFoundError } from '@lib/utils/apiErrors';
+import { User } from '@app/models';
+
+import { auth, BETTER_AUTH_SESSION_COOKIE_ALIASES } from '@config/auth';
+import { isLocalEnvironment } from '@config/environment';
+
+const DEV_IMPERSONATION_COOKIE = 'ndk_dev_impersonation';
+import { AccessDeniedError, InvalidRequestError, NotFoundError } from '@app/errors';
 import { serializeSignedCookie } from 'better-call';
 import { Request, Response } from 'express';
 

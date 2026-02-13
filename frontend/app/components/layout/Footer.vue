@@ -53,7 +53,7 @@ const config = useRuntimeConfig();
 
       <div class="flex text-center flex-col items-center sm:flex-row sm:justify-between">
         <p class="text-sm mb-4 sm:mb-0 text-gray-500 text-center dark:text-gray-300">
-          Nadeshiko - {{ getCurrentYear() }} - {{ $t('home.version') }} {{ config.public.appVersion }}
+          Nadeshiko - {{ getCurrentYear() }} - {{ $t('home.version', { version: config.public.appVersion }) }}
         </p>
 
         <div class="flex -mx-2">

@@ -17,6 +17,8 @@ import { usePlayerStore } from '~/stores/player';
 import { watch, ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
 
+const route = useRoute();
+
 const playerStore = usePlayerStore();
 const { currentSentence, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
   storeToRefs(playerStore);
@@ -52,6 +54,15 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
       break;
   }
 };
+
+watch(
+  () => route.path,
+  (newPath) => {
+    if (showPlayer.value && !newPath.startsWith('/search/sentence')) {
+      playerStore.hidePlayer();
+    }
+  },
+);
 
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown);
@@ -370,7 +381,7 @@ const getAnimeImage = (sentence: any) => {
             </transition>
 
             <div v-if="!isImmersive"
-                class="fixed bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-md text-white shadow-lg z-50 safe-pb border-t border-white/5">
+                class="fixed bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-md text-white shadow-lg z-[70] safe-pb border-t border-white/5">
                 <div class="w-full bg-neutral-700/30 group cursor-pointer h-1.5 hover:h-2.5 transition-all" @click="onProgressClick">
                     <div class="bg-red-500 h-full transition-all ease-linear" :style="{ width: progress + '%' }"></div>
                 </div>

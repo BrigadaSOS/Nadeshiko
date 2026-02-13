@@ -1,5 +1,5 @@
 import type { t_Media } from 'generated/models';
-import type { Media } from '@app/entities';
+import type { Media } from '@app/models';
 import { toMediaBaseDTO, toMediaCharacterDTO, toListDTO } from './shared.mapper';
 
 /**

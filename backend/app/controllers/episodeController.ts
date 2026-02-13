@@ -1,5 +1,5 @@
 import type { EpisodeIndex, EpisodeCreate, EpisodeShow, EpisodeUpdate, EpisodeDestroy } from 'generated/routes/media';
-import { Episode, Media } from '@app/entities';
+import { Episode, Media } from '@app/models';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episode.mapper';
 
 export const episodeIndex: EpisodeIndex = async ({ params, query }, respond) => {

@@ -52,6 +52,10 @@ tags:
     description: |
       Media CRUD endpoints for managing anime and j-drama entries.
 
+  - name: User
+    description: |
+      User endpoints for account-specific data such as quota usage.
+
   - name: Lists
     description: |
       List endpoints for managing media collections and watch orders.
@@ -100,6 +104,10 @@ paths:
   # Seiyuu endpoints (nested under media)
   "/v1/media/seiyuu/{id}":
     $ref: "./paths/media/v1_media_seiyuu_id.yaml"
+
+  # User endpoints
+  "/v1/user/quota":
+    $ref: "./paths/user/v1_user_quota.yaml"
 
   # List endpoints
   "/v1/lists":

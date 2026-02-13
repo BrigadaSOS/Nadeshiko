@@ -3,7 +3,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { parse } from 'yaml';
-import { auth } from '@lib/auth';
+import { auth } from '@config/auth';
 
 interface OpenAPIOperation {
   tags?: string[];

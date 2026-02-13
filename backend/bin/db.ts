@@ -4,8 +4,8 @@ import { AppDataSource } from '@config/database';
 import { seed } from '@db/seeds';
 import { bootstrapPostgresWithOptions } from './dbBootstrap';
 import { ensureDestructiveAllowed } from './destructiveGuard';
-import { getAppPostgresConfig } from '@lib/postgresConfig';
-import { logger } from '@lib/utils/log';
+import { getAppPostgresConfig } from '@config/postgresConfig';
+import { logger } from '@config/log';
 
 const command = process.argv[2];
 const commandArgs = process.argv.slice(3);
@@ -87,14 +87,14 @@ async function setupPgBoss(): Promise<void> {
 
 async function resetElasticsearchIndex(): Promise<void> {
   logger.info('Resetting Elasticsearch index...');
-  const { resetElasticsearchIndex } = await import('@lib/external/elasticsearch');
+  const { resetElasticsearchIndex } = await import('@app/services/elasticsearch');
   await resetElasticsearchIndex();
 }
 
 async function setupElasticsearchUserAndRole(options: { recreateIfExists?: boolean } = {}): Promise<void> {
   logger.info('Setting up Elasticsearch user and role...');
   try {
-    const { setupElasticsearchUser, initializeElasticsearchIndexWithClient } = await import('@lib/external/elasticsearch');
+    const { setupElasticsearchUser, initializeElasticsearchIndexWithClient } = await import('@app/services/elasticsearch');
     const { Client } = await import('@elastic/elasticsearch');
 
     // Create admin client

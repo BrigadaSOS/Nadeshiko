@@ -245,7 +245,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentSentence && sentence.segmentInfo.uuid === currentSentence.segmentInfo.uuid,
-        'ring-2 ring-indigo-500/70 bg-indigo-950/30': highlightedPosition != null && sentence.segmentInfo.position === highlightedPosition,
+        'bg-neutral-800/20': highlightedPosition != null && sentence.segmentInfo.position === highlightedPosition,
       }">
       <!-- Image -->
       <div class="h-auto shrink-0 w-auto lg:w-[25rem] min-w-[200px] min-h-[140px] flex justify-center">

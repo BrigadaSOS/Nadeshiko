@@ -1,4 +1,4 @@
-import { APP_ENVIRONMENT, getAppEnvironment } from '@lib/environment';
+import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
 const PROD_DESTRUCTIVE_FLAG = '--allow-prod-destructive';
 

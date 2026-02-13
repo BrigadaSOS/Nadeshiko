@@ -326,6 +326,15 @@ export type t_Statistic = {
   nameAnimeRomaji?: string;
 };
 
+export type t_UserQuotaResponse = {
+  periodEnd: string;
+  periodStart: string;
+  periodYyyymm: number;
+  quotaLimit: number;
+  quotaRemaining: number;
+  quotaUsed: number;
+};
+
 export type t_WordMatch = {
   isMatch?: boolean;
   media?: t_WordMatchMedia[];

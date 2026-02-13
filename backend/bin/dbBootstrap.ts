@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Client } from 'pg';
-import { getAdminPostgresConfig, getAppPostgresConfig } from '@lib/postgresConfig';
-import { logger } from '@lib/utils/log';
+import { getAdminPostgresConfig, getAppPostgresConfig } from '@config/postgresConfig';
+import { logger } from '@config/log';
 import { ensureDestructiveAllowed } from './destructiveGuard';
 
 function requireEnv(name: string, value: string | undefined): string {

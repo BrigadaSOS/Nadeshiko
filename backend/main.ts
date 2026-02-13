@@ -1,31 +1,30 @@
 import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
-import { config } from '@lib/config';
-import { initTelemetry, shutdownTelemetry } from '@lib/telemetry';
+import { config } from '@config/config';
+import { initTelemetry, shutdownTelemetry } from '@config/telemetry';
 initTelemetry();
 
-import '@lib/external/elasticsearch'; // Initialize client
+import '@app/services/elasticsearch'; // Initialize client
 import '@app/subscribers'; // Import TypeORM subscribers
-import { initPgBoss, stopPgBoss } from '@lib/queue/pgBoss';
-import { registerEsSyncWorkers } from '@lib/queue/workers/esSyncWorker';
-import { registerEmailWorkers } from '@lib/queue/workers/emailWorker';
+import { initPgBoss, stopPgBoss } from '@app/workers/pgBoss';
+import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
+import { registerEmailWorkers } from '@app/workers/emailWorker';
 import { router } from '@app/routes/router';
 import express, { Application, ErrorRequestHandler } from 'express';
 import { initializeDatabase } from '@config/database';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { requestIdMiddleware } from '@app/middleware/requestId';
-import { logger, httpLogger } from '@lib/utils/log';
-import { NotFoundError } from '@lib/utils/apiErrors';
+import { logger, httpLogger } from '@config/log';
+import { NotFoundError } from '@app/errors';
 import { originSafetyLimiter } from '@app/middleware/apiLimiterRate';
-import { corsMiddleware } from '@app/middleware/cors';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
 import { tracingMiddleware } from '@app/middleware/tracing';
 import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
 import { rawBodySaver } from '@app/middleware/rawBodySaver';
-import { auth } from '@lib/auth';
+import { auth } from '@config/auth';
 import { toNodeHandler } from 'better-auth/node';
-import { getAppEnvironment } from '@lib/environment';
+import { getAppEnvironment } from '@config/environment';
 
 const PORT = config.PORT;
 const app: Application = express();
@@ -71,7 +70,6 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 app.use(requestIdMiddleware);
-app.use(corsMiddleware);
 
 // Capture response bodies BEFORE logging (must be before httpLogger)
 app.use(responseBodyLogger);

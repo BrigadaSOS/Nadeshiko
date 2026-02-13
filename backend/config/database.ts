@@ -13,10 +13,10 @@ import {
   MediaCharacter,
   List,
   ListItem,
-} from '@app/entities';
+} from '@app/models';
 import { SegmentSubscriber } from '@app/subscribers';
-import { getAppPostgresConfig } from '@lib/postgresConfig';
-import { logger } from '@lib/utils/log';
+import { getAppPostgresConfig } from '@config/postgresConfig';
+import { logger } from '@config/log';
 
 const postgres = getAppPostgresConfig();
 
