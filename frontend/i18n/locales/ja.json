@@ -114,18 +114,6 @@
     "exactMatchDescription": "活用形やその他の結果を含めずに、完全一致の検索を行います。",
     "close": "閉じる"
   },
-  "reportModal": {
-    "title": "問題を報告",
-    "description1": "このページに掲載されている文は、いくつかの自動ツールを使用して取得されたものです。アップロード前に品質管理を行っていますが、時折問題が発生することがあります。",
-    "description2": "エラーを見つけた場合は、以下のフォームから報告してください。ご協力に感謝します。",
-    "reportQuestion": "問題の内容は？",
-    "reason1": "音声と文が一致しない",
-    "reason2": "音声が文とずれている",
-    "reason3": "文に音声または画像がない",
-    "reason4": "画像・文・音声が不適切（NSFW）",
-    "send": "報告を送信",
-    "close": "閉じる"
-  },
   "anki": {
     "modal": {
       "title": "コレクション内を検索",
@@ -164,6 +152,22 @@
   },
   "modalContext": {
     "closeSrOnly": "閉じる"
+  },
+  "modalSegmentEdit": {
+    "title": "セグメント編集",
+    "editButton": "編集",
+    "japanese": "日本語",
+    "english": "英語",
+    "spanish": "スペイン語",
+    "machineTranslated": "機械翻訳",
+    "status": "ステータス",
+    "nsfw": "NSFWコンテンツ",
+    "save": "保存",
+    "saving": "保存中...",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "saveSuccess": "セグメントを更新しました",
+    "saveError": "セグメントの更新に失敗しました"
   },
   "filterContent": {
     "searchPlaceholder": "ここで検索"
@@ -355,6 +359,65 @@
     "categoryLiveaction": "実写",
     "categoryAudiobook": "オーディオブック"
   },
+  "reports": {
+    "title": "マイレポート",
+    "modalTitle": "問題を報告する",
+    "reason": "理由",
+    "selectReason": "理由を選択...",
+    "description": "説明（任意）",
+    "descriptionPlaceholder": "問題の詳細を入力してください...",
+    "submit": "報告を送信",
+    "submitting": "送信中...",
+    "submitSuccess": "報告が送信されました",
+    "submitError": "報告の送信に失敗しました",
+    "cancel": "キャンセル",
+    "reportSegment": "報告",
+    "reportMedia": "メディアを報告",
+    "allStatuses": "すべてのステータス",
+    "allTypes": "すべてのタイプ",
+    "noReports": "レポートが見つかりません",
+    "loading": "読み込み中...",
+    "loadMore": "もっと読み込む",
+    "reasons": {
+      "WRONG_TRANSLATION": "翻訳が間違っている",
+      "WRONG_TIMING": "タイミングが間違っている",
+      "WRONG_AUDIO": "音声が間違っている",
+      "NSFW_NOT_TAGGED": "NSFWタグが付いていない",
+      "DUPLICATE_SEGMENT": "重複セグメント",
+      "WRONG_METADATA": "メタデータが間違っている",
+      "MISSING_EPISODES": "エピソードが不足している",
+      "WRONG_COVER_IMAGE": "カバー画像が間違っている",
+      "INAPPROPRIATE_CONTENT": "不適切なコンテンツ",
+      "OTHER": "その他"
+    },
+    "statuses": {
+      "PENDING": "保留中",
+      "ACCEPTED": "承認済み",
+      "REJECTED": "却下",
+      "RESOLVED": "解決済み"
+    },
+    "table": {
+      "date": "日付",
+      "type": "タイプ",
+      "target": "対象",
+      "reason": "理由",
+      "status": "ステータス",
+      "description": "説明"
+    },
+    "admin": {
+      "title": "レポート管理",
+      "reporter": "報告者",
+      "count": "件数",
+      "notes": "管理者メモ",
+      "actions": "アクション",
+      "accept": "承認",
+      "reject": "却下",
+      "resolve": "解決",
+      "save": "保存",
+      "addNote": "クリックしてメモを追加...",
+      "updateSuccess": "レポートが更新されました"
+    }
+  },
   "modalauth": {
     "headers": {
       "auth": "認証"
@@ -368,6 +431,41 @@
       "logout": "ログアウトしました。",
       "errorlogin400": "メールアドレス/パスワードを確認して再試行してください。",
       "closeSrOnly": "閉じる"
+    }
+  },
+  "lists": {
+    "pageTitle": "リスト",
+    "pageDescription": "メディアリストと保存したセグメントを閲覧・管理",
+    "seriesSection": "シリーズ",
+    "customSection": "カスタムリスト",
+    "segmentSection": "保存したセグメント",
+    "createList": "リスト作成",
+    "noLists": "リストが見つかりません",
+    "loading": "読み込み中...",
+    "nameLabel": "名前",
+    "namePlaceholder": "リスト名を入力",
+    "typeLabel": "タイプ",
+    "visibilityLabel": "公開設定",
+    "cancel": "キャンセル",
+    "create": "作成",
+    "creating": "作成中...",
+    "createError": "リストの作成に失敗しました",
+    "save": "保存",
+    "noSegmentLists": "セグメントリストがありません。先に作成してください。",
+    "backToLists": "リスト一覧に戻る",
+    "loadError": "リストの読み込みに失敗しました",
+    "confirmDelete": "このリストを削除してもよろしいですか？",
+    "mediaCount": "メディア",
+    "segmentCount": "セグメント",
+    "noSegments": "保存されたセグメントはまだありません",
+    "types": {
+      "SERIES": "シリーズ",
+      "CUSTOM": "カスタム",
+      "SEGMENT": "セグメント"
+    },
+    "visibility": {
+      "PUBLIC": "公開",
+      "PRIVATE": "非公開"
     }
   }
 }

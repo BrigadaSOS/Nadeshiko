@@ -175,7 +175,7 @@ export async function copyToClipboard(item: string) {
 export async function getSharingURL(uuid: string) {
   const { $i18n } = useNuxtApp();
   try {
-    await navigator.clipboard.writeText(`${window.location.origin}/search/sentence?uuid=${uuid}`);
+    await navigator.clipboard.writeText(`${window.location.origin}/sentence/${uuid}`);
     const message = $i18n.t('searchpage.main.labels.copiedsharingurl');
     useToastSuccess(message);
   } catch (_error) {

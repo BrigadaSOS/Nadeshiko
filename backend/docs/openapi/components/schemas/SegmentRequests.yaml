@@ -7,11 +7,11 @@ SegmentFields: &segmentFields
     description: Position of the segment within the episode
     example: 1133
   status:
-    type: integer
-    description: Segment status (default is 1=Active)
-    enum: [0, 1, 2, 3, 100, 101]
-    default: 1
-    example: 1
+    type: string
+    description: Segment status
+    enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    default: "ACTIVE"
+    example: "ACTIVE"
   startTime:
     type: string
     description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
@@ -20,31 +20,40 @@ SegmentFields: &segmentFields
     type: string
     description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
     example: "0:33:28.464000"
-  content:
-    type: string
-    maxLength: 500
-    description: Original Japanese content of the segment
-    example: "僕は僕で、君は君だ。"
-  contentSpanish:
-    type: string
-    maxLength: 500
-    description: Spanish translation of the segment content
-    example: "Yo soy yo, y tú eres tú."
-  contentSpanishMt:
-    type: boolean
-    description: Whether the Spanish translation was machine-translated
-    default: false
-    example: false
-  contentEnglish:
-    type: string
-    maxLength: 500
-    description: English translation of the segment content
-    example: "I am me, and you are you."
-  contentEnglishMt:
-    type: boolean
-    description: Whether the English translation was machine-translated
-    default: false
-    example: false
+  ja:
+    type: object
+    properties:
+      content:
+        type: string
+        maxLength: 500
+        description: Original Japanese content of the segment
+        example: "僕は僕で、君は君だ。"
+  es:
+    type: object
+    properties:
+      content:
+        type: string
+        maxLength: 500
+        description: Spanish translation of the segment content
+        example: "Yo soy yo, y tú eres tú."
+      isMachineTranslated:
+        type: boolean
+        description: Whether the Spanish translation was machine-translated
+        default: false
+        example: false
+  en:
+    type: object
+    properties:
+      content:
+        type: string
+        maxLength: 500
+        description: English translation of the segment content
+        example: "I am me, and you are you."
+      isMachineTranslated:
+        type: boolean
+        description: Whether the English translation was machine-translated
+        default: false
+        example: false
   isNsfw:
     type: boolean
     description: Whether the segment contains NSFW content
@@ -52,26 +61,14 @@ SegmentFields: &segmentFields
     example: false
   storage:
     type: string
-    enum: [local, r2]
+    enum: [LOCAL, R2]
     description: Storage backend for segment assets
-    example: "r2"
-    default: "r2"
+    example: "R2"
+    default: "R2"
   hashedId:
     type: string
     description: Hash identifier for the segment (from segment JSON)
     example: "0d39e46b14"
-  actorJa:
-    type: string
-    description: Japanese voice actor name
-    example: "Mamoru Miyano"
-  actorEs:
-    type: string
-    description: Spanish voice actor name
-    example: "Alejandro Levis"
-  actorEn:
-    type: string
-    description: English voice actor name
-    example: "J. Michael Tatum"
 
 SegmentCreateRequest:
   type: object
@@ -79,7 +76,7 @@ SegmentCreateRequest:
     - position
     - startTime
     - endTime
-    - content
+    - ja
     - storage
     - hashedId
   properties:

@@ -10,6 +10,7 @@ import '@app/subscribers'; // Import TypeORM subscribers
 import { initPgBoss, stopPgBoss } from '@app/workers/pgBoss';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { registerEmailWorkers } from '@app/workers/emailWorker';
+import { registerMorphemeWorkers } from '@app/workers/morphemeWorker';
 import { router } from '@app/routes/router';
 import express, { Application, ErrorRequestHandler } from 'express';
 import { initializeDatabase } from '@config/database';
@@ -118,6 +119,7 @@ app.listen(PORT, async () => {
     const boss = await initPgBoss();
     await registerEsSyncWorkers(boss);
     await registerEmailWorkers(boss);
+    await registerMorphemeWorkers(boss);
 
     logger.info('Database available. You can freely use this application');
   } catch (error) {

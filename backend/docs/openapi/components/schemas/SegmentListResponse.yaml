@@ -1,7 +1,7 @@
 type: object
 required:
   - data
-  - hasMoreResults
+  - hasMore
 properties:
   data:
     type: array
@@ -12,7 +12,7 @@ properties:
     type: integer
     description: Cursor for pagination (last segment ID in current page)
     example: 12345
-  hasMoreResults:
+  hasMore:
     type: boolean
     description: Whether more results are available
     example: true

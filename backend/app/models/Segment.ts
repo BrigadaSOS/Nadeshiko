@@ -1,14 +1,20 @@
 import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { Episode } from './Episode';
+import type { MorphemeData } from '@app/types/morpheme';
 
 export enum SegmentStatus {
-  DELETED = 0,
-  ACTIVE = 1,
-  SUSPENDED = 2,
-  VERIFIED = 3,
-  INVALID_SENTENCE = 100,
-  SENTENCE_TOO_LONG = 101,
+  DELETED = 'DELETED',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  VERIFIED = 'VERIFIED',
+  INVALID = 'INVALID',
+  TOO_LONG = 'TOO_LONG',
+}
+
+export enum SegmentStorage {
+  LOCAL = 'LOCAL',
+  R2 = 'R2',
 }
 
 @Entity('Segment')
@@ -24,7 +30,7 @@ export class Segment extends BaseEntity {
   position!: number;
 
   @Column({
-    type: 'smallint',
+    type: 'enum',
     enum: SegmentStatus,
     default: SegmentStatus.ACTIVE,
   })
@@ -36,41 +42,35 @@ export class Segment extends BaseEntity {
   @Column({ name: 'end_time', type: 'varchar' })
   endTime!: string;
 
-  @Column({ type: 'varchar', length: 500 })
-  content!: string;
+  @Column({ name: 'content', type: 'varchar', length: 500 })
+  contentJa!: string;
 
   @Column({ name: 'content_length', type: 'int' })
-  contentLength!: number;
+  characterCount!: number;
 
   @Column({ name: 'content_spanish', type: 'varchar', length: 500 })
-  contentSpanish!: string;
+  contentEs!: string;
 
   @Column({ name: 'content_spanish_mt', type: 'boolean', default: false })
-  contentSpanishMt!: boolean;
+  contentEsMt!: boolean;
 
   @Column({ name: 'content_english', type: 'varchar', length: 500 })
-  contentEnglish!: string;
+  contentEn!: string;
 
   @Column({ name: 'content_english_mt', type: 'boolean', default: false })
-  contentEnglishMt!: boolean;
+  contentEnMt!: boolean;
 
   @Column({ name: 'is_nsfw', type: 'boolean', default: false })
   isNsfw!: boolean;
 
-  @Column({ name: 'storage', type: 'varchar' })
-  storage!: 'local' | 'r2';
+  @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
+  storage!: SegmentStorage;
 
   @Column({ name: 'hashed_id', type: 'varchar' })
   hashedId!: string;
 
-  @Column({ name: 'actor_ja', type: 'varchar', nullable: true })
-  actorJa?: string;
-
-  @Column({ name: 'actor_es', type: 'varchar', nullable: true })
-  actorEs?: string;
-
-  @Column({ name: 'actor_en', type: 'varchar', nullable: true })
-  actorEn?: string;
+  @Column({ name: 'morphemes', type: 'jsonb', nullable: true })
+  morphemes?: MorphemeData[] | null;
 
   @Column({ type: 'smallint' })
   episode!: number;

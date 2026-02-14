@@ -20,7 +20,7 @@ import { storeToRefs } from 'pinia';
 const route = useRoute();
 
 const playerStore = usePlayerStore();
-const { currentSentence, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
+const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
   storeToRefs(playerStore);
 
 const progress = ref(0);
@@ -58,7 +58,7 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
 watch(
   () => route.path,
   (newPath) => {
-    if (showPlayer.value && !newPath.startsWith('/search/sentence')) {
+    if (showPlayer.value && !newPath.startsWith('/search') && !newPath.startsWith('/sentence')) {
       playerStore.hidePlayer();
     }
   },
@@ -87,10 +87,10 @@ const scrollImmersiveView = async () => {
   lastScrollTime = now;
   const behavior = timeSinceLastScroll < 300 ? 'instant' : 'smooth';
 
-  const sentence = currentSentence.value;
-  if (!sentence || !lyricsContainer.value) return;
+  const result = currentResult.value;
+  if (!result || !lyricsContainer.value) return;
 
-  const elementId = `sentence-${sentence.segmentInfo.uuid}`;
+  const elementId = `sentence-${result.segment.uuid}`;
   const immersiveElement = await waitForElement(elementId);
 
   if (immersiveElement) {
@@ -111,10 +111,10 @@ const scrollMainView = async () => {
   lastScrollTime = now;
   const behavior = timeSinceLastScroll < 300 ? 'instant' : 'smooth';
 
-  const sentence = currentSentence.value;
-  if (!sentence) return;
+  const result = currentResult.value;
+  if (!result) return;
 
-  const mainPageElement = await waitForElement(sentence.segmentInfo.uuid);
+  const mainPageElement = await waitForElement(result.segment.uuid);
   if (mainPageElement) {
     mainPageElement.scrollIntoView({ behavior, block: 'center' });
   }
@@ -205,7 +205,7 @@ watch(
       newAudio.addEventListener('ended', onAudioEnded);
     }
 
-    if (currentSentence.value && oldAudio !== newAudio) {
+    if (currentResult.value && oldAudio !== newAudio) {
       nextTick(() => {
         scrollMainView();
         if (isImmersive.value) {
@@ -260,20 +260,20 @@ const updateProgress = () => {
   }
 };
 
-const getJapaneseContent = (sentence: any) => {
-  if (!sentence) return '';
-  return sentence.segmentInfo.contentJpHighlight || sentence.segmentInfo.contentJp || '';
+const getJapaneseContent = (result: any) => {
+  if (!result) return '';
+  return result.segment.ja.highlight || result.segment.ja.content || '';
 };
 
-const getAnimeImage = (sentence: any) => {
-  if (!sentence) return '';
-  return sentence.mediaInfo.pathImage;
+const getAnimeImage = (result: any) => {
+  if (!result) return '';
+  return result.urls.imageUrl;
 };
 </script>
 
 <template>
     <transition name="fade">
-        <div v-if="showPlayer && currentSentence">
+        <div v-if="showPlayer && currentResult">
 
             <transition name="zoom-fade">
                 <div v-if="isImmersive"
@@ -286,7 +286,7 @@ const getAnimeImage = (sentence: any) => {
                         <div class="flex flex-col gap-1 opacity-80">
                             <span class="text-xs font-bold tracking-widest uppercase text-white/60">Now Playing</span>
                             <span class="text-sm font-semibold truncate max-w-[180px]">{{
-                                currentSentence.basicInfo.nameAnimeEn }}</span>
+                                currentResult.media.nameEn }}</span>
                         </div>
 
 
@@ -297,7 +297,7 @@ const getAnimeImage = (sentence: any) => {
 
                         <div
                             class="flex-shrink-0 mb-6 md:mb-1 shadow-2xl overflow-hidden hidden md:block transition-all duration-700 ring-1 ring-white/10">
-                            <img :src="getAnimeImage(currentSentence)" class="w-full h-full object-fit opacity-90" />
+                            <img :src="getAnimeImage(currentResult)" class="w-full h-full object-fit opacity-90" />
                         </div>
 
                         <div class="relative w-full h-full overflow-hidden flex flex-col items-center">
@@ -306,8 +306,8 @@ const getAnimeImage = (sentence: any) => {
                                 class="w-full h-full overflow-y-auto no-scrollbar scroll-smooth flex flex-col justify-center mask-gradient">
                                 <div
                                     class="flex flex-col items-center justify-center w-full min-h-0 py-12 transition-all duration-500">
-                                    <p v-for="(sentence, index) in playlist" :key="sentence.segmentInfo.uuid"
-                                        :id="`sentence-${sentence.segmentInfo.uuid}`"
+                                    <p v-for="(sentence, index) in playlist" :key="sentence.segment.uuid"
+                                        :id="`sentence-${sentence.segment.uuid}`"
                                         :class="getSentenceStyle(index).classes" :style="getSentenceStyle(index).style"
                                         v-html="getJapaneseContent(sentence)"
                                         class="text-center cursor-default select-none max-w-4xl mx-auto px-4">
@@ -387,12 +387,12 @@ const getAnimeImage = (sentence: any) => {
                 </div>
                 <div class="flex flex-wrap items-center justify-between p-3 gap-3 md:px-6">
                     <div class="flex items-center gap-4 flex-grow min-w-0">
-                        <img :src="getAnimeImage(currentSentence)"
+                        <img :src="getAnimeImage(currentResult)"
                             class="w-12 h-12 object-cover rounded-lg shadow-sm" />
                         <div class="flex-grow min-w-0">
-                            <p class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentSentence)">
+                            <p class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentResult)">
                             </p>
-                            <p class="text-xs text-gray-400 truncate">{{ currentSentence.basicInfo.nameAnimeEn }}</p>
+                            <p class="text-xs text-gray-400 truncate">{{ currentResult.media.nameEn }}</p>
                         </div>
                     </div>
 

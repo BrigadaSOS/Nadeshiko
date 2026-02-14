@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, DeleteDateColumn, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { Media } from './Media';
+import type { Media } from './Media';
 import type { Segment } from './Segment';
 
 @Entity('Episode')
@@ -20,13 +20,13 @@ export class Episode extends BaseEntity {
   media!: Media;
 
   @Column({ name: 'title_english', type: 'text', nullable: true })
-  titleEnglish?: string;
+  titleEn?: string;
 
   @Column({ name: 'title_romaji', type: 'text', nullable: true })
   titleRomaji?: string;
 
   @Column({ name: 'title_japanese', type: 'text', nullable: true })
-  titleJapanese?: string;
+  titleJa?: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })
   description?: string;
@@ -41,26 +41,11 @@ export class Episode extends BaseEntity {
   thumbnailUrl?: string;
 
   @Column({ name: 'num_segments', type: 'int', default: 0 })
-  numSegments!: number;
+  segmentCount!: number;
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
 
   @OneToMany('Segment', 'episodeRelation', { cascade: true })
   segments!: Segment[];
-
-  static async updateSegmentCount(mediaId: number, episodeNumber: number): Promise<void> {
-    await Episode.createQueryBuilder()
-      .update()
-      .set({
-        numSegments: () =>
-          `(SELECT COUNT(*) FROM "Segment" WHERE "media_id" = :mediaId AND "episode" = :episodeNumber AND "status" != 0)`,
-      })
-      .where('media_id = :mediaId AND "episode_number" = :episodeNumber')
-      .setParameter('mediaId', mediaId)
-      .setParameter('episodeNumber', episodeNumber)
-      .execute();
-
-    await Media.updateSegmentCount(mediaId);
-  }
 }

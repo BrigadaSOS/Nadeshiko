@@ -1,0 +1,34 @@
+type: object
+description: Search result statistics grouped by media
+properties:
+  mediaId:
+    type: integer
+    description: Unique identifier for the media
+    example: 110316
+  category:
+    $ref: "./Category.yaml"
+  nameRomaji:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Steins;Gate"
+  nameEn:
+    type: string
+    description: English name of the media
+    example: "Steins;Gate"
+  nameJa:
+    type: string
+    description: Original Japanese name of the media
+    example: "シュタインズ・ゲート"
+  segmentCount:
+    type: integer
+    description: Total number of segments found for this media
+    example: 42
+  episodeHits:
+    type: object
+    description: Mapping of episode numbers to segment hit counts
+    example:
+      1: 5
+      2: 8
+      3: 3
+    additionalProperties:
+      type: integer

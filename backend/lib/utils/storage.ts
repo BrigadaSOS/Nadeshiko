@@ -1,10 +1,10 @@
 import { config } from '@config/config';
 
-export type Storage = 'local' | 'r2';
+export type Storage = 'LOCAL' | 'R2';
 
 const STORAGE_BASE_URLS: Record<Storage, string> = {
-  r2: config.R2_BASE_URL,
-  local: '/media',
+  R2: config.R2_BASE_URL,
+  LOCAL: '/media',
 };
 
 /**

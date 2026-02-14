@@ -9,7 +9,7 @@ properties:
     example: "My Watchlist"
   type:
     type: string
-    enum: [SERIES, CUSTOM]
+    enum: [SERIES, CUSTOM, SEGMENT]
     description: Type of list
     example: "CUSTOM"
   userId:

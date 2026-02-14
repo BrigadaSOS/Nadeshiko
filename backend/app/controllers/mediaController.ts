@@ -8,27 +8,27 @@ import { Cache } from '@lib/cache';
 import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
 
 function toCharacterData(char: {
-  characterId: number;
-  characterNameJapanese?: string;
-  characterNameEnglish?: string;
-  characterImageUrl?: string;
-  characterRole: string;
+  id: number;
+  nameJa?: string;
+  nameEn?: string;
+  imageUrl?: string;
+  role: string;
   seiyuuId?: number;
-  seiyuuNameJapanese?: string;
-  seiyuuNameEnglish?: string;
+  seiyuuNameJa?: string;
+  seiyuuNameEn?: string;
   seiyuuImageUrl?: string;
 }) {
   return {
-    role: char.characterRole as CharacterRole,
+    role: char.role as CharacterRole,
     character: {
-      id: char.characterId,
-      nameJapanese: char.characterNameJapanese,
-      nameEnglish: char.characterNameEnglish,
-      imageUrl: char.characterImageUrl,
+      id: char.id,
+      nameJapanese: char.nameJa,
+      nameEnglish: char.nameEn,
+      imageUrl: char.imageUrl,
       seiyuu: {
         id: char.seiyuuId,
-        nameJapanese: char.seiyuuNameJapanese,
-        nameEnglish: char.seiyuuNameEnglish,
+        nameJapanese: char.seiyuuNameJa,
+        nameEnglish: char.seiyuuNameEn,
         imageUrl: char.seiyuuImageUrl,
       },
     },
@@ -63,9 +63,9 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
     return await manager.save(Media, {
       id: body.anilistId,
       anilistId: body.anilistId,
-      japaneseName: body.japaneseName,
-      romajiName: body.romajiName,
-      englishName: body.englishName,
+      nameJa: body.nameJa,
+      nameRomaji: body.nameRomaji,
+      nameEn: body.nameEn,
       airingFormat: body.airingFormat,
       airingStatus: body.airingStatus,
       genres: body.genres,
@@ -105,7 +105,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
     const media = await manager.findOneOrFail(Media, { where: { id: params.id } });
 
     // Extract only the fields we want to update (exclude relations and computed fields)
-    const { characters, lists: _lists, numSegments: _numSegments, ...updateFields } = body;
+    const { characters, lists: _lists, segmentCount: _segmentCount, ...updateFields } = body;
 
     Media.merge(media, updateFields as DeepPartial<Media>);
 
@@ -114,7 +114,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
       media.characters = characters.map((char) =>
         manager.create(MediaCharacter, {
           mediaId: media.id,
-          characterId: char.characterId,
+          characterId: char.id,
           ...toCharacterData(char),
         }),
       );

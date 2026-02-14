@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class RateLimitExceededError extends ApiError {
   readonly code = 'RATE_LIMIT_EXCEEDED' as const;

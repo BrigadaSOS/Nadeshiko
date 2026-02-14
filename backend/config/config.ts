@@ -38,8 +38,6 @@ const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().optional(),
   ALLOWED_WEBSITE_URLS: z.string().default(''),
   BASE_URL: z.string(),
-  API_KEY_MASTER: z.string().optional(),
-  SERVICE_API_KEY_IDS: z.string().optional(),
   USERNAME_API_NADEDB: z.string().optional(),
   PASSWORD_API_NADEDB: z.string().optional(),
   EMAIL_API_NADEDB: z.string().optional(),
@@ -66,6 +64,9 @@ const envSchema = z.object({
   // Telemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   OTEL_SERVICE_NAME: z.string().optional(),
+
+  // Lindera (morpheme analysis)
+  LINDERA_DICT_PATH: z.string().default('embedded://unidic'),
 
   // Misc
   LOG_LEVEL: z.string().optional(),

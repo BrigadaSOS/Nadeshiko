@@ -16,13 +16,13 @@ import { InvalidRequestError } from '@app/errors';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 import type {
-  QueryStatsOutput,
+  PaginationInfoOutput,
   SearchResponseOutput,
   SearchStatsResponseOutput,
   SearchMultipleResponseOutput,
-  FetchSentenceContextResponseOutput,
-  SentenceOutput,
-  StatisticOutput,
+  SegmentContextResponseOutput,
+  SearchResultOutput,
+  MediaSearchStatsOutput,
   WordMatchOutput,
   WordMatchMediaOutput,
 } from 'generated/outputTypes';
@@ -32,12 +32,13 @@ import type {
  * ELASTICSEARCH SEARCH ARCHITECTURE
  * =============================================================================
  *
- * JAPANESE CONTENT FIELDS (3 fields for different matching strategies)
+ * JAPANESE CONTENT FIELDS (4 fields for different matching strategies)
  * -----------------------------------------------------------------------------
  * | Field                 | Purpose                    | Example: "食べました"       |
  * |----------------------|----------------------------|----------------------------|
- * | content              | Exact text matching        | Tokens: 食べ, ました        |
+ * | content              | Surface form matching      | Tokens: 食べ, ました        |
  * | content.baseform     | Dictionary form matching   | Tokens: 食べる, ます        |
+ * | content.normalized   | Orthographic variant match | Normalized okurigana/script |
  * | content.kana         | Pronunciation/reading match| Tokens: タベ, マシタ        |
  * -----------------------------------------------------------------------------
  *
@@ -45,23 +46,19 @@ import type {
  * -----------------------------------------------------------------------------
  * | Input Type       | Fields (with boosts)                          | Rationale           |
  * |------------------|-----------------------------------------------|---------------------|
- * | Romaji (go)      | EN/ES^10, kana^3, content^2, base^1           | Prefer EN/ES        |
- * | Kanji (食べる)    | content^10, baseform^5 (NO kana)              | Avoid homophones    |
- * | Kana (たべる)     | content^10, baseform^5, kana^3                | Standard search     |
+ * | Romaji (go)      | EN/ES^10, kana^3, content^2, norm^2, base^1   | Prefer EN/ES        |
+ * | Kanji (食べる)    | content^10, baseform^5, norm^4 (NO kana)      | Avoid homophones    |
+ * | Kana (たべる)     | content^10, baseform^5, norm^4, kana^3        | Standard search     |
  * -----------------------------------------------------------------------------
  *
- * SCORING (boost_mode: replace for length-based, multiply for random)
+ * SCORING (boost_mode: multiply for text queries, replace for match_all)
  * -----------------------------------------------------------------------------
  * Length scoring (when minLength not specified):
- *   Uses gaussian (bell curve) distribution centered at 27 chars (μ=27, σ=6)
- *   - Provides smooth, organic scoring without artificial tier boundaries
- *   - Peak score (100) at ideal length (27 chars)
- *   - Score gradually decreases as length deviates from ideal
- *   - Floor score (10) for very short (<8) or very long (>50) sentences
- *
- *   Example distribution:
- *   27 chars → 100 (peak), 25-29 chars → 95-100, 21-33 chars → 80-95
- *   15-39 chars → 50-80, <15 or >39 chars → 10-50
+ *   Uses native ES gauss decay function centered at 27 chars
+ *   - match_all: origin=27, scale=6, decay=0.5 (tight preference, replaces score)
+ *   - text queries: origin=27, offset=10, scale=15, decay=0.5 (gentle tiebreaker)
+ *     offset=10 means lengths 17-37 get NO penalty at all
+ *     Beyond that, very gradual rolloff — match quality always dominates
  *
  * Language selection (dis_max with tie_breaker: 0.1):
  *   - Picks best matching language, 10% contribution from others
@@ -86,6 +83,7 @@ enum InputScript {
 interface ScriptBoostConfig {
   japanese: number;
   japaneseBaseform: number;
+  japaneseNormalized: number;
   japaneseKana: number;
   english: number;
   spanish: number;
@@ -103,8 +101,7 @@ export const client = new Client({
 });
 
 const INDEX_NAME = config.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
-const IMPROVED_LENGTH_TIERS = buildImprovedLengthTiers();
-type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'mediaStatistics' | 'categoryStatistics'>;
+type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categories'>;
 
 export const SEARCH_STATS_CACHE = createCacheNamespace('searchStats');
 const SEARCH_STATS_TTL_MS = 24 * 60 * 60 * 1000;
@@ -301,6 +298,7 @@ function getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
     [InputScript.KANJI]: {
       japanese: 10,
       japaneseBaseform: 5,
+      japaneseNormalized: 4,
       japaneseKana: 0,
       english: 1,
       spanish: 1,
@@ -308,6 +306,7 @@ function getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
     [InputScript.KANA]: {
       japanese: 10,
       japaneseBaseform: 5,
+      japaneseNormalized: 4,
       japaneseKana: 3,
       english: 1,
       spanish: 1,
@@ -315,6 +314,7 @@ function getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
     [InputScript.ROMAJI]: {
       japanese: 2,
       japaneseBaseform: 1,
+      japaneseNormalized: 2,
       japaneseKana: 3,
       english: 10,
       spanish: 10,
@@ -347,16 +347,17 @@ function buildSearchStatsCacheKey(request: QuerySearchStatsRequest, parserMode: 
     exactMatch: Boolean(request.exactMatch),
     minLength: request.minLength ?? null,
     maxLength: request.maxLength ?? null,
-    status: normalizeNumberArray(request.status),
+    status: normalizeStringArray(request.status),
     category: normalizeStringArray(request.category),
-    excludedAnimeIds: normalizeNumberArray(request.excludedAnimeIds),
+    excludedMediaIds: normalizeNumberArray(request.excludedMediaIds),
+    mediaIds: normalizeNumberArray(request.mediaIds),
   });
 }
 
 const buildStatisticsFromAggs = (
   aggResponse: estypes.SearchResponse,
   mediaInfoResponse: QueryMediaInfoResponse,
-): StatisticOutput[] => {
+): MediaSearchStatsOutput[] => {
   if (!aggResponse.aggregations || !('group_by_media_id' in aggResponse.aggregations)) {
     return [];
   }
@@ -377,12 +378,12 @@ const buildStatisticsFromAggs = (
       }, {});
 
       return {
-        animeId: mediaBucket['key'],
+        mediaId: mediaBucket['key'],
         category: mediaInfo.category,
-        nameAnimeRomaji: mediaInfo.romajiName,
-        nameAnimeEn: mediaInfo.englishName,
-        nameAnimeJp: mediaInfo.japaneseName,
-        amountSentencesFound: mediaBucket['doc_count'],
+        nameRomaji: mediaInfo.nameRomaji,
+        nameEn: mediaInfo.nameEn,
+        nameJa: mediaInfo.nameJa,
+        segmentCount: mediaBucket['doc_count'],
         episodeHits: episodesWithResults,
       };
     })
@@ -391,7 +392,7 @@ const buildStatisticsFromAggs = (
 
 const buildCategoryStatisticsFromAggs = (
   aggResponse: estypes.SearchResponse,
-): SearchStatisticsOutput['categoryStatistics'] => {
+): SearchStatisticsOutput['categories'] => {
   if (!aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) {
     return [];
   }
@@ -476,8 +477,8 @@ const querySearchStatisticsWithMustQueries = async (
     ]);
 
     return {
-      mediaStatistics: buildStatisticsFromAggs(esMediaStatsResult, mediaInfoResponse),
-      categoryStatistics: buildCategoryStatisticsFromAggs(esCategoryResult),
+      media: buildStatisticsFromAggs(esMediaStatsResult, mediaInfoResponse),
+      categories: buildCategoryStatisticsFromAggs(esCategoryResult),
     };
   });
 };
@@ -504,8 +505,18 @@ const buildSearchMustQueries = (
       must.push({
         function_score: {
           query: { match_all: {} },
-          functions: IMPROVED_LENGTH_TIERS,
-          score_mode: 'first',
+          functions: [
+            {
+              gauss: {
+                characterCount: {
+                  origin: 27,
+                  scale: 6,
+                  decay: 0.5,
+                },
+              },
+            },
+          ],
+          score_mode: 'sum',
           boost_mode: 'replace',
         },
       });
@@ -573,16 +584,16 @@ export const querySegments = async (
     index: INDEX_NAME,
     highlight: {
       fields: {
-        content: {
-          matched_fields: ['content', 'content.kana', 'content.baseform'],
+        contentJa: {
+          matched_fields: ['contentJa', 'contentJa.kana', 'contentJa.baseform', 'contentJa.normalized'],
           type: 'fvh',
         },
-        contentEnglish: {
-          matched_fields: ['contentEnglish', 'contentEnglish.exact'],
+        contentEn: {
+          matched_fields: ['contentEn', 'contentEn.exact'],
           type: 'fvh',
         },
-        contentSpanish: {
-          matched_fields: ['contentSpanish', 'contentSpanish.exact'],
+        contentEs: {
+          matched_fields: ['contentEs', 'contentEs.exact'],
           type: 'fvh',
         },
       },
@@ -605,7 +616,7 @@ export const querySegments = async (
   return withSafeQueryFallback(
     async () => {
       const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
-      return buildSearchAnimeSentencesResponse(esResult, mediaResult);
+      return buildSearchResponse(esResult, mediaResult);
     },
     () => querySegments(request, 'safe'),
     { parserMode, hasQuery, warnContext: { query: request.query }, warnMessage: 'Invalid query syntax; retrying search with safe query parser' },
@@ -665,7 +676,7 @@ export const queryWordsMatched = async (
 
 export const querySurroundingSegments = async (
   request: QuerySurroundingSegmentsRequest,
-): Promise<FetchSentenceContextResponseOutput> => {
+): Promise<SegmentContextResponseOutput> => {
   const contextSearches: estypes.MsearchRequestItem[] = [
     {},
     {
@@ -677,7 +688,7 @@ export const querySurroundingSegments = async (
         },
       ],
       size: request.limit ? request.limit + 1 : 16,
-      query: buildUuidContextQuery(request.mediaId, request.episode, {
+      query: buildUuidContextQuery(request.mediaId, request.episodeNumber, {
         range: {
           position: {
             gte: request.segmentPosition,
@@ -695,7 +706,7 @@ export const querySurroundingSegments = async (
         },
       ],
       size: request.limit || 14,
-      query: buildUuidContextQuery(request.mediaId, request.episode, {
+      query: buildUuidContextQuery(request.mediaId, request.episodeNumber, {
         range: {
           position: {
             lt: request.segmentPosition,
@@ -713,32 +724,32 @@ export const querySurroundingSegments = async (
   const mediaMapData = await Media.getMediaInfoMap();
   const mediaInfo = mediaMapData;
 
-  let previousSegments: SentenceOutput[] = [];
-  let nextSegments: SentenceOutput[] = [];
+  let previousSegments: SearchResultOutput[] = [];
+  let nextSegments: SearchResultOutput[] = [];
   if (esResponse.responses[0].status) {
-    previousSegments = buildSearchAnimeSentencesSegments(
+    previousSegments = buildSearchResultSegments(
       esResponse.responses[0] as estypes.SearchResponseBody,
       mediaInfo,
     );
   }
 
   if (esResponse.responses[1].status) {
-    nextSegments = buildSearchAnimeSentencesSegments(esResponse.responses[1] as estypes.SearchResponseBody, mediaInfo);
+    nextSegments = buildSearchResultSegments(esResponse.responses[1] as estypes.SearchResponseBody, mediaInfo);
   }
   const sortedSegments = [...previousSegments, ...nextSegments].sort(
-    (a, b) => a.segmentInfo.position - b.segmentInfo.position,
+    (a, b) => a.segment.position - b.segment.position,
   );
 
   return {
-    sentences: sortedSegments,
+    segments: sortedSegments,
   };
 };
 
-const buildSearchAnimeSentencesResponse = (
+const buildSearchResponse = (
   esResponse: estypes.SearchResponse,
   mediaInfoResponse: QueryMediaInfoResponse,
 ): SearchResponseOutput => {
-  const sentences: SentenceOutput[] = buildSearchAnimeSentencesSegments(esResponse, mediaInfoResponse);
+  const results: SearchResultOutput[] = buildSearchResultSegments(esResponse, mediaInfoResponse);
 
   let cursor: number[] | undefined;
   if (esResponse.hits.hits.length >= 1) {
@@ -748,56 +759,48 @@ const buildSearchAnimeSentencesResponse = (
     }
   }
 
-  const queryStats = buildQueryStats(esResponse, cursor);
+  const pagination = buildPaginationInfo(esResponse, cursor);
 
   return {
-    sentences,
-    queryStats,
+    results,
+    pagination,
     cursor: cursor ?? undefined,
   } as SearchResponseOutput;
 };
 
-const buildQueryStats = (esResponse: estypes.SearchResponse, cursor?: number[]): QueryStatsOutput => {
+const buildPaginationInfo = (esResponse: estypes.SearchResponse, cursor?: number[]): PaginationInfoOutput => {
   const totalHits = esResponse.hits.total;
   let estimatedTotalHits = 0;
-  let estimatedTotalHitsRelation: 'eq' | 'gte' = 'eq';
+  let estimatedTotalHitsRelation: 'EXACT' | 'LOWER_BOUND' = 'EXACT';
 
   if (typeof totalHits === 'number') {
     estimatedTotalHits = totalHits;
   } else if (totalHits && typeof totalHits === 'object') {
     estimatedTotalHits = totalHits.value;
-    estimatedTotalHitsRelation = totalHits.relation === 'gte' ? 'gte' : 'eq';
+    estimatedTotalHitsRelation = totalHits.relation === 'gte' ? 'LOWER_BOUND' : 'EXACT';
   }
 
   return {
-    returnedCount: esResponse.hits.hits.length,
-    hasMoreResults: Boolean(cursor),
+    pageSize: esResponse.hits.hits.length,
+    hasMore: Boolean(cursor),
     estimatedTotalHits,
     estimatedTotalHitsRelation,
   };
 };
 
-const buildSearchAnimeSentencesSegments = (
+const buildSearchResultSegments = (
   esResponse: estypes.SearchResponse,
   mediaInfoResponse: QueryMediaInfoResponse,
-): SentenceOutput[] => {
-  // Helper to remove empty string properties from an object
-  const removeEmptyStrings = (obj: any) => {
-    Object.keys(obj).forEach((key) => {
-      if (obj[key] === '') delete obj[key];
-    });
-    return obj;
-  };
-
+): SearchResultOutput[] => {
   return esResponse.hits.hits
     .map((hit: any) => {
       const data: any = hit['_source'];
       const highlight: any = hit['highlight'] || {};
       const mediaInfo = mediaInfoResponse.results.get(Number(data['mediaId']));
 
-      const contentJpHighlight = 'content' in highlight ? highlight['content'][0] : '';
-      const contentEnHighlight = 'contentEnglish' in highlight ? highlight['contentEnglish'][0] : '';
-      const contentEsHighlight = 'contentSpanish' in highlight ? highlight['contentSpanish'][0] : '';
+      const jaHighlight = 'contentJa' in highlight ? highlight['contentJa'][0] : undefined;
+      const enHighlight = 'contentEn' in highlight ? highlight['contentEn'][0] : undefined;
+      const esHighlight = 'contentEs' in highlight ? highlight['contentEs'][0] : undefined;
 
       if (!mediaInfo) {
         logger.error({ mediaId: data['mediaId'] }, 'Media Info not found');
@@ -808,7 +811,7 @@ const buildSearchAnimeSentencesSegments = (
       const hashedId = data['hashedId'] || '';
       const storage: 'local' | 'r2' = data['storage'] || 'r2';
 
-      const segment = {
+      const segmentForUrls = {
         mediaId: data['mediaId'],
         episode: data['episode'],
         storage: storage,
@@ -816,48 +819,69 @@ const buildSearchAnimeSentencesSegments = (
       };
 
       // Use storage utility for segment URLs
-      const imagePath = hashedId ? getSegmentImageUrl(segment) : mediaInfo.cover || '';
-      const audioPath = hashedId ? getSegmentAudioUrl(segment) : '';
-      const videoPath = hashedId ? getSegmentVideoUrl(segment) : '';
+      const imageUrl = hashedId ? getSegmentImageUrl(segmentForUrls) : mediaInfo.cover || '';
+      const audioUrl = hashedId ? getSegmentAudioUrl(segmentForUrls) : '';
+      const videoUrl = hashedId ? getSegmentVideoUrl(segmentForUrls) : '';
 
       return {
-        basicInfo: removeEmptyStrings({
-          animeId: data['mediaId'],
-          nameAnimeRomaji: mediaInfo.romajiName,
-          nameAnimeEn: mediaInfo.englishName,
-          nameAnimeJp: mediaInfo.japaneseName,
-          cover: mediaInfo.cover,
-          banner: mediaInfo.banner,
-          episode: data['episode'],
+        media: {
+          mediaId: data['mediaId'],
+          nameRomaji: mediaInfo.nameRomaji,
+          nameEn: mediaInfo.nameEn,
+          nameJa: mediaInfo.nameJa,
+          coverUrl: mediaInfo.cover,
+          bannerUrl: mediaInfo.banner,
           category: mediaInfo.category,
-        }),
-        segmentInfo: removeEmptyStrings({
+        },
+        segment: {
           status: data['status'],
           uuid: data['uuid'],
           position: data['position'],
           startTime: secondsToTime(data['startSeconds']),
           endTime: secondsToTime(data['endSeconds']),
-          contentJp: data['content'],
-          contentJpHighlight,
-          contentEn: data['contentEnglish'],
-          contentEnHighlight,
-          contentEnMt: data['contentEnglishMt'],
-          contentEs: data['contentSpanish'],
-          contentEsHighlight,
-          contentEsMt: data['contentSpanishMt'],
+          episodeNumber: data['episode'],
+          ja: {
+            content: data['contentJa'],
+            ...(jaHighlight ? { highlight: jaHighlight } : {}),
+          },
+          en: {
+            content: data['contentEn'] || undefined,
+            ...(enHighlight ? { highlight: enHighlight } : {}),
+            isMachineTranslated: data['contentEnMt'] ?? false,
+          },
+          es: {
+            content: data['contentEs'] || undefined,
+            ...(esHighlight ? { highlight: esHighlight } : {}),
+            isMachineTranslated: data['contentEsMt'] ?? false,
+          },
           isNsfw: data['isNsfw'],
-          actorJa: data['actorJa'],
-          actorEn: data['actorEn'],
-          actorEs: data['actorEs'],
-        }),
-        mediaInfo: removeEmptyStrings({
-          pathImage: imagePath,
-          pathAudio: audioPath,
-          pathVideo: videoPath,
-        }),
+          morphemes: data['morphemes'] || undefined,
+        },
+        urls: {
+          ...(imageUrl ? { imageUrl } : {}),
+          ...(audioUrl ? { audioUrl } : {}),
+          ...(videoUrl ? { videoUrl } : {}),
+        },
       };
     })
     .filter(notEmpty);
+};
+
+export const querySegmentsByUuids = async (
+  uuids: string[],
+): Promise<SearchResultOutput[]> => {
+  if (uuids.length === 0) return [];
+
+  const esResponse = await client.search({
+    index: INDEX_NAME,
+    size: uuids.length,
+    query: {
+      terms: { uuid: uuids },
+    },
+  });
+
+  const mediaInfo = await Media.getMediaInfoMap();
+  return buildSearchResultSegments(esResponse, mediaInfo);
 };
 
 const buildQueryWordsMatchedResponse = (
@@ -873,11 +897,11 @@ const buildQueryWordsMatchedResponse = (
     esResponse.responses[i] as estypes.SearchResponseBody,
   ])) {
     let isMatch = false;
-    let totalMatches = 0;
+    let matchCount = 0;
 
     if (response.hits !== undefined && response.hits.total !== undefined) {
       isMatch = (response.hits.total as estypes.SearchTotalHits).value > 0;
-      totalMatches = (response.hits.total as estypes.SearchTotalHits).value;
+      matchCount = (response.hits.total as estypes.SearchTotalHits).value;
     }
 
     let media: WordMatchMediaOutput[] = [];
@@ -895,10 +919,10 @@ const buildQueryWordsMatchedResponse = (
 
           return {
             mediaId: mediaInfo.mediaId,
-            englishName: mediaInfo.englishName,
-            japaneseName: mediaInfo.japaneseName,
-            romajiName: mediaInfo.romajiName,
-            matches: bucket['doc_count'],
+            nameEn: mediaInfo.nameEn,
+            nameJa: mediaInfo.nameJa,
+            nameRomaji: mediaInfo.nameRomaji,
+            matchCount: bucket['doc_count'],
           };
         })
         .filter((item: WordMatchMediaOutput | null): item is WordMatchMediaOutput => item !== null);
@@ -907,7 +931,7 @@ const buildQueryWordsMatchedResponse = (
     results.push({
       word,
       isMatch,
-      totalMatches,
+      matchCount,
       media,
     });
   }
@@ -930,8 +954,12 @@ const buildMultiLanguageQuery = (
     query: queryText,
     parserMode,
     analyzeWildcard: true,
-    fields: [`content^${boosts.japanese}`, `content.baseform^${boosts.japaneseBaseform}`],
-    quoteAnalyzer: 'ja_original_search_analyzer',
+    fields: [
+      `contentJa^${boosts.japanese}`,
+      `contentJa.baseform^${boosts.japaneseBaseform}`,
+      `contentJa.normalized^${boosts.japaneseNormalized}`,
+    ],
+    quoteAnalyzer: 'ja_surface_search_analyzer',
     defaultOperator: 'AND',
   });
 
@@ -942,7 +970,7 @@ const buildMultiLanguageQuery = (
       ...buildStringQuery({
         query: queryText,
         parserMode,
-        fields: [`content.kana^${boosts.japaneseKana}`],
+        fields: [`contentJa.kana^${boosts.japaneseKana}`],
         analyzer: 'ja_kana_search_analyzer',
         defaultOperator: 'AND',
       }),
@@ -955,13 +983,13 @@ const buildMultiLanguageQuery = (
         {
           multi_match: {
             query: query,
-            fields: [`contentSpanish.exact^${boosts.spanish}`],
+            fields: [`contentEs.exact^${boosts.spanish}`],
           },
         },
         {
           multi_match: {
             query: query,
-            fields: [`contentEnglish.exact^${boosts.english}`],
+            fields: [`contentEn.exact^${boosts.english}`],
           },
         },
       ],
@@ -974,7 +1002,7 @@ const buildMultiLanguageQuery = (
             query,
             parserMode,
             analyzeWildcard: true,
-            fields: [`contentSpanish^${boosts.spanish}`, 'contentSpanish.exact^1'],
+            fields: [`contentEs^${boosts.spanish}`, 'contentEs.exact^1'],
             defaultOperator: 'AND' as estypes.QueryDslOperator,
             quoteFieldSuffix: '.exact',
           }),
@@ -984,7 +1012,7 @@ const buildMultiLanguageQuery = (
             query,
             parserMode,
             analyzeWildcard: true,
-            fields: [`contentEnglish^${boosts.english}`, 'contentEnglish.exact^1'],
+            fields: [`contentEn^${boosts.english}`, 'contentEn.exact^1'],
             defaultOperator: 'AND' as estypes.QueryDslOperator,
             quoteFieldSuffix: '.exact',
           }),
@@ -1027,8 +1055,10 @@ const buildUuidContextQuery = (
 
 type CommonFiltersRequest = Pick<
   QuerySegmentsRequest,
-  'status' | 'minLength' | 'maxLength' | 'animeId' | 'excludedAnimeIds' | 'episode' | 'category'
->;
+  'status' | 'minLength' | 'maxLength' | 'mediaId' | 'excludedMediaIds' | 'episode' | 'category'
+> & {
+  mediaIds?: number[];
+};
 
 const buildCommonFilters = (
   request: CommonFiltersRequest,
@@ -1042,15 +1072,19 @@ const buildCommonFilters = (
     const rangeFilter: { gte?: number; lte?: number } = {};
     if (request.minLength !== undefined) rangeFilter.gte = request.minLength;
     if (request.maxLength !== undefined) rangeFilter.lte = request.maxLength;
-    filter.push({ range: { contentLength: rangeFilter } });
+    filter.push({ range: { characterCount: rangeFilter } });
   }
 
-  if (request.animeId) {
-    filter.push({ term: { mediaId: request.animeId } });
+  if (request.mediaId) {
+    filter.push({ term: { mediaId: request.mediaId } });
   }
 
-  if (request.excludedAnimeIds && request.excludedAnimeIds.length > 0) {
-    must_not.push({ terms: { mediaId: request.excludedAnimeIds } });
+  if (request.mediaIds && request.mediaIds.length > 0) {
+    filter.push({ terms: { mediaId: request.mediaIds } });
+  }
+
+  if (request.excludedMediaIds && request.excludedMediaIds.length > 0) {
+    must_not.push({ terms: { mediaId: request.excludedMediaIds } });
   }
 
   if (request.episode) {
@@ -1074,7 +1108,10 @@ const buildSortAndRandomScore = (
   // Determine if we're using length-based scoring (no minLength filter)
   const useLengthScoring = request.minLength === undefined;
 
-  if (request.lengthSortOrder === 'random') {
+  // Normalize sort order to lowercase for comparison (API sends uppercase: ASC, DESC, NONE, etc.)
+  const sortOrder = request.lengthSortOrder?.toLowerCase();
+
+  if (sortOrder === 'random') {
     // Generate a deterministic seed based on current day if not provided
     // This allows "random but repeatable" results within the same day
     const seed = request.randomSeed ?? Math.floor(Date.now() / (1000 * 60 * 60 * 24));
@@ -1092,25 +1129,25 @@ const buildSortAndRandomScore = (
         boost_mode: isMatchAll ? 'replace' : 'multiply',
       },
     };
-    sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc', unmapped_type: 'short' } }];
-  } else if (request.lengthSortOrder === 'time_asc') {
+    sort = [{ _score: { order: 'desc' } }, { characterCount: { order: 'asc', unmapped_type: 'short' } }];
+  } else if (sortOrder === 'time_asc') {
     // Sort by time: earliest first (episode -> position)
     sort = [{ episode: { order: 'asc' as estypes.SortOrder } }, { position: { order: 'asc' as estypes.SortOrder } }];
-  } else if (request.lengthSortOrder === 'time_desc') {
+  } else if (sortOrder === 'time_desc') {
     // Sort by time: latest first (episode -> position, descending)
     sort = [{ episode: { order: 'desc' as estypes.SortOrder } }, { position: { order: 'desc' as estypes.SortOrder } }];
-  } else if (!request.lengthSortOrder || request.lengthSortOrder === 'none') {
+  } else if (!sortOrder || sortOrder === 'none') {
     // When browsing media without query and no length filter, sort by length score (25-30 chars prioritized)
-    // Otherwise for match_all with minLength filter, sort by contentLength ascending
+    // Otherwise for match_all with minLength filter, sort by characterCount ascending
     if (isMatchAll && useLengthScoring) {
-      sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc', unmapped_type: 'short' } }];
+      sort = [{ _score: { order: 'desc' } }, { characterCount: { order: 'asc', unmapped_type: 'short' } }];
     } else if (isMatchAll) {
-      sort = [{ contentLength: { order: 'asc', unmapped_type: 'short' } }];
+      sort = [{ characterCount: { order: 'asc', unmapped_type: 'short' } }];
     } else {
-      sort = [{ _score: { order: 'desc' } }, { contentLength: { order: 'asc', unmapped_type: 'short' } }];
+      sort = [{ _score: { order: 'desc' } }, { characterCount: { order: 'asc', unmapped_type: 'short' } }];
     }
   } else {
-    sort = [{ contentLength: { order: request.lengthSortOrder as estypes.SortOrder, unmapped_type: 'short' } }];
+    sort = [{ characterCount: { order: sortOrder as estypes.SortOrder, unmapped_type: 'short' } }];
   }
 
   return { sort: withStableSortTieBreakers(sort), randomScoreQuery };
@@ -1128,41 +1165,26 @@ const buildTextSearchQuery = (
     return {
       function_score: {
         query: baseQuery,
-        functions: IMPROVED_LENGTH_TIERS,
-        score_mode: 'first',
-        boost_mode: 'replace',
+        functions: [
+          {
+            gauss: {
+              characterCount: {
+                origin: 27,
+                offset: 10,
+                scale: 15,
+                decay: 0.5,
+              },
+            },
+          },
+        ],
+        score_mode: 'sum',
+        boost_mode: 'multiply',
       },
     };
   }
 
   return baseQuery;
 };
-
-function buildImprovedLengthTiers(): any[] {
-  const mean = 27;
-  const stddev = 6;
-  const maxScore = 100;
-  const minScore = 10;
-
-  const buckets: any[] = [];
-
-  for (let length = 1; length <= 80; length += 1) {
-    const gaussianScore = maxScore * Math.exp(-0.5 * ((length - mean) / stddev) ** 2);
-    const score = Math.max(minScore, Math.round(gaussianScore));
-
-    buckets.push({
-      filter: { range: { contentLength: { gte: length, lt: length + 1 } } },
-      weight: score,
-    });
-  }
-
-  buckets.push({
-    filter: { range: { contentLength: { gte: 80 } } },
-    weight: minScore,
-  });
-
-  return buckets;
-}
 
 function withStableSortTieBreakers(sort: estypes.Sort): estypes.Sort {
   const sortArray = (Array.isArray(sort) ? [...sort] : [sort]) as Record<string, any>[];

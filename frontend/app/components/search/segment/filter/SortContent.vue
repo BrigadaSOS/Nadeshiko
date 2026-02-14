@@ -27,7 +27,7 @@ const sortContent = async (type) => {
 
   if (type !== previousSort.value) {
     sortType.value = type;
-    await router.push({ query });
+    await router.push({ path: route.path, query });
   } else if (type === 'random') {
     // El sort no ha cambiado, pero es 'random', emitimos el evento
     emit('randomSortSelected');

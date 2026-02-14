@@ -3,9 +3,25 @@ import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@
 
 useSeoMeta({
   title: 'Nadeshiko',
+  description: 'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!',
   ogTitle: 'Nadeshiko',
   ogDescription:
     'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!',
+});
+
+useSchemaOrg([
+  defineWebSite({
+    name: 'Nadeshiko',
+  }),
+  defineSearchAction({
+    target: 'https://nadeshiko.co/search/{search_term_string}',
+  }),
+]);
+
+useHead({
+  link: [
+    { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
+  ],
 });
 const config = useRuntimeConfig();
 
@@ -47,23 +63,23 @@ const {
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
                                                 <NuxtLink class="underline text-blue-400/95 underline-offset-4"
-                                                    to="search/sentence?query=彼女">彼女</NuxtLink>
+                                                    to="/search/彼女">彼女</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionOtherSearch') }}:
                                                 <NuxtLink class="underline text-blue-400/95 underline-offset-4"
-                                                    to="search/sentence?query=school">School</NuxtLink>,
+                                                    to="/search/school">School</NuxtLink>,
                                                 <NuxtLink class="underline text-blue-400/95 underline-offset-4"
-                                                    to="search/sentence?query=escuela">Escuela</NuxtLink>
+                                                    to="/search/escuela">Escuela</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:
                                                 <NuxtLink class="underline text-blue-400/95 underline-offset-4"
-                                                    to="search/sentence?query=卒業 -みんな">卒業 -みんな</NuxtLink>
+                                                    :to="`/search/${encodeURIComponent('卒業 -みんな')}`">卒業 -みんな</NuxtLink>
                                             </li>
                                             <li class="">
                                                 {{ $t('home.nadeDbDescriptionExactSearch') }}:
-                                                <NuxtLink to='search/sentence?query="食べられない"'
+                                                <NuxtLink :to='`/search/${encodeURIComponent(`"食べられない"`)}`'
                                                     class="underline text-blue-400/90 underline-offset-4">"食べられない"
                                                 </NuxtLink>
                                             </li>
@@ -154,7 +170,7 @@ const {
                                                     class="text-2xl font-bold md:text-2xl md:leading-tight dark:text-white">
                                                     {{ $t('animeList.recentlyAddedTitle') }}
                                                 </h1>
-                                                <NuxtLink to="/search/media">
+                                                <NuxtLink to="/media">
                                                     <button type="button"
                                                         class="py-3 px-4 inline-flex justify-center rounded-lg items-center gap-4 transition-all font-medium dark:hover:bg-button-primary-hover align-middle text-sm ">
                                                         {{ $t('animeList.seeAll') }}
@@ -202,13 +218,17 @@ const {
                                                         <NuxtLink
                                                             v-for="(media_info, index) in media.results"
                                                             :key="media_info.id"
-                                                            :to="`/search/sentence?media=${media_info.id}`"
+                                                            :to="`/search?media=${media_info.id}`"
                                                             class="w-full relative">
                                                             <div class="w-full">
                                                                 <div
                                                                     class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.06)] block">
                                                                     <img class="w-full h-full object-cover absolute top-0 left-0"
-                                                                        :src="media_info.cover" />
+                                                                        :src="media_info.cover"
+                                                                        :alt="media_info.englishName"
+                                                                        width="200"
+                                                                        height="290"
+                                                                        loading="lazy" />
                                                                 </div>
                                                             </div>
 
@@ -285,7 +305,7 @@ const {
                                 </div>
                                 <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
                                     <div class="mt-5 w-auto bg-white p-1 rounded-md">
-                                        <a href="https://github.com/BrigadaSOS">
+                                        <a href="https://github.com/BrigadaSOS/Nadeshiko">
                                             <img class="h-10 object-contain" src="/github.png" alt="GitHub" height="48" loading="lazy" />
                                         </a>
                                     </div>

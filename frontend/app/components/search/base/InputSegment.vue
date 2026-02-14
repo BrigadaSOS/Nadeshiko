@@ -12,13 +12,20 @@ const isMobile = computed(() => {
 
 const navigateSearchSentence = async () => {
   const { query: _query, ...restOfQuery } = route.query;
-  await navigateTo({
-    path: '/search/sentence',
-    query: {
-      ...restOfQuery,
-      ...(query.value && { query: query.value }),
-    },
-  });
+  const term = query.value?.trim();
+  const remaining = Object.keys(restOfQuery).length > 0 ? restOfQuery : undefined;
+
+  if (term) {
+    await navigateTo({
+      path: `/search/${encodeURIComponent(term)}`,
+      query: remaining,
+    });
+  } else {
+    await navigateTo({
+      path: '/search',
+      query: remaining,
+    });
+  }
 };
 
 const handleKeyDown = (event) => {
@@ -35,9 +42,12 @@ const handleKeyDown = (event) => {
   }
 };
 
+query.value = route.params.query
+  ? decodeURIComponent(String(route.params.query))
+  : String(route.query.query || '');
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
-  query.value = route.query.query;
 });
 
 onBeforeUnmount(() => {

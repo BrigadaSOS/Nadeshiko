@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class InvalidRequestError extends ApiError {
   readonly code = 'INVALID_REQUEST' as const;

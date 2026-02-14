@@ -5,19 +5,19 @@ properties:
     type: integer
     description: Unique identifier for the media
     example: 110316
-  englishName:
+  nameEn:
     type: string
-    description: English translation of the media name
+    description: English name of the media
     example: "Steins;Gate"
-  japaneseName:
+  nameJa:
     type: string
     description: Original Japanese name of the media
     example: "シュタインズ・ゲート"
-  romajiName:
+  nameRomaji:
     type: string
     description: Romaji transliteration of the media name
     example: "Steins;Gate"
-  matches:
+  matchCount:
     type: integer
     description: Number of times the word appears in this media
     example: 234

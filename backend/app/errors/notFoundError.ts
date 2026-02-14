@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class NotFoundError extends ApiError {
   readonly code = 'NOT_FOUND' as const;

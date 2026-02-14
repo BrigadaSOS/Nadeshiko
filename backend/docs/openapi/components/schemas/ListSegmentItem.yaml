@@ -1,0 +1,26 @@
+type: object
+description: Segment item in a list with ordering and optional note
+required:
+  - segmentUuid
+  - mediaId
+  - position
+properties:
+  segmentUuid:
+    type: string
+    description: UUID of the segment
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  mediaId:
+    type: integer
+    description: Media ID (denormalized from segment)
+    example: 110316
+  position:
+    type: integer
+    description: Position/order in the list
+    example: 1
+    minimum: 1
+  note:
+    type: string
+    nullable: true
+    maxLength: 500
+    description: User annotation for this segment
+    example: "Great example of keigo"

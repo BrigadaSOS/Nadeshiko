@@ -1,0 +1,31 @@
+meta {
+  name: Search by multiple words
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v1/search/words
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "words": [
+      "彼女",
+      "私"
+    ],
+    "exactMatch": false,
+    "exact_match": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

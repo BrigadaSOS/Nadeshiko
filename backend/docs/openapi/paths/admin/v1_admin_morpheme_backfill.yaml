@@ -1,0 +1,35 @@
+post:
+  operationId: morphemeBackfill
+  tags:
+    - Admin
+  summary: Backfill morpheme analysis for segments
+  description: Analyzes segments that are missing morpheme data using the Sudachi sidecar service.
+  responses:
+    "200":
+      description: Backfill completed
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - success
+              - message
+              - stats
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              stats:
+                type: object
+                required:
+                  - totalSegments
+                  - successfulAnalyses
+                  - failedAnalyses
+                properties:
+                  totalSegments:
+                    type: integer
+                  successfulAnalyses:
+                    type: integer
+                  failedAnalyses:
+                    type: integer

@@ -6,7 +6,6 @@ import type {
   SegmentDestroy,
   SegmentShowByUuid,
 } from 'generated/routes/media';
-import type { DeepPartial } from 'typeorm';
 import { v3 as uuidv3 } from 'uuid';
 import { config } from '@config/config';
 import { Segment, Episode } from '@app/models';
@@ -23,12 +22,12 @@ export const segmentIndex: SegmentIndex = async ({ params, query }, respond) => 
   });
 
   const nextCursor = query.cursor + count;
-  const hasMoreResults = count === query.size;
+  const hasMore = count === query.size;
 
   return respond.with200().body({
     data: toSegmentListDTO(segments),
-    cursor: hasMoreResults ? nextCursor : undefined,
-    hasMoreResults,
+    cursor: hasMore ? nextCursor : undefined,
+    hasMore,
   });
 };
 
@@ -38,6 +37,8 @@ export const segmentCreate: SegmentCreate = async ({ params, body }, respond) =>
   const uniqueBaseId = `${params.mediaId}-1-${params.episodeNumber}-${body.position}`;
   const uuid = uuidv3(uniqueBaseId, config.UUID_NAMESPACE);
 
+  const jaContent = body.ja?.content ?? '';
+
   const segment = Segment.create({
     mediaId: params.mediaId,
     uuid,
@@ -45,24 +46,19 @@ export const segmentCreate: SegmentCreate = async ({ params, body }, respond) =>
     status: body.status,
     startTime: body.startTime,
     endTime: body.endTime,
-    content: body.content,
-    contentLength: body.content.length,
-    contentSpanish: body.contentSpanish,
-    contentSpanishMt: body.contentSpanishMt,
-    contentEnglish: body.contentEnglish,
-    contentEnglishMt: body.contentEnglishMt,
+    contentJa: jaContent,
+    characterCount: jaContent.length,
+    contentEs: body.es?.content,
+    contentEsMt: body.es?.isMachineTranslated ?? false,
+    contentEn: body.en?.content,
+    contentEnMt: body.en?.isMachineTranslated ?? false,
     isNsfw: body.isNsfw,
     storage: body.storage,
     hashedId: body.hashedId,
-    actorJa: body.actorJa,
-    actorEs: body.actorEs,
-    actorEn: body.actorEn,
     episode: params.episodeNumber,
   });
 
   await segment.save();
-
-  await Episode.updateSegmentCount(params.mediaId, params.episodeNumber);
 
   return respond.with201().body(toSegmentDTO(segment));
 };
@@ -84,12 +80,23 @@ export const segmentUpdate: SegmentUpdate = async ({ params, body }, respond) =>
     where: { id: params.id as number },
   });
 
-  // Handle contentLength special case before merge
-  if (body.content !== undefined) {
-    segment.contentLength = body.content.length;
+  // Unpack nested body into flat entity fields
+  if (body.ja?.content !== undefined) {
+    segment.contentJa = body.ja.content;
+    segment.characterCount = body.ja.content.length;
   }
+  if (body.en?.content !== undefined) segment.contentEn = body.en.content;
+  if (body.en?.isMachineTranslated !== undefined) segment.contentEnMt = body.en.isMachineTranslated;
+  if (body.es?.content !== undefined) segment.contentEs = body.es.content;
+  if (body.es?.isMachineTranslated !== undefined) segment.contentEsMt = body.es.isMachineTranslated;
+  if (body.status !== undefined) segment.status = body.status as any;
+  if (body.storage !== undefined) segment.storage = body.storage as any;
+  if (body.startTime !== undefined) segment.startTime = body.startTime;
+  if (body.endTime !== undefined) segment.endTime = body.endTime;
+  if (body.position !== undefined) segment.position = body.position;
+  if (body.isNsfw !== undefined) segment.isNsfw = body.isNsfw;
+  if (body.hashedId !== undefined) segment.hashedId = body.hashedId;
 
-  Segment.merge(segment, body as DeepPartial<Segment>);
   await segment.save();
 
   return respond.with200().body(toSegmentDTO(segment));
@@ -105,8 +112,6 @@ export const segmentDestroy: SegmentDestroy = async ({ params }, respond) => {
   });
 
   await segment.softRemove();
-
-  await Episode.updateSegmentCount(params.mediaId, params.episodeNumber);
 
   return respond.with204();
 };

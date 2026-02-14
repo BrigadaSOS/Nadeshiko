@@ -1,102 +1,104 @@
 <script setup lang="ts">
-import { mdiVolumeHigh, mdiTranslate } from '@mdi/js';
+import { mdiVolumeHigh, mdiTranslate, mdiFlagOutline } from '@mdi/js';
 
 import { usePlayerStore } from '~/stores/player';
-import type { Sentence, SentenceSearchResponse } from '~/stores/search';
+import { userStore } from '~/stores/auth';
+import type { SearchResult, SearchResponse } from '~/stores/search';
 
 type Props = {
-  searchData: SentenceSearchResponse | null;
+  searchData: SearchResponse | null;
   isLoading: boolean;
   highlightedPosition?: number | null;
 };
 
-// const props = defineProps(['searchData', 'ankiNotesQuery', 'isLoading']);
 const props = defineProps<Props>();
 const { locale } = useI18n();
-const sentenceList = computed(() => props.searchData?.sentences ?? []);
+const resultList = computed(() => props.searchData?.results ?? []);
 
 const playerStore = usePlayerStore();
-const { isPlaying, currentSentence } = storeToRefs(playerStore);
+const { isPlaying, currentResult } = storeToRefs(playerStore);
+const user = userStore();
 
-const selectedSentence = ref<Sentence | null>(null);
-const searchNoteSentence = ref<Sentence | null>(null);
+const selectedResult = ref<SearchResult | null>(null);
+const searchNoteResult = ref<SearchResult | null>(null);
+const segmentToEdit = ref<SearchResult | null>(null);
+const reportTarget = ref<{ targetId: string; reportType: 'SEGMENT' | 'MEDIA'; mediaName?: string } | null>(null);
 
-type OrderedSegment = {
-  content: 'contentEs' | 'contentEn';
-  highlight: 'contentEsHighlight' | 'contentEnHighlight';
-  mt: 'contentEsMt' | 'contentEnMt';
-};
+type OrderedSegmentLang = 'en' | 'es';
 
 // Order segment according to website language
-const orderedSegments = computed<OrderedSegment[]>(() => {
-  const spanishSegment: OrderedSegment = {
-    content: 'contentEs',
-    highlight: 'contentEsHighlight',
-    mt: 'contentEsMt',
-  };
-  const englishSegment: OrderedSegment = {
-    content: 'contentEn',
-    highlight: 'contentEnHighlight',
-    mt: 'contentEnMt',
-  };
-
+const orderedSegmentLangs = computed<OrderedSegmentLang[]>(() => {
   if (locale.value === 'en') {
-    return [englishSegment, spanishSegment];
+    return ['en', 'es'];
   }
-  return [spanishSegment, englishSegment];
+  return ['es', 'en'];
 });
 
-const openModal = (content: Sentence) => {
-  selectedSentence.value = content;
+const openModal = (content: SearchResult) => {
+  selectedResult.value = content;
 };
 
-const openAnkiModal = (sentence: Sentence) => {
-  searchNoteSentence.value = sentence;
+const openAnkiModal = (result: SearchResult) => {
+  searchNoteResult.value = result;
+};
+
+const openEditModal = (result: SearchResult) => {
+  segmentToEdit.value = result;
+};
+
+const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGMENT') => {
+  reportTarget.value = {
+    targetId: type === 'SEGMENT' ? result.segment.uuid : String(result.media.mediaId),
+    reportType: type,
+    mediaName: result.media.nameEn,
+  };
+};
+
+const onEditSuccess = (updated: SearchResult) => {
+  const list = resultList.value;
+  const idx = list.findIndex((r) => r.segment.uuid === updated.segment.uuid);
+  if (idx !== -1) {
+    list[idx].segment = { ...updated.segment };
+  }
 };
 
 const apiSearch = useApiSearch();
 
-interface IORiginalContent {
-  contentJp: string;
-  contentEn: string;
-  contentEs: string;
-  contentJpHighlight: string;
-  contentEnHighlight: string;
-  contentEsHighlight: string;
+interface IOriginalContent {
+  ja: { content: string; highlight?: string };
+  en: { content?: string; highlight?: string; isMachineTranslated: boolean };
+  es: { content?: string; highlight?: string; isMachineTranslated: boolean };
 }
 
 interface IConcatenation {
-  sentence: Sentence | null;
-  originalContent: IORiginalContent | null;
+  result: SearchResult | null;
+  originalContent: IOriginalContent | null;
 }
 
 let activeConcatenation: IConcatenation = {
-  sentence: null,
+  result: null,
   originalContent: null,
 };
 
 const revertActiveConcatenation = () => {
-  if (activeConcatenation.sentence && activeConcatenation.originalContent) {
+  if (activeConcatenation.result && activeConcatenation.originalContent) {
     // We free the current url/blob
-    if (activeConcatenation.sentence.mediaInfo.blobAudioUrl) {
-      window.URL.revokeObjectURL(activeConcatenation.sentence.mediaInfo.blobAudioUrl);
+    if (activeConcatenation.result.urls.blobAudioUrl) {
+      window.URL.revokeObjectURL(activeConcatenation.result.urls.blobAudioUrl);
     }
 
-    // Revert the sentence info to the original
-    activeConcatenation.sentence.mediaInfo.blobAudioUrl = null;
-    activeConcatenation.sentence.mediaInfo.blobAudio = null;
+    // Revert the result info to the original
+    activeConcatenation.result.urls.blobAudioUrl = null;
+    activeConcatenation.result.urls.blobAudio = null;
 
-    activeConcatenation.sentence.segmentInfo = {
-      ...activeConcatenation.sentence.segmentInfo,
-      contentJp: activeConcatenation.originalContent.contentJp,
-      contentEn: activeConcatenation.originalContent.contentEn,
-      contentEs: activeConcatenation.originalContent.contentEs,
-      contentJpHighlight: activeConcatenation.originalContent.contentJpHighlight,
-      contentEnHighlight: activeConcatenation.originalContent.contentEnHighlight,
-      contentEsHighlight: activeConcatenation.originalContent.contentEsHighlight,
+    activeConcatenation.result.segment = {
+      ...activeConcatenation.result.segment,
+      ja: { ...activeConcatenation.originalContent.ja },
+      en: { ...activeConcatenation.originalContent.en },
+      es: { ...activeConcatenation.originalContent.es },
     };
 
-    activeConcatenation = { sentence: null, originalContent: null };
+    activeConcatenation = { result: null, originalContent: null };
   }
 };
 
@@ -104,60 +106,57 @@ const revertActiveConcatenation = () => {
 const router = useRouter();
 const route = useRoute();
 
-const filterByMedia = (mediaId: number, episode?: number) => {
+const filterByMedia = (mediaId: number, episodeNumber?: number) => {
   const query: Record<string, string | number | string[] | number[] | undefined> = { ...route.query, media: mediaId };
 
   // Clear episode when selecting only media
   delete query.episode;
 
-  if (episode !== undefined) {
-    query.episode = episode;
+  if (episodeNumber !== undefined) {
+    query.episode = episodeNumber;
   }
 
-  router.push({ query });
+  router.push({ path: route.path, query });
 };
 
-const _isConcatenated = (sentence: Sentence) => {
-  return activeConcatenation.sentence === sentence;
+const _isConcatenated = (result: SearchResult) => {
+  return activeConcatenation.result === result;
 };
 
-/// This function is called when the user wants to expand the current sentence
-const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'backward' | 'both') => {
+/// This function is called when the user wants to expand the current segment
+const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'backward' | 'both') => {
   if (props.isLoading) {
     return;
   }
 
-  // Revertir cualquier concatenación activa antes de proceder
+  // Revert any active concatenation before proceeding
   revertActiveConcatenation();
 
   document.querySelectorAll('#concatenate-button').forEach((e) => {
     (e as HTMLButtonElement).disabled = true;
   });
 
-  const audioUrls: string[] = [sentence.mediaInfo.pathAudio];
+  const audioUrls: string[] = [result.urls.audioUrl];
 
   try {
-    const response = await apiSearch.getContextSentence({
-      mediaId: sentence.basicInfo.animeId,
-      episode: sentence.basicInfo.episode,
-      segmentPosition: sentence.segmentInfo.position,
-      limit: 1, // Fetch three sentences: previous, current, and next
+    const response = await apiSearch.getSegmentContext({
+      mediaId: result.media.mediaId,
+      episodeNumber: result.segment.episodeNumber,
+      segmentPosition: result.segment.position,
+      limit: 1, // Fetch three segments: previous, current, and next
     });
 
-    if (response && response.sentences.length > 0) {
-      const previousSentence = response.sentences[0];
-      const nextSentence = response.sentences[2];
+    if (response && response.segments.length > 0) {
+      const previousSegment = response.segments[0];
+      const nextSegment = response.segments[2];
 
       // Save the original content before concatenating
       activeConcatenation = {
-        sentence,
+        result,
         originalContent: {
-          contentJp: sentence.segmentInfo.contentJp,
-          contentEn: sentence.segmentInfo.contentEn,
-          contentEs: sentence.segmentInfo.contentEs,
-          contentJpHighlight: sentence.segmentInfo.contentJpHighlight,
-          contentEnHighlight: sentence.segmentInfo.contentEnHighlight,
-          contentEsHighlight: sentence.segmentInfo.contentEsHighlight,
+          ja: { ...result.segment.ja },
+          en: { ...result.segment.en },
+          es: { ...result.segment.es },
         },
       };
 
@@ -165,66 +164,90 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 
       // Concatenate according to the specified direction
       if (direction === 'forward') {
-        if (!nextSentence) {
+        if (!nextSegment) {
           return;
         }
-        audioUrls.push(nextSentence.mediaInfo.pathAudio);
+        audioUrls.push(nextSegment.urls.audioUrl);
         concatenatedAudio = await concatenateAudios(audioUrls);
 
-        sentence.segmentInfo = {
-          ...sentence.segmentInfo,
-          contentJp: `${sentence.segmentInfo.contentJp} <span class="text-cyan-200">${nextSentence.segmentInfo.contentJp}</span>`,
-          contentEn: `${sentence.segmentInfo.contentEn} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEn}</span>`,
-          contentEs: `${sentence.segmentInfo.contentEs} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEs}</span>`,
-          contentJpHighlight: `${sentence.segmentInfo.contentJpHighlight || sentence.segmentInfo.contentJp} <span class="text-cyan-200">${nextSentence.segmentInfo.contentJpHighlight || nextSentence.segmentInfo.contentJp}</span>`,
-          contentEnHighlight: `${sentence.segmentInfo.contentEnHighlight || sentence.segmentInfo.contentEn} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEnHighlight || nextSentence.segmentInfo.contentEn}</span>`,
-          contentEsHighlight: `${sentence.segmentInfo.contentEsHighlight || sentence.segmentInfo.contentEs} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEsHighlight || nextSentence.segmentInfo.contentEs}</span>`,
+        result.segment = {
+          ...result.segment,
+          ja: {
+            content: `${result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.content}</span>`,
+            highlight: `${result.segment.ja.highlight || result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.highlight || nextSegment.segment.ja.content}</span>`,
+          },
+          en: {
+            ...result.segment.en,
+            content: `${result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.content || ''}</span>`,
+            highlight: `${result.segment.en.highlight || result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.highlight || nextSegment.segment.en.content || ''}</span>`,
+          },
+          es: {
+            ...result.segment.es,
+            content: `${result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.content || ''}</span>`,
+            highlight: `${result.segment.es.highlight || result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.highlight || nextSegment.segment.es.content || ''}</span>`,
+          },
         };
       } else if (direction === 'backward') {
-        if (!previousSentence) {
+        if (!previousSegment) {
           return;
         }
-        audioUrls.unshift(previousSentence.mediaInfo.pathAudio);
+        audioUrls.unshift(previousSegment.urls.audioUrl);
         concatenatedAudio = await concatenateAudios(audioUrls);
 
-        sentence.segmentInfo = {
-          ...sentence.segmentInfo,
-          contentJp: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentJp}</span> ${sentence.segmentInfo.contentJp}`,
-          contentEn: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEn}</span> ${sentence.segmentInfo.contentEn}`,
-          contentEs: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEs}</span> ${sentence.segmentInfo.contentEs}`,
-          contentJpHighlight: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentJpHighlight || previousSentence.segmentInfo.contentJp}</span> ${sentence.segmentInfo.contentJpHighlight || sentence.segmentInfo.contentJp}`,
-          contentEnHighlight: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEnHighlight || previousSentence.segmentInfo.contentEn}</span> ${sentence.segmentInfo.contentEnHighlight || sentence.segmentInfo.contentEn}`,
-          contentEsHighlight: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEsHighlight || previousSentence.segmentInfo.contentEs}</span> ${sentence.segmentInfo.contentEsHighlight || sentence.segmentInfo.contentEs}`,
+        result.segment = {
+          ...result.segment,
+          ja: {
+            content: `<span class="text-cyan-200">${previousSegment.segment.ja.content}</span> ${result.segment.ja.content}`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.ja.highlight || previousSegment.segment.ja.content}</span> ${result.segment.ja.highlight || result.segment.ja.content}`,
+          },
+          en: {
+            ...result.segment.en,
+            content: `<span class="text-cyan-200">${previousSegment.segment.en.content || ''}</span> ${result.segment.en.content || ''}`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.en.highlight || previousSegment.segment.en.content || ''}</span> ${result.segment.en.highlight || result.segment.en.content || ''}`,
+          },
+          es: {
+            ...result.segment.es,
+            content: `<span class="text-cyan-200">${previousSegment.segment.es.content || ''}</span> ${result.segment.es.content || ''}`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.es.highlight || previousSegment.segment.es.content || ''}</span> ${result.segment.es.highlight || result.segment.es.content || ''}`,
+          },
         };
       } else if (direction === 'both') {
-        if (!previousSentence || !nextSentence) {
+        if (!previousSegment || !nextSegment) {
           return;
         }
-        // Expandir en ambas direcciones
-        audioUrls.unshift(previousSentence.mediaInfo.pathAudio);
-        audioUrls.push(nextSentence.mediaInfo.pathAudio);
+        // Expand in both directions
+        audioUrls.unshift(previousSegment.urls.audioUrl);
+        audioUrls.push(nextSegment.urls.audioUrl);
 
         concatenatedAudio = await concatenateAudios(audioUrls);
-        sentence.segmentInfo = {
-          ...sentence.segmentInfo,
-          contentJp: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentJp}</span> ${sentence.segmentInfo.contentJp} <span class="text-cyan-200">${nextSentence.segmentInfo.contentJp}</span>`,
-          contentEn: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEn}</span> ${sentence.segmentInfo.contentEn} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEn}</span>`,
-          contentEs: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEs}</span> ${sentence.segmentInfo.contentEs} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEs}</span>`,
-          contentJpHighlight: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentJp}</span>  ${sentence.segmentInfo.contentJpHighlight || sentence.segmentInfo.contentJp} <span class="text-cyan-200">${nextSentence.segmentInfo.contentJpHighlight || nextSentence.segmentInfo.contentJp}</span>`,
-          contentEnHighlight: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEn}</span> ${sentence.segmentInfo.contentEnHighlight || sentence.segmentInfo.contentEn} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEnHighlight || nextSentence.segmentInfo.contentEn}</span>`,
-          contentEsHighlight: `<span class="text-cyan-200">${previousSentence.segmentInfo.contentEs}</span> ${sentence.segmentInfo.contentEsHighlight || sentence.segmentInfo.contentEs} <span class="text-cyan-200">${nextSentence.segmentInfo.contentEsHighlight || nextSentence.segmentInfo.contentEs}</span>`,
+        result.segment = {
+          ...result.segment,
+          ja: {
+            content: `<span class="text-cyan-200">${previousSegment.segment.ja.content}</span> ${result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.content}</span>`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.ja.content}</span> ${result.segment.ja.highlight || result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.highlight || nextSegment.segment.ja.content}</span>`,
+          },
+          en: {
+            ...result.segment.en,
+            content: `<span class="text-cyan-200">${previousSegment.segment.en.content || ''}</span> ${result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.content || ''}</span>`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.en.content || ''}</span> ${result.segment.en.highlight || result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.highlight || nextSegment.segment.en.content || ''}</span>`,
+          },
+          es: {
+            ...result.segment.es,
+            content: `<span class="text-cyan-200">${previousSegment.segment.es.content || ''}</span> ${result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.content || ''}</span>`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.es.content || ''}</span> ${result.segment.es.highlight || result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.highlight || nextSegment.segment.es.content || ''}</span>`,
+          },
         };
       }
 
       if (concatenatedAudio) {
-        sentence.mediaInfo.blobAudioUrl = concatenatedAudio.blob_url;
-        sentence.mediaInfo.blobAudio = concatenatedAudio.blob;
+        result.urls.blobAudioUrl = concatenatedAudio.blob_url;
+        result.urls.blobAudio = concatenatedAudio.blob;
       }
     }
   } catch (error) {
     // Reset active concatenation
-    activeConcatenation = { sentence: null, originalContent: null };
-    console.error('Error fetching context sentences:', error);
+    activeConcatenation = { result: null, originalContent: null };
+    console.error('Error fetching context segments:', error);
   } finally {
     document.querySelectorAll('#concatenate-button').forEach((e) => {
       (e as HTMLButtonElement).disabled = false;
@@ -233,26 +256,34 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
 };
 </script>
 <template>
-  <div v-if="(searchData?.sentences?.length ?? 0) > 0 && searchData">
+  <div v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
 
-    <SearchModalContext :sentence="selectedSentence" />
+    <SearchModalContext :sentence="selectedResult" />
 
-    <SearchModalAnkiNotes :sentence="searchNoteSentence"
-      :onClick="(sentence: Sentence, id: number) => ankiStore().addSentenceToAnki(sentence, id)" />
+    <SearchModalAnkiNotes :sentence="searchNoteResult"
+      :onClick="(result: SearchResult, id: number) => ankiStore().addSentenceToAnki(result, id)" />
 
-    <div v-for="(sentence, index) in sentenceList" :key="sentence.segmentInfo.uuid"
-      :id="sentence.segmentInfo.uuid"
+    <SearchModalSegmentEdit :segment="segmentToEdit" @update:success="onEditSuccess" />
+
+    <SearchModalReport
+      :targetId="reportTarget?.targetId ?? null"
+      :reportType="reportTarget?.reportType ?? 'SEGMENT'"
+      :mediaName="reportTarget?.mediaName"
+    />
+
+    <div v-for="(result, index) in resultList" :key="result.segment.uuid"
+      :id="result.segment.uuid"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
       :class="{
-        'bg-neutral-800 hover:bg-neutral-800': currentSentence && sentence.segmentInfo.uuid === currentSentence.segmentInfo.uuid,
-        'bg-neutral-800/20': highlightedPosition != null && sentence.segmentInfo.position === highlightedPosition,
+        'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
+        'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
       }">
       <!-- Image -->
       <div class="h-auto shrink-0 w-auto lg:w-[25rem] min-w-[200px] min-h-[140px] flex justify-center">
-        <img loading="lazy" :src="sentence.mediaInfo.pathImage"
-          @click="zoomImage(sentence.mediaInfo.pathImage)"
+        <img loading="lazy" :src="result.urls.imageUrl"
+          @click="zoomImage(result.urls.imageUrl)"
           class="inset-0 h-56 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
-          :key="sentence.mediaInfo.pathImage" />
+          :key="result.urls.imageUrl" />
       </div>
       <!-- End Image -->
 
@@ -262,9 +293,9 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button -->
-            <button @click="playerStore.setPlaylist(sentenceList, index)"
+            <button @click="playerStore.setPlaylist(resultList, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
-              <UiBaseIcon v-if="!(isPlaying && currentSentence && currentSentence.segmentInfo.uuid === sentence.segmentInfo.uuid)" w="w-5" h="h-5" size="24"
+              <UiBaseIcon v-if="!(isPlaying && currentResult && currentResult.segment.uuid === result.segment.uuid)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
               <span v-else
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
@@ -274,9 +305,9 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
               <h3 class=" ml-2 items-start text-xl xxl:text-lg leading-snug">
-                <span v-html="sentence.segmentInfo.contentJpHighlight
-                  ? sentence.segmentInfo.contentJpHighlight
-                  : sentence.segmentInfo.contentJp
+                <span v-html="result.segment.ja.highlight
+                  ? result.segment.ja.highlight
+                  : result.segment.ja.content
                   "></span>
               </h3>
 
@@ -291,7 +322,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
                 $t('searchpage.main.labels.translation') }}</span>
 
             <!-- Tag NSFW -->
-            <span v-if="sentence.segmentInfo.isNsfw"
+            <span v-if="result.segment.isNsfw"
               class="bg-gray-100 mb-1 text-gray-800 text-xs xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/30 dark:text-gray-400 border border-gray-700">
               {{ $t('segment.nsfwTag') }}
             </span>
@@ -304,13 +335,13 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <div class="items-start pb-2 flex-1 justify-center">
             <!-- Spanish and English Sentences -->
             <ul class="ml-5 xxm:ml-8 list-disc text-gray-400">
-              <li class="my-2 text-sm xxl:text-base xxm:text-2xl" v-for="segment in orderedSegments"
-                :key="segment.content">
-                <span v-html="sentence.segmentInfo[segment.highlight]
-                  ? sentence.segmentInfo[segment.highlight]
-                  : sentence.segmentInfo[segment.content]
+              <li class="my-2 text-sm xxl:text-base xxm:text-2xl" v-for="lang in orderedSegmentLangs"
+                :key="lang">
+                <span v-html="result.segment[lang].highlight
+                  ? result.segment[lang].highlight
+                  : result.segment[lang].content
                   "></span>
-                <div v-if="sentence.segmentInfo[segment.mt]" class="nd-tooltip inline-block">
+                <div v-if="result.segment[lang].isMachineTranslated" class="nd-tooltip inline-block">
                   <UiBaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4"
                     h="h-4" size="19" class="ml-2 nd-tooltip-toggle" />
                   <span
@@ -327,8 +358,8 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <!-- Fourth Row -->
           <!-- Buttons  -->
           <div class="flex-1 pb-2">
-            <SearchSegmentActionsContainer :content="sentence" @open-context-modal="openModal"
-              @open-anki-modal="openAnkiModal(sentence)" @concat-sentence="(s, dir) => loadNextSentence(s, dir)" @revert-concat="() => revertActiveConcatenation()" />
+            <SearchSegmentActionsContainer :content="result" @open-context-modal="openModal"
+              @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir)" @revert-concat="() => revertActiveConcatenation()" />
           </div>
           <!-- End Buttons  -->
 
@@ -337,17 +368,26 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
           <div class="flex-1 justify-left">
             <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold my-2">
               <button
-                @click="filterByMedia(sentence.basicInfo.animeId)"
+                @click="filterByMedia(result.media.mediaId)"
                 class="hover:text-white hover:underline transition-colors cursor-pointer">
-                {{ sentence.basicInfo.nameAnimeEn }}
+                {{ result.media.nameEn }}
               </button>
               &bull;
               <button
-                @click="filterByMedia(sentence.basicInfo.animeId, sentence.basicInfo.episode)"
+                @click="filterByMedia(result.media.mediaId, result.segment.episodeNumber)"
                 class="hover:text-white hover:underline transition-colors cursor-pointer">
-                {{ $t('searchpage.main.labels.episode') }} {{ sentence.basicInfo.episode }}
+                {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episodeNumber }}
               </button>
-              &bull; {{ sentence.segmentInfo.startTime.split('.')[0] }}
+              &bull; {{ result.segment.startTime.split('.')[0] }}
+              <button
+                v-if="user.isLoggedIn"
+                class="ml-2 inline-flex items-center hover:text-red-400 transition-colors cursor-pointer"
+                data-nd-overlay="#nd-vertically-centered-scrollable-report"
+                :title="$t('reports.reportMedia')"
+                @click="openReportModal(result, 'MEDIA')"
+              >
+                <UiBaseIcon :path="mdiFlagOutline" w="w-4" h="h-4" size="16" />
+              </button>
             </p>
           </div>
         </div>
@@ -363,7 +403,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       </div>
     </div>
   </div>
-  <div v-else-if="(isLoading && (searchData?.sentences?.length ?? 0) === 0) || !searchData" class="w-full">
+  <div v-else-if="(isLoading && (searchData?.results?.length ?? 0) === 0) || !searchData" class="w-full">
     <div v-for="i in 10" :key="i"
       class="hover:bg-neutral-800/20 mb-11 animate-pulse items-stretch b-2 rounded-lg group transition-all flex flex-col lg:flex-row py-2">
       <!-- Image placeholder  -->
@@ -398,7 +438,7 @@ const loadNextSentence = async (sentence: Sentence, direction: 'forward' | 'back
       </div>
     </div>
   </div>
-  <div v-else-if="!isLoading && (searchData?.sentences?.length ?? 0) === 0">
+  <div v-else-if="!isLoading && (searchData?.results?.length ?? 0) === 0">
     <section class="w-full py-10">
       <div class="container flex items-center px-4 mx-auto">
         <div class="w-full align-top items-center">

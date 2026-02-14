@@ -19,7 +19,8 @@
       "dmca": "DMCA",
       "terms": "Terms and Conditions",
       "contact": "Contact",
-      "settings": "Settings"
+      "settings": "Settings",
+      "blog": "Blog"
     }
   },
   "home": {
@@ -114,18 +115,6 @@
     "exactMatchDescription": "Perform an exact match search, without including conjugations or other results",
     "close": "Close"
   },
-  "reportModal": {
-    "title": "Report a problem",
-    "description1": "The sentences included on this page have been extracted using several automated tools. They go under a quality control before being uploaded, but sometimes sentences might still present issues.",
-    "description2": "If you find an error, please report it using the form below. It will be greatly appreciated.",
-    "reportQuestion": "What is the issue?",
-    "reason1": "Audio and sentence don't match",
-    "reason2": "Audio is off-sync compared to the sentence",
-    "reason3": "Sentence doesn't have audio or image",
-    "reason4": "Image, sentence or audio are not appropriate (NSFW)",
-    "send": "Send report",
-    "close": "Close"
-  },
   "anki": {
     "modal": {
       "title": "Search your collection",
@@ -164,6 +153,22 @@
   },
   "modalContext": {
     "closeSrOnly": "Close"
+  },
+  "modalSegmentEdit": {
+    "title": "Edit Segment",
+    "editButton": "Edit",
+    "japanese": "Japanese",
+    "english": "English",
+    "spanish": "Spanish",
+    "machineTranslated": "Machine translated",
+    "status": "Status",
+    "nsfw": "NSFW content",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "saveSuccess": "Segment updated successfully",
+    "saveError": "Failed to update segment"
   },
   "filterContent": {
     "searchPlaceholder": "Search here"
@@ -355,6 +360,65 @@
     "categoryLiveaction": "Live Action",
     "categoryAudiobook": "Audiobook"
   },
+  "reports": {
+    "title": "My Reports",
+    "modalTitle": "Report an Issue",
+    "reason": "Reason",
+    "selectReason": "Select a reason...",
+    "description": "Description (optional)",
+    "descriptionPlaceholder": "Provide additional details about the issue...",
+    "submit": "Submit Report",
+    "submitting": "Submitting...",
+    "submitSuccess": "Report submitted successfully",
+    "submitError": "Failed to submit report",
+    "cancel": "Cancel",
+    "reportSegment": "Report",
+    "reportMedia": "Report media",
+    "allStatuses": "All statuses",
+    "allTypes": "All types",
+    "noReports": "No reports found",
+    "loading": "Loading...",
+    "loadMore": "Load more",
+    "reasons": {
+      "WRONG_TRANSLATION": "Wrong translation",
+      "WRONG_TIMING": "Wrong timing",
+      "WRONG_AUDIO": "Wrong audio",
+      "NSFW_NOT_TAGGED": "NSFW not tagged",
+      "DUPLICATE_SEGMENT": "Duplicate segment",
+      "WRONG_METADATA": "Wrong metadata",
+      "MISSING_EPISODES": "Missing episodes",
+      "WRONG_COVER_IMAGE": "Wrong cover image",
+      "INAPPROPRIATE_CONTENT": "Inappropriate content",
+      "OTHER": "Other"
+    },
+    "statuses": {
+      "PENDING": "Pending",
+      "ACCEPTED": "Accepted",
+      "REJECTED": "Rejected",
+      "RESOLVED": "Resolved"
+    },
+    "table": {
+      "date": "Date",
+      "type": "Type",
+      "target": "Target",
+      "reason": "Reason",
+      "status": "Status",
+      "description": "Description"
+    },
+    "admin": {
+      "title": "Report Management",
+      "reporter": "Reporter",
+      "count": "Count",
+      "notes": "Admin Notes",
+      "actions": "Actions",
+      "accept": "Accept",
+      "reject": "Reject",
+      "resolve": "Resolve",
+      "save": "Save",
+      "addNote": "Click to add note...",
+      "updateSuccess": "Report updated"
+    }
+  },
   "modalauth": {
     "headers": {
       "auth": "Authentication"
@@ -368,6 +432,41 @@
       "logout": "You are now logged out.",
       "errorlogin400": "Please check your email/password and try again.",
       "closeSrOnly": "Close"
+    }
+  },
+  "lists": {
+    "pageTitle": "Lists",
+    "pageDescription": "Browse and manage your media lists and saved segments",
+    "seriesSection": "Series",
+    "customSection": "Custom Lists",
+    "segmentSection": "Saved Segments",
+    "createList": "Create List",
+    "noLists": "No lists found",
+    "loading": "Loading...",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter a name for your list",
+    "typeLabel": "Type",
+    "visibilityLabel": "Visibility",
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating...",
+    "createError": "Failed to create list",
+    "save": "Save",
+    "noSegmentLists": "No segment lists. Create one first.",
+    "backToLists": "Back to lists",
+    "loadError": "Failed to load list",
+    "confirmDelete": "Are you sure you want to delete this list?",
+    "mediaCount": "media",
+    "segmentCount": "segments",
+    "noSegments": "No saved segments yet",
+    "types": {
+      "SERIES": "Series",
+      "CUSTOM": "Custom",
+      "SEGMENT": "Segments"
+    },
+    "visibility": {
+      "PUBLIC": "Public",
+      "PRIVATE": "Private"
     }
   }
 }

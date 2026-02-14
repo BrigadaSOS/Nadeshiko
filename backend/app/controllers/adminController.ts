@@ -5,6 +5,7 @@ import type {
   RetryQueueJobs,
   GetFailedJobs,
   PurgeFailedJobs,
+  MorphemeBackfill,
 } from 'generated/routes/admin';
 import { reindexSegments, ReindexMediaItem } from '@app/services/elasticsearchSync';
 import {
@@ -17,6 +18,12 @@ import {
 import { Cache } from '@lib/cache';
 import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
 import { NotFoundError } from '@app/errors';
+import { Segment } from '@app/models';
+import { IsNull } from 'typeorm';
+// TEMPORARILY DISABLED - lindera.js dependency removed
+// import { analyzeBatch } from '@app/services/linderaClient';
+import { AppDataSource } from '@config/database';
+import { logger } from '@config/log';
 
 export const reindexElasticsearch: ReindexElasticsearch = async ({ body }, respond) => {
   const media = body?.media?.map(
@@ -82,4 +89,58 @@ export const retryQueueJobs: RetryQueueJobs = async ({ params }, respond) => {
     retriedCount,
     message: `Retried ${retriedCount} failed jobs from ${queueName}`,
   });
+};
+
+export const morphemeBackfill: MorphemeBackfill = async (_1, respond) => {
+  // TEMPORARILY DISABLED - lindera.js dependency removed
+  const errorMessage = 'Morpheme analysis temporarily disabled - lindera.js dependency removed';
+  logger.warn(errorMessage);
+  return respond.with200().body({
+    success: false,
+    message: errorMessage,
+    stats: { totalSegments: 0, successfulAnalyses: 0, failedAnalyses: 0 },
+  });
+
+  // const BATCH_SIZE = 100;
+  // const stats = { totalSegments: 0, successfulAnalyses: 0, failedAnalyses: 0 };
+  //
+  // try {
+  //   const segments = await Segment.find({
+  //     where: { morphemes: IsNull() },
+  //     select: ['id', 'contentJa'],
+  //   });
+  //
+  //   stats.totalSegments = segments.length;
+  //   logger.info(`Morpheme backfill: ${segments.length} segments to process`);
+  //
+  //   for (let i = 0; i < segments.length; i += BATCH_SIZE) {
+  //     const batch = segments.slice(i, i + BATCH_SIZE);
+  //     const items = batch.map((s) => ({ id: String(s.id), text: s.contentJa }));
+  //
+  //     try {
+  //       const results = await analyzeBatch(items);
+  //
+  //       for (const result of results) {
+  //         await AppDataSource.createQueryBuilder()
+  //           .update(Segment)
+  //           .set({ morphemes: result.morphemes })
+  //           .where('id = :id', { id: Number(result.id) })
+  //           .execute();
+  //         stats.successfulAnalyses++;
+  //       }
+  //     } catch (error) {
+  //       logger.error({ err: error, batchStart: i }, 'Morpheme backfill batch failed');
+  //       stats.failedAnalyses += batch.length;
+  //     }
+  //   }
+  //
+  //   const message = `Backfill completed: ${stats.successfulAnalyses}/${stats.totalSegments} segments analyzed`;
+  //   logger.info(message);
+  //
+  //   return respond.with200().body({ success: true, message, stats });
+  // } catch (error) {
+  //   const errorMessage = error instanceof Error ? error.message : String(error);
+  //   logger.error(`Morpheme backfill failed: ${errorMessage}`);
+  //   return respond.with200().body({ success: false, message: errorMessage, stats });
+  // }
 };

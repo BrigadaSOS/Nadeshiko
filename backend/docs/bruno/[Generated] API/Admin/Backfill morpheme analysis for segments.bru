@@ -1,0 +1,20 @@
+meta {
+  name: Backfill morpheme analysis for segments
+  type: http
+  seq: 40
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/morpheme-backfill
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

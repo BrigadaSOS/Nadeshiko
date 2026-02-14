@@ -17,13 +17,6 @@ import { logger } from '@config/log';
 
 const BETTER_AUTH_PREFIX = 'nade_';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
-const LEGACY_MASTER_API_KEY = process.env.API_KEY_MASTER?.trim();
-const SERVICE_API_KEY_IDS = new Set(
-  (process.env.SERVICE_API_KEY_IDS || '')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean),
-);
 
 export const requireSessionAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -92,10 +85,6 @@ function extractBearerToken(req: Request): string | undefined {
   return token.length > 0 ? token : undefined;
 }
 
-function isLegacyMasterApiKey(apiKey: string): boolean {
-  return Boolean(LEGACY_MASTER_API_KEY) && apiKey === LEGACY_MASTER_API_KEY;
-}
-
 const VALID_PERMISSIONS = new Set<string>(Object.values(ApiPermission));
 
 function flattenBetterAuthPermissions(rawPermissions: unknown): ApiPermission[] {
@@ -161,11 +150,7 @@ function mapBetterAuthApiKeyCode(
   return null;
 }
 
-function inferApiKeyKind(apiKey: { id?: string | number; metadata?: unknown }): ApiKeyKind {
-  if (apiKey.id !== undefined && apiKey.id !== null && SERVICE_API_KEY_IDS.has(String(apiKey.id))) {
-    return ApiKeyKind.SERVICE;
-  }
-
+function inferApiKeyKind(apiKey: { metadata?: unknown }): ApiKeyKind {
   const metadata = parseApiKeyMetadata(apiKey.metadata);
   if (!metadata) {
     return ApiKeyKind.USER;
@@ -309,23 +294,19 @@ async function authenticateLegacyApiKey(req: Request, apiKey: string): Promise<v
     throw new AuthCredentialsExpiredError('API key has been deactivated.');
   }
 
-  const isServiceKey = isLegacyMasterApiKey(apiKey) || SERVICE_API_KEY_IDS.has(String(apiAuth.id));
-
   if (apiAuth.userId == null) {
     throw new AuthCredentialsInvalidError('API key has no associated user.');
   }
 
   await attachAuthPayloadToRequest(req, apiAuth.userId, AuthType.API_KEY_LEGACY, {
-    kind: isServiceKey ? ApiKeyKind.SERVICE : ApiKeyKind.USER,
-    permissions: isServiceKey ? Object.values(ApiPermission) : [ApiPermission.READ_MEDIA],
+    kind: ApiKeyKind.USER,
+    permissions: [ApiPermission.READ_MEDIA],
   });
 
-  // Auto-migrate non-service keys to Better Auth — service/master keys stay legacy-only
-  if (!isServiceKey) {
-    migrateLegacyKeyToBetterAuth(apiKey, apiAuth).catch((error) => {
-      logger.warn({ error, apiAuthId: apiAuth.id }, 'Legacy API key migration failed (non-fatal)');
-    });
-  }
+  // Auto-migrate legacy keys to Better Auth
+  migrateLegacyKeyToBetterAuth(apiKey, apiAuth).catch((error) => {
+    logger.warn({ error, apiAuthId: apiAuth.id }, 'Legacy API key migration failed (non-fatal)');
+  });
 }
 
 async function migrateLegacyKeyToBetterAuth(plaintextKey: string, legacyRecord: ApiAuth): Promise<void> {

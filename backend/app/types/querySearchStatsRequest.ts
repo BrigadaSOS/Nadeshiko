@@ -1,4 +1,3 @@
-import { SegmentStatus } from '@app/models';
 import { QuerySegmentsRequest } from './querySegmentsRequest';
 
 export type QuerySearchStatsRequest = {
@@ -7,6 +6,7 @@ export type QuerySearchStatsRequest = {
   readonly exactMatch?: boolean;
   readonly minLength?: number;
   readonly maxLength?: number;
-  readonly excludedAnimeIds?: number[];
-  readonly status: SegmentStatus[];
+  readonly excludedMediaIds?: number[];
+  readonly mediaIds?: number[];
+  readonly status: string[];
 };

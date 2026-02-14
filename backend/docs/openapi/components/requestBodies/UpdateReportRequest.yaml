@@ -1,0 +1,12 @@
+type: object
+properties:
+  status:
+    type: string
+    enum: [PENDING, ACCEPTED, REJECTED, RESOLVED]
+    description: New status for the report
+    example: "ACCEPTED"
+  adminNotes:
+    type: string
+    maxLength: 1000
+    description: Admin notes about the report
+    example: "Confirmed wrong translation, will fix"

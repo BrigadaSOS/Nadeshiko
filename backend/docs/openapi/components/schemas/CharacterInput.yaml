@@ -1,34 +1,34 @@
 type: object
 description: Character data for creating/updating media
 required:
-  - characterId
-  - characterNameJapanese
-  - characterNameEnglish
-  - characterImageUrl
-  - characterRole
+  - id
+  - nameJa
+  - nameEn
+  - imageUrl
+  - role
   - seiyuuId
-  - seiyuuNameJapanese
-  - seiyuuNameEnglish
+  - seiyuuNameJa
+  - seiyuuNameEn
   - seiyuuImageUrl
 properties:
-  characterId:
+  id:
     type: integer
     description: AniList character ID
     example: 14545
-  characterNameJapanese:
+  nameJa:
     type: string
     description: Japanese name of the character
     example: "真城最高"
-  characterNameEnglish:
+  nameEn:
     type: string
     description: English name of the character
     example: "Moritaka Mashiro"
-  characterImageUrl:
+  imageUrl:
     type: string
     format: uri
     description: Character image URL
     example: "https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg"
-  characterRole:
+  role:
     type: string
     enum: [MAIN, SUPPORTING, BACKGROUND]
     description: Character's role in the media
@@ -37,11 +37,11 @@ properties:
     type: integer
     description: AniList staff ID for the Japanese voice actor
     example: 95991
-  seiyuuNameJapanese:
+  seiyuuNameJa:
     type: string
     description: Japanese name of the voice actor
     example: "阿部敦"
-  seiyuuNameEnglish:
+  seiyuuNameEn:
     type: string
     description: English name of the voice actor
     example: "Atsushi Abe"

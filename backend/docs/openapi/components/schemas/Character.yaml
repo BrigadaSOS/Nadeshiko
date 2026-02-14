@@ -2,8 +2,8 @@ type: object
 description: Anime character
 required:
   - id
-  - nameJapanese
-  - nameEnglish
+  - nameJa
+  - nameEn
   - imageUrl
   - seiyuu
 properties:
@@ -11,11 +11,11 @@ properties:
     type: integer
     description: AniList character ID
     example: 14545
-  nameJapanese:
+  nameJa:
     type: string
     description: Japanese name of the character
     example: "真城最高"
-  nameEnglish:
+  nameEn:
     type: string
     description: English name of the character
     example: "Moritaka Mashiro"

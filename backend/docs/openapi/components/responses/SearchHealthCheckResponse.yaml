@@ -1,11 +1,11 @@
 type: object
 properties:
-  sentences:
+  results:
     type: array
     items:
-      $ref: "../schemas/Sentence.yaml"
-  queryStats:
-    $ref: "../schemas/QueryStats.yaml"
+      $ref: "../schemas/SearchResult.yaml"
+  pagination:
+    $ref: "../schemas/PaginationInfo.yaml"
   cursor:
     type: array
     items:

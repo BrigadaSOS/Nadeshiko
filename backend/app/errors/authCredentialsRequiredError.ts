@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class AuthCredentialsRequiredError extends ApiError {
   readonly code = 'AUTH_CREDENTIALS_REQUIRED' as const;
