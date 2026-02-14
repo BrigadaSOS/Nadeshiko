@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class InternalServerError extends ApiError {
   readonly code = 'INTERNAL_SERVER_EXCEPTION' as const;

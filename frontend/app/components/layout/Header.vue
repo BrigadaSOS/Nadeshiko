@@ -50,6 +50,10 @@ function openLoginModal() {
                             class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
                             {{ $t("navbar.buttons.about") }}
                         </NuxtLink>
+                        <NuxtLink to="/blog"
+                            class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                            {{ $t("navbar.buttons.blog") }}
+                        </NuxtLink>
                         <NuxtLink to="/api/v1/docs"
                             class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
                             API
@@ -70,7 +74,7 @@ function openLoginModal() {
                                 </g>
                             </svg>
                         </a>
-                        <a href="https://github.com/BrigadaSOS/BrigadaSOS-db"
+                        <a href="https://github.com/BrigadaSOS/Nadeshiko"
                             class="hidden lg:flex mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                             target="_blank" aria-label="Github">
                             <svg class="w-5 h-5 fill-white" viewBox="0 0 24 24" fill="none"

@@ -16,9 +16,9 @@ export interface MediaInfoData {
   categoryName: string; // Same as category - for backwards compatibility
   createdAt: string;
   updatedAt?: number;
-  romajiName: string;
-  englishName: string;
-  japaneseName: string;
+  nameRomaji: string;
+  nameEn: string;
+  nameJa: string;
   airingFormat: string;
   airingStatus: string;
   startDate: string;
@@ -28,6 +28,6 @@ export interface MediaInfoData {
   cover: string;
   banner: string;
   version: string;
-  numSegments: number;
-  numEpisodes: number;
+  segmentCount: number;
+  episodeCount: number;
 }

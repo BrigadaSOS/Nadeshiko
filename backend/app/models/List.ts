@@ -2,10 +2,12 @@ import { Entity, PrimaryColumn, Column, OneToMany, ManyToOne, JoinColumn, Index 
 import { BaseEntity } from './base.entity';
 import type { User } from './User';
 import type { ListItem } from './ListItem';
+import type { ListSegmentItem } from './ListSegmentItem';
 
 export enum ListType {
   SERIES = 'SERIES',
   CUSTOM = 'CUSTOM',
+  SEGMENT = 'SEGMENT',
 }
 
 export enum ListVisibility {
@@ -45,4 +47,7 @@ export class List extends BaseEntity {
 
   @OneToMany('ListItem', 'list')
   items!: ListItem[];
+
+  @OneToMany('ListSegmentItem', 'list')
+  segmentItems!: ListSegmentItem[];
 }

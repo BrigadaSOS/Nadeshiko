@@ -9,6 +9,11 @@ export interface EsSyncJobData {
   operation: 'CREATE' | 'UPDATE' | 'DELETE';
 }
 
+export interface MorphemeJobData {
+  segmentId: number;
+  operation: 'CREATE' | 'UPDATE';
+}
+
 export interface EmailJobData {
   to: string;
   subject: string;
@@ -105,6 +110,17 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
       },
     },
     {
+      name: 'morpheme-analyze',
+      options: {
+        retryLimit: 5,
+        retryDelay: 5000,
+        retryBackoff: true,
+        expireIn: 3600,
+        completedRetentionDays: 1,
+        failedRetentionDays: 7,
+      },
+    },
+    {
       name: 'email-send',
       options: {
         retryLimit: 5,
@@ -154,6 +170,23 @@ export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null>
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`Failed to enqueue ES sync job: ${errorMessage}`);
+    return null;
+  }
+}
+
+/**
+ * Send a morpheme analysis job with deduplication by segmentId.
+ */
+export async function sendMorphemeJob(data: MorphemeJobData): Promise<string | null> {
+  const boss = getPgBoss();
+
+  try {
+    const jobId = await boss.sendDebounced('morpheme-analyze', data, null, 1, `${data.segmentId}`);
+    logger.info(`Enqueued morpheme job ${jobId} for segment ${data.segmentId} (${data.operation})`);
+    return jobId;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to enqueue morpheme job: ${errorMessage}`);
     return null;
   }
 }

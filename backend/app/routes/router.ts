@@ -1,15 +1,16 @@
 import express from 'express';
 import { requireApiKeyAuth, requireSessionAuth } from '@app/middleware/authentication';
+import { AuthType } from '@app/models/ApiPermission';
 import { requirePermissions } from '@app/middleware/authorization';
 import { ApiPermission } from '@app/models/ApiPermission';
 import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
 import {
-  searchHealthCheck,
-  search,
-  fetchSearchStats,
-  searchMultiple,
-  fetchSentenceContext,
-  fetchMediaInfo,
+  healthCheck,
+  searchSegments,
+  getSearchStats,
+  searchWords,
+  getSegmentContext,
+  browseMedia,
 } from '@app/controllers/searchController';
 import {
   reindexElasticsearch,
@@ -18,6 +19,7 @@ import {
   retryQueueJobs,
   getFailedJobs,
   purgeFailedJobs,
+  morphemeBackfill,
 } from '@app/controllers/adminController';
 import { impersonateUserForDevelopment, clearDevelopmentImpersonation } from '@app/controllers/devAuthController';
 import { isLocalEnvironment } from '@config/environment';
@@ -33,6 +35,10 @@ import {
   listAddItem,
   listUpdateItem,
   listRemoveItem,
+  listGetSegments,
+  listAddSegment,
+  listUpdateSegment,
+  listRemoveSegment,
 } from '@app/controllers/listController';
 import {
   episodeIndex,
@@ -50,6 +56,7 @@ import {
   segmentShowByUuid,
 } from '@app/controllers/segmentController';
 import { getUserQuota } from '@app/controllers/userQuotaController';
+import { createReport, getUserReports, getAdminReports, updateReport } from '@app/controllers/reportController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
 import { createRouter as createListsRouter } from 'generated/routes/lists';
@@ -59,12 +66,12 @@ import { createRouter as createUserRouter } from 'generated/routes/user';
 const router = express.Router();
 
 const SearchRoutes = createSearchRouter({
-  searchHealthCheck,
-  search,
-  fetchSearchStats,
-  searchMultiple,
-  fetchSentenceContext,
-  fetchMediaInfo,
+  healthCheck,
+  searchSegments,
+  getSearchStats,
+  searchWords,
+  getSegmentContext,
+  browseMedia,
 });
 
 const MediaRoutes = createMediaRouter({
@@ -97,6 +104,10 @@ const ListsRoutes = createListsRouter({
   listAddItem,
   listUpdateItem,
   listRemoveItem,
+  listGetSegments,
+  listAddSegment,
+  listUpdateSegment,
+  listRemoveSegment,
 });
 
 const AdminRoutes = createAdminRouter({
@@ -106,10 +117,15 @@ const AdminRoutes = createAdminRouter({
   getFailedJobs,
   purgeFailedJobs,
   retryQueueJobs,
+  morphemeBackfill,
+  getAdminReports,
+  updateReport,
 });
 
 const UserRoutes = createUserRouter({
   getUserQuota,
+  createReport,
+  getUserReports,
 });
 
 const apiKeyOnly = [requireApiKeyAuth, rateLimitApiQuota] as const;
@@ -136,7 +152,22 @@ router.use('/v1/user', requireSessionAuth);
 router.use('/v1/search', ...searchAccess);
 router.use('/v1/admin', ...adminAccess);
 router.use('/v1/media', ...apiKeyOnly);
-router.use('/v1/lists', ...apiKeyOnly);
+// Lists support both API key and session auth
+const requireApiKeyOrSession = async (req: any, res: any, next: any) => {
+  const hasBearer = req.headers.authorization?.startsWith('Bearer ');
+  if (hasBearer) {
+    return requireApiKeyAuth(req, res, next);
+  }
+  return requireSessionAuth(req, res, next);
+};
+router.use('/v1/lists', requireApiKeyOrSession);
+router.use('/v1/lists', (req: any, _res: any, next: any) => {
+  // Only apply rate limiting for API key auth
+  if (req.auth?.type !== AuthType.SESSION) {
+    return rateLimitApiQuota(req, _res, next);
+  }
+  next();
+});
 
 router.get('/v1/media', ...mediaReadPermission);
 router.get('/v1/media/*path', ...mediaReadPermission);

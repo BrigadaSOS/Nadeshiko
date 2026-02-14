@@ -15,17 +15,21 @@ import {
   mdiTransferLeft,
   mdiArrowExpandHorizontal,
   mdiTransferRight,
+  mdiPencilOutline,
+  mdiFlagOutline,
 } from '@mdi/js';
 
 import { ankiStore } from '@/stores/anki';
-import type { Sentence } from '@/stores/search';
+import { userStore } from '@/stores/auth';
+import type { SearchResult } from '@/stores/search';
 
 type Props = {
-  content: Sentence;
+  content: SearchResult;
 };
 
 const props = defineProps<Props>();
 const anki = ankiStore();
+const user = userStore();
 const isAnkiConfigured = ref(false);
 
 onMounted(() => {
@@ -33,7 +37,7 @@ onMounted(() => {
   isAnkiConfigured.value = current.deck !== null && current.model !== null && current.fields.length > 0;
 });
 
-const emit = defineEmits(['open-context-modal', 'open-anki-modal', 'concat-sentence', 'revert-concat']);
+const emit = defineEmits(['open-context-modal', 'open-anki-modal', 'concat-sentence', 'revert-concat', 'open-edit-modal', 'open-report-modal']);
 
 const concatSentence = (direction: 'forward' | 'backward' | 'both') => {
   emit('concat-sentence', props.content, direction);
@@ -91,17 +95,17 @@ const openAnkiModal = () => {
     <template #content>
       <SearchDropdownContent>
         <SearchDropdownItem
-          @click="downloadAudioOrImage(content.mediaInfo.pathVideo, content.mediaInfo.pathVideo.split('/').pop()!)"
+          @click="downloadAudioOrImage(content.urls.videoUrl, content.urls.videoUrl.split('/').pop()!)"
           :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
         <SearchDropdownItem
-          @click="downloadAudioOrImage(content.mediaInfo.pathImage, content.mediaInfo.pathImage.split('/').pop()!)"
+          @click="downloadAudioOrImage(content.urls.imageUrl, content.urls.imageUrl.split('/').pop()!)"
           :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
         <SearchDropdownItem
-          @click="downloadAudioOrImage(content.mediaInfo.pathAudio, content.mediaInfo.pathAudio.split('/').pop()!)"
+          @click="downloadAudioOrImage(content.urls.audioUrl, content.urls.audioUrl.split('/').pop()!)"
           :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
         <SearchDropdownItem
-          v-if="content.mediaInfo.blobAudioUrl"
-          @click="downloadAudioOrImage(content.mediaInfo.blobAudioUrl, 'expanded_'+content.mediaInfo.pathAudio.split('/').pop()!, true)"
+          v-if="content.urls.blobAudioUrl"
+          @click="downloadAudioOrImage(content.urls.blobAudioUrl, 'expanded_'+content.urls.audioUrl.split('/').pop()!, true)"
           :text="$t('searchpage.main.buttons.dl-expanded')" :iconPath="mdiVolumeHigh" />
       </SearchDropdownContent>
     </template>
@@ -116,20 +120,20 @@ const openAnkiModal = () => {
     </template>
     <template #content>
       <SearchDropdownContent>
-        <SearchDropdownItem @click="copyToClipboard(content.mediaInfo.pathVideo)"
+        <SearchDropdownItem @click="copyToClipboard(content.urls.videoUrl)"
           :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
-        <SearchDropdownItem @click="copyToClipboard(content.mediaInfo.pathImage)"
+        <SearchDropdownItem @click="copyToClipboard(content.urls.imageUrl)"
           :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
-        <SearchDropdownItem @click="copyToClipboard(content.mediaInfo.pathAudio)"
+        <SearchDropdownItem @click="copyToClipboard(content.urls.audioUrl)"
           :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
         <div
           class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
         </div>
-        <SearchDropdownItem @click="copyToClipboard(content.segmentInfo.contentJp)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.ja.content)"
           :text="$t('searchpage.main.buttons.jpsentence')" :iconPath="mdiText" />
-        <SearchDropdownItem @click="copyToClipboard(content.segmentInfo.contentEn)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.en.content)"
           :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
-        <SearchDropdownItem @click="copyToClipboard(content.segmentInfo.contentEs)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.es.content)"
           :text="$t('searchpage.main.buttons.essentence')" :iconPath="mdiText" />
       </SearchDropdownContent>
     </template>
@@ -141,6 +145,23 @@ const openAnkiModal = () => {
     {{ $t('searchpage.main.buttons.context') }}
   </UiButtonPrimaryAction>
 
+  <UiButtonPrimaryAction
+    v-if="user.isAdmin"
+    data-nd-overlay="#nd-vertically-centered-scrollable-segment-edit"
+    class="mr-2 text-xs py-2.5 px-3"
+    @click="emit('open-edit-modal', content)"
+  >
+    <UiBaseIcon :path="mdiPencilOutline" />
+    {{ $t('modalSegmentEdit.editButton') }}
+  </UiButtonPrimaryAction>
+
+  <ClientOnly>
+    <ListsSaveToListButton
+      v-if="user.isLoggedIn"
+      :segmentUuid="content.segment.uuid"
+    />
+  </ClientOnly>
+
   <SearchDropdownContainer class="mr-2 my-1" dropdownId="nd-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
@@ -150,8 +171,8 @@ const openAnkiModal = () => {
     <template #content>
       <SearchDropdownContent>
         <SearchDropdownItem :text="$t('searchpage.main.buttons.share')" :iconPath="mdiShareVariantOutline"
-          @click="getSharingURL(content.segmentInfo.uuid)" />
-        <SearchDropdownItem v-if="content.mediaInfo.blobAudioUrl" :text="$t('segment.revert')" :iconPath="mdiClose"
+          @click="getSharingURL(content.segment.uuid)" />
+        <SearchDropdownItem v-if="content.urls.blobAudioUrl" :text="$t('segment.revert')" :iconPath="mdiClose"
           @click="revertConcat" />
         <SearchDropdownItem :text="$t('searchpage.main.buttons.expandLeft')" :iconPath="mdiTransferLeft"
           @click="concatSentence('backward')" />
@@ -159,6 +180,14 @@ const openAnkiModal = () => {
           @click="concatSentence('both')" />
         <SearchDropdownItem :text="$t('searchpage.main.buttons.expandRight')" :iconPath="mdiTransferRight"
           @click="concatSentence('forward')" />
+        <template v-if="user.isLoggedIn">
+          <div
+            class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
+          </div>
+          <SearchDropdownItem :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
+            data-nd-overlay="#nd-vertically-centered-scrollable-report"
+            @click="emit('open-report-modal', content)" />
+        </template>
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>

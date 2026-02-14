@@ -13,6 +13,7 @@ import {
   MediaCharacter,
   List,
   ListItem,
+  ListSegmentItem,
 } from '@app/models';
 import { SegmentSubscriber } from '@app/subscribers';
 import { getAppPostgresConfig } from '@config/postgresConfig';
@@ -40,6 +41,7 @@ export const AppDataSource = new DataSource({
     MediaCharacter,
     List,
     ListItem,
+    ListSegmentItem,
   ],
   subscribers: [SegmentSubscriber],
   migrations: ['./db/migrations/**/*.ts'],

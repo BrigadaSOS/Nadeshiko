@@ -5,6 +5,13 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
 };
 
 export default defineNuxtConfig({
+  app: {
+    head: {
+      link: [
+        { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
+      ],
+    },
+  },
   devtools: {
     enabled: process.env.NODE_ENV === 'dev',
 
@@ -34,7 +41,25 @@ export default defineNuxtConfig({
     '@nuxt/content',
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
+    '@nuxtjs/seo',
   ],
+  site: {
+    url: 'https://nadeshiko.co',
+    name: 'Nadeshiko',
+  },
+  robots: {
+    groups: [
+      {
+        userAgent: '*',
+        allow: ['/', '/search', '/media', '/sentence'],
+        disallow: ['/settings', '/api/', '/v1/'],
+      },
+    ],
+    sitemap: 'https://nadeshiko.co/sitemap.xml',
+  },
+  sitemap: {
+    urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media'],
+  },
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',
   },

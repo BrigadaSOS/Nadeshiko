@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class InsufficientPermissionsError extends ApiError {
   readonly code = 'INSUFFICIENT_PERMISSIONS' as const;

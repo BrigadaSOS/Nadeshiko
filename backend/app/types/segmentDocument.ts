@@ -1,20 +1,24 @@
+import type { MorphemeData } from '@app/types/morpheme';
+
+// Field names match the ES index mapping in elasticsearch-schema.json
 export interface SegmentDocument {
   uuid: string;
   position: number;
-  status: number;
+  status: string;
   startSeconds: number;
   endSeconds: number;
   durationSeconds: number;
-  content: string;
-  contentLength: number;
-  contentSpanish?: string; // Optional - may not exist
-  contentSpanishMt: boolean; // Required - has default false in DB
-  contentEnglish?: string; // Optional - may not exist
-  contentEnglishMt: boolean; // Required - has default false in DB
+  contentJa: string;
+  characterCount: number;
+  contentEs?: string;
+  contentEsMt: boolean;
+  contentEn?: string;
+  contentEnMt: boolean;
   isNsfw: boolean;
-  storage: 'local' | 'r2';
+  storage: string;
   hashedId: string;
   category: string; // "ANIME", "JDRAMA"
   episode: number;
   mediaId: number;
+  morphemes?: MorphemeData[];
 }

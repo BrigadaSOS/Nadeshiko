@@ -1,0 +1,29 @@
+meta {
+  name: Get context for a segment
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/search/context
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "mediaId": 110316,
+    "episodeNumber": 5,
+    "segmentPosition": 1133,
+    "limit": 5
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

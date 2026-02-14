@@ -17,7 +17,7 @@ properties:
     example: "Bakuman Series"
   type:
     type: string
-    enum: [SERIES, CUSTOM]
+    enum: [SERIES, CUSTOM, SEGMENT]
     description: Type of list
     example: "SERIES"
   userId:

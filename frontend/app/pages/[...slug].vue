@@ -2,6 +2,8 @@
 const route = useRoute();
 const { locale } = useI18n();
 
+const isBlogPost = computed(() => route.path.startsWith('/blog/'));
+
 async function fetchContent() {
   try {
     return await queryCollection('content').path(`/${locale.value.toLowerCase()}${route.path}`).first();
@@ -32,6 +34,18 @@ useHead({
               <p class="text-gray-400">{{ $t('contentPage.emptyMessage') }}</p>
             </template>
           </ContentRenderer>
+
+          <div v-if="isBlogPost" class="mt-10 pt-6 border-t border-gray-800">
+            <NuxtLink
+              to="/blog"
+              class="inline-flex items-center gap-2 text-sm font-semibold text-[#ef5552] hover:text-[#ef5552]/80 transition-colors duration-200 group"
+            >
+              <svg class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Back to Blog</span>
+            </NuxtLink>
+          </div>
         </div>
       </div>
     </div>

@@ -26,13 +26,13 @@ export class Media extends BaseEntity {
   anilistId!: number;
 
   @Column({ name: 'japanese_name', type: 'varchar' })
-  japaneseName!: string;
+  nameJa!: string;
 
   @Column({ name: 'romaji_name', type: 'varchar' })
-  romajiName!: string;
+  nameRomaji!: string;
 
   @Column({ name: 'english_name', type: 'varchar' })
-  englishName!: string;
+  nameEn!: string;
 
   @Column({ name: 'airing_format', type: 'varchar' })
   airingFormat!: string;
@@ -44,7 +44,7 @@ export class Media extends BaseEntity {
   genres!: string[];
 
   @Column({ name: 'storage', type: 'varchar' })
-  storage!: 'local' | 'r2';
+  storage!: 'LOCAL' | 'R2';
 
   @Column({ name: 'start_date', type: 'date' })
   startDate!: string; // Format: YYYY-MM-DD
@@ -70,7 +70,7 @@ export class Media extends BaseEntity {
   category!: CategoryType;
 
   @Column({ name: 'num_segments', type: 'int', default: 0 })
-  numSegments!: number;
+  segmentCount!: number;
 
   @Column({ type: 'varchar' })
   version!: string;
@@ -114,7 +114,7 @@ export class Media extends BaseEntity {
       for (const media of allMedia) {
         const info = Media.toMediaInfoData(media);
         mediaMap.set(media.id, info);
-        totalSegments += info.numSegments ?? 0;
+        totalSegments += info.segmentCount ?? 0;
       }
 
       const stats = await Media.getGlobalStats();
@@ -157,7 +157,7 @@ export class Media extends BaseEntity {
     for (const m of media) {
       const info = Media.toMediaInfoData(m);
       results[m.id] = info;
-      totalSegments += info.numSegments ?? 0;
+      totalSegments += info.segmentCount ?? 0;
     }
 
     // Get global stats
@@ -189,19 +189,6 @@ export class Media extends BaseEntity {
     };
   }
 
-  static async updateSegmentCount(mediaId: number): Promise<void> {
-    await Media.createQueryBuilder()
-      .update()
-      .set({
-        numSegments: () => `(SELECT COUNT(*) FROM "Segment" WHERE "media_id" = :mediaId AND "status" != 0)`,
-      })
-      .where('id = :mediaId')
-      .setParameter('mediaId', mediaId)
-      .execute();
-
-    Cache.invalidate(MEDIA_INFO_CACHE);
-  }
-
   private static toMediaInfoData(media: Media): MediaInfoData {
     return {
       mediaId: media.id,
@@ -209,9 +196,9 @@ export class Media extends BaseEntity {
       categoryName: media.category, // Same as category - for backwards compatibility
       createdAt: media.createdAt.toISOString(),
       updatedAt: media.updatedAt ? media.updatedAt.getTime() : undefined,
-      romajiName: media.romajiName,
-      englishName: media.englishName,
-      japaneseName: media.japaneseName,
+      nameRomaji: media.nameRomaji,
+      nameEn: media.nameEn,
+      nameJa: media.nameJa,
       airingFormat: media.airingFormat,
       airingStatus: media.airingStatus,
       genres: media.genres,
@@ -219,10 +206,10 @@ export class Media extends BaseEntity {
       banner: getMediaBannerUrl(media),
       startDate: media.startDate as string, // YYYY-MM-DD format
       endDate: media.endDate as string | undefined, // YYYY-MM-DD format
-      folderMediaName: media.romajiName.replace(/[^a-zA-Z0-9]/g, '_'),
+      folderMediaName: media.nameRomaji.replace(/[^a-zA-Z0-9]/g, '_'),
       version: media.version,
-      numSegments: media.numSegments,
-      numEpisodes: media.episodes?.length ?? 0,
+      segmentCount: media.segmentCount,
+      episodeCount: media.episodes?.length ?? 0,
     };
   }
 }

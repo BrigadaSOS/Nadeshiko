@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class AccessDeniedError extends ApiError {
   readonly code = 'ACCESS_DENIED' as const;

@@ -15,19 +15,19 @@ const getContextSentence = async () => {
   finalsentences.value = [];
 
   try {
-    const response = await apiSearch.getContextSentence({
-      mediaId: props.sentence.basicInfo.animeId,
-      episode: props.sentence.basicInfo.episode,
-      segmentPosition: props.sentence.segmentInfo.position,
+    const response = await apiSearch.getSegmentContext({
+      mediaId: props.sentence.media.mediaId,
+      episodeNumber: props.sentence.segment.episodeNumber,
+      segmentPosition: props.sentence.segment.position,
       limit: 15,
     });
-    finalsentences.value = response;
-    highlightedPosition.value = props.sentence.segmentInfo.position;
+    finalsentences.value = { results: response.segments, cursor: null };
+    highlightedPosition.value = props.sentence.segment.position;
     await nextTick();
 
-    const match = response?.sentences?.find((s: any) => s.segmentInfo.position === props.sentence.segmentInfo.position);
+    const match = response?.segments?.find((s: any) => s.segment.position === props.sentence.segment.position);
     if (match) {
-      scrollToElement(match.segmentInfo.uuid);
+      scrollToElement(match.segment.uuid);
     }
   } catch (error) {
     console.error('Error fetching context sentences:', error);
@@ -63,7 +63,7 @@ const scrollToElement = (pos) => {
       <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
         <h3 class="font-bold text-gray-800 dark:text-white">
           {{ t('searchpage.modalcontext.labels.context') }} - {{
-            finalsentences?.sentences?.[0]?.basicInfo?.nameAnimeEn }}
+            finalsentences?.results?.[0]?.media?.nameEn }}
         </h3>
         <button type="button"
           class="nd-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"

@@ -12,6 +12,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  listMediaIds: {
+    type: Array,
+    default: null,
+  },
 });
 
 const { t } = useI18n();
@@ -46,17 +50,17 @@ const searchData = computed(() => {
   const statsPayload = statsData.value || {};
 
   return {
-    sentences: sentencePayload.sentences || [],
+    results: sentencePayload.results || [],
     cursor: sentencePayload.cursor,
-    queryStats: sentencePayload.queryStats,
-    categoryStatistics: statsPayload.categoryStatistics || [],
-    mediaStatistics: statsPayload.mediaStatistics || [],
+    pagination: sentencePayload.pagination,
+    categories: statsPayload.categories || [],
+    media: statsPayload.media || [],
   };
 });
 
 const animeTabName = computed(() => {
-  if (media.value && searchData.value?.sentences?.length > 0) {
-    let name = searchData.value.sentences[0].basicInfo.nameAnimeEn;
+  if (media.value && searchData.value?.results?.length > 0) {
+    let name = searchData.value.results[0].media.nameEn;
     if (episode.value !== null) {
       name += `, ${t('searchpage.main.labels.episode')} ${episode.value}`;
     }
@@ -66,8 +70,16 @@ const animeTabName = computed(() => {
   return t('searchContainer.categoryAll');
 });
 
-const applyRouteQuery = (queryParams) => {
-  query.value = typeof queryParams.query === 'string' ? queryParams.query : '';
+const getSearchQuery = (r) => {
+  if (r.params?.query) {
+    return decodeURIComponent(String(r.params.query));
+  }
+  return typeof r.query?.query === 'string' ? r.query.query : '';
+};
+
+const applyRouteQuery = (r) => {
+  query.value = getSearchQuery(r);
+  const queryParams = r.query || {};
   category.value =
     queryParams.category === 'anime' || queryParams.category === 'liveaction' ? queryParams.category : 'all';
   media.value = queryParams.media || null;
@@ -75,6 +87,8 @@ const applyRouteQuery = (queryParams) => {
   uuid.value = queryParams.uuid || null;
   episode.value = queryParams.episode ? Number(queryParams.episode) : null;
 };
+
+applyRouteQuery(route);
 
 const fetchStats = async () => {
   try {
@@ -89,12 +103,16 @@ const fetchStats = async () => {
       body.category = [mappedCategory];
     }
 
-    statsData.value = await apiSearch.getSearchStatsV1(body);
+    if (props.listMediaIds && props.listMediaIds.length > 0) {
+      body.mediaIds = props.listMediaIds;
+    }
+
+    statsData.value = await apiSearch.getSearchStats(body);
   } catch (error) {
     console.error('Error fetching search stats:', error);
     statsData.value = {
-      mediaStatistics: [],
-      categoryStatistics: [],
+      media: [],
+      categories: [],
     };
   }
 };
@@ -126,14 +144,14 @@ const fetchSentences = async () => {
     }
 
     if (media.value) {
-      body.animeId = Number(media.value);
+      body.mediaId = Number(media.value);
     }
 
     if (episode.value !== null) {
       body.episode = [episode.value];
     }
 
-    if (sort.value && sort.value !== 'none') {
+    if (sort.value && sort.value !== 'NONE') {
       body.contentSort = sort.value;
     }
 
@@ -145,20 +163,24 @@ const fetchSentences = async () => {
       body.uuid = uuid.value;
     }
 
-    const response = await apiSearch.getSentenceV1(body);
-    const incomingSentences = response?.sentences || [];
+    if (props.listMediaIds && props.listMediaIds.length > 0) {
+      body.media = props.listMediaIds.map((id) => ({ mediaId: id, episodes: [] }));
+    }
+
+    const response = await apiSearch.searchSegments(body);
+    const incomingResults = response?.results || [];
 
     if (cursor.value === null) {
       sentenceData.value = {
         ...response,
-        sentences: incomingSentences,
+        results: incomingResults,
       };
     } else {
-      const previousSentences = sentenceData.value?.sentences || [];
+      const previousResults = sentenceData.value?.results || [];
       sentenceData.value = {
         ...sentenceData.value,
         ...response,
-        sentences: [...previousSentences, ...incomingSentences],
+        results: [...previousResults, ...incomingResults],
       };
     }
 
@@ -174,7 +196,7 @@ const fetchSentences = async () => {
     initialError.value = false;
   } catch (error) {
     console.error('Error fetching sentences:', error);
-    if (!sentenceData.value?.sentences || sentenceData.value.sentences.length === 0) {
+    if (!sentenceData.value?.results || sentenceData.value.results.length === 0) {
       initialError.value = true;
     }
     hasMoreResults.value = false;
@@ -190,7 +212,7 @@ const resetSentencePagination = () => {
   hasMoreResults.value = true;
   sentenceData.value = {
     ...sentenceData.value,
-    sentences: [],
+    results: [],
   };
 };
 
@@ -199,7 +221,19 @@ const loadMore = () => {
 };
 
 const getCategoryCount = (categoryKey) => {
-  const stats = searchData.value?.categoryStatistics || [];
+  if (media.value) {
+    const mediaId = Number(media.value);
+    const mediaStat = searchData.value?.media?.find((stat) => stat.mediaId === mediaId);
+    if (!mediaStat) return 0;
+
+    if (episode.value !== null) {
+      return mediaStat.episodeHits?.[episode.value] || 0;
+    }
+
+    return mediaStat.segmentCount || 0;
+  }
+
+  const stats = searchData.value?.categories || [];
 
   if (categoryKey === 'all') {
     return stats.reduce((total, item) => total + item.count, 0);
@@ -221,11 +255,11 @@ const categoryFilter = (categoryKey) => {
     queryParams.category = categoryKey;
   }
 
-  router.push({ query: queryParams });
+  router.push({ path: route.path, query: queryParams });
 };
 
 const getEpisodeHitsData = () => {
-  if (!media.value || !searchData.value?.mediaStatistics) {
+  if (!media.value || !searchData.value?.media) {
     return {};
   }
 
@@ -234,7 +268,7 @@ const getEpisodeHitsData = () => {
     return {};
   }
 
-  const selectedMedia = searchData.value.mediaStatistics.find((stat) => stat.animeId === mediaId);
+  const selectedMedia = searchData.value.media.find((stat) => stat.mediaId === mediaId);
   return selectedMedia?.episodeHits || {};
 };
 
@@ -243,33 +277,35 @@ const handleRandomLogic = () => {
   fetchSentences();
 };
 
-onMounted(async () => {
-  applyRouteQuery(route.query);
+if (props.initialSentenceData) {
+  cursor.value = props.initialSentenceData.cursor || null;
+  if (!props.initialSentenceData.cursor) {
+    endOfResults.value = true;
+    hasMoreResults.value = false;
+  }
+}
 
-  if (props.initialSentenceData) {
-    cursor.value = props.initialSentenceData.cursor || null;
-    if (!props.initialSentenceData.cursor) {
-      endOfResults.value = true;
-      hasMoreResults.value = false;
-    }
-  } else {
+onMounted(async () => {
+  if (!props.initialSentenceData) {
     resetSentencePagination();
     await fetchSentences();
   }
 
   if (!props.initialStatsData) {
-    await fetchStats();
+    fetchStats();
   }
 });
 
 onBeforeRouteUpdate(async (to, from) => {
-  const statsScopeChanged = to.query.query !== from.query.query || to.query.category !== from.query.category;
+  const toQuery = getSearchQuery(to);
+  const fromQuery = getSearchQuery(from);
+  const statsScopeChanged = toQuery !== fromQuery || to.query.category !== from.query.category;
 
-  applyRouteQuery(to.query);
+  applyRouteQuery(to);
   resetSentencePagination();
 
   if (statsScopeChanged) {
-    await fetchStats();
+    fetchStats();
   }
 
   await fetchSentences();
@@ -320,21 +356,21 @@ onBeforeRouteUpdate(async (to, from) => {
     </div>
     <div v-else class="flex-1 mx-auto">
         <!-- Tabs -->
-        <div class="pb-4" v-if="searchData?.categoryStatistics?.length > 0">
+        <div class="pb-4" v-if="searchData?.categories?.length > 0">
             <CommonTabsContainer>
                 <CommonTabsHeader>
                     <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')"
                         :isActive="category === 'all' || media" @click="categoryFilter('all')" />
-                    <CommonTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 'ANIME')"
+                    <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'ANIME')"
                         category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :isActive="category === 'anime'"
                         @click="categoryFilter('anime')" />
-                    <CommonTabsItem v-if="!media && searchData?.categoryStatistics?.find((item) => item.category === 'JDRAMA')"
+                    <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
                         category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :isActive="category === 'liveaction'"
                         @click="categoryFilter('liveaction')" />
                 </CommonTabsHeader>
             </CommonTabsContainer>
         </div>
-        <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData" class="w-full pb-4  animate-pulse">
+        <div v-else-if="isLoading && !searchData?.results?.length || !searchData" class="w-full pb-4  animate-pulse">
             <CommonTabsContainer>
                 <CommonTabsHeader>
                     <div v-for="i in 3" :key="i" class="flex  flex-row space-x-10 gap-10 py-5">
@@ -354,7 +390,7 @@ onBeforeRouteUpdate(async (to, from) => {
                         {{ $t('searchContainer.loadMore') }}
                     </UiButtonPrimaryAction>
                 </div>
-                <div v-if="endOfResults && !hasMoreResults && searchData?.sentences?.length > 0" class="text-center mt-4 mb-8">
+                <div v-if="endOfResults && !hasMoreResults && searchData?.results?.length > 0" class="text-center mt-4 mb-8">
                     <p class="text-gray-500 dark:text-gray-400">
                         {{ $t('searchContainer.endOfResults') }}
                     </p>
@@ -362,7 +398,7 @@ onBeforeRouteUpdate(async (to, from) => {
             </div>
             <!-- Filters -->
             <div class="2xl:min-w-[18rem] 2xl:max-w-[18rem]">
-                <div v-if="searchData?.mediaStatistics?.length > 0" class="p-2 mx-auto hidden 2xl:block">
+                <div v-if="searchData?.media?.length > 0" class="p-2 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
                     <SearchSegmentFilterEpisodeFilter
@@ -371,7 +407,7 @@ onBeforeRouteUpdate(async (to, from) => {
                         :selectedMediaId="media"
                     />
                 </div>
-                <div v-else-if="isLoading && !searchData?.sentences?.length || !searchData">
+                <div v-else-if="isLoading && !searchData?.results?.length || !searchData">
                     <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">
                         <div role=" status" class="hidden w-10/12 2xl:flex flex-col py-6 animate-pulse">
                             <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>

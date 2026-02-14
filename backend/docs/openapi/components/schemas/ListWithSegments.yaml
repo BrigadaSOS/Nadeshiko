@@ -1,0 +1,53 @@
+type: object
+description: List with saved segments (search result format)
+required:
+  - id
+  - name
+  - type
+  - userId
+  - visibility
+  - segments
+  - totalCount
+properties:
+  id:
+    type: integer
+    description: List ID
+    example: 123
+  name:
+    type: string
+    description: Name of the list
+    example: "Study Favorites"
+  type:
+    type: string
+    enum: [SERIES, CUSTOM, SEGMENT]
+    description: Type of list
+    example: "SEGMENT"
+  userId:
+    type: integer
+    description: User ID who owns the list
+    example: 1
+  visibility:
+    type: string
+    enum: [PUBLIC, PRIVATE]
+    description: Visibility of the list
+    example: "PRIVATE"
+  segments:
+    type: array
+    description: Saved segments with their search result data
+    items:
+      type: object
+      properties:
+        position:
+          type: integer
+          description: Position in the list
+          example: 1
+        note:
+          type: string
+          nullable: true
+          description: User annotation
+        result:
+          $ref: "./SearchResult.yaml"
+  totalCount:
+    type: integer
+    description: Total number of segments in the list
+    example: 42

@@ -33,8 +33,8 @@ watch(
 watch(
   () => props.searchData,
   (newData) => {
-    if (newData?.mediaStatistics) {
-      mediaStatistics.value = newData.mediaStatistics;
+    if (newData?.media) {
+      mediaStatistics.value = newData.media;
     } else {
       mediaStatistics.value = [];
     }
@@ -57,9 +57,9 @@ watch(
 const normalizedStatistics = computed(() => {
   return mediaStatistics.value.map((item) => ({
     ...item,
-    nameAnimeEnLower: item?.nameAnimeEn?.toLowerCase() || '',
-    nameAnimeJpLower: item?.nameAnimeJp?.toLowerCase() || '',
-    nameAnimeRomajiLower: item?.nameAnimeRomaji?.toLowerCase() || '',
+    nameEnLower: item?.nameEn?.toLowerCase() || '',
+    nameJaLower: item?.nameJa?.toLowerCase() || '',
+    nameRomajiLower: item?.nameRomaji?.toLowerCase() || '',
   }));
 });
 
@@ -67,21 +67,21 @@ const filteredMedia = computed(() => {
   const selectedCategory = categoryApiMapping[categorySelected.value];
   const totalCount = normalizedStatistics.value
     .filter((item) => categorySelected.value === 'all' || item.category === selectedCategory)
-    .reduce((a, b) => a + parseInt(b.amountSentencesFound || 0, 10), 0);
+    .reduce((a, b) => a + parseInt(b.segmentCount || 0, 10), 0);
 
   const filteredItems = normalizedStatistics.value.filter((item) => {
     const categoryFilter = categorySelected.value === 'all' || item.category === selectedCategory;
-    const nameFilterEnglish = item.nameAnimeEnLower.includes(debouncedQuerySearchMedia.value);
-    const nameFilterJapanese = item.nameAnimeJpLower.includes(debouncedQuerySearchMedia.value);
-    const nameFilterRomaji = item.nameAnimeRomajiLower.includes(debouncedQuerySearchMedia.value);
+    const nameFilterEnglish = item.nameEnLower.includes(debouncedQuerySearchMedia.value);
+    const nameFilterJapanese = item.nameJaLower.includes(debouncedQuerySearchMedia.value);
+    const nameFilterRomaji = item.nameRomajiLower.includes(debouncedQuerySearchMedia.value);
 
     return categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji);
   });
 
   const allOption = {
-    animeId: 0,
-    nameAnimeEn: allLabel.value,
-    amountSentencesFound: totalCount,
+    mediaId: 0,
+    nameEn: allLabel.value,
+    segmentCount: totalCount,
   };
 
   if (filteredItems.length === 0) {
@@ -89,8 +89,8 @@ const filteredMedia = computed(() => {
   }
 
   const sortedItems = filteredItems.sort((a, b) => {
-    const nameA = a.nameAnimeEnLower;
-    const nameB = b.nameAnimeEnLower;
+    const nameA = a.nameEnLower;
+    const nameB = b.nameEnLower;
 
     if (nameA < nameB) return -1;
     if (nameA > nameB) return 1;
@@ -104,24 +104,24 @@ const selectedMediaId = computed(() => {
   return route.query.media ? Number(route.query.media) : null;
 });
 
-const filterAnime = (animeId, _animeName) => {
+const filterAnime = (mediaId, _animeName) => {
   const query = { ...route.query };
 
-  if (animeId === 0) {
+  if (mediaId === 0) {
     delete query.media;
   } else {
-    query.media = animeId;
-    // Clear episode filter when selecting a different anime
+    query.media = mediaId;
+    // Clear episode filter when selecting a different media
     delete query.episode;
   }
 
-  router.push({ query });
+  router.push({ path: route.path, query });
 };
 
 const clearFilters = () => {
   const query = { ...route.query };
   delete query.media;
-  router.push({ query });
+  router.push({ path: route.path, query });
 };
 </script>
 
@@ -150,13 +150,13 @@ const clearFilters = () => {
                 </div>
             </div>
             <div class="overflow-auto snap-y max-h-[14rem]">
-                <li class="snap-start" v-for="item in filteredMedia" :key="item.animeId">
-                    <button @click="filterAnime(item.animeId, item.nameAnimeEn)"
-                        :class="{ 'bg-sgrayhover': (item.animeId === 0 && selectedMediaId === null) || (item.animeId === selectedMediaId) }"
+                <li class="snap-start" v-for="item in filteredMedia" :key="item.mediaId">
+                    <button @click="filterAnime(item.mediaId, item.nameEn)"
+                        :class="{ 'bg-sgrayhover': (item.mediaId === 0 && selectedMediaId === null) || (item.mediaId === selectedMediaId) }"
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.nameAnimeEn }}</span>
+                        <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.nameEn }}</span>
                         <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
-                            {{ item.amountSentencesFound }}
+                            {{ item.segmentCount }}
                         </span>
                     </button>
                 </li>

@@ -1,0 +1,76 @@
+type: object
+required:
+  - id
+  - reportType
+  - targetId
+  - reason
+  - status
+  - userId
+  - createdAt
+properties:
+  id:
+    type: integer
+    description: Report ID
+    example: 1
+  reportType:
+    type: string
+    enum: [SEGMENT, MEDIA]
+    description: Type of the reported entity
+    example: "SEGMENT"
+  targetId:
+    type: string
+    description: ID of the reported entity (segment UUID or media ID)
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  reason:
+    type: string
+    enum:
+      - WRONG_TRANSLATION
+      - WRONG_TIMING
+      - WRONG_AUDIO
+      - NSFW_NOT_TAGGED
+      - DUPLICATE_SEGMENT
+      - WRONG_METADATA
+      - MISSING_EPISODES
+      - WRONG_COVER_IMAGE
+      - INAPPROPRIATE_CONTENT
+      - OTHER
+    description: Reason for the report
+    example: "WRONG_TRANSLATION"
+  description:
+    type: string
+    nullable: true
+    maxLength: 1000
+    description: Optional description with additional details
+    example: "The translation doesn't match the spoken Japanese"
+  status:
+    type: string
+    enum: [PENDING, ACCEPTED, REJECTED, RESOLVED]
+    description: Current status of the report
+    example: "PENDING"
+  adminNotes:
+    type: string
+    nullable: true
+    maxLength: 1000
+    description: Notes from the admin who reviewed the report
+  resolvedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the report was resolved
+  userId:
+    type: integer
+    description: ID of the user who submitted the report
+    example: 42
+  resolvedById:
+    type: integer
+    nullable: true
+    description: ID of the admin who resolved the report
+  createdAt:
+    type: string
+    format: date-time
+    description: When the report was created
+  updatedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the report was last updated

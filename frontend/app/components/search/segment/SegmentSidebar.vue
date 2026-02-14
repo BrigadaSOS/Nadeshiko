@@ -10,10 +10,10 @@ const { showPlayer } = storeToRefs(playerStore);
 const props = defineProps(['searchData', 'categorySelected', 'media']);
 
 const getEpisodeHitsData = () => {
-  if (!props.media || !props.searchData?.mediaStatistics) return {};
+  if (!props.media || !props.searchData?.media) return {};
   const mediaId = Number(props.media);
   if (Number.isNaN(mediaId)) return {};
-  const selectedMedia = props.searchData.mediaStatistics.find((stat) => stat.animeId === mediaId);
+  const selectedMedia = props.searchData.media.find((stat) => stat.mediaId === mediaId);
   return selectedMedia?.episodeHits || {};
 };
 
@@ -71,7 +71,7 @@ onUnmounted(() => {
     </button>
   </div>
   <div>
-    <div v-if="searchData?.sentences?.length > 0" class="p-2 mx-auto">
+    <div v-if="searchData?.results?.length > 0" class="p-2 mx-auto">
         <SearchSegmentFilterSortContent />
         <SearchSegmentFilterContent :searchData="searchData" :categorySelected="categorySelected" />
         <SearchSegmentFilterEpisodeFilter

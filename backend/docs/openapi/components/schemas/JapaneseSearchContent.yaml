@@ -1,0 +1,13 @@
+type: object
+description: Japanese content in search results with optional highlight
+required:
+  - content
+properties:
+  content:
+    type: string
+    description: Original Japanese content of the segment
+    example: "僕は僕で、君は君だ。"
+  highlight:
+    type: string
+    description: Japanese content with search terms highlighted
+    example: "<em>僕</em>は<em>僕</em>で、<em>君</em>は<em>君</em>だ。"

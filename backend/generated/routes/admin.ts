@@ -14,15 +14,29 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
+  t_AdminReportListResponse,
   t_Error,
+  t_GetAdminReportsQuerySchema,
   t_GetFailedJobsParamSchema,
   t_GetQueueDetailsParamSchema,
   t_PurgeFailedJobsParamSchema,
   t_ReindexElasticsearchRequestBodySchema,
   t_ReindexResponse,
+  t_Report,
   t_RetryQueueJobsParamSchema,
+  t_UpdateReportParamSchema,
+  t_UpdateReportRequestBodySchema,
 } from '../models.ts';
-import { PermissiveBoolean, s_Error, s_ReindexRequest, s_ReindexResponse } from '../schemas.ts';
+import type { GetAdminReportsQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import {
+  PermissiveBoolean,
+  s_AdminReportListResponse,
+  s_Error,
+  s_ReindexRequest,
+  s_ReindexResponse,
+  s_Report,
+  s_UpdateReportRequest,
+} from '../schemas.ts';
 
 export type ReindexElasticsearchResponder = {
   with200(): ExpressRuntimeResponse<t_ReindexResponse>;
@@ -156,6 +170,60 @@ export type PurgeFailedJobs = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type MorphemeBackfillResponder = {
+  with200(): ExpressRuntimeResponse<{
+    message: string;
+    stats: {
+      failedAnalyses: number;
+      successfulAnalyses: number;
+      totalSegments: number;
+    };
+    success: boolean;
+  }>;
+} & ExpressRuntimeResponder;
+
+export type MorphemeBackfill = (
+  params: Params<void, void, void, void>,
+  respond: MorphemeBackfillResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminReportsResponder = {
+  with200(): ExpressRuntimeResponse<t_AdminReportListResponse>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminReports = (
+  params: Params<void, GetAdminReportsQueryOutput, void, void>,
+  respond: GetAdminReportsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateReportResponder = {
+  with200(): ExpressRuntimeResponse<t_Report>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type UpdateReport = (
+  params: Params<t_UpdateReportParamSchema, void, UpdateReportRequestOutput, void>,
+  respond: UpdateReportResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type AdminImplementation = {
   reindexElasticsearch: ReindexElasticsearch;
   getQueueStats: GetQueueStats;
@@ -163,6 +231,9 @@ export type AdminImplementation = {
   getFailedJobs: GetFailedJobs;
   retryQueueJobs: RetryQueueJobs;
   purgeFailedJobs: PurgeFailedJobs;
+  morphemeBackfill: MorphemeBackfill;
+  getAdminReports: GetAdminReports;
+  updateReport: UpdateReport;
 };
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
@@ -669,6 +740,224 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       if (body !== undefined) {
         res.json(purgeFailedJobsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const morphemeBackfillResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          success: PermissiveBoolean,
+          message: z.string(),
+          stats: z.object({
+            totalSegments: z.coerce.number(),
+            successfulAnalyses: z.coerce.number(),
+            failedAnalyses: z.coerce.number(),
+          }),
+        }),
+      ],
+    ],
+    undefined,
+  );
+
+  // morphemeBackfill
+  router.post(`/v1/admin/morpheme-backfill`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            message: string;
+            stats: {
+              failedAnalyses: number;
+              successfulAnalyses: number;
+              totalSegments: number;
+            };
+            success: boolean;
+          }>(200);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.morphemeBackfill(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(morphemeBackfillResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminReportsQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
+    reportType: z.enum(['SEGMENT', 'MEDIA']).optional(),
+    targetId: z.string().optional(),
+  });
+
+  const getAdminReportsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_AdminReportListResponse],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getAdminReports
+  router.get(`/v1/admin/reports`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(getAdminReportsQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_AdminReportListResponse>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getAdminReports(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAdminReportsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const updateReportParamSchema = z.object({ id: z.coerce.number() });
+
+  const updateReportRequestBodySchema = s_UpdateReportRequest;
+
+  const updateReportResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_Report],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // updateReport
+  router.patch(`/v1/admin/reports/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(updateReportParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(updateReportRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_Report>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.updateReport(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(updateReportResponseBodyValidator(status, body));
       } else {
         res.end();
       }

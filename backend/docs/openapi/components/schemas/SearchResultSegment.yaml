@@ -1,0 +1,56 @@
+type: object
+description: Segment details in search results
+required:
+  - status
+  - uuid
+  - position
+  - startTime
+  - endTime
+  - episodeNumber
+  - ja
+  - en
+  - es
+  - isNsfw
+properties:
+  status:
+    type: string
+    enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    description: Segment status
+    example: "ACTIVE"
+  uuid:
+    type: string
+    format: uuid
+    description: Unique identifier for the segment
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  position:
+    type: integer
+    description: Position of the segment within the episode
+    example: 1133
+  startTime:
+    type: string
+    description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
+    example: "0:33:27.255000"
+  endTime:
+    type: string
+    description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
+    example: "0:33:28.464000"
+  episodeNumber:
+    type: integer
+    description: Episode number where the segment appears
+    example: 1
+  ja:
+    $ref: "./JapaneseSearchContent.yaml"
+  en:
+    $ref: "./TranslationSearchContent.yaml"
+  es:
+    $ref: "./TranslationSearchContent.yaml"
+  isNsfw:
+    type: boolean
+    description: Whether the segment contains NSFW content
+    example: false
+  morphemes:
+    type: array
+    nullable: true
+    items:
+      $ref: './Morpheme.yaml'
+    description: Morphological analysis of the Japanese content

@@ -6,7 +6,7 @@ EpisodeFields: &episodeFields
     type: integer
     description: AniList episode ID for external reference
     example: 123456
-  titleEnglish:
+  titleEn:
     type: string
     description: English title of the episode
     example: "The Beginning"
@@ -14,7 +14,7 @@ EpisodeFields: &episodeFields
     type: string
     description: Romanized title of the episode
     example: "Hajimari"
-  titleJapanese:
+  titleJa:
     type: string
     description: Japanese title of the episode
     example: "始まり"

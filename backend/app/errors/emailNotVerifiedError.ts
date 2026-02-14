@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class EmailNotVerifiedError extends ApiError {
   readonly code = 'EMAIL_NOT_VERIFIED' as const;

@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class ValidationFailedError extends ApiError {
   readonly code = 'VALIDATION_FAILED' as const;

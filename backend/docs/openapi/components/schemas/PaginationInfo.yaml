@@ -1,0 +1,20 @@
+type: object
+description: Pagination metadata for search results
+properties:
+  pageSize:
+    type: integer
+    description: Number of results returned in this page
+    example: 20
+  hasMore:
+    type: boolean
+    description: Whether there are more results after this page
+    example: true
+  estimatedTotalHits:
+    type: integer
+    description: Estimated total number of matching segments
+    example: 12456
+  estimatedTotalHitsRelation:
+    type: string
+    description: Whether estimatedTotalHits is exact or a lower bound
+    enum: [EXACT, LOWER_BOUND]
+    example: LOWER_BOUND

@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   enforcePublicSearchRateLimit(event, 'search-context');
   const body = await readBody(event);
   const sdk = getNadeshikoSdkClient();
-  const result = await sdk.fetchSentenceContext({ body });
+  const result = await sdk.getSegmentContext({ body });
 
-  return unwrapSdkResult('fetchSentenceContext', result);
+  return unwrapSdkResult('getSegmentContext', result);
 });

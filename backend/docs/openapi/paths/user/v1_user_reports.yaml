@@ -1,0 +1,76 @@
+post:
+  tags:
+    - User
+  operationId: createReport
+  summary: Create a new report
+  description: |
+    Submit a report for a segment or media entry.
+
+    **Requirements:**
+    - Requires session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/CreateReportRequest.yaml"
+  responses:
+    "201":
+      description: Report created successfully
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Report.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+get:
+  tags:
+    - User
+  operationId: getUserReports
+  summary: List user's own reports
+  description: |
+    Returns the authenticated user's submitted reports with cursor pagination.
+
+    **Requirements:**
+    - Requires session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: cursor
+      in: query
+      schema:
+        type: integer
+      description: Cursor for pagination (report ID to start after)
+    - name: size
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+      description: Number of results per page
+    - name: status
+      in: query
+      schema:
+        type: string
+        enum: [PENDING, ACCEPTED, REJECTED, RESOLVED]
+      description: Filter by report status
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/ReportListResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

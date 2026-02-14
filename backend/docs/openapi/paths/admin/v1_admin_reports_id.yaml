@@ -1,0 +1,45 @@
+patch:
+  tags:
+    - Admin
+  operationId: updateReport
+  summary: Update a report (admin)
+  description: |
+    Update the status and/or admin notes of a report.
+    When status changes to ACCEPTED, REJECTED, or RESOLVED, resolvedAt and resolvedById are set automatically.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Report ID
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/UpdateReportRequest.yaml"
+  responses:
+    "200":
+      description: Report updated successfully
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Report.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

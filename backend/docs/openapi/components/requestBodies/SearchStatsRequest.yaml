@@ -22,15 +22,22 @@ properties:
     type: integer
     description: Maximum content length
     example: 50
-  excludedAnimeIds:
+  excludedMediaIds:
     type: array
     items:
       type: integer
-    description: Anime IDs to exclude from results
+    description: Media IDs to exclude from results
+    default: []
+  mediaIds:
+    type: array
+    items:
+      type: integer
+    description: Restrict stats to these media IDs (for list-scoped stats)
     default: []
   status:
     type: array
     description: Segment status filter
     items:
-      type: integer
-    default: [1]
+      type: string
+      enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    default: ["ACTIVE"]
