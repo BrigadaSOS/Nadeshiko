@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class QuotaExceededError extends ApiError {
   readonly code = 'QUOTA_EXCEEDED' as const;

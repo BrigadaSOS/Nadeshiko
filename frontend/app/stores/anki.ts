@@ -71,6 +71,7 @@ interface NotesInfoResponse {
   error: string;
 }
 
+import type { SearchResult } from './search';
 import { defineStore } from 'pinia';
 
 export const ankiStore = defineStore('anki', {
@@ -207,7 +208,7 @@ export const ankiStore = defineStore('anki', {
       return [];
     },
 
-    async addSentenceToAnki(sentence: Sentence, id?: number) {
+    async addResultToAnki(sentence: SearchResult, id?: number) {
       if (!import.meta.client) return;
       // TODO: creo que podriamos usar this.$state o this.ankiPreferences (revisar)
       const { $i18n } = useNuxtApp();
@@ -257,16 +258,16 @@ export const ankiStore = defineStore('anki', {
 
         // Store the multimedia content in Anki
         const imageRequest = this.executeAction('storeMediaFile', {
-          filename: `${sentence.segmentInfo.uuid}.webp`,
-          url: sentence.mediaInfo.pathImage,
+          filename: `${sentence.segment.uuid}.webp`,
+          url: sentence.urls.imageUrl,
         });
 
         // We add blob audio if it exists (concatenated audio) otherwise,
         // original audio
 
         let audioRequest;
-        if (sentence.mediaInfo.blobAudioUrl && sentence.mediaInfo.blobAudio) {
-          const blob64 = await blobToBase64(sentence.mediaInfo.blobAudio);
+        if (sentence.urls.blobAudioUrl && sentence.urls.blobAudio) {
+          const blob64 = await blobToBase64(sentence.urls.blobAudio);
           // Note: The blob's result cannot be directly decoded as Base64 without
           // first removing the Data-URL declaration preceding the Base64-encoded
           // data. To retrieve only the Base64 encoded string, first remove
@@ -274,13 +275,13 @@ export const ankiStore = defineStore('anki', {
           const raw = blob64.substring(blob64.indexOf(',') + 1);
 
           audioRequest = this.executeAction('storeMediaFile', {
-            filename: `${sentence.segmentInfo.uuid}.wav`,
+            filename: `${sentence.segment.uuid}.wav`,
             data: raw,
           });
         } else {
           audioRequest = this.executeAction('storeMediaFile', {
-            filename: `${sentence.segmentInfo.uuid}.mp3`,
-            url: sentence.mediaInfo.pathAudio,
+            filename: `${sentence.segment.uuid}.mp3`,
+            url: sentence.urls.audioUrl,
           });
         }
 
@@ -317,19 +318,19 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-jp':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `<div>${sentence.segmentInfo.contentJp}</div>`,
+                    `<div>${sentence.segment.ja.content}</div>`,
                   );
                   break;
                 case 'sentence-es':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `<div>${sentence.segmentInfo.contentEs}</div>`,
+                    `<div>${sentence.segment.es.content ?? ''}</div>`,
                   );
                   break;
                 case 'sentence-en':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `<div>${sentence.segmentInfo.contentEn}</div>`,
+                    `<div>${sentence.segment.en.content ?? ''}</div>`,
                   );
                   break;
                 case 'image':
@@ -341,7 +342,7 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-info':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `${sentence.basicInfo.nameAnimeEn}・Episode ${sentence.basicInfo.episode}, Timestamp: ${sentence.segmentInfo.startTime.split('.')[0]}`,
+                    `${sentence.media.nameEn}・Episode ${sentence.segment.episodeNumber}, Timestamp: ${sentence.segment.startTime.split('.')[0]}`,
                   );
                   break;
               }

@@ -1,10 +1,10 @@
 type: object
 properties:
-  mediaStatistics:
+  media:
     type: array
     items:
-      $ref: "../schemas/Statistic.yaml"
-  categoryStatistics:
+      $ref: "../schemas/MediaSearchStats.yaml"
+  categories:
     type: array
     items:
-      $ref: "../schemas/CategoryStatistic.yaml"
+      $ref: "../schemas/CategoryCount.yaml"

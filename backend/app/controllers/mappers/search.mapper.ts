@@ -1,29 +1,29 @@
-import type { t_MediaInfoData, t_Category } from 'generated/models';
+import type { t_MediaSummary, t_Category } from 'generated/models';
 import { Media } from '@app/models';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 
 /**
- * Maps Media entity to t_MediaInfoData for fetchMediaInfo endpoint
+ * Maps Media entity to t_MediaSummary for browseMedia endpoint
  */
-export const toMediaInfoData = (media: Media): t_MediaInfoData => {
+export const toMediaSummary = (media: Media): t_MediaSummary => {
   return {
     id: media.id,
     anilistId: media.anilistId,
-    japaneseName: media.japaneseName,
-    romajiName: media.romajiName,
-    englishName: media.englishName,
+    nameJa: media.nameJa,
+    nameRomaji: media.nameRomaji,
+    nameEn: media.nameEn,
     airingFormat: media.airingFormat,
     airingStatus: media.airingStatus,
     genres: media.genres,
-    cover: getMediaCoverUrl(media),
-    banner: getMediaBannerUrl(media),
+    coverUrl: getMediaCoverUrl(media),
+    bannerUrl: getMediaBannerUrl(media),
     startDate: media.startDate, // Already in YYYY-MM-DD format
     endDate: media.endDate, // Already in YYYY-MM-DD format
     category: media.category as t_Category, // Direct mapping - CategoryType matches t_Category
-    numSegments: media.numSegments,
-    numEpisodes: media.episodes?.length ?? 0,
+    segmentCount: media.segmentCount,
+    episodeCount: media.episodes?.length ?? 0,
     version: media.version,
-    folderMediaName: `${media.romajiName.replace(/[^a-zA-Z0-9]/g, '_')}`,
+    folderMediaName: `${media.nameRomaji.replace(/[^a-zA-Z0-9]/g, '_')}`,
     createdAt: media.createdAt.toISOString(),
     updatedAt: undefined,
     tmdbId: null,

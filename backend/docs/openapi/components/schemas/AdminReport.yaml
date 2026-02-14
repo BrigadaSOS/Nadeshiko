@@ -1,0 +1,15 @@
+allOf:
+  - $ref: "./Report.yaml"
+  - type: object
+    required:
+      - reportCount
+      - reporterName
+    properties:
+      reportCount:
+        type: integer
+        description: Number of reports for the same target
+        example: 3
+      reporterName:
+        type: string
+        description: Name of the user who submitted this report
+        example: "john_doe"

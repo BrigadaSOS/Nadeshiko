@@ -1,0 +1,35 @@
+type: object
+required:
+  - reportType
+  - targetId
+  - reason
+properties:
+  reportType:
+    type: string
+    enum: [SEGMENT, MEDIA]
+    description: Type of the entity being reported
+    example: "SEGMENT"
+  targetId:
+    type: string
+    description: ID of the entity being reported (segment UUID or media ID as string)
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  reason:
+    type: string
+    enum:
+      - WRONG_TRANSLATION
+      - WRONG_TIMING
+      - WRONG_AUDIO
+      - NSFW_NOT_TAGGED
+      - DUPLICATE_SEGMENT
+      - WRONG_METADATA
+      - MISSING_EPISODES
+      - WRONG_COVER_IMAGE
+      - INAPPROPRIATE_CONTENT
+      - OTHER
+    description: Reason for the report
+    example: "WRONG_TRANSLATION"
+  description:
+    type: string
+    maxLength: 1000
+    description: Optional description with additional details
+    example: "The translation doesn't match the spoken Japanese"

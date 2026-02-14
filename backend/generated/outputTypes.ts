@@ -9,48 +9,60 @@ import * as schemas from './schemas';
 // ============================================
 export type CategoryOutput = z.output<typeof schemas.s_Category>;
 export type CharacterInputOutput = z.output<typeof schemas.s_CharacterInput>;
+export type CreateReportRequestOutput = z.output<typeof schemas.s_CreateReportRequest>;
 export type EpisodeOutput = z.output<typeof schemas.s_Episode>;
 export type EpisodeCreateRequestOutput = z.output<typeof schemas.s_EpisodeCreateRequest>;
 export type EpisodeUpdateRequestOutput = z.output<typeof schemas.s_EpisodeUpdateRequest>;
 export type ErrorOutput = z.output<typeof schemas.s_Error>;
-export type FetchSentenceContextRequestOutput = z.output<typeof schemas.s_FetchSentenceContextRequest>;
+export type JapaneseContentOutput = z.output<typeof schemas.s_JapaneseContent>;
+export type JapaneseSearchContentOutput = z.output<typeof schemas.s_JapaneseSearchContent>;
 export type ListOutput = z.output<typeof schemas.s_List>;
 export type ListCreateRequestOutput = z.output<typeof schemas.s_ListCreateRequest>;
 export type ListInputOutput = z.output<typeof schemas.s_ListInput>;
-export type MediaInfoPathOutput = z.output<typeof schemas.s_MediaInfoPath>;
-export type MediaInfoStatsOutput = z.output<typeof schemas.s_MediaInfoStats>;
-export type QueryStatsOutput = z.output<typeof schemas.s_QueryStats>;
+export type MediaBrowseStatsOutput = z.output<typeof schemas.s_MediaBrowseStats>;
+export type MorphemeOutput = z.output<typeof schemas.s_Morpheme>;
+export type PaginationInfoOutput = z.output<typeof schemas.s_PaginationInfo>;
 export type ReindexRequestOutput = z.output<typeof schemas.s_ReindexRequest>;
 export type ReindexResponseOutput = z.output<typeof schemas.s_ReindexResponse>;
+export type ReportOutput = z.output<typeof schemas.s_Report>;
 export type SearchMultipleRequestOutput = z.output<typeof schemas.s_SearchMultipleRequest>;
-export type SegmentOutput = z.output<typeof schemas.s_Segment>;
+export type SearchResultUrlsOutput = z.output<typeof schemas.s_SearchResultUrls>;
+export type SegmentContextRequestOutput = z.output<typeof schemas.s_SegmentContextRequest>;
 export type SegmentCreateRequestOutput = z.output<typeof schemas.s_SegmentCreateRequest>;
-export type SegmentInfoOutput = z.output<typeof schemas.s_SegmentInfo>;
 export type SegmentUpdateRequestOutput = z.output<typeof schemas.s_SegmentUpdateRequest>;
 export type SeiyuuOutput = z.output<typeof schemas.s_Seiyuu>;
+export type TranslationContentOutput = z.output<typeof schemas.s_TranslationContent>;
+export type TranslationSearchContentOutput = z.output<typeof schemas.s_TranslationSearchContent>;
+export type UpdateReportRequestOutput = z.output<typeof schemas.s_UpdateReportRequest>;
 export type UserQuotaResponseOutput = z.output<typeof schemas.s_UserQuotaResponse>;
 export type WordMatchMediaOutput = z.output<typeof schemas.s_WordMatchMedia>;
-export type BasicInfoOutput = z.output<typeof schemas.s_BasicInfo>;
-export type CategoryStatisticOutput = z.output<typeof schemas.s_CategoryStatistic>;
+export type AdminReportOutput = z.output<typeof schemas.s_AdminReport>;
+export type CategoryCountOutput = z.output<typeof schemas.s_CategoryCount>;
 export type CharacterOutput = z.output<typeof schemas.s_Character>;
 export type EpisodeListResponseOutput = z.output<typeof schemas.s_EpisodeListResponse>;
 export type MediaCreateRequestOutput = z.output<typeof schemas.s_MediaCreateRequest>;
-export type MediaInfoDataOutput = z.output<typeof schemas.s_MediaInfoData>;
+export type MediaSearchStatsOutput = z.output<typeof schemas.s_MediaSearchStats>;
+export type MediaSummaryOutput = z.output<typeof schemas.s_MediaSummary>;
 export type MediaUpdateRequestOutput = z.output<typeof schemas.s_MediaUpdateRequest>;
+export type ReportListResponseOutput = z.output<typeof schemas.s_ReportListResponse>;
 export type SearchRequestOutput = z.output<typeof schemas.s_SearchRequest>;
+export type SearchResultMediaOutput = z.output<typeof schemas.s_SearchResultMedia>;
+export type SearchResultSegmentOutput = z.output<typeof schemas.s_SearchResultSegment>;
 export type SearchStatsRequestOutput = z.output<typeof schemas.s_SearchStatsRequest>;
-export type SegmentListResponseOutput = z.output<typeof schemas.s_SegmentListResponse>;
-export type StatisticOutput = z.output<typeof schemas.s_Statistic>;
+export type SegmentOutput = z.output<typeof schemas.s_Segment>;
 export type WordMatchOutput = z.output<typeof schemas.s_WordMatch>;
-export type FetchMediaInfoResponseOutput = z.output<typeof schemas.s_FetchMediaInfoResponse>;
+export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
+export type MediaBrowseResponseOutput = z.output<typeof schemas.s_MediaBrowseResponse>;
 export type MediaCharacterOutput = z.output<typeof schemas.s_MediaCharacter>;
 export type SearchMultipleResponseOutput = z.output<typeof schemas.s_SearchMultipleResponse>;
+export type SearchResultOutput = z.output<typeof schemas.s_SearchResult>;
 export type SearchStatsResponseOutput = z.output<typeof schemas.s_SearchStatsResponse>;
-export type SentenceOutput = z.output<typeof schemas.s_Sentence>;
-export type FetchSentenceContextResponseOutput = z.output<typeof schemas.s_FetchSentenceContextResponse>;
+export type SegmentListResponseOutput = z.output<typeof schemas.s_SegmentListResponse>;
+export type ListWithSegmentsOutput = z.output<typeof schemas.s_ListWithSegments>;
 export type MediaOutput = z.output<typeof schemas.s_Media>;
 export type SearchHealthCheckResponseOutput = z.output<typeof schemas.s_SearchHealthCheckResponse>;
 export type SearchResponseOutput = z.output<typeof schemas.s_SearchResponse>;
+export type SegmentContextResponseOutput = z.output<typeof schemas.s_SegmentContextResponse>;
 export type CharacterWithMediaOutput = z.output<typeof schemas.s_CharacterWithMedia>;
 export type ListWithMediaOutput = z.output<typeof schemas.s_ListWithMedia>;
 export type MediaListResponseOutput = z.output<typeof schemas.s_MediaListResponse>;
@@ -59,14 +71,6 @@ export type SeiyuuWithRolesOutput = z.output<typeof schemas.s_SeiyuuWithRoles>;
 // ============================================
 // Inline query schemas and their output types
 // ============================================
-
-export const fetchMediaInfoQuerySchema = z.object({
-    size: z.coerce.number().optional().default(20),
-    cursor: z.coerce.number().optional().default(0),
-    query: z.string().optional(),
-    type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
-  });
-export type FetchMediaInfoQueryOutput = z.output<typeof fetchMediaInfoQuerySchema>;
 
 export const mediaIndexQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(40).optional().default(20),
@@ -87,10 +91,40 @@ export const segmentIndexQuerySchema = z.object({
   });
 export type SegmentIndexQueryOutput = z.output<typeof segmentIndexQuerySchema>;
 
+export const getUserReportsQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
+  });
+export type GetUserReportsQueryOutput = z.output<typeof getUserReportsQuerySchema>;
+
 export const listIndexQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
-    type: z.enum(['SERIES', 'CUSTOM']).optional(),
+    type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']).optional(),
     userId: z.coerce.number().optional(),
     mediaId: z.coerce.number().optional(),
   });
 export type ListIndexQueryOutput = z.output<typeof listIndexQuerySchema>;
+
+export const listGetSegmentsQuerySchema = z.object({
+    page: z.coerce.number().optional().default(1),
+    limit: z.coerce.number().optional().default(20),
+  });
+export type ListGetSegmentsQueryOutput = z.output<typeof listGetSegmentsQuerySchema>;
+
+export const getAdminReportsQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
+    reportType: z.enum(['SEGMENT', 'MEDIA']).optional(),
+    targetId: z.string().optional(),
+  });
+export type GetAdminReportsQueryOutput = z.output<typeof getAdminReportsQuerySchema>;
+
+export const browseMediaQuerySchema = z.object({
+    size: z.coerce.number().optional().default(20),
+    cursor: z.coerce.number().optional().default(0),
+    query: z.string().optional(),
+    type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
+  });
+export type BrowseMediaQueryOutput = z.output<typeof browseMediaQuerySchema>;

@@ -71,7 +71,7 @@ accessories:
       - nadeshiko-postgres-data:/var/lib/postgresql/data
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.4
+    image: ghcr.io/davafons/nadeshiko-elasticsearch:8.17.10
     host: nadeshiko-production
     port: 127.0.0.1:9200:9200
     env:
@@ -86,16 +86,9 @@ accessories:
     volumes:
       - nadeshiko-elasticsearch-data:/usr/share/elasticsearch/data
       - nadeshiko-elasticsearch-config:/usr/share/elasticsearch/config
-      - nadeshiko-elasticsearch-plugins:/usr/share/elasticsearch/plugins
     cmd: >
       bash -c '
         export ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD";
-        if [ ! -d "/usr/share/elasticsearch/plugins/analysis-icu" ]; then
-          ./bin/elasticsearch-plugin install analysis-icu;
-        fi;
-        if [ ! -d "/usr/share/elasticsearch/plugins/analysis-kuromoji" ]; then
-          ./bin/elasticsearch-plugin install analysis-kuromoji;
-        fi;
         ./bin/elasticsearch
       '
     options:
@@ -182,7 +175,7 @@ accessories:
       user: "0"
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:9.2.4
+    image: docker.elastic.co/kibana/kibana:8.17.10
     host: nadeshiko-production
     port: 127.0.0.1:5601:5601
     env:

@@ -21,7 +21,7 @@ get:
       description: Filter by list type
       schema:
         type: string
-        enum: [SERIES, CUSTOM]
+        enum: [SERIES, CUSTOM, SEGMENT]
         example: SERIES
     - name: userId
       in: query

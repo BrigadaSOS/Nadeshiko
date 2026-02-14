@@ -13,12 +13,12 @@ export const episodeIndex: EpisodeIndex = async ({ params, query }, respond) => 
   });
 
   const nextCursor = query.cursor + count;
-  const hasMoreResults = count === query.size;
+  const hasMore = count === query.size;
 
   return respond.with200().body({
     data: toEpisodeListDTO(episodes),
-    cursor: hasMoreResults ? nextCursor : undefined,
-    hasMoreResults,
+    cursor: hasMore ? nextCursor : undefined,
+    hasMore,
   });
 };
 
@@ -29,9 +29,9 @@ export const episodeCreate: EpisodeCreate = async ({ params, body }, respond) =>
     mediaId: params.mediaId,
     episodeNumber: body.episodeNumber,
     anilistEpisodeId: body.anilistEpisodeId,
-    titleEnglish: body.titleEnglish,
+    titleEn: body.titleEn,
     titleRomaji: body.titleRomaji,
-    titleJapanese: body.titleJapanese,
+    titleJa: body.titleJa,
     description: body.description,
     airedAt: body.airedAt,
     lengthSeconds: body.lengthSeconds,

@@ -549,13 +549,20 @@
         }
       },
       "filter": {
-        "readingform": {
-          "type": "kuromoji_readingform",
-          "use_romaji": "true"
+        "sudachi_split_search": {
+          "type": "sudachi_split",
+          "mode": "search"
         },
-        "readingform_katakana": {
-          "type": "kuromoji_readingform",
-          "use_romaji": false
+        "sudachi_split_extended": {
+          "type": "sudachi_split",
+          "mode": "extended"
+        },
+        "sudachi_reading_katakana": {
+          "type": "sudachi_readingform"
+        },
+        "sudachi_pos_filter": {
+          "type": "sudachi_part_of_speech",
+          "stoptags": ["助詞", "助動詞", "補助記号,句点", "補助記号,読点"]
         },
         "spanish_stemmer": {
           "type": "stemmer",
@@ -571,35 +578,49 @@
         }
       },
       "tokenizer": {
-        "ja_kuromoji_tokenizer": {
-          "mode": "search",
-          "type": "kuromoji_tokenizer"
+        "ja_sudachi_tokenizer": {
+          "type": "sudachi_tokenizer",
+          "split_mode": "C",
+          "discard_punctuation": true,
+          "settings_path": "sudachi/sudachi.json"
         }
       },
       "analyzer": {
-        "ja_kuromoji_index_analyzer": {
+        "ja_baseform_index_analyzer": {
           "type": "custom",
           "char_filter": ["normalize"],
-          "tokenizer": "ja_kuromoji_tokenizer",
-          "filter": ["kuromoji_baseform", "kuromoji_part_of_speech", "cjk_width", "kuromoji_stemmer", "ja_stop"]
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_split_extended", "sudachi_baseform", "sudachi_pos_filter", "cjk_width", "sudachi_normalizedform", "sudachi_ja_stop"]
         },
-        "ja_kuromoji_search_analyzer": {
+        "ja_baseform_search_analyzer": {
           "type": "custom",
           "char_filter": ["normalize"],
-          "tokenizer": "ja_kuromoji_tokenizer",
-          "filter": ["kuromoji_baseform", "kuromoji_part_of_speech", "cjk_width", "kuromoji_stemmer", "ja_stop"]
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_split_search", "sudachi_baseform", "sudachi_pos_filter", "cjk_width", "sudachi_normalizedform", "sudachi_ja_stop"]
         },
-        "ja_original_index_analyzer": {
+        "ja_surface_index_analyzer": {
           "type": "custom",
           "char_filter": ["normalize"],
-          "tokenizer": "ja_kuromoji_tokenizer",
-          "filter": ["cjk_width", "kuromoji_stemmer"]
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_split_search", "cjk_width", "sudachi_normalizedform"]
         },
-        "ja_original_search_analyzer": {
+        "ja_surface_search_analyzer": {
           "type": "custom",
           "char_filter": ["normalize"],
-          "tokenizer": "ja_kuromoji_tokenizer",
-          "filter": ["cjk_width", "kuromoji_stemmer"]
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_split_search", "cjk_width", "sudachi_normalizedform"]
+        },
+        "ja_normalized_index_analyzer": {
+          "type": "custom",
+          "char_filter": ["normalize"],
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_split_search", "sudachi_normalizedform", "cjk_width"]
+        },
+        "ja_normalized_search_analyzer": {
+          "type": "custom",
+          "char_filter": ["normalize"],
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_split_search", "sudachi_normalizedform", "cjk_width"]
         },
         "spanish_custom": {
           "tokenizer": "standard",
@@ -620,14 +641,14 @@
         "ja_kana_index_analyzer": {
           "type": "custom",
           "char_filter": ["normalize"],
-          "tokenizer": "ja_kuromoji_tokenizer",
-          "filter": ["readingform_katakana", "cjk_width", "lowercase"]
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_reading_katakana", "cjk_width", "lowercase"]
         },
         "ja_kana_search_analyzer": {
           "type": "custom",
           "char_filter": ["normalize", "romaji_to_kana"],
-          "tokenizer": "ja_kuromoji_tokenizer",
-          "filter": ["readingform_katakana", "cjk_width", "lowercase"]
+          "tokenizer": "ja_sudachi_tokenizer",
+          "filter": ["sudachi_reading_katakana", "cjk_width", "lowercase"]
         }
       }
     }
@@ -655,16 +676,16 @@
       "durationSeconds": {
         "type": "integer"
       },
-      "content": {
+      "contentJa": {
         "type": "text",
-        "search_analyzer": "ja_original_search_analyzer",
-        "analyzer": "ja_original_index_analyzer",
+        "search_analyzer": "ja_surface_search_analyzer",
+        "analyzer": "ja_surface_index_analyzer",
         "term_vector": "with_positions_offsets",
         "fields": {
           "baseform": {
             "type": "text",
-            "search_analyzer": "ja_kuromoji_search_analyzer",
-            "analyzer": "ja_kuromoji_index_analyzer",
+            "search_analyzer": "ja_baseform_search_analyzer",
+            "analyzer": "ja_baseform_index_analyzer",
             "term_vector": "with_positions_offsets"
           },
           "kana": {
@@ -672,10 +693,16 @@
             "search_analyzer": "ja_kana_search_analyzer",
             "analyzer": "ja_kana_index_analyzer",
             "term_vector": "with_positions_offsets"
+          },
+          "normalized": {
+            "type": "text",
+            "search_analyzer": "ja_normalized_search_analyzer",
+            "analyzer": "ja_normalized_index_analyzer",
+            "term_vector": "with_positions_offsets"
           }
         }
       },
-      "contentSpanish": {
+      "contentEs": {
         "type": "text",
         "analyzer": "spanish_custom",
         "term_vector": "with_positions_offsets",
@@ -687,10 +714,10 @@
           }
         }
       },
-      "contentSpanishMt": {
+      "contentEsMt": {
         "type": "boolean"
       },
-      "contentEnglish": {
+      "contentEn": {
         "type": "text",
         "analyzer": "english_custom",
         "term_vector": "with_positions_offsets",
@@ -702,13 +729,13 @@
           }
         }
       },
-      "contentEnglishMt": {
+      "contentEnMt": {
         "type": "boolean"
       },
-      "contentLength": {
+      "characterCount": {
         "type": "short"
       },
-      "is_nsfw": {
+      "isNsfw": {
         "type": "boolean"
       },
       "storage": {
@@ -722,6 +749,10 @@
       },
       "mediaId": {
         "type": "integer"
+      },
+      "morphemes": {
+        "type": "object",
+        "enabled": false
       }
     }
   }

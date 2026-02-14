@@ -18,19 +18,27 @@ import type {
   t_List,
   t_ListAddItemParamSchema,
   t_ListAddItemRequestBodySchema,
+  t_ListAddSegmentParamSchema,
+  t_ListAddSegmentRequestBodySchema,
   t_ListCreateRequestBodySchema,
   t_ListDestroyParamSchema,
+  t_ListGetSegmentsParamSchema,
+  t_ListGetSegmentsQuerySchema,
   t_ListIndexQuerySchema,
   t_ListRemoveItemParamSchema,
+  t_ListRemoveSegmentParamSchema,
   t_ListShowParamSchema,
   t_ListUpdateItemParamSchema,
   t_ListUpdateItemRequestBodySchema,
   t_ListUpdateParamSchema,
   t_ListUpdateRequestBodySchema,
+  t_ListUpdateSegmentParamSchema,
+  t_ListUpdateSegmentRequestBodySchema,
   t_ListWithMedia,
+  t_ListWithSegments,
 } from '../models.ts';
-import type { ListCreateRequestOutput, ListIndexQueryOutput } from '../outputTypes.ts';
-import { s_Error, s_List, s_ListCreateRequest, s_ListWithMedia } from '../schemas.ts';
+import type { ListCreateRequestOutput, ListGetSegmentsQueryOutput, ListIndexQueryOutput } from '../outputTypes.ts';
+import { s_Error, s_List, s_ListCreateRequest, s_ListWithMedia, s_ListWithSegments } from '../schemas.ts';
 
 export type ListIndexResponder = {
   with200(): ExpressRuntimeResponse<t_List[]>;
@@ -184,6 +192,85 @@ export type ListRemoveItem = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type ListGetSegmentsResponder = {
+  with200(): ExpressRuntimeResponse<t_ListWithSegments>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type ListGetSegments = (
+  params: Params<t_ListGetSegmentsParamSchema, ListGetSegmentsQueryOutput, void, void>,
+  respond: ListGetSegmentsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListAddSegmentResponder = {
+  with201(): ExpressRuntimeResponse<{
+    message?: string;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with409(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type ListAddSegment = (
+  params: Params<t_ListAddSegmentParamSchema, void, t_ListAddSegmentRequestBodySchema, void>,
+  respond: ListAddSegmentResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListUpdateSegmentResponder = {
+  with200(): ExpressRuntimeResponse<{
+    message?: string;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type ListUpdateSegment = (
+  params: Params<t_ListUpdateSegmentParamSchema, void, t_ListUpdateSegmentRequestBodySchema, void>,
+  respond: ListUpdateSegmentResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListRemoveSegmentResponder = {
+  with200(): ExpressRuntimeResponse<{
+    message?: string;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type ListRemoveSegment = (
+  params: Params<t_ListRemoveSegmentParamSchema, void, void, void>,
+  respond: ListRemoveSegmentResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type ListsImplementation = {
   listIndex: ListIndex;
   listCreate: ListCreate;
@@ -193,6 +280,10 @@ export type ListsImplementation = {
   listAddItem: ListAddItem;
   listUpdateItem: ListUpdateItem;
   listRemoveItem: ListRemoveItem;
+  listGetSegments: ListGetSegments;
+  listAddSegment: ListAddSegment;
+  listUpdateSegment: ListUpdateSegment;
+  listRemoveSegment: ListRemoveSegment;
 };
 
 export function createListsRouter(implementation: ListsImplementation): Router {
@@ -200,7 +291,7 @@ export function createListsRouter(implementation: ListsImplementation): Router {
 
   const listIndexQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
-    type: z.enum(['SERIES', 'CUSTOM']).optional(),
+    type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']).optional(),
     userId: z.coerce.number().optional(),
     mediaId: z.coerce.number().optional(),
   });
@@ -809,6 +900,328 @@ export function createListsRouter(implementation: ListsImplementation): Router {
 
       if (body !== undefined) {
         res.json(listRemoveItemResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listGetSegmentsParamSchema = z.object({ id: z.coerce.number() });
+
+  const listGetSegmentsQuerySchema = z.object({
+    page: z.coerce.number().optional().default(1),
+    limit: z.coerce.number().optional().default(20),
+  });
+
+  const listGetSegmentsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_ListWithSegments],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // listGetSegments
+  router.get(`/v1/lists/:id/segments`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(listGetSegmentsParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(listGetSegmentsQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_ListWithSegments>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.listGetSegments(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(listGetSegmentsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listAddSegmentParamSchema = z.object({ id: z.coerce.number() });
+
+  const listAddSegmentRequestBodySchema = z.object({ segmentUuid: z.string(), note: z.string().max(500).optional() });
+
+  const listAddSegmentResponseBodyValidator = responseValidationFactory(
+    [
+      ['201', z.object({ message: z.string().optional() })],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['409', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // listAddSegment
+  router.post(`/v1/lists/:id/segments`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(listAddSegmentParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(listAddSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with201() {
+          return new ExpressRuntimeResponse<{
+            message?: string;
+          }>(201);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with409() {
+          return new ExpressRuntimeResponse<t_Error>(409);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.listAddSegment(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(listAddSegmentResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listUpdateSegmentParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
+
+  const listUpdateSegmentRequestBodySchema = z.object({
+    position: z.coerce.number().optional(),
+    note: z.string().max(500).nullable().optional(),
+  });
+
+  const listUpdateSegmentResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ message: z.string().optional() })],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // listUpdateSegment
+  router.patch(`/v1/lists/:id/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(listUpdateSegmentParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(listUpdateSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            message?: string;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.listUpdateSegment(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(listUpdateSegmentResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listRemoveSegmentParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
+
+  const listRemoveSegmentResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ message: z.string().optional() })],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // listRemoveSegment
+  router.delete(`/v1/lists/:id/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(listRemoveSegmentParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            message?: string;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.listRemoveSegment(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(listRemoveSegmentResponseBodyValidator(status, body));
       } else {
         res.end();
       }

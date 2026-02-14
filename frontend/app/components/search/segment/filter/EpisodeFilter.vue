@@ -43,13 +43,13 @@ const updateUrlParams = (episode) => {
     delete query.episode;
   }
 
-  router.push({ query });
+  router.push({ path: route.path, query });
 };
 
 const clearFilters = () => {
   const query = { ...route.query };
   delete query.episode;
-  router.push({ query });
+  router.push({ path: route.path, query });
 };
 </script>
 

@@ -1,0 +1,14 @@
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.17.10
+RUN bin/elasticsearch-plugin install analysis-icu
+RUN bin/elasticsearch-plugin install \
+  https://github.com/WorksApplications/elasticsearch-sudachi/releases/download/v3.4.0/elasticsearch-8.17.10-analysis-sudachi-3.4.0.zip
+USER root
+ADD https://github.com/WorksApplications/SudachiDict/releases/download/v20260116/sudachi-dictionary-20260116-full.zip /tmp/sudachi-dict-full.zip
+RUN apt-get update && apt-get install -y --no-install-recommends unzip && \
+  mkdir -p config/sudachi && \
+  unzip /tmp/sudachi-dict-full.zip -d /tmp/sudachi-dict && \
+  mv /tmp/sudachi-dict/*/system_full.dic config/sudachi/system_full.dic && \
+  chown -R elasticsearch:elasticsearch config/sudachi && \
+  rm -rf /tmp/sudachi-dict-full.zip /tmp/sudachi-dict && \
+  apt-get purge -y unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+USER elasticsearch

@@ -9,10 +9,10 @@ properties:
     type: integer
     description: Next cursor for pagination
     example: 20
-  hasMoreResults:
+  hasMore:
     type: boolean
     description: Whether more results are available
     example: true
 required:
   - data
-  - hasMoreResults
+  - hasMore

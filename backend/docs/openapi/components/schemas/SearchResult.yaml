@@ -1,0 +1,16 @@
+type: object
+description: A complete search result combining media info, segment details, and URLs
+required:
+  - media
+  - segment
+  - urls
+properties:
+  media:
+    $ref: "./SearchResultMedia.yaml"
+    description: Media information for this result
+  segment:
+    $ref: "./SearchResultSegment.yaml"
+    description: Segment details including translations
+  urls:
+    $ref: "./SearchResultUrls.yaml"
+    description: URLs to media resources (images, audio, video)

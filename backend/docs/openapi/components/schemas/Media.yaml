@@ -3,9 +3,9 @@ description: Media entry with full metadata
 required:
   - id
   - anilistId
-  - japaneseName
-  - romajiName
-  - englishName
+  - nameJa
+  - nameRomaji
+  - nameEn
   - airingFormat
   - airingStatus
   - genres
@@ -26,17 +26,17 @@ properties:
     type: integer
     description: AniList database ID for the media
     example: 7674
-  japaneseName:
+  nameJa:
     type: string
     description: Original Japanese name of the media
     example: "バクマン。"
-  romajiName:
+  nameRomaji:
     type: string
     description: Romaji transliteration of the media name
     example: "Bakuman."
-  englishName:
+  nameEn:
     type: string
-    description: English translation of the media name
+    description: English name of the media
     example: "Bakuman."
   airingFormat:
     type: string
@@ -75,11 +75,11 @@ properties:
     example: "2011-04-02"
   category:
     $ref: "./Category.yaml"
-  numSegments:
+  segmentCount:
     type: integer
     description: Total number of subtitle segments available
     example: 0
-  numEpisodes:
+  episodeCount:
     type: integer
     description: Total number of episodes available
     example: 25

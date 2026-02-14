@@ -6,17 +6,17 @@ MediaFields: &mediaFields
     type: integer
     description: AniList database ID for the media
     example: 7674
-  japaneseName:
+  nameJa:
     type: string
     description: Original Japanese name of the media
     example: "バクマン。"
-  romajiName:
+  nameRomaji:
     type: string
     description: Romaji transliteration of the media name
     example: "Bakuman."
-  englishName:
+  nameEn:
     type: string
-    description: English translation of the media name
+    description: English name of the media
     example: "Bakuman."
   airingFormat:
     type: string
@@ -34,10 +34,10 @@ MediaFields: &mediaFields
     example: ["Comedy", "Drama", "Romance", "Slice of Life"]
   storage:
     type: string
-    enum: [local, r2]
+    enum: [LOCAL, R2]
     description: Storage backend for media assets
-    example: "r2"
-    default: "r2"
+    example: "R2"
+    default: "R2"
   startDate:
     type: string
     format: date
@@ -86,9 +86,9 @@ MediaFields: &mediaFields
     description: Lists to add this media to (e.g., series, franchise)
     default: []
 
-# Update-only field (numSegments)
-NumSegmentsField: &numSegmentsField
-  numSegments:
+# Update-only field (segmentCount)
+SegmentCountField: &segmentCountField
+  segmentCount:
     type: integer
     description: Total number of subtitle segments available
     example: 1234
@@ -98,9 +98,9 @@ MediaCreateRequest:
   description: Request body for creating a new media entry
   required:
     - anilistId
-    - japaneseName
-    - romajiName
-    - englishName
+    - nameJa
+    - nameRomaji
+    - nameEn
     - airingFormat
     - airingStatus
     - genres
@@ -120,4 +120,4 @@ MediaUpdateRequest:
   description: Request body for updating an existing media entry (all fields optional)
   properties:
     <<: *mediaFields
-    <<: *numSegmentsField
+    <<: *segmentCountField

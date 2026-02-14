@@ -11,7 +11,7 @@ properties:
   uuid:
     type: string
     format: uuid
-    description: Unique ID from sentence (Useful to get a specific sentence)
+    description: Unique ID from segment (Useful to get a specific segment)
     example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
   category:
     type: array
@@ -19,7 +19,7 @@ properties:
     items:
       $ref: "../schemas/Category.yaml"
     default: [ANIME, JDRAMA]
-  animeId:
+  mediaId:
     type: integer
     description: Unique ID from media
     example: 5
@@ -37,9 +37,9 @@ properties:
   contentSort:
     type: string
     description: Order by amount of characters
-    enum: [asc, desc, none, time_asc, time_desc, random]
-    example: none
-    default: none
+    enum: [ASC, DESC, NONE, TIME_ASC, TIME_DESC, RANDOM]
+    example: NONE
+    default: NONE
   cursor:
     type: array
     description: Current page of search
@@ -58,18 +58,19 @@ properties:
     type: integer
     description: Maximum content length
     example: 50
-  excludedAnimeIds:
+  excludedMediaIds:
     type: array
     items:
       type: integer
-    description: Anime IDs to exclude from results
+    description: Media IDs to exclude from results
     default: []
   status:
     type: array
     description: Segment status filter
     items:
-      type: integer
-    default: [1]
+      type: string
+      enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    default: ["ACTIVE"]
   media:
     type: array
     description: Media filter with episodes

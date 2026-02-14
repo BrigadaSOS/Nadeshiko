@@ -2,19 +2,19 @@ type: object
 description: Japanese voice actor (seiyuu)
 required:
   - id
-  - nameJapanese
-  - nameEnglish
+  - nameJa
+  - nameEn
   - imageUrl
 properties:
   id:
     type: integer
     description: AniList staff ID
     example: 95991
-  nameJapanese:
+  nameJa:
     type: string
     description: Japanese name of the voice actor
     example: "阿部敦"
-  nameEnglish:
+  nameEn:
     type: string
     description: English name of the voice actor
     example: "Atsushi Abe"

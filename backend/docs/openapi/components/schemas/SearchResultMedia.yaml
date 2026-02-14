@@ -1,0 +1,35 @@
+type: object
+description: Media information included in search results
+required:
+  - mediaId
+  - nameRomaji
+  - category
+properties:
+  mediaId:
+    type: integer
+    description: Unique identifier for the media
+    example: 110316
+  nameRomaji:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Steins;Gate"
+  nameEn:
+    type: string
+    description: English name of the media
+    example: "Steins;Gate"
+  nameJa:
+    type: string
+    description: Original Japanese name of the media
+    example: "シュタインズ・ゲート"
+  coverUrl:
+    type: string
+    format: uri
+    description: URL to the cover image
+    example: "https://example.com/media/anime/steins-gate/cover.jpg"
+  bannerUrl:
+    type: string
+    format: uri
+    description: URL to the banner image
+    example: "https://example.com/media/anime/steins-gate/banner.jpg"
+  category:
+    $ref: "./Category.yaml"

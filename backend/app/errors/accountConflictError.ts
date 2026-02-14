@@ -1,4 +1,4 @@
-import { ApiError } from '@app/errors';
+import { ApiError } from './apiError';
 
 export class AccountConflictError extends ApiError {
   readonly code = 'ACCOUNT_CONFLICT' as const;

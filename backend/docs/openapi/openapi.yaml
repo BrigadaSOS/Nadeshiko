@@ -23,7 +23,7 @@ info:
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
 
-  version: 1.3.0
+  version: 1.4.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -41,7 +41,7 @@ security:
 tags:
   - name: Search
     description: |
-      Search endpoints for querying Japanese sentences across indexed media.
+      Search endpoints for querying Japanese segments across indexed media.
 
   - name: Admin
     x-internal: true
@@ -62,18 +62,20 @@ tags:
 
 paths:
   # Search endpoints
-  "/v1/search/health":
-    $ref: "./paths/search/v1_search_health.yaml"
-  "/v1/search/media/sentence":
-    $ref: "./paths/search/v1_search_media_sentence.yaml"
-  "/v1/search/media/stats":
-    $ref: "./paths/search/v1_search_media_stats.yaml"
-  "/v1/search/media/match/words":
-    $ref: "./paths/search/v1_search_media_match_words.yaml"
-  "/v1/search/media/context":
-    $ref: "./paths/search/v1_search_media_context.yaml"
-  "/v1/search/media/info":
-    $ref: "./paths/search/v1_search_media_info.yaml"
+  "/v1/health":
+    $ref: "./paths/search/v1_health.yaml"
+  "/v1/search/segments":
+    $ref: "./paths/search/v1_search_segments.yaml"
+  "/v1/search/stats":
+    $ref: "./paths/search/v1_search_stats.yaml"
+  "/v1/search/words":
+    $ref: "./paths/search/v1_search_words.yaml"
+  "/v1/search/context":
+    $ref: "./paths/search/v1_search_context.yaml"
+
+  # Media browse endpoint
+  "/v1/media/browse":
+    $ref: "./paths/media/v1_media_browse.yaml"
 
   # Media endpoints
   "/v1/media":
@@ -108,6 +110,8 @@ paths:
   # User endpoints
   "/v1/user/quota":
     $ref: "./paths/user/v1_user_quota.yaml"
+  "/v1/user/reports":
+    $ref: "./paths/user/v1_user_reports.yaml"
 
   # List endpoints
   "/v1/lists":
@@ -118,6 +122,10 @@ paths:
     $ref: "./paths/lists/v1_lists_id_items.yaml"
   "/v1/lists/{id}/items/{mediaId}":
     $ref: "./paths/lists/v1_lists_id_items_mediaId.yaml"
+  "/v1/lists/{id}/segments":
+    $ref: "./paths/lists/v1_lists_id_segments.yaml"
+  "/v1/lists/{id}/segments/{uuid}":
+    $ref: "./paths/lists/v1_lists_id_segments_uuid.yaml"
 
   # Admin endpoints
   "/v1/admin/reindex":
@@ -132,6 +140,12 @@ paths:
     $ref: "./paths/admin/v1_admin_queues__queueName__retry.yaml"
   "/v1/admin/queues/{queueName}/purge":
     $ref: "./paths/admin/v1_admin_queues__queueName__purge.yaml"
+  "/v1/admin/morpheme-backfill":
+    $ref: "./paths/admin/v1_admin_morpheme_backfill.yaml"
+  "/v1/admin/reports":
+    $ref: "./paths/admin/v1_admin_reports.yaml"
+  "/v1/admin/reports/{id}":
+    $ref: "./paths/admin/v1_admin_reports_id.yaml"
 
 components:
   securitySchemes:
@@ -146,3 +160,4 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via better-auth cookie
+

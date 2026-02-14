@@ -6,10 +6,9 @@ required:
   - status
   - startTime
   - endTime
-  - content
-  - contentLength
-  - contentSpanishMt
-  - contentEnglishMt
+  - ja
+  - en
+  - es
   - isNsfw
   - episode
   - mediaId
@@ -29,10 +28,10 @@ properties:
     description: Position of the segment within the episode
     example: 1133
   status:
-    type: integer
-    description: Segment status (0=Deleted, 1=Active, 2=Suspended, 3=Verified, 100=Invalid Sentence, 101=Sentence Too Long)
-    enum: [0, 1, 2, 3, 100, 101]
-    example: 1
+    type: string
+    enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    description: Segment status
+    example: "ACTIVE"
   startTime:
     type: string
     description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
@@ -41,35 +40,12 @@ properties:
     type: string
     description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
     example: "0:33:28.464000"
-  content:
-    type: string
-    maxLength: 500
-    description: Original Japanese content of the segment
-    example: "僕は僕で、君は君だ。"
-  contentLength:
-    type: integer
-    description: Length of the content
-    example: 10
-  contentSpanish:
-    type: string
-    maxLength: 500
-    nullable: true
-    description: Spanish translation of the segment content
-    example: "Yo soy yo, y tú eres tú."
-  contentSpanishMt:
-    type: boolean
-    description: Whether the Spanish translation was machine-translated
-    example: false
-  contentEnglish:
-    type: string
-    maxLength: 500
-    nullable: true
-    description: English translation of the segment content
-    example: "I am me, and you are you."
-  contentEnglishMt:
-    type: boolean
-    description: Whether the English translation was machine-translated
-    example: false
+  ja:
+    $ref: "./JapaneseContent.yaml"
+  en:
+    $ref: "./TranslationContent.yaml"
+  es:
+    $ref: "./TranslationContent.yaml"
   isNsfw:
     type: boolean
     description: Whether the segment contains NSFW content
@@ -89,21 +65,6 @@ properties:
     nullable: true
     description: URL to segment video file (generated from storage + hashedId)
     example: "https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.mp4"
-  actorJa:
-    type: string
-    nullable: true
-    description: Japanese voice actor name
-    example: "Mamoru Miyano"
-  actorEs:
-    type: string
-    nullable: true
-    description: Spanish voice actor name
-    example: "Alejandro Levis"
-  actorEn:
-    type: string
-    nullable: true
-    description: English voice actor name
-    example: "J. Michael Tatum"
   episode:
     type: integer
     description: Episode number this segment belongs to
@@ -114,10 +75,16 @@ properties:
     example: 7674
   storage:
     type: string
-    enum: [local, r2]
+    enum: [LOCAL, R2]
     description: Storage backend for segment assets
-    example: "r2"
+    example: "R2"
   hashedId:
     type: string
     description: Hash identifier for the segment
     example: "0d39e46b14"
+  morphemes:
+    type: array
+    nullable: true
+    items:
+      $ref: './Morpheme.yaml'
+    description: Morphological analysis of the Japanese content

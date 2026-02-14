@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { mdiCheckBold, mdiPlus } from '@mdi/js';
 import { useI18n } from 'vue-i18n';
+import type { SearchResult } from '~/stores/search';
 const { t } = useI18n();
 
 type Props = {
-  sentence: Sentence | null;
-  onClick: (sentence: Sentence, id: number) => void;
+  sentence: SearchResult | null;
+  onClick: (result: SearchResult, id: number) => void;
 };
 const props = defineProps<Props>();
 
@@ -23,7 +24,7 @@ watch(
   () => props.sentence,
   async () => {
     const regex = /<em>(.*?)<\/em>/;
-    const match = props.sentence?.segmentInfo.contentJpHighlight.match(regex);
+    const match = props.sentence?.segment.ja.highlight?.match(regex);
     const matchedTerm = match?.[1];
 
     if (matchedTerm) {

@@ -9,7 +9,7 @@ properties:
     type: boolean
     description: Indicates whether the word was found in any segment
     example: true
-  totalMatches:
+  matchCount:
     type: integer
     description: Total number of times this word appears across all media
     example: 1523

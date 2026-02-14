@@ -14,25 +14,23 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
+  t_BrowseMediaQuerySchema,
   t_Error,
-  t_FetchMediaInfoQuerySchema,
-  t_FetchMediaInfoResponse,
-  t_FetchSearchStatsRequestBodySchema,
-  t_FetchSentenceContextRequestBodySchema,
-  t_FetchSentenceContextResponse,
+  t_GetSearchStatsRequestBodySchema,
+  t_GetSegmentContextRequestBodySchema,
+  t_MediaBrowseResponse,
   t_SearchHealthCheckResponse,
-  t_SearchMultipleRequestBodySchema,
   t_SearchMultipleResponse,
-  t_SearchRequestBodySchema,
   t_SearchResponse,
+  t_SearchSegmentsRequestBodySchema,
   t_SearchStatsResponse,
+  t_SearchWordsRequestBodySchema,
+  t_SegmentContextResponse,
 } from '../models.ts';
-import type { FetchMediaInfoQueryOutput, FetchSentenceContextRequestOutput, SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput } from '../outputTypes.ts';
+import type { BrowseMediaQueryOutput, SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput, SegmentContextRequestOutput } from '../outputTypes.ts';
 import {
   s_Error,
-  s_FetchMediaInfoResponse,
-  s_FetchSentenceContextRequest,
-  s_FetchSentenceContextResponse,
+  s_MediaBrowseResponse,
   s_SearchHealthCheckResponse,
   s_SearchMultipleRequest,
   s_SearchMultipleResponse,
@@ -40,9 +38,11 @@ import {
   s_SearchResponse,
   s_SearchStatsRequest,
   s_SearchStatsResponse,
+  s_SegmentContextRequest,
+  s_SegmentContextResponse,
 } from '../schemas.ts';
 
-export type SearchHealthCheckResponder = {
+export type HealthCheckResponder = {
   with200(): ExpressRuntimeResponse<t_SearchHealthCheckResponse>;
   with401(): ExpressRuntimeResponse<t_Error>;
   with403(): ExpressRuntimeResponse<t_Error>;
@@ -50,15 +50,15 @@ export type SearchHealthCheckResponder = {
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
 
-export type SearchHealthCheck = (
+export type HealthCheck = (
   params: Params<void, void, void, void>,
-  respond: SearchHealthCheckResponder,
+  respond: HealthCheckResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SearchResponder = {
+export type SearchSegmentsResponder = {
   with200(): ExpressRuntimeResponse<t_SearchResponse>;
   with400(): ExpressRuntimeResponse<t_Error>;
   with401(): ExpressRuntimeResponse<t_Error>;
@@ -67,15 +67,15 @@ export type SearchResponder = {
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
 
-export type Search = (
+export type SearchSegments = (
   params: Params<void, void, SearchRequestOutput, void>,
-  respond: SearchResponder,
+  respond: SearchSegmentsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type FetchSearchStatsResponder = {
+export type GetSearchStatsResponder = {
   with200(): ExpressRuntimeResponse<t_SearchStatsResponse>;
   with400(): ExpressRuntimeResponse<t_Error>;
   with401(): ExpressRuntimeResponse<t_Error>;
@@ -84,15 +84,15 @@ export type FetchSearchStatsResponder = {
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
 
-export type FetchSearchStats = (
+export type GetSearchStats = (
   params: Params<void, void, SearchStatsRequestOutput, void>,
-  respond: FetchSearchStatsResponder,
+  respond: GetSearchStatsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SearchMultipleResponder = {
+export type SearchWordsResponder = {
   with200(): ExpressRuntimeResponse<t_SearchMultipleResponse>;
   with400(): ExpressRuntimeResponse<t_Error>;
   with401(): ExpressRuntimeResponse<t_Error>;
@@ -101,16 +101,16 @@ export type SearchMultipleResponder = {
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
 
-export type SearchMultiple = (
+export type SearchWords = (
   params: Params<void, void, SearchMultipleRequestOutput, void>,
-  respond: SearchMultipleResponder,
+  respond: SearchWordsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type FetchSentenceContextResponder = {
-  with200(): ExpressRuntimeResponse<t_FetchSentenceContextResponse>;
+export type GetSegmentContextResponder = {
+  with200(): ExpressRuntimeResponse<t_SegmentContextResponse>;
   with400(): ExpressRuntimeResponse<t_Error>;
   with401(): ExpressRuntimeResponse<t_Error>;
   with403(): ExpressRuntimeResponse<t_Error>;
@@ -119,43 +119,43 @@ export type FetchSentenceContextResponder = {
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
 
-export type FetchSentenceContext = (
-  params: Params<void, void, FetchSentenceContextRequestOutput, void>,
-  respond: FetchSentenceContextResponder,
+export type GetSegmentContext = (
+  params: Params<void, void, SegmentContextRequestOutput, void>,
+  respond: GetSegmentContextResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type FetchMediaInfoResponder = {
-  with200(): ExpressRuntimeResponse<t_FetchMediaInfoResponse>;
+export type BrowseMediaResponder = {
+  with200(): ExpressRuntimeResponse<t_MediaBrowseResponse>;
   with401(): ExpressRuntimeResponse<t_Error>;
   with403(): ExpressRuntimeResponse<t_Error>;
   with429(): ExpressRuntimeResponse<t_Error>;
   with500(): ExpressRuntimeResponse<t_Error>;
 } & ExpressRuntimeResponder;
 
-export type FetchMediaInfo = (
-  params: Params<void, FetchMediaInfoQueryOutput, void, void>,
-  respond: FetchMediaInfoResponder,
+export type BrowseMedia = (
+  params: Params<void, BrowseMediaQueryOutput, void, void>,
+  respond: BrowseMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type SearchImplementation = {
-  searchHealthCheck: SearchHealthCheck;
-  search: Search;
-  fetchSearchStats: FetchSearchStats;
-  searchMultiple: SearchMultiple;
-  fetchSentenceContext: FetchSentenceContext;
-  fetchMediaInfo: FetchMediaInfo;
+  healthCheck: HealthCheck;
+  searchSegments: SearchSegments;
+  getSearchStats: GetSearchStats;
+  searchWords: SearchWords;
+  getSegmentContext: GetSegmentContext;
+  browseMedia: BrowseMedia;
 };
 
 export function createSearchRouter(implementation: SearchImplementation): Router {
   const router = Router();
 
-  const searchHealthCheckResponseBodyValidator = responseValidationFactory(
+  const healthCheckResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchHealthCheckResponse],
       ['401', s_Error],
@@ -166,8 +166,8 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // searchHealthCheck
-  router.get(`/v1/search/health`, async (req: Request, res: Response, next: NextFunction) => {
+  // healthCheck
+  router.get(`/v1/health`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
@@ -197,7 +197,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.searchHealthCheck(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.healthCheck(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -211,7 +211,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(searchHealthCheckResponseBodyValidator(status, body));
+        res.json(healthCheckResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -220,9 +220,9 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const searchRequestBodySchema = s_SearchRequest;
+  const searchSegmentsRequestBodySchema = s_SearchRequest;
 
-  const searchResponseBodyValidator = responseValidationFactory(
+  const searchSegmentsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchResponse],
       ['400', s_Error],
@@ -234,13 +234,13 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // search
-  router.post(`/v1/search/media/sentence`, async (req: Request, res: Response, next: NextFunction) => {
+  // searchSegments
+  router.post(`/v1/search/segments`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(searchSegmentsRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -268,7 +268,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.search(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.searchSegments(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -282,7 +282,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(searchResponseBodyValidator(status, body));
+        res.json(searchSegmentsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -291,9 +291,9 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const fetchSearchStatsRequestBodySchema = s_SearchStatsRequest;
+  const getSearchStatsRequestBodySchema = s_SearchStatsRequest;
 
-  const fetchSearchStatsResponseBodyValidator = responseValidationFactory(
+  const getSearchStatsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchStatsResponse],
       ['400', s_Error],
@@ -305,13 +305,13 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // fetchSearchStats
-  router.post(`/v1/search/media/stats`, async (req: Request, res: Response, next: NextFunction) => {
+  // getSearchStats
+  router.post(`/v1/search/stats`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(fetchSearchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(getSearchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -339,7 +339,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.fetchSearchStats(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getSearchStats(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -353,7 +353,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(fetchSearchStatsResponseBodyValidator(status, body));
+        res.json(getSearchStatsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -362,9 +362,9 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const searchMultipleRequestBodySchema = s_SearchMultipleRequest;
+  const searchWordsRequestBodySchema = s_SearchMultipleRequest;
 
-  const searchMultipleResponseBodyValidator = responseValidationFactory(
+  const searchWordsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchMultipleResponse],
       ['400', s_Error],
@@ -376,13 +376,13 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // searchMultiple
-  router.post(`/v1/search/media/match/words`, async (req: Request, res: Response, next: NextFunction) => {
+  // searchWords
+  router.post(`/v1/search/words`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchMultipleRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(searchWordsRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -410,7 +410,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.searchMultiple(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.searchWords(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -424,7 +424,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(searchMultipleResponseBodyValidator(status, body));
+        res.json(searchWordsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -433,11 +433,11 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const fetchSentenceContextRequestBodySchema = s_FetchSentenceContextRequest;
+  const getSegmentContextRequestBodySchema = s_SegmentContextRequest;
 
-  const fetchSentenceContextResponseBodyValidator = responseValidationFactory(
+  const getSegmentContextResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_FetchSentenceContextResponse],
+      ['200', s_SegmentContextResponse],
       ['400', s_Error],
       ['401', s_Error],
       ['403', s_Error],
@@ -448,19 +448,19 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // fetchSentenceContext
-  router.post(`/v1/search/media/context`, async (req: Request, res: Response, next: NextFunction) => {
+  // getSegmentContext
+  router.post(`/v1/search/context`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(fetchSentenceContextRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(getSegmentContextRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_FetchSentenceContextResponse>(200);
+          return new ExpressRuntimeResponse<t_SegmentContextResponse>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error>(400);
@@ -485,7 +485,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.fetchSentenceContext(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getSegmentContext(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -499,7 +499,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(fetchSentenceContextResponseBodyValidator(status, body));
+        res.json(getSegmentContextResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -508,16 +508,16 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const fetchMediaInfoQuerySchema = z.object({
+  const browseMediaQuerySchema = z.object({
     size: z.coerce.number().optional().default(20),
     cursor: z.coerce.number().optional().default(0),
     query: z.string().optional(),
     type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
   });
 
-  const fetchMediaInfoResponseBodyValidator = responseValidationFactory(
+  const browseMediaResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_FetchMediaInfoResponse],
+      ['200', s_MediaBrowseResponse],
       ['401', s_Error],
       ['403', s_Error],
       ['429', s_Error],
@@ -526,19 +526,19 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // fetchMediaInfo
-  router.get(`/v1/search/media/info`, async (req: Request, res: Response, next: NextFunction) => {
+  // browseMedia
+  router.get(`/v1/media/browse`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(fetchMediaInfoQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(browseMediaQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_FetchMediaInfoResponse>(200);
+          return new ExpressRuntimeResponse<t_MediaBrowseResponse>(200);
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error>(401);
@@ -557,7 +557,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.fetchMediaInfo(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.browseMedia(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -571,7 +571,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(fetchMediaInfoResponseBodyValidator(status, body));
+        res.json(browseMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }

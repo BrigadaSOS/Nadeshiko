@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
-import type { Sentence } from './search';
+import type { SearchResult } from './search';
 
 interface PlayerState {
-  playlist: Sentence[];
+  playlist: SearchResult[];
   currentIndex: number | null;
   isPlaying: boolean;
   showPlayer: boolean;
@@ -25,11 +25,11 @@ export const usePlayerStore = defineStore('player', {
   }),
 
   getters: {
-    currentSentence(state): Sentence | null {
+    currentResult(state): SearchResult | null {
       if (state.currentIndex !== null) {
-        const sentence = state.playlist[state.currentIndex];
-        if (sentence) {
-          return sentence;
+        const result = state.playlist[state.currentIndex];
+        if (result) {
+          return result;
         }
       }
       return null;
@@ -37,8 +37,8 @@ export const usePlayerStore = defineStore('player', {
   },
 
   actions: {
-    setPlaylist(sentences: Sentence[], startIndex: number) {
-      this.playlist = sentences;
+    setPlaylist(results: SearchResult[], startIndex: number) {
+      this.playlist = results;
       this.currentIndex = startIndex;
       this.showPlayer = true;
       this.isImmersive = false;
@@ -53,8 +53,8 @@ export const usePlayerStore = defineStore('player', {
         this.currentAudio.load();
       }
 
-      if (this.currentSentence) {
-        const audioUrl = this.currentSentence.mediaInfo.blobAudioUrl ?? this.currentSentence.mediaInfo.pathAudio;
+      if (this.currentResult) {
+        const audioUrl = this.currentResult.urls.blobAudioUrl ?? this.currentResult.urls.audioUrl;
         this.currentAudio = new Audio(audioUrl);
 
         this.currentAudio

@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const response = await $fetch(`${backendUrl}/v1/search/media/stats`, {
+  const response = await $fetch(`${backendUrl}/v1/search/stats`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

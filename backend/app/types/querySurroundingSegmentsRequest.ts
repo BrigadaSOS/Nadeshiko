@@ -1,3 +1,3 @@
-import type { t_FetchSentenceContextRequestBodySchema } from '../../generated/models';
+import type { t_GetSegmentContextRequestBodySchema } from '../../generated/models';
 
-export type QuerySurroundingSegmentsRequest = t_FetchSentenceContextRequestBodySchema;
+export type QuerySurroundingSegmentsRequest = t_GetSegmentContextRequestBodySchema;

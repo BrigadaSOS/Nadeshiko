@@ -22,7 +22,7 @@ info:
     | Default      | 2500 requests   |
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
-  version: 1.3.0
+  version: 1.4.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -37,7 +37,11 @@ security:
 tags:
   - name: Search
     description: |
-      Search endpoints for querying Japanese sentences across indexed media.
+      Search endpoints for querying Japanese segments across indexed media.
+  - name: Admin
+    x-internal: true
+    description: |
+      Administrative endpoints for system management and operations.
   - name: Media
     description: |
       Media CRUD endpoints for managing anime and j-drama entries.
@@ -48,17 +52,18 @@ tags:
     description: |
       List endpoints for managing media collections and watch orders.
 paths:
-  /v1/search/health:
+  /v1/health:
     get:
       tags:
         - Search
-      operationId: searchHealthCheck
-      summary: Health check for search
+      operationId: healthCheck
+      summary: Health check
       description: |
         Tests the search service connectivity and functionality by performing a simple search query.
 
         **Requirements:**
         - Required Scopes: `READ_MEDIA`
+      x-internal: true
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -77,14 +82,14 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/search/media/sentence:
+  /v1/search/segments:
     post:
       tags:
         - Search
-      operationId: search
-      summary: Search by query
+      operationId: searchSegments
+      summary: Search segments by query
       description: |
-        The primary search endpoint for finding Japanese sentences and their translations across indexed media (anime, J-Drama, audiobooks).
+        The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama, audiobooks).
 
         This endpoint uses Elasticsearch with advanced Japanese text analysis supporting multiple input types (romaji, kanji, kana) and providing intelligent field-based boosting.
 
@@ -136,18 +141,18 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/search/media/stats:
+  /v1/search/stats:
     post:
       tags:
         - Search
-      operationId: fetchSearchStats
-      summary: Fetch search stats
+      operationId: getSearchStats
+      summary: Get search statistics
       description: |
-        Returns statistics for search filters and category tabs without fetching sentence rows.
+        Returns statistics for search filters and category tabs without fetching segment rows.
 
         This endpoint is optimized for UI filter panels:
-        - `mediaStatistics` powers the media dropdown on the right side.
-        - `categoryStatistics` powers category tabs below the search bar.
+        - `media` powers the media dropdown on the right side.
+        - `categories` powers category tabs below the search bar.
 
         The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
 
@@ -184,16 +189,16 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/search/media/match/words:
+  /v1/search/words:
     post:
       tags:
         - Search
-      operationId: searchMultiple
-      summary: Search by multiple queries
+      operationId: searchWords
+      summary: Search by multiple words
       description: |
         Searches for multiple words simultaneously and aggregates results by media.
 
-        Unlike the main search endpoint, this returns a summary of matches per media rather than individual sentence segments.
+        Unlike the main search endpoint, this returns a summary of matches per media rather than individual segments.
 
         **Use Cases**
         - Vocabulary discovery across media library
@@ -239,14 +244,14 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/search/media/context:
+  /v1/search/context:
     post:
       tags:
         - Search
-      operationId: fetchSentenceContext
-      summary: Fetch context for a sentence
+      operationId: getSegmentContext
+      summary: Get context for a segment
       description: |
-        Retrieves sentences surrounding a specific segment position within an episode.
+        Retrieves segments surrounding a specific segment position within an episode.
         Returns segments both before and after the target position, providing context for understanding how a sentence is used in dialogue.
 
         **Requirements:**
@@ -256,14 +261,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FetchSentenceContextRequest'
+              $ref: '#/components/schemas/SegmentContextRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FetchSentenceContextResponse'
+                $ref: '#/components/schemas/SegmentContextResponse'
         '400':
           description: Bad Request
           content:
@@ -292,12 +297,12 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/search/media/info:
+  /v1/media/browse:
     get:
       tags:
         - Search
-      operationId: fetchMediaInfo
-      summary: Fetch media info
+      operationId: browseMedia
+      summary: Browse media library
       description: |
         Lists available media with metadata and supports filtering by type and search query.
 
@@ -344,7 +349,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FetchMediaInfoResponse'
+                $ref: '#/components/schemas/MediaBrowseResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedApiKey'
         '403':
@@ -406,6 +411,42 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Media
+      operationId: mediaCreate
+      x-internal: true
+      summary: Create new media
+      description: |
+        Creates a new media entry in the database.
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{id}:
     get:
       tags:
@@ -432,6 +473,95 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Media'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Media
+      operationId: mediaUpdate
+      x-internal: true
+      summary: Update media
+      description: |
+        Updates an existing media entry. All fields are optional - only provided fields will be updated.
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Media
+      operationId: mediaDestroy
+      x-internal: true
+      summary: Delete media (soft delete)
+      description: |
+        Soft deletes a media entry by setting the `deletedAt` timestamp. The media is not removed from the database but is excluded from query results.
+      security:
+        - apiKeyHeader:
+            - REMOVE_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Media deleted successfully
+                  id:
+                    type: integer
+                    example: 7674
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -496,6 +626,48 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: episodeCreate
+      x-internal: true
+      tags:
+        - Media
+      summary: Create new episode
+      description: |
+        Create a new episode for a specific media
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EpisodeCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/EpisodeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes/{episodeNumber}:
     get:
       operationId: episodeShow
@@ -537,6 +709,203 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Media
+      operationId: episodeUpdate
+      x-internal: true
+      summary: Update episode
+      description: |
+        Update an existing episode with partial data
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EpisodeUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/EpisodeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Media
+      operationId: episodeDestroy
+      x-internal: true
+      summary: Delete an episode
+      description: |
+        Soft delete an episode. Segments are not cascade deleted, this only "hides" the episode.
+      security:
+        - apiKeyHeader:
+            - REMOVE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      responses:
+        '204':
+          description: Episode successfully deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaId}/episodes/{episodeNumber}/segments:
+    get:
+      tags:
+        - Media
+      operationId: segmentIndex
+      x-internal: true
+      summary: List segments for an episode
+      description: |
+        Get a paginated list of segments for a specific episode
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of segments to return
+          example: 50
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Segment ID to start from (for pagination)
+          example: 1000
+      responses:
+        '200':
+          $ref: '#/components/responses/SegmentListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Media
+      operationId: segmentCreate
+      x-internal: true
+      summary: Create new segment
+      description: |
+        Create a new segment for a specific episode
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SegmentCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/SegmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
     get:
       operationId: segmentShow
@@ -573,6 +942,108 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SegmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      operationId: segmentUpdate
+      x-internal: true
+      tags:
+        - Media
+      summary: Update segment
+      description: |
+        Update an existing segment with partial data
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Segment ID
+          example: 12345
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SegmentUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SegmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Media
+      operationId: segmentDestroy
+      x-internal: true
+      summary: Delete segment (set status to deleted)
+      description: |
+        Delete a segment by setting its status to 0 (DELETED)
+      security:
+        - apiKeyHeader:
+            - REMOVE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Segment ID
+          example: 12345
+      responses:
+        '204':
+          description: Segment successfully deleted
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -722,6 +1193,86 @@ paths:
           $ref: '#/components/responses/UnauthorizedApiKey'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/user/reports:
+    post:
+      tags:
+        - User
+      operationId: createReport
+      summary: Create a new report
+      description: |
+        Submit a report for a segment or media entry.
+
+        **Requirements:**
+        - Requires session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReportRequest'
+      responses:
+        '201':
+          description: Report created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+        - User
+      operationId: getUserReports
+      summary: List user's own reports
+      description: |
+        Returns the authenticated user's submitted reports with cursor pagination.
+
+        **Requirements:**
+        - Requires session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: integer
+          description: Cursor for pagination (report ID to start after)
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of results per page
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - ACCEPTED
+              - REJECTED
+              - RESOLVED
+          description: Filter by report status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/lists:
     get:
       tags:
@@ -751,6 +1302,7 @@ paths:
             enum:
               - SERIES
               - CUSTOM
+              - SEGMENT
             example: SERIES
         - name: userId
           in: query
@@ -773,6 +1325,40 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Lists
+      operationId: listCreate
+      x-internal: true
+      summary: Create new list
+      description: |
+        Creates a new standalone list. Requires admin permissions.
+      security:
+        - apiKeyHeader:
+            - CREATE_LISTS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -809,6 +1395,508 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListWithMedia'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Lists
+      operationId: listUpdate
+      x-internal: true
+      summary: Update list metadata
+      description: |
+        Updates list name or visibility. Requires admin permissions.
+      security:
+        - apiKeyHeader:
+            - UPDATE_LISTS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Updated List Name
+                visibility:
+                  type: string
+                  enum:
+                    - PUBLIC
+                    - PRIVATE
+                  example: PUBLIC
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Lists
+      operationId: listDestroy
+      x-internal: true
+      summary: Delete list
+      description: |
+        Deletes a list and all its items. Requires admin permissions.
+      security:
+        - apiKeyHeader:
+            - DELETE_LISTS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: List deleted successfully
+                  id:
+                    type: integer
+                    example: 123
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/lists/{id}/items:
+    post:
+      tags:
+        - Lists
+      operationId: listAddItem
+      x-internal: true
+      summary: Add media to list
+      description: |
+        Adds a media entry to the list at the specified position. Requires admin permissions.
+      security:
+        - apiKeyHeader:
+            - UPDATE_LISTS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaId
+                - position
+              properties:
+                mediaId:
+                  type: integer
+                  example: 7674
+                position:
+                  type: integer
+                  example: 1
+                  description: Position in the list (1-indexed)
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Media added to list
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/lists/{id}/items/{mediaId}:
+    patch:
+      tags:
+        - Lists
+      operationId: listUpdateItem
+      x-internal: true
+      summary: Update media position in list
+      description: |
+        Updates the position of a media entry within the list. Requires admin permissions.
+      security:
+        - apiKeyHeader:
+            - UPDATE_LISTS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+        - name: mediaId
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - position
+              properties:
+                position:
+                  type: integer
+                  example: 2
+                  description: New position in the list (1-indexed)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Position updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Lists
+      operationId: listRemoveItem
+      x-internal: true
+      summary: Remove media from list
+      description: |
+        Removes a media entry from the list. Requires admin permissions.
+      security:
+        - apiKeyHeader:
+            - UPDATE_LISTS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+        - name: mediaId
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Media removed from list
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/lists/{id}/segments:
+    get:
+      tags:
+        - Lists
+      operationId: listGetSegments
+      summary: Get segments in list
+      description: |
+        Returns paginated segments in a segment list with full search result data.
+      security:
+        - apiKeyHeader:
+            - READ_LISTS
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            default: 20
+            example: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListWithSegments'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Lists
+      operationId: listAddSegment
+      summary: Add segment to list
+      description: |
+        Adds a segment to a segment list. Requires list ownership or admin.
+      security:
+        - apiKeyHeader:
+            - UPDATE_LISTS
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - segmentUuid
+              properties:
+                segmentUuid:
+                  type: string
+                  description: UUID of the segment to add
+                  example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+                note:
+                  type: string
+                  maxLength: 500
+                  description: Optional annotation
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Segment added to list
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/lists/{id}/segments/{uuid}:
+    patch:
+      tags:
+        - Lists
+      operationId: listUpdateSegment
+      summary: Update segment in list
+      description: |
+        Updates the note or position of a segment in a list. Requires list ownership or admin.
+      security:
+        - apiKeyHeader:
+            - UPDATE_LISTS
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+        - name: uuid
+          in: path
+          required: true
+          description: Segment UUID
+          schema:
+            type: string
+            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                position:
+                  type: integer
+                  description: New position in the list
+                  example: 2
+                note:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                  description: Updated annotation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Segment updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Lists
+      operationId: listRemoveSegment
+      summary: Remove segment from list
+      description: |
+        Removes a segment from a list. Requires list ownership or admin.
+      security:
+        - apiKeyHeader:
+            - UPDATE_LISTS
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: List ID
+          schema:
+            type: integer
+            example: 123
+        - name: uuid
+          in: path
+          required: true
+          description: Segment UUID
+          schema:
+            type: string
+            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Segment removed from list
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1174,6 +2262,155 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/morpheme-backfill:
+    post:
+      operationId: morphemeBackfill
+      tags:
+        - Admin
+      summary: Backfill morpheme analysis for segments
+      description: Analyzes segments that are missing morpheme data using the Sudachi sidecar service.
+      responses:
+        '200':
+          description: Backfill completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - stats
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  stats:
+                    type: object
+                    required:
+                      - totalSegments
+                      - successfulAnalyses
+                      - failedAnalyses
+                    properties:
+                      totalSegments:
+                        type: integer
+                      successfulAnalyses:
+                        type: integer
+                      failedAnalyses:
+                        type: integer
+  /v1/admin/reports:
+    get:
+      tags:
+        - Admin
+      operationId: getAdminReports
+      summary: List all reports (admin)
+      description: |
+        Returns all reports with filtering and aggregation.
+        Reports are grouped by target and sorted by report count descending.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: integer
+          description: Cursor for pagination (report ID to start after)
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of results per page
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - ACCEPTED
+              - REJECTED
+              - RESOLVED
+          description: Filter by report status
+        - name: reportType
+          in: query
+          schema:
+            type: string
+            enum:
+              - SEGMENT
+              - MEDIA
+          description: Filter by report type
+        - name: targetId
+          in: query
+          schema:
+            type: string
+          description: Filter by target ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminReportListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/reports/{id}:
+    patch:
+      tags:
+        - Admin
+      operationId: updateReport
+      summary: Update a report (admin)
+      description: |
+        Update the status and/or admin notes of a report.
+        When status changes to ACCEPTED, REJECTED, or RESOLVED, resolvedAt and resolvedById are set automatically.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Report ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReportRequest'
+      responses:
+        '200':
+          description: Report updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     apiKeyHeader:
@@ -1199,65 +2436,175 @@ components:
           description: Anime
         - value: JDRAMA
           description: Japanese Drama
-    BasicInfo:
+    SearchResultMedia:
       type: object
-      description: Basic anime/media information included in search results
+      description: Media information included in search results
       required:
-        - animeId
-        - nameAnimeRomaji
-        - episode
+        - mediaId
+        - nameRomaji
         - category
       properties:
-        animeId:
+        mediaId:
           type: integer
-          description: Unique identifier for the anime/media
+          description: Unique identifier for the media
           example: 110316
-        nameAnimeRomaji:
+        nameRomaji:
           type: string
-          description: Romaji transliteration of the anime name
+          description: Romaji transliteration of the media name
           example: Steins;Gate
-        nameAnimeEn:
+        nameEn:
           type: string
-          description: English translation of the anime name
+          description: English name of the media
           example: Steins;Gate
-        nameAnimeJp:
+        nameJa:
           type: string
-          description: Original Japanese name of the anime
+          description: Original Japanese name of the media
           example: シュタインズ・ゲート
-        cover:
+        coverUrl:
           type: string
           format: uri
           description: URL to the cover image
           example: https://example.com/media/anime/steins-gate/cover.jpg
-        banner:
+        bannerUrl:
           type: string
           format: uri
           description: URL to the banner image
           example: https://example.com/media/anime/steins-gate/banner.jpg
-        episode:
-          type: integer
-          description: Episode number where the segment appears
-          example: 1
         category:
           $ref: '#/components/schemas/Category'
-    SegmentInfo:
+    JapaneseSearchContent:
       type: object
-      description: Detailed information about a subtitle segment
+      description: Japanese content in search results with optional highlight
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: Original Japanese content of the segment
+          example: 僕は僕で、君は君だ。
+        highlight:
+          type: string
+          description: Japanese content with search terms highlighted
+          example: <em>僕</em>は<em>僕</em>で、<em>君</em>は<em>君</em>だ。
+    TranslationSearchContent:
+      type: object
+      description: Translation content in search results with optional highlight
+      required:
+        - isMachineTranslated
+      properties:
+        content:
+          type: string
+          description: Translated content
+          example: I am me, and you are you.
+        highlight:
+          type: string
+          description: Translated content with search terms highlighted
+          example: <em>I</em> am <em>me</em>, and <em>you</em> are <em>you</em>.
+        isMachineTranslated:
+          type: boolean
+          description: Whether the translation was machine-translated
+          example: false
+    Morpheme:
+      type: object
+      description: Morphological analysis token
+      required:
+        - surface
+        - reading
+        - baseform
+        - pronunciation
+        - pos
+        - posShort
+        - begin
+        - end
+        - pitchAccentType
+        - pitchCompoundRule
+        - pitchModificationRule
+      properties:
+        surface:
+          type: string
+          description: Surface form of the token as it appears in the text
+          example: 食べ
+        reading:
+          type: string
+          description: Reading in katakana
+          example: タベ
+        baseform:
+          type: string
+          description: Dictionary/base form of the word
+          example: 食べる
+        pronunciation:
+          type: string
+          description: Pronunciation in katakana
+          example: タベル
+        pos:
+          type: array
+          items:
+            type: string
+          description: Full part-of-speech tag array
+          example:
+            - 動詞
+            - 一般
+            - '*'
+            - '*'
+        posShort:
+          type: string
+          description: Short part-of-speech label (first element of pos array)
+          example: 動詞
+        begin:
+          type: integer
+          description: Character offset where the token begins in the original text
+          example: 0
+        end:
+          type: integer
+          description: Character offset where the token ends in the original text
+          example: 2
+        pitchAccentType:
+          type: array
+          items:
+            type: integer
+          nullable: true
+          description: |
+            Pitch accent type — mora position(s) where the pitch drops. 0 = heiban (flat), 1 = atamadaka, 2+ = nakadaka/odaka. Comma-separated in UniDic feature[24]. Null if not available.
+          example:
+            - 0
+        pitchCompoundRule:
+          type: string
+          nullable: true
+          description: |
+            Compound accent connection rule from UniDic feature[25]. Values like C1-C5, F1-F6, P1-P13. Null if not available.
+          example: C2
+        pitchModificationRule:
+          type: string
+          nullable: true
+          description: |
+            Accent modification rule from UniDic feature[26]. Values like M1, M2, M4. Null if not available.
+          example: null
+    SearchResultSegment:
+      type: object
+      description: Segment details in search results
       required:
         - status
         - uuid
         - position
         - startTime
         - endTime
-        - contentJp
-        - contentEnMt
-        - contentEsMt
+        - episodeNumber
+        - ja
+        - en
+        - es
         - isNsfw
       properties:
         status:
-          type: integer
-          description: Segment status (0=Deleted, 1=Active, 2=Suspended, 3=Verified, 100=Invalid Sentence, 101=Sentence Too Long)
-          example: 1
+          type: string
+          enum:
+            - DELETED
+            - ACTIVE
+            - SUSPENDED
+            - VERIFIED
+            - INVALID
+            - TOO_LONG
+          description: Segment status
+          example: ACTIVE
         uuid:
           type: string
           format: uuid
@@ -1269,107 +2616,79 @@ components:
           example: 1133
         startTime:
           type: string
-          description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment starts
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
           example: '0:33:27.255000'
         endTime:
           type: string
-          description: Timestamp in H:MM:SS.ffffff format (variable-length hours, microseconds) indicating when the segment ends
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
           example: '0:33:28.464000'
-        contentJp:
-          type: string
-          description: Original Japanese content of the segment
-          example: 僕は僕で、君は君だ。
-        contentJpHighlight:
-          type: string
-          description: Japanese content with search terms highlighted
-          example: <em>僕</em>は<em>僕</em>で、<em>君</em>は<em>君</em>だ。
-        contentEn:
-          type: string
-          description: English translation of the segment content
-          example: I am me, and you are you.
-        contentEnHighlight:
-          type: string
-          description: English content with search terms highlighted
-          example: <em>I</em> am <em>me</em>, and <em>you</em> are <em>you</em>.
-        contentEnMt:
-          type: boolean
-          description: Indicates whether the English translation was machine-translated
-          example: false
-        contentEs:
-          type: string
-          description: Spanish translation of the segment content
-          example: Yo soy yo, y tú eres tú.
-        contentEsHighlight:
-          type: string
-          description: Spanish content with search terms highlighted
-          example: <em>Yo</em> soy <em>yo</em>, y <em>tú</em> eres <em>tú</em>.
-        contentEsMt:
-          type: boolean
-          description: Indicates whether the Spanish translation was machine-translated
-          example: false
+        episodeNumber:
+          type: integer
+          description: Episode number where the segment appears
+          example: 1
+        ja:
+          $ref: '#/components/schemas/JapaneseSearchContent'
+        en:
+          $ref: '#/components/schemas/TranslationSearchContent'
+        es:
+          $ref: '#/components/schemas/TranslationSearchContent'
         isNsfw:
           type: boolean
-          description: Indicates whether the segment contains NSFW (Not Safe For Work) content
+          description: Whether the segment contains NSFW content
           example: false
-        actorJa:
-          type: string
-          description: Name of the Japanese voice actor for this segment
-          example: Mamoru Miyano
-        actorEn:
-          type: string
-          description: Name of the English voice actor for this segment
-          example: J. Michael Tatum
-        actorEs:
-          type: string
-          description: Name of the Spanish voice actor for this segment
-          example: Alejandro Levis
-    MediaInfoPath:
+        morphemes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Morpheme'
+          description: Morphological analysis of the Japanese content
+    SearchResultUrls:
       type: object
       description: URLs to media resources for a segment
       properties:
-        pathImage:
+        imageUrl:
           type: string
           format: uri
           description: URL to the subtitle image snapshot
           example: https://example.com/media/anime/steins-gate/segments/1133.jpg
-        pathAudio:
+        audioUrl:
           type: string
           format: uri
           description: URL to the audio clip for this segment
           example: https://example.com/media/anime/steins-gate/audio/1133.mp3
-        pathVideo:
+        videoUrl:
           type: string
           format: uri
           description: URL to the video clip for this segment
           example: https://example.com/media/anime/steins-gate/video/1133.mp4
-    Sentence:
+    SearchResult:
       type: object
-      description: A complete sentence result combining basic info, segment details, and media paths
+      description: A complete search result combining media info, segment details, and URLs
       required:
-        - basicInfo
-        - segmentInfo
-        - mediaInfo
+        - media
+        - segment
+        - urls
       properties:
-        basicInfo:
-          $ref: '#/components/schemas/BasicInfo'
-          description: Basic anime/media information
-        segmentInfo:
-          $ref: '#/components/schemas/SegmentInfo'
-          description: Detailed segment information including translations
-        mediaInfo:
-          $ref: '#/components/schemas/MediaInfoPath'
+        media:
+          $ref: '#/components/schemas/SearchResultMedia'
+          description: Media information for this result
+        segment:
+          $ref: '#/components/schemas/SearchResultSegment'
+          description: Segment details including translations
+        urls:
+          $ref: '#/components/schemas/SearchResultUrls'
           description: URLs to media resources (images, audio, video)
-    QueryStats:
+    PaginationInfo:
       type: object
-      description: Lightweight metadata for the current sentence search query
+      description: Pagination metadata for search results
       properties:
-        returnedCount:
+        pageSize:
           type: integer
-          description: Number of sentences returned in this page
+          description: Number of results returned in this page
           example: 20
-        hasMoreResults:
+        hasMore:
           type: boolean
-          description: Whether there are more sentence results after this page
+          description: Whether there are more results after this page
           example: true
         estimatedTotalHits:
           type: integer
@@ -1377,20 +2696,20 @@ components:
           example: 12456
         estimatedTotalHitsRelation:
           type: string
-          description: Whether estimatedTotalHits is exact (`eq`) or a lower bound (`gte`)
+          description: Whether estimatedTotalHits is exact or a lower bound
           enum:
-            - eq
-            - gte
-          example: gte
+            - EXACT
+            - LOWER_BOUND
+          example: LOWER_BOUND
     SearchHealthCheckResponse:
       type: object
       properties:
-        sentences:
+        results:
           type: array
           items:
-            $ref: '#/components/schemas/Sentence'
-        queryStats:
-          $ref: '#/components/schemas/QueryStats'
+            $ref: '#/components/schemas/SearchResult'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
         cursor:
           type: array
           items:
@@ -1443,7 +2762,7 @@ components:
         uuid:
           type: string
           format: uuid
-          description: Unique ID from sentence (Useful to get a specific sentence)
+          description: Unique ID from segment (Useful to get a specific segment)
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         category:
           type: array
@@ -1453,7 +2772,7 @@ components:
           default:
             - ANIME
             - JDRAMA
-        animeId:
+        mediaId:
           type: integer
           description: Unique ID from media
           example: 5
@@ -1474,14 +2793,14 @@ components:
           type: string
           description: Order by amount of characters
           enum:
-            - asc
-            - desc
-            - none
-            - time_asc
-            - time_desc
-            - random
-          example: none
-          default: none
+            - ASC
+            - DESC
+            - NONE
+            - TIME_ASC
+            - TIME_DESC
+            - RANDOM
+          example: NONE
+          default: NONE
         cursor:
           type: array
           description: Current page of search
@@ -1502,19 +2821,26 @@ components:
           type: integer
           description: Maximum content length
           example: 50
-        excludedAnimeIds:
+        excludedMediaIds:
           type: array
           items:
             type: integer
-          description: Anime IDs to exclude from results
+          description: Media IDs to exclude from results
           default: []
         status:
           type: array
           description: Segment status filter
           items:
-            type: integer
+            type: string
+            enum:
+              - DELETED
+              - ACTIVE
+              - SUSPENDED
+              - VERIFIED
+              - INVALID
+              - TOO_LONG
           default:
-            - 1
+            - ACTIVE
         media:
           type: array
           description: Media filter with episodes
@@ -1538,12 +2864,12 @@ components:
     SearchResponse:
       type: object
       properties:
-        sentences:
+        results:
           type: array
           items:
-            $ref: '#/components/schemas/Sentence'
-        queryStats:
-          $ref: '#/components/schemas/QueryStats'
+            $ref: '#/components/schemas/SearchResult'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
         cursor:
           type: array
           nullable: true
@@ -1577,57 +2903,70 @@ components:
           type: integer
           description: Maximum content length
           example: 50
-        excludedAnimeIds:
+        excludedMediaIds:
           type: array
           items:
             type: integer
-          description: Anime IDs to exclude from results
+          description: Media IDs to exclude from results
+          default: []
+        mediaIds:
+          type: array
+          items:
+            type: integer
+          description: Restrict stats to these media IDs (for list-scoped stats)
           default: []
         status:
           type: array
           description: Segment status filter
           items:
-            type: integer
+            type: string
+            enum:
+              - DELETED
+              - ACTIVE
+              - SUSPENDED
+              - VERIFIED
+              - INVALID
+              - TOO_LONG
           default:
-            - 1
-    Statistic:
+            - ACTIVE
+    MediaSearchStats:
       type: object
-      description: Search result statistics grouped by anime/media
+      description: Search result statistics grouped by media
       properties:
-        animeId:
+        mediaId:
           type: integer
-          description: Unique identifier for the anime/media
+          description: Unique identifier for the media
           example: 110316
         category:
           $ref: '#/components/schemas/Category'
-        nameAnimeRomaji:
+        nameRomaji:
           type: string
-          description: Romaji transliteration of the anime name
+          description: Romaji transliteration of the media name
           example: Steins;Gate
-        nameAnimeEn:
+        nameEn:
           type: string
-          description: English translation of the anime name
+          description: English name of the media
           example: Steins;Gate
-        nameAnimeJp:
+        nameJa:
           type: string
-          description: Original Japanese name of the anime
+          description: Original Japanese name of the media
           example: シュタインズ・ゲート
-        amountSentencesFound:
+        segmentCount:
           type: integer
-          description: Total number of sentences found for this anime
+          description: Total number of segments found for this media
           example: 42
         episodeHits:
           type: object
-          description: Mapping of episode numbers to sentence hit counts
+          description: Mapping of episode numbers to segment hit counts
           example:
             '1': 5
             '2': 8
             '3': 3
           additionalProperties:
             type: integer
-    CategoryStatistic:
+    CategoryCount:
       type: object
-      description: Statistics grouped by media category
+      description: Count of entries grouped by media category
       properties:
         category:
           $ref: '#/components/schemas/Category'
@@ -1638,14 +2977,14 @@ components:
     SearchStatsResponse:
       type: object
       properties:
-        mediaStatistics:
+        media:
           type: array
           items:
-            $ref: '#/components/schemas/Statistic'
-        categoryStatistics:
+            $ref: '#/components/schemas/MediaSearchStats'
+        categories:
           type: array
           items:
-            $ref: '#/components/schemas/CategoryStatistic'
+            $ref: '#/components/schemas/CategoryCount'
     SearchMultipleRequest:
       type: object
       properties:
@@ -1672,19 +3011,19 @@ components:
           type: integer
           description: Unique identifier for the media
           example: 110316
-        englishName:
+        nameEn:
           type: string
-          description: English translation of the media name
+          description: English name of the media
           example: Steins;Gate
-        japaneseName:
+        nameJa:
           type: string
           description: Original Japanese name of the media
           example: シュタインズ・ゲート
-        romajiName:
+        nameRomaji:
           type: string
           description: Romaji transliteration of the media name
           example: Steins;Gate
-        matches:
+        matchCount:
           type: integer
           description: Number of times the word appears in this media
           example: 234
@@ -1700,7 +3039,7 @@ components:
           type: boolean
           description: Indicates whether the word was found in any segment
           example: true
-        totalMatches:
+        matchCount:
           type: integer
           description: Total number of times this word appears across all media
           example: 1523
@@ -1716,18 +3055,18 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WordMatch'
-    FetchSentenceContextRequest:
+    SegmentContextRequest:
       type: object
       required:
         - mediaId
-        - episode
+        - episodeNumber
         - segmentPosition
       properties:
         mediaId:
           type: integer
           description: Media ID
           example: 110316
-        episode:
+        episodeNumber:
           type: integer
           description: Episode number
           minimum: 0
@@ -1743,38 +3082,40 @@ components:
           minimum: 0
           default: 5
           example: 5
-    FetchSentenceContextResponse:
+    SegmentContextResponse:
       type: object
       required:
-        - sentences
+        - segments
       properties:
-        sentences:
+        segments:
           type: array
           items:
-            $ref: '#/components/schemas/Sentence'
-    MediaInfoStats:
+            $ref: '#/components/schemas/SearchResult'
+    MediaBrowseStats:
       type: object
-      description: Statistics about media and segments in the database
+      description: Statistics about media and segments for browse view
       properties:
-        totalAnimes:
+        filteredMediaCount:
           type: integer
-          description: Number of anime/media entries in the current result set
+          description: Number of media entries matching current search/filter
           example: 15
-        totalSegments:
+        filteredSegmentCount:
           type: integer
-          description: Number of subtitle segments in the current result set
+          description: Number of segments in the filtered media
           example: 150
-        fullTotalAnimes:
+        totalMediaCount:
           type: integer
-          description: Total number of anime/media entries in the entire database
+          description: Total number of media entries in the entire database
           example: 5234
-        fullTotalSegments:
+        totalSegmentCount:
           type: integer
-          description: Total number of subtitle segments in the entire database
+          description: Total number of segments in the entire database
           example: 1523847
-    MediaInfoData:
+    MediaSummary:
       type: object
-      description: Complete information about a media/anime entry
+      description: Summary information about a media entry for browse/list views
+      required:
+        - id
       properties:
         id:
           type: integer
@@ -1801,15 +3142,15 @@ components:
           type: integer
           description: Timestamp when the media entry was last updated
           example: 1705769100
-        romajiName:
+        nameRomaji:
           type: string
           description: Romaji transliteration of the media name
           example: Steins;Gate
-        englishName:
+        nameEn:
           type: string
-          description: English translation of the media name
+          description: English name of the media
           example: Steins;Gate
-        japaneseName:
+        nameJa:
           type: string
           description: Original Japanese name of the media
           example: シュタインズ・ゲート
@@ -1845,12 +3186,12 @@ components:
             - Sci-Fi
             - Thriller
             - Romance
-        cover:
+        coverUrl:
           type: string
           format: uri
           description: URL to the cover image
           example: https://example.com/media/anime/steins-gate/cover.jpg
-        banner:
+        bannerUrl:
           type: string
           format: uri
           description: URL to the banner image
@@ -1859,29 +3200,27 @@ components:
           type: string
           description: Version identifier for the media entry
           example: v1.0
-        numSegments:
+        segmentCount:
           type: integer
           description: Total number of subtitle segments available
           example: 18542
-        numEpisodes:
+        episodeCount:
           type: integer
           description: Total number of episodes available
           example: 24
-      required:
-        - id
-    FetchMediaInfoResponse:
+    MediaBrowseResponse:
       type: object
       properties:
         stats:
-          $ref: '#/components/schemas/MediaInfoStats'
+          $ref: '#/components/schemas/MediaBrowseStats'
         results:
           type: array
           items:
-            $ref: '#/components/schemas/MediaInfoData'
+            $ref: '#/components/schemas/MediaSummary'
         cursor:
           type: integer
           description: Next cursor for pagination
-        hasMoreResults:
+        hasMore:
           type: boolean
           description: Whether more results are available
     Seiyuu:
@@ -1889,19 +3228,19 @@ components:
       description: Japanese voice actor (seiyuu)
       required:
         - id
-        - nameJapanese
-        - nameEnglish
+        - nameJa
+        - nameEn
         - imageUrl
       properties:
         id:
           type: integer
           description: AniList staff ID
           example: 95991
-        nameJapanese:
+        nameJa:
           type: string
           description: Japanese name of the voice actor
           example: 阿部敦
-        nameEnglish:
+        nameEn:
           type: string
           description: English name of the voice actor
           example: Atsushi Abe
@@ -1915,8 +3254,8 @@ components:
       description: Anime character
       required:
         - id
-        - nameJapanese
-        - nameEnglish
+        - nameJa
+        - nameEn
         - imageUrl
         - seiyuu
       properties:
@@ -1924,11 +3263,11 @@ components:
           type: integer
           description: AniList character ID
           example: 14545
-        nameJapanese:
+        nameJa:
           type: string
           description: Japanese name of the character
           example: 真城最高
-        nameEnglish:
+        nameEn:
           type: string
           description: English name of the character
           example: Moritaka Mashiro
@@ -1979,6 +3318,7 @@ components:
           enum:
             - SERIES
             - CUSTOM
+            - SEGMENT
           description: Type of list
           example: SERIES
         userId:
@@ -1998,9 +3338,9 @@ components:
       required:
         - id
         - anilistId
-        - japaneseName
-        - romajiName
-        - englishName
+        - nameJa
+        - nameRomaji
+        - nameEn
         - airingFormat
         - airingStatus
         - genres
@@ -2021,17 +3361,17 @@ components:
           type: integer
           description: AniList database ID for the media
           example: 7674
-        japaneseName:
+        nameJa:
           type: string
           description: Original Japanese name of the media
           example: バクマン。
-        romajiName:
+        nameRomaji:
           type: string
           description: Romaji transliteration of the media name
           example: Bakuman.
-        englishName:
+        nameEn:
           type: string
-          description: English translation of the media name
+          description: English name of the media
           example: Bakuman.
         airingFormat:
           type: string
@@ -2074,11 +3414,11 @@ components:
           example: '2011-04-02'
         category:
           $ref: '#/components/schemas/Category'
-        numSegments:
+        segmentCount:
           type: integer
           description: Total number of subtitle segments available
           example: 0
-        numEpisodes:
+        episodeCount:
           type: integer
           description: Total number of episodes available
           example: 25
@@ -2124,12 +3464,315 @@ components:
         hasMoreResults:
           type: boolean
           description: Whether more results are available
+    CharacterInput:
+      type: object
+      description: Character data for creating/updating media
+      required:
+        - id
+        - nameJa
+        - nameEn
+        - imageUrl
+        - role
+        - seiyuuId
+        - seiyuuNameJa
+        - seiyuuNameEn
+        - seiyuuImageUrl
+      properties:
+        id:
+          type: integer
+          description: AniList character ID
+          example: 14545
+        nameJa:
+          type: string
+          description: Japanese name of the character
+          example: 真城最高
+        nameEn:
+          type: string
+          description: English name of the character
+          example: Moritaka Mashiro
+        imageUrl:
+          type: string
+          format: uri
+          description: Character image URL
+          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
+        role:
+          type: string
+          enum:
+            - MAIN
+            - SUPPORTING
+            - BACKGROUND
+          description: Character's role in the media
+          example: MAIN
+        seiyuuId:
+          type: integer
+          description: AniList staff ID for the Japanese voice actor
+          example: 95991
+        seiyuuNameJa:
+          type: string
+          description: Japanese name of the voice actor
+          example: 阿部敦
+        seiyuuNameEn:
+          type: string
+          description: English name of the voice actor
+          example: Atsushi Abe
+        seiyuuImageUrl:
+          type: string
+          format: uri
+          description: Voice actor profile image URL
+          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
+    ListInput:
+      type: object
+      description: List data for adding media to a list
+      required:
+        - position
+      properties:
+        listId:
+          type: integer
+          nullable: true
+          description: Existing list ID (if adding to existing list)
+          example: 123
+        listName:
+          type: string
+          nullable: true
+          description: Name for new list (if creating new list)
+          example: Bakuman Series
+        listType:
+          type: string
+          enum:
+            - SERIES
+            - CUSTOM
+          nullable: true
+          description: Type of list (if creating new list)
+          example: SERIES
+        listVisibility:
+          type: string
+          enum:
+            - PUBLIC
+            - PRIVATE
+          nullable: true
+          description: Visibility of list (if creating new list)
+          example: PUBLIC
+        position:
+          type: integer
+          description: Position/order of media in the list (1-indexed)
+          example: 1
+          minimum: 1
+    MediaCreateRequest:
+      type: object
+      description: Request body for creating a new media entry
+      required:
+        - anilistId
+        - nameJa
+        - nameRomaji
+        - nameEn
+        - airingFormat
+        - airingStatus
+        - genres
+        - storage
+        - startDate
+        - category
+        - version
+        - hashSalt
+        - studio
+        - seasonName
+        - seasonYear
+      properties:
+        anilistId:
+          type: integer
+          description: AniList database ID for the media
+          example: 7674
+        nameJa:
+          type: string
+          description: Original Japanese name of the media
+          example: バクマン。
+        nameRomaji:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Bakuman.
+        nameEn:
+          type: string
+          description: English name of the media
+          example: Bakuman.
+        airingFormat:
+          type: string
+          description: Format of the media release (e.g., TV, OVA, Movie)
+          example: TV
+        airingStatus:
+          type: string
+          description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+          example: FINISHED
+        genres:
+          type: array
+          items:
+            type: string
+          description: List of genres associated with the media
+          example:
+            - Comedy
+            - Drama
+            - Romance
+            - Slice of Life
+        storage:
+          type: string
+          enum:
+            - LOCAL
+            - R2
+          description: Storage backend for media assets
+          example: R2
+          default: R2
+        startDate:
+          type: string
+          format: date
+          description: Start date of the media (first airing/release)
+          example: '2010-10-02'
+        endDate:
+          type: string
+          format: date
+          description: End date of the media (last airing/release)
+          example: '2011-04-02'
+        category:
+          type: string
+          enum:
+            - ANIME
+            - JDRAMA
+          description: Media category
+          example: ANIME
+        version:
+          type: string
+          description: Version of the media-sub-splitter used
+          example: '6'
+        hashSalt:
+          type: string
+          description: Hash salt used when generating the hash for the related media assets
+          example: ba0cbe173ed310528f16130273662a60
+        studio:
+          type: string
+          description: Animation studio that produced the media
+          example: J.C.STAFF
+        seasonName:
+          type: string
+          description: Airing season label for the media
+          example: FALL
+        seasonYear:
+          type: integer
+          description: Airing year for the media
+          example: 2010
+        characters:
+          type: array
+          items:
+            $ref: '#/components/schemas/CharacterInput'
+          description: List of characters appearing in the media with their voice actors
+          default: []
+        lists:
+          type: array
+          items:
+            $ref: '#/components/schemas/ListInput'
+          description: Lists to add this media to (e.g., series, franchise)
+          default: []
+    MediaUpdateRequest:
+      type: object
+      description: Request body for updating an existing media entry (all fields optional)
+      properties:
+        anilistId:
+          type: integer
+          description: AniList database ID for the media
+          example: 7674
+        nameJa:
+          type: string
+          description: Original Japanese name of the media
+          example: バクマン。
+        nameRomaji:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Bakuman.
+        nameEn:
+          type: string
+          description: English name of the media
+          example: Bakuman.
+        airingFormat:
+          type: string
+          description: Format of the media release (e.g., TV, OVA, Movie)
+          example: TV
+        airingStatus:
+          type: string
+          description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+          example: FINISHED
+        genres:
+          type: array
+          items:
+            type: string
+          description: List of genres associated with the media
+          example:
+            - Comedy
+            - Drama
+            - Romance
+            - Slice of Life
+        storage:
+          type: string
+          enum:
+            - LOCAL
+            - R2
+          description: Storage backend for media assets
+          example: R2
+          default: R2
+        startDate:
+          type: string
+          format: date
+          description: Start date of the media (first airing/release)
+          example: '2010-10-02'
+        endDate:
+          type: string
+          format: date
+          description: End date of the media (last airing/release)
+          example: '2011-04-02'
+        category:
+          type: string
+          enum:
+            - ANIME
+            - JDRAMA
+          description: Media category
+          example: ANIME
+        version:
+          type: string
+          description: Version of the media-sub-splitter used
+          example: '6'
+        hashSalt:
+          type: string
+          description: Hash salt used when generating the hash for the related media assets
+          example: ba0cbe173ed310528f16130273662a60
+        studio:
+          type: string
+          description: Animation studio that produced the media
+          example: J.C.STAFF
+        seasonName:
+          type: string
+          description: Airing season label for the media
+          example: FALL
+        seasonYear:
+          type: integer
+          description: Airing year for the media
+          example: 2010
+        characters:
+          type: array
+          items:
+            $ref: '#/components/schemas/CharacterInput'
+          description: List of characters appearing in the media with their voice actors
+          default: []
+        lists:
+          type: array
+          items:
+            $ref: '#/components/schemas/ListInput'
+          description: Lists to add this media to (e.g., series, franchise)
+          default: []
+        segmentCount:
+          type: integer
+          description: Total number of subtitle segments available
+          example: 1234
     Episode:
       type: object
       required:
         - mediaId
         - episodeNumber
-        - numSegments
+        - segmentCount
       properties:
         mediaId:
           type: integer
@@ -2144,7 +3787,7 @@ components:
           nullable: true
           description: AniList episode ID for external reference
           example: 123456
-        titleEnglish:
+        titleEn:
           type: string
           nullable: true
           description: English title of the episode
@@ -2154,7 +3797,7 @@ components:
           nullable: true
           description: Romanized title of the episode
           example: Hajimari
-        titleJapanese:
+        titleJa:
           type: string
           nullable: true
           description: Japanese title of the episode
@@ -2180,7 +3823,7 @@ components:
           nullable: true
           description: URL to episode thumbnail image
           example: https://example.com/thumbnails/episode1.jpg
-        numSegments:
+        segmentCount:
           type: integer
           description: Number of segments in this episode
           example: 450
@@ -2188,7 +3831,7 @@ components:
       type: object
       required:
         - data
-        - hasMoreResults
+        - hasMore
       properties:
         data:
           type: array
@@ -2199,10 +3842,120 @@ components:
           type: integer
           description: Cursor for pagination (last episode number in current page)
           example: 12
-        hasMoreResults:
+        hasMore:
           type: boolean
           description: Whether more results are available
           example: true
+    EpisodeCreateRequest:
+      type: object
+      required:
+        - episodeNumber
+      properties:
+        anilistEpisodeId:
+          type: integer
+          description: AniList episode ID for external reference
+          example: 123456
+        titleEn:
+          type: string
+          description: English title of the episode
+          example: The Beginning
+        titleRomaji:
+          type: string
+          description: Romanized title of the episode
+          example: Hajimari
+        titleJa:
+          type: string
+          description: Japanese title of the episode
+          example: 始まり
+        description:
+          type: string
+          description: Episode description or synopsis
+          example: The hero begins their journey
+        airedAt:
+          type: string
+          format: date-time
+          description: When the episode originally aired
+          example: '2024-01-15T09:00:00Z'
+        lengthSeconds:
+          type: integer
+          description: Episode duration in seconds
+          example: 1420
+        thumbnailUrl:
+          type: string
+          description: URL to episode thumbnail image
+          example: https://example.com/thumbnails/episode1.jpg
+        episodeNumber:
+          type: integer
+          description: Episode number within the media (must be unique for this media)
+          example: 1
+    EpisodeUpdateRequest:
+      type: object
+      description: All fields are optional for partial updates
+      properties:
+        anilistEpisodeId:
+          type: integer
+          description: AniList episode ID for external reference
+          example: 123456
+        titleEn:
+          type: string
+          description: English title of the episode
+          example: The Beginning
+        titleRomaji:
+          type: string
+          description: Romanized title of the episode
+          example: Hajimari
+        titleJa:
+          type: string
+          description: Japanese title of the episode
+          example: 始まり
+        description:
+          type: string
+          description: Episode description or synopsis
+          example: The hero begins their journey
+        airedAt:
+          type: string
+          format: date-time
+          description: When the episode originally aired
+          example: '2024-01-15T09:00:00Z'
+        lengthSeconds:
+          type: integer
+          description: Episode duration in seconds
+          example: 1420
+        thumbnailUrl:
+          type: string
+          description: URL to episode thumbnail image
+          example: https://example.com/thumbnails/episode1.jpg
+    JapaneseContent:
+      type: object
+      description: Japanese content with optional character count
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          maxLength: 500
+          description: Original Japanese content
+          example: 僕は僕で、君は君だ。
+        characterCount:
+          type: integer
+          description: Number of characters in the Japanese content
+          example: 10
+    TranslationContent:
+      type: object
+      description: Translation content for a language
+      required:
+        - isMachineTranslated
+      properties:
+        content:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Translated content
+          example: I am me, and you are you.
+        isMachineTranslated:
+          type: boolean
+          description: Whether the translation was machine-translated
+          example: false
     Segment:
       type: object
       required:
@@ -2212,10 +3965,9 @@ components:
         - status
         - startTime
         - endTime
-        - content
-        - contentLength
-        - contentSpanishMt
-        - contentEnglishMt
+        - ja
+        - en
+        - es
         - isNsfw
         - episode
         - mediaId
@@ -2235,16 +3987,16 @@ components:
           description: Position of the segment within the episode
           example: 1133
         status:
-          type: integer
-          description: Segment status (0=Deleted, 1=Active, 2=Suspended, 3=Verified, 100=Invalid Sentence, 101=Sentence Too Long)
+          type: string
           enum:
-            - 0
-            - 1
-            - 2
-            - 3
-            - 100
-            - 101
-          example: 1
+            - DELETED
+            - ACTIVE
+            - SUSPENDED
+            - VERIFIED
+            - INVALID
+            - TOO_LONG
+          description: Segment status
+          example: ACTIVE
         startTime:
           type: string
           description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
@@ -2253,35 +4005,12 @@ components:
           type: string
           description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
           example: '0:33:28.464000'
-        content:
-          type: string
-          maxLength: 500
-          description: Original Japanese content of the segment
-          example: 僕は僕で、君は君だ。
-        contentLength:
-          type: integer
-          description: Length of the content
-          example: 10
-        contentSpanish:
-          type: string
-          maxLength: 500
-          nullable: true
-          description: Spanish translation of the segment content
-          example: Yo soy yo, y tú eres tú.
-        contentSpanishMt:
-          type: boolean
-          description: Whether the Spanish translation was machine-translated
-          example: false
-        contentEnglish:
-          type: string
-          maxLength: 500
-          nullable: true
-          description: English translation of the segment content
-          example: I am me, and you are you.
-        contentEnglishMt:
-          type: boolean
-          description: Whether the English translation was machine-translated
-          example: false
+        ja:
+          $ref: '#/components/schemas/JapaneseContent'
+        en:
+          $ref: '#/components/schemas/TranslationContent'
+        es:
+          $ref: '#/components/schemas/TranslationContent'
         isNsfw:
           type: boolean
           description: Whether the segment contains NSFW content
@@ -2301,21 +4030,6 @@ components:
           nullable: true
           description: URL to segment video file (generated from storage + hashedId)
           example: https://cdn.nadeshiko.co/media/7674/1/0d39e46b14.mp4
-        actorJa:
-          type: string
-          nullable: true
-          description: Japanese voice actor name
-          example: Mamoru Miyano
-        actorEs:
-          type: string
-          nullable: true
-          description: Spanish voice actor name
-          example: Alejandro Levis
-        actorEn:
-          type: string
-          nullable: true
-          description: English voice actor name
-          example: J. Michael Tatum
         episode:
           type: integer
           description: Episode number this segment belongs to
@@ -2327,21 +4041,210 @@ components:
         storage:
           type: string
           enum:
-            - local
-            - r2
+            - LOCAL
+            - R2
           description: Storage backend for segment assets
-          example: r2
+          example: R2
         hashedId:
           type: string
           description: Hash identifier for the segment
+          example: 0d39e46b14
+        morphemes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Morpheme'
+          description: Morphological analysis of the Japanese content
+    SegmentListResponse:
+      type: object
+      required:
+        - data
+        - hasMore
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Segment'
+          description: Array of segment objects
+        cursor:
+          type: integer
+          description: Cursor for pagination (last segment ID in current page)
+          example: 12345
+        hasMore:
+          type: boolean
+          description: Whether more results are available
+          example: true
+    SegmentCreateRequest:
+      type: object
+      required:
+        - position
+        - startTime
+        - endTime
+        - ja
+        - storage
+        - hashedId
+      properties:
+        position:
+          type: integer
+          description: Position of the segment within the episode
+          example: 1133
+        status:
+          type: string
+          description: Segment status
+          enum:
+            - DELETED
+            - ACTIVE
+            - SUSPENDED
+            - VERIFIED
+            - INVALID
+            - TOO_LONG
+          default: ACTIVE
+          example: ACTIVE
+        startTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
+          example: '0:33:27.255000'
+        endTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
+          example: '0:33:28.464000'
+        ja:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: Original Japanese content of the segment
+              example: 僕は僕で、君は君だ。
+        es:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: Spanish translation of the segment content
+              example: Yo soy yo, y tú eres tú.
+            isMachineTranslated:
+              type: boolean
+              description: Whether the Spanish translation was machine-translated
+              default: false
+              example: false
+        en:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: English translation of the segment content
+              example: I am me, and you are you.
+            isMachineTranslated:
+              type: boolean
+              description: Whether the English translation was machine-translated
+              default: false
+              example: false
+        isNsfw:
+          type: boolean
+          description: Whether the segment contains NSFW content
+          default: false
+          example: false
+        storage:
+          type: string
+          enum:
+            - LOCAL
+            - R2
+          description: Storage backend for segment assets
+          example: R2
+          default: R2
+        hashedId:
+          type: string
+          description: Hash identifier for the segment (from segment JSON)
+          example: 0d39e46b14
+    SegmentUpdateRequest:
+      type: object
+      description: All fields are optional for partial updates
+      properties:
+        position:
+          type: integer
+          description: Position of the segment within the episode
+          example: 1133
+        status:
+          type: string
+          description: Segment status
+          enum:
+            - DELETED
+            - ACTIVE
+            - SUSPENDED
+            - VERIFIED
+            - INVALID
+            - TOO_LONG
+          default: ACTIVE
+          example: ACTIVE
+        startTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment starts
+          example: '0:33:27.255000'
+        endTime:
+          type: string
+          description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
+          example: '0:33:28.464000'
+        ja:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: Original Japanese content of the segment
+              example: 僕は僕で、君は君だ。
+        es:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: Spanish translation of the segment content
+              example: Yo soy yo, y tú eres tú.
+            isMachineTranslated:
+              type: boolean
+              description: Whether the Spanish translation was machine-translated
+              default: false
+              example: false
+        en:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: English translation of the segment content
+              example: I am me, and you are you.
+            isMachineTranslated:
+              type: boolean
+              description: Whether the English translation was machine-translated
+              default: false
+              example: false
+        isNsfw:
+          type: boolean
+          description: Whether the segment contains NSFW content
+          default: false
+          example: false
+        storage:
+          type: string
+          enum:
+            - LOCAL
+            - R2
+          description: Storage backend for segment assets
+          example: R2
+          default: R2
+        hashedId:
+          type: string
+          description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
     CharacterWithMedia:
       type: object
       description: Character with all media appearances
       required:
         - id
-        - nameJapanese
-        - nameEnglish
+        - nameJa
+        - nameEn
         - imageUrl
         - seiyuu
         - mediaAppearances
@@ -2350,11 +4253,11 @@ components:
           type: integer
           description: AniList character ID
           example: 14545
-        nameJapanese:
+        nameJa:
           type: string
           description: Japanese name of the character
           example: 真城最高
-        nameEnglish:
+        nameEn:
           type: string
           description: English name of the character
           example: Moritaka Mashiro
@@ -2386,8 +4289,8 @@ components:
       description: Seiyuu with all voice acting roles
       required:
         - id
-        - nameJapanese
-        - nameEnglish
+        - nameJa
+        - nameEn
         - imageUrl
         - roles
       properties:
@@ -2395,11 +4298,11 @@ components:
           type: integer
           description: AniList staff ID
           example: 95991
-        nameJapanese:
+        nameJa:
           type: string
           description: Japanese name of the voice actor
           example: 阿部敦
-        nameEnglish:
+        nameEn:
           type: string
           description: English name of the voice actor
           example: Atsushi Abe
@@ -2462,6 +4365,175 @@ components:
           format: date-time
           description: End of the current billing period (UTC).
           example: '2026-02-28T23:59:59.999Z'
+    Report:
+      type: object
+      required:
+        - id
+        - reportType
+        - targetId
+        - reason
+        - status
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Report ID
+          example: 1
+        reportType:
+          type: string
+          enum:
+            - SEGMENT
+            - MEDIA
+          description: Type of the reported entity
+          example: SEGMENT
+        targetId:
+          type: string
+          description: ID of the reported entity (segment UUID or media ID)
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        reason:
+          type: string
+          enum:
+            - WRONG_TRANSLATION
+            - WRONG_TIMING
+            - WRONG_AUDIO
+            - NSFW_NOT_TAGGED
+            - DUPLICATE_SEGMENT
+            - WRONG_METADATA
+            - MISSING_EPISODES
+            - WRONG_COVER_IMAGE
+            - INAPPROPRIATE_CONTENT
+            - OTHER
+          description: Reason for the report
+          example: WRONG_TRANSLATION
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Optional description with additional details
+          example: The translation doesn't match the spoken Japanese
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACCEPTED
+            - REJECTED
+            - RESOLVED
+          description: Current status of the report
+          example: PENDING
+        adminNotes:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Notes from the admin who reviewed the report
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the report was resolved
+        userId:
+          type: integer
+          description: ID of the user who submitted the report
+          example: 42
+        resolvedById:
+          type: integer
+          nullable: true
+          description: ID of the admin who resolved the report
+        createdAt:
+          type: string
+          format: date-time
+          description: When the report was created
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the report was last updated
+    ReportListResponse:
+      type: object
+      required:
+        - data
+        - hasMore
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        hasMore:
+          type: boolean
+          description: Whether more results are available
+          example: true
+        cursor:
+          type: integer
+          nullable: true
+          description: Cursor for next page
+          example: 10
+    CreateReportRequest:
+      type: object
+      required:
+        - reportType
+        - targetId
+        - reason
+      properties:
+        reportType:
+          type: string
+          enum:
+            - SEGMENT
+            - MEDIA
+          description: Type of the entity being reported
+          example: SEGMENT
+        targetId:
+          type: string
+          description: ID of the entity being reported (segment UUID or media ID as string)
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        reason:
+          type: string
+          enum:
+            - WRONG_TRANSLATION
+            - WRONG_TIMING
+            - WRONG_AUDIO
+            - NSFW_NOT_TAGGED
+            - DUPLICATE_SEGMENT
+            - WRONG_METADATA
+            - MISSING_EPISODES
+            - WRONG_COVER_IMAGE
+            - INAPPROPRIATE_CONTENT
+            - OTHER
+          description: Reason for the report
+          example: WRONG_TRANSLATION
+        description:
+          type: string
+          maxLength: 1000
+          description: Optional description with additional details
+          example: The translation doesn't match the spoken Japanese
+    ListCreateRequest:
+      type: object
+      description: Request body for creating a new standalone list
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the list
+          example: My Watchlist
+        type:
+          type: string
+          enum:
+            - SERIES
+            - CUSTOM
+            - SEGMENT
+          description: Type of list
+          example: CUSTOM
+        userId:
+          type: integer
+          description: User ID who owns the list (1 = admin)
+          example: 1
+        visibility:
+          type: string
+          enum:
+            - PUBLIC
+            - PRIVATE
+          description: Visibility of the list
+          example: PUBLIC
     ListWithMedia:
       type: object
       description: List with all media in order
@@ -2486,6 +4558,7 @@ components:
           enum:
             - SERIES
             - CUSTOM
+            - SEGMENT
           description: Type of list
           example: SERIES
         userId:
@@ -2511,6 +4584,65 @@ components:
                 example: 1
               media:
                 $ref: '#/components/schemas/Media'
+    ListWithSegments:
+      type: object
+      description: List with saved segments (search result format)
+      required:
+        - id
+        - name
+        - type
+        - userId
+        - visibility
+        - segments
+        - totalCount
+      properties:
+        id:
+          type: integer
+          description: List ID
+          example: 123
+        name:
+          type: string
+          description: Name of the list
+          example: Study Favorites
+        type:
+          type: string
+          enum:
+            - SERIES
+            - CUSTOM
+            - SEGMENT
+          description: Type of list
+          example: SEGMENT
+        userId:
+          type: integer
+          description: User ID who owns the list
+          example: 1
+        visibility:
+          type: string
+          enum:
+            - PUBLIC
+            - PRIVATE
+          description: Visibility of the list
+          example: PRIVATE
+        segments:
+          type: array
+          description: Saved segments with their search result data
+          items:
+            type: object
+            properties:
+              position:
+                type: integer
+                description: Position in the list
+                example: 1
+              note:
+                type: string
+                nullable: true
+                description: User annotation
+              result:
+                $ref: '#/components/schemas/SearchResult'
+        totalCount:
+          type: integer
+          description: Total number of segments in the list
+          example: 42
     ReindexRequest:
       type: object
       description: Request to reindex segments from the database into Elasticsearch
@@ -2585,6 +4717,58 @@ components:
               error:
                 type: string
                 description: Error message
+    AdminReport:
+      allOf:
+        - $ref: '#/components/schemas/Report'
+        - type: object
+          required:
+            - reportCount
+            - reporterName
+          properties:
+            reportCount:
+              type: integer
+              description: Number of reports for the same target
+              example: 3
+            reporterName:
+              type: string
+              description: Name of the user who submitted this report
+              example: john_doe
+    AdminReportListResponse:
+      type: object
+      required:
+        - data
+        - hasMore
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminReport'
+        hasMore:
+          type: boolean
+          description: Whether more results are available
+          example: true
+        cursor:
+          type: integer
+          nullable: true
+          description: Cursor for next page
+          example: 10
+    UpdateReportRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACCEPTED
+            - REJECTED
+            - RESOLVED
+          description: New status for the report
+          example: ACCEPTED
+        adminNotes:
+          type: string
+          maxLength: 1000
+          description: Admin notes about the report
+          example: Confirmed wrong translation, will fix
   examples:
     AuthCredentialsRequired:
       summary: Authentication Credentials Required
@@ -2680,6 +4864,24 @@ components:
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
         status: 404
+    AccountConflict:
+      summary: Account Conflict
+      value:
+        code: ACCOUNT_CONFLICT
+        title: Account Conflict
+        detail: An account with this email already exists. Please log in or use a different email.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 409
+    DuplicateKey:
+      summary: Duplicate Key (Resource Already Exists)
+      value:
+        code: DUPLICATE_KEY
+        title: Resource already exists
+        detail: A resource with this UUID already exists
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 409
   responses:
     UnauthorizedApiKey:
       description: Unauthorized
@@ -2734,6 +4936,17 @@ components:
               $ref: '#/components/examples/ValidationFailed'
             InvalidJson:
               $ref: '#/components/examples/InvalidJson'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            AccountConflict:
+              $ref: '#/components/examples/AccountConflict'
+            DuplicateKey:
+              $ref: '#/components/examples/DuplicateKey'
     NotFound:
       description: Not Found
       content:
@@ -2755,6 +4968,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Episode'
+    SegmentListResponse:
+      description: Paginated list of segments
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SegmentListResponse'
     SegmentResponse:
       description: Single segment response
       content:

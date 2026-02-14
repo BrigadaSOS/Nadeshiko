@@ -1,6 +1,5 @@
 import type * as estypes from '@elastic/elasticsearch/lib/api/types';
 type FieldValue = estypes.FieldValue;
-import { SegmentStatus } from '@app/models';
 
 export interface QuerySegmentsRequest {
   readonly query?: string;
@@ -10,17 +9,17 @@ export interface QuerySegmentsRequest {
   readonly maxLength?: number;
   readonly randomSeed?: number;
   readonly limit: number;
-  readonly status: SegmentStatus[];
+  readonly status: string[];
   readonly cursor?: FieldValue[];
   readonly exactMatch?: boolean;
-  readonly animeId?: number; // To be deprecated
+  readonly mediaId?: number;
   readonly episode?: number[];
   readonly category?: string[]; // "ANIME", "JDRAMA"
-  readonly media?: QuerySegmentsAnimeFilter[];
-  readonly excludedAnimeIds?: number[];
+  readonly media?: QuerySegmentsMediaFilter[];
+  readonly excludedMediaIds?: number[];
 }
 
-export interface QuerySegmentsAnimeFilter {
+export interface QuerySegmentsMediaFilter {
   readonly mediaId: number;
   readonly episodes: number[];
 }

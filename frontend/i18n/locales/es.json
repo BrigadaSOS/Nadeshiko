@@ -19,7 +19,8 @@
       "dmca": "DMCA",
       "terms": "Términos y Condiciones",
       "contact": "Contacto",
-      "settings": "Ajustes"
+      "settings": "Ajustes",
+      "blog": "Blog"
     }
   },
   "home": {
@@ -114,18 +115,6 @@
     "exactMatchDescription": "Permite realizar una búsqueda sin variaciones o conjugaciones adicionales",
     "close": "Cerrar"
   },
-  "reportModal": {
-    "title": "Reportar un problema",
-    "description1": " Las oraciones que se presentan en este sitio web están segmentadas con herramientas que procesan de forma automática el contenido multimedia. Si bien, aunque pasan por un filtro de calidad, es posible que en el proceso ciertas oraciones tengan problemas. ",
-    "description2": " Si encuentra algún problema, se lo agradecemos reportándolo mediante el formulario que se encuentra a continuación. ",
-    "reportQuestion": "¿Cuál es el problema?",
-    "reason1": "El audio no corresponde a la oración",
-    "reason2": "El audio se encuentra desfasado con respecto a la oración",
-    "reason3": "La oración no tiene imagen o sonido",
-    "reason4": "La imagen, oración, o audio no son apropiadas (NSFW)",
-    "send": "Enviar reporte",
-    "close": "Cerrar"
-  },
   "anki": {
     "modal": {
       "title": "Busca en tu colección",
@@ -164,6 +153,22 @@
   },
   "modalContext": {
     "closeSrOnly": "Cerrar"
+  },
+  "modalSegmentEdit": {
+    "title": "Editar segmento",
+    "editButton": "Editar",
+    "japanese": "Japonés",
+    "english": "Inglés",
+    "spanish": "Español",
+    "machineTranslated": "Traducción automática",
+    "status": "Estado",
+    "nsfw": "Contenido NSFW",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "saveSuccess": "Segmento actualizado correctamente",
+    "saveError": "Error al actualizar el segmento"
   },
   "filterContent": {
     "searchPlaceholder": "Buscar aquí"
@@ -355,6 +360,65 @@
     "categoryLiveaction": "Live Action",
     "categoryAudiobook": "Audiolibro"
   },
+  "reports": {
+    "title": "Mis Reportes",
+    "modalTitle": "Reportar un problema",
+    "reason": "Razón",
+    "selectReason": "Selecciona una razón...",
+    "description": "Descripción (opcional)",
+    "descriptionPlaceholder": "Proporciona detalles adicionales sobre el problema...",
+    "submit": "Enviar reporte",
+    "submitting": "Enviando...",
+    "submitSuccess": "Reporte enviado correctamente",
+    "submitError": "Error al enviar el reporte",
+    "cancel": "Cancelar",
+    "reportSegment": "Reportar",
+    "reportMedia": "Reportar contenido",
+    "allStatuses": "Todos los estados",
+    "allTypes": "Todos los tipos",
+    "noReports": "No se encontraron reportes",
+    "loading": "Cargando...",
+    "loadMore": "Cargar más",
+    "reasons": {
+      "WRONG_TRANSLATION": "Traducción incorrecta",
+      "WRONG_TIMING": "Temporización incorrecta",
+      "WRONG_AUDIO": "Audio incorrecto",
+      "NSFW_NOT_TAGGED": "NSFW sin etiquetar",
+      "DUPLICATE_SEGMENT": "Segmento duplicado",
+      "WRONG_METADATA": "Metadatos incorrectos",
+      "MISSING_EPISODES": "Episodios faltantes",
+      "WRONG_COVER_IMAGE": "Imagen de portada incorrecta",
+      "INAPPROPRIATE_CONTENT": "Contenido inapropiado",
+      "OTHER": "Otro"
+    },
+    "statuses": {
+      "PENDING": "Pendiente",
+      "ACCEPTED": "Aceptado",
+      "REJECTED": "Rechazado",
+      "RESOLVED": "Resuelto"
+    },
+    "table": {
+      "date": "Fecha",
+      "type": "Tipo",
+      "target": "Objetivo",
+      "reason": "Razón",
+      "status": "Estado",
+      "description": "Descripción"
+    },
+    "admin": {
+      "title": "Gestión de Reportes",
+      "reporter": "Reportador",
+      "count": "Cantidad",
+      "notes": "Notas del Admin",
+      "actions": "Acciones",
+      "accept": "Aceptar",
+      "reject": "Rechazar",
+      "resolve": "Resolver",
+      "save": "Guardar",
+      "addNote": "Haz clic para añadir nota...",
+      "updateSuccess": "Reporte actualizado"
+    }
+  },
   "modalauth": {
     "headers": {
       "auth": "Autenticación"
@@ -368,6 +432,41 @@
       "logout": "Se ha cerrado la sesión.",
       "errorlogin400": "Por favor, revisa tu correo/contraseña e intenta de nuevo.",
       "closeSrOnly": "Cerrar"
+    }
+  },
+  "lists": {
+    "pageTitle": "Listas",
+    "pageDescription": "Explora y gestiona tus listas de contenido y segmentos guardados",
+    "seriesSection": "Series",
+    "customSection": "Listas personalizadas",
+    "segmentSection": "Segmentos guardados",
+    "createList": "Crear lista",
+    "noLists": "No se encontraron listas",
+    "loading": "Cargando...",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "Introduce un nombre para tu lista",
+    "typeLabel": "Tipo",
+    "visibilityLabel": "Visibilidad",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "creating": "Creando...",
+    "createError": "Error al crear la lista",
+    "save": "Guardar",
+    "noSegmentLists": "No hay listas de segmentos. Crea una primero.",
+    "backToLists": "Volver a listas",
+    "loadError": "Error al cargar la lista",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar esta lista?",
+    "mediaCount": "contenido",
+    "segmentCount": "segmentos",
+    "noSegments": "Aún no hay segmentos guardados",
+    "types": {
+      "SERIES": "Series",
+      "CUSTOM": "Personalizada",
+      "SEGMENT": "Segmentos"
+    },
+    "visibility": {
+      "PUBLIC": "Pública",
+      "PRIVATE": "Privada"
     }
   }
 }

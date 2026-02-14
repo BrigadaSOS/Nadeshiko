@@ -1,0 +1,8 @@
+type: object
+required:
+  - segments
+properties:
+  segments:
+    type: array
+    items:
+      $ref: "../schemas/SearchResult.yaml"
