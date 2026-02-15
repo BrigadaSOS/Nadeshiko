@@ -1,5 +1,5 @@
 service: nadeshiko-frontend-prod
-image: nadeshiko-frontend-prod
+image: brigadasos/nadeshiko-frontend-prod
 
 builder:
   args:

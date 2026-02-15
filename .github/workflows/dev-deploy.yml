@@ -1,0 +1,195 @@
+name: Dev Deploy
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      openapi: ${{ steps.filter.outputs.openapi }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            openapi:
+              - 'backend/docs/openapi/**'
+
+  deploy-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/brigadasos/nadeshiko-backend-dev:${{ github.sha }}
+            ghcr.io/brigadasos/nadeshiko-backend-dev:latest
+          labels: |
+            service=nadeshiko-backend-dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install Kamal
+        run: gem install kamal
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy backend to dev
+        env:
+          KAMAL_SECRETS: ${{ secrets.KAMAL_SECRETS_DEV }}
+        run: |
+          set -euo pipefail
+
+          ssh-keyscan -H $(grep -oP '(?<=ssh )[\w.-]+' backend/config/deploy.dev.yml || true) >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          echo "${KAMAL_SECRETS}" > backend/.kamal/secrets.dev
+          cd backend
+          kamal deploy -d dev --skip-push
+
+  deploy-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/brigadasos/nadeshiko-frontend-dev:${{ github.sha }}
+            ghcr.io/brigadasos/nadeshiko-frontend-dev:latest
+          labels: |
+            service=nadeshiko-frontend-dev
+          build-args: |
+            NUXT_PUBLIC_ENVIRONMENT=dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install Kamal
+        run: gem install kamal
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy frontend to dev
+        env:
+          KAMAL_SECRETS: ${{ secrets.KAMAL_SECRETS_FRONTEND_DEV }}
+        run: |
+          set -euo pipefail
+
+          ssh-keyscan -H $(grep -oP '(?<=ssh )[\w.-]+' frontend/config/deploy.dev.yml || true) >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          echo "${KAMAL_SECRETS}" > frontend/.kamal/secrets.dev
+          cd frontend
+          kamal deploy -d dev --skip-push
+
+  dispatch-sdk:
+    needs: changes
+    if: needs.changes.outputs.openapi == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install backend dependencies
+        run: cd backend && bun install --frozen-lockfile
+
+      - name: Generate OpenAPI spec
+        run: |
+          cd backend
+          bun run docs:bundle
+          test -f docs/generated/openapi.yaml
+
+      - name: Dispatch SDK dev release
+        env:
+          GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "SDK_REPO_DISPATCH_TOKEN is required."
+            exit 1
+          fi
+
+          SPEC_URL="https://raw.githubusercontent.com/${{ github.repository }}/dev/backend/docs/generated/openapi.yaml"
+
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            https://api.github.com/repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
+            -d "{\"event_type\":\"backend_release\",\"client_payload\":{\"release_channel\":\"dev\",\"spec_url\":\"${SPEC_URL}\",\"backend_sha\":\"${{ github.sha }}\",\"backend_repo\":\"${{ github.repository }}\"}}"

@@ -4,7 +4,10 @@ servers:
       - nadeshiko-production
 
 registry:
-  server: localhost:5555
+  server: ghcr.io
+  username: kamal
+  password:
+    - KAMAL_REGISTRY_PASSWORD
 
 aliases:
   console: app exec --interactive --reuse "bash"
@@ -15,5 +18,3 @@ builder:
 
 ssh:
   user: docker
-  keys: ["~/.ssh/vps"]
-  keys_only: true
