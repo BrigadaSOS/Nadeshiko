@@ -65,9 +65,6 @@ const envSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   OTEL_SERVICE_NAME: z.string().optional(),
 
-  // Lindera (morpheme analysis)
-  LINDERA_DICT_PATH: z.string().default('embedded://unidic'),
-
   // Misc
   LOG_LEVEL: z.string().optional(),
   NODE_ENV: z.string().optional(),

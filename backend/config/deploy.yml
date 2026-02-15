@@ -4,15 +4,16 @@ servers:
       - nadeshiko-production
 
 registry:
-  server: localhost:5555
+  server: ghcr.io
+  username: kamal
+  password:
+    - KAMAL_REGISTRY_PASSWORD
 
 builder:
   arch: amd64
 
 ssh:
   user: docker
-  keys: ["~/.ssh/vps"]
-  keys_only: true
 
 aliases:
   bootstrap: app exec --interactive --reuse "bun run setup"
