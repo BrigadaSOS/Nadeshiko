@@ -581,8 +581,7 @@
         "ja_sudachi_tokenizer": {
           "type": "sudachi_tokenizer",
           "split_mode": "C",
-          "discard_punctuation": true,
-          "settings_path": "sudachi/sudachi.json"
+          "discard_punctuation": true
         }
       },
       "analyzer": {
@@ -665,7 +664,7 @@
         "type": "integer"
       },
       "status": {
-        "type": "short"
+        "type": "keyword"
       },
       "startSeconds": {
         "type": "integer"

@@ -72,32 +72,6 @@ export type SeiyuuWithRolesOutput = z.output<typeof schemas.s_SeiyuuWithRoles>;
 // Inline query schemas and their output types
 // ============================================
 
-export const mediaIndexQuerySchema = z.object({
-    limit: z.coerce.number().min(1).max(40).optional().default(20),
-    cursor: z.coerce.number().min(0).optional().default(0),
-    category: z.enum(['ANIME', 'JDRAMA']).optional(),
-  });
-export type MediaIndexQueryOutput = z.output<typeof mediaIndexQuerySchema>;
-
-export const episodeIndexQuerySchema = z.object({
-    size: z.coerce.number().min(1).max(100).optional().default(50),
-    cursor: z.coerce.number().optional().default(0),
-  });
-export type EpisodeIndexQueryOutput = z.output<typeof episodeIndexQuerySchema>;
-
-export const segmentIndexQuerySchema = z.object({
-    size: z.coerce.number().min(1).max(100).optional().default(50),
-    cursor: z.coerce.number().optional().default(0),
-  });
-export type SegmentIndexQueryOutput = z.output<typeof segmentIndexQuerySchema>;
-
-export const getUserReportsQuerySchema = z.object({
-    cursor: z.coerce.number().optional(),
-    size: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
-  });
-export type GetUserReportsQueryOutput = z.output<typeof getUserReportsQuerySchema>;
-
 export const listIndexQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
     type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']).optional(),
@@ -128,3 +102,29 @@ export const browseMediaQuerySchema = z.object({
     type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
   });
 export type BrowseMediaQueryOutput = z.output<typeof browseMediaQuerySchema>;
+
+export const mediaIndexQuerySchema = z.object({
+    limit: z.coerce.number().min(1).max(40).optional().default(20),
+    cursor: z.coerce.number().min(0).optional().default(0),
+    category: z.enum(['ANIME', 'JDRAMA']).optional(),
+  });
+export type MediaIndexQueryOutput = z.output<typeof mediaIndexQuerySchema>;
+
+export const episodeIndexQuerySchema = z.object({
+    size: z.coerce.number().min(1).max(100).optional().default(50),
+    cursor: z.coerce.number().optional().default(0),
+  });
+export type EpisodeIndexQueryOutput = z.output<typeof episodeIndexQuerySchema>;
+
+export const segmentIndexQuerySchema = z.object({
+    size: z.coerce.number().min(1).max(100).optional().default(50),
+    cursor: z.coerce.number().optional().default(0),
+  });
+export type SegmentIndexQueryOutput = z.output<typeof segmentIndexQuerySchema>;
+
+export const getUserReportsQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
+  });
+export type GetUserReportsQueryOutput = z.output<typeof getUserReportsQuerySchema>;

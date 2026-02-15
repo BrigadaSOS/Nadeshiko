@@ -106,22 +106,22 @@ jobs:
           cd backend
           kamal deploy -d prod --skip-push
 
-      - name: Dispatch SDK release
+      - name: Dispatch TypeScript SDK release
         env:
           GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if [[ -z "${GH_TOKEN:-}" ]]; then
-            echo "SDK_REPO_DISPATCH_TOKEN is required."
-            exit 1
-          fi
+          gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
+            -f event_type='backend_release' \
+            -f client_payload[release_channel]="stable" \
+            -f client_payload[backend_sha]="${{ github.sha }}"
 
-          VERSION="${RELEASE_TAG#backend-v}"
-          SPEC_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/openapi.yaml"
-
-          curl -sS -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            https://api.github.com/repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
-            -d "{\"event_type\":\"backend_release\",\"client_payload\":{\"version\":\"${VERSION}\",\"release_tag\":\"${RELEASE_TAG}\",\"prerelease\":false,\"spec_url\":\"${SPEC_URL}\",\"backend_sha\":\"${{ github.sha }}\",\"backend_repo\":\"${{ github.repository }}\"}}"
+      - name: Dispatch Python SDK release
+        env:
+          GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
+            -f event_type='backend_release' \
+            -f client_payload[release_channel]="stable" \
+            -f client_payload[backend_sha]="${{ github.sha }}"

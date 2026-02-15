@@ -176,20 +176,22 @@ jobs:
           bun run docs:bundle
           test -f docs/generated/openapi.yaml
 
-      - name: Dispatch SDK dev release
+      - name: Dispatch TypeScript SDK dev release
         env:
           GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
         run: |
           set -euo pipefail
-          if [[ -z "${GH_TOKEN:-}" ]]; then
-            echo "SDK_REPO_DISPATCH_TOKEN is required."
-            exit 1
-          fi
+          gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
+            -f event_type='backend_release' \
+            -f client_payload[release_channel]="dev" \
+            -f client_payload[backend_sha]="${{ github.sha }}"
 
-          SPEC_URL="https://raw.githubusercontent.com/${{ github.repository }}/dev/backend/docs/generated/openapi.yaml"
-
-          curl -sS -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            https://api.github.com/repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
-            -d "{\"event_type\":\"backend_release\",\"client_payload\":{\"release_channel\":\"dev\",\"spec_url\":\"${SPEC_URL}\",\"backend_sha\":\"${{ github.sha }}\",\"backend_repo\":\"${{ github.repository }}\"}}"
+      - name: Dispatch Python SDK dev release
+        env:
+          GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
+            -f event_type='backend_release' \
+            -f client_payload[release_channel]="dev" \
+            -f client_payload[backend_sha]="${{ github.sha }}"
