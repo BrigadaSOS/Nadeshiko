@@ -1,5 +1,5 @@
 service: nadeshiko-backend-dev
-image: nadeshiko-backend-dev
+image: brigadasos/nadeshiko-backend-dev
 
 proxy:
   ssl: true

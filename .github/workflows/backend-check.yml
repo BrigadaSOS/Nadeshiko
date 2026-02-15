@@ -1,19 +1,20 @@
-name: Backend Checks
+name: Backend Check
 
 on:
   pull_request:
     branches:
-      - main
+      - dev
     paths:
       - 'backend/**'
 
 jobs:
-  backend-checks:
+  check:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -21,21 +22,13 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: |
-          cd backend
-          bun install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
-      - name: Lint backend
-        run: |
-          cd backend
-          bun run lint
+      - name: Lint
+        run: bun run lint
 
-      - name: Typecheck backend
-        run: |
-          cd backend
-          bun run typecheck
+      - name: Typecheck
+        run: bun run typecheck
 
-      - name: Build backend
-        run: |
-          cd backend
-          bun run build
+      - name: Build
+        run: bun run build
