@@ -37,6 +37,7 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - ELASTIC_PASSWORD=${ELASTICSEARCH_ADMIN_PASSWORD}
+      - cluster.routing.allocation.disk.threshold_enabled=false
       - network.host=127.0.0.1
       - http.host=0.0.0.0
     ports:
@@ -44,7 +45,6 @@ services:
       - 127.0.0.1:9300:9300
     volumes:
       - nadeshiko_elasticsearch_data:/usr/share/elasticsearch/data
-      - nadeshiko_elasticsearch_config:/usr/share/elasticsearch/config
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.17.10
@@ -64,5 +64,4 @@ volumes:
   nadeshiko_db:
   nadeshiko_pgadmin:
   nadeshiko_elasticsearch_data:
-  nadeshiko_elasticsearch_config:
   nadeshiko_kibana_data:

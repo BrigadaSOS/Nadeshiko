@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.985.0",
-    "@elastic/elasticsearch": "^9.0.0",
+    "@elastic/elasticsearch": "^8.17.0",
     "@nahkies/typescript-express-runtime": "0.22.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.211.0",
@@ -54,7 +54,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "http-status-codes": "^2.3.0",
-"nanoid": "^5.1.6",
+    "nanoid": "^5.1.6",
     "nodemailer": "^8.0.1",
     "pg": "^8.17.1",
     "pg-boss": "^12.9.0",
