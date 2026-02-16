@@ -234,7 +234,11 @@ function generateOutputTypesFile(schemas: SchemaInfo[], routeFiles: RouteFileInf
 
     for (const schema of allInlineSchemas) {
       lines.push('');
-      lines.push(`export const ${schema.variableName} = ${schema.schemaCode};`);
+      // Prefix schema references with schemas. since outputTypes.ts imports them as a namespace
+      const prefixedCode = schema.schemaCode
+        .replace(/\b(s_\w+)\b/g, 'schemas.$1')
+        .replace(/\bPermissiveBoolean\b/g, 'schemas.PermissiveBoolean');
+      lines.push(`export const ${schema.variableName} = ${prefixedCode};`);
       lines.push(`export type ${schema.outputTypeName} = z.output<typeof ${schema.variableName}>;`);
     }
   }

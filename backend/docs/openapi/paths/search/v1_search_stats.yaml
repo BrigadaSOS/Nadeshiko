@@ -1,7 +1,7 @@
 post:
   tags:
     - Search
-  operationId: getSearchStats
+  operationId: searchStats
   summary: Get search statistics
   description: |
     Returns statistics for search filters and category tabs without fetching segment rows.
@@ -12,8 +12,7 @@ post:
 
     The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
 
-    **Requirements**
-    - API Key with `READ_MEDIA` permission
+    **Permissions:** `READ_MEDIA`
 
   requestBody:
     content:
@@ -32,7 +31,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: "../../components/schemas/Error.yaml"
+            $ref: "../../components/schemas/Error400.yaml"
           examples:
             ValidationFailed:
               $ref: "../../components/examples/ValidationFailed.yaml"

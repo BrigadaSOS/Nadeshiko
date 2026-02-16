@@ -26,16 +26,26 @@ import type {
   t_EpisodeShowParamSchema,
   t_EpisodeUpdateParamSchema,
   t_EpisodeUpdateRequestBodySchema,
-  t_Error,
+  t_Error400,
+  t_Error401,
+  t_Error403,
+  t_Error404,
+  t_Error409,
+  t_Error429,
+  t_Error500,
   t_Media,
   t_MediaCreateRequestBodySchema,
   t_MediaDestroyParamSchema,
   t_MediaIndexQuerySchema,
   t_MediaListResponse,
   t_MediaShowParamSchema,
+  t_MediaShowQuerySchema,
   t_MediaUpdateParamSchema,
   t_MediaUpdateRequestBodySchema,
   t_Segment,
+  t_SegmentContextResponse,
+  t_SegmentContextShowParamSchema,
+  t_SegmentContextShowQuerySchema,
   t_SegmentCreateParamSchema,
   t_SegmentCreateRequestBodySchema,
   t_SegmentDestroyParamSchema,
@@ -49,19 +59,27 @@ import type {
   t_SeiyuuShowParamSchema,
   t_SeiyuuWithRoles,
 } from '../models.ts';
-import type { EpisodeCreateRequestOutput, EpisodeIndexQueryOutput, EpisodeUpdateRequestOutput, MediaCreateRequestOutput, MediaIndexQueryOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentIndexQueryOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
+import type { EpisodeCreateRequestOutput, EpisodeIndexQueryOutput, EpisodeUpdateRequestOutput, MediaCreateRequestOutput, MediaIndexQueryOutput, MediaShowQueryOutput, MediaUpdateRequestOutput, SegmentContextShowQueryOutput, SegmentCreateRequestOutput, SegmentIndexQueryOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
+  PermissiveBoolean,
   s_CharacterWithMedia,
   s_Episode,
   s_EpisodeCreateRequest,
   s_EpisodeListResponse,
   s_EpisodeUpdateRequest,
-  s_Error,
+  s_Error400,
+  s_Error401,
+  s_Error403,
+  s_Error404,
+  s_Error409,
+  s_Error429,
+  s_Error500,
   s_Media,
   s_MediaCreateRequest,
   s_MediaListResponse,
   s_MediaUpdateRequest,
   s_Segment,
+  s_SegmentContextResponse,
   s_SegmentCreateRequest,
   s_SegmentListResponse,
   s_SegmentUpdateRequest,
@@ -70,11 +88,11 @@ import {
 
 export type MediaIndexResponder = {
   with200(): ExpressRuntimeResponse<t_MediaListResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type MediaIndex = (
@@ -87,12 +105,12 @@ export type MediaIndex = (
 
 export type MediaCreateResponder = {
   with201(): ExpressRuntimeResponse<t_Media>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with409(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type MediaCreate = (
@@ -105,16 +123,16 @@ export type MediaCreate = (
 
 export type MediaShowResponder = {
   with200(): ExpressRuntimeResponse<t_Media>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type MediaShow = (
-  params: Params<t_MediaShowParamSchema, void, void, void>,
+  params: Params<t_MediaShowParamSchema, MediaShowQueryOutput, void, void>,
   respond: MediaShowResponder,
   req: Request,
   res: Response,
@@ -123,12 +141,12 @@ export type MediaShow = (
 
 export type MediaUpdateResponder = {
   with200(): ExpressRuntimeResponse<t_Media>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type MediaUpdate = (
@@ -144,12 +162,12 @@ export type MediaDestroyResponder = {
     id?: number;
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type MediaDestroy = (
@@ -162,12 +180,12 @@ export type MediaDestroy = (
 
 export type EpisodeIndexResponder = {
   with200(): ExpressRuntimeResponse<t_EpisodeListResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type EpisodeIndex = (
@@ -180,13 +198,13 @@ export type EpisodeIndex = (
 
 export type EpisodeCreateResponder = {
   with201(): ExpressRuntimeResponse<t_Episode>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with409(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type EpisodeCreate = (
@@ -199,12 +217,12 @@ export type EpisodeCreate = (
 
 export type EpisodeShowResponder = {
   with200(): ExpressRuntimeResponse<t_Episode>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type EpisodeShow = (
@@ -217,12 +235,12 @@ export type EpisodeShow = (
 
 export type EpisodeUpdateResponder = {
   with200(): ExpressRuntimeResponse<t_Episode>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type EpisodeUpdate = (
@@ -235,12 +253,12 @@ export type EpisodeUpdate = (
 
 export type EpisodeDestroyResponder = {
   with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type EpisodeDestroy = (
@@ -253,12 +271,12 @@ export type EpisodeDestroy = (
 
 export type SegmentIndexResponder = {
   with200(): ExpressRuntimeResponse<t_SegmentListResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SegmentIndex = (
@@ -271,13 +289,13 @@ export type SegmentIndex = (
 
 export type SegmentCreateResponder = {
   with201(): ExpressRuntimeResponse<t_Segment>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with409(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SegmentCreate = (
@@ -290,12 +308,12 @@ export type SegmentCreate = (
 
 export type SegmentShowResponder = {
   with200(): ExpressRuntimeResponse<t_Segment>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SegmentShow = (
@@ -308,12 +326,12 @@ export type SegmentShow = (
 
 export type SegmentUpdateResponder = {
   with200(): ExpressRuntimeResponse<t_Segment>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SegmentUpdate = (
@@ -326,12 +344,12 @@ export type SegmentUpdate = (
 
 export type SegmentDestroyResponder = {
   with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SegmentDestroy = (
@@ -344,12 +362,12 @@ export type SegmentDestroy = (
 
 export type SegmentShowByUuidResponder = {
   with200(): ExpressRuntimeResponse<t_Segment>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SegmentShowByUuid = (
@@ -360,14 +378,32 @@ export type SegmentShowByUuid = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type SegmentContextShowResponder = {
+  with200(): ExpressRuntimeResponse<t_SegmentContextResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type SegmentContextShow = (
+  params: Params<t_SegmentContextShowParamSchema, SegmentContextShowQueryOutput, void, void>,
+  respond: SegmentContextShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type CharacterShowResponder = {
   with200(): ExpressRuntimeResponse<t_CharacterWithMedia>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type CharacterShow = (
@@ -380,12 +416,12 @@ export type CharacterShow = (
 
 export type SeiyuuShowResponder = {
   with200(): ExpressRuntimeResponse<t_SeiyuuWithRoles>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SeiyuuShow = (
@@ -413,6 +449,7 @@ export type MediaImplementation = {
   segmentUpdate: SegmentUpdate;
   segmentDestroy: SegmentDestroy;
   segmentShowByUuid: SegmentShowByUuid;
+  segmentContextShow: SegmentContextShow;
   characterShow: CharacterShow;
   seiyuuShow: SeiyuuShow;
 };
@@ -424,16 +461,18 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     limit: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.coerce.number().min(0).optional().default(0),
     category: z.enum(['ANIME', 'JDRAMA']).optional(),
+    query: z.string().optional(),
+    includeCharacters: PermissiveBoolean.optional().default(false),
   });
 
   const mediaIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_MediaListResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -453,19 +492,19 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_MediaListResponse>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -500,12 +539,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const mediaCreateResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Media],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['409', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -525,22 +564,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_Media>(201);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with409() {
-          return new ExpressRuntimeResponse<t_Error>(409);
+          return new ExpressRuntimeResponse<t_Error409>(409);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -572,15 +611,17 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
   const mediaShowParamSchema = z.object({ id: z.coerce.number() });
 
+  const mediaShowQuerySchema = z.object({ includeCharacters: PermissiveBoolean.optional().default(false) });
+
   const mediaShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Media],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -590,7 +631,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     try {
       const input = {
         params: parseRequestInput(mediaShowParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
+        query: parseRequestInput(mediaShowQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -600,22 +641,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_Media>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -652,12 +693,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const mediaUpdateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Media],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -677,22 +718,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_Media>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -727,12 +768,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const mediaDestroyResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ message: z.string().optional(), id: z.coerce.number().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -755,22 +796,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -810,12 +851,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const episodeIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_EpisodeListResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -835,22 +876,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_EpisodeListResponse>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -887,13 +928,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const episodeCreateResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Episode],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['409', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -913,25 +954,25 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_Episode>(201);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with409() {
-          return new ExpressRuntimeResponse<t_Error>(409);
+          return new ExpressRuntimeResponse<t_Error409>(409);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -966,12 +1007,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const episodeShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Episode],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -991,22 +1032,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_Episode>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -1043,12 +1084,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const episodeUpdateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Episode],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1070,22 +1111,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
             return new ExpressRuntimeResponse<t_Episode>(200);
           },
           with400() {
-            return new ExpressRuntimeResponse<t_Error>(400);
+            return new ExpressRuntimeResponse<t_Error400>(400);
           },
           with401() {
-            return new ExpressRuntimeResponse<t_Error>(401);
+            return new ExpressRuntimeResponse<t_Error401>(401);
           },
           with403() {
-            return new ExpressRuntimeResponse<t_Error>(403);
+            return new ExpressRuntimeResponse<t_Error403>(403);
           },
           with404() {
-            return new ExpressRuntimeResponse<t_Error>(404);
+            return new ExpressRuntimeResponse<t_Error404>(404);
           },
           with429() {
-            return new ExpressRuntimeResponse<t_Error>(429);
+            return new ExpressRuntimeResponse<t_Error429>(429);
           },
           with500() {
-            return new ExpressRuntimeResponse<t_Error>(500);
+            return new ExpressRuntimeResponse<t_Error500>(500);
           },
           withStatus(status: StatusCode) {
             return new ExpressRuntimeResponse(status);
@@ -1121,12 +1162,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const episodeDestroyResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1148,22 +1189,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
             return new ExpressRuntimeResponse<void>(204);
           },
           with400() {
-            return new ExpressRuntimeResponse<t_Error>(400);
+            return new ExpressRuntimeResponse<t_Error400>(400);
           },
           with401() {
-            return new ExpressRuntimeResponse<t_Error>(401);
+            return new ExpressRuntimeResponse<t_Error401>(401);
           },
           with403() {
-            return new ExpressRuntimeResponse<t_Error>(403);
+            return new ExpressRuntimeResponse<t_Error403>(403);
           },
           with404() {
-            return new ExpressRuntimeResponse<t_Error>(404);
+            return new ExpressRuntimeResponse<t_Error404>(404);
           },
           with429() {
-            return new ExpressRuntimeResponse<t_Error>(429);
+            return new ExpressRuntimeResponse<t_Error429>(429);
           },
           with500() {
-            return new ExpressRuntimeResponse<t_Error>(500);
+            return new ExpressRuntimeResponse<t_Error500>(500);
           },
           withStatus(status: StatusCode) {
             return new ExpressRuntimeResponse(status);
@@ -1204,12 +1245,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const segmentIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SegmentListResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1231,22 +1272,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
             return new ExpressRuntimeResponse<t_SegmentListResponse>(200);
           },
           with400() {
-            return new ExpressRuntimeResponse<t_Error>(400);
+            return new ExpressRuntimeResponse<t_Error400>(400);
           },
           with401() {
-            return new ExpressRuntimeResponse<t_Error>(401);
+            return new ExpressRuntimeResponse<t_Error401>(401);
           },
           with403() {
-            return new ExpressRuntimeResponse<t_Error>(403);
+            return new ExpressRuntimeResponse<t_Error403>(403);
           },
           with404() {
-            return new ExpressRuntimeResponse<t_Error>(404);
+            return new ExpressRuntimeResponse<t_Error404>(404);
           },
           with429() {
-            return new ExpressRuntimeResponse<t_Error>(429);
+            return new ExpressRuntimeResponse<t_Error429>(429);
           },
           with500() {
-            return new ExpressRuntimeResponse<t_Error>(500);
+            return new ExpressRuntimeResponse<t_Error500>(500);
           },
           withStatus(status: StatusCode) {
             return new ExpressRuntimeResponse(status);
@@ -1284,13 +1325,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const segmentCreateResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Segment],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['409', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1312,25 +1353,25 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
             return new ExpressRuntimeResponse<t_Segment>(201);
           },
           with400() {
-            return new ExpressRuntimeResponse<t_Error>(400);
+            return new ExpressRuntimeResponse<t_Error400>(400);
           },
           with401() {
-            return new ExpressRuntimeResponse<t_Error>(401);
+            return new ExpressRuntimeResponse<t_Error401>(401);
           },
           with403() {
-            return new ExpressRuntimeResponse<t_Error>(403);
+            return new ExpressRuntimeResponse<t_Error403>(403);
           },
           with404() {
-            return new ExpressRuntimeResponse<t_Error>(404);
+            return new ExpressRuntimeResponse<t_Error404>(404);
           },
           with409() {
-            return new ExpressRuntimeResponse<t_Error>(409);
+            return new ExpressRuntimeResponse<t_Error409>(409);
           },
           with429() {
-            return new ExpressRuntimeResponse<t_Error>(429);
+            return new ExpressRuntimeResponse<t_Error429>(429);
           },
           with500() {
-            return new ExpressRuntimeResponse<t_Error>(500);
+            return new ExpressRuntimeResponse<t_Error500>(500);
           },
           withStatus(status: StatusCode) {
             return new ExpressRuntimeResponse(status);
@@ -1370,12 +1411,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const segmentShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Segment],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1397,22 +1438,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
             return new ExpressRuntimeResponse<t_Segment>(200);
           },
           with400() {
-            return new ExpressRuntimeResponse<t_Error>(400);
+            return new ExpressRuntimeResponse<t_Error400>(400);
           },
           with401() {
-            return new ExpressRuntimeResponse<t_Error>(401);
+            return new ExpressRuntimeResponse<t_Error401>(401);
           },
           with403() {
-            return new ExpressRuntimeResponse<t_Error>(403);
+            return new ExpressRuntimeResponse<t_Error403>(403);
           },
           with404() {
-            return new ExpressRuntimeResponse<t_Error>(404);
+            return new ExpressRuntimeResponse<t_Error404>(404);
           },
           with429() {
-            return new ExpressRuntimeResponse<t_Error>(429);
+            return new ExpressRuntimeResponse<t_Error429>(429);
           },
           with500() {
-            return new ExpressRuntimeResponse<t_Error>(500);
+            return new ExpressRuntimeResponse<t_Error500>(500);
           },
           withStatus(status: StatusCode) {
             return new ExpressRuntimeResponse(status);
@@ -1454,12 +1495,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const segmentUpdateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Segment],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1481,22 +1522,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
             return new ExpressRuntimeResponse<t_Segment>(200);
           },
           with400() {
-            return new ExpressRuntimeResponse<t_Error>(400);
+            return new ExpressRuntimeResponse<t_Error400>(400);
           },
           with401() {
-            return new ExpressRuntimeResponse<t_Error>(401);
+            return new ExpressRuntimeResponse<t_Error401>(401);
           },
           with403() {
-            return new ExpressRuntimeResponse<t_Error>(403);
+            return new ExpressRuntimeResponse<t_Error403>(403);
           },
           with404() {
-            return new ExpressRuntimeResponse<t_Error>(404);
+            return new ExpressRuntimeResponse<t_Error404>(404);
           },
           with429() {
-            return new ExpressRuntimeResponse<t_Error>(429);
+            return new ExpressRuntimeResponse<t_Error429>(429);
           },
           with500() {
-            return new ExpressRuntimeResponse<t_Error>(500);
+            return new ExpressRuntimeResponse<t_Error500>(500);
           },
           withStatus(status: StatusCode) {
             return new ExpressRuntimeResponse(status);
@@ -1536,12 +1577,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const segmentDestroyResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1563,22 +1604,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
             return new ExpressRuntimeResponse<void>(204);
           },
           with400() {
-            return new ExpressRuntimeResponse<t_Error>(400);
+            return new ExpressRuntimeResponse<t_Error400>(400);
           },
           with401() {
-            return new ExpressRuntimeResponse<t_Error>(401);
+            return new ExpressRuntimeResponse<t_Error401>(401);
           },
           with403() {
-            return new ExpressRuntimeResponse<t_Error>(403);
+            return new ExpressRuntimeResponse<t_Error403>(403);
           },
           with404() {
-            return new ExpressRuntimeResponse<t_Error>(404);
+            return new ExpressRuntimeResponse<t_Error404>(404);
           },
           with429() {
-            return new ExpressRuntimeResponse<t_Error>(429);
+            return new ExpressRuntimeResponse<t_Error429>(429);
           },
           with500() {
-            return new ExpressRuntimeResponse<t_Error>(500);
+            return new ExpressRuntimeResponse<t_Error500>(500);
           },
           withStatus(status: StatusCode) {
             return new ExpressRuntimeResponse(status);
@@ -1614,12 +1655,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const segmentShowByUuidResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Segment],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1639,22 +1680,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_Segment>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -1684,17 +1725,94 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
+  const segmentContextShowParamSchema = z.object({ uuid: z.string() });
+
+  const segmentContextShowQuerySchema = z.object({ limit: z.coerce.number().min(1).max(30).optional().default(3) });
+
+  const segmentContextShowResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SegmentContextResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // segmentContextShow
+  router.get(`/v1/media/segments/:uuid/context`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(segmentContextShowParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(segmentContextShowQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_SegmentContextResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.segmentContextShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(segmentContextShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
   const characterShowParamSchema = z.object({ id: z.coerce.number() });
 
   const characterShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_CharacterWithMedia],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1714,22 +1832,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_CharacterWithMedia>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -1764,12 +1882,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const seiyuuShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SeiyuuWithRoles],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1789,22 +1907,22 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           return new ExpressRuntimeResponse<t_SeiyuuWithRoles>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);

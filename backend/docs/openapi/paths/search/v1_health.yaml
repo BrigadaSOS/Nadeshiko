@@ -6,8 +6,7 @@ get:
   description: |
     Tests the search service connectivity and functionality by performing a simple search query.
 
-    **Requirements:**
-    - Required Scopes: `READ_MEDIA`
+    **Permissions:** `READ_MEDIA`
   x-internal: true
   security:
     - apiKeyHeader: [READ_MEDIA]

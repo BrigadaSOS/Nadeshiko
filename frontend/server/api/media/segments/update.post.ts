@@ -1,8 +1,8 @@
-import { getNadeshikoSdkClient, unwrapSdkResult } from '~~/server/utils/nadeshikoSdk';
+import { getNadeshikoSdkClient } from '~~/server/utils/nadeshikoSdk';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { uuid, ja, en, es, status, isNsfw } = body;
+  const { uuid, textJa, textEn, textEs, status, isNsfw } = body;
 
   if (!uuid) {
     throw createError({ statusCode: 400, statusMessage: 'uuid is required' });
@@ -10,25 +10,29 @@ export default defineEventHandler(async (event) => {
 
   const sdk = getNadeshikoSdkClient();
 
-  // Step 1: Resolve UUID to segment ID, mediaId, and episode number
-  const segmentResult = await sdk.segmentShowByUuid({ path: { uuid } });
-  const segment = unwrapSdkResult('segmentShowByUuid', segmentResult);
+  const { data: segment } = await sdk.segmentShowByUuid({ path: { uuid } });
+  if (!segment) {
+    throw createError({ statusCode: 404, statusMessage: 'Segment not found' });
+  }
 
-  // Step 2: Update the segment via PATCH
-  const updateResult = await sdk.segmentUpdate({
+  const { data } = await sdk.segmentUpdate({
     path: {
       mediaId: segment.mediaId,
       episodeNumber: segment.episode,
       id: segment.id,
     },
     body: {
-      ...(ja !== undefined && { ja: { content: ja } }),
-      ...(en !== undefined && { en: { content: en.content, isMachineTranslated: en.isMachineTranslated } }),
-      ...(es !== undefined && { es: { content: es.content, isMachineTranslated: es.isMachineTranslated } }),
+      ...(textJa !== undefined && { textJa: { content: textJa } }),
+      ...(textEn !== undefined && {
+        textEn: { content: textEn.content, isMachineTranslated: textEn.isMachineTranslated },
+      }),
+      ...(textEs !== undefined && {
+        textEs: { content: textEs.content, isMachineTranslated: textEs.isMachineTranslated },
+      }),
       ...(status !== undefined && { status }),
       ...(isNsfw !== undefined && { isNsfw }),
     },
   });
 
-  return unwrapSdkResult('segmentUpdate', updateResult);
+  return data;
 });

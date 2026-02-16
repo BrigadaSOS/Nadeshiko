@@ -1,5 +1,6 @@
 <script setup>
 const route = useRoute();
+const { mediaName } = useMediaName();
 
 const uuid = computed(() => String(route.params.uuid));
 
@@ -57,8 +58,8 @@ const metaTags = computed(() => {
 
   if (result) {
     const mediaInfo = `Episode ${result.segment.episodeNumber}`;
-    const title = `${result.media.nameEn} | Nadeshiko`;
-    const description = `「${result.segment.ja.content}」\n${mediaInfo}`;
+    const title = `${mediaName(result.media)} | Nadeshiko`;
+    const description = `「${result.segment.textJa.content}」\n${mediaInfo}`;
 
     tags.title = title;
     tags.meta = [

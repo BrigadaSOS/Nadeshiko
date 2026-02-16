@@ -186,7 +186,7 @@
       "buttons": {
         "addToAnkiLast": "Añadir a Anki (Ultima carta añadida)",
         "addToAnkiSearch": "Añadir a Anki (Busca en tu colección)",
-        "download": "Descargar",
+        "download": "Guardar",
         "dl-expanded": "Audio expandido",
         "add": "Añadir",
         "video": "Imagen + Audio",
@@ -336,6 +336,8 @@
     "noResultsTitle": "404",
     "noResultsMessage": "Buscamos de arriba a abajo, pero no pudimos encontrar lo que buscas. Intenta con una nueva búsqueda diferente.",
     "nsfwTag": "NSFW",
+    "nsfwShow": "Mostrar",
+    "nsfwHide": "Ocultar",
     "expandLeft": "Expandir izquierda",
     "expandBoth": "Expandir ambos lados",
     "expandRight": "Expandir derecha",

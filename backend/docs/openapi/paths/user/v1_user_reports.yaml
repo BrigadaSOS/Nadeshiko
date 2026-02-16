@@ -1,13 +1,12 @@
 post:
   tags:
     - User
-  operationId: createReport
+  operationId: userReportCreate
   summary: Create a new report
   description: |
     Submit a report for a segment or media entry.
 
-    **Requirements:**
-    - Requires session authentication (cookie-based).
+    **Permissions:** Session authentication (cookie-based).
   security:
     - sessionCookie: []
   requestBody:
@@ -35,13 +34,12 @@ post:
 get:
   tags:
     - User
-  operationId: getUserReports
+  operationId: userReportIndex
   summary: List user's own reports
   description: |
     Returns the authenticated user's submitted reports with cursor pagination.
 
-    **Requirements:**
-    - Requires session authentication (cookie-based).
+    **Permissions:** Session authentication (cookie-based).
   security:
     - sessionCookie: []
   parameters:

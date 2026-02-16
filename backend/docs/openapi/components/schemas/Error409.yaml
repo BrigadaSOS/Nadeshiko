@@ -1,0 +1,37 @@
+type: object
+description: Conflict error response
+required:
+  - code
+  - title
+  - detail
+  - status
+properties:
+  code:
+    type: string
+    description: Specific error code for programmatic handling
+    enum:
+      - ACCOUNT_CONFLICT
+      - DUPLICATE_KEY
+  title:
+    type: string
+    description: A short, human-readable summary of the problem
+  detail:
+    type: string
+    description: A human-readable explanation specific to this occurrence
+  type:
+    type: string
+    format: uri
+    description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+  instance:
+    type: string
+    description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+  status:
+    type: integer
+    description: The HTTP status code
+    enum:
+      - 409
+  errors:
+    type: object
+    additionalProperties:
+      type: string
+    description: Optional map of field names to their error messages (for validation errors)

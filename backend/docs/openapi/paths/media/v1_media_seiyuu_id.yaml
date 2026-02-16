@@ -4,7 +4,9 @@ get:
   operationId: seiyuuShow
   summary: Get seiyuu details
   description: |
-    Returns a voice actor with all characters they voiced and media appearances.
+    Returns a voice actor (seiyuu) with all characters they voiced and their media appearances.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]

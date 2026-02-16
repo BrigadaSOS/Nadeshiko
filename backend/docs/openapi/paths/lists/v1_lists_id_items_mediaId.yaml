@@ -5,7 +5,9 @@ patch:
   x-internal: true
   summary: Update media position in list
   description: |
-    Updates the position of a media entry within the list. Requires admin permissions.
+    Updates the position of a media entry within the list.
+
+    **Permissions:** `UPDATE_LISTS`
 
   security:
     - apiKeyHeader: [UPDATE_LISTS]
@@ -68,7 +70,9 @@ delete:
   x-internal: true
   summary: Remove media from list
   description: |
-    Removes a media entry from the list. Requires admin permissions.
+    Removes a media entry from the list.
+
+    **Permissions:** `UPDATE_LISTS`
 
   security:
     - apiKeyHeader: [UPDATE_LISTS]

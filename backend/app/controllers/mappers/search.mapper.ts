@@ -1,4 +1,4 @@
-import type { t_MediaSummary, t_Category, t_ExternalId } from 'generated/models';
+import type { t_Media, t_Category, t_ExternalId } from 'generated/models';
 import type { MediaExternalId } from '@app/models/MediaExternalId';
 import { Media } from '@app/models';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
@@ -15,7 +15,7 @@ const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
 /**
  * Maps Media entity to t_MediaSummary for browseMedia endpoint
  */
-export const toMediaSummary = (media: Media): t_MediaSummary => {
+export const toMediaSummary = (media: Media): t_Media => {
   return {
     id: media.id,
     externalIds: toExternalIdsMap(media.externalIds),
@@ -32,9 +32,9 @@ export const toMediaSummary = (media: Media): t_MediaSummary => {
     category: media.category as t_Category, // Direct mapping - CategoryType matches t_Category
     segmentCount: media.segmentCount,
     episodeCount: media.episodes?.length ?? 0,
+    seasonName: media.seasonName,
+    seasonYear: media.seasonYear,
+    studio: media.studio,
     version: media.version,
-    folderMediaName: `${media.nameRomaji.replace(/[^a-zA-Z0-9]/g, '_')}`,
-    createdAt: media.createdAt.toISOString(),
-    updatedAt: undefined,
   };
 };

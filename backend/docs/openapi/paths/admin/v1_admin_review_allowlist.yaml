@@ -1,13 +1,12 @@
 get:
   tags:
     - Admin
-  operationId: getReviewAllowlist
+  operationId: adminReviewAllowlistIndex
   summary: List allowlisted items
   description: |
-    Returns all allowlisted items that are excluded from auto-check runs.
+    Returns all allowlisted items (media/episodes) that are excluded from auto-check runs.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:
@@ -37,13 +36,12 @@ get:
 post:
   tags:
     - Admin
-  operationId: addToReviewAllowlist
+  operationId: adminReviewAllowlistCreate
   summary: Add to allowlist
   description: |
-    Add a media/episode to the allowlist for a specific check.
+    Adds a media or episode to the allowlist for a specific check, excluding it from future auto-check runs.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   requestBody:

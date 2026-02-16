@@ -2,7 +2,7 @@ description: Conflict
 content:
   application/json:
     schema:
-      $ref: "../schemas/Error.yaml"
+      $ref: "../schemas/Error409.yaml"
     examples:
       AccountConflict:
         $ref: "../examples/AccountConflict.yaml"

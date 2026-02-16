@@ -30,34 +30,20 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             userName: response.user.name ?? null,
             userEmail: response.user.email ?? null,
             currentSessionToken: response.session?.token ?? null,
-            userInfo: {
-              roles: [],
-            },
+            userInfo: { role: response.user.role ?? 'USER' },
+            preferences: response.user.preferences ?? {},
           });
         } else {
-          store.$patch({
-            isLoggedIn: false,
-            userName: null,
-            userEmail: null,
-            currentSessionToken: null,
-            userInfo: { roles: [] },
-          });
+          store.resetAuthState();
         }
       } catch (error) {
         console.error('[SSR Auth] Error during session validation:', error);
-        store.$patch({
-          isLoggedIn: false,
-          userName: null,
-          userEmail: null,
-          currentSessionToken: null,
-          userInfo: { roles: [] },
-        });
+        store.resetAuthState();
       }
     }
   }
 
   if (import.meta.client) {
-    // Only fetch if SSR didn't already populate the session
     if (!store.isLoggedIn) {
       await store.getBasicInfo();
     }

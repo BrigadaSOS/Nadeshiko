@@ -3,7 +3,8 @@ import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@
 
 useSeoMeta({
   title: 'Nadeshiko',
-  description: 'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!',
+  description:
+    'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!',
   ogTitle: 'Nadeshiko',
   ogDescription:
     'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!',
@@ -19,9 +20,7 @@ useSchemaOrg([
 ]);
 
 useHead({
-  link: [
-    { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
-  ],
+  link: [{ rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' }],
 });
 const config = useRuntimeConfig();
 
@@ -31,7 +30,7 @@ const {
   pending: isLoading,
   error,
   refresh,
-} = await useAsyncData('recentMedia', () => apiSearch.getRecentMedia({ size: 10 }), {
+} = await useAsyncData('recentMedia', () => apiSearch.getRecentMedia({ limit: 10 }), {
   default: () => null,
 });
 </script>
@@ -142,7 +141,7 @@ const {
                                         <div class="md:w-2/4 sm:w-1/2 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
                                                 <h2 class="title-font font-medium text-2xl text-white">
-                                                    +{{ Math.ceil(media?.stats?.fullTotalSegments / 100) * 100 || 0 }}
+                                                    +{{ Math.ceil((media?.data?.reduce((sum, m) => sum + (m.segmentCount || 0), 0) || 0) / 100) * 100 }}
                                                 </h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.sentenceCount') }}
@@ -152,7 +151,7 @@ const {
                                         <div class="md:w-2/4 sm:w-1/2 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
                                                 <h2 class="title-font font-medium text-2xl text-white">{{
-                                                    media?.stats?.fullTotalAnimes || 0 }}</h2>
+                                                    media?.data?.length || 0 }}</h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.mediaCount') }}
                                                 </p>
@@ -214,9 +213,9 @@ const {
                                                 <div
                                                     v-else
                                                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
-                                                    <template v-if="media?.results?.length">
+                                                    <template v-if="media?.data?.length">
                                                         <NuxtLink
-                                                            v-for="(media_info, index) in media.results"
+                                                            v-for="(media_info, index) in media.data"
                                                             :key="media_info.id"
                                                             :to="`/search?media=${media_info.id}`"
                                                             class="w-full relative">
@@ -224,8 +223,8 @@ const {
                                                                 <div
                                                                     class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.06)] block">
                                                                     <img class="w-full h-full object-cover absolute top-0 left-0"
-                                                                        :src="media_info.cover"
-                                                                        :alt="media_info.englishName"
+                                                                        :src="media_info.coverUrl"
+                                                                        :alt="media_info.nameEn"
                                                                         width="200"
                                                                         height="290"
                                                                         loading="lazy" />
@@ -235,13 +234,13 @@ const {
                                                             <div
                                                                 class="mt-2 text-center justify-center flex flex-col items-center">
                                                                 <h3 class="text-sm text-center font-semibold line-clamp-2">
-                                                                    {{ media_info.englishName }}
+                                                                    {{ media_info.nameEn }}
                                                                 </h3>
                                                             </div>
                                                             <div
                                                                 class="text-center mt-1 mb-5 justify-center flex flex-col items-center">
                                                                 <h3 class="text-sm text-center font-medium line-clamp-2">
-                                                                    {{ media_info.numSegments }} {{ $t('animeList.sentenceCount') }}
+                                                                    {{ media_info.segmentCount }} {{ $t('animeList.sentenceCount') }}
                                                                 </h3>
                                                             </div>
                                                         </NuxtLink>

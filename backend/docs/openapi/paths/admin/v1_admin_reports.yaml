@@ -1,14 +1,13 @@
 get:
   tags:
     - Admin
-  operationId: getAdminReports
-  summary: List all reports (admin)
+  operationId: adminReportIndex
+  summary: List all reports
   description: |
-    Returns all reports with filtering and aggregation.
+    Returns all reports with filtering and cursor pagination.
     Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

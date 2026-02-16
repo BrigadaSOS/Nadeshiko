@@ -97,7 +97,7 @@ function openLoginModal() {
                         </template>
                         <template #content>
                             <SearchDropdownContent>
-                                <NuxtLink to="/settings">
+                                <NuxtLink v-if="isAuth" to="/settings">
                                     <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                 </NuxtLink>
                                 <SearchDropdownItem v-if="!isAuth || isAuth == null" @click="openLoginModal" :text="$t('navbar.buttons.login')" />

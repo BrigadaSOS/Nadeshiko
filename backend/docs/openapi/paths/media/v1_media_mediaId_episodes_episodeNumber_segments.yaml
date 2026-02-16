@@ -5,7 +5,9 @@ get:
   x-internal: true
   summary: List segments for an episode
   description: |
-    Get a paginated list of segments for a specific episode
+    Returns a paginated list of segments for a specific episode.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]
@@ -65,7 +67,9 @@ post:
   x-internal: true
   summary: Create new segment
   description: |
-    Create a new segment for a specific episode
+    Creates a new segment for a specific episode.
+
+    **Permissions:** `UPDATE_MEDIA`
 
   security:
     - apiKeyHeader: [UPDATE_MEDIA]

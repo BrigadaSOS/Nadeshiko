@@ -2,7 +2,7 @@ description: Bad Request
 content:
   application/json:
     schema:
-      $ref: "../schemas/Error.yaml"
+      $ref: "../schemas/Error400.yaml"
     examples:
       ValidationFailed:
         $ref: "../../components/examples/ValidationFailed.yaml"

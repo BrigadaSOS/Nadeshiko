@@ -3,6 +3,7 @@ export { BaseEntity } from './base.entity';
 
 // User domain
 export { User, UserRoleType } from './User';
+export type { UserPreferences } from './User';
 export { AccountQuotaUsage } from './AccountQuotaUsage';
 
 // Media domain
@@ -29,5 +30,8 @@ export { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason } fr
 export { ReviewCheck, ReviewCheckTargetType } from './ReviewCheck';
 export { ReviewCheckRun } from './ReviewCheckRun';
 export { ReviewAllowlist } from './ReviewAllowlist';
+
+// Activity tracking
+export { UserActivity, ActivityType } from './UserActivity';
 
 // Miscellaneous

@@ -1,11 +1,11 @@
-import type { CreateReport, GetUserReports } from 'generated/routes/user';
-import type { GetAdminReports, UpdateReport } from 'generated/routes/admin';
+import type { UserReportCreate, UserReportIndex } from 'generated/routes/user';
+import type { AdminReportIndex, AdminReportUpdate } from 'generated/routes/admin';
 import { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason, Segment, Media } from '@app/models';
 import { AuthCredentialsInvalidError, NotFoundError, InvalidRequestError } from '@app/errors';
 import { toReportDTO, toAdminReportDTO } from '@app/controllers/mappers/report.mapper';
 import { type FindOptionsWhere, LessThan } from 'typeorm';
 
-export const createReport: CreateReport = async ({ body }, respond, req) => {
+export const userReportCreate: UserReportCreate = async ({ body }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
@@ -44,7 +44,7 @@ export const createReport: CreateReport = async ({ body }, respond, req) => {
   return respond.with201().body(toReportDTO(report));
 };
 
-export const getUserReports: GetUserReports = async ({ query }, respond, req) => {
+export const userReportIndex: UserReportIndex = async ({ query }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
@@ -68,7 +68,7 @@ export const getUserReports: GetUserReports = async ({ query }, respond, req) =>
 
   const hasMore = reports.length > size;
   const data = hasMore ? reports.slice(0, size) : reports;
-  const nextCursor = hasMore ? data[data.length - 1]!.id : null;
+  const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
 
   return respond.with200().body({
     data: data.map(toReportDTO),
@@ -77,7 +77,7 @@ export const getUserReports: GetUserReports = async ({ query }, respond, req) =>
   });
 };
 
-export const getAdminReports: GetAdminReports = async ({ query }, respond) => {
+export const adminReportIndex: AdminReportIndex = async ({ query }, respond) => {
   const { cursor, size = 20, status, source, targetType, targetMediaId, reviewCheckRunId } = query;
 
   const where: FindOptionsWhere<Report> = {};
@@ -109,7 +109,7 @@ export const getAdminReports: GetAdminReports = async ({ query }, respond) => {
 
   const hasMore = reports.length > size;
   const data = hasMore ? reports.slice(0, size) : reports;
-  const nextCursor = hasMore ? data[data.length - 1]?.id ?? null : null;
+  const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
 
   // Compute report counts per (targetType, targetMediaId) for the returned reports
   const targets = [...new Set(data.map((r) => `${r.targetType}:${r.targetMediaId}`))];
@@ -121,9 +121,7 @@ export const getAdminReports: GetAdminReports = async ({ query }, respond) => {
       .addSelect('r.target_media_id', 'targetMediaId')
       .addSelect('COUNT(*)', 'count')
       .where(
-        targets
-          .map((_, i) => `(r.target_type = :tt${i} AND r.target_media_id = :mid${i})`)
-          .join(' OR '),
+        targets.map((_, i) => `(r.target_type = :tt${i} AND r.target_media_id = :mid${i})`).join(' OR '),
         Object.fromEntries(
           targets.flatMap((t, i) => {
             const [tt, mid] = t.split(':');
@@ -152,7 +150,7 @@ export const getAdminReports: GetAdminReports = async ({ query }, respond) => {
   });
 };
 
-export const updateReport: UpdateReport = async ({ params, body }, respond) => {
+export const adminReportUpdate: AdminReportUpdate = async ({ params, body }, respond) => {
   const { id } = params;
 
   const report = await Report.findOne({ where: { id } });

@@ -1,13 +1,12 @@
 get:
   tags:
     - User
-  operationId: getUserQuota
+  operationId: userQuotaShow
   summary: Get current monthly API quota
   description: |
     Returns the authenticated user's API quota usage for the current billing period.
 
-    **Requirements:**
-    - Requires session authentication (cookie-based).
+    **Permissions:** Session authentication (cookie-based).
 
   security:
     - sessionCookie: []

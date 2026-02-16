@@ -589,13 +589,27 @@
           "type": "custom",
           "char_filter": ["normalize"],
           "tokenizer": "ja_sudachi_tokenizer",
-          "filter": ["sudachi_split_extended", "sudachi_baseform", "sudachi_pos_filter", "cjk_width", "sudachi_normalizedform", "sudachi_ja_stop"]
+          "filter": [
+            "sudachi_split_extended",
+            "sudachi_baseform",
+            "sudachi_pos_filter",
+            "cjk_width",
+            "sudachi_normalizedform",
+            "sudachi_ja_stop"
+          ]
         },
         "ja_baseform_search_analyzer": {
           "type": "custom",
           "char_filter": ["normalize"],
           "tokenizer": "ja_sudachi_tokenizer",
-          "filter": ["sudachi_split_search", "sudachi_baseform", "sudachi_pos_filter", "cjk_width", "sudachi_normalizedform", "sudachi_ja_stop"]
+          "filter": [
+            "sudachi_split_search",
+            "sudachi_baseform",
+            "sudachi_pos_filter",
+            "cjk_width",
+            "sudachi_normalizedform",
+            "sudachi_ja_stop"
+          ]
         },
         "ja_surface_index_analyzer": {
           "type": "custom",
@@ -748,6 +762,9 @@
       },
       "mediaId": {
         "type": "integer"
+      },
+      "storageBasePath": {
+        "type": "keyword"
       },
       "morphemes": {
         "type": "object",

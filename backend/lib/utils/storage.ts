@@ -1,75 +1,78 @@
 import { config } from '@config/config';
+import { SegmentStorage } from '@app/models/Segment';
 
-export type Storage = 'LOCAL' | 'R2';
+export type Storage = SegmentStorage;
+export { SegmentStorage };
 
-const STORAGE_BASE_URLS: Record<Storage, string> = {
-  R2: config.R2_BASE_URL,
-  LOCAL: '/media',
+const STORAGE_BASE_URLS: Record<SegmentStorage, string> = {
+  [SegmentStorage.R2]: config.R2_BASE_URL,
+  [SegmentStorage.LOCAL]: '/media',
 };
+
+function getBaseUrl(storage: SegmentStorage): string {
+  // Normalize to uppercase to handle pre-migration lowercase varchar values (e.g. 'r2' → 'R2')
+  const normalized = (typeof storage === 'string' ? storage.toUpperCase() : storage) as SegmentStorage;
+  return STORAGE_BASE_URLS[normalized];
+}
 
 /**
  * Get the cover image URL for a media entry.
- * Path pattern: {mediaId}/cover.webp
+ * Path pattern: {storageBasePath}/cover.webp
  */
-export function getMediaCoverUrl(media: { id: number; storage: Storage }): string {
-  const baseUrl = STORAGE_BASE_URLS[media.storage];
-  return `${baseUrl}/${media.id}/cover.webp`;
+export function getMediaCoverUrl(media: { storage: SegmentStorage; storageBasePath: string }): string {
+  return `${getBaseUrl(media.storage)}/${media.storageBasePath}/cover.webp`;
 }
 
 /**
  * Get the banner image URL for a media entry.
- * Path pattern: {mediaId}/banner.webp
+ * Path pattern: {storageBasePath}/banner.webp
  */
-export function getMediaBannerUrl(media: { id: number; storage: Storage }): string {
-  const baseUrl = STORAGE_BASE_URLS[media.storage];
-  return `${baseUrl}/${media.id}/banner.webp`;
+export function getMediaBannerUrl(media: { storage: SegmentStorage; storageBasePath: string }): string {
+  return `${getBaseUrl(media.storage)}/${media.storageBasePath}/banner.webp`;
 }
 
 /**
  * Get the segment image URL.
- * Path pattern: {mediaId}/{episodeNumber}/{hashedId}.webp
+ * Path pattern: {storageBasePath}/{episodeNumber}/{hashedId}.webp
  */
 export function getSegmentImageUrl(segment: {
-  mediaId: number;
   episode: number;
-  storage: Storage;
+  storage: SegmentStorage;
   hashedId: string;
+  storageBasePath: string;
 }): string {
-  const baseUrl = STORAGE_BASE_URLS[segment.storage];
-  return `${baseUrl}/${segment.mediaId}/${segment.episode}/${segment.hashedId}.webp`;
+  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${segment.episode}/${segment.hashedId}.webp`;
 }
 
 /**
  * Get the segment audio URL.
- * Path pattern: {mediaId}/{episodeNumber}/{hashedId}.mp3
+ * Path pattern: {storageBasePath}/{episodeNumber}/{hashedId}.mp3
  */
 export function getSegmentAudioUrl(segment: {
-  mediaId: number;
   episode: number;
-  storage: Storage;
+  storage: SegmentStorage;
   hashedId: string;
+  storageBasePath: string;
 }): string {
-  const baseUrl = STORAGE_BASE_URLS[segment.storage];
-  return `${baseUrl}/${segment.mediaId}/${segment.episode}/${segment.hashedId}.mp3`;
+  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${segment.episode}/${segment.hashedId}.mp3`;
 }
 
 /**
  * Get the segment video URL.
- * Path pattern: {mediaId}/{episodeNumber}/{hashedId}.mp4
+ * Path pattern: {storageBasePath}/{episodeNumber}/{hashedId}.mp4
  */
 export function getSegmentVideoUrl(segment: {
-  mediaId: number;
   episode: number;
-  storage: Storage;
+  storage: SegmentStorage;
   hashedId: string;
+  storageBasePath: string;
 }): string {
-  const baseUrl = STORAGE_BASE_URLS[segment.storage];
-  return `${baseUrl}/${segment.mediaId}/${segment.episode}/${segment.hashedId}.mp4`;
+  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${segment.episode}/${segment.hashedId}.mp4`;
 }
 
 /**
  * Get the base URL for a storage backend.
  */
-export function getStorageBaseUrl(storage: Storage): string {
+export function getStorageBaseUrl(storage: SegmentStorage): string {
   return STORAGE_BASE_URLS[storage];
 }

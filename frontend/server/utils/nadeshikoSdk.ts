@@ -1,4 +1,5 @@
 import { createClient, type NadeshikoClient } from '@brigadasos/nadeshiko-sdk';
+import type { H3Event } from 'h3';
 import { createLogger } from './logger';
 
 const log = createLogger('nadeshiko-sdk');
@@ -33,6 +34,32 @@ export function getNadeshikoSdkClient(): NadeshikoClient {
       baseUrl,
       ...(hostHeader ? { headers: { Host: hostHeader } } : {}),
     });
+
+    cachedClient.client.interceptors.error.use((error, response, request, options) => {
+      const err = error as Record<string, unknown> | undefined;
+      const statusCode = (typeof err?.status === 'number' && err.status) || response?.status || 503;
+      const statusMessage =
+        (typeof err?.title === 'string' && err.title) ||
+        (typeof err?.message === 'string' && err.message) ||
+        `SDK request failed: ${options.url}`;
+
+      log.error(
+        {
+          url: options.url,
+          statusCode,
+          statusMessage,
+          error,
+        },
+        `[SDK] ${options.url} failed`,
+      );
+
+      throw createError({
+        statusCode,
+        statusMessage,
+        data: err ? { status: err.status, title: err.title, message: err.message } : undefined,
+      });
+    });
+
     cachedBaseUrl = baseUrl;
     cachedApiKey = apiKey;
   }
@@ -40,37 +67,7 @@ export function getNadeshikoSdkClient(): NadeshikoClient {
   return cachedClient;
 }
 
-type SdkResult<T> = {
-  data?: T;
-  error?: unknown;
-  response?: Response;
-};
-
-export function unwrapSdkResult<T>(operation: string, result: SdkResult<T>): T {
-  if (result.error !== undefined || result.data === undefined) {
-    const error = result.error as Record<string, unknown> | undefined;
-    const statusCode = (typeof error?.status === 'number' && error.status) || result.response?.status || 503;
-    const statusMessage =
-      (typeof error?.title === 'string' && error.title) ||
-      (typeof error?.message === 'string' && error.message) ||
-      `SDK request failed: ${operation}`;
-
-    log.error(
-      {
-        operation,
-        statusCode,
-        statusMessage,
-        error: result.error,
-      },
-      `[SDK] ${operation} failed`,
-    );
-
-    throw createError({
-      statusCode,
-      statusMessage,
-      data: result.error,
-    });
-  }
-
-  return result.data;
+export function getUserAuthHeaders(event: H3Event): Record<string, string | null> {
+  const cookie = getHeader(event, 'cookie') || '';
+  return { Cookie: cookie, Authorization: null };
 }

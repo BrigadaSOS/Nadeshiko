@@ -14,7 +14,6 @@ import { defaultKeyHasher } from 'better-auth/plugins';
 import { AppDataSource } from '@config/database';
 import { logger } from '@config/log';
 
-
 const BETTER_AUTH_PREFIX = 'nade_';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
 
@@ -351,8 +350,5 @@ async function migrateLegacyKeyToBetterAuth(plaintextKey: string, legacyRecord: 
   legacyRecord.isActive = false;
   await legacyRecord.save();
 
-  logger.info(
-    { apiAuthId: legacyRecord.id, userId: legacyRecord.userId },
-    'Legacy API key migrated to Better Auth',
-  );
+  logger.info({ apiAuthId: legacyRecord.id, userId: legacyRecord.userId }, 'Legacy API key migrated to Better Auth');
 }

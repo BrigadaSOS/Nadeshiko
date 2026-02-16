@@ -1,7 +1,7 @@
-import { getNadeshikoSdkClient, unwrapSdkResult } from '~~/server/utils/nadeshikoSdk';
+import { getNadeshikoSdkClient } from '~~/server/utils/nadeshikoSdk';
 import { enforcePublicSearchRateLimit } from '~~/server/utils/publicRateLimiter';
 
-type MediaType = 'anime' | 'liveaction' | 'audiobook';
+type Category = 'ANIME' | 'JDRAMA';
 
 function firstQueryValue(value: unknown): string | undefined {
   if (Array.isArray(value)) {
@@ -22,13 +22,13 @@ function parseNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function parseMediaType(value: unknown): MediaType | undefined {
+function parseCategory(value: unknown): Category | undefined {
   const raw = firstQueryValue(value);
   if (!raw) {
     return undefined;
   }
 
-  return raw === 'anime' || raw === 'liveaction' || raw === 'audiobook' ? raw : undefined;
+  return raw === 'ANIME' || raw === 'JDRAMA' ? raw : undefined;
 }
 
 export default defineEventHandler(async (event) => {
@@ -36,14 +36,14 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const sdk = getNadeshikoSdkClient();
 
-  const result = await sdk.browseMedia({
+  const { data } = await sdk.mediaIndex({
     query: {
-      size: parseNumber(query.size),
+      limit: parseNumber(query.limit),
       query: firstQueryValue(query.query),
       cursor: parseNumber(query.cursor),
-      type: parseMediaType(query.type),
+      category: parseCategory(query.category),
     },
   });
 
-  return unwrapSdkResult('browseMedia', result);
+  return data;
 });

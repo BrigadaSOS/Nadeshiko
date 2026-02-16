@@ -4,7 +4,7 @@ import { isProdEnvironment } from '@config/environment';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { sendWelcomeEmail } from '@app/mailers/email';
 import { betterAuth } from 'better-auth';
-import { apiKey } from 'better-auth/plugins';
+import { apiKey, customSession } from 'better-auth/plugins';
 import { Pool } from 'pg';
 
 const postgres = getAppPostgresConfig();
@@ -83,6 +83,7 @@ export const auth = betterAuth({
     },
     additionalFields: {
       isActive: { type: 'boolean', fieldName: 'is_active', defaultValue: true },
+      role: { type: 'string', fieldName: 'role', defaultValue: 'USER' },
     },
     changeEmail: {
       enabled: false,
@@ -169,6 +170,17 @@ export const auth = betterAuth({
           };
         },
       },
+    }),
+    customSession(async ({ user, session }) => {
+      const dbUser = await User.findOne({ where: { id: Number(user.id) } });
+      return {
+        user: {
+          ...user,
+          role: dbUser?.role ?? UserRoleType.USER,
+          preferences: dbUser?.preferences ?? {},
+        },
+        session,
+      };
     }),
   ],
   databaseHooks: {

@@ -1,5 +1,6 @@
 import type { MediaIndex, MediaCreate, MediaShow, MediaUpdate, MediaDestroy } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
+import { Like } from 'typeorm';
 import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, CharacterRole } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
@@ -36,11 +37,29 @@ function toCharacterData(char: {
 }
 
 export const mediaIndex: MediaIndex = async ({ query }, respond) => {
+  const categoryFilter: Record<string, unknown> = {};
+  if (query.category) {
+    categoryFilter.category = query.category as CategoryType;
+  }
+
+  let whereClause: Record<string, unknown> | Record<string, unknown>[] | undefined;
+  if (query.query) {
+    whereClause = [
+      { ...categoryFilter, nameEn: Like(`%${query.query}%`) },
+      { ...categoryFilter, nameJa: Like(`%${query.query}%`) },
+      { ...categoryFilter, nameRomaji: Like(`%${query.query}%`) },
+    ];
+  } else if (Object.keys(categoryFilter).length > 0) {
+    whereClause = categoryFilter;
+  }
+
+  const characterRelations = query.includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
+
   const [mediaList] = await Media.findAndCount({
-    where: query.category ? { category: query.category as CategoryType } : {},
+    where: whereClause,
     relations: {
       episodes: true,
-      characters: { character: { seiyuu: true } },
+      ...characterRelations,
       listItems: { list: true },
       externalIds: true,
     },
@@ -87,6 +106,7 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
       category: body.category as CategoryType,
       version: body.version,
       hashSalt: body.hashSalt,
+      storageBasePath: body.storageBasePath,
       studio: body.studio,
       seasonName: body.seasonName,
       seasonYear: body.seasonYear,
@@ -101,12 +121,14 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
   return respond.with201().body(toMediaDTO(media));
 };
 
-export const mediaShow: MediaShow = async ({ params }, respond) => {
+export const mediaShow: MediaShow = async ({ params, query }, respond) => {
+  const characterRelations = query.includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
+
   const media = await Media.findOneOrFail({
     where: { id: params.id },
     relations: {
       episodes: true,
-      characters: { character: { seiyuu: true } },
+      ...characterRelations,
       listItems: { list: true },
       externalIds: true,
     },

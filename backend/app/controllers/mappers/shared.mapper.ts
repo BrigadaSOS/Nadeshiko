@@ -69,4 +69,5 @@ export const toMediaBaseDTO = (media: Media): t_Media => ({
   studio: media.studio,
   seasonName: media.seasonName,
   seasonYear: media.seasonYear,
+  storageBasePath: media.storageBasePath ?? null,
 });

@@ -185,7 +185,7 @@
       "buttons": {
         "addToAnkiLast": "Ankiに追加（最後に追加したカード）",
         "addToAnkiSearch": "Ankiに追加（コレクションを検索）",
-        "download": "ダウンロード",
+        "download": "保存",
         "dl-expanded": "コンテクストオーディオ",
         "add": "追加",
         "video": "画像 + 音声",
@@ -335,6 +335,8 @@
     "noResultsTitle": "404",
     "noResultsMessage": "探しましたが見つかりませんでした。別の検索をお試しください。",
     "nsfwTag": "NSFW",
+    "nsfwShow": "表示",
+    "nsfwHide": "非表示",
     "expandLeft": "左に展開",
     "expandBoth": "両側に展開",
     "expandRight": "右に展開",

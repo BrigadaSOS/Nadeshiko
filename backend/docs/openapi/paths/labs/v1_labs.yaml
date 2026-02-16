@@ -1,0 +1,19 @@
+get:
+  tags:
+    - Labs
+  operationId: labIndex
+  summary: List available lab features
+  description: |
+    Returns all available lab features from the code registry.
+    This is a static, cacheable endpoint that does not require authentication.
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../components/schemas/LabFeature.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

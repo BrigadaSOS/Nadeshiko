@@ -14,7 +14,13 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
-  t_Error,
+  t_Error400,
+  t_Error401,
+  t_Error403,
+  t_Error404,
+  t_Error409,
+  t_Error429,
+  t_Error500,
   t_List,
   t_ListAddItemParamSchema,
   t_ListAddItemRequestBodySchema,
@@ -38,15 +44,27 @@ import type {
   t_ListWithSegments,
 } from '../models.ts';
 import type { ListCreateRequestOutput, ListGetSegmentsQueryOutput, ListIndexQueryOutput } from '../outputTypes.ts';
-import { s_Error, s_List, s_ListCreateRequest, s_ListWithMedia, s_ListWithSegments } from '../schemas.ts';
+import {
+  s_Error400,
+  s_Error401,
+  s_Error403,
+  s_Error404,
+  s_Error409,
+  s_Error429,
+  s_Error500,
+  s_List,
+  s_ListCreateRequest,
+  s_ListWithMedia,
+  s_ListWithSegments,
+} from '../schemas.ts';
 
 export type ListIndexResponder = {
   with200(): ExpressRuntimeResponse<t_List[]>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListIndex = (
@@ -59,11 +77,11 @@ export type ListIndex = (
 
 export type ListCreateResponder = {
   with201(): ExpressRuntimeResponse<t_List>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListCreate = (
@@ -76,12 +94,12 @@ export type ListCreate = (
 
 export type ListShowResponder = {
   with200(): ExpressRuntimeResponse<t_ListWithMedia>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListShow = (
@@ -94,12 +112,12 @@ export type ListShow = (
 
 export type ListUpdateResponder = {
   with200(): ExpressRuntimeResponse<t_List>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListUpdate = (
@@ -115,12 +133,12 @@ export type ListDestroyResponder = {
     id?: number;
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListDestroy = (
@@ -135,13 +153,13 @@ export type ListAddItemResponder = {
   with201(): ExpressRuntimeResponse<{
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with409(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListAddItem = (
@@ -156,12 +174,12 @@ export type ListUpdateItemResponder = {
   with200(): ExpressRuntimeResponse<{
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListUpdateItem = (
@@ -176,12 +194,12 @@ export type ListRemoveItemResponder = {
   with200(): ExpressRuntimeResponse<{
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListRemoveItem = (
@@ -194,12 +212,12 @@ export type ListRemoveItem = (
 
 export type ListGetSegmentsResponder = {
   with200(): ExpressRuntimeResponse<t_ListWithSegments>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListGetSegments = (
@@ -214,13 +232,13 @@ export type ListAddSegmentResponder = {
   with201(): ExpressRuntimeResponse<{
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with409(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListAddSegment = (
@@ -235,12 +253,12 @@ export type ListUpdateSegmentResponder = {
   with200(): ExpressRuntimeResponse<{
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListUpdateSegment = (
@@ -255,12 +273,12 @@ export type ListRemoveSegmentResponder = {
   with200(): ExpressRuntimeResponse<{
     message?: string;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListRemoveSegment = (
@@ -299,11 +317,11 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.array(s_List)],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -323,19 +341,19 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           return new ExpressRuntimeResponse<t_List[]>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -370,11 +388,11 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listCreateResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_List],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -394,19 +412,19 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           return new ExpressRuntimeResponse<t_List>(201);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -441,12 +459,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_ListWithMedia],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -466,22 +484,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           return new ExpressRuntimeResponse<t_ListWithMedia>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -521,12 +539,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listUpdateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_List],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -546,22 +564,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           return new ExpressRuntimeResponse<t_List>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -596,12 +614,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listDestroyResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ message: z.string().optional(), id: z.coerce.number().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -624,22 +642,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -676,13 +694,13 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listAddItemResponseBodyValidator = responseValidationFactory(
     [
       ['201', z.object({ message: z.string().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['409', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -704,25 +722,25 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           }>(201);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with409() {
-          return new ExpressRuntimeResponse<t_Error>(409);
+          return new ExpressRuntimeResponse<t_Error409>(409);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -759,12 +777,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listUpdateItemResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ message: z.string().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -786,22 +804,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -836,12 +854,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listRemoveItemResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ message: z.string().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -863,22 +881,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -918,12 +936,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listGetSegmentsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_ListWithSegments],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -943,22 +961,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           return new ExpressRuntimeResponse<t_ListWithSegments>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -995,13 +1013,13 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listAddSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['201', z.object({ message: z.string().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['409', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1023,25 +1041,25 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           }>(201);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with409() {
-          return new ExpressRuntimeResponse<t_Error>(409);
+          return new ExpressRuntimeResponse<t_Error409>(409);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -1081,12 +1099,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listUpdateSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ message: z.string().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1108,22 +1126,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -1158,12 +1176,12 @@ export function createListsRouter(implementation: ListsImplementation): Router {
   const listRemoveSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ message: z.string().optional() })],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -1185,22 +1203,22 @@ export function createListsRouter(implementation: ListsImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);

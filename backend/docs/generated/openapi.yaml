@@ -41,16 +41,19 @@ tags:
   - name: Admin
     x-internal: true
     description: |
-      Administrative endpoints for system management and operations.
+      Administrative endpoints for system management, queue monitoring, and automated review.
   - name: Media
     description: |
-      Media CRUD endpoints for managing anime and j-drama entries.
+      Media CRUD endpoints for managing anime, J-Drama, and audiobook entries, episodes, segments, characters, and seiyuu.
   - name: User
     description: |
-      User endpoints for account-specific data such as quota usage.
+      User endpoints for account data including quota, preferences, activity history, reports, and data export.
   - name: Lists
     description: |
-      List endpoints for managing media collections and watch orders.
+      List endpoints for managing media collections, watch orders, and saved segments.
+  - name: Labs
+    description: |
+      Lab feature endpoints for experimental features and beta flags.
 paths:
   /v1/health:
     get:
@@ -61,8 +64,7 @@ paths:
       description: |
         Tests the search service connectivity and functionality by performing a simple search query.
 
-        **Requirements:**
-        - Required Scopes: `READ_MEDIA`
+        **Permissions:** `READ_MEDIA`
       x-internal: true
       security:
         - apiKeyHeader:
@@ -82,11 +84,11 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/search/segments:
+  /v1/search:
     post:
       tags:
         - Search
-      operationId: searchSegments
+      operationId: searchIndex
       summary: Search segments by query
       description: |
         The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama, audiobooks).
@@ -108,8 +110,7 @@ paths:
         | **Kana** (`たべる`, `かのじょ`) | Standard search across content, base form, and reading form |
         | **English/Spanish** | Direct translation search |
 
-        **Requirements**
-        - API Key with `READ_MEDIA` permission
+        **Permissions:** `READ_MEDIA`
       requestBody:
         content:
           application/json:
@@ -127,7 +128,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error400'
               examples:
                 ValidationFailed:
                   $ref: '#/components/examples/ValidationFailed'
@@ -145,7 +146,7 @@ paths:
     post:
       tags:
         - Search
-      operationId: getSearchStats
+      operationId: searchStats
       summary: Get search statistics
       description: |
         Returns statistics for search filters and category tabs without fetching segment rows.
@@ -156,8 +157,7 @@ paths:
 
         The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
 
-        **Requirements**
-        - API Key with `READ_MEDIA` permission
+        **Permissions:** `READ_MEDIA`
       requestBody:
         content:
           application/json:
@@ -175,7 +175,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error400'
               examples:
                 ValidationFailed:
                   $ref: '#/components/examples/ValidationFailed'
@@ -205,8 +205,7 @@ paths:
         - Finding anime/dramas that use specific words
         - Comparing word usage across different titles
 
-        **Requirements:**
-        - Required Scopes: `READ_MEDIA`
+        **Permissions:** `READ_MEDIA`
       requestBody:
         required: true
         content:
@@ -230,126 +229,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error400'
               examples:
                 ValidationFailed:
                   $ref: '#/components/examples/ValidationFailed'
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/search/context:
-    post:
-      tags:
-        - Search
-      operationId: getSegmentContext
-      summary: Get context for a segment
-      description: |
-        Retrieves segments surrounding a specific segment position within an episode.
-        Returns segments both before and after the target position, providing context for understanding how a sentence is used in dialogue.
-
-        **Requirements:**
-        - Required scopes: `READ_MEDIA`
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SegmentContextRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SegmentContextResponse'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                ValidationFailed:
-                  $ref: '#/components/examples/ValidationFailed'
-                InvalidJson:
-                  $ref: '#/components/examples/InvalidJson'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                NotFound:
-                  $ref: '#/components/examples/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/browse:
-    get:
-      tags:
-        - Search
-      operationId: browseMedia
-      summary: Browse media library
-      description: |
-        Lists available media with metadata and supports filtering by type and search query.
-
-        Returns paginated results with comprehensive media information including cover/banner images, episode counts, and genres.
-
-        **Use Cases**
-        - Browsing the media library
-        - Getting media metadata for display
-
-        **Requirements:**
-        - Required Scopes: `READ_MEDIA`
-      parameters:
-        - name: size
-          in: query
-          description: Number of results per page
-          schema:
-            type: integer
-            default: 20
-        - name: cursor
-          in: query
-          description: Pagination cursor offset
-          schema:
-            type: integer
-            default: 0
-        - name: query
-          in: query
-          description: Search query for filtering media
-          schema:
-            type: string
-            example: steins
-        - name: type
-          in: query
-          description: Filter by media category
-          schema:
-            type: string
-            enum:
-              - anime
-              - liveaction
-              - audiobook
-            example: anime
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MediaBrowseResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedApiKey'
         '403':
@@ -366,6 +251,9 @@ paths:
       summary: List all media
       description: |
         Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
+        Supports filtering by category and text search.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -394,6 +282,18 @@ paths:
               - ANIME
               - JDRAMA
             example: ANIME
+        - name: query
+          in: query
+          description: Search query for filtering media by name
+          schema:
+            type: string
+            example: steins
+        - name: includeCharacters
+          in: query
+          description: Include character and voice actor data in the response
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: OK
@@ -419,6 +319,8 @@ paths:
       summary: Create new media
       description: |
         Creates a new media entry in the database.
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -454,7 +356,9 @@ paths:
       operationId: mediaShow
       summary: Get single media
       description: |
-        Retrieves a single media entry by its ID.
+        Returns a single media entry by its ID with full metadata.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -466,6 +370,12 @@ paths:
           schema:
             type: integer
             example: 7674
+        - name: includeCharacters
+          in: query
+          description: Include character and voice actor data in the response
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: OK
@@ -492,7 +402,9 @@ paths:
       x-internal: true
       summary: Update media
       description: |
-        Updates an existing media entry. All fields are optional - only provided fields will be updated.
+        Updates an existing media entry. Only provided fields will be updated.
+
+        **Permissions:** `UPDATE_MEDIA`
       security:
         - apiKeyHeader:
             - UPDATE_MEDIA
@@ -536,7 +448,9 @@ paths:
       x-internal: true
       summary: Delete media (soft delete)
       description: |
-        Soft deletes a media entry by setting the `deletedAt` timestamp. The media is not removed from the database but is excluded from query results.
+        Soft-deletes a media entry by setting the `deletedAt` timestamp. The media remains in the database but is excluded from query results.
+
+        **Permissions:** `REMOVE_MEDIA`
       security:
         - apiKeyHeader:
             - REMOVE_MEDIA
@@ -581,7 +495,9 @@ paths:
         - Media
       summary: List episodes for a media
       description: |
-        Get a paginated list of episodes for a specific media
+        Returns a paginated list of episodes for a specific media.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -633,7 +549,9 @@ paths:
         - Media
       summary: Create new episode
       description: |
-        Create a new episode for a specific media
+        Creates a new episode for a specific media.
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -675,7 +593,9 @@ paths:
         - Media
       summary: Get single episode
       description: |
-        Get a specific episode by media ID and episode number
+        Returns a specific episode by media ID and episode number.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -716,7 +636,9 @@ paths:
       x-internal: true
       summary: Update episode
       description: |
-        Update an existing episode with partial data
+        Updates an existing episode. Only provided fields will be updated.
+
+        **Permissions:** `UPDATE_MEDIA`
       security:
         - apiKeyHeader:
             - UPDATE_MEDIA
@@ -763,7 +685,9 @@ paths:
       x-internal: true
       summary: Delete an episode
       description: |
-        Soft delete an episode. Segments are not cascade deleted, this only "hides" the episode.
+        Soft-deletes an episode. Segments are not cascade deleted — this only hides the episode from results.
+
+        **Permissions:** `REMOVE_MEDIA`
       security:
         - apiKeyHeader:
             - REMOVE_MEDIA
@@ -805,7 +729,9 @@ paths:
       x-internal: true
       summary: List segments for an episode
       description: |
-        Get a paginated list of segments for a specific episode
+        Returns a paginated list of segments for a specific episode.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -864,7 +790,9 @@ paths:
       x-internal: true
       summary: Create new segment
       description: |
-        Create a new segment for a specific episode
+        Creates a new segment for a specific episode.
+
+        **Permissions:** `UPDATE_MEDIA`
       security:
         - apiKeyHeader:
             - UPDATE_MEDIA
@@ -913,7 +841,9 @@ paths:
         - Media
       summary: Get single segment
       description: |
-        Get a specific segment by ID
+        Returns a specific segment by its ID within the media/episode hierarchy.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -961,7 +891,9 @@ paths:
         - Media
       summary: Update segment
       description: |
-        Update an existing segment with partial data
+        Updates an existing segment. Only provided fields will be updated.
+
+        **Permissions:** `UPDATE_MEDIA`
       security:
         - apiKeyHeader:
             - UPDATE_MEDIA
@@ -1013,9 +945,11 @@ paths:
         - Media
       operationId: segmentDestroy
       x-internal: true
-      summary: Delete segment (set status to deleted)
+      summary: Delete segment
       description: |
-        Delete a segment by setting its status to 0 (DELETED)
+        Soft-deletes a segment by setting its status to DELETED.
+
+        **Permissions:** `REMOVE_MEDIA`
       security:
         - apiKeyHeader:
             - REMOVE_MEDIA
@@ -1063,7 +997,9 @@ paths:
       operationId: segmentShowByUuid
       summary: Get segment by UUID
       description: |
-        Get a specific segment by its UUID
+        Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -1093,6 +1029,71 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/media/segments/{uuid}/context:
+    get:
+      tags:
+        - Media
+      operationId: segmentContextShow
+      summary: Get surrounding context for a segment
+      description: |
+        Retrieves segments surrounding a specific segment within an episode.
+        Returns segments both before and after the target, providing dialogue context for how a sentence is used.
+
+        **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Segment UUID
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 3
+            minimum: 1
+            maximum: 30
+          description: Number of segments to return before and after the target
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SegmentContextResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400'
+              examples:
+                ValidationFailed:
+                  $ref: '#/components/examples/ValidationFailed'
+                InvalidJson:
+                  $ref: '#/components/examples/InvalidJson'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error404'
+              examples:
+                NotFound:
+                  $ref: '#/components/examples/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/characters/{id}:
     get:
       tags:
@@ -1100,7 +1101,9 @@ paths:
       operationId: characterShow
       summary: Get character details
       description: |
-        Returns a character with their seiyuu and all media appearances.
+        Returns a character with their voice actors (seiyuu) and all media appearances.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -1138,7 +1141,9 @@ paths:
       operationId: seiyuuShow
       summary: Get seiyuu details
       description: |
-        Returns a voice actor with all characters they voiced and media appearances.
+        Returns a voice actor (seiyuu) with all characters they voiced and their media appearances.
+
+        **Permissions:** `READ_MEDIA`
       security:
         - apiKeyHeader:
             - READ_MEDIA
@@ -1173,13 +1178,12 @@ paths:
     get:
       tags:
         - User
-      operationId: getUserQuota
+      operationId: userQuotaShow
       summary: Get current monthly API quota
       description: |
         Returns the authenticated user's API quota usage for the current billing period.
 
-        **Requirements:**
-        - Requires session authentication (cookie-based).
+        **Permissions:** Session authentication (cookie-based).
       security:
         - sessionCookie: []
       responses:
@@ -1197,13 +1201,12 @@ paths:
     post:
       tags:
         - User
-      operationId: createReport
+      operationId: userReportCreate
       summary: Create a new report
       description: |
         Submit a report for a segment or media entry.
 
-        **Requirements:**
-        - Requires session authentication (cookie-based).
+        **Permissions:** Session authentication (cookie-based).
       security:
         - sessionCookie: []
       requestBody:
@@ -1230,13 +1233,12 @@ paths:
     get:
       tags:
         - User
-      operationId: getUserReports
+      operationId: userReportIndex
       summary: List user's own reports
       description: |
         Returns the authenticated user's submitted reports with cursor pagination.
 
-        **Requirements:**
-        - Requires session authentication (cookie-based).
+        **Permissions:** Session authentication (cookie-based).
       security:
         - sessionCookie: []
       parameters:
@@ -1275,6 +1277,280 @@ paths:
           $ref: '#/components/responses/UnauthorizedApiKey'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/user/preferences:
+    get:
+      tags:
+        - User
+      operationId: userPreferencesShow
+      summary: Get user preferences
+      description: |
+        Returns the authenticated user's full preferences object.
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - User
+      operationId: userPreferencesUpdate
+      summary: Update user preferences
+      description: |
+        Deep-merges a partial preferences update into the user's existing preferences.
+        Only the provided keys are updated; all other keys are preserved.
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/activity:
+    get:
+      tags:
+        - User
+      operationId: userActivityIndex
+      summary: Get user activity history
+      description: |
+        Returns the authenticated user's activity history with cursor-based pagination.
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: integer
+          description: Cursor for pagination (activity ID to start after)
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of results per page
+        - name: activityType
+          in: query
+          schema:
+            $ref: '#/components/schemas/ActivityType'
+          description: Filter by activity type
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - hasMore
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserActivity'
+                  hasMore:
+                    type: boolean
+                  cursor:
+                    type: integer
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - User
+      operationId: userActivityDestroy
+      summary: Clear user activity history
+      description: |
+        Deletes the authenticated user's activity history. Optionally filter by activity type.
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: activityType
+          in: query
+          schema:
+            $ref: '#/components/schemas/ActivityType'
+          description: Only clear activities of this type
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - deletedCount
+                properties:
+                  message:
+                    type: string
+                  deletedCount:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/activity/stats:
+    get:
+      tags:
+        - User
+      operationId: userActivityStatsShow
+      summary: Get user activity statistics
+      description: |
+        Returns aggregate statistics about the authenticated user's activity:
+        total searches, exports, plays, and study streak.
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalSearches
+                  - totalExports
+                  - totalPlays
+                  - totalListAdds
+                  - streakDays
+                  - topMedia
+                properties:
+                  totalSearches:
+                    type: integer
+                  totalExports:
+                    type: integer
+                  totalPlays:
+                    type: integer
+                  totalListAdds:
+                    type: integer
+                  streakDays:
+                    type: integer
+                    description: Consecutive days with at least one activity
+                  topMedia:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        count:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/export:
+    get:
+      tags:
+        - User
+      operationId: userExportShow
+      summary: Export all user data
+      description: |
+        Returns a full JSON export of all user-related data for GDPR data portability.
+        Includes profile, preferences, activity history, lists, and reports.
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - profile
+                  - preferences
+                  - activity
+                  - lists
+                  - reports
+                properties:
+                  profile:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                  preferences:
+                    $ref: '#/components/schemas/UserPreferences'
+                  activity:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserActivity'
+                  lists:
+                    type: array
+                    items:
+                      type: object
+                  reports:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/labs:
+    get:
+      tags:
+        - Labs
+      operationId: labIndex
+      summary: List available lab features
+      description: |
+        Returns all available lab features from the code registry.
+        This is a static, cacheable endpoint that does not require authentication.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LabFeature'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/lists:
     get:
       tags:
@@ -1283,6 +1559,8 @@ paths:
       summary: List all lists
       description: |
         Returns all lists matching the query filters. Can filter by media ID to find lists containing a specific media. Public lists are visible to all users.
+
+        **Permissions:** `READ_LISTS`
       security:
         - apiKeyHeader:
             - READ_LISTS
@@ -1344,7 +1622,9 @@ paths:
       x-internal: true
       summary: Create new list
       description: |
-        Creates a new standalone list. Requires admin permissions.
+        Creates a new standalone list.
+
+        **Permissions:** `CREATE_LISTS`
       security:
         - apiKeyHeader:
             - CREATE_LISTS
@@ -1378,7 +1658,9 @@ paths:
       operationId: listShow
       summary: Get list details
       description: |
-        Returns a list with all media in order (sorted by position).
+        Returns a list with all media items sorted by position.
+
+        **Permissions:** `READ_LISTS`
       security:
         - apiKeyHeader:
             - READ_LISTS
@@ -1416,7 +1698,9 @@ paths:
       x-internal: true
       summary: Update list metadata
       description: |
-        Updates list name or visibility. Requires admin permissions.
+        Updates list name or visibility.
+
+        **Permissions:** `UPDATE_LISTS`
       security:
         - apiKeyHeader:
             - UPDATE_LISTS
@@ -1470,7 +1754,9 @@ paths:
       x-internal: true
       summary: Delete list
       description: |
-        Deletes a list and all its items. Requires admin permissions.
+        Deletes a list and all its items.
+
+        **Permissions:** `DELETE_LISTS`
       security:
         - apiKeyHeader:
             - DELETE_LISTS
@@ -1516,7 +1802,9 @@ paths:
       x-internal: true
       summary: Add media to list
       description: |
-        Adds a media entry to the list at the specified position. Requires admin permissions.
+        Adds a media entry to the list at the specified position.
+
+        **Permissions:** `UPDATE_LISTS`
       security:
         - apiKeyHeader:
             - UPDATE_LISTS
@@ -1578,7 +1866,9 @@ paths:
       x-internal: true
       summary: Update media position in list
       description: |
-        Updates the position of a media entry within the list. Requires admin permissions.
+        Updates the position of a media entry within the list.
+
+        **Permissions:** `UPDATE_LISTS`
       security:
         - apiKeyHeader:
             - UPDATE_LISTS
@@ -1640,7 +1930,9 @@ paths:
       x-internal: true
       summary: Remove media from list
       description: |
-        Removes a media entry from the list. Requires admin permissions.
+        Removes a media entry from the list.
+
+        **Permissions:** `UPDATE_LISTS`
       security:
         - apiKeyHeader:
             - UPDATE_LISTS
@@ -1690,6 +1982,8 @@ paths:
       summary: Get segments in list
       description: |
         Returns paginated segments in a segment list with full search result data.
+
+        **Permissions:** `READ_LISTS`
       security:
         - apiKeyHeader:
             - READ_LISTS
@@ -1742,6 +2036,8 @@ paths:
       summary: Add segment to list
       description: |
         Adds a segment to a segment list. Requires list ownership or admin.
+
+        **Permissions:** `UPDATE_LISTS`
       security:
         - apiKeyHeader:
             - UPDATE_LISTS
@@ -1804,6 +2100,8 @@ paths:
       summary: Update segment in list
       description: |
         Updates the note or position of a segment in a list. Requires list ownership or admin.
+
+        **Permissions:** `UPDATE_LISTS`
       security:
         - apiKeyHeader:
             - UPDATE_LISTS
@@ -1869,6 +2167,8 @@ paths:
       summary: Remove segment from list
       description: |
         Removes a segment from a list. Requires list ownership or admin.
+
+        **Permissions:** `UPDATE_LISTS`
       security:
         - apiKeyHeader:
             - UPDATE_LISTS
@@ -1915,19 +2215,18 @@ paths:
     post:
       tags:
         - Admin
-      operationId: reindexElasticsearch
+      operationId: adminReindexCreate
       summary: Reindex database into Elasticsearch
       description: |
         Reindexes segments from the PostgreSQL database into Elasticsearch.
         Allows filtering by specific media IDs or episodes.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission for reindexing)
-
         **Behavior:**
         - If no filters provided, reindexes all segments
         - If `mediaIds` provided, reindexes all segments from those media
         - If `episodes` provided, reindexes only the specified episodes
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -1958,18 +2257,17 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getQueueStats
+      operationId: adminQueueStatsIndex
       summary: Get queue statistics
       description: |
-        Get statistics for all ES sync queues including pending and failed job counts.
-
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        Returns statistics for all ES sync queues including pending and failed job counts.
 
         **Use cases:**
         - Monitor queue health
         - Detect stuck jobs
         - Check backlog size
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2008,18 +2306,17 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getQueueDetails
+      operationId: adminQueueShow
       summary: Get detailed queue information
       description: |
-        Get detailed information about a specific queue including completed, expired, and cancelled jobs.
-
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        Returns detailed information about a specific queue including completed, expired, and cancelled jobs.
 
         **Queue names:**
-        - `es-sync-create` - Jobs to create new segments
+        - `es-sync-create` - Jobs to create new segments in Elasticsearch
         - `es-sync-update` - Jobs to update existing segments
         - `es-sync-delete` - Jobs to delete segments
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2086,18 +2383,17 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getFailedJobs
+      operationId: adminQueueFailedIndex
       summary: Get failed jobs from a queue
       description: |
-        Get jobs that have exceeded their retry limit and permanently failed.
-
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        Returns jobs that have exceeded their retry limit and permanently failed.
 
         **Use cases:**
         - Identify segments that failed to sync to Elasticsearch
         - Debug persistent sync issues
         - Decide whether to retry or purge failed jobs
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2151,17 +2447,16 @@ paths:
     post:
       tags:
         - Admin
-      operationId: retryQueueJobs
+      operationId: adminQueueRetryCreate
       summary: Retry failed jobs from a queue
       description: |
-        Retry all failed jobs from a specific queue.
-
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        Re-enqueues all failed jobs from a specific queue for another attempt.
 
         **Use cases:**
         - Retry jobs that failed due to temporary Elasticsearch issues
         - Recover from network blips
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2209,18 +2504,17 @@ paths:
     delete:
       tags:
         - Admin
-      operationId: purgeFailedJobs
-      summary: Delete failed jobs from a queue
+      operationId: adminQueueFailedDestroy
+      summary: Purge failed jobs from a queue
       description: |
-        Permanently delete all failed jobs from a queue.
-
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        Permanently deletes all failed jobs from a queue.
+        This does **not** re-sync the affected segments — use the reindex endpoint for that.
 
         **Use cases:**
         - Clean up old failed jobs after investigating
         - Reset a queue after fixing the underlying issue
-        - Note: This does NOT re-sync the segments - use the reindex endpoint for that
+
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2266,11 +2560,15 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/admin/morpheme-backfill:
     post:
-      operationId: morphemeBackfill
+      operationId: adminMorphemeBackfillCreate
       tags:
         - Admin
       summary: Backfill morpheme analysis for segments
-      description: Analyzes segments that are missing morpheme data using the Sudachi sidecar service.
+      description: |
+        Analyzes segments that are missing morpheme data using the Sudachi sidecar service.
+        Returns stats on how many segments were successfully analyzed vs failed.
+
+        **Permissions:** `ADD_MEDIA`
       responses:
         '200':
           description: Backfill completed
@@ -2304,14 +2602,13 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getAdminReports
-      summary: List all reports (admin)
+      operationId: adminReportIndex
+      summary: List all reports
       description: |
-        Returns all reports with filtering and aggregation.
+        Returns all reports with filtering and cursor pagination.
         Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2386,14 +2683,13 @@ paths:
     patch:
       tags:
         - Admin
-      operationId: updateReport
-      summary: Update a report (admin)
+      operationId: adminReportUpdate
+      summary: Update a report
       description: |
-        Update the status and/or admin notes of a report.
+        Updates the status and/or admin notes of a report.
         Works for both USER and AUTO reports.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2433,13 +2729,12 @@ paths:
     post:
       tags:
         - Admin
-      operationId: runReviewChecks
+      operationId: adminReviewRunCreate
       summary: Run auto-checks
       description: |
-        Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports.
+        Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports for any findings.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2471,13 +2766,12 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getReviewChecks
+      operationId: adminReviewCheckIndex
       summary: List all review checks
       description: |
         Returns all check definitions with current config, threshold schema, and latest run info.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2502,13 +2796,12 @@ paths:
     patch:
       tags:
         - Admin
-      operationId: updateReviewCheck
+      operationId: adminReviewCheckUpdate
       summary: Update a review check config
       description: |
-        Update the threshold or enabled status of a check.
+        Updates the threshold values or enabled status of a check.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2556,13 +2849,12 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getReviewRuns
+      operationId: adminReviewRunIndex
       summary: List past check runs
       description: |
-        Returns past review check runs with summary stats.
+        Returns past review check runs with summary stats. Supports filtering by check name and cursor pagination.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2616,13 +2908,12 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getReviewRunDetails
+      operationId: adminReviewRunShow
       summary: Get a specific run's details
       description: |
-        Returns a specific run record with its linked reports.
+        Returns a specific review check run record with its linked reports.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2664,13 +2955,12 @@ paths:
     get:
       tags:
         - Admin
-      operationId: getReviewAllowlist
+      operationId: adminReviewAllowlistIndex
       summary: List allowlisted items
       description: |
-        Returns all allowlisted items that are excluded from auto-check runs.
+        Returns all allowlisted items (media/episodes) that are excluded from auto-check runs.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2700,13 +2990,12 @@ paths:
     post:
       tags:
         - Admin
-      operationId: addToReviewAllowlist
+      operationId: adminReviewAllowlistCreate
       summary: Add to allowlist
       description: |
-        Add a media/episode to the allowlist for a specific check.
+        Adds a media or episode to the allowlist for a specific check, excluding it from future auto-check runs.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2755,13 +3044,12 @@ paths:
     delete:
       tags:
         - Admin
-      operationId: removeFromReviewAllowlist
+      operationId: adminReviewAllowlistDestroy
       summary: Remove from allowlist
       description: |
-        Remove an item from the review allowlist.
+        Removes an item from the review allowlist, re-enabling auto-checks for that media/episode.
 
-        **Requirements:**
-        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+        **Permissions:** `ADD_MEDIA`
       security:
         - apiKeyHeader:
             - ADD_MEDIA
@@ -2796,7 +3084,7 @@ components:
       type: apiKey
       in: cookie
       name: nadeshiko.session_token
-      description: Session authentication via better-auth cookie
+      description: Session authentication via cookie
   schemas:
     Category:
       type: string
@@ -2963,9 +3251,9 @@ components:
         - startTime
         - endTime
         - episodeNumber
-        - ja
-        - en
-        - es
+        - textJa
+        - textEn
+        - textEs
         - isNsfw
       properties:
         status:
@@ -3000,11 +3288,11 @@ components:
           type: integer
           description: Episode number where the segment appears
           example: 1
-        ja:
+        textJa:
           $ref: '#/components/schemas/JapaneseSearchContent'
-        en:
+        textEn:
           $ref: '#/components/schemas/TranslationSearchContent'
-        es:
+        textEs:
           $ref: '#/components/schemas/TranslationSearchContent'
         isNsfw:
           type: boolean
@@ -3089,9 +3377,9 @@ components:
           items:
             type: number
           description: Cursor for pagination
-    Error:
+    Error401:
       type: object
-      description: Error Response schema for all cases
+      description: Unauthorized error response
       required:
         - code
         - title
@@ -3101,6 +3389,11 @@ components:
         code:
           type: string
           description: Specific error code for programmatic handling
+          enum:
+            - AUTH_CREDENTIALS_REQUIRED
+            - AUTH_CREDENTIALS_INVALID
+            - AUTH_CREDENTIALS_EXPIRED
+            - EMAIL_NOT_VERIFIED
         title:
           type: string
           description: A short, human-readable summary of the problem
@@ -3117,6 +3410,121 @@ components:
         status:
           type: integer
           description: The HTTP status code
+          enum:
+            - 401
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error403:
+      type: object
+      description: Forbidden error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - ACCESS_DENIED
+            - INSUFFICIENT_PERMISSIONS
+        title:
+          type: string
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 403
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error429:
+      type: object
+      description: Too Many Requests error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - RATE_LIMIT_EXCEEDED
+            - QUOTA_EXCEEDED
+        title:
+          type: string
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 429
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error500:
+      type: object
+      description: Internal Server Error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - INTERNAL_SERVER_EXCEPTION
+        title:
+          type: string
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 500
         errors:
           type: object
           additionalProperties:
@@ -3250,6 +3658,45 @@ components:
           items:
             type: number
           description: Cursor for pagination
+    Error400:
+      type: object
+      description: Bad Request error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - VALIDATION_FAILED
+            - INVALID_JSON
+            - INVALID_REQUEST
+        title:
+          type: string
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 400
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
     SearchStatsRequest:
       type: object
       properties:
@@ -3429,62 +3876,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WordMatch'
-    SegmentContextRequest:
-      type: object
-      required:
-        - mediaId
-        - episodeNumber
-        - segmentPosition
-      properties:
-        mediaId:
-          type: integer
-          description: Media ID
-          example: 110316
-        episodeNumber:
-          type: integer
-          description: Episode number
-          minimum: 0
-          example: 5
-        segmentPosition:
-          type: integer
-          description: Segment position in the episode
-          minimum: 0
-          example: 1133
-        limit:
-          type: integer
-          description: Number of surrounding segments to retrieve
-          minimum: 0
-          default: 5
-          example: 5
-    SegmentContextResponse:
-      type: object
-      required:
-        - segments
-      properties:
-        segments:
-          type: array
-          items:
-            $ref: '#/components/schemas/SearchResult'
-    MediaBrowseStats:
-      type: object
-      description: Statistics about media and segments for browse view
-      properties:
-        filteredMediaCount:
-          type: integer
-          description: Number of media entries matching current search/filter
-          example: 15
-        filteredSegmentCount:
-          type: integer
-          description: Number of segments in the filtered media
-          example: 150
-        totalMediaCount:
-          type: integer
-          description: Total number of media entries in the entire database
-          example: 5234
-        totalSegmentCount:
-          type: integer
-          description: Total number of segments in the entire database
-          example: 1523847
     ExternalId:
       type: object
       description: Map of external IDs keyed by source. Only sources with values are included.
@@ -3501,110 +3892,6 @@ components:
           type: string
           description: TVDB ID
           example: '12345'
-    MediaSummary:
-      type: object
-      description: Summary information about a media entry for browse/list views
-      required:
-        - id
-      properties:
-        id:
-          type: integer
-          description: Unique identifier for the media
-          example: 110316
-        externalIds:
-          $ref: '#/components/schemas/ExternalId'
-        category:
-          $ref: '#/components/schemas/Category'
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp when the media entry was created in the database
-          example: '2024-01-15T10:30:00Z'
-        updatedAt:
-          type: integer
-          description: Timestamp when the media entry was last updated
-          example: 1705769100
-        nameRomaji:
-          type: string
-          description: Romaji transliteration of the media name
-          example: Steins;Gate
-        nameEn:
-          type: string
-          description: English name of the media
-          example: Steins;Gate
-        nameJa:
-          type: string
-          description: Original Japanese name of the media
-          example: シュタインズ・ゲート
-        airingFormat:
-          type: string
-          description: Format of the media release (e.g., TV, OVA, Movie)
-          example: TV
-        airingStatus:
-          type: string
-          description: Current airing status (FINISHED, RELEASING)
-          example: FINISHED
-        startDate:
-          type: string
-          format: date
-          description: Start date of the media (YYYY-MM-DD)
-          example: '2011-04-06'
-        endDate:
-          type: string
-          format: date
-          nullable: true
-          description: End date of the media (null if unknown) (YYYY-MM-DD)
-          example: '2011-09-14'
-        folderMediaName:
-          type: string
-          description: Folder name used for storing media files
-          example: steins-gate
-        genres:
-          type: array
-          items:
-            type: string
-          description: List of genres associated with the media
-          example:
-            - Sci-Fi
-            - Thriller
-            - Romance
-        coverUrl:
-          type: string
-          format: uri
-          description: URL to the cover image
-          example: https://example.com/media/anime/steins-gate/cover.jpg
-        bannerUrl:
-          type: string
-          format: uri
-          description: URL to the banner image
-          example: https://example.com/media/anime/steins-gate/banner.jpg
-        version:
-          type: string
-          description: Version identifier for the media entry
-          example: v1.0
-        segmentCount:
-          type: integer
-          description: Total number of subtitle segments available
-          example: 18542
-        episodeCount:
-          type: integer
-          description: Total number of episodes available
-          example: 24
-    MediaBrowseResponse:
-      type: object
-      properties:
-        stats:
-          $ref: '#/components/schemas/MediaBrowseStats'
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaSummary'
-        cursor:
-          type: integer
-          description: Next cursor for pagination
-        hasMore:
-          type: boolean
-          description: Whether more results are available
     Seiyuu:
       type: object
       description: Japanese voice actor (seiyuu)
@@ -3817,6 +4104,11 @@ components:
           type: integer
           description: Airing year for the media
           example: 2010
+        storageBasePath:
+          type: string
+          nullable: true
+          description: Base path for R2/CDN storage (e.g. "media/21459")
+          example: media/21459
         characters:
           type: array
           items:
@@ -4032,6 +4324,10 @@ components:
           type: integer
           description: Airing year for the media
           example: 2010
+        storageBasePath:
+          type: string
+          description: Base path for R2/CDN storage (e.g. "media/21459")
+          example: media/21459
         characters:
           type: array
           items:
@@ -4044,6 +4340,81 @@ components:
             $ref: '#/components/schemas/ListInput'
           description: Lists to add this media to (e.g., series, franchise)
           default: []
+    Error409:
+      type: object
+      description: Conflict error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - ACCOUNT_CONFLICT
+            - DUPLICATE_KEY
+        title:
+          type: string
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 409
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error404:
+      type: object
+      description: Not Found error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - NOT_FOUND
+        title:
+          type: string
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 404
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
     MediaUpdateRequest:
       type: object
       description: Request body for updating an existing media entry (all fields optional)
@@ -4125,6 +4496,10 @@ components:
           type: integer
           description: Airing year for the media
           example: 2010
+        storageBasePath:
+          type: string
+          description: Base path for R2/CDN storage (e.g. "media/21459")
+          example: media/21459
         characters:
           type: array
           items:
@@ -4326,9 +4701,9 @@ components:
         - status
         - startTime
         - endTime
-        - ja
-        - en
-        - es
+        - textJa
+        - textEn
+        - textEs
         - isNsfw
         - episode
         - mediaId
@@ -4366,11 +4741,11 @@ components:
           type: string
           description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
           example: '0:33:28.464000'
-        ja:
+        textJa:
           $ref: '#/components/schemas/JapaneseContent'
-        en:
+        textEn:
           $ref: '#/components/schemas/TranslationContent'
-        es:
+        textEs:
           $ref: '#/components/schemas/TranslationContent'
         isNsfw:
           type: boolean
@@ -4441,7 +4816,7 @@ components:
         - position
         - startTime
         - endTime
-        - ja
+        - textJa
         - storage
         - hashedId
       properties:
@@ -4469,7 +4844,7 @@ components:
           type: string
           description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
           example: '0:33:28.464000'
-        ja:
+        textJa:
           type: object
           properties:
             content:
@@ -4477,7 +4852,7 @@ components:
               maxLength: 500
               description: Original Japanese content of the segment
               example: 僕は僕で、君は君だ。
-        es:
+        textEs:
           type: object
           properties:
             content:
@@ -4490,7 +4865,7 @@ components:
               description: Whether the Spanish translation was machine-translated
               default: false
               example: false
-        en:
+        textEn:
           type: object
           properties:
             content:
@@ -4548,7 +4923,7 @@ components:
           type: string
           description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
           example: '0:33:28.464000'
-        ja:
+        textJa:
           type: object
           properties:
             content:
@@ -4556,7 +4931,7 @@ components:
               maxLength: 500
               description: Original Japanese content of the segment
               example: 僕は僕で、君は君だ。
-        es:
+        textEs:
           type: object
           properties:
             content:
@@ -4569,7 +4944,7 @@ components:
               description: Whether the Spanish translation was machine-translated
               default: false
               example: false
-        en:
+        textEn:
           type: object
           properties:
             content:
@@ -4599,6 +4974,15 @@ components:
           type: string
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
+    SegmentContextResponse:
+      type: object
+      required:
+        - segments
+      properties:
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
     CharacterWithMedia:
       type: object
       description: Character with all media appearances
@@ -4897,6 +5281,78 @@ components:
           maxLength: 1000
           description: Optional description with additional details
           example: The translation doesn't match the spoken Japanese
+    UserPreferences:
+      type: object
+      properties:
+        labs:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: Lab feature opt-in flags keyed by feature key
+        mediaNameLanguage:
+          type: string
+          enum:
+            - english
+            - japanese
+            - romaji
+          description: Preferred language for media names display
+        searchHistory:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+              description: Whether activity tracking is enabled (default true)
+    ActivityType:
+      type: string
+      enum:
+        - SEARCH
+        - ANKI_EXPORT
+        - SEGMENT_PLAY
+        - LIST_ADD_SEGMENT
+      description: Type of user activity
+    UserActivity:
+      type: object
+      required:
+        - id
+        - activityType
+        - createdAt
+      properties:
+        id:
+          type: integer
+        activityType:
+          $ref: '#/components/schemas/ActivityType'
+        segmentUuid:
+          type: string
+          nullable: true
+        mediaId:
+          type: integer
+          nullable: true
+        searchQuery:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    LabFeature:
+      type: object
+      required:
+        - key
+        - name
+        - description
+        - enabled
+      properties:
+        key:
+          type: string
+          description: Unique identifier for the lab feature
+        name:
+          type: string
+          description: Human-readable feature name
+        description:
+          type: string
+          description: Description of what the feature does
+        enabled:
+          type: boolean
+          description: Whether the feature is globally available
     ListCreateRequest:
       type: object
       description: Request body for creating a new standalone list
@@ -5429,15 +5885,6 @@ components:
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
         status: 400
-    NotFound:
-      summary: Not Found
-      value:
-        code: NOT_FOUND
-        title: Not Found
-        detail: The requested resource could not be found. Please check the URL and try again.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
-        instance: trace-id-placeholder
-        status: 404
     AccountConflict:
       summary: Account Conflict
       value:
@@ -5456,13 +5903,22 @@ components:
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
         status: 409
+    NotFound:
+      summary: Not Found
+      value:
+        code: NOT_FOUND
+        title: Not Found
+        detail: The requested resource could not be found. Please check the URL and try again.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 404
   responses:
     UnauthorizedApiKey:
       description: Unauthorized
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Error401'
           examples:
             AuthCredentialsRequired:
               $ref: '#/components/examples/AuthCredentialsRequired'
@@ -5475,7 +5931,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Error403'
           examples:
             InsufficientPermissions:
               $ref: '#/components/examples/InsufficientPermissions'
@@ -5484,7 +5940,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Error429'
           examples:
             RateLimitExceeded:
               $ref: '#/components/examples/RateLimitExceeded'
@@ -5495,7 +5951,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Error500'
           examples:
             InternalServerError:
               $ref: '#/components/examples/InternalServerError'
@@ -5504,7 +5960,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Error400'
           examples:
             ValidationFailed:
               $ref: '#/components/examples/ValidationFailed'
@@ -5515,7 +5971,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Error409'
           examples:
             AccountConflict:
               $ref: '#/components/examples/AccountConflict'
@@ -5526,7 +5982,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Error404'
           examples:
             NotFound:
               $ref: '#/components/examples/NotFound'

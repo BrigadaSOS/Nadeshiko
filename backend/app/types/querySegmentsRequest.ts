@@ -1,4 +1,4 @@
-import type * as estypes from '@elastic/elasticsearch/lib/api/types';
+import type { estypes } from '@elastic/elasticsearch';
 type FieldValue = estypes.FieldValue;
 
 export interface QuerySegmentsRequest {

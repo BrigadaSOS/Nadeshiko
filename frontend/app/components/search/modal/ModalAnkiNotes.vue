@@ -24,7 +24,7 @@ watch(
   () => props.sentence,
   async () => {
     const regex = /<em>(.*?)<\/em>/;
-    const match = props.sentence?.segment.ja.highlight?.match(regex);
+    const match = props.sentence?.segment.textJa.highlight?.match(regex);
     const matchedTerm = match?.[1];
 
     if (matchedTerm) {

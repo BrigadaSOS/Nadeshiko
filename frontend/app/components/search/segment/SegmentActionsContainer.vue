@@ -37,7 +37,14 @@ onMounted(() => {
   isAnkiConfigured.value = current.deck !== null && current.model !== null && current.fields.length > 0;
 });
 
-const emit = defineEmits(['open-context-modal', 'open-anki-modal', 'concat-sentence', 'revert-concat', 'open-edit-modal', 'open-report-modal']);
+const emit = defineEmits([
+  'open-context-modal',
+  'open-anki-modal',
+  'concat-sentence',
+  'revert-concat',
+  'open-edit-modal',
+  'open-report-modal',
+]);
 
 const concatSentence = (direction: 'forward' | 'backward' | 'both') => {
   emit('concat-sentence', props.content, direction);
@@ -129,11 +136,11 @@ const openAnkiModal = () => {
         <div
           class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
         </div>
-        <SearchDropdownItem @click="copyToClipboard(content.segment.ja.content)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.textJa.content)"
           :text="$t('searchpage.main.buttons.jpsentence')" :iconPath="mdiText" />
-        <SearchDropdownItem @click="copyToClipboard(content.segment.en.content)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.textEn.content)"
           :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
-        <SearchDropdownItem @click="copyToClipboard(content.segment.es.content)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.textEs.content)"
           :text="$t('searchpage.main.buttons.essentence')" :iconPath="mdiText" />
       </SearchDropdownContent>
     </template>
@@ -146,13 +153,11 @@ const openAnkiModal = () => {
   </UiButtonPrimaryAction>
 
   <UiButtonPrimaryAction
-    v-if="user.isAdmin"
-    data-nd-overlay="#nd-vertically-centered-scrollable-segment-edit"
     class="mr-2 text-xs py-2.5 px-3"
-    @click="emit('open-edit-modal', content)"
+    :title="$t('searchpage.main.buttons.share')"
+    @click="getSharingURL(content.segment.uuid)"
   >
-    <UiBaseIcon :path="mdiPencilOutline" />
-    {{ $t('modalSegmentEdit.editButton') }}
+    <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>
 
   <ClientOnly>
@@ -170,8 +175,6 @@ const openAnkiModal = () => {
     </template>
     <template #content>
       <SearchDropdownContent>
-        <SearchDropdownItem :text="$t('searchpage.main.buttons.share')" :iconPath="mdiShareVariantOutline"
-          @click="getSharingURL(content.segment.uuid)" />
         <SearchDropdownItem v-if="content.urls.blobAudioUrl" :text="$t('segment.revert')" :iconPath="mdiClose"
           @click="revertConcat" />
         <SearchDropdownItem :text="$t('searchpage.main.buttons.expandLeft')" :iconPath="mdiTransferLeft"
@@ -187,6 +190,14 @@ const openAnkiModal = () => {
           <SearchDropdownItem :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
             data-nd-overlay="#nd-vertically-centered-scrollable-report"
             @click="emit('open-report-modal', content)" />
+        </template>
+        <template v-if="user.isAdmin">
+          <div
+            class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
+          </div>
+          <SearchDropdownItem :text="$t('modalSegmentEdit.editButton')" :iconPath="mdiPencilOutline"
+            data-nd-overlay="#nd-vertically-centered-scrollable-segment-edit"
+            @click="emit('open-edit-modal', content)" />
         </template>
       </SearchDropdownContent>
     </template>

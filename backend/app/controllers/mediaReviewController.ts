@@ -1,12 +1,12 @@
 import type {
-  RunReviewChecks,
-  GetReviewChecks,
-  UpdateReviewCheck,
-  GetReviewRuns,
-  GetReviewRunDetails,
-  GetReviewAllowlist,
-  AddToReviewAllowlist,
-  RemoveFromReviewAllowlist,
+  AdminReviewRunCreate,
+  AdminReviewCheckIndex,
+  AdminReviewCheckUpdate,
+  AdminReviewRunIndex,
+  AdminReviewRunShow,
+  AdminReviewAllowlistIndex,
+  AdminReviewAllowlistCreate,
+  AdminReviewAllowlistDestroy,
 } from 'generated/routes/admin';
 import { ReviewCheck, ReviewCheckRun, ReviewAllowlist, Report } from '@app/models';
 import { NotFoundError, InvalidRequestError } from '@app/errors';
@@ -14,7 +14,7 @@ import { runAllChecks } from '@app/services/mediaReview/runner';
 import { checkRegistry } from '@app/services/mediaReview/registry';
 import { type FindOptionsWhere, LessThan } from 'typeorm';
 
-export const runReviewChecks: RunReviewChecks = async ({ query }, respond) => {
+export const adminReviewRunCreate: AdminReviewRunCreate = async ({ query }, respond) => {
   const category = query?.category as string | undefined;
   const result = await runAllChecks(category);
 
@@ -25,7 +25,7 @@ export const runReviewChecks: RunReviewChecks = async ({ query }, respond) => {
   });
 };
 
-export const getReviewChecks: GetReviewChecks = async (_params, respond) => {
+export const adminReviewCheckIndex: AdminReviewCheckIndex = async (_params, respond) => {
   const dbChecks = await ReviewCheck.find({ order: { id: 'ASC' } });
 
   const registryMap = new Map(checkRegistry.map((c) => [c.name, c]));
@@ -60,7 +60,7 @@ export const getReviewChecks: GetReviewChecks = async (_params, respond) => {
   return respond.with200().body(checksWithMeta);
 };
 
-export const updateReviewCheck: UpdateReviewCheck = async ({ params, body }, respond) => {
+export const adminReviewCheckUpdate: AdminReviewCheckUpdate = async ({ params, body }, respond) => {
   const { name } = params;
 
   const check = await ReviewCheck.findOne({ where: { name } });
@@ -94,7 +94,7 @@ export const updateReviewCheck: UpdateReviewCheck = async ({ params, body }, res
   });
 };
 
-export const getReviewRuns: GetReviewRuns = async ({ query }, respond) => {
+export const adminReviewRunIndex: AdminReviewRunIndex = async ({ query }, respond) => {
   const { checkName, cursor, size = 20 } = query;
 
   const where: FindOptionsWhere<ReviewCheckRun> = {};
@@ -113,7 +113,7 @@ export const getReviewRuns: GetReviewRuns = async ({ query }, respond) => {
 
   const hasMore = runs.length > size;
   const data = hasMore ? runs.slice(0, size) : runs;
-  const nextCursor = hasMore ? data[data.length - 1]!.id : null;
+  const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
 
   return respond.with200().body({
     data: data.map((run) => ({
@@ -129,7 +129,7 @@ export const getReviewRuns: GetReviewRuns = async ({ query }, respond) => {
   });
 };
 
-export const getReviewRunDetails: GetReviewRunDetails = async ({ params }, respond) => {
+export const adminReviewRunShow: AdminReviewRunShow = async ({ params }, respond) => {
   const { id } = params;
 
   const run = await ReviewCheckRun.findOne({ where: { id } });
@@ -171,7 +171,7 @@ export const getReviewRunDetails: GetReviewRunDetails = async ({ params }, respo
   });
 };
 
-export const getReviewAllowlist: GetReviewAllowlist = async ({ query }, respond) => {
+export const adminReviewAllowlistIndex: AdminReviewAllowlistIndex = async ({ query }, respond) => {
   const where: FindOptionsWhere<ReviewAllowlist> = {};
   if (query?.checkName) {
     where.checkName = query.checkName;
@@ -191,7 +191,7 @@ export const getReviewAllowlist: GetReviewAllowlist = async ({ query }, respond)
   );
 };
 
-export const addToReviewAllowlist: AddToReviewAllowlist = async ({ body }, respond) => {
+export const adminReviewAllowlistCreate: AdminReviewAllowlistCreate = async ({ body }, respond) => {
   const { checkName, mediaId, episodeNumber, reason } = body;
 
   const existing = await ReviewAllowlist.findOne({
@@ -219,7 +219,7 @@ export const addToReviewAllowlist: AddToReviewAllowlist = async ({ body }, respo
   });
 };
 
-export const removeFromReviewAllowlist: RemoveFromReviewAllowlist = async ({ params }, respond) => {
+export const adminReviewAllowlistDestroy: AdminReviewAllowlistDestroy = async ({ params }, respond) => {
   const { id } = params;
 
   const entry = await ReviewAllowlist.findOne({ where: { id } });

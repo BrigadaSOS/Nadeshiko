@@ -16,12 +16,14 @@ import { List, ListItem, ListSegmentItem, ListType, ListVisibility, Segment, Use
 import { toListDTO, toListWithMediaDTO } from './mappers/list.mapper';
 import { querySegmentsByUuids } from '@app/services/elasticsearch';
 import { AccessDeniedError, NotFoundError } from '@app/errors';
+import { trackActivity } from '@app/services/activityService';
+import { ActivityType } from '@app/models/UserActivity';
 import type { Request } from 'express';
 
 const isAdmin = (req: Request): boolean => req.user?.role === UserRoleType.ADMIN;
 
 const assertListOwnership = (list: List, req: Request): void => {
-  if (list.userId !== req.user!.id && !isAdmin(req)) {
+  if (list.userId !== req.user?.id && !isAdmin(req)) {
     throw new AccessDeniedError('You do not have permission to modify this list.');
   }
 };
@@ -227,6 +229,14 @@ export const listAddSegment: ListAddSegment = async ({ params, body }, respond, 
     position: nextPosition,
     note: body.note || null,
   });
+
+  // Track activity (fire-and-forget)
+  if (req.user) {
+    trackActivity(req.user, ActivityType.LIST_ADD_SEGMENT, {
+      segmentUuid: body.segmentUuid,
+      mediaId: segment.mediaId,
+    }).catch(() => {});
+  }
 
   return respond.with201().body({ message: 'Segment added to list' });
 };

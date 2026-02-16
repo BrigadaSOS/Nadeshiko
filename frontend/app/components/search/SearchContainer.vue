@@ -2,6 +2,9 @@
 import { mdiRefresh } from '@mdi/js';
 
 import { usePlayerStore } from '~/stores/player';
+import { CATEGORY_API_MAPPING } from '~/utils/categories';
+
+const { mediaName } = useMediaName();
 
 const props = defineProps({
   initialSentenceData: {
@@ -40,10 +43,7 @@ const sort = ref(null);
 const uuid = ref(null);
 const episode = ref(null);
 
-const categoryApiMapping = {
-  anime: 'ANIME',
-  liveaction: 'JDRAMA',
-};
+const categoryApiMapping = CATEGORY_API_MAPPING;
 
 const searchData = computed(() => {
   const sentencePayload = sentenceData.value || {};
@@ -60,7 +60,7 @@ const searchData = computed(() => {
 
 const animeTabName = computed(() => {
   if (media.value && searchData.value?.results?.length > 0) {
-    let name = searchData.value.results[0].media.nameEn;
+    let name = mediaName(searchData.value.results[0].media);
     if (episode.value !== null) {
       name += `, ${t('searchpage.main.labels.episode')} ${episode.value}`;
     }
@@ -222,15 +222,7 @@ const loadMore = () => {
 
 const getCategoryCount = (categoryKey) => {
   if (media.value) {
-    const mediaId = Number(media.value);
-    const mediaStat = searchData.value?.media?.find((stat) => stat.mediaId === mediaId);
-    if (!mediaStat) return 0;
-
-    if (episode.value !== null) {
-      return mediaStat.episodeHits?.[episode.value] || 0;
-    }
-
-    return mediaStat.segmentCount || 0;
+    return searchData.value?.pagination?.estimatedTotalHits || 0;
   }
 
   const stats = searchData.value?.categories || [];

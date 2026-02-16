@@ -31,8 +31,8 @@ export const missingEpisodes: MediaReviewCheck = {
       const episodes: number[] = row.episodes;
       if (episodes.length < 2) continue;
 
-      const min = episodes[0]!;
-      const max = episodes[episodes.length - 1]!;
+      const min = episodes[0];
+      const max = episodes[episodes.length - 1];
       const expected = new Set(Array.from({ length: max - min + 1 }, (_, i) => min + i));
       const actual = new Set(episodes);
       const missing = [...expected].filter((e) => !actual.has(e));

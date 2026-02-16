@@ -11,6 +11,7 @@ import { initPgBoss, stopPgBoss } from '@app/workers/pgBoss';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { registerEmailWorkers } from '@app/workers/emailWorker';
 import { registerMorphemeWorkers } from '@app/workers/morphemeWorker';
+import { registerActivityRetentionWorker } from '@app/workers/activityRetentionWorker';
 import { seedCheckConfigs } from '@app/services/mediaReview/runner';
 import { router } from '@app/routes/router';
 import express, { Application, ErrorRequestHandler } from 'express';
@@ -121,6 +122,7 @@ app.listen(PORT, async () => {
     await registerEsSyncWorkers(boss);
     await registerEmailWorkers(boss);
     await registerMorphemeWorkers(boss);
+    await registerActivityRetentionWorker(boss);
 
     // Seed review check configs (idempotent)
     await seedCheckConfigs();
