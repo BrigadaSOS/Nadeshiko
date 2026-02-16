@@ -376,7 +376,8 @@ watch([page, currentView, searchQuery, filterType], () => {
 
                 <div class="ml-auto mt-4 md:mt-1 flex">
                   <a
-                    :href="`https://anilist.co/anime/${media_info.anilistId}`"
+                    v-if="media_info.externalIds?.anilist"
+                    :href="`https://anilist.co/anime/${media_info.externalIds.anilist}`"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-white dark:placeholder-gray-400 dark:text-white"

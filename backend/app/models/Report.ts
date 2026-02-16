@@ -2,53 +2,87 @@ import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typ
 import { BaseEntity } from './base.entity';
 import type { User } from './User';
 
-export enum ReportType {
+export enum ReportSource {
+  USER = 'USER',
+  AUTO = 'AUTO',
+}
+
+export enum ReportTargetType {
   SEGMENT = 'SEGMENT',
+  EPISODE = 'EPISODE',
   MEDIA = 'MEDIA',
 }
 
 export enum ReportStatus {
   PENDING = 'PENDING',
+  CONCERN = 'CONCERN',
   ACCEPTED = 'ACCEPTED',
   REJECTED = 'REJECTED',
   RESOLVED = 'RESOLVED',
+  IGNORED = 'IGNORED',
 }
 
 export enum ReportReason {
-  // Segment reasons
+  // Segment reasons (USER)
   WRONG_TRANSLATION = 'WRONG_TRANSLATION',
   WRONG_TIMING = 'WRONG_TIMING',
   WRONG_AUDIO = 'WRONG_AUDIO',
   NSFW_NOT_TAGGED = 'NSFW_NOT_TAGGED',
   DUPLICATE_SEGMENT = 'DUPLICATE_SEGMENT',
-  // Media reasons
+  // Media reasons (USER)
   WRONG_METADATA = 'WRONG_METADATA',
   MISSING_EPISODES = 'MISSING_EPISODES',
   WRONG_COVER_IMAGE = 'WRONG_COVER_IMAGE',
   // Shared reasons
   INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
   OTHER = 'OTHER',
+  // Auto-check reason codes
+  LOW_SEGMENT_MEDIA = 'LOW_SEGMENT_MEDIA',
+  EMPTY_EPISODES = 'EMPTY_EPISODES',
+  MISSING_EPISODES_AUTO = 'MISSING_EPISODES_AUTO',
+  BAD_SEGMENT_RATIO = 'BAD_SEGMENT_RATIO',
+  MEDIA_WITH_NO_EPISODES = 'MEDIA_WITH_NO_EPISODES',
+  MISSING_TRANSLATIONS = 'MISSING_TRANSLATIONS',
+  DB_ES_SYNC_ISSUES = 'DB_ES_SYNC_ISSUES',
+  HIGH_REPORT_DENSITY = 'HIGH_REPORT_DENSITY',
 }
 
 @Entity('Report')
-@Index(['reportType', 'targetId'])
-@Index(['userId'])
+@Index(['source'])
+@Index(['targetType', 'targetMediaId'])
+@Index(['reviewCheckRunId'])
 @Index(['status'])
+@Index(['userId'])
 export class Report extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
   id!: number;
 
-  @Column({ name: 'report_type', type: 'enum', enum: ReportType })
-  reportType!: ReportType;
+  @Column({ type: 'enum', enum: ReportSource })
+  source!: ReportSource;
 
-  @Column({ name: 'target_id', type: 'varchar' })
-  targetId!: string;
+  @Column({ name: 'target_type', type: 'enum', enum: ReportTargetType })
+  targetType!: ReportTargetType;
+
+  @Column({ name: 'target_media_id', type: 'int' })
+  targetMediaId!: number;
+
+  @Column({ name: 'target_episode_number', type: 'int', nullable: true })
+  targetEpisodeNumber?: number | null;
+
+  @Column({ name: 'target_segment_uuid', type: 'varchar', nullable: true })
+  targetSegmentUuid?: string | null;
+
+  @Column({ name: 'review_check_run_id', type: 'int', nullable: true })
+  reviewCheckRunId?: number | null;
 
   @Column({ type: 'enum', enum: ReportReason })
   reason!: ReportReason;
 
-  @Column({ type: 'varchar', length: 1000, nullable: true })
+  @Column({ type: 'text', nullable: true })
   description?: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  data?: Record<string, unknown> | null;
 
   @Column({ type: 'enum', enum: ReportStatus, default: ReportStatus.PENDING })
   status!: ReportStatus;
@@ -56,20 +90,14 @@ export class Report extends BaseEntity {
   @Column({ name: 'admin_notes', type: 'varchar', length: 1000, nullable: true })
   adminNotes?: string | null;
 
-  @Column({ name: 'resolved_at', type: 'timestamp', nullable: true })
-  resolvedAt?: Date | null;
-
-  @Column({ name: 'user_id', type: 'int' })
-  userId!: number;
-
-  @Column({ name: 'resolved_by_id', type: 'int', nullable: true })
-  resolvedById?: number | null;
+  @Column({ name: 'user_id', type: 'int', nullable: true })
+  userId?: number | null;
 
   @ManyToOne('User')
   @JoinColumn({ name: 'user_id' })
-  user!: User;
+  user?: User | null;
 
-  @ManyToOne('User')
-  @JoinColumn({ name: 'resolved_by_id' })
-  resolvedBy?: User | null;
+  @ManyToOne('ReviewCheckRun')
+  @JoinColumn({ name: 'review_check_run_id' })
+  reviewCheckRun?: unknown;
 }

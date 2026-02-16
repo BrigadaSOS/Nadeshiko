@@ -57,6 +57,16 @@ import {
 } from '@app/controllers/segmentController';
 import { getUserQuota } from '@app/controllers/userQuotaController';
 import { createReport, getUserReports, getAdminReports, updateReport } from '@app/controllers/reportController';
+import {
+  runReviewChecks,
+  getReviewChecks,
+  updateReviewCheck,
+  getReviewRuns,
+  getReviewRunDetails,
+  getReviewAllowlist,
+  addToReviewAllowlist,
+  removeFromReviewAllowlist,
+} from '@app/controllers/mediaReviewController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
 import { createRouter as createListsRouter } from 'generated/routes/lists';
@@ -120,6 +130,14 @@ const AdminRoutes = createAdminRouter({
   morphemeBackfill,
   getAdminReports,
   updateReport,
+  runReviewChecks,
+  getReviewChecks,
+  updateReviewCheck,
+  getReviewRuns,
+  getReviewRunDetails,
+  getReviewAllowlist,
+  addToReviewAllowlist,
+  removeFromReviewAllowlist,
 });
 
 const UserRoutes = createUserRouter({

@@ -1,6 +1,6 @@
 import type { MediaIndex, MediaCreate, MediaShow, MediaUpdate, MediaDestroy } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
-import { CategoryType, Media, MediaCharacter, CharacterRole } from '@app/models';
+import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, CharacterRole } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
 import { AppDataSource } from '@config/database';
@@ -42,6 +42,7 @@ export const mediaIndex: MediaIndex = async ({ query }, respond) => {
       episodes: true,
       characters: { character: { seiyuu: true } },
       listItems: { list: true },
+      externalIds: true,
     },
     order: { id: 'ASC' },
     take: query.limit,
@@ -60,9 +61,21 @@ export const mediaIndex: MediaIndex = async ({ query }, respond) => {
 
 export const mediaCreate: MediaCreate = async ({ body }, respond) => {
   const media = await AppDataSource.transaction(async (manager) => {
+    const externalIds: DeepPartial<MediaExternalId>[] = [];
+    if (body.externalIds) {
+      const sourceMap: Record<string, ExternalSourceType> = {
+        anilist: ExternalSourceType.ANILIST,
+        imdb: ExternalSourceType.IMDB,
+        tvdb: ExternalSourceType.TVDB,
+      };
+      for (const [key, value] of Object.entries(body.externalIds)) {
+        if (value && sourceMap[key]) {
+          externalIds.push({ source: sourceMap[key], externalId: value });
+        }
+      }
+    }
+
     return await manager.save(Media, {
-      id: body.anilistId,
-      anilistId: body.anilistId,
       nameJa: body.nameJa,
       nameRomaji: body.nameRomaji,
       nameEn: body.nameEn,
@@ -78,6 +91,7 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
       seasonName: body.seasonName,
       seasonYear: body.seasonYear,
       characters: body.characters?.map(toCharacterData),
+      externalIds,
     });
   });
 
@@ -94,6 +108,7 @@ export const mediaShow: MediaShow = async ({ params }, respond) => {
       episodes: true,
       characters: { character: { seiyuu: true } },
       listItems: { list: true },
+      externalIds: true,
     },
   });
 

@@ -2,10 +2,6 @@
 # Shared field definitions using YAML anchors
 
 EpisodeFields: &episodeFields
-  anilistEpisodeId:
-    type: integer
-    description: AniList episode ID for external reference
-    example: 123456
   titleEn:
     type: string
     description: English title of the episode

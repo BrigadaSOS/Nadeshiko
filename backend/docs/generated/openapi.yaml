@@ -1258,9 +1258,11 @@ paths:
             type: string
             enum:
               - PENDING
+              - CONCERN
               - ACCEPTED
               - REJECTED
               - RESOLVED
+              - IGNORED
           description: Filter by report status
       responses:
         '200':
@@ -2306,7 +2308,7 @@ paths:
       summary: List all reports (admin)
       description: |
         Returns all reports with filtering and aggregation.
-        Reports are grouped by target and sorted by report count descending.
+        Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
 
         **Requirements:**
         - Required Scopes: `ADD_MEDIA` (admin-level permission)
@@ -2332,23 +2334,39 @@ paths:
             type: string
             enum:
               - PENDING
+              - CONCERN
               - ACCEPTED
               - REJECTED
               - RESOLVED
+              - IGNORED
           description: Filter by report status
-        - name: reportType
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum:
+              - USER
+              - AUTO
+          description: Filter by report source
+        - name: targetType
           in: query
           schema:
             type: string
             enum:
               - SEGMENT
+              - EPISODE
               - MEDIA
-          description: Filter by report type
-        - name: targetId
+          description: Filter by target type
+        - name: targetMediaId
           in: query
           schema:
-            type: string
-          description: Filter by target ID
+            type: integer
+          description: Filter by target media ID
+        - name: reviewCheckRunId
+          in: query
+          schema:
+            type: integer
+          description: Filter by review check run ID
       responses:
         '200':
           description: OK
@@ -2372,7 +2390,7 @@ paths:
       summary: Update a report (admin)
       description: |
         Update the status and/or admin notes of a report.
-        When status changes to ACCEPTED, REJECTED, or RESOLVED, resolvedAt and resolvedById are set automatically.
+        Works for both USER and AUTO reports.
 
         **Requirements:**
         - Required Scopes: `ADD_MEDIA` (admin-level permission)
@@ -2401,6 +2419,362 @@ paths:
                 $ref: '#/components/schemas/Report'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/review/run:
+    post:
+      tags:
+        - Admin
+      operationId: runReviewChecks
+      summary: Run auto-checks
+      description: |
+        Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum:
+              - ANIME
+              - JDRAMA
+          description: Optional category filter
+      responses:
+        '200':
+          description: Check run completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunReviewResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/review/checks:
+    get:
+      tags:
+        - Admin
+      operationId: getReviewChecks
+      summary: List all review checks
+      description: |
+        Returns all check definitions with current config, threshold schema, and latest run info.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewCheck'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/review/checks/{name}:
+    patch:
+      tags:
+        - Admin
+      operationId: updateReviewCheck
+      summary: Update a review check config
+      description: |
+        Update the threshold or enabled status of a check.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Check name identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                threshold:
+                  type: object
+                  description: New threshold values
+                  additionalProperties: true
+                enabled:
+                  type: boolean
+                  description: Enable or disable this check
+      responses:
+        '200':
+          description: Check updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCheck'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/review/runs:
+    get:
+      tags:
+        - Admin
+      operationId: getReviewRuns
+      summary: List past check runs
+      description: |
+        Returns past review check runs with summary stats.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: checkName
+          in: query
+          schema:
+            type: string
+          description: Filter by check name
+        - name: cursor
+          in: query
+          schema:
+            type: integer
+          description: Cursor for pagination
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of results per page
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - hasMore
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReviewCheckRun'
+                  hasMore:
+                    type: boolean
+                  cursor:
+                    type: integer
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/review/runs/{id}:
+    get:
+      tags:
+        - Admin
+      operationId: getReviewRunDetails
+      summary: Get a specific run's details
+      description: |
+        Returns a specific run record with its linked reports.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Run ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - run
+                  - reports
+                properties:
+                  run:
+                    $ref: '#/components/schemas/ReviewCheckRun'
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/review/allowlist:
+    get:
+      tags:
+        - Admin
+      operationId: getReviewAllowlist
+      summary: List allowlisted items
+      description: |
+        Returns all allowlisted items that are excluded from auto-check runs.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: checkName
+          in: query
+          schema:
+            type: string
+          description: Filter by check name
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewAllowlist'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Admin
+      operationId: addToReviewAllowlist
+      summary: Add to allowlist
+      description: |
+        Add a media/episode to the allowlist for a specific check.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - checkName
+                - mediaId
+              properties:
+                checkName:
+                  type: string
+                  description: Check name to allowlist for
+                mediaId:
+                  type: integer
+                  description: Media ID to allowlist
+                episodeNumber:
+                  type: integer
+                  description: Episode number (for episode-level checks)
+                reason:
+                  type: string
+                  description: Reason for allowlisting
+      responses:
+        '201':
+          description: Added to allowlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewAllowlist'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/review/allowlist/{id}:
+    delete:
+      tags:
+        - Admin
+      operationId: removeFromReviewAllowlist
+      summary: Remove from allowlist
+      description: |
+        Remove an item from the review allowlist.
+
+        **Requirements:**
+        - Required Scopes: `ADD_MEDIA` (admin-level permission)
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Allowlist entry ID
+      responses:
+        '204':
+          description: Removed from allowlist
         '401':
           $ref: '#/components/responses/UnauthorizedApiKey'
         '403':
@@ -3111,6 +3485,22 @@ components:
           type: integer
           description: Total number of segments in the entire database
           example: 1523847
+    ExternalId:
+      type: object
+      description: Map of external IDs keyed by source. Only sources with values are included.
+      properties:
+        anilist:
+          type: string
+          description: AniList ID
+          example: '21459'
+        imdb:
+          type: string
+          description: IMDB ID
+          example: tt1234567
+        tvdb:
+          type: string
+          description: TVDB ID
+          example: '12345'
     MediaSummary:
       type: object
       description: Summary information about a media entry for browse/list views
@@ -3121,16 +3511,8 @@ components:
           type: integer
           description: Unique identifier for the media
           example: 110316
-        anilistId:
-          type: integer
-          nullable: true
-          description: AniList database ID for the media
-          example: 21459
-        tmdbId:
-          type: integer
-          nullable: true
-          description: TMDB (The Movie Database) ID for the media
-          example: 63726
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
         category:
           $ref: '#/components/schemas/Category'
         createdAt:
@@ -3337,7 +3719,6 @@ components:
       description: Media entry with full metadata
       required:
         - id
-        - anilistId
         - nameJa
         - nameRomaji
         - nameEn
@@ -3357,10 +3738,8 @@ components:
           type: integer
           description: Unique identifier for the media
           example: 7674
-        anilistId:
-          type: integer
-          description: AniList database ID for the media
-          example: 7674
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
         nameJa:
           type: string
           description: Original Japanese name of the media
@@ -3561,7 +3940,6 @@ components:
       type: object
       description: Request body for creating a new media entry
       required:
-        - anilistId
         - nameJa
         - nameRomaji
         - nameEn
@@ -3577,10 +3955,8 @@ components:
         - seasonName
         - seasonYear
       properties:
-        anilistId:
-          type: integer
-          description: AniList database ID for the media
-          example: 7674
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
         nameJa:
           type: string
           description: Original Japanese name of the media
@@ -3672,10 +4048,8 @@ components:
       type: object
       description: Request body for updating an existing media entry (all fields optional)
       properties:
-        anilistId:
-          type: integer
-          description: AniList database ID for the media
-          example: 7674
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
         nameJa:
           type: string
           description: Original Japanese name of the media
@@ -3782,11 +4156,6 @@ components:
           type: integer
           description: Episode number within the media
           example: 1
-        anilistEpisodeId:
-          type: integer
-          nullable: true
-          description: AniList episode ID for external reference
-          example: 123456
         titleEn:
           type: string
           nullable: true
@@ -3851,10 +4220,6 @@ components:
       required:
         - episodeNumber
       properties:
-        anilistEpisodeId:
-          type: integer
-          description: AniList episode ID for external reference
-          example: 123456
         titleEn:
           type: string
           description: English title of the episode
@@ -3892,10 +4257,6 @@ components:
       type: object
       description: All fields are optional for partial updates
       properties:
-        anilistEpisodeId:
-          type: integer
-          description: AniList episode ID for external reference
-          example: 123456
         titleEn:
           type: string
           description: English title of the episode
@@ -4369,28 +4730,50 @@ components:
       type: object
       required:
         - id
-        - reportType
-        - targetId
+        - source
+        - targetType
+        - targetMediaId
         - reason
         - status
-        - userId
         - createdAt
       properties:
         id:
           type: integer
           description: Report ID
           example: 1
-        reportType:
+        source:
+          type: string
+          enum:
+            - USER
+            - AUTO
+          description: Who created this report
+          example: USER
+        targetType:
           type: string
           enum:
             - SEGMENT
+            - EPISODE
             - MEDIA
-          description: Type of the reported entity
+          description: What level the report targets
           example: SEGMENT
-        targetId:
+        targetMediaId:
+          type: integer
+          description: Media ID this report targets
+          example: 42
+        targetEpisodeNumber:
+          type: integer
+          nullable: true
+          description: Episode number (for EPISODE/SEGMENT targets)
+          example: 5
+        targetSegmentUuid:
           type: string
-          description: ID of the reported entity (segment UUID or media ID)
+          nullable: true
+          description: Segment UUID (for SEGMENT targets)
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        reviewCheckRunId:
+          type: integer
+          nullable: true
+          description: ID of the auto-check run that created this report (AUTO only)
         reason:
           type: string
           enum:
@@ -4404,21 +4787,34 @@ components:
             - WRONG_COVER_IMAGE
             - INAPPROPRIATE_CONTENT
             - OTHER
+            - LOW_SEGMENT_MEDIA
+            - EMPTY_EPISODES
+            - MISSING_EPISODES_AUTO
+            - BAD_SEGMENT_RATIO
+            - MEDIA_WITH_NO_EPISODES
+            - MISSING_TRANSLATIONS
+            - DB_ES_SYNC_ISSUES
+            - HIGH_REPORT_DENSITY
           description: Reason for the report
           example: WRONG_TRANSLATION
         description:
           type: string
           nullable: true
-          maxLength: 1000
           description: Optional description with additional details
-          example: The translation doesn't match the spoken Japanese
+        data:
+          type: object
+          nullable: true
+          description: Check-specific metrics (AUTO reports) or null (USER reports)
+          additionalProperties: true
         status:
           type: string
           enum:
             - PENDING
+            - CONCERN
             - ACCEPTED
             - REJECTED
             - RESOLVED
+            - IGNORED
           description: Current status of the report
           example: PENDING
         adminNotes:
@@ -4426,19 +4822,11 @@ components:
           nullable: true
           maxLength: 1000
           description: Notes from the admin who reviewed the report
-        resolvedAt:
-          type: string
-          format: date-time
-          nullable: true
-          description: When the report was resolved
         userId:
           type: integer
-          description: ID of the user who submitted the report
-          example: 42
-        resolvedById:
-          type: integer
           nullable: true
-          description: ID of the admin who resolved the report
+          description: ID of the user who submitted the report (USER reports only)
+          example: 42
         createdAt:
           type: string
           format: date-time
@@ -4470,20 +4858,24 @@ components:
     CreateReportRequest:
       type: object
       required:
-        - reportType
-        - targetId
+        - targetType
+        - targetMediaId
         - reason
       properties:
-        reportType:
+        targetType:
           type: string
           enum:
             - SEGMENT
             - MEDIA
           description: Type of the entity being reported
           example: SEGMENT
-        targetId:
+        targetMediaId:
+          type: integer
+          description: Media ID of the reported entity
+          example: 42
+        targetSegmentUuid:
           type: string
-          description: ID of the entity being reported (segment UUID or media ID as string)
+          description: Segment UUID (required when targetType is SEGMENT)
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         reason:
           type: string
@@ -4759,9 +5151,11 @@ components:
           type: string
           enum:
             - PENDING
+            - CONCERN
             - ACCEPTED
             - REJECTED
             - RESOLVED
+            - IGNORED
           description: New status for the report
           example: ACCEPTED
         adminNotes:
@@ -4769,6 +5163,186 @@ components:
           maxLength: 1000
           description: Admin notes about the report
           example: Confirmed wrong translation, will fix
+    RunReviewResponse:
+      type: object
+      required:
+        - category
+        - checksRun
+        - totalReports
+      properties:
+        category:
+          type: string
+          nullable: true
+          description: Category filter used
+        checksRun:
+          type: array
+          items:
+            type: object
+            required:
+              - checkName
+              - label
+              - resultCount
+              - runId
+            properties:
+              checkName:
+                type: string
+                description: Check identifier
+              label:
+                type: string
+                description: Human-readable check name
+              resultCount:
+                type: integer
+                description: Number of reports created
+              runId:
+                type: integer
+                description: ID of the created run record
+        totalReports:
+          type: integer
+          description: Total reports created across all checks
+    ReviewCheck:
+      type: object
+      required:
+        - id
+        - name
+        - label
+        - description
+        - targetType
+        - threshold
+        - enabled
+      properties:
+        id:
+          type: integer
+          description: Check ID
+        name:
+          type: string
+          description: Unique check identifier
+          example: lowSegmentMedia
+        label:
+          type: string
+          description: Human-readable label
+          example: Low Segment Media
+        description:
+          type: string
+          description: What this check does
+        targetType:
+          type: string
+          enum:
+            - MEDIA
+            - EPISODE
+          description: What level this check operates on
+        threshold:
+          type: object
+          description: Current threshold configuration
+          additionalProperties: true
+        enabled:
+          type: boolean
+          description: Whether this check is active
+        thresholdSchema:
+          type: array
+          description: Schema for threshold fields (from registry)
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              label:
+                type: string
+              type:
+                type: string
+                enum:
+                  - number
+                  - boolean
+              default:
+                oneOf:
+                  - type: number
+                  - type: boolean
+              min:
+                type: number
+              max:
+                type: number
+        latestRun:
+          type: object
+          nullable: true
+          description: Latest run info for this check
+          properties:
+            id:
+              type: integer
+            resultCount:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ReviewCheckRun:
+      type: object
+      required:
+        - id
+        - checkName
+        - resultCount
+        - thresholdUsed
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Run ID
+        checkName:
+          type: string
+          description: Name of the check that was run
+          example: lowSegmentMedia
+        category:
+          type: string
+          nullable: true
+          description: Category filter used (ANIME/JDRAMA) or null for all
+        resultCount:
+          type: integer
+          description: Number of reports created in this run
+          example: 12
+        thresholdUsed:
+          type: object
+          description: Snapshot of threshold at run time
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+          description: When this run was executed
+    ReviewAllowlist:
+      type: object
+      required:
+        - id
+        - checkName
+        - mediaId
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Allowlist entry ID
+        checkName:
+          type: string
+          description: Name of the check this entry applies to
+          example: lowSegmentMedia
+        mediaId:
+          type: integer
+          description: Media ID to exclude
+          example: 42
+        episodeNumber:
+          type: integer
+          nullable: true
+          description: Episode number to exclude (null for media-level checks)
+        reason:
+          type: string
+          nullable: true
+          description: Why this was allowlisted
+          example: Known short OVA series
+        createdAt:
+          type: string
+          format: date-time
+          description: When this entry was created
   examples:
     AuthCredentialsRequired:
       summary: Authentication Credentials Required

@@ -22,7 +22,7 @@ const user = userStore();
 const selectedResult = ref<SearchResult | null>(null);
 const searchNoteResult = ref<SearchResult | null>(null);
 const segmentToEdit = ref<SearchResult | null>(null);
-const reportTarget = ref<{ targetId: string; reportType: 'SEGMENT' | 'MEDIA'; mediaName?: string } | null>(null);
+const reportTarget = ref<{ targetType: 'SEGMENT' | 'MEDIA'; targetMediaId: number; targetSegmentUuid?: string; mediaName?: string } | null>(null);
 
 type OrderedSegmentLang = 'en' | 'es';
 
@@ -48,8 +48,9 @@ const openEditModal = (result: SearchResult) => {
 
 const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGMENT') => {
   reportTarget.value = {
-    targetId: type === 'SEGMENT' ? result.segment.uuid : String(result.media.mediaId),
-    reportType: type,
+    targetType: type,
+    targetMediaId: result.media.mediaId,
+    targetSegmentUuid: type === 'SEGMENT' ? result.segment.uuid : undefined,
     mediaName: result.media.nameEn,
   };
 };
@@ -266,8 +267,9 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
     <SearchModalSegmentEdit :segment="segmentToEdit" @update:success="onEditSuccess" />
 
     <SearchModalReport
-      :targetId="reportTarget?.targetId ?? null"
-      :reportType="reportTarget?.reportType ?? 'SEGMENT'"
+      :targetType="reportTarget?.targetType ?? 'SEGMENT'"
+      :targetMediaId="reportTarget?.targetMediaId ?? null"
+      :targetSegmentUuid="reportTarget?.targetSegmentUuid"
       :mediaName="reportTarget?.mediaName"
     />
 

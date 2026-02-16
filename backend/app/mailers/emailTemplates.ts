@@ -115,15 +115,17 @@ export async function buildAnnouncementEmail(
     year: getCurrentYear(),
   });
 
-  // Strip HTML tags for text version
+  // Strip HTML tags for text version, then decode safe entities only.
+  // Do NOT decode &lt; or &gt; back to < > as that could reintroduce HTML
+  // constructs from entity-encoded input that survived tag stripping.
   const textMessage = message
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
+    .replace(/&lt;/g, '')
+    .replace(/&gt;/g, '')
+    .replace(/&amp;/g, '&')
     .trim();
 
   const text = `${subject}

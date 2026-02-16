@@ -1,0 +1,46 @@
+get:
+  tags:
+    - Admin
+  operationId: getReviewRunDetails
+  summary: Get a specific run's details
+  description: |
+    Returns a specific run record with its linked reports.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Run ID
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - run
+              - reports
+            properties:
+              run:
+                $ref: "../../components/schemas/ReviewCheckRun.yaml"
+              reports:
+                type: array
+                items:
+                  $ref: "../../components/schemas/Report.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

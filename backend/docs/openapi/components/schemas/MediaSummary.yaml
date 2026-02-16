@@ -7,16 +7,8 @@ properties:
     type: integer
     description: Unique identifier for the media
     example: 110316
-  anilistId:
-    type: integer
-    nullable: true
-    description: AniList database ID for the media
-    example: 21459
-  tmdbId:
-    type: integer
-    nullable: true
-    description: TMDB (The Movie Database) ID for the media
-    example: 63726
+  externalIds:
+    $ref: "./ExternalId.yaml"
   category:
     $ref: "./Category.yaml"
   createdAt:

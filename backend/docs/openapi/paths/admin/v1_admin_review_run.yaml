@@ -1,0 +1,34 @@
+post:
+  tags:
+    - Admin
+  operationId: runReviewChecks
+  summary: Run auto-checks
+  description: |
+    Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: category
+      in: query
+      schema:
+        type: string
+        enum: [ANIME, JDRAMA]
+      description: Optional category filter
+  responses:
+    "200":
+      description: Check run completed
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/RunReviewResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

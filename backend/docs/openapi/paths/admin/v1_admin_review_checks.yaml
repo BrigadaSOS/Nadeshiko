@@ -1,0 +1,29 @@
+get:
+  tags:
+    - Admin
+  operationId: getReviewChecks
+  summary: List all review checks
+  description: |
+    Returns all check definitions with current config, threshold schema, and latest run info.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../components/schemas/ReviewCheck.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -4,6 +4,7 @@ import {
   User,
   AccountQuotaUsage,
   Media,
+  MediaExternalId,
   Segment,
   Episode,
   ApiAuth,
@@ -14,6 +15,10 @@ import {
   List,
   ListItem,
   ListSegmentItem,
+  Report,
+  ReviewCheck,
+  ReviewCheckRun,
+  ReviewAllowlist,
 } from '@app/models';
 import { SegmentSubscriber } from '@app/subscribers';
 import { getAppPostgresConfig } from '@config/postgresConfig';
@@ -32,6 +37,7 @@ export const AppDataSource = new DataSource({
     User,
     AccountQuotaUsage,
     Media,
+    MediaExternalId,
     Segment,
     Episode,
     ApiAuth,
@@ -42,6 +48,10 @@ export const AppDataSource = new DataSource({
     List,
     ListItem,
     ListSegmentItem,
+    Report,
+    ReviewCheck,
+    ReviewCheckRun,
+    ReviewAllowlist,
   ],
   subscribers: [SegmentSubscriber],
   migrations: ['./db/migrations/**/*.ts'],

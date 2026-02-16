@@ -12,11 +12,6 @@ properties:
     type: integer
     description: Episode number within the media
     example: 1
-  anilistEpisodeId:
-    type: integer
-    nullable: true
-    description: AniList episode ID for external reference
-    example: 123456
   titleEn:
     type: string
     nullable: true

@@ -2,7 +2,6 @@ type: object
 description: Media entry with full metadata
 required:
   - id
-  - anilistId
   - nameJa
   - nameRomaji
   - nameEn
@@ -22,10 +21,8 @@ properties:
     type: integer
     description: Unique identifier for the media
     example: 7674
-  anilistId:
-    type: integer
-    description: AniList database ID for the media
-    example: 7674
+  externalIds:
+    $ref: "./ExternalId.yaml"
   nameJa:
     type: string
     description: Original Japanese name of the media

@@ -204,7 +204,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
   const getUserReportsQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
     size: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
+    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
   });
 
   const getUserReportsResponseBodyValidator = responseValidationFactory(

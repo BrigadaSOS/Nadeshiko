@@ -1,0 +1,35 @@
+type: object
+required:
+  - category
+  - checksRun
+  - totalReports
+properties:
+  category:
+    type: string
+    nullable: true
+    description: Category filter used
+  checksRun:
+    type: array
+    items:
+      type: object
+      required:
+        - checkName
+        - label
+        - resultCount
+        - runId
+      properties:
+        checkName:
+          type: string
+          description: Check identifier
+        label:
+          type: string
+          description: Human-readable check name
+        resultCount:
+          type: integer
+          description: Number of reports created
+        runId:
+          type: integer
+          description: ID of the created run record
+  totalReports:
+    type: integer
+    description: Total reports created across all checks

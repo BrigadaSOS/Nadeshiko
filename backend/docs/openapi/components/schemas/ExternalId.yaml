@@ -1,0 +1,15 @@
+type: object
+description: Map of external IDs keyed by source. Only sources with values are included.
+properties:
+  anilist:
+    type: string
+    description: AniList ID
+    example: "21459"
+  imdb:
+    type: string
+    description: IMDB ID
+    example: "tt1234567"
+  tvdb:
+    type: string
+    description: TVDB ID
+    example: "12345"
