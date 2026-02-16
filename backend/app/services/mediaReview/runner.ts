@@ -1,8 +1,17 @@
 import { AppDataSource } from '@config/database';
 import { client as esClient } from '@app/services/elasticsearch';
-import { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason, ReviewCheck, ReviewCheckTargetType, ReviewCheckRun, ReviewAllowlist } from '@app/models';
-import { checkRegistry, type MediaReviewCheck, type CheckResult } from './registry';
-import { In } from 'typeorm';
+import {
+  Report,
+  ReportSource,
+  ReportTargetType,
+  ReportStatus,
+  ReportReason,
+  ReviewCheck,
+  ReviewCheckTargetType,
+  ReviewCheckRun,
+  ReviewAllowlist,
+} from '@app/models';
+import { checkRegistry, type MediaReviewCheck } from './registry';
 import { logger } from '@config/log';
 
 interface RunCheckSummary {
@@ -64,9 +73,7 @@ async function runSingleCheck(check: MediaReviewCheck, category?: string): Promi
 
   // Load allowlist for this check
   const allowlistEntries = await ReviewAllowlist.find({ where: { checkName: check.name } });
-  const allowlistSet = new Set(
-    allowlistEntries.map((a) => `${a.mediaId}:${a.episodeNumber ?? ''}`),
-  );
+  const allowlistSet = new Set(allowlistEntries.map((a) => `${a.mediaId}:${a.episodeNumber ?? ''}`));
 
   // Find previous run for trend detection
   const previousRun = await ReviewCheckRun.findOne({
@@ -93,9 +100,7 @@ async function runSingleCheck(check: MediaReviewCheck, category?: string): Promi
   });
 
   // Filter out allowlisted results
-  const filtered = results.filter(
-    (r) => !allowlistSet.has(`${r.mediaId}:${r.episodeNumber ?? ''}`),
-  );
+  const filtered = results.filter((r) => !allowlistSet.has(`${r.mediaId}:${r.episodeNumber ?? ''}`));
 
   // Enrich with user report counts
   const userReportCounts = await getUserReportCounts();

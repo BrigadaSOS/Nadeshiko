@@ -12,25 +12,27 @@ import {
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
 import { type NextFunction, type Request, type Response, Router } from 'express';
-import { z } from 'zod/v3';
 import type {
-  t_BrowseMediaQuerySchema,
-  t_Error,
-  t_GetSearchStatsRequestBodySchema,
-  t_GetSegmentContextRequestBodySchema,
-  t_MediaBrowseResponse,
+  t_Error400,
+  t_Error401,
+  t_Error403,
+  t_Error429,
+  t_Error500,
   t_SearchHealthCheckResponse,
+  t_SearchIndexRequestBodySchema,
   t_SearchMultipleResponse,
   t_SearchResponse,
-  t_SearchSegmentsRequestBodySchema,
+  t_SearchStatsRequestBodySchema,
   t_SearchStatsResponse,
   t_SearchWordsRequestBodySchema,
-  t_SegmentContextResponse,
 } from '../models.ts';
-import type { BrowseMediaQueryOutput, SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput, SegmentContextRequestOutput } from '../outputTypes.ts';
+import type { SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput } from '../outputTypes.ts';
 import {
-  s_Error,
-  s_MediaBrowseResponse,
+  s_Error400,
+  s_Error401,
+  s_Error403,
+  s_Error429,
+  s_Error500,
   s_SearchHealthCheckResponse,
   s_SearchMultipleRequest,
   s_SearchMultipleResponse,
@@ -38,16 +40,14 @@ import {
   s_SearchResponse,
   s_SearchStatsRequest,
   s_SearchStatsResponse,
-  s_SegmentContextRequest,
-  s_SegmentContextResponse,
 } from '../schemas.ts';
 
 export type HealthCheckResponder = {
   with200(): ExpressRuntimeResponse<t_SearchHealthCheckResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type HealthCheck = (
@@ -58,35 +58,35 @@ export type HealthCheck = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SearchSegmentsResponder = {
+export type SearchIndexResponder = {
   with200(): ExpressRuntimeResponse<t_SearchResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SearchSegments = (
+export type SearchIndex = (
   params: Params<void, void, SearchRequestOutput, void>,
-  respond: SearchSegmentsResponder,
+  respond: SearchIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetSearchStatsResponder = {
+export type SearchStatsResponder = {
   with200(): ExpressRuntimeResponse<t_SearchStatsResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetSearchStats = (
+export type SearchStats = (
   params: Params<void, void, SearchStatsRequestOutput, void>,
-  respond: GetSearchStatsResponder,
+  respond: SearchStatsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -94,11 +94,11 @@ export type GetSearchStats = (
 
 export type SearchWordsResponder = {
   with200(): ExpressRuntimeResponse<t_SearchMultipleResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SearchWords = (
@@ -109,47 +109,11 @@ export type SearchWords = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetSegmentContextResponder = {
-  with200(): ExpressRuntimeResponse<t_SegmentContextResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
-
-export type GetSegmentContext = (
-  params: Params<void, void, SegmentContextRequestOutput, void>,
-  respond: GetSegmentContextResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type BrowseMediaResponder = {
-  with200(): ExpressRuntimeResponse<t_MediaBrowseResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
-} & ExpressRuntimeResponder;
-
-export type BrowseMedia = (
-  params: Params<void, BrowseMediaQueryOutput, void, void>,
-  respond: BrowseMediaResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
 export type SearchImplementation = {
   healthCheck: HealthCheck;
-  searchSegments: SearchSegments;
-  getSearchStats: GetSearchStats;
+  searchIndex: SearchIndex;
+  searchStats: SearchStats;
   searchWords: SearchWords;
-  getSegmentContext: GetSegmentContext;
-  browseMedia: BrowseMedia;
 };
 
 export function createSearchRouter(implementation: SearchImplementation): Router {
@@ -158,10 +122,10 @@ export function createSearchRouter(implementation: SearchImplementation): Router
   const healthCheckResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchHealthCheckResponse],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -181,16 +145,16 @@ export function createSearchRouter(implementation: SearchImplementation): Router
           return new ExpressRuntimeResponse<t_SearchHealthCheckResponse>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -220,27 +184,27 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const searchSegmentsRequestBodySchema = s_SearchRequest;
+  const searchIndexRequestBodySchema = s_SearchRequest;
 
-  const searchSegmentsResponseBodyValidator = responseValidationFactory(
+  const searchIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // searchSegments
-  router.post(`/v1/search/segments`, async (req: Request, res: Response, next: NextFunction) => {
+  // searchIndex
+  router.post(`/v1/search`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchSegmentsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(searchIndexRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -249,26 +213,26 @@ export function createSearchRouter(implementation: SearchImplementation): Router
           return new ExpressRuntimeResponse<t_SearchResponse>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.searchSegments(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.searchIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -282,7 +246,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(searchSegmentsResponseBodyValidator(status, body));
+        res.json(searchIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -291,27 +255,27 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const getSearchStatsRequestBodySchema = s_SearchStatsRequest;
+  const searchStatsRequestBodySchema = s_SearchStatsRequest;
 
-  const getSearchStatsResponseBodyValidator = responseValidationFactory(
+  const searchStatsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchStatsResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getSearchStats
+  // searchStats
   router.post(`/v1/search/stats`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(getSearchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(searchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -320,26 +284,26 @@ export function createSearchRouter(implementation: SearchImplementation): Router
           return new ExpressRuntimeResponse<t_SearchStatsResponse>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getSearchStats(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.searchStats(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -353,7 +317,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getSearchStatsResponseBodyValidator(status, body));
+        res.json(searchStatsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -367,11 +331,11 @@ export function createSearchRouter(implementation: SearchImplementation): Router
   const searchWordsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchMultipleResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
@@ -391,19 +355,19 @@ export function createSearchRouter(implementation: SearchImplementation): Router
           return new ExpressRuntimeResponse<t_SearchMultipleResponse>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
@@ -425,153 +389,6 @@ export function createSearchRouter(implementation: SearchImplementation): Router
 
       if (body !== undefined) {
         res.json(searchWordsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getSegmentContextRequestBodySchema = s_SegmentContextRequest;
-
-  const getSegmentContextResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_SegmentContextResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
-    ],
-    undefined,
-  );
-
-  // getSegmentContext
-  router.post(`/v1/search/context`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(getSegmentContextRequestBodySchema, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_SegmentContextResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getSegmentContext(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getSegmentContextResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const browseMediaQuerySchema = z.object({
-    size: z.coerce.number().optional().default(20),
-    cursor: z.coerce.number().optional().default(0),
-    query: z.string().optional(),
-    type: z.enum(['anime', 'liveaction', 'audiobook']).optional(),
-  });
-
-  const browseMediaResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_MediaBrowseResponse],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
-    ],
-    undefined,
-  );
-
-  // browseMedia
-  router.get(`/v1/media/browse`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(browseMediaQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_MediaBrowseResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.browseMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(browseMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }

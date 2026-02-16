@@ -2,7 +2,7 @@ description: Not Found
 content:
   application/json:
     schema:
-      $ref: "../schemas/Error.yaml"
+      $ref: "../schemas/Error404.yaml"
     examples:
       NotFound:
         $ref: "../examples/NotFound.yaml"

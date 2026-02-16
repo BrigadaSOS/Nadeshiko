@@ -1,3 +1,13 @@
 apis:
   main:
     root: docs/openapi/openapi.yaml
+
+rules:
+  no-unresolved-refs: error
+  no-unused-components: warn
+  operation-operationId: error
+  operation-summary: warn
+  no-ambiguous-paths: off
+  no-path-trailing-slash: error
+  path-not-include-query: error
+  path-parameters-defined: error

@@ -106,6 +106,11 @@ jobs:
           cd backend
           kamal deploy -d prod --skip-push
 
+  dispatch-sdk-ts:
+    needs: release
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
       - name: Dispatch TypeScript SDK release
         env:
           GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
@@ -116,6 +121,11 @@ jobs:
             -f client_payload[release_channel]="stable" \
             -f client_payload[backend_sha]="${{ github.sha }}"
 
+  dispatch-sdk-python:
+    needs: release
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
       - name: Dispatch Python SDK release
         env:
           GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}

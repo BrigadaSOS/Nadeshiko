@@ -1,42 +1,42 @@
 <script setup lang="ts">
 defineProps<{
-  currentPage: number
-  totalPages: number
-  basePath: string
-}>()
+  currentPage: number;
+  totalPages: number;
+  basePath: string;
+}>();
 
 const getPageNumbers = (current: number, total: number) => {
-  const pages: (number | string)[] = []
-  const showEllipsisStart = current > 3
-  const showEllipsisEnd = current < total - 2
+  const pages: (number | string)[] = [];
+  const showEllipsisStart = current > 3;
+  const showEllipsisEnd = current < total - 2;
 
   if (total <= 7) {
     for (let i = 1; i <= total; i++) {
-      pages.push(i)
+      pages.push(i);
     }
   } else {
-    pages.push(1)
+    pages.push(1);
 
     if (showEllipsisStart) {
-      pages.push('...')
+      pages.push('...');
     }
 
-    const start = Math.max(2, current - 1)
-    const end = Math.min(total - 1, current + 1)
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
 
     for (let i = start; i <= end; i++) {
-      pages.push(i)
+      pages.push(i);
     }
 
     if (showEllipsisEnd) {
-      pages.push('...')
+      pages.push('...');
     }
 
-    pages.push(total)
+    pages.push(total);
   }
 
-  return pages
-}
+  return pages;
+};
 </script>
 
 <template>

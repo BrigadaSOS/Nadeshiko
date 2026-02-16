@@ -42,7 +42,13 @@ export default defineNuxtConfig({
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
     '@nuxtjs/seo',
+    'nuxt-umami',
   ],
+  umami: {
+    id: '98441c04-c8f9-4882-93c8-0215535b02f1',
+    host: 'https://cloud.umami.is',
+    autoTrack: true,
+  },
   site: {
     url: 'https://nadeshiko.co',
     name: 'Nadeshiko',
@@ -119,6 +125,12 @@ export default defineNuxtConfig({
     preset: 'bun',
     externals: {
       external: ['@scalar/api-reference', '@scalar/themes', '@scalar/components'],
+    },
+    rollupConfig: {
+      onwarn(warning, defaultHandler) {
+        if (warning.code === 'THIS_IS_UNDEFINED' || warning.code === 'CIRCULAR_DEPENDENCY') return;
+        defaultHandler(warning);
+      },
     },
   },
 });

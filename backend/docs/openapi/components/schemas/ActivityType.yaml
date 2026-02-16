@@ -1,0 +1,7 @@
+type: string
+enum:
+  - SEARCH
+  - ANKI_EXPORT
+  - SEGMENT_PLAY
+  - LIST_ADD_SEGMENT
+description: Type of user activity

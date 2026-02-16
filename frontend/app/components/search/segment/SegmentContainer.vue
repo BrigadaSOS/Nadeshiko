@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiVolumeHigh, mdiTranslate, mdiFlagOutline } from '@mdi/js';
+import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye } from '@mdi/js';
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
@@ -18,20 +18,28 @@ const resultList = computed(() => props.searchData?.results ?? []);
 const playerStore = usePlayerStore();
 const { isPlaying, currentResult } = storeToRefs(playerStore);
 const user = userStore();
+const { mediaName } = useMediaName();
 
 const selectedResult = ref<SearchResult | null>(null);
 const searchNoteResult = ref<SearchResult | null>(null);
 const segmentToEdit = ref<SearchResult | null>(null);
-const reportTarget = ref<{ targetType: 'SEGMENT' | 'MEDIA'; targetMediaId: number; targetSegmentUuid?: string; mediaName?: string } | null>(null);
+const reportTarget = ref<{
+  targetType: 'SEGMENT' | 'MEDIA';
+  targetMediaId: number;
+  targetSegmentUuid?: string;
+  mediaName?: string;
+} | null>(null);
 
-type OrderedSegmentLang = 'en' | 'es';
+const revealedNsfw = ref(new Set<string>());
+
+type OrderedSegmentLang = 'textEn' | 'textEs';
 
 // Order segment according to website language
 const orderedSegmentLangs = computed<OrderedSegmentLang[]>(() => {
   if (locale.value === 'en') {
-    return ['en', 'es'];
+    return ['textEn', 'textEs'];
   }
-  return ['es', 'en'];
+  return ['textEs', 'textEn'];
 });
 
 const openModal = (content: SearchResult) => {
@@ -51,7 +59,7 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
     targetType: type,
     targetMediaId: result.media.mediaId,
     targetSegmentUuid: type === 'SEGMENT' ? result.segment.uuid : undefined,
-    mediaName: result.media.nameEn,
+    mediaName: mediaName(result.media),
   };
 };
 
@@ -66,9 +74,9 @@ const onEditSuccess = (updated: SearchResult) => {
 const apiSearch = useApiSearch();
 
 interface IOriginalContent {
-  ja: { content: string; highlight?: string };
-  en: { content?: string; highlight?: string; isMachineTranslated: boolean };
-  es: { content?: string; highlight?: string; isMachineTranslated: boolean };
+  textJa: { content: string; highlight?: string };
+  textEn: { content?: string; highlight?: string; isMachineTranslated: boolean };
+  textEs: { content?: string; highlight?: string; isMachineTranslated: boolean };
 }
 
 interface IConcatenation {
@@ -94,9 +102,9 @@ const revertActiveConcatenation = () => {
 
     activeConcatenation.result.segment = {
       ...activeConcatenation.result.segment,
-      ja: { ...activeConcatenation.originalContent.ja },
-      en: { ...activeConcatenation.originalContent.en },
-      es: { ...activeConcatenation.originalContent.es },
+      textJa: { ...activeConcatenation.originalContent.textJa },
+      textEn: { ...activeConcatenation.originalContent.textEn },
+      textEs: { ...activeConcatenation.originalContent.textEs },
     };
 
     activeConcatenation = { result: null, originalContent: null };
@@ -141,10 +149,8 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
 
   try {
     const response = await apiSearch.getSegmentContext({
-      mediaId: result.media.mediaId,
-      episodeNumber: result.segment.episodeNumber,
-      segmentPosition: result.segment.position,
-      limit: 1, // Fetch three segments: previous, current, and next
+      uuid: result.segment.uuid,
+      limit: 1,
     });
 
     if (response && response.segments.length > 0) {
@@ -155,9 +161,9 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
       activeConcatenation = {
         result,
         originalContent: {
-          ja: { ...result.segment.ja },
-          en: { ...result.segment.en },
-          es: { ...result.segment.es },
+          textJa: { ...result.segment.textJa },
+          textEn: { ...result.segment.textEn },
+          textEs: { ...result.segment.textEs },
         },
       };
 
@@ -173,19 +179,19 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
 
         result.segment = {
           ...result.segment,
-          ja: {
-            content: `${result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.content}</span>`,
-            highlight: `${result.segment.ja.highlight || result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.highlight || nextSegment.segment.ja.content}</span>`,
+          textJa: {
+            content: `${result.segment.textJa.content} <span class="text-cyan-200">${nextSegment.segment.textJa.content}</span>`,
+            highlight: `${result.segment.textJa.highlight || result.segment.textJa.content} <span class="text-cyan-200">${nextSegment.segment.textJa.highlight || nextSegment.segment.textJa.content}</span>`,
           },
-          en: {
-            ...result.segment.en,
-            content: `${result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.content || ''}</span>`,
-            highlight: `${result.segment.en.highlight || result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.highlight || nextSegment.segment.en.content || ''}</span>`,
+          textEn: {
+            ...result.segment.textEn,
+            content: `${result.segment.textEn.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEn.content || ''}</span>`,
+            highlight: `${result.segment.textEn.highlight || result.segment.textEn.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEn.highlight || nextSegment.segment.textEn.content || ''}</span>`,
           },
-          es: {
-            ...result.segment.es,
-            content: `${result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.content || ''}</span>`,
-            highlight: `${result.segment.es.highlight || result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.highlight || nextSegment.segment.es.content || ''}</span>`,
+          textEs: {
+            ...result.segment.textEs,
+            content: `${result.segment.textEs.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEs.content || ''}</span>`,
+            highlight: `${result.segment.textEs.highlight || result.segment.textEs.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEs.highlight || nextSegment.segment.textEs.content || ''}</span>`,
           },
         };
       } else if (direction === 'backward') {
@@ -197,19 +203,19 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
 
         result.segment = {
           ...result.segment,
-          ja: {
-            content: `<span class="text-cyan-200">${previousSegment.segment.ja.content}</span> ${result.segment.ja.content}`,
-            highlight: `<span class="text-cyan-200">${previousSegment.segment.ja.highlight || previousSegment.segment.ja.content}</span> ${result.segment.ja.highlight || result.segment.ja.content}`,
+          textJa: {
+            content: `<span class="text-cyan-200">${previousSegment.segment.textJa.content}</span> ${result.segment.textJa.content}`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.textJa.highlight || previousSegment.segment.textJa.content}</span> ${result.segment.textJa.highlight || result.segment.textJa.content}`,
           },
-          en: {
-            ...result.segment.en,
-            content: `<span class="text-cyan-200">${previousSegment.segment.en.content || ''}</span> ${result.segment.en.content || ''}`,
-            highlight: `<span class="text-cyan-200">${previousSegment.segment.en.highlight || previousSegment.segment.en.content || ''}</span> ${result.segment.en.highlight || result.segment.en.content || ''}`,
+          textEn: {
+            ...result.segment.textEn,
+            content: `<span class="text-cyan-200">${previousSegment.segment.textEn.content || ''}</span> ${result.segment.textEn.content || ''}`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.textEn.highlight || previousSegment.segment.textEn.content || ''}</span> ${result.segment.textEn.highlight || result.segment.textEn.content || ''}`,
           },
-          es: {
-            ...result.segment.es,
-            content: `<span class="text-cyan-200">${previousSegment.segment.es.content || ''}</span> ${result.segment.es.content || ''}`,
-            highlight: `<span class="text-cyan-200">${previousSegment.segment.es.highlight || previousSegment.segment.es.content || ''}</span> ${result.segment.es.highlight || result.segment.es.content || ''}`,
+          textEs: {
+            ...result.segment.textEs,
+            content: `<span class="text-cyan-200">${previousSegment.segment.textEs.content || ''}</span> ${result.segment.textEs.content || ''}`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.textEs.highlight || previousSegment.segment.textEs.content || ''}</span> ${result.segment.textEs.highlight || result.segment.textEs.content || ''}`,
           },
         };
       } else if (direction === 'both') {
@@ -223,19 +229,19 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
         concatenatedAudio = await concatenateAudios(audioUrls);
         result.segment = {
           ...result.segment,
-          ja: {
-            content: `<span class="text-cyan-200">${previousSegment.segment.ja.content}</span> ${result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.content}</span>`,
-            highlight: `<span class="text-cyan-200">${previousSegment.segment.ja.content}</span> ${result.segment.ja.highlight || result.segment.ja.content} <span class="text-cyan-200">${nextSegment.segment.ja.highlight || nextSegment.segment.ja.content}</span>`,
+          textJa: {
+            content: `<span class="text-cyan-200">${previousSegment.segment.textJa.content}</span> ${result.segment.textJa.content} <span class="text-cyan-200">${nextSegment.segment.textJa.content}</span>`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.textJa.content}</span> ${result.segment.textJa.highlight || result.segment.textJa.content} <span class="text-cyan-200">${nextSegment.segment.textJa.highlight || nextSegment.segment.textJa.content}</span>`,
           },
-          en: {
-            ...result.segment.en,
-            content: `<span class="text-cyan-200">${previousSegment.segment.en.content || ''}</span> ${result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.content || ''}</span>`,
-            highlight: `<span class="text-cyan-200">${previousSegment.segment.en.content || ''}</span> ${result.segment.en.highlight || result.segment.en.content || ''} <span class="text-cyan-200">${nextSegment.segment.en.highlight || nextSegment.segment.en.content || ''}</span>`,
+          textEn: {
+            ...result.segment.textEn,
+            content: `<span class="text-cyan-200">${previousSegment.segment.textEn.content || ''}</span> ${result.segment.textEn.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEn.content || ''}</span>`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.textEn.content || ''}</span> ${result.segment.textEn.highlight || result.segment.textEn.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEn.highlight || nextSegment.segment.textEn.content || ''}</span>`,
           },
-          es: {
-            ...result.segment.es,
-            content: `<span class="text-cyan-200">${previousSegment.segment.es.content || ''}</span> ${result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.content || ''}</span>`,
-            highlight: `<span class="text-cyan-200">${previousSegment.segment.es.content || ''}</span> ${result.segment.es.highlight || result.segment.es.content || ''} <span class="text-cyan-200">${nextSegment.segment.es.highlight || nextSegment.segment.es.content || ''}</span>`,
+          textEs: {
+            ...result.segment.textEs,
+            content: `<span class="text-cyan-200">${previousSegment.segment.textEs.content || ''}</span> ${result.segment.textEs.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEs.content || ''}</span>`,
+            highlight: `<span class="text-cyan-200">${previousSegment.segment.textEs.content || ''}</span> ${result.segment.textEs.highlight || result.segment.textEs.content || ''} <span class="text-cyan-200">${nextSegment.segment.textEs.highlight || nextSegment.segment.textEs.content || ''}</span>`,
           },
         };
       }
@@ -281,11 +287,21 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
       }">
       <!-- Image -->
-      <div class="h-auto shrink-0 w-auto lg:w-[25rem] min-w-[200px] min-h-[140px] flex justify-center">
+      <div class="h-56 shrink-0 w-auto lg:w-[25rem] min-w-[200px] flex justify-center relative overflow-hidden">
         <img loading="lazy" :src="result.urls.imageUrl"
-          @click="zoomImage(result.urls.imageUrl)"
-          class="inset-0 h-56 w-full object-cover filter hover:brightness-75 cursor-pointer object-center"
+          @click="!(result.segment.isNsfw && !revealedNsfw.has(result.segment.uuid)) && zoomImage(result.urls.imageUrl)"
+          class="inset-0 h-full w-full object-cover filter object-center transition-all duration-300"
+          :class="result.segment.isNsfw && !revealedNsfw.has(result.segment.uuid) ? 'blur-md' : 'hover:brightness-75 cursor-pointer'"
           :key="result.urls.imageUrl" />
+        <button
+          v-if="result.segment.isNsfw"
+          @click="revealedNsfw.has(result.segment.uuid) ? revealedNsfw.delete(result.segment.uuid) : revealedNsfw.add(result.segment.uuid)"
+          class="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/50 hover:bg-black/70 text-white transition-colors z-10 flex items-center gap-1.5 text-xs">
+          <UiBaseIcon
+            :path="revealedNsfw.has(result.segment.uuid) ? mdiEye : mdiEyeOff"
+            w="w-3.5" h="h-3.5" size="14" />
+          <span>{{ revealedNsfw.has(result.segment.uuid) ? $t('segment.nsfwHide') : $t('segment.nsfwShow') }}</span>
+        </button>
       </div>
       <!-- End Image -->
 
@@ -307,9 +323,9 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
               <h3 class=" ml-2 items-start text-xl xxl:text-lg leading-snug">
-                <span v-html="result.segment.ja.highlight
-                  ? result.segment.ja.highlight
-                  : result.segment.ja.content
+                <span v-html="result.segment.textJa.highlight
+                  ? result.segment.textJa.highlight
+                  : result.segment.textJa.content
                   "></span>
               </h3>
 
@@ -317,7 +333,7 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
             <!-- End Japanese Sentence -->
           </div>
           <!-- Second Row -->
-          <div class="items-start flex-1 pt-1 justify-center">
+          <div class="items-start flex-1 pt-1 justify-center flex flex-wrap gap-2">
             <!-- Tag Translation -->
             <span
               class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-neutral-700 bg-red-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-400">{{
@@ -325,7 +341,7 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
 
             <!-- Tag NSFW -->
             <span v-if="result.segment.isNsfw"
-              class="bg-gray-100 mb-1 text-gray-800 text-xs xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/30 dark:text-gray-400 border border-gray-700">
+              class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-red-700/50 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
               {{ $t('segment.nsfwTag') }}
             </span>
 
@@ -372,7 +388,7 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
               <button
                 @click="filterByMedia(result.media.mediaId)"
                 class="hover:text-white hover:underline transition-colors cursor-pointer">
-                {{ result.media.nameEn }}
+                {{ mediaName(result.media) }}
               </button>
               &bull;
               <button
@@ -381,15 +397,6 @@ const loadNextSegment = async (result: SearchResult, direction: 'forward' | 'bac
                 {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episodeNumber }}
               </button>
               &bull; {{ result.segment.startTime.split('.')[0] }}
-              <button
-                v-if="user.isLoggedIn"
-                class="ml-2 inline-flex items-center hover:text-red-400 transition-colors cursor-pointer"
-                data-nd-overlay="#nd-vertically-centered-scrollable-report"
-                :title="$t('reports.reportMedia')"
-                @click="openReportModal(result, 'MEDIA')"
-              >
-                <UiBaseIcon :path="mdiFlagOutline" w="w-4" h="h-4" size="16" />
-              </button>
             </p>
           </div>
         </div>

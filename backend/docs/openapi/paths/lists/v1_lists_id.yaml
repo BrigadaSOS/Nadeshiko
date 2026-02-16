@@ -4,7 +4,9 @@ get:
   operationId: listShow
   summary: Get list details
   description: |
-    Returns a list with all media in order (sorted by position).
+    Returns a list with all media items sorted by position.
+
+    **Permissions:** `READ_LISTS`
 
   security:
     - apiKeyHeader: [READ_LISTS]
@@ -43,7 +45,9 @@ patch:
   x-internal: true
   summary: Update list metadata
   description: |
-    Updates list name or visibility. Requires admin permissions.
+    Updates list name or visibility.
+
+    **Permissions:** `UPDATE_LISTS`
 
   security:
     - apiKeyHeader: [UPDATE_LISTS]
@@ -96,7 +100,9 @@ delete:
   x-internal: true
   summary: Delete list
   description: |
-    Deletes a list and all its items. Requires admin permissions.
+    Deletes a list and all its items.
+
+    **Permissions:** `DELETE_LISTS`
 
   security:
     - apiKeyHeader: [DELETE_LISTS]

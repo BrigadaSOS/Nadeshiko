@@ -1,13 +1,12 @@
 post:
   tags:
     - Admin
-  operationId: runReviewChecks
+  operationId: adminReviewRunCreate
   summary: Run auto-checks
   description: |
-    Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports.
+    Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports for any findings.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

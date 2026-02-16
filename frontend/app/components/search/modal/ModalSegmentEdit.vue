@@ -30,11 +30,11 @@ watch(
   () => props.segment,
   (seg) => {
     if (seg) {
-      form.ja = seg.segment.ja.content || '';
-      form.en = seg.segment.en.content || '';
-      form.enMt = seg.segment.en.isMachineTranslated;
-      form.es = seg.segment.es.content || '';
-      form.esMt = seg.segment.es.isMachineTranslated;
+      form.ja = seg.segment.textJa.content || '';
+      form.en = seg.segment.textEn.content || '';
+      form.enMt = seg.segment.textEn.isMachineTranslated;
+      form.es = seg.segment.textEs.content || '';
+      form.esMt = seg.segment.textEs.isMachineTranslated;
       form.status = seg.segment.status;
       form.isNsfw = seg.segment.isNsfw;
       errorMessage.value = '';
@@ -43,11 +43,7 @@ watch(
 );
 
 const closeModal = () => {
-  const overlay = document.querySelector('#nd-vertically-centered-scrollable-segment-edit');
-  if (overlay) {
-    overlay.classList.add('hidden');
-    overlay.classList.remove('open');
-  }
+  window.NDOverlay?.close('#nd-vertically-centered-scrollable-segment-edit');
 };
 
 const submitEdit = async () => {
@@ -61,9 +57,9 @@ const submitEdit = async () => {
       method: 'POST',
       body: {
         uuid: props.segment.segment.uuid,
-        ja: form.ja,
-        en: { content: form.en, isMachineTranslated: form.enMt },
-        es: { content: form.es, isMachineTranslated: form.esMt },
+        textJa: form.ja,
+        textEn: { content: form.en, isMachineTranslated: form.enMt },
+        textEs: { content: form.es, isMachineTranslated: form.esMt },
         status: form.status,
         isNsfw: form.isNsfw,
       },
@@ -74,9 +70,9 @@ const submitEdit = async () => {
       ...props.segment,
       segment: {
         ...props.segment.segment,
-        ja: { ...props.segment.segment.ja, content: form.ja },
-        en: { content: form.en, isMachineTranslated: form.enMt },
-        es: { content: form.es, isMachineTranslated: form.esMt },
+        textJa: { ...props.segment.segment.textJa, content: form.ja },
+        textEn: { content: form.en, isMachineTranslated: form.enMt },
+        textEs: { content: form.es, isMachineTranslated: form.esMt },
         status: form.status,
         isNsfw: form.isNsfw,
       },

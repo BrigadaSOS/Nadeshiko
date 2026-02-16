@@ -6,6 +6,8 @@ get:
   description: |
     Returns all lists matching the query filters. Can filter by media ID to find lists containing a specific media. Public lists are visible to all users.
 
+    **Permissions:** `READ_LISTS`
+
   security:
     - apiKeyHeader: [READ_LISTS]
   parameters:
@@ -62,7 +64,9 @@ post:
   x-internal: true
   summary: Create new list
   description: |
-    Creates a new standalone list. Requires admin permissions.
+    Creates a new standalone list.
+
+    **Permissions:** `CREATE_LISTS`
 
   security:
     - apiKeyHeader: [CREATE_LISTS]

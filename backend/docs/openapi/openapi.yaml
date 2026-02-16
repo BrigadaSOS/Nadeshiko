@@ -46,36 +46,34 @@ tags:
   - name: Admin
     x-internal: true
     description: |
-      Administrative endpoints for system management and operations.
+      Administrative endpoints for system management, queue monitoring, and automated review.
 
   - name: Media
     description: |
-      Media CRUD endpoints for managing anime and j-drama entries.
+      Media CRUD endpoints for managing anime, J-Drama, and audiobook entries, episodes, segments, characters, and seiyuu.
 
   - name: User
     description: |
-      User endpoints for account-specific data such as quota usage.
+      User endpoints for account data including quota, preferences, activity history, reports, and data export.
 
   - name: Lists
     description: |
-      List endpoints for managing media collections and watch orders.
+      List endpoints for managing media collections, watch orders, and saved segments.
+
+  - name: Labs
+    description: |
+      Lab feature endpoints for experimental features and beta flags.
 
 paths:
   # Search endpoints
   "/v1/health":
     $ref: "./paths/search/v1_health.yaml"
-  "/v1/search/segments":
-    $ref: "./paths/search/v1_search_segments.yaml"
+  "/v1/search":
+    $ref: "./paths/search/v1_search.yaml"
   "/v1/search/stats":
     $ref: "./paths/search/v1_search_stats.yaml"
   "/v1/search/words":
     $ref: "./paths/search/v1_search_words.yaml"
-  "/v1/search/context":
-    $ref: "./paths/search/v1_search_context.yaml"
-
-  # Media browse endpoint
-  "/v1/media/browse":
-    $ref: "./paths/media/v1_media_browse.yaml"
 
   # Media endpoints
   "/v1/media":
@@ -98,6 +96,8 @@ paths:
   # Segment standalone UUID query
   "/v1/media/segments/{uuid}":
     $ref: "./paths/media/v1_media_segments_uuid.yaml"
+  "/v1/media/segments/{uuid}/context":
+    $ref: "./paths/media/v1_media_segments_uuid_context.yaml"
 
   # Character endpoints (nested under media)
   "/v1/media/characters/{id}":
@@ -112,6 +112,18 @@ paths:
     $ref: "./paths/user/v1_user_quota.yaml"
   "/v1/user/reports":
     $ref: "./paths/user/v1_user_reports.yaml"
+  "/v1/user/preferences":
+    $ref: "./paths/user/v1_user_preferences.yaml"
+  "/v1/user/activity":
+    $ref: "./paths/user/v1_user_activity.yaml"
+  "/v1/user/activity/stats":
+    $ref: "./paths/user/v1_user_activity_stats.yaml"
+  "/v1/user/export":
+    $ref: "./paths/user/v1_user_export.yaml"
+
+  # Labs endpoints
+  "/v1/labs":
+    $ref: "./paths/labs/v1_labs.yaml"
 
   # List endpoints
   "/v1/lists":
@@ -173,5 +185,5 @@ components:
       type: apiKey
       in: cookie
       name: nadeshiko.session_token
-      description: Session authentication via better-auth cookie
+      description: Session authentication via cookie
 

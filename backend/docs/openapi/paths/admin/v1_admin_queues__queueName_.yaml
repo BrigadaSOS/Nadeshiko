@@ -1,18 +1,17 @@
 get:
   tags:
     - Admin
-  operationId: getQueueDetails
+  operationId: adminQueueShow
   summary: Get detailed queue information
   description: |
-    Get detailed information about a specific queue including completed, expired, and cancelled jobs.
-
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    Returns detailed information about a specific queue including completed, expired, and cancelled jobs.
 
     **Queue names:**
-    - `es-sync-create` - Jobs to create new segments
+    - `es-sync-create` - Jobs to create new segments in Elasticsearch
     - `es-sync-update` - Jobs to update existing segments
     - `es-sync-delete` - Jobs to delete segments
+
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

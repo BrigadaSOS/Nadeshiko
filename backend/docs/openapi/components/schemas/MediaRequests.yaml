@@ -71,6 +71,10 @@ MediaFields: &mediaFields
     type: integer
     description: Airing year for the media
     example: 2010
+  storageBasePath:
+    type: string
+    description: Base path for R2/CDN storage (e.g. "media/21459")
+    example: "media/21459"
   characters:
     type: array
     items:

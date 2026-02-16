@@ -36,9 +36,7 @@ const mediaReasons = [
   'OTHER',
 ] as const;
 
-const availableReasons = computed(() =>
-  props.targetType === 'SEGMENT' ? segmentReasons : mediaReasons,
-);
+const availableReasons = computed(() => (props.targetType === 'SEGMENT' ? segmentReasons : mediaReasons));
 
 watch(
   () => props.targetMediaId,

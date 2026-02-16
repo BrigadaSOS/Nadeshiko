@@ -4,7 +4,9 @@ get:
     - Media
   summary: Get single segment
   description: |
-    Get a specific segment by ID
+    Returns a specific segment by its ID within the media/episode hierarchy.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]
@@ -53,7 +55,9 @@ patch:
     - Media
   summary: Update segment
   description: |
-    Update an existing segment with partial data
+    Updates an existing segment. Only provided fields will be updated.
+
+    **Permissions:** `UPDATE_MEDIA`
 
   security:
     - apiKeyHeader: [UPDATE_MEDIA]
@@ -106,9 +110,11 @@ delete:
     - Media
   operationId: segmentDestroy
   x-internal: true
-  summary: Delete segment (set status to deleted)
+  summary: Delete segment
   description: |
-    Delete a segment by setting its status to 0 (DELETED)
+    Soft-deletes a segment by setting its status to DELETED.
+
+    **Permissions:** `REMOVE_MEDIA`
 
   security:
     - apiKeyHeader: [REMOVE_MEDIA]

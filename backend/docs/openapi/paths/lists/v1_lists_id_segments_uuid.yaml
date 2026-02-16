@@ -6,6 +6,8 @@ patch:
   description: |
     Updates the note or position of a segment in a list. Requires list ownership or admin.
 
+    **Permissions:** `UPDATE_LISTS`
+
   security:
     - apiKeyHeader: [UPDATE_LISTS]
     - sessionCookie: []
@@ -71,6 +73,8 @@ delete:
   summary: Remove segment from list
   description: |
     Removes a segment from a list. Requires list ownership or admin.
+
+    **Permissions:** `UPDATE_LISTS`
 
   security:
     - apiKeyHeader: [UPDATE_LISTS]

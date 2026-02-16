@@ -154,7 +154,7 @@ jobs:
           cd frontend
           kamal deploy -d dev --skip-push
 
-  dispatch-sdk:
+  dispatch-sdk-ts:
     needs: changes
     if: needs.changes.outputs.openapi == 'true'
     runs-on: ubuntu-latest
@@ -185,6 +185,28 @@ jobs:
             -f event_type='backend_release' \
             -f client_payload[release_channel]="dev" \
             -f client_payload[backend_sha]="${{ github.sha }}"
+
+  dispatch-sdk-python:
+    needs: changes
+    if: needs.changes.outputs.openapi == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install backend dependencies
+        run: cd backend && bun install --frozen-lockfile
+
+      - name: Generate OpenAPI spec
+        run: |
+          cd backend
+          bun run docs:bundle
+          test -f docs/generated/openapi.yaml
 
       - name: Dispatch Python SDK dev release
         env:

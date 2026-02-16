@@ -13,6 +13,23 @@ const isAuth = computed(() => user_store.isLoggedIn);
 const sessionsActionLoading = ref(false);
 const sessionsError = ref('');
 const deletingAccount = ref(false);
+const savingPreferences = ref(false);
+
+const updateMediaNameLanguage = async (value: string) => {
+  savingPreferences.value = true;
+  try {
+    await $fetch('/v1/user/preferences', {
+      method: 'PATCH',
+      credentials: 'include',
+      body: { mediaNameLanguage: value },
+    });
+    user_store.preferences = { ...user_store.preferences, mediaNameLanguage: value };
+  } catch (error) {
+    console.error('Failed to update preference:', error);
+  } finally {
+    savingPreferences.value = false;
+  }
+};
 
 // SSR-compatible sessions fetch
 const {
@@ -261,6 +278,30 @@ const deleteCurrentAccount = async () => {
       </table>
 
       <p v-else class="text-gray-300">No active sessions found.</p>
+    </div>
+  </div>
+
+  <!-- Preferences Card -->
+  <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
+    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Preferences</h3>
+    <div class="border-b pt-4 border-white/10" />
+    <div class="mt-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-white">Media Name Language</p>
+          <p class="text-gray-400 text-sm">Choose which language to display anime and media names in</p>
+        </div>
+        <select
+          :value="user_store.preferences?.mediaNameLanguage || 'english'"
+          @change="updateMediaNameLanguage(($event.target as HTMLSelectElement).value)"
+          :disabled="savingPreferences"
+          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+        >
+          <option value="english">English</option>
+          <option value="japanese">Japanese</option>
+          <option value="romaji">Romaji</option>
+        </select>
+      </div>
     </div>
   </div>
 

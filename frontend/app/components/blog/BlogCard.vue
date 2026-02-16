@@ -1,92 +1,90 @@
 <script setup lang="ts">
 interface BlogPost {
-  slug: string
-  title: string
-  description: string
-  date: string | Date | null
-  author?: string
-  excerpt?: string
-  tags?: string[]
-  image?: string
-  path?: string
-  body?: any
+  slug: string;
+  title: string;
+  description: string;
+  date: string | Date | null;
+  author?: string;
+  excerpt?: string;
+  tags?: string[];
+  image?: string;
+  path?: string;
+  body?: any;
 }
 
 const props = defineProps<{
-  post: BlogPost
-}>()
+  post: BlogPost;
+}>();
 
 // Extract slug from path if not directly provided
 const blogSlug = computed(() => {
-  if (props.post.slug) return props.post.slug
+  if (props.post.slug) return props.post.slug;
   if (props.post.path) {
     // Remove locale prefix, /blog/ prefix, and .md extension
     return props.post.path
       .replace(/^\/[a-z]{2}\//, '') // Remove locale prefix like /en/
       .replace(/^blog\//, '') // Remove /blog/ prefix if present
-      .replace(/\.md$/, '') // Remove .md extension
+      .replace(/\.md$/, ''); // Remove .md extension
   }
-  return ''
-})
+  return '';
+});
 
 // Format the date for display
 const formattedDate = computed(() => {
-  const dateValue = props.post.date
+  const dateValue = props.post.date;
 
-  if (!dateValue) return null
+  if (!dateValue) return null;
 
   try {
     // Handle object dates (empty objects from serialization)
     if (typeof dateValue === 'object' && !Array.isArray(dateValue) && dateValue !== null) {
-      const keys = Object.keys(dateValue)
-      if (keys.length === 0) return null
+      const keys = Object.keys(dateValue);
+      if (keys.length === 0) return null;
     }
 
-    const date = new Date(dateValue)
-    if (isNaN(date.getTime())) return null
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return null;
 
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
-    })
+      day: 'numeric',
+    });
   } catch {
-    return null
+    return null;
   }
-})
+});
 
 // Get content preview - first ~500 words from body
 const contentPreview = computed(() => {
   // First, try to get content from the body
-  const body = props.post.body
+  const body = props.post.body;
   if (body && body.children && Array.isArray(body.children)) {
     // Extract text content from paragraph elements
     const paragraphs = body.children
       .filter((child: any) => child?.tag === 'p')
       .map((child: any) => {
         if (child.children && Array.isArray(child.children)) {
-          return child.children
-            .map((c: any) => c.value || '')
-            .join('')
+          return child.children.map((c: any) => c.value || '').join('');
         }
-        return ''
+        return '';
       })
-      .filter(text => text.trim().length > 0)
-      .join(' ')
+      .filter((text) => text.trim().length > 0)
+      .join(' ');
 
     // Limit to approximately 500 words
     if (paragraphs) {
-      const words = paragraphs.split(/\s+/)
+      const words = paragraphs.split(/\s+/);
       if (words.length > 500) {
-        return words.slice(0, 500).join(' ') + '...'
+        return words.slice(0, 500).join(' ') + '...';
       }
-      return paragraphs
+      return paragraphs;
     }
   }
 
   // Fallback to excerpt or description
-  return props.post.excerpt || props.post.description || ''
-})
+  return props.post.excerpt || props.post.description || '';
+});
 </script>
 
 <template>

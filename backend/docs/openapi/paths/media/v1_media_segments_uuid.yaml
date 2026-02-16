@@ -4,7 +4,9 @@ get:
   operationId: segmentShowByUuid
   summary: Get segment by UUID
   description: |
-    Get a specific segment by its UUID
+    Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]

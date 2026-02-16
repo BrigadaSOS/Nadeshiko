@@ -1,47 +1,33 @@
-# NadeDB Frontend (Nuxt 3)
+# Nadeshiko Frontend
 
 ## Development Setup
 
 ### Prerequisites
+
 - bun
 - Backend API running (see backend README)
 
-### 1. Go to frontend
-```bash
-cd frontend
-```
+### 1. Install Dependencies
 
-### 2. Install Dependencies
 ```bash
 bun install
 ```
 
-### 3. Configure Environment
+### 2. Configure Environment
+
 Create `.env` file from example:
+
 ```bash
 cp .env.example .env
 ```
 
 ### 4. Start Development Server
+
 ```bash
 bun run dev
 ```
+
 App will be available at: `http://localhost:3000`
-
-## Development Scripts
-```bash
-# Lint code
-bun run lint
-
-# Typecheck
-bun run typecheck
-
-# Build for production
-bun run build
-
-# Preview production build
-bun run preview
-```
 
 ## Deployment (Kamal)
 

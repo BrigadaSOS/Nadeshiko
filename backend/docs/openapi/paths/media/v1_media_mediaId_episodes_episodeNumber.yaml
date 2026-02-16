@@ -4,7 +4,9 @@ get:
     - Media
   summary: Get single episode
   description: |
-    Get a specific episode by media ID and episode number
+    Returns a specific episode by media ID and episode number.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]
@@ -46,7 +48,9 @@ patch:
   x-internal: true
   summary: Update episode
   description: |
-    Update an existing episode with partial data
+    Updates an existing episode. Only provided fields will be updated.
+
+    **Permissions:** `UPDATE_MEDIA`
 
   security:
     - apiKeyHeader: [UPDATE_MEDIA]
@@ -94,7 +98,9 @@ delete:
   x-internal: true
   summary: Delete an episode
   description: |
-    Soft delete an episode. Segments are not cascade deleted, this only "hides" the episode.
+    Soft-deletes an episode. Segments are not cascade deleted — this only hides the episode from results.
+
+    **Permissions:** `REMOVE_MEDIA`
 
   security:
     - apiKeyHeader: [REMOVE_MEDIA]

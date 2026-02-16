@@ -9,6 +9,11 @@ export enum UserRoleType {
   PATREON = 'PATREON',
 }
 
+export interface UserPreferences {
+  labs?: Record<string, boolean>;
+  searchHistory?: { enabled: boolean };
+}
+
 @Entity('User')
 @Index(['email'])
 export class User extends BaseEntity {
@@ -44,6 +49,9 @@ export class User extends BaseEntity {
 
   @Column({ name: 'monthly_quota_limit', type: 'bigint', default: 2500 })
   monthlyQuotaLimit!: string;
+
+  @Column({ type: 'jsonb', default: '{}' })
+  preferences!: UserPreferences;
 
   // Relations
   @OneToOne('ApiAuth', 'user')

@@ -5,9 +5,7 @@ export const highReportDensity: MediaReviewCheck = {
   label: 'High Report Density',
   description: 'Media with many user-submitted reports',
   targetType: 'MEDIA',
-  thresholdSchema: [
-    { key: 'minReportCount', label: 'Min report count', type: 'number', default: 3, min: 1 },
-  ],
+  thresholdSchema: [{ key: 'minReportCount', label: 'Min report count', type: 'number', default: 3, min: 1 }],
 
   async run(ctx: CheckRunContext): Promise<CheckResult[]> {
     const minReportCount = ctx.threshold.minReportCount as number;

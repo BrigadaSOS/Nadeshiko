@@ -20,7 +20,7 @@ SegmentFields: &segmentFields
     type: string
     description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
     example: "0:33:28.464000"
-  ja:
+  textJa:
     type: object
     properties:
       content:
@@ -28,7 +28,7 @@ SegmentFields: &segmentFields
         maxLength: 500
         description: Original Japanese content of the segment
         example: "僕は僕で、君は君だ。"
-  es:
+  textEs:
     type: object
     properties:
       content:
@@ -41,7 +41,7 @@ SegmentFields: &segmentFields
         description: Whether the Spanish translation was machine-translated
         default: false
         example: false
-  en:
+  textEn:
     type: object
     properties:
       content:
@@ -76,7 +76,7 @@ SegmentCreateRequest:
     - position
     - startTime
     - endTime
-    - ja
+    - textJa
     - storage
     - hashedId
   properties:

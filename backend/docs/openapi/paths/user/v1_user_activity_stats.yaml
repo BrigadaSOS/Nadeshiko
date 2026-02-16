@@ -1,0 +1,54 @@
+get:
+  tags:
+    - User
+  operationId: userActivityStatsShow
+  summary: Get user activity statistics
+  description: |
+    Returns aggregate statistics about the authenticated user's activity:
+    total searches, exports, plays, and study streak.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - totalSearches
+              - totalExports
+              - totalPlays
+              - totalListAdds
+              - streakDays
+              - topMedia
+            properties:
+              totalSearches:
+                type: integer
+              totalExports:
+                type: integer
+              totalPlays:
+                type: integer
+              totalListAdds:
+                type: integer
+              streakDays:
+                type: integer
+                description: Consecutive days with at least one activity
+              topMedia:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - mediaId
+                    - count
+                  properties:
+                    mediaId:
+                      type: integer
+                    count:
+                      type: integer
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

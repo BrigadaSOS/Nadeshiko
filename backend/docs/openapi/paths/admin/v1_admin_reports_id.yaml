@@ -1,14 +1,13 @@
 patch:
   tags:
     - Admin
-  operationId: updateReport
-  summary: Update a report (admin)
+  operationId: adminReportUpdate
+  summary: Update a report
   description: |
-    Update the status and/or admin notes of a report.
+    Updates the status and/or admin notes of a report.
     Works for both USER and AUTO reports.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

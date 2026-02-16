@@ -1,3 +1,6 @@
-import type { t_GetSegmentContextRequestBodySchema } from '../../generated/models';
-
-export type QuerySurroundingSegmentsRequest = t_GetSegmentContextRequestBodySchema;
+export interface QuerySurroundingSegmentsRequest {
+  readonly mediaId: number;
+  readonly episodeNumber: number;
+  readonly segmentPosition: number;
+  readonly limit?: number;
+}

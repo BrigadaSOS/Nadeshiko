@@ -1,18 +1,17 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
+import { CATEGORY_API_MAPPING } from '~/utils/categories';
 
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
+const { mediaName: getMediaName } = useMediaName();
 const props = defineProps(['searchData', 'categorySelected']);
 const mediaStatistics = ref([]);
 const querySearchMedia = ref('');
 const debouncedQuerySearchMedia = ref('');
 const categorySelected = ref(props.categorySelected);
-const categoryApiMapping = {
-  anime: 'ANIME',
-  liveaction: 'JDRAMA',
-};
+const categoryApiMapping = CATEGORY_API_MAPPING;
 
 // Cache translated strings outside computed to avoid repeated lookups
 const allLabel = computed(() => t('searchpage.main.labels.all'));
@@ -57,6 +56,8 @@ watch(
 const normalizedStatistics = computed(() => {
   return mediaStatistics.value.map((item) => ({
     ...item,
+    displayName: getMediaName(item),
+    displayNameLower: getMediaName(item).toLowerCase(),
     nameEnLower: item?.nameEn?.toLowerCase() || '',
     nameJaLower: item?.nameJa?.toLowerCase() || '',
     nameRomajiLower: item?.nameRomaji?.toLowerCase() || '',
@@ -80,7 +81,7 @@ const filteredMedia = computed(() => {
 
   const allOption = {
     mediaId: 0,
-    nameEn: allLabel.value,
+    displayName: allLabel.value,
     segmentCount: totalCount,
   };
 
@@ -89,8 +90,8 @@ const filteredMedia = computed(() => {
   }
 
   const sortedItems = filteredItems.sort((a, b) => {
-    const nameA = a.nameEnLower;
-    const nameB = b.nameEnLower;
+    const nameA = a.displayNameLower;
+    const nameB = b.displayNameLower;
 
     if (nameA < nameB) return -1;
     if (nameA > nameB) return 1;
@@ -151,10 +152,10 @@ const clearFilters = () => {
             </div>
             <div class="overflow-auto snap-y max-h-[14rem]">
                 <li class="snap-start" v-for="item in filteredMedia" :key="item.mediaId">
-                    <button @click="filterAnime(item.mediaId, item.nameEn)"
+                    <button @click="filterAnime(item.mediaId, item.displayName)"
                         :class="{ 'bg-sgrayhover': (item.mediaId === 0 && selectedMediaId === null) || (item.mediaId === selectedMediaId) }"
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.nameEn }}</span>
+                        <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.displayName }}</span>
                         <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
                             {{ item.segmentCount }}
                         </span>

@@ -80,11 +80,8 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
         retryLimit: 5,
         retryDelay: 1000, // 1 second initial delay
         retryBackoff: true,
-        expireIn: 3600, // 1 hour
-        // Remove completed jobs after 1 day to keep the database clean
-        completedRetentionDays: 1,
-        // Remove failed jobs after 7 days so we can inspect them
-        failedRetentionDays: 7,
+        expireInSeconds: 3600, // 1 hour
+        retentionSeconds: 86400, // Remove completed jobs after 1 day
       },
     },
     {
@@ -93,9 +90,8 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
         retryLimit: 5,
         retryDelay: 1000,
         retryBackoff: true,
-        expireIn: 3600,
-        completedRetentionDays: 1,
-        failedRetentionDays: 7,
+        expireInSeconds: 3600,
+        retentionSeconds: 86400, // Remove completed jobs after 1 day
       },
     },
     {
@@ -104,9 +100,8 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
         retryLimit: 3,
         retryDelay: 500,
         retryBackoff: true,
-        expireIn: 3600,
-        completedRetentionDays: 1,
-        failedRetentionDays: 7,
+        expireInSeconds: 3600,
+        retentionSeconds: 86400, // Remove completed jobs after 1 day
       },
     },
     {
@@ -115,9 +110,8 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
         retryLimit: 5,
         retryDelay: 5000,
         retryBackoff: true,
-        expireIn: 3600,
-        completedRetentionDays: 1,
-        failedRetentionDays: 7,
+        expireInSeconds: 3600,
+        retentionSeconds: 86400, // Remove completed jobs after 1 day
       },
     },
     {
@@ -126,9 +120,8 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
         retryLimit: 5,
         retryDelay: 1000,
         retryBackoff: true,
-        expireIn: 1800, // 30 minutes
-        completedRetentionDays: 1,
-        failedRetentionDays: 7,
+        expireInSeconds: 1800, // 30 minutes
+        retentionSeconds: 86400, // Remove completed jobs after 1 day
       },
     },
   ];
@@ -137,6 +130,17 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
     await boss.createQueue(queue.name, queue.options);
     logger.info(`Created queue: ${queue.name}`);
   }
+
+  // Schedule activity retention cleanup (daily at 3 AM UTC)
+  await boss.createQueue('activity-retention-cleanup', {
+    retryLimit: 3,
+    retryDelay: 60000,
+    retryBackoff: true,
+    expireInSeconds: 3600,
+    retentionSeconds: 86400, // Remove completed jobs after 1 day
+  });
+  await boss.schedule('activity-retention-cleanup', '0 3 * * *', {});
+  logger.info('Scheduled activity retention cleanup cron job');
 
   bossInstance = boss;
   logger.info('PgBoss initialized successfully');

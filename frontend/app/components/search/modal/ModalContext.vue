@@ -1,31 +1,33 @@
 <script setup lang="ts">
+import type { SearchResponse, SearchResult } from '~/stores/search';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
-const props = defineProps(['sentence']);
+const { mediaName } = useMediaName();
+const props = defineProps<{ sentence: SearchResult | null }>();
 
 const apiSearch = useApiSearch();
 
 const isLoading = ref(false);
-const finalsentences = ref([]);
+const contextData = ref<SearchResponse | null>(null);
 const highlightedPosition = ref<number | null>(null);
 
 const getContextSentence = async () => {
   if (!props.sentence || isLoading.value) return;
   isLoading.value = true;
-  finalsentences.value = [];
+  contextData.value = null;
 
   try {
     const response = await apiSearch.getSegmentContext({
-      mediaId: props.sentence.media.mediaId,
-      episodeNumber: props.sentence.segment.episodeNumber,
-      segmentPosition: props.sentence.segment.position,
+      uuid: props.sentence.segment.uuid,
       limit: 15,
     });
-    finalsentences.value = { results: response.segments, cursor: null };
+    contextData.value = { results: response.segments };
     highlightedPosition.value = props.sentence.segment.position;
     await nextTick();
 
-    const match = response?.segments?.find((s: any) => s.segment.position === props.sentence.segment.position);
+    const match = response?.segments?.find(
+      (s: SearchResult) => s.segment.position === props.sentence!.segment.position,
+    );
     if (match) {
       scrollToElement(match.segment.uuid);
     }
@@ -45,9 +47,9 @@ watch(
   },
 );
 
-const scrollToElement = (pos) => {
+const scrollToElement = (id: string) => {
   nextTick(() => {
-    const el = document.getElementById(pos);
+    const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: 'instant', block: 'center' });
     }
@@ -63,7 +65,7 @@ const scrollToElement = (pos) => {
       <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
         <h3 class="font-bold text-gray-800 dark:text-white">
           {{ t('searchpage.modalcontext.labels.context') }} - {{
-            finalsentences?.results?.[0]?.media?.nameEn }}
+            contextData?.results?.[0]?.media ? mediaName(contextData.results[0].media) : '' }}
         </h3>
         <button type="button"
           class="nd-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
@@ -77,8 +79,8 @@ const scrollToElement = (pos) => {
         </button>
       </div>
       <div class="flex-grow overflow-y-auto p-6">
-        <template v-if="finalsentences">
-          <SearchSegmentContainer :searchData="finalsentences" :isLoading="isLoading"
+        <template v-if="contextData">
+          <SearchSegmentContainer :searchData="contextData" :isLoading="isLoading"
             :highlightedPosition="highlightedPosition" class="w-full h-full" />
         </template>
       </div>

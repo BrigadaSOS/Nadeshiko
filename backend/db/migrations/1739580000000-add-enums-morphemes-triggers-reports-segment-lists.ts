@@ -147,8 +147,12 @@ export class AddEnumsMorphemesTriggersReportsSegmentLists1739580000000 implement
       )
     `);
 
-    await queryRunner.query(`CREATE UNIQUE INDEX "IDX_list_segment_item_list_uuid" ON "ListSegmentItem" ("list_id", "segment_uuid")`);
-    await queryRunner.query(`CREATE INDEX "IDX_list_segment_item_list_position" ON "ListSegmentItem" ("list_id", "position")`);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_list_segment_item_list_uuid" ON "ListSegmentItem" ("list_id", "segment_uuid")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_list_segment_item_list_position" ON "ListSegmentItem" ("list_id", "position")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

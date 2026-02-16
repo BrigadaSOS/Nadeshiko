@@ -5,6 +5,9 @@ get:
   summary: List all media
   description: |
     Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
+    Supports filtering by category and text search.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]
@@ -31,6 +34,18 @@ get:
         type: string
         enum: [ANIME, JDRAMA]
         example: ANIME
+    - name: query
+      in: query
+      description: Search query for filtering media by name
+      schema:
+        type: string
+        example: steins
+    - name: includeCharacters
+      in: query
+      description: Include character and voice actor data in the response
+      schema:
+        type: boolean
+        default: false
   responses:
     "200":
       description: OK
@@ -57,6 +72,8 @@ post:
   summary: Create new media
   description: |
     Creates a new media entry in the database.
+
+    **Permissions:** `ADD_MEDIA`
 
   security:
     - apiKeyHeader: [ADD_MEDIA]

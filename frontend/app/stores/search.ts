@@ -12,9 +12,8 @@ export type SearchStatsResponse = {
 };
 
 export type MediaBrowseResponse = {
-  readonly stats: MediaBrowseStats;
-  readonly results: MediaSummary[];
-  readonly cursor: number | null;
+  readonly data: MediaSummary[];
+  readonly cursor?: number;
   readonly hasMore: boolean;
 };
 
@@ -68,9 +67,9 @@ export type SearchResultSegment = {
   startTime: string;
   endTime: string;
   episodeNumber: number;
-  ja: { content: string; highlight?: string };
-  en: { content?: string; highlight?: string; isMachineTranslated: boolean };
-  es: { content?: string; highlight?: string; isMachineTranslated: boolean };
+  textJa: { content: string; highlight?: string };
+  textEn: { content?: string; highlight?: string; isMachineTranslated: boolean };
+  textEs: { content?: string; highlight?: string; isMachineTranslated: boolean };
   isNsfw: boolean;
 };
 
@@ -86,13 +85,6 @@ export type MediaSearchStats = {
 
 export type EpisodeHits = Record<string, number>;
 
-export interface MediaBrowseStats {
-  readonly filteredMediaCount: number;
-  readonly filteredSegmentCount: number;
-  readonly totalMediaCount: number;
-  readonly totalSegmentCount: number;
-}
-
 export interface ExternalIds {
   anilist?: string;
   imdb?: string;
@@ -103,22 +95,23 @@ export interface MediaSummary {
   id: number;
   category: SearchCategory;
   externalIds?: ExternalIds;
-  createdAt: string;
-  updatedAt?: number;
   nameRomaji: string;
   nameEn: string;
   nameJa: string;
   airingFormat: string;
   airingStatus: string;
   startDate: string;
-  endDate: string;
-  folderMediaName: string;
+  endDate?: string | null;
   genres: string[];
   coverUrl: string;
   bannerUrl: string;
   version: string;
-  segmentCount: number;
-  episodeCount: number;
+  segmentCount?: number;
+  episodeCount?: number;
+  seasonName: string;
+  seasonYear: number;
+  studio: string;
+  storageBasePath?: string | null;
 }
 
 type SearchRequest = {
@@ -155,27 +148,25 @@ type MultiSearchRequest = {
 };
 
 type SegmentContextRequest = {
-  mediaId: number;
-  episodeNumber: number;
-  segmentPosition: number;
-  limit: number;
+  uuid: string;
+  limit?: number;
 };
 
 export const useApiSearch = defineStore('search', {
   actions: {
     async getRecentMedia(params: {
-      size?: number;
+      limit?: number;
       query?: string;
       cursor?: number;
-      type?: string;
+      category?: string;
     }): Promise<MediaBrowseResponse> {
       return await $fetch<MediaBrowseResponse>('/api/media/browse', {
         method: 'GET',
         params: {
-          size: params.size,
+          limit: params.limit,
           query: params.query || '',
           cursor: params.cursor || 0,
-          ...(params.type && { type: params.type }),
+          ...(params.category && { category: params.category }),
         },
       });
     },
@@ -224,14 +215,11 @@ export const useApiSearch = defineStore('search', {
         },
       });
     },
-    async getSegmentContext(body: SegmentContextRequest): Promise<SegmentContextResponse> {
-      return await $fetch<SegmentContextResponse>('/api/search/context', {
-        method: 'POST',
-        body: {
-          mediaId: body.mediaId,
-          episodeNumber: body.episodeNumber,
-          segmentPosition: body.segmentPosition,
-          limit: body.limit,
+    async getSegmentContext(params: SegmentContextRequest): Promise<SegmentContextResponse> {
+      return await $fetch<SegmentContextResponse>(`/api/search/context/${params.uuid}`, {
+        method: 'GET',
+        params: {
+          limit: params.limit,
         },
       });
     },

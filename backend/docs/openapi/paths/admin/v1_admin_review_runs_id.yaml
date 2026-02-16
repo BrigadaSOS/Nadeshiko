@@ -1,13 +1,12 @@
 get:
   tags:
     - Admin
-  operationId: getReviewRunDetails
+  operationId: adminReviewRunShow
   summary: Get a specific run's details
   description: |
-    Returns a specific run record with its linked reports.
+    Returns a specific review check run record with its linked reports.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

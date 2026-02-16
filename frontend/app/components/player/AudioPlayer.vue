@@ -20,6 +20,7 @@ import { storeToRefs } from 'pinia';
 const route = useRoute();
 
 const playerStore = usePlayerStore();
+const { mediaName } = useMediaName();
 const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
   storeToRefs(playerStore);
 
@@ -262,7 +263,7 @@ const updateProgress = () => {
 
 const getJapaneseContent = (result: any) => {
   if (!result) return '';
-  return result.segment.ja.highlight || result.segment.ja.content || '';
+  return result.segment.textJa.highlight || result.segment.textJa.content || '';
 };
 
 const getAnimeImage = (result: any) => {
@@ -286,7 +287,7 @@ const getAnimeImage = (result: any) => {
                         <div class="flex flex-col gap-1 opacity-80">
                             <span class="text-xs font-bold tracking-widest uppercase text-white/60">Now Playing</span>
                             <span class="text-sm font-semibold truncate max-w-[180px]">{{
-                                currentResult.media.nameEn }}</span>
+                                mediaName(currentResult.media) }}</span>
                         </div>
 
 
@@ -392,7 +393,7 @@ const getAnimeImage = (result: any) => {
                         <div class="flex-grow min-w-0">
                             <p class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentResult)">
                             </p>
-                            <p class="text-xs text-gray-400 truncate">{{ currentResult.media.nameEn }}</p>
+                            <p class="text-xs text-gray-400 truncate">{{ mediaName(currentResult.media) }}</p>
                         </div>
                     </div>
 

@@ -44,7 +44,8 @@ export const dbEsSyncIssues: MediaReviewCheck = {
     });
 
     const esCounts = new Map<number, number>();
-    const buckets = (esResponse.aggregations?.media as { buckets: Array<{ key: number; doc_count: number }> })?.buckets ?? [];
+    const buckets =
+      (esResponse.aggregations?.media as { buckets: Array<{ key: number; doc_count: number }> })?.buckets ?? [];
     for (const bucket of buckets) {
       esCounts.set(bucket.key, bucket.doc_count);
     }

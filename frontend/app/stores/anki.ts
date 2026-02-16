@@ -121,7 +121,6 @@ export const ankiStore = defineStore('anki', {
         return await response.json();
       } catch (error) {
         console.error(`Error while requesting ${action}:`, error);
-        // throw error;
       }
     },
 
@@ -180,7 +179,6 @@ export const ankiStore = defineStore('anki', {
       try {
         const currentKey = this.ankiPreferences.settings.current.key ? this.ankiPreferences.settings.current.key : '';
 
-        // TODO: Define type
         const response = (await this.executeAction('findNotes', { query: query })) as FindNotesResponse;
 
         if (response.result && response.result.length === 0) {
@@ -199,8 +197,6 @@ export const ankiStore = defineStore('anki', {
         });
 
         return notesInfo;
-
-        // notes.value = notesInfo;
       } catch (error) {
         console.error('Error while fetching notes:', error);
       }
@@ -210,8 +206,8 @@ export const ankiStore = defineStore('anki', {
 
     async addResultToAnki(sentence: SearchResult, id?: number) {
       if (!import.meta.client) return;
-      // TODO: creo que podriamos usar this.$state o this.ankiPreferences (revisar)
       const { $i18n } = useNuxtApp();
+      const { mediaName } = useMediaName();
 
       const localSettings = import.meta.client ? localStorage.getItem('settings') : null;
 
@@ -235,13 +231,11 @@ export const ankiStore = defineStore('anki', {
           queryParts.push('added:2 is:new');
           queryString = queryParts.join(' ');
 
-          const response = await this.executeAction('findNotes', { query: queryString });
+          const response = (await this.executeAction('findNotes', { query: queryString })) as FindNotesResponse;
           const noteIDs = response.result;
 
           // Select the latest card
-
-          // @ts-expect-error:ignore-next-line
-          const latestCard = noteIDs.reduce((a, b) => Math.max(a, b), -1);
+          const latestCard = noteIDs.reduce((a: number, b: number) => Math.max(a, b), -1);
 
           if (!latestCard || latestCard === -1) {
             useToastError($i18n.t('anki.toast.noCardToExport'));
@@ -254,8 +248,6 @@ export const ankiStore = defineStore('anki', {
         // Extract the information of the note to update
         const infoResponse = await this.executeAction('notesInfo', { notes: [cardID] });
         const infoCard = infoResponse.result;
-        console.log(infoCard);
-
         // Store the multimedia content in Anki
         const imageRequest = this.executeAction('storeMediaFile', {
           filename: `${sentence.segment.uuid}.webp`,
@@ -318,19 +310,19 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-jp':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `<div>${sentence.segment.ja.content}</div>`,
+                    `<div>${sentence.segment.textJa.content}</div>`,
                   );
                   break;
                 case 'sentence-es':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `<div>${sentence.segment.es.content ?? ''}</div>`,
+                    `<div>${sentence.segment.textEs.content ?? ''}</div>`,
                   );
                   break;
                 case 'sentence-en':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `<div>${sentence.segment.en.content ?? ''}</div>`,
+                    `<div>${sentence.segment.textEn.content ?? ''}</div>`,
                   );
                   break;
                 case 'image':
@@ -342,7 +334,7 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-info':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `${sentence.media.nameEn}・Episode ${sentence.segment.episodeNumber}, Timestamp: ${sentence.segment.startTime.split('.')[0]}`,
+                    `${mediaName(sentence.media)}・Episode ${sentence.segment.episodeNumber}, Timestamp: ${sentence.segment.startTime.split('.')[0]}`,
                   );
                   break;
               }
@@ -350,7 +342,6 @@ export const ankiStore = defineStore('anki', {
           }
         });
 
-        // TODO: handle error
         await this.executeAction('updateNoteFields', {
           note: {
             fields: fieldsNew,
@@ -363,7 +354,7 @@ export const ankiStore = defineStore('anki', {
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {
-        console.log(error);
+        console.error(error);
         useToastError($i18n.t('anki.toast.cardAddError', { error: error }));
       }
     },

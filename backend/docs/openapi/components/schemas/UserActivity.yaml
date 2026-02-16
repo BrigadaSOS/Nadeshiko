@@ -1,0 +1,22 @@
+type: object
+required:
+  - id
+  - activityType
+  - createdAt
+properties:
+  id:
+    type: integer
+  activityType:
+    $ref: "./ActivityType.yaml"
+  segmentUuid:
+    type: string
+    nullable: true
+  mediaId:
+    type: integer
+    nullable: true
+  searchQuery:
+    type: string
+    nullable: true
+  createdAt:
+    type: string
+    format: date-time

@@ -42,9 +42,7 @@ const handleKeyDown = (event) => {
   }
 };
 
-query.value = route.params.query
-  ? decodeURIComponent(String(route.params.query))
-  : String(route.query.query || '');
+query.value = route.params.query ? decodeURIComponent(String(route.params.query)) : String(route.query.query || '');
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);

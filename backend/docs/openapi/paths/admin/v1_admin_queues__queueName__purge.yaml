@@ -1,18 +1,17 @@
 delete:
   tags:
     - Admin
-  operationId: purgeFailedJobs
-  summary: Delete failed jobs from a queue
+  operationId: adminQueueFailedDestroy
+  summary: Purge failed jobs from a queue
   description: |
-    Permanently delete all failed jobs from a queue.
-
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    Permanently deletes all failed jobs from a queue.
+    This does **not** re-sync the affected segments — use the reindex endpoint for that.
 
     **Use cases:**
     - Clean up old failed jobs after investigating
     - Reset a queue after fixing the underlying issue
-    - Note: This does NOT re-sync the segments - use the reindex endpoint for that
+
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

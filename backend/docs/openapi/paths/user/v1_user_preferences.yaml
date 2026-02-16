@@ -1,0 +1,52 @@
+get:
+  tags:
+    - User
+  operationId: userPreferencesShow
+  summary: Get user preferences
+  description: |
+    Returns the authenticated user's full preferences object.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/UserPreferences.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  tags:
+    - User
+  operationId: userPreferencesUpdate
+  summary: Update user preferences
+  description: |
+    Deep-merges a partial preferences update into the user's existing preferences.
+    Only the provided keys are updated; all other keys are preserved.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/UserPreferences.yaml"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/UserPreferences.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

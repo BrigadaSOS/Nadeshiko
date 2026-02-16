@@ -1,13 +1,12 @@
 get:
   tags:
     - Admin
-  operationId: getReviewRuns
+  operationId: adminReviewRunIndex
   summary: List past check runs
   description: |
-    Returns past review check runs with summary stats.
+    Returns past review check runs with summary stats. Supports filtering by check name and cursor pagination.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:
