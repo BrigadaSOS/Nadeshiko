@@ -1,26 +1,20 @@
 <script setup>
-import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight, mdiViewGrid } from '@mdi/js';
-import { useListsStore } from '@/stores/lists';
+import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight } from '@mdi/js';
 
 useSeoMeta({
   title: 'Browse Media | Nadeshiko',
   ogTitle: 'Browse Media | Nadeshiko',
-  description: 'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
-  ogDescription: 'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
+  description:
+    'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
+  ogDescription:
+    'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
 });
 
 const apiSearch = useApiSearch();
-const listsStore = useListsStore();
 const router = useRouter();
 const route = useRoute();
 
-const { data: seriesLists } = await useAsyncData(
-  'series-lists-browse',
-  () => listsStore.fetchPublicLists('SERIES'),
-  { server: true, lazy: true, default: () => [] },
-);
-
-const allowedFilterTypes = new Set(['anime', 'liveaction', 'audiobook']);
+const allowedFilterTypes = new Set(['ANIME', 'JDRAMA']);
 const pageSize = 28;
 let debounceTimeout = null;
 
@@ -31,27 +25,27 @@ const normalizePage = (value) => {
 
 const normalizeView = (value) => (value === 'list' ? 'list' : 'grid');
 const normalizeQuery = (value) => (typeof value === 'string' ? value : '');
-const normalizeType = (value) => {
-  const type = typeof value === 'string' ? value : '';
-  return allowedFilterTypes.has(type) ? type : '';
+const normalizeCategory = (value) => {
+  const category = typeof value === 'string' ? value : '';
+  return allowedFilterTypes.has(category) ? category : '';
 };
 
 const page = computed(() => normalizePage(route.query.page));
 const currentView = computed(() => normalizeView(route.query.view));
 const searchQuery = computed(() => normalizeQuery(route.query.query));
-const filterType = computed(() => normalizeType(route.query.type));
+const filterCategory = computed(() => normalizeCategory(route.query.category));
 
 const buildQueryParams = (params = {}) => {
   const nextPage = normalizePage(params.page ?? page.value);
   const nextView = normalizeView(params.view ?? currentView.value);
   const nextQuery = normalizeQuery(params.query ?? searchQuery.value);
-  const nextType = normalizeType(params.type ?? filterType.value);
+  const nextCategory = normalizeCategory(params.category ?? filterCategory.value);
 
   return {
     page: String(nextPage),
     view: nextView,
     query: nextQuery || undefined,
-    type: nextType || undefined,
+    category: nextCategory || undefined,
   };
 };
 
@@ -61,7 +55,7 @@ const isSameQuery = (nextQuery) => {
     current.page === nextQuery.page &&
     current.view === nextQuery.view &&
     (current.query || '') === (nextQuery.query || '') &&
-    (current.type || '') === (nextQuery.type || '')
+    (current.category || '') === (nextQuery.category || '')
   );
 };
 
@@ -80,27 +74,27 @@ const {
   pending,
   error,
 } = await useAsyncData(
-  () => `search-media-${page.value}-${searchQuery.value}-${filterType.value}`,
+  () => `search-media-${page.value}-${searchQuery.value}-${filterCategory.value}`,
   () =>
     apiSearch.getRecentMedia({
       cursor: (page.value - 1) * pageSize,
       query: searchQuery.value,
-      size: pageSize,
-      type: filterType.value,
+      limit: pageSize,
+      category: filterCategory.value || undefined,
     }),
   {
-    watch: [page, searchQuery, filterType],
+    watch: [page, searchQuery, filterCategory],
     server: true,
     lazy: false,
     default: () => ({
-      results: [],
-      hasMoreResults: false,
+      data: [],
+      hasMore: false,
     }),
   },
 );
 
-const media = computed(() => mediaResponse.value?.results || []);
-const hasMore = computed(() => Boolean(mediaResponse.value?.hasMoreResults && media.value.length > 0));
+const media = computed(() => mediaResponse.value?.data || []);
+const hasMore = computed(() => Boolean(mediaResponse.value?.hasMore && media.value.length > 0));
 const loading = computed(() => pending.value);
 const query = ref(searchQuery.value);
 
@@ -166,14 +160,14 @@ const scrollToTop = () => {
   });
 };
 
-const handleFilterChange = (type) => {
+const handleFilterChange = (category) => {
   updateUrl({
     page: 1,
-    type,
+    category,
   });
 };
 
-watch([page, currentView, searchQuery, filterType], () => {
+watch([page, currentView, searchQuery, filterCategory], () => {
   scrollToTop();
 });
 </script>
@@ -186,21 +180,6 @@ watch([page, currentView, searchQuery, filterType], () => {
           {{ $t('animeList.fullListTitle') }}
         </h1>
       </div>
-      <!-- Series Lists Section -->
-      <section v-if="seriesLists && seriesLists.length > 0" class="mb-8">
-        <h2 class="text-lg font-semibold dark:text-gray-200 mb-4 flex items-center gap-2">
-          <UiBaseIcon :path="mdiViewGrid" />
-          {{ $t('lists.seriesSection') }}
-        </h2>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          <ListsListCard
-            v-for="list in seriesLists"
-            :key="list.id"
-            :list="list"
-          />
-        </div>
-      </section>
-
       <input
         v-model="query"
         class="block p-2.5 mb-4 w-full text-sm text-gray-900 rounded-lg border border-gray-300 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white"
@@ -218,22 +197,17 @@ watch([page, currentView, searchQuery, filterType], () => {
               <SearchDropdownItem
                 :text="$t('searchContainer.categoryAll')"
                 @click="handleFilterChange('')"
-                :selected="filterType === ''"
+                :selected="filterCategory === ''"
               />
               <SearchDropdownItem
                 :text="$t('searchContainer.categoryAnime')"
-                @click="handleFilterChange('anime')"
-                :selected="filterType === 'anime'"
+                @click="handleFilterChange('ANIME')"
+                :selected="filterCategory === 'ANIME'"
               />
               <SearchDropdownItem
                 :text="$t('searchContainer.categoryLiveaction')"
-                @click="handleFilterChange('liveaction')"
-                :selected="filterType === 'liveaction'"
-              />
-              <SearchDropdownItem
-                :text="$t('searchContainer.categoryAudiobook')"
-                @click="handleFilterChange('audiobook')"
-                :selected="filterType === 'audiobook'"
+                @click="handleFilterChange('JDRAMA')"
+                :selected="filterCategory === 'JDRAMA'"
               />
             </SearchDropdownContent>
           </template>
@@ -260,24 +234,24 @@ watch([page, currentView, searchQuery, filterType], () => {
         <!-- Media Content -->
         <NuxtLink
           v-else
-          v-for="(media_info, index) in media"
-          :key="media_info.id"
-          :to="`/search?media=${media_info.id}`"
+          v-for="(mediaInfo, index) in media"
+          :key="mediaInfo.id"
+          :to="`/search?media=${mediaInfo.id}`"
           class="flex flex-col items-center"
         >
           <div
             class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
             <img
-              :src="media_info.cover"
-              :alt="media_info.englishName"
+              :src="mediaInfo.coverUrl"
+              :alt="mediaInfo.nameEn"
               class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
             />
           </div>
           <p
             class="mt-2 text-sm font-medium text-gray-200 text-left line-clamp-2 px-2 w-full"
           >
-            {{ media_info?.englishName }}
+            {{ mediaInfo?.englishName }}
           </p>
         </NuxtLink>
       </div>
@@ -300,8 +274,8 @@ watch([page, currentView, searchQuery, filterType], () => {
         <!-- Media Content -->
         <div
           v-if="media.length > 0"
-          v-for="(media_info, index) in media"
-          :key="media_info.id"
+          v-for="(mediaInfo, index) in media"
+          :key="mediaInfo.id"
           class="w-full relative mb-4"
         >
           <div
@@ -309,7 +283,7 @@ watch([page, currentView, searchQuery, filterType], () => {
           >
             <div class="absolute inset-0">
               <img
-                :src="media_info.banner"
+                :src="mediaInfo.bannerUrl"
                 class="object-cover w-full h-full rounded-lg"
               />
               <div
@@ -318,7 +292,7 @@ watch([page, currentView, searchQuery, filterType], () => {
             </div>
             <div class="relative flex-none w-[16em] h-[21em]">
               <img
-                :src="media_info.cover"
+                :src="mediaInfo.coverUrl"
                 class="absolute inset-0 object-cover w-full h-full rounded-lg"
               />
             </div>
@@ -326,7 +300,7 @@ watch([page, currentView, searchQuery, filterType], () => {
             <div class="relative flex-auto p-6 z-10 flex flex-col">
               <div class="flex flex-wrap">
                 <h1 class="flex-auto text-xl font-semibold dark:text-gray-50">
-                  {{ media_info.englishName }}
+                  {{ mediaInfo.nameEn }}
                 </h1>
                 <div
                   class="text-lg font-semibold bg-graypalid px-3 rounded-lg dark:bg-graypalid dark:border-sgray2 text-white"
@@ -336,7 +310,7 @@ watch([page, currentView, searchQuery, filterType], () => {
                 <div
                   class="flex-none w-full mt-2 text-sm font-medium text-gray-500 dark:text-gray-300"
                 >
-                  {{ media_info.japaneseName }} - {{ media_info.romajiName }}
+                  {{ mediaInfo.nameJa }} - {{ mediaInfo.nameRomaji }}
                 </div>
               </div>
 
@@ -348,7 +322,7 @@ watch([page, currentView, searchQuery, filterType], () => {
                 <p
                   class="text-sm font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  {{ $t('animeList.sentenceCountLabel') }} {{ media_info.numSegments }}
+                  {{ $t('animeList.sentenceCountLabel') }} {{ mediaInfo.segmentCount }}
                 </p>
               </div>
 
@@ -368,7 +342,7 @@ watch([page, currentView, searchQuery, filterType], () => {
                       <p
                         class="text-xs font-medium text-gray-800 dark:text-gray-200"
                       >
-                        {{ media_info.numEpisodes }}
+                        {{ mediaInfo.episodeCount }}
                       </p>
                     </div>
                   </div>
@@ -376,8 +350,8 @@ watch([page, currentView, searchQuery, filterType], () => {
 
                 <div class="ml-auto mt-4 md:mt-1 flex">
                   <a
-                    v-if="media_info.externalIds?.anilist"
-                    :href="`https://anilist.co/anime/${media_info.externalIds.anilist}`"
+                    v-if="mediaInfo.externalIds?.anilist"
+                    :href="`https://anilist.co/anime/${mediaInfo.externalIds.anilist}`"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-white dark:placeholder-gray-400 dark:text-white"
@@ -386,7 +360,7 @@ watch([page, currentView, searchQuery, filterType], () => {
                   </a>
 
                   <NuxtLink
-                    :to="`/search?media=${media_info.id}`"
+                    :to="`/search?media=${mediaInfo.id}`"
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-green-500/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-green-400 dark:placeholder-gray-400 dark:text-green-400"
                   >
                     <div>{{ $t('animeList.vocabularyButton') }}</div>

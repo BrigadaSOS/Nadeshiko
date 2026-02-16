@@ -1,19 +1,18 @@
 post:
   tags:
     - Admin
-  operationId: reindexElasticsearch
+  operationId: adminReindexCreate
   summary: Reindex database into Elasticsearch
   description: |
     Reindexes segments from the PostgreSQL database into Elasticsearch.
     Allows filtering by specific media IDs or episodes.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission for reindexing)
-
     **Behavior:**
     - If no filters provided, reindexes all segments
     - If `mediaIds` provided, reindexes all segments from those media
     - If `episodes` provided, reindexes only the specified episodes
+
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   requestBody:

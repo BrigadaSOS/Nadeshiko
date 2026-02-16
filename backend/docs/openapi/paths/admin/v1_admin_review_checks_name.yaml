@@ -1,13 +1,12 @@
 patch:
   tags:
     - Admin
-  operationId: updateReviewCheck
+  operationId: adminReviewCheckUpdate
   summary: Update a review check config
   description: |
-    Update the threshold or enabled status of a check.
+    Updates the threshold values or enabled status of a check.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

@@ -8,7 +8,6 @@ import type { t_ReindexResponse } from 'generated/models';
 
 const INDEX_NAME = process.env.ELASTICSEARCH_SYNC_INDEX || process.env.ELASTICSEARCH_INDEX || 'nadedb';
 
-
 export interface ReindexMediaItem {
   mediaId: number;
   episodes?: number[];
@@ -37,6 +36,7 @@ function buildSegmentDocument(segment: Segment, media: Media): SegmentDocument {
     category: media.category,
     episode: segment.episode,
     mediaId: segment.mediaId,
+    storageBasePath: segment.storageBasePath ?? media.storageBasePath,
     morphemes: segment.morphemes ?? undefined,
   };
 }

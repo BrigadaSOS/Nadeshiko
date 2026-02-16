@@ -6,9 +6,9 @@ required:
   - status
   - startTime
   - endTime
-  - ja
-  - en
-  - es
+  - textJa
+  - textEn
+  - textEs
   - isNsfw
   - episode
   - mediaId
@@ -40,11 +40,11 @@ properties:
     type: string
     description: Timestamp in H:MM:SS.ffffff format indicating when the segment ends
     example: "0:33:28.464000"
-  ja:
+  textJa:
     $ref: "./JapaneseContent.yaml"
-  en:
+  textEn:
     $ref: "./TranslationContent.yaml"
-  es:
+  textEs:
     $ref: "./TranslationContent.yaml"
   isNsfw:
     type: boolean

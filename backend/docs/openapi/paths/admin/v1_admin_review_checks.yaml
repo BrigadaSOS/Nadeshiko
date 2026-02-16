@@ -1,13 +1,12 @@
 get:
   tags:
     - Admin
-  operationId: getReviewChecks
+  operationId: adminReviewCheckIndex
   summary: List all review checks
   description: |
     Returns all check definitions with current config, threshold schema, and latest run info.
 
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   responses:

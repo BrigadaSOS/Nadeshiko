@@ -1,17 +1,16 @@
 post:
   tags:
     - Admin
-  operationId: retryQueueJobs
+  operationId: adminQueueRetryCreate
   summary: Retry failed jobs from a queue
   description: |
-    Retry all failed jobs from a specific queue.
-
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    Re-enqueues all failed jobs from a specific queue for another attempt.
 
     **Use cases:**
     - Retry jobs that failed due to temporary Elasticsearch issues
     - Recover from network blips
+
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

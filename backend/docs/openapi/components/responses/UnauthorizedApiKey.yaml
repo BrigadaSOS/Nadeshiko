@@ -2,7 +2,7 @@ description: Unauthorized
 content:
   application/json:
     schema:
-      $ref: "../schemas/Error.yaml"
+      $ref: "../schemas/Error401.yaml"
     examples:
       AuthCredentialsRequired:
         $ref: "../examples/AuthCredentialsRequired.yaml"

@@ -4,7 +4,9 @@ get:
   operationId: mediaShow
   summary: Get single media
   description: |
-    Retrieves a single media entry by its ID.
+    Returns a single media entry by its ID with full metadata.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]
@@ -16,6 +18,12 @@ get:
       schema:
         type: integer
         example: 7674
+    - name: includeCharacters
+      in: query
+      description: Include character and voice actor data in the response
+      schema:
+        type: boolean
+        default: false
   responses:
     "200":
       description: OK
@@ -43,7 +51,9 @@ patch:
   x-internal: true
   summary: Update media
   description: |
-    Updates an existing media entry. All fields are optional - only provided fields will be updated.
+    Updates an existing media entry. Only provided fields will be updated.
+
+    **Permissions:** `UPDATE_MEDIA`
 
   security:
     - apiKeyHeader: [UPDATE_MEDIA]
@@ -88,7 +98,9 @@ delete:
   x-internal: true
   summary: Delete media (soft delete)
   description: |
-    Soft deletes a media entry by setting the `deletedAt` timestamp. The media is not removed from the database but is excluded from query results.
+    Soft-deletes a media entry by setting the `deletedAt` timestamp. The media remains in the database but is excluded from query results.
+
+    **Permissions:** `REMOVE_MEDIA`
 
   security:
     - apiKeyHeader: [REMOVE_MEDIA]

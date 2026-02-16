@@ -7,6 +7,7 @@ import { Segment, SegmentStatus } from './Segment';
 import type { ListItem } from './ListItem';
 import type { MediaInfoData } from '@app/types/queryMediaInfoResponse';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
+import { SegmentStorage } from './Segment';
 import { Cache, createCacheNamespace } from '@lib/cache';
 
 export const MEDIA_INFO_CACHE = createCacheNamespace('mediaInfo');
@@ -40,8 +41,8 @@ export class Media extends BaseEntity {
   @Column({ type: 'text', array: true })
   genres!: string[];
 
-  @Column({ name: 'storage', type: 'varchar' })
-  storage!: 'LOCAL' | 'R2';
+  @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
+  storage!: SegmentStorage;
 
   @Column({ name: 'start_date', type: 'date' })
   startDate!: string; // Format: YYYY-MM-DD
@@ -74,6 +75,9 @@ export class Media extends BaseEntity {
 
   @Column({ name: 'hash_salt', type: 'varchar', nullable: true })
   hashSalt?: string;
+
+  @Column({ name: 'storage_base_path', type: 'varchar' })
+  storageBasePath!: string;
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
@@ -210,6 +214,7 @@ export class Media extends BaseEntity {
       version: media.version,
       segmentCount: media.segmentCount,
       episodeCount: media.episodes?.length ?? 0,
+      storageBasePath: media.storageBasePath,
     };
   }
 }

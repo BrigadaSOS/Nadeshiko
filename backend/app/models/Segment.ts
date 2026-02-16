@@ -78,6 +78,9 @@ export class Segment extends BaseEntity {
   @Column({ name: 'media_id', type: 'int' })
   mediaId!: number;
 
+  @Column({ name: 'storage_base_path', type: 'varchar' })
+  storageBasePath!: string;
+
   @ManyToOne('Episode', 'segments')
   @JoinColumn([
     { name: 'media_id', referencedColumnName: 'mediaId' },

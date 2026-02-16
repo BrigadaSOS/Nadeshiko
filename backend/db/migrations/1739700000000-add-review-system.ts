@@ -72,7 +72,9 @@ export class AddReviewSystem1739700000000 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "target_media_id" int`);
     await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "target_episode_number" int`);
     await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "target_segment_uuid" varchar`);
-    await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "review_check_run_id" int REFERENCES "ReviewCheckRun"("id") ON DELETE SET NULL`);
+    await queryRunner.query(
+      `ALTER TABLE "Report" ADD COLUMN "review_check_run_id" int REFERENCES "ReviewCheckRun"("id") ON DELETE SET NULL`,
+    );
     await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "data" jsonb`);
 
     // Migrate existing data: all existing reports are USER reports
@@ -123,7 +125,9 @@ export class AddReviewSystem1739700000000 implements MigrationInterface {
     // Drop old indexes and create new ones
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_Report_reportType_targetId"`);
     await queryRunner.query(`CREATE INDEX "IDX_Report_source" ON "Report" ("source")`);
-    await queryRunner.query(`CREATE INDEX "IDX_Report_targetType_targetMediaId" ON "Report" ("target_type", "target_media_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_Report_targetType_targetMediaId" ON "Report" ("target_type", "target_media_id")`,
+    );
     await queryRunner.query(`CREATE INDEX "IDX_Report_reviewCheckRunId" ON "Report" ("review_check_run_id")`);
   }
 
@@ -137,7 +141,9 @@ export class AddReviewSystem1739700000000 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "report_type" report_type`);
     await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "target_id" varchar`);
     await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "resolved_at" TIMESTAMP`);
-    await queryRunner.query(`ALTER TABLE "Report" ADD COLUMN "resolved_by_id" int REFERENCES "User"("id") ON DELETE SET NULL`);
+    await queryRunner.query(
+      `ALTER TABLE "Report" ADD COLUMN "resolved_by_id" int REFERENCES "User"("id") ON DELETE SET NULL`,
+    );
 
     // Migrate data back
     await queryRunner.query(`

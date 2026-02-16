@@ -3,10 +3,7 @@ import { defineStore } from 'pinia';
 import { authApiRequest } from '~/utils/authApi';
 import { signInSocial, signOut as authSignOut } from '~/utils/authClient';
 
-type UserRole = {
-  id_role: number;
-  name?: string;
-};
+type UserRole = 'ADMIN' | 'MOD' | 'USER' | 'PATREON';
 
 export type UserSession = {
   token: string;
@@ -17,30 +14,27 @@ export type UserSession = {
   userAgent?: string | null;
 };
 
-type BasicInfoResponse = {
-  user?: {
-    username?: string;
-    email?: string;
-    roles?: UserRole[];
-  };
-} | null;
-
-export const userStore = defineStore('user', {
-  state: () => ({
+function defaultAuthState() {
+  return {
     isLoggedIn: false,
     userName: null as string | null,
     userEmail: null as string | null,
     currentSessionToken: null as string | null,
+    userInfo: { role: 'USER' as UserRole },
+    activeSessions: [] as UserSession[],
+    preferences: {} as Record<string, any>,
+  };
+}
+
+export const userStore = defineStore('user', {
+  state: () => ({
+    ...defaultAuthState(),
     filterPreferences: {
       exactMatch: false,
     },
-    userInfo: {
-      roles: [] as UserRole[],
-    },
-    activeSessions: [] as UserSession[],
   }),
   getters: {
-    isAdmin: (state) => state.userInfo.roles?.some((role: UserRole) => role.id_role === 1),
+    isAdmin: (state) => state.userInfo.role === 'ADMIN',
   },
   persist: import.meta.client
     ? {
@@ -50,6 +44,10 @@ export const userStore = defineStore('user', {
       }
     : false,
   actions: {
+    resetAuthState() {
+      this.$patch(defaultAuthState());
+    },
+
     async loginGoogle() {
       const { $i18n } = useNuxtApp();
 
@@ -115,14 +113,7 @@ export const userStore = defineStore('user', {
           method: 'POST',
         });
       } finally {
-        this.$patch((state) => {
-          state.isLoggedIn = false;
-          state.userName = null;
-          state.userEmail = null;
-          state.currentSessionToken = null;
-          state.userInfo = { roles: [] };
-          state.activeSessions = [];
-        });
+        this.resetAuthState();
       }
     },
 
@@ -136,72 +127,35 @@ export const userStore = defineStore('user', {
         // no-op: clear local auth state even if sign out request fails
       }
 
-      this.$patch((state) => {
-        state.isLoggedIn = false;
-        state.userName = null;
-        state.userEmail = null;
-        state.currentSessionToken = null;
-        state.userInfo = { roles: [] };
-        state.activeSessions = [];
-      });
-
+      this.resetAuthState();
       router.push('/');
       useToastSuccess(msg ? msg : $i18n.t('modalauth.labels.logout'));
     },
 
-    async getBasicInfo(): Promise<BasicInfoResponse> {
+    async getBasicInfo(): Promise<void> {
       try {
-        // Fetch session from backend (cookies are HttpOnly, can't read from JS)
         const response = await $fetch<{ user?: any; session?: any }>('/v1/auth/get-session', {
           method: 'GET',
           credentials: 'include',
         });
 
-        console.log('[getBasicInfo] Session response:', response);
-
         const sessionUser = response?.user;
-        const hasSession = Boolean(sessionUser || response?.session);
-
-        if (!hasSession) {
-          this.$patch((state) => {
-            state.isLoggedIn = false;
-            state.userName = null;
-            state.userEmail = null;
-            state.currentSessionToken = null;
-            state.userInfo = { roles: [] };
-            state.activeSessions = [];
-          });
-          return null;
+        if (!sessionUser && !response?.session) {
+          this.resetAuthState();
+          return;
         }
 
-        const responseData: BasicInfoResponse = {
-          user: {
-            username: sessionUser?.name ?? undefined,
-            email: sessionUser?.email ?? undefined,
-            roles: [],
-          },
-        };
-
-        this.$patch((state) => {
-          state.isLoggedIn = true;
-          state.userName = sessionUser?.name ?? null;
-          state.userEmail = sessionUser?.email ?? null;
-          state.currentSessionToken = response?.session?.token ?? null;
-          state.userInfo = { roles: [] };
+        this.$patch({
+          isLoggedIn: true,
+          userName: sessionUser?.name ?? null,
+          userEmail: sessionUser?.email ?? null,
+          currentSessionToken: response?.session?.token ?? null,
+          userInfo: { role: sessionUser?.role ?? 'USER' },
+          preferences: sessionUser?.preferences ?? {},
         });
-
-        return responseData;
       } catch (error) {
         console.error('[getBasicInfo] Error fetching session:', error);
-        this.$patch((state) => {
-          state.isLoggedIn = false;
-          state.userName = null;
-          state.userEmail = null;
-          state.currentSessionToken = null;
-          state.userInfo = { roles: [] };
-          state.activeSessions = [];
-        });
-        return null;
+        this.resetAuthState();
       }
     },
 
@@ -216,17 +170,11 @@ export const userStore = defineStore('user', {
         }
 
         const normalized = Array.isArray(response.data) ? response.data : [];
-
-        this.$patch((state) => {
-          state.activeSessions = normalized;
-        });
-
+        this.activeSessions = normalized;
         return normalized;
       } catch (error) {
         console.error(error);
-        this.$patch((state) => {
-          state.activeSessions = [];
-        });
+        this.activeSessions = [];
         return [];
       }
     },
@@ -298,15 +246,7 @@ export const userStore = defineStore('user', {
           return false;
         }
 
-        this.$patch((state) => {
-          state.isLoggedIn = false;
-          state.userName = null;
-          state.userEmail = null;
-          state.currentSessionToken = null;
-          state.userInfo = { roles: [] };
-          state.activeSessions = [];
-        });
-
+        this.resetAuthState();
         return true;
       } catch (error) {
         console.error(error);

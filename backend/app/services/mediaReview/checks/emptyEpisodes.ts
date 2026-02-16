@@ -5,9 +5,7 @@ export const emptyEpisodes: MediaReviewCheck = {
   label: 'Empty Episodes',
   description: 'Episodes with segment count below threshold',
   targetType: 'EPISODE',
-  thresholdSchema: [
-    { key: 'minSegments', label: 'Min segments per episode', type: 'number', default: 10, min: 0 },
-  ],
+  thresholdSchema: [{ key: 'minSegments', label: 'Min segments per episode', type: 'number', default: 10, min: 0 }],
 
   async run(ctx: CheckRunContext): Promise<CheckResult[]> {
     const minSegments = ctx.threshold.minSegments as number;

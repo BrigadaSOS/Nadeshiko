@@ -1,18 +1,17 @@
 get:
   tags:
     - Admin
-  operationId: getFailedJobs
+  operationId: adminQueueFailedIndex
   summary: Get failed jobs from a queue
   description: |
-    Get jobs that have exceeded their retry limit and permanently failed.
-
-    **Requirements:**
-    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+    Returns jobs that have exceeded their retry limit and permanently failed.
 
     **Use cases:**
     - Identify segments that failed to sync to Elasticsearch
     - Debug persistent sync issues
     - Decide whether to retry or purge failed jobs
+
+    **Permissions:** `ADD_MEDIA`
   security:
     - apiKeyHeader: [ADD_MEDIA]
   parameters:

@@ -2,7 +2,7 @@ import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent, R
 import { Segment } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { Cache } from '@lib/cache';
-import { sendEsSyncJob, sendMorphemeJob } from '@app/workers/pgBoss';
+import { sendEsSyncJob } from '@app/workers/pgBoss';
 
 @EventSubscriber()
 export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
@@ -14,42 +14,28 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
     if (event.entity) {
       Cache.invalidate(MEDIA_INFO_CACHE);
 
-      sendMorphemeJob({
+      sendEsSyncJob({
         segmentId: event.entity.id,
         operation: 'CREATE',
       }).catch((error) => {
-        console.error(`Failed to enqueue morpheme job for segment ${event.entity?.id} after create:`, error);
+        console.error(`Failed to enqueue ES sync job for segment ${event.entity?.id} after create:`, error);
       });
     }
   }
 
   afterUpdate(event: UpdateEvent<Segment>) {
     if (event.entity) {
-      const statusChanged =
-        event.updatedColumns?.some((col) => col.propertyName === 'status') ?? false;
+      const statusChanged = event.updatedColumns?.some((col) => col.propertyName === 'status') ?? false;
       if (statusChanged) {
         Cache.invalidate(MEDIA_INFO_CACHE);
       }
 
-      // Only run morpheme analysis if content changed
-      const contentChanged =
-        event.updatedColumns?.some((col) => col.propertyName === 'contentJa') ?? false;
-
-      if (contentChanged) {
-        sendMorphemeJob({
-          segmentId: event.entity.id,
-          operation: 'UPDATE',
-        }).catch((error) => {
-          console.error(`Failed to enqueue morpheme job for segment ${event.entity?.id} after update:`, error);
-        });
-      } else {
-        sendEsSyncJob({
-          segmentId: event.entity.id,
-          operation: 'UPDATE',
-        }).catch((error) => {
-          console.error(`Failed to enqueue ES sync job for segment ${event.entity?.id} after update:`, error);
-        });
-      }
+      sendEsSyncJob({
+        segmentId: event.entity.id,
+        operation: 'UPDATE',
+      }).catch((error) => {
+        console.error(`Failed to enqueue ES sync job for segment ${event.entity?.id} after update:`, error);
+      });
     }
   }
 

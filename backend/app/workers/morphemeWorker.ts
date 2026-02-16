@@ -1,11 +1,6 @@
 import { PgBoss, Job } from 'pg-boss';
-import { Segment } from '@app/models';
 import { logger } from '@config/log';
-// TEMPORARILY DISABLED - lindera.js dependency removed
-// import { analyze } from '@app/services/linderaClient';
-import { sendEsSyncJob } from '@app/workers/pgBoss';
 import type { MorphemeJobData } from '@app/workers/pgBoss';
-import { AppDataSource } from '@config/database';
 
 export async function registerMorphemeWorkers(boss: PgBoss): Promise<void> {
   const workerOptions = {
@@ -13,15 +8,11 @@ export async function registerMorphemeWorkers(boss: PgBoss): Promise<void> {
     teamSize: 2,
   };
 
-  await boss.work(
-    'morpheme-analyze',
-    workerOptions,
-    async (jobs: Job<MorphemeJobData>[]) => {
-      for (const job of jobs) {
-        await handleMorphemeJob(job);
-      }
-    },
-  );
+  await boss.work('morpheme-analyze', workerOptions, async (jobs: Job<MorphemeJobData>[]) => {
+    for (const job of jobs) {
+      await handleMorphemeJob(job);
+    }
+  });
 
   logger.info('Morpheme workers registered with batchSize=10, teamSize=2');
 }

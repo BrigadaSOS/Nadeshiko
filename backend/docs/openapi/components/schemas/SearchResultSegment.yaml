@@ -7,9 +7,9 @@ required:
   - startTime
   - endTime
   - episodeNumber
-  - ja
-  - en
-  - es
+  - textJa
+  - textEn
+  - textEs
   - isNsfw
 properties:
   status:
@@ -38,11 +38,11 @@ properties:
     type: integer
     description: Episode number where the segment appears
     example: 1
-  ja:
+  textJa:
     $ref: "./JapaneseSearchContent.yaml"
-  en:
+  textEn:
     $ref: "./TranslationSearchContent.yaml"
-  es:
+  textEs:
     $ref: "./TranslationSearchContent.yaml"
   isNsfw:
     type: boolean

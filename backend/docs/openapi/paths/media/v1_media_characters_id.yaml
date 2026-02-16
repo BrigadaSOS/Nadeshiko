@@ -4,7 +4,9 @@ get:
   operationId: characterShow
   summary: Get character details
   description: |
-    Returns a character with their seiyuu and all media appearances.
+    Returns a character with their voice actors (seiyuu) and all media appearances.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]

@@ -20,5 +20,6 @@ export interface SegmentDocument {
   category: string; // "ANIME", "JDRAMA"
   episode: number;
   mediaId: number;
+  storageBasePath?: string;
   morphemes?: MorphemeData[];
 }

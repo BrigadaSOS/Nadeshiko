@@ -14,79 +14,222 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
-  t_CreateReportRequestBodySchema,
-  t_Error,
-  t_GetUserReportsQuerySchema,
+  t_Error400,
+  t_Error401,
+  t_Error404,
+  t_Error500,
   t_Report,
   t_ReportListResponse,
+  t_UserActivity,
+  t_UserActivityDestroyQuerySchema,
+  t_UserActivityIndexQuerySchema,
+  t_UserPreferences,
+  t_UserPreferencesUpdateRequestBodySchema,
   t_UserQuotaResponse,
+  t_UserReportCreateRequestBodySchema,
+  t_UserReportIndexQuerySchema,
 } from '../models.ts';
-import type { CreateReportRequestOutput, GetUserReportsQueryOutput } from '../outputTypes.ts';
-import { s_CreateReportRequest, s_Error, s_Report, s_ReportListResponse, s_UserQuotaResponse } from '../schemas.ts';
+import type { CreateReportRequestOutput, UserActivityDestroyQueryOutput, UserActivityIndexQueryOutput, UserPreferencesOutput, UserReportIndexQueryOutput } from '../outputTypes.ts';
+import {
+  PermissiveBoolean,
+  s_ActivityType,
+  s_CreateReportRequest,
+  s_Error400,
+  s_Error401,
+  s_Error404,
+  s_Error500,
+  s_Report,
+  s_ReportListResponse,
+  s_UserActivity,
+  s_UserPreferences,
+  s_UserQuotaResponse,
+} from '../schemas.ts';
 
-export type GetUserQuotaResponder = {
+export type UserQuotaShowResponder = {
   with200(): ExpressRuntimeResponse<t_UserQuotaResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetUserQuota = (
+export type UserQuotaShow = (
   params: Params<void, void, void, void>,
-  respond: GetUserQuotaResponder,
+  respond: UserQuotaShowResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CreateReportResponder = {
+export type UserReportCreateResponder = {
   with201(): ExpressRuntimeResponse<t_Report>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CreateReport = (
+export type UserReportCreate = (
   params: Params<void, void, CreateReportRequestOutput, void>,
-  respond: CreateReportResponder,
+  respond: UserReportCreateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetUserReportsResponder = {
+export type UserReportIndexResponder = {
   with200(): ExpressRuntimeResponse<t_ReportListResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetUserReports = (
-  params: Params<void, GetUserReportsQueryOutput, void, void>,
-  respond: GetUserReportsResponder,
+export type UserReportIndex = (
+  params: Params<void, UserReportIndexQueryOutput, void, void>,
+  respond: UserReportIndexResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UserPreferencesShowResponder = {
+  with200(): ExpressRuntimeResponse<t_UserPreferences>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserPreferencesShow = (
+  params: Params<void, void, void, void>,
+  respond: UserPreferencesShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UserPreferencesUpdateResponder = {
+  with200(): ExpressRuntimeResponse<t_UserPreferences>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserPreferencesUpdate = (
+  params: Params<void, void, UserPreferencesOutput, void>,
+  respond: UserPreferencesUpdateResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UserActivityIndexResponder = {
+  with200(): ExpressRuntimeResponse<{
+    cursor?: number | null;
+    data: t_UserActivity[];
+    hasMore: boolean;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserActivityIndex = (
+  params: Params<void, UserActivityIndexQueryOutput, void, void>,
+  respond: UserActivityIndexResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UserActivityDestroyResponder = {
+  with200(): ExpressRuntimeResponse<{
+    deletedCount: number;
+    message: string;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserActivityDestroy = (
+  params: Params<void, UserActivityDestroyQueryOutput, void, void>,
+  respond: UserActivityDestroyResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UserActivityStatsShowResponder = {
+  with200(): ExpressRuntimeResponse<{
+    streakDays: number;
+    topMedia: {
+      count: number;
+      mediaId: number;
+    }[];
+    totalExports: number;
+    totalListAdds: number;
+    totalPlays: number;
+    totalSearches: number;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserActivityStatsShow = (
+  params: Params<void, void, void, void>,
+  respond: UserActivityStatsShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UserExportShowResponder = {
+  with200(): ExpressRuntimeResponse<{
+    activity: t_UserActivity[];
+    lists: {
+      [key: string]: unknown | undefined;
+    }[];
+    preferences: t_UserPreferences;
+    profile: {
+      createdAt?: string;
+      email?: string;
+      id?: number;
+      username?: string;
+    };
+    reports: {
+      [key: string]: unknown | undefined;
+    }[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserExportShow = (
+  params: Params<void, void, void, void>,
+  respond: UserExportShowResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UserImplementation = {
-  getUserQuota: GetUserQuota;
-  createReport: CreateReport;
-  getUserReports: GetUserReports;
+  userQuotaShow: UserQuotaShow;
+  userReportCreate: UserReportCreate;
+  userReportIndex: UserReportIndex;
+  userPreferencesShow: UserPreferencesShow;
+  userPreferencesUpdate: UserPreferencesUpdate;
+  userActivityIndex: UserActivityIndex;
+  userActivityDestroy: UserActivityDestroy;
+  userActivityStatsShow: UserActivityStatsShow;
+  userExportShow: UserExportShow;
 };
 
 export function createUserRouter(implementation: UserImplementation): Router {
   const router = Router();
 
-  const getUserQuotaResponseBodyValidator = responseValidationFactory(
+  const userQuotaShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_UserQuotaResponse],
-      ['401', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getUserQuota
+  // userQuotaShow
   router.get(`/v1/user/quota`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
@@ -101,17 +244,17 @@ export function createUserRouter(implementation: UserImplementation): Router {
           return new ExpressRuntimeResponse<t_UserQuotaResponse>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getUserQuota(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.userQuotaShow(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -125,7 +268,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getUserQuotaResponseBodyValidator(status, body));
+        res.json(userQuotaShowResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -134,26 +277,26 @@ export function createUserRouter(implementation: UserImplementation): Router {
     }
   });
 
-  const createReportRequestBodySchema = s_CreateReportRequest;
+  const userReportCreateRequestBodySchema = s_CreateReportRequest;
 
-  const createReportResponseBodyValidator = responseValidationFactory(
+  const userReportCreateResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Report],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['404', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['404', s_Error404],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // createReport
+  // userReportCreate
   router.post(`/v1/user/reports`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(createReportRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(userReportCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -162,23 +305,23 @@ export function createUserRouter(implementation: UserImplementation): Router {
           return new ExpressRuntimeResponse<t_Report>(201);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.createReport(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.userReportCreate(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -192,7 +335,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(createReportResponseBodyValidator(status, body));
+        res.json(userReportCreateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -201,27 +344,27 @@ export function createUserRouter(implementation: UserImplementation): Router {
     }
   });
 
-  const getUserReportsQuerySchema = z.object({
+  const userReportIndexQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
     size: z.coerce.number().max(100).optional().default(20),
     status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
   });
 
-  const getUserReportsResponseBodyValidator = responseValidationFactory(
+  const userReportIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_ReportListResponse],
-      ['401', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getUserReports
+  // userReportIndex
   router.get(`/v1/user/reports`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(getUserReportsQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(userReportIndexQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -231,17 +374,17 @@ export function createUserRouter(implementation: UserImplementation): Router {
           return new ExpressRuntimeResponse<t_ReportListResponse>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getUserReports(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.userReportIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -255,7 +398,422 @@ export function createUserRouter(implementation: UserImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getUserReportsResponseBodyValidator(status, body));
+        res.json(userReportIndexResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userPreferencesShowResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_UserPreferences],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userPreferencesShow
+  router.get(`/v1/user/preferences`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_UserPreferences>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userPreferencesShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userPreferencesShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userPreferencesUpdateRequestBodySchema = s_UserPreferences;
+
+  const userPreferencesUpdateResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_UserPreferences],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userPreferencesUpdate
+  router.patch(`/v1/user/preferences`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(userPreferencesUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_UserPreferences>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userPreferencesUpdate(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userPreferencesUpdateResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userActivityIndexQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+    activityType: s_ActivityType.optional(),
+  });
+
+  const userActivityIndexResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          data: z.array(s_UserActivity),
+          hasMore: PermissiveBoolean,
+          cursor: z.coerce.number().nullable().optional(),
+        }),
+      ],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userActivityIndex
+  router.get(`/v1/user/activity`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(userActivityIndexQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            cursor?: number | null;
+            data: t_UserActivity[];
+            hasMore: boolean;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userActivityIndex(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userActivityIndexResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userActivityDestroyQuerySchema = z.object({ activityType: s_ActivityType.optional() });
+
+  const userActivityDestroyResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ message: z.string(), deletedCount: z.coerce.number() })],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userActivityDestroy
+  router.delete(`/v1/user/activity`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(userActivityDestroyQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            deletedCount: number;
+            message: string;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userActivityDestroy(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userActivityDestroyResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userActivityStatsShowResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          totalSearches: z.coerce.number(),
+          totalExports: z.coerce.number(),
+          totalPlays: z.coerce.number(),
+          totalListAdds: z.coerce.number(),
+          streakDays: z.coerce.number(),
+          topMedia: z.array(z.object({ mediaId: z.coerce.number(), count: z.coerce.number() })),
+        }),
+      ],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userActivityStatsShow
+  router.get(`/v1/user/activity/stats`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            streakDays: number;
+            topMedia: {
+              count: number;
+              mediaId: number;
+            }[];
+            totalExports: number;
+            totalListAdds: number;
+            totalPlays: number;
+            totalSearches: number;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userActivityStatsShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userActivityStatsShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userExportShowResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          profile: z.object({
+            id: z.coerce.number().optional(),
+            username: z.string().optional(),
+            email: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }).optional(),
+          }),
+          preferences: s_UserPreferences,
+          activity: z.array(s_UserActivity),
+          lists: z.array(z.record(z.unknown())),
+          reports: z.array(z.record(z.unknown())),
+        }),
+      ],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userExportShow
+  router.get(`/v1/user/export`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            activity: t_UserActivity[];
+            lists: {
+              [key: string]: unknown | undefined;
+            }[];
+            preferences: t_UserPreferences;
+            profile: {
+              createdAt?: string;
+              email?: string;
+              id?: number;
+              username?: string;
+            };
+            reports: {
+              [key: string]: unknown | undefined;
+            }[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userExportShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userExportShowResponseBodyValidator(status, body));
       } else {
         res.end();
       }

@@ -1,12 +1,12 @@
 import { Client, HttpConnection } from '@elastic/elasticsearch';
-import type * as estypes from '@elastic/elasticsearch/lib/api/types';
+import type { estypes } from '@elastic/elasticsearch';
 import { config } from '@config/config';
 import { QueryMediaInfoResponse } from '@app/types/queryMediaInfoResponse';
 import { Media } from '@app/models';
 function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
   return value !== null && value !== undefined;
 }
-import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
+import { type Storage, getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 import { secondsToTime } from '@lib/utils/time';
 import { logger } from '@config/log';
 import { QuerySegmentsRequest } from '@app/types/querySegmentsRequest';
@@ -362,43 +362,49 @@ const buildStatisticsFromAggs = (
     return [];
   }
 
-  // @ts-expect-error -- elasticsearch aggregation type
-  const mediaBuckets = aggResponse.aggregations['group_by_media_id'].buckets;
+  const mediaAgg = aggResponse.aggregations[
+    'group_by_media_id'
+  ] as estypes.AggregationsTermsAggregateBase<estypes.AggregationsTermsBucketBase>;
+  const mediaBuckets = (mediaAgg.buckets ?? []) as Array<Record<string, any>>;
   return mediaBuckets
-    .map((mediaBucket: { [x: string]: any }) => {
+    .map((mediaBucket) => {
       const mediaInfo = mediaInfoResponse.results.get(Number(mediaBucket['key']));
       if (!mediaInfo || !Object.keys(mediaInfo).length) {
         return undefined;
       }
 
-      // @ts-expect-error -- elasticsearch aggregation type
-      const episodesWithResults = mediaBucket['group_by_episode'].buckets.reduce((episodesAcc, episodeBucket) => {
+      const episodeAgg = mediaBucket[
+        'group_by_episode'
+      ] as estypes.AggregationsTermsAggregateBase<estypes.AggregationsTermsBucketBase>;
+      const episodeBuckets = (episodeAgg.buckets ?? []) as Array<Record<string, any>>;
+      const episodesWithResults = episodeBuckets.reduce((episodesAcc: Record<string, number>, episodeBucket) => {
         episodesAcc[episodeBucket['key']] = episodeBucket['doc_count'];
         return episodesAcc;
       }, {});
 
       return {
-        mediaId: mediaBucket['key'],
-        category: mediaInfo.category,
+        mediaId: Number(mediaBucket['key']),
+        category: mediaInfo.category as MediaSearchStatsOutput['category'],
         nameRomaji: mediaInfo.nameRomaji,
         nameEn: mediaInfo.nameEn,
         nameJa: mediaInfo.nameJa,
-        segmentCount: mediaBucket['doc_count'],
+        segmentCount: Number(mediaBucket['doc_count']),
         episodeHits: episodesWithResults,
       };
     })
     .filter(notEmpty);
 };
 
-const buildCategoryStatisticsFromAggs = (
-  aggResponse: estypes.SearchResponse,
-): SearchStatisticsOutput['categories'] => {
+const buildCategoryStatisticsFromAggs = (aggResponse: estypes.SearchResponse): SearchStatisticsOutput['categories'] => {
   if (!aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) {
     return [];
   }
 
-  // @ts-expect-error -- elasticsearch aggregation type
-  return aggResponse.aggregations['group_by_category'].buckets.map((bucket) => ({
+  const categoryAgg = aggResponse.aggregations[
+    'group_by_category'
+  ] as estypes.AggregationsTermsAggregateBase<estypes.AggregationsTermsBucketBase>;
+  const categoryBuckets = (categoryAgg.buckets ?? []) as Array<Record<string, any>>;
+  return categoryBuckets.map((bucket) => ({
     category: bucket['key'],
     count: bucket['doc_count'],
   }));
@@ -619,7 +625,12 @@ export const querySegments = async (
       return buildSearchResponse(esResult, mediaResult);
     },
     () => querySegments(request, 'safe'),
-    { parserMode, hasQuery, warnContext: { query: request.query }, warnMessage: 'Invalid query syntax; retrying search with safe query parser' },
+    {
+      parserMode,
+      hasQuery,
+      warnContext: { query: request.query },
+      warnMessage: 'Invalid query syntax; retrying search with safe query parser',
+    },
   );
 };
 
@@ -637,7 +648,12 @@ export const querySearchStats = async (
   return withSafeQueryFallback(
     () => querySearchStatisticsWithMustQueries(request, must, mediaInfo, parserMode),
     () => querySearchStats(request, 'safe'),
-    { parserMode, hasQuery, warnContext: { query: request.query }, warnMessage: 'Invalid query syntax; retrying search stats with safe query parser' },
+    {
+      parserMode,
+      hasQuery,
+      warnContext: { query: request.query },
+      warnMessage: 'Invalid query syntax; retrying search stats with safe query parser',
+    },
   );
 };
 
@@ -670,7 +686,11 @@ export const queryWordsMatched = async (
       return buildQueryWordsMatchedResponse(words, esResponse, mediaMapData);
     },
     () => queryWordsMatched(words, exactMatch, 'safe'),
-    { parserMode, warnContext: { wordsCount: words.length }, warnMessage: 'Invalid query syntax in word match; retrying with safe query parser' },
+    {
+      parserMode,
+      warnContext: { wordsCount: words.length },
+      warnMessage: 'Invalid query syntax in word match; retrying with safe query parser',
+    },
   );
 };
 
@@ -727,18 +747,13 @@ export const querySurroundingSegments = async (
   let previousSegments: SearchResultOutput[] = [];
   let nextSegments: SearchResultOutput[] = [];
   if (esResponse.responses[0].status) {
-    previousSegments = buildSearchResultSegments(
-      esResponse.responses[0] as estypes.SearchResponseBody,
-      mediaInfo,
-    );
+    previousSegments = buildSearchResultSegments(esResponse.responses[0] as estypes.SearchResponseBody, mediaInfo);
   }
 
   if (esResponse.responses[1].status) {
     nextSegments = buildSearchResultSegments(esResponse.responses[1] as estypes.SearchResponseBody, mediaInfo);
   }
-  const sortedSegments = [...previousSegments, ...nextSegments].sort(
-    (a, b) => a.segment.position - b.segment.position,
-  );
+  const sortedSegments = [...previousSegments, ...nextSegments].sort((a, b) => a.segment.position - b.segment.position);
 
   return {
     segments: sortedSegments,
@@ -809,13 +824,14 @@ const buildSearchResultSegments = (
 
       // Read hashedId and storage from Elasticsearch
       const hashedId = data['hashedId'] || '';
-      const storage: 'local' | 'r2' = data['storage'] || 'r2';
+      const storage: Storage = (data['storage'] || 'R2').toUpperCase() as Storage;
 
       const segmentForUrls = {
         mediaId: data['mediaId'],
         episode: data['episode'],
         storage: storage,
         hashedId: hashedId,
+        storageBasePath: mediaInfo.storageBasePath,
       };
 
       // Use storage utility for segment URLs
@@ -831,7 +847,7 @@ const buildSearchResultSegments = (
           nameJa: mediaInfo.nameJa,
           coverUrl: mediaInfo.cover,
           bannerUrl: mediaInfo.banner,
-          category: mediaInfo.category,
+          category: mediaInfo.category as 'ANIME' | 'JDRAMA',
         },
         segment: {
           status: data['status'],
@@ -840,16 +856,16 @@ const buildSearchResultSegments = (
           startTime: secondsToTime(data['startSeconds']),
           endTime: secondsToTime(data['endSeconds']),
           episodeNumber: data['episode'],
-          ja: {
+          textJa: {
             content: data['contentJa'],
             ...(jaHighlight ? { highlight: jaHighlight } : {}),
           },
-          en: {
+          textEn: {
             content: data['contentEn'] || undefined,
             ...(enHighlight ? { highlight: enHighlight } : {}),
             isMachineTranslated: data['contentEnMt'] ?? false,
           },
-          es: {
+          textEs: {
             content: data['contentEs'] || undefined,
             ...(esHighlight ? { highlight: esHighlight } : {}),
             isMachineTranslated: data['contentEsMt'] ?? false,
@@ -867,9 +883,7 @@ const buildSearchResultSegments = (
     .filter(notEmpty);
 };
 
-export const querySegmentsByUuids = async (
-  uuids: string[],
-): Promise<SearchResultOutput[]> => {
+export const querySegmentsByUuids = async (uuids: string[]): Promise<SearchResultOutput[]> => {
   if (uuids.length === 0) return [];
 
   const esResponse = await client.search({

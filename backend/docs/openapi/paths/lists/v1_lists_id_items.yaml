@@ -5,7 +5,9 @@ post:
   x-internal: true
   summary: Add media to list
   description: |
-    Adds a media entry to the list at the specified position. Requires admin permissions.
+    Adds a media entry to the list at the specified position.
+
+    **Permissions:** `UPDATE_LISTS`
 
   security:
     - apiKeyHeader: [UPDATE_LISTS]

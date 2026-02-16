@@ -4,7 +4,9 @@ get:
     - Media
   summary: List episodes for a media
   description: |
-    Get a paginated list of episodes for a specific media
+    Returns a paginated list of episodes for a specific media.
+
+    **Permissions:** `READ_MEDIA`
 
   security:
     - apiKeyHeader: [READ_MEDIA]
@@ -57,7 +59,9 @@ post:
     - Media
   summary: Create new episode
   description: |
-    Create a new episode for a specific media
+    Creates a new episode for a specific media.
+
+    **Permissions:** `ADD_MEDIA`
 
   security:
     - apiKeyHeader: [ADD_MEDIA]

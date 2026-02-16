@@ -13,8 +13,7 @@ post:
     - Finding anime/dramas that use specific words
     - Comparing word usage across different titles
 
-    **Requirements:**
-    - Required Scopes: `READ_MEDIA`
+    **Permissions:** `READ_MEDIA`
 
   requestBody:
     required: true
@@ -37,7 +36,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: "../../components/schemas/Error.yaml"
+            $ref: "../../components/schemas/Error400.yaml"
           examples:
             ValidationFailed:
               $ref: "../../components/examples/ValidationFailed.yaml"

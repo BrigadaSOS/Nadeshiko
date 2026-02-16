@@ -30,4 +30,5 @@ export interface MediaInfoData {
   version: string;
   segmentCount: number;
   episodeCount: number;
+  storageBasePath: string;
 }

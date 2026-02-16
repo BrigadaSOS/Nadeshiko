@@ -6,6 +6,8 @@ get:
   description: |
     Returns paginated segments in a segment list with full search result data.
 
+    **Permissions:** `READ_LISTS`
+
   security:
     - apiKeyHeader: [READ_LISTS]
     - sessionCookie: []
@@ -58,6 +60,8 @@ post:
   summary: Add segment to list
   description: |
     Adds a segment to a segment list. Requires list ownership or admin.
+
+    **Permissions:** `UPDATE_LISTS`
 
   security:
     - apiKeyHeader: [UPDATE_LISTS]

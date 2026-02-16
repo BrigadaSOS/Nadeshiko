@@ -13,6 +13,8 @@ export const PermissiveBoolean = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'LIST_ADD_SEGMENT']);
+
 export const s_Category = z.enum(['ANIME', 'JDRAMA']);
 
 export const s_CharacterInput = z.object({
@@ -80,13 +82,78 @@ export const s_EpisodeUpdateRequest = z.object({
   thumbnailUrl: z.string().optional(),
 });
 
-export const s_Error = z.object({
-  code: z.string(),
+export const s_Error400 = z.object({
+  code: z.enum(['VALIDATION_FAILED', 'INVALID_JSON', 'INVALID_REQUEST']),
   title: z.string(),
   detail: z.string(),
   type: z.string().optional(),
   instance: z.string().optional(),
-  status: z.coerce.number(),
+  status: z.literal(400),
+  errors: z.record(z.string()).optional(),
+});
+
+export const s_Error401 = z.object({
+  code: z.enum([
+    'AUTH_CREDENTIALS_REQUIRED',
+    'AUTH_CREDENTIALS_INVALID',
+    'AUTH_CREDENTIALS_EXPIRED',
+    'EMAIL_NOT_VERIFIED',
+  ]),
+  title: z.string(),
+  detail: z.string(),
+  type: z.string().optional(),
+  instance: z.string().optional(),
+  status: z.literal(401),
+  errors: z.record(z.string()).optional(),
+});
+
+export const s_Error403 = z.object({
+  code: z.enum(['ACCESS_DENIED', 'INSUFFICIENT_PERMISSIONS']),
+  title: z.string(),
+  detail: z.string(),
+  type: z.string().optional(),
+  instance: z.string().optional(),
+  status: z.literal(403),
+  errors: z.record(z.string()).optional(),
+});
+
+export const s_Error404 = z.object({
+  code: z.enum(['NOT_FOUND']),
+  title: z.string(),
+  detail: z.string(),
+  type: z.string().optional(),
+  instance: z.string().optional(),
+  status: z.literal(404),
+  errors: z.record(z.string()).optional(),
+});
+
+export const s_Error409 = z.object({
+  code: z.enum(['ACCOUNT_CONFLICT', 'DUPLICATE_KEY']),
+  title: z.string(),
+  detail: z.string(),
+  type: z.string().optional(),
+  instance: z.string().optional(),
+  status: z.literal(409),
+  errors: z.record(z.string()).optional(),
+});
+
+export const s_Error429 = z.object({
+  code: z.enum(['RATE_LIMIT_EXCEEDED', 'QUOTA_EXCEEDED']),
+  title: z.string(),
+  detail: z.string(),
+  type: z.string().optional(),
+  instance: z.string().optional(),
+  status: z.literal(429),
+  errors: z.record(z.string()).optional(),
+});
+
+export const s_Error500 = z.object({
+  code: z.enum(['INTERNAL_SERVER_EXCEPTION']),
+  title: z.string(),
+  detail: z.string(),
+  type: z.string().optional(),
+  instance: z.string().optional(),
+  status: z.literal(500),
   errors: z.record(z.string()).optional(),
 });
 
@@ -102,6 +169,13 @@ export const s_JapaneseContent = z.object({
 });
 
 export const s_JapaneseSearchContent = z.object({ content: z.string(), highlight: z.string().optional() });
+
+export const s_LabFeature = z.object({
+  key: z.string(),
+  name: z.string(),
+  description: z.string(),
+  enabled: PermissiveBoolean,
+});
 
 export const s_List = z.object({
   id: z.coerce.number(),
@@ -124,13 +198,6 @@ export const s_ListInput = z.object({
   listType: z.enum(['SERIES', 'CUSTOM']).nullable().optional(),
   listVisibility: z.enum(['PUBLIC', 'PRIVATE']).nullable().optional(),
   position: z.coerce.number().min(1),
-});
-
-export const s_MediaBrowseStats = z.object({
-  filteredMediaCount: z.coerce.number().optional(),
-  filteredSegmentCount: z.coerce.number().optional(),
-  totalMediaCount: z.coerce.number().optional(),
-  totalSegmentCount: z.coerce.number().optional(),
 });
 
 export const s_Morpheme = z.object({
@@ -278,26 +345,19 @@ export const s_SearchResultUrls = z.object({
   videoUrl: z.string().optional(),
 });
 
-export const s_SegmentContextRequest = z.object({
-  mediaId: z.coerce.number(),
-  episodeNumber: z.coerce.number().min(0),
-  segmentPosition: z.coerce.number().min(0),
-  limit: z.coerce.number().min(0).optional().default(5),
-});
-
 export const s_SegmentCreateRequest = z.object({
   position: z.coerce.number(),
   status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional().default('ACTIVE'),
   startTime: z.string(),
   endTime: z.string(),
-  ja: z.object({ content: z.string().max(500).optional() }),
-  es: z
+  textJa: z.object({ content: z.string().max(500).optional() }),
+  textEs: z
     .object({
       content: z.string().max(500).optional(),
       isMachineTranslated: PermissiveBoolean.optional().default(false),
     })
     .optional(),
-  en: z
+  textEn: z
     .object({
       content: z.string().max(500).optional(),
       isMachineTranslated: PermissiveBoolean.optional().default(false),
@@ -313,14 +373,14 @@ export const s_SegmentUpdateRequest = z.object({
   status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional().default('ACTIVE'),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
-  ja: z.object({ content: z.string().max(500).optional() }).optional(),
-  es: z
+  textJa: z.object({ content: z.string().max(500).optional() }).optional(),
+  textEs: z
     .object({
       content: z.string().max(500).optional(),
       isMachineTranslated: PermissiveBoolean.optional().default(false),
     })
     .optional(),
-  en: z
+  textEn: z
     .object({
       content: z.string().max(500).optional(),
       isMachineTranslated: PermissiveBoolean.optional().default(false),
@@ -352,6 +412,12 @@ export const s_TranslationSearchContent = z.object({
 export const s_UpdateReportRequest = z.object({
   status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
   adminNotes: z.string().max(1000).optional(),
+});
+
+export const s_UserPreferences = z.object({
+  labs: z.record(PermissiveBoolean).optional(),
+  mediaNameLanguage: z.enum(['english', 'japanese', 'romaji']).optional(),
+  searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
 });
 
 export const s_UserQuotaResponse = z.object({
@@ -406,6 +472,7 @@ export const s_MediaCreateRequest = z.object({
   studio: z.string(),
   seasonName: z.string(),
   seasonYear: z.coerce.number(),
+  storageBasePath: z.string().optional(),
   characters: z.array(s_CharacterInput).optional().default([]),
   lists: z.array(s_ListInput).optional().default([]),
 });
@@ -418,28 +485,6 @@ export const s_MediaSearchStats = z.object({
   nameJa: z.string().optional(),
   segmentCount: z.coerce.number().optional(),
   episodeHits: z.record(z.coerce.number()).optional(),
-});
-
-export const s_MediaSummary = z.object({
-  id: z.coerce.number(),
-  externalIds: s_ExternalId.optional(),
-  category: s_Category.optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  updatedAt: z.coerce.number().optional(),
-  nameRomaji: z.string().optional(),
-  nameEn: z.string().optional(),
-  nameJa: z.string().optional(),
-  airingFormat: z.string().optional(),
-  airingStatus: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().nullable().optional(),
-  folderMediaName: z.string().optional(),
-  genres: z.array(z.string()).optional(),
-  coverUrl: z.string().optional(),
-  bannerUrl: z.string().optional(),
-  version: z.string().optional(),
-  segmentCount: z.coerce.number().optional(),
-  episodeCount: z.coerce.number().optional(),
 });
 
 export const s_MediaUpdateRequest = z.object({
@@ -459,6 +504,7 @@ export const s_MediaUpdateRequest = z.object({
   studio: z.string().optional(),
   seasonName: z.string().optional(),
   seasonYear: z.coerce.number().optional(),
+  storageBasePath: z.string().optional(),
   characters: z.array(s_CharacterInput).optional().default([]),
   lists: z.array(s_ListInput).optional().default([]),
   segmentCount: z.coerce.number().optional(),
@@ -508,9 +554,9 @@ export const s_SearchResultSegment = z.object({
   startTime: z.string(),
   endTime: z.string(),
   episodeNumber: z.coerce.number(),
-  ja: s_JapaneseSearchContent,
-  en: s_TranslationSearchContent,
-  es: s_TranslationSearchContent,
+  textJa: s_JapaneseSearchContent,
+  textEn: s_TranslationSearchContent,
+  textEs: s_TranslationSearchContent,
   isNsfw: PermissiveBoolean,
   morphemes: z.array(s_Morpheme).nullable().optional(),
 });
@@ -536,9 +582,9 @@ export const s_Segment = z.object({
   status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']),
   startTime: z.string(),
   endTime: z.string(),
-  ja: s_JapaneseContent,
-  en: s_TranslationContent,
-  es: s_TranslationContent,
+  textJa: s_JapaneseContent,
+  textEn: s_TranslationContent,
+  textEs: s_TranslationContent,
   isNsfw: PermissiveBoolean,
   imageUrl: z.string().nullable().optional(),
   audioUrl: z.string().nullable().optional(),
@@ -548,6 +594,15 @@ export const s_Segment = z.object({
   storage: z.enum(['LOCAL', 'R2']),
   hashedId: z.string(),
   morphemes: z.array(s_Morpheme).nullable().optional(),
+});
+
+export const s_UserActivity = z.object({
+  id: z.coerce.number(),
+  activityType: s_ActivityType,
+  segmentUuid: z.string().nullable().optional(),
+  mediaId: z.coerce.number().nullable().optional(),
+  searchQuery: z.string().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }),
 });
 
 export const s_WordMatch = z.object({
@@ -561,13 +616,6 @@ export const s_AdminReportListResponse = z.object({
   data: z.array(s_AdminReport),
   hasMore: PermissiveBoolean,
   cursor: z.coerce.number().nullable().optional(),
-});
-
-export const s_MediaBrowseResponse = z.object({
-  stats: s_MediaBrowseStats.optional(),
-  results: z.array(s_MediaSummary).optional(),
-  cursor: z.coerce.number().optional(),
-  hasMore: PermissiveBoolean.optional(),
 });
 
 export const s_MediaCharacter = z.object({
@@ -630,6 +678,7 @@ export const s_Media = z.object({
   studio: z.string(),
   seasonName: z.string(),
   seasonYear: z.coerce.number(),
+  storageBasePath: z.string().nullable().optional(),
   characters: z.array(s_MediaCharacter).optional(),
   lists: z.array(s_List).optional(),
 });

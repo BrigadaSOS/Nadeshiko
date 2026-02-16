@@ -4,22 +4,16 @@ import { AuthType } from '@app/models/ApiPermission';
 import { requirePermissions } from '@app/middleware/authorization';
 import { ApiPermission } from '@app/models/ApiPermission';
 import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
+import { InsufficientPermissionsError } from '@app/errors';
+import { healthCheck, searchIndex, searchStats, searchWords } from '@app/controllers/searchController';
 import {
-  healthCheck,
-  searchSegments,
-  getSearchStats,
-  searchWords,
-  getSegmentContext,
-  browseMedia,
-} from '@app/controllers/searchController';
-import {
-  reindexElasticsearch,
-  getQueueStats,
-  getQueueDetails,
-  retryQueueJobs,
-  getFailedJobs,
-  purgeFailedJobs,
-  morphemeBackfill,
+  adminReindexCreate,
+  adminQueueStatsIndex,
+  adminQueueShow,
+  adminQueueRetryCreate,
+  adminQueueFailedIndex,
+  adminQueueFailedDestroy,
+  adminMorphemeBackfillCreate,
 } from '@app/controllers/adminController';
 import { impersonateUserForDevelopment, clearDevelopmentImpersonation } from '@app/controllers/devAuthController';
 import { isLocalEnvironment } from '@config/environment';
@@ -54,34 +48,43 @@ import {
   segmentUpdate,
   segmentDestroy,
   segmentShowByUuid,
+  segmentContextShow,
 } from '@app/controllers/segmentController';
-import { getUserQuota } from '@app/controllers/userQuotaController';
-import { createReport, getUserReports, getAdminReports, updateReport } from '@app/controllers/reportController';
+import { userQuotaShow } from '@app/controllers/userQuotaController';
 import {
-  runReviewChecks,
-  getReviewChecks,
-  updateReviewCheck,
-  getReviewRuns,
-  getReviewRunDetails,
-  getReviewAllowlist,
-  addToReviewAllowlist,
-  removeFromReviewAllowlist,
+  userReportCreate,
+  userReportIndex,
+  adminReportIndex,
+  adminReportUpdate,
+} from '@app/controllers/reportController';
+import { userPreferencesShow, userPreferencesUpdate } from '@app/controllers/preferencesController';
+import { labIndex } from '@app/controllers/labsController';
+import { userActivityIndex, userActivityStatsShow, userActivityDestroy } from '@app/controllers/activityController';
+import { userExportShow } from '@app/controllers/userExportController';
+import {
+  adminReviewRunCreate,
+  adminReviewCheckIndex,
+  adminReviewCheckUpdate,
+  adminReviewRunIndex,
+  adminReviewRunShow,
+  adminReviewAllowlistIndex,
+  adminReviewAllowlistCreate,
+  adminReviewAllowlistDestroy,
 } from '@app/controllers/mediaReviewController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
 import { createRouter as createListsRouter } from 'generated/routes/lists';
 import { createRouter as createAdminRouter } from 'generated/routes/admin';
 import { createRouter as createUserRouter } from 'generated/routes/user';
+import { createRouter as createLabsRouter } from 'generated/routes/labs';
 
 const router = express.Router();
 
 const SearchRoutes = createSearchRouter({
   healthCheck,
-  searchSegments,
-  getSearchStats,
+  searchIndex,
+  searchStats,
   searchWords,
-  getSegmentContext,
-  browseMedia,
 });
 
 const MediaRoutes = createMediaRouter({
@@ -103,6 +106,7 @@ const MediaRoutes = createMediaRouter({
   segmentUpdate,
   segmentDestroy,
   segmentShowByUuid,
+  segmentContextShow,
 });
 
 const ListsRoutes = createListsRouter({
@@ -121,29 +125,39 @@ const ListsRoutes = createListsRouter({
 });
 
 const AdminRoutes = createAdminRouter({
-  reindexElasticsearch,
-  getQueueStats,
-  getQueueDetails,
-  getFailedJobs,
-  purgeFailedJobs,
-  retryQueueJobs,
-  morphemeBackfill,
-  getAdminReports,
-  updateReport,
-  runReviewChecks,
-  getReviewChecks,
-  updateReviewCheck,
-  getReviewRuns,
-  getReviewRunDetails,
-  getReviewAllowlist,
-  addToReviewAllowlist,
-  removeFromReviewAllowlist,
+  adminReindexCreate,
+  adminQueueStatsIndex,
+  adminQueueShow,
+  adminQueueFailedIndex,
+  adminQueueFailedDestroy,
+  adminQueueRetryCreate,
+  adminMorphemeBackfillCreate,
+  adminReportIndex,
+  adminReportUpdate,
+  adminReviewRunCreate,
+  adminReviewCheckIndex,
+  adminReviewCheckUpdate,
+  adminReviewRunIndex,
+  adminReviewRunShow,
+  adminReviewAllowlistIndex,
+  adminReviewAllowlistCreate,
+  adminReviewAllowlistDestroy,
 });
 
 const UserRoutes = createUserRouter({
-  getUserQuota,
-  createReport,
-  getUserReports,
+  userQuotaShow,
+  userReportCreate,
+  userReportIndex,
+  userPreferencesShow,
+  userPreferencesUpdate,
+  userActivityIndex,
+  userActivityDestroy,
+  userActivityStatsShow,
+  userExportShow,
+});
+
+const LabsRoutes = createLabsRouter({
+  labIndex,
 });
 
 const apiKeyOnly = [requireApiKeyAuth, rateLimitApiQuota] as const;
@@ -168,7 +182,26 @@ if (isLocalEnvironment()) {
 router.use('/v1/user', requireSessionAuth);
 
 router.use('/v1/search', ...searchAccess);
-router.use('/v1/admin', ...adminAccess);
+router.use('/v1/admin', async (req: any, res: any, next: any) => {
+  const hasBearer = req.headers.authorization?.startsWith('Bearer ');
+  if (hasBearer) {
+    return requireApiKeyAuth(req, res, next);
+  }
+  return requireSessionAuth(req, res, next);
+});
+router.use('/v1/admin', (req: any, _res: any, next: any) => {
+  if (req.auth?.type === AuthType.SESSION) {
+    // Session users must be admins
+    if (req.user?.role !== 'ADMIN') {
+      throw new InsufficientPermissionsError('Admin access required.');
+    }
+    return next();
+  }
+  // API key users go through normal permission checks + rate limiting
+  return requirePermissions(ApiPermission.ADD_MEDIA)(req, _res, () => {
+    return rateLimitApiQuota(req, _res, next);
+  });
+});
 router.use('/v1/media', ...apiKeyOnly);
 // Lists support both API key and session auth
 const requireApiKeyOrSession = async (req: any, res: any, next: any) => {
@@ -204,5 +237,6 @@ router.use('/', MediaRoutes);
 router.use('/', ListsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
+router.use('/', LabsRoutes);
 
 export { router };

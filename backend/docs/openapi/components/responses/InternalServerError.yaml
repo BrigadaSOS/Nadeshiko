@@ -2,7 +2,7 @@ description: Internal Server Error
 content:
   application/json:
     schema:
-      $ref: "../schemas/Error.yaml"
+      $ref: "../schemas/Error500.yaml"
     examples:
       InternalServerError:
         $ref: "../examples/InternalServerError.yaml"

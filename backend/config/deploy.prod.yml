@@ -51,7 +51,7 @@ env:
     ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
     ELASTICSEARCH_INDEX: nadedb_prod
 
-    R2_BASE_URL: https://cdn.nadeshiko.co/media
+    R2_BASE_URL: https://cdn.nadeshiko.co
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://nadeshiko-backend-prod-alloy:4318"
     OTEL_SERVICE_NAME: nadeshiko-backend

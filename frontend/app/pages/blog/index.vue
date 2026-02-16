@@ -1,66 +1,65 @@
 <script setup lang="ts">
-const { locale } = useI18n()
-const route = useRoute()
+const { locale } = useI18n();
+const route = useRoute();
 
-const page = computed(() => Number(route.query.page || 1))
-const pageSize = 9
+const page = computed(() => Number(route.query.page || 1));
+const pageSize = 9;
 
 const { data: posts } = await useAsyncData(
   `blog-posts-${locale.value}-${page.value}`,
   async () => {
     // Get all content
-    const allContent = await queryCollection('content').all()
+    const allContent = await queryCollection('content').all();
 
     // Get English posts as the base
-    const englishPosts = allContent.filter((post: any) => post.path?.startsWith('/en/blog/'))
+    const englishPosts = allContent.filter((post: any) => post.path?.startsWith('/en/blog/'));
 
     // Create a map of English posts by slug (filename)
-    const postsMap = new Map()
+    const postsMap = new Map();
     englishPosts.forEach((post: any) => {
-      const slug = post.path?.split('/').pop()?.replace('.md', '')
+      const slug = post.path?.split('/').pop()?.replace('.md', '');
       if (slug) {
-        postsMap.set(slug, post)
+        postsMap.set(slug, post);
       }
-    })
+    });
 
     // If not English locale, get locale-specific posts and override
     if (locale.value.toLowerCase() !== 'en') {
-      const blogPathPrefix = `/${locale.value.toLowerCase()}/blog/`
-      const localePosts = allContent.filter((post: any) => post.path?.startsWith(blogPathPrefix))
+      const blogPathPrefix = `/${locale.value.toLowerCase()}/blog/`;
+      const localePosts = allContent.filter((post: any) => post.path?.startsWith(blogPathPrefix));
 
       localePosts.forEach((post: any) => {
-        const slug = post.path?.split('/').pop()?.replace('.md', '')
+        const slug = post.path?.split('/').pop()?.replace('.md', '');
         if (slug) {
-          postsMap.set(slug, post) // Override English version
+          postsMap.set(slug, post); // Override English version
         }
-      })
+      });
     }
 
     // Convert map to array and sort
-    const allPosts = Array.from(postsMap.values())
-    const sortedPosts = allPosts
-      .sort((a: any, b: any) => {
-        const dateA = a.date ? new Date(a.date).getTime() : 0
-        const dateB = b.date ? new Date(b.date).getTime() : 0
-        return dateB - dateA
-      })
+    const allPosts = Array.from(postsMap.values());
+    const sortedPosts = allPosts.sort((a: any, b: any) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
 
-    const start = (page.value - 1) * pageSize
-    const end = start + pageSize
+    const start = (page.value - 1) * pageSize;
+    const end = start + pageSize;
 
     return {
       posts: sortedPosts.slice(start, end),
       total: sortedPosts.length,
-      totalPages: Math.ceil(sortedPosts.length / pageSize)
-    }
+      totalPages: Math.ceil(sortedPosts.length / pageSize),
+    };
   },
-  { watch: [page, locale] }
-)
+  { watch: [page, locale] },
+);
 
 useSeoMeta({
   title: 'Blog - Nadeshiko',
-  description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.'
-})
+  description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
+});
 </script>
 
 <template>

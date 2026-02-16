@@ -3,6 +3,7 @@ import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors'
 import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
 import { logger } from '@config/log';
 import { ApiError, ValidationFailedError, NotFoundError, isApiError } from '@app/errors';
+import { routeErrorCodes } from 'generated/errorProfiles';
 
 export function handleErrors(error: Error, req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) {
@@ -47,6 +48,18 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     if (error.status >= 500) {
       logger.error({ err: error, requestId }, 'Server error');
     }
+
+    // Validate error code against documented codes for this route
+    const routeKey = `${req.method}:${req.route?.path ?? req.path}`;
+    const validCodes = routeErrorCodes.get(routeKey);
+    if (validCodes && !validCodes.has(error.code)) {
+      logger.error(
+        { errorCode: error.code, route: routeKey, requestId },
+        'Undocumented error code for this endpoint — returning 500',
+      );
+      return res.status(500).json(createInternalError(requestId).toJSON());
+    }
+
     return res.status(error.status).json(error.toJSON());
   }
 

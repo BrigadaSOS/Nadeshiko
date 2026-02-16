@@ -1,4 +1,10 @@
 # Nadeshiko
+
+[![Backend CI](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-check.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-check.yml)
+[![Frontend CI](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-check.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-check.yml)
+[![npm](https://img.shields.io/npm/v/@brigadasos/nadeshiko-sdk)](https://www.npmjs.com/package/@brigadasos/nadeshiko-sdk)
+[![PyPI](https://img.shields.io/pypi/v/nadeshiko-sdk)](https://pypi.org/project/nadeshiko-sdk/)
+
 Nadeshiko is an online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.
 
 ![2024-09-15-22-54-38](https://github.com/user-attachments/assets/6e2dd891-5d39-46a3-adcb-85c590c17cce)

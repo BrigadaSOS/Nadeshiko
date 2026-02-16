@@ -9,15 +9,15 @@ export const toSegmentDTO = (segment: Segment): t_Segment => ({
   status: segment.status as t_Segment['status'],
   startTime: segment.startTime,
   endTime: segment.endTime,
-  ja: {
+  textJa: {
     content: segment.contentJa,
     characterCount: segment.characterCount,
   },
-  en: {
+  textEn: {
     content: segment.contentEn || null,
     isMachineTranslated: segment.contentEnMt,
   },
-  es: {
+  textEs: {
     content: segment.contentEs || null,
     isMachineTranslated: segment.contentEsMt,
   },

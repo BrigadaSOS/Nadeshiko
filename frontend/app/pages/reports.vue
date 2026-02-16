@@ -64,11 +64,16 @@ onMounted(() => fetchReports());
 
 const statusClass = (status: string) => {
   switch (status) {
-    case 'PENDING': return 'bg-yellow-500/20 text-yellow-400 border-yellow-600';
-    case 'ACCEPTED': return 'bg-green-500/20 text-green-400 border-green-600';
-    case 'REJECTED': return 'bg-red-500/20 text-red-400 border-red-600';
-    case 'RESOLVED': return 'bg-blue-500/20 text-blue-400 border-blue-600';
-    default: return 'bg-neutral-500/20 text-neutral-400 border-neutral-600';
+    case 'PENDING':
+      return 'bg-yellow-500/20 text-yellow-400 border-yellow-600';
+    case 'ACCEPTED':
+      return 'bg-green-500/20 text-green-400 border-green-600';
+    case 'REJECTED':
+      return 'bg-red-500/20 text-red-400 border-red-600';
+    case 'RESOLVED':
+      return 'bg-blue-500/20 text-blue-400 border-blue-600';
+    default:
+      return 'bg-neutral-500/20 text-neutral-400 border-neutral-600';
   }
 };
 </script>

@@ -37,8 +37,6 @@ export function analyze(_text: string): MorphemeData[] {
   throw new Error('Morpheme analysis temporarily disabled - lindera.js dependency removed');
 }
 
-export function analyzeBatch(
-  _items: { id: string; text: string }[],
-): { id: string; morphemes: MorphemeData[] }[] {
+export function analyzeBatch(_items: { id: string; text: string }[]): { id: string; morphemes: MorphemeData[] }[] {
   throw new Error('Morpheme analysis temporarily disabled - lindera.js dependency removed');
 }

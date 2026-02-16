@@ -2,7 +2,7 @@ description: Too Many Requests
 content:
   application/json:
     schema:
-      $ref: "../schemas/Error.yaml"
+      $ref: "../schemas/Error429.yaml"
     examples:
       RateLimitExceeded:
         $ref: "../examples/RateLimitExceeded.yaml"

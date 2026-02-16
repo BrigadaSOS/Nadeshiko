@@ -14,36 +14,48 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
-  t_AddToReviewAllowlistRequestBodySchema,
+  t_AdminQueueFailedDestroyParamSchema,
+  t_AdminQueueFailedIndexParamSchema,
+  t_AdminQueueRetryCreateParamSchema,
+  t_AdminQueueShowParamSchema,
+  t_AdminReindexCreateRequestBodySchema,
+  t_AdminReportIndexQuerySchema,
   t_AdminReportListResponse,
-  t_Error,
-  t_GetAdminReportsQuerySchema,
-  t_GetFailedJobsParamSchema,
-  t_GetQueueDetailsParamSchema,
-  t_GetReviewAllowlistQuerySchema,
-  t_GetReviewRunDetailsParamSchema,
-  t_GetReviewRunsQuerySchema,
-  t_PurgeFailedJobsParamSchema,
-  t_ReindexElasticsearchRequestBodySchema,
+  t_AdminReportUpdateParamSchema,
+  t_AdminReportUpdateRequestBodySchema,
+  t_AdminReviewAllowlistCreateRequestBodySchema,
+  t_AdminReviewAllowlistDestroyParamSchema,
+  t_AdminReviewAllowlistIndexQuerySchema,
+  t_AdminReviewCheckUpdateParamSchema,
+  t_AdminReviewCheckUpdateRequestBodySchema,
+  t_AdminReviewRunCreateQuerySchema,
+  t_AdminReviewRunIndexQuerySchema,
+  t_AdminReviewRunShowParamSchema,
+  t_Error400,
+  t_Error401,
+  t_Error403,
+  t_Error404,
+  t_Error409,
+  t_Error429,
+  t_Error500,
   t_ReindexResponse,
-  t_RemoveFromReviewAllowlistParamSchema,
   t_Report,
-  t_RetryQueueJobsParamSchema,
   t_ReviewAllowlist,
   t_ReviewCheck,
   t_ReviewCheckRun,
-  t_RunReviewChecksQuerySchema,
   t_RunReviewResponse,
-  t_UpdateReportParamSchema,
-  t_UpdateReportRequestBodySchema,
-  t_UpdateReviewCheckParamSchema,
-  t_UpdateReviewCheckRequestBodySchema,
 } from '../models.ts';
-import type { GetAdminReportsQueryOutput, GetReviewAllowlistQueryOutput, GetReviewRunsQueryOutput, RunReviewChecksQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { AdminReportIndexQueryOutput, AdminReviewAllowlistIndexQueryOutput, AdminReviewRunCreateQueryOutput, AdminReviewRunIndexQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
-  s_Error,
+  s_Error400,
+  s_Error401,
+  s_Error403,
+  s_Error404,
+  s_Error409,
+  s_Error429,
+  s_Error500,
   s_ReindexRequest,
   s_ReindexResponse,
   s_Report,
@@ -54,24 +66,24 @@ import {
   s_UpdateReportRequest,
 } from '../schemas.ts';
 
-export type ReindexElasticsearchResponder = {
+export type AdminReindexCreateResponder = {
   with200(): ExpressRuntimeResponse<t_ReindexResponse>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type ReindexElasticsearch = (
-  params: Params<void, void, t_ReindexElasticsearchRequestBodySchema | undefined, void>,
-  respond: ReindexElasticsearchResponder,
+export type AdminReindexCreate = (
+  params: Params<void, void, t_AdminReindexCreateRequestBodySchema | undefined, void>,
+  respond: AdminReindexCreateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetQueueStatsResponder = {
+export type AdminQueueStatsIndexResponder = {
   with200(): ExpressRuntimeResponse<
     {
       failedCount?: number;
@@ -79,22 +91,22 @@ export type GetQueueStatsResponder = {
       stuckCount?: number;
     }[]
   >;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetQueueStats = (
+export type AdminQueueStatsIndex = (
   params: Params<void, void, void, void>,
-  respond: GetQueueStatsResponder,
+  respond: AdminQueueStatsIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetQueueDetailsResponder = {
+export type AdminQueueShowResponder = {
   with200(): ExpressRuntimeResponse<{
     cancelled?: number;
     complete?: number;
@@ -104,23 +116,23 @@ export type GetQueueDetailsResponder = {
     queue?: string;
     size?: number;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetQueueDetails = (
-  params: Params<t_GetQueueDetailsParamSchema, void, void, void>,
-  respond: GetQueueDetailsResponder,
+export type AdminQueueShow = (
+  params: Params<t_AdminQueueShowParamSchema, void, void, void>,
+  respond: AdminQueueShowResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetFailedJobsResponder = {
+export type AdminQueueFailedIndexResponder = {
   with200(): ExpressRuntimeResponse<
     {
       createdOn?: string;
@@ -129,64 +141,64 @@ export type GetFailedJobsResponder = {
       segmentId?: number;
     }[]
   >;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetFailedJobs = (
-  params: Params<t_GetFailedJobsParamSchema, void, void, void>,
-  respond: GetFailedJobsResponder,
+export type AdminQueueFailedIndex = (
+  params: Params<t_AdminQueueFailedIndexParamSchema, void, void, void>,
+  respond: AdminQueueFailedIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type RetryQueueJobsResponder = {
+export type AdminQueueRetryCreateResponder = {
   with200(): ExpressRuntimeResponse<{
     message?: string;
     retriedCount?: number;
     success?: boolean;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type RetryQueueJobs = (
-  params: Params<t_RetryQueueJobsParamSchema, void, void, void>,
-  respond: RetryQueueJobsResponder,
+export type AdminQueueRetryCreate = (
+  params: Params<t_AdminQueueRetryCreateParamSchema, void, void, void>,
+  respond: AdminQueueRetryCreateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type PurgeFailedJobsResponder = {
+export type AdminQueueFailedDestroyResponder = {
   with200(): ExpressRuntimeResponse<{
     message?: string;
     purgedCount?: number;
     success?: boolean;
   }>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type PurgeFailedJobs = (
-  params: Params<t_PurgeFailedJobsParamSchema, void, void, void>,
-  respond: PurgeFailedJobsResponder,
+export type AdminQueueFailedDestroy = (
+  params: Params<t_AdminQueueFailedDestroyParamSchema, void, void, void>,
+  respond: AdminQueueFailedDestroyResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type MorphemeBackfillResponder = {
+export type AdminMorphemeBackfillCreateResponder = {
   with200(): ExpressRuntimeResponse<{
     message: string;
     stats: {
@@ -198,233 +210,233 @@ export type MorphemeBackfillResponder = {
   }>;
 } & ExpressRuntimeResponder;
 
-export type MorphemeBackfill = (
+export type AdminMorphemeBackfillCreate = (
   params: Params<void, void, void, void>,
-  respond: MorphemeBackfillResponder,
+  respond: AdminMorphemeBackfillCreateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetAdminReportsResponder = {
+export type AdminReportIndexResponder = {
   with200(): ExpressRuntimeResponse<t_AdminReportListResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetAdminReports = (
-  params: Params<void, GetAdminReportsQueryOutput, void, void>,
-  respond: GetAdminReportsResponder,
+export type AdminReportIndex = (
+  params: Params<void, AdminReportIndexQueryOutput, void, void>,
+  respond: AdminReportIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type UpdateReportResponder = {
+export type AdminReportUpdateResponder = {
   with200(): ExpressRuntimeResponse<t_Report>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type UpdateReport = (
-  params: Params<t_UpdateReportParamSchema, void, UpdateReportRequestOutput, void>,
-  respond: UpdateReportResponder,
+export type AdminReportUpdate = (
+  params: Params<t_AdminReportUpdateParamSchema, void, UpdateReportRequestOutput, void>,
+  respond: AdminReportUpdateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type RunReviewChecksResponder = {
+export type AdminReviewRunCreateResponder = {
   with200(): ExpressRuntimeResponse<t_RunReviewResponse>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type RunReviewChecks = (
-  params: Params<void, RunReviewChecksQueryOutput, void, void>,
-  respond: RunReviewChecksResponder,
+export type AdminReviewRunCreate = (
+  params: Params<void, AdminReviewRunCreateQueryOutput, void, void>,
+  respond: AdminReviewRunCreateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetReviewChecksResponder = {
+export type AdminReviewCheckIndexResponder = {
   with200(): ExpressRuntimeResponse<t_ReviewCheck[]>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetReviewChecks = (
+export type AdminReviewCheckIndex = (
   params: Params<void, void, void, void>,
-  respond: GetReviewChecksResponder,
+  respond: AdminReviewCheckIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type UpdateReviewCheckResponder = {
+export type AdminReviewCheckUpdateResponder = {
   with200(): ExpressRuntimeResponse<t_ReviewCheck>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type UpdateReviewCheck = (
-  params: Params<t_UpdateReviewCheckParamSchema, void, t_UpdateReviewCheckRequestBodySchema, void>,
-  respond: UpdateReviewCheckResponder,
+export type AdminReviewCheckUpdate = (
+  params: Params<t_AdminReviewCheckUpdateParamSchema, void, t_AdminReviewCheckUpdateRequestBodySchema, void>,
+  respond: AdminReviewCheckUpdateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetReviewRunsResponder = {
+export type AdminReviewRunIndexResponder = {
   with200(): ExpressRuntimeResponse<{
     cursor?: number | null;
     data: t_ReviewCheckRun[];
     hasMore: boolean;
   }>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetReviewRuns = (
-  params: Params<void, GetReviewRunsQueryOutput, void, void>,
-  respond: GetReviewRunsResponder,
+export type AdminReviewRunIndex = (
+  params: Params<void, AdminReviewRunIndexQueryOutput, void, void>,
+  respond: AdminReviewRunIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetReviewRunDetailsResponder = {
+export type AdminReviewRunShowResponder = {
   with200(): ExpressRuntimeResponse<{
     reports: t_Report[];
     run: t_ReviewCheckRun;
   }>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetReviewRunDetails = (
-  params: Params<t_GetReviewRunDetailsParamSchema, void, void, void>,
-  respond: GetReviewRunDetailsResponder,
+export type AdminReviewRunShow = (
+  params: Params<t_AdminReviewRunShowParamSchema, void, void, void>,
+  respond: AdminReviewRunShowResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetReviewAllowlistResponder = {
+export type AdminReviewAllowlistIndexResponder = {
   with200(): ExpressRuntimeResponse<t_ReviewAllowlist[]>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetReviewAllowlist = (
-  params: Params<void, GetReviewAllowlistQueryOutput, void, void>,
-  respond: GetReviewAllowlistResponder,
+export type AdminReviewAllowlistIndex = (
+  params: Params<void, AdminReviewAllowlistIndexQueryOutput, void, void>,
+  respond: AdminReviewAllowlistIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type AddToReviewAllowlistResponder = {
+export type AdminReviewAllowlistCreateResponder = {
   with201(): ExpressRuntimeResponse<t_ReviewAllowlist>;
-  with400(): ExpressRuntimeResponse<t_Error>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with409(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type AddToReviewAllowlist = (
-  params: Params<void, void, t_AddToReviewAllowlistRequestBodySchema, void>,
-  respond: AddToReviewAllowlistResponder,
+export type AdminReviewAllowlistCreate = (
+  params: Params<void, void, t_AdminReviewAllowlistCreateRequestBodySchema, void>,
+  respond: AdminReviewAllowlistCreateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type RemoveFromReviewAllowlistResponder = {
+export type AdminReviewAllowlistDestroyResponder = {
   with204(): ExpressRuntimeResponse<void>;
-  with401(): ExpressRuntimeResponse<t_Error>;
-  with403(): ExpressRuntimeResponse<t_Error>;
-  with404(): ExpressRuntimeResponse<t_Error>;
-  with429(): ExpressRuntimeResponse<t_Error>;
-  with500(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type RemoveFromReviewAllowlist = (
-  params: Params<t_RemoveFromReviewAllowlistParamSchema, void, void, void>,
-  respond: RemoveFromReviewAllowlistResponder,
+export type AdminReviewAllowlistDestroy = (
+  params: Params<t_AdminReviewAllowlistDestroyParamSchema, void, void, void>,
+  respond: AdminReviewAllowlistDestroyResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AdminImplementation = {
-  reindexElasticsearch: ReindexElasticsearch;
-  getQueueStats: GetQueueStats;
-  getQueueDetails: GetQueueDetails;
-  getFailedJobs: GetFailedJobs;
-  retryQueueJobs: RetryQueueJobs;
-  purgeFailedJobs: PurgeFailedJobs;
-  morphemeBackfill: MorphemeBackfill;
-  getAdminReports: GetAdminReports;
-  updateReport: UpdateReport;
-  runReviewChecks: RunReviewChecks;
-  getReviewChecks: GetReviewChecks;
-  updateReviewCheck: UpdateReviewCheck;
-  getReviewRuns: GetReviewRuns;
-  getReviewRunDetails: GetReviewRunDetails;
-  getReviewAllowlist: GetReviewAllowlist;
-  addToReviewAllowlist: AddToReviewAllowlist;
-  removeFromReviewAllowlist: RemoveFromReviewAllowlist;
+  adminReindexCreate: AdminReindexCreate;
+  adminQueueStatsIndex: AdminQueueStatsIndex;
+  adminQueueShow: AdminQueueShow;
+  adminQueueFailedIndex: AdminQueueFailedIndex;
+  adminQueueRetryCreate: AdminQueueRetryCreate;
+  adminQueueFailedDestroy: AdminQueueFailedDestroy;
+  adminMorphemeBackfillCreate: AdminMorphemeBackfillCreate;
+  adminReportIndex: AdminReportIndex;
+  adminReportUpdate: AdminReportUpdate;
+  adminReviewRunCreate: AdminReviewRunCreate;
+  adminReviewCheckIndex: AdminReviewCheckIndex;
+  adminReviewCheckUpdate: AdminReviewCheckUpdate;
+  adminReviewRunIndex: AdminReviewRunIndex;
+  adminReviewRunShow: AdminReviewRunShow;
+  adminReviewAllowlistIndex: AdminReviewAllowlistIndex;
+  adminReviewAllowlistCreate: AdminReviewAllowlistCreate;
+  adminReviewAllowlistDestroy: AdminReviewAllowlistDestroy;
 };
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
   const router = Router();
 
-  const reindexElasticsearchRequestBodySchema = s_ReindexRequest.optional();
+  const adminReindexCreateRequestBodySchema = s_ReindexRequest.optional();
 
-  const reindexElasticsearchResponseBodyValidator = responseValidationFactory(
+  const adminReindexCreateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_ReindexResponse],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // reindexElasticsearch
+  // adminReindexCreate
   router.post(`/v1/admin/reindex`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(reindexElasticsearchRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(adminReindexCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -433,26 +445,26 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_ReindexResponse>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.reindexElasticsearch(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReindexCreate(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -466,7 +478,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(reindexElasticsearchResponseBodyValidator(status, body));
+        res.json(adminReindexCreateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -475,7 +487,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getQueueStatsResponseBodyValidator = responseValidationFactory(
+  const adminQueueStatsIndexResponseBodyValidator = responseValidationFactory(
     [
       [
         '200',
@@ -487,16 +499,16 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           }),
         ),
       ],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getQueueStats
+  // adminQueueStatsIndex
   router.get(`/v1/admin/queues/stats`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
@@ -517,26 +529,26 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           >(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getQueueStats(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminQueueStatsIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -550,7 +562,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getQueueStatsResponseBodyValidator(status, body));
+        res.json(adminQueueStatsIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -559,11 +571,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getQueueDetailsParamSchema = z.object({
+  const adminQueueShowParamSchema = z.object({
     queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
   });
 
-  const getQueueDetailsResponseBodyValidator = responseValidationFactory(
+  const adminQueueShowResponseBodyValidator = responseValidationFactory(
     [
       [
         '200',
@@ -577,21 +589,21 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           cancelled: z.coerce.number().optional(),
         }),
       ],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getQueueDetails
+  // adminQueueShow
   router.get(`/v1/admin/queues/:queueName`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(getQueueDetailsParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminQueueShowParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -610,29 +622,29 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getQueueDetails(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminQueueShow(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -646,7 +658,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getQueueDetailsResponseBodyValidator(status, body));
+        res.json(adminQueueShowResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -655,11 +667,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getFailedJobsParamSchema = z.object({
+  const adminQueueFailedIndexParamSchema = z.object({
     queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
   });
 
-  const getFailedJobsResponseBodyValidator = responseValidationFactory(
+  const adminQueueFailedIndexResponseBodyValidator = responseValidationFactory(
     [
       [
         '200',
@@ -672,20 +684,20 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           }),
         ),
       ],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getFailedJobs
+  // adminQueueFailedIndex
   router.get(`/v1/admin/queues/:queueName/failed`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(getFailedJobsParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminQueueFailedIndexParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -703,26 +715,26 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           >(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getFailedJobs(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminQueueFailedIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -736,7 +748,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getFailedJobsResponseBodyValidator(status, body));
+        res.json(adminQueueFailedIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -745,11 +757,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const retryQueueJobsParamSchema = z.object({
+  const adminQueueRetryCreateParamSchema = z.object({
     queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
   });
 
-  const retryQueueJobsResponseBodyValidator = responseValidationFactory(
+  const adminQueueRetryCreateResponseBodyValidator = responseValidationFactory(
     [
       [
         '200',
@@ -759,20 +771,20 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           message: z.string().optional(),
         }),
       ],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // retryQueueJobs
+  // adminQueueRetryCreate
   router.post(`/v1/admin/queues/:queueName/retry`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(retryQueueJobsParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminQueueRetryCreateParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -787,26 +799,26 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.retryQueueJobs(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminQueueRetryCreate(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -820,7 +832,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(retryQueueJobsResponseBodyValidator(status, body));
+        res.json(adminQueueRetryCreateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -829,11 +841,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const purgeFailedJobsParamSchema = z.object({
+  const adminQueueFailedDestroyParamSchema = z.object({
     queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
   });
 
-  const purgeFailedJobsResponseBodyValidator = responseValidationFactory(
+  const adminQueueFailedDestroyResponseBodyValidator = responseValidationFactory(
     [
       [
         '200',
@@ -843,20 +855,20 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           message: z.string().optional(),
         }),
       ],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // purgeFailedJobs
+  // adminQueueFailedDestroy
   router.delete(`/v1/admin/queues/:queueName/purge`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(purgeFailedJobsParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminQueueFailedDestroyParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -871,26 +883,26 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           }>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.purgeFailedJobs(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminQueueFailedDestroy(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -904,7 +916,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(purgeFailedJobsResponseBodyValidator(status, body));
+        res.json(adminQueueFailedDestroyResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -913,7 +925,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const morphemeBackfillResponseBodyValidator = responseValidationFactory(
+  const adminMorphemeBackfillCreateResponseBodyValidator = responseValidationFactory(
     [
       [
         '200',
@@ -931,7 +943,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     undefined,
   );
 
-  // morphemeBackfill
+  // adminMorphemeBackfillCreate
   router.post(`/v1/admin/morpheme-backfill`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
@@ -958,9 +970,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.morphemeBackfill(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+      const response = await implementation
+        .adminMorphemeBackfillCreate(input, responder, req, res, next)
+        .catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
 
       // escape hatch to allow responses to be sent by the implementation handler
       if (response === SkipResponse) {
@@ -972,7 +986,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(morphemeBackfillResponseBodyValidator(status, body));
+        res.json(adminMorphemeBackfillCreateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -981,7 +995,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getAdminReportsQuerySchema = z.object({
+  const adminReportIndexQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
     size: z.coerce.number().max(100).optional().default(20),
     status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
@@ -991,23 +1005,23 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     reviewCheckRunId: z.coerce.number().optional(),
   });
 
-  const getAdminReportsResponseBodyValidator = responseValidationFactory(
+  const adminReportIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_AdminReportListResponse],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getAdminReports
+  // adminReportIndex
   router.get(`/v1/admin/reports`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(getAdminReportsQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(adminReportIndexQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -1017,23 +1031,23 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_AdminReportListResponse>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getAdminReports(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReportIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1047,7 +1061,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getAdminReportsResponseBodyValidator(status, body));
+        res.json(adminReportIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1056,30 +1070,30 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const updateReportParamSchema = z.object({ id: z.coerce.number() });
+  const adminReportUpdateParamSchema = z.object({ id: z.coerce.number() });
 
-  const updateReportRequestBodySchema = s_UpdateReportRequest;
+  const adminReportUpdateRequestBodySchema = s_UpdateReportRequest;
 
-  const updateReportResponseBodyValidator = responseValidationFactory(
+  const adminReportUpdateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Report],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // updateReport
+  // adminReportUpdate
   router.patch(`/v1/admin/reports/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(updateReportParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminReportUpdateParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateReportRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(adminReportUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -1088,29 +1102,29 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_Report>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.updateReport(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReportUpdate(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1124,7 +1138,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(updateReportResponseBodyValidator(status, body));
+        res.json(adminReportUpdateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1133,25 +1147,25 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const runReviewChecksQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
+  const adminReviewRunCreateQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
 
-  const runReviewChecksResponseBodyValidator = responseValidationFactory(
+  const adminReviewRunCreateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_RunReviewResponse],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // runReviewChecks
+  // adminReviewRunCreate
   router.post(`/v1/admin/review/run`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(runReviewChecksQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(adminReviewRunCreateQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -1161,23 +1175,23 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_RunReviewResponse>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.runReviewChecks(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReviewRunCreate(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1191,7 +1205,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(runReviewChecksResponseBodyValidator(status, body));
+        res.json(adminReviewRunCreateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1200,18 +1214,18 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getReviewChecksResponseBodyValidator = responseValidationFactory(
+  const adminReviewCheckIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.array(s_ReviewCheck)],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getReviewChecks
+  // adminReviewCheckIndex
   router.get(`/v1/admin/review/checks`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
@@ -1226,23 +1240,23 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_ReviewCheck[]>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getReviewChecks(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReviewCheckIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1256,7 +1270,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getReviewChecksResponseBodyValidator(status, body));
+        res.json(adminReviewCheckIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1265,33 +1279,33 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const updateReviewCheckParamSchema = z.object({ name: z.string() });
+  const adminReviewCheckUpdateParamSchema = z.object({ name: z.string() });
 
-  const updateReviewCheckRequestBodySchema = z.object({
+  const adminReviewCheckUpdateRequestBodySchema = z.object({
     threshold: z.record(z.unknown()).optional(),
     enabled: PermissiveBoolean.optional(),
   });
 
-  const updateReviewCheckResponseBodyValidator = responseValidationFactory(
+  const adminReviewCheckUpdateResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_ReviewCheck],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // updateReviewCheck
+  // adminReviewCheckUpdate
   router.patch(`/v1/admin/review/checks/:name`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(updateReviewCheckParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminReviewCheckUpdateParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateReviewCheckRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(adminReviewCheckUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -1300,29 +1314,29 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_ReviewCheck>(200);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.updateReviewCheck(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReviewCheckUpdate(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1336,7 +1350,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(updateReviewCheckResponseBodyValidator(status, body));
+        res.json(adminReviewCheckUpdateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1345,13 +1359,13 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getReviewRunsQuerySchema = z.object({
+  const adminReviewRunIndexQuerySchema = z.object({
     checkName: z.string().optional(),
     cursor: z.coerce.number().optional(),
     size: z.coerce.number().max(100).optional().default(20),
   });
 
-  const getReviewRunsResponseBodyValidator = responseValidationFactory(
+  const adminReviewRunIndexResponseBodyValidator = responseValidationFactory(
     [
       [
         '200',
@@ -1361,20 +1375,20 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           cursor: z.coerce.number().nullable().optional(),
         }),
       ],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getReviewRuns
+  // adminReviewRunIndex
   router.get(`/v1/admin/review/runs`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(getReviewRunsQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(adminReviewRunIndexQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -1388,23 +1402,23 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           }>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getReviewRuns(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReviewRunIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1418,7 +1432,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getReviewRunsResponseBodyValidator(status, body));
+        res.json(adminReviewRunIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1427,25 +1441,25 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getReviewRunDetailsParamSchema = z.object({ id: z.coerce.number() });
+  const adminReviewRunShowParamSchema = z.object({ id: z.coerce.number() });
 
-  const getReviewRunDetailsResponseBodyValidator = responseValidationFactory(
+  const adminReviewRunShowResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ run: s_ReviewCheckRun, reports: z.array(s_Report) })],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getReviewRunDetails
+  // adminReviewRunShow
   router.get(`/v1/admin/review/runs/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(getReviewRunDetailsParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminReviewRunShowParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -1459,26 +1473,26 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           }>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getReviewRunDetails(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReviewRunShow(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1492,7 +1506,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getReviewRunDetailsResponseBodyValidator(status, body));
+        res.json(adminReviewRunShowResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1501,25 +1515,25 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getReviewAllowlistQuerySchema = z.object({ checkName: z.string().optional() });
+  const adminReviewAllowlistIndexQuerySchema = z.object({ checkName: z.string().optional() });
 
-  const getReviewAllowlistResponseBodyValidator = responseValidationFactory(
+  const adminReviewAllowlistIndexResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.array(s_ReviewAllowlist)],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // getReviewAllowlist
+  // adminReviewAllowlistIndex
   router.get(`/v1/admin/review/allowlist`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(getReviewAllowlistQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(adminReviewAllowlistIndexQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -1529,23 +1543,23 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_ReviewAllowlist[]>(200);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.getReviewAllowlist(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.adminReviewAllowlistIndex(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1559,7 +1573,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getReviewAllowlistResponseBodyValidator(status, body));
+        res.json(adminReviewAllowlistIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1568,33 +1582,33 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const addToReviewAllowlistRequestBodySchema = z.object({
+  const adminReviewAllowlistCreateRequestBodySchema = z.object({
     checkName: z.string(),
     mediaId: z.coerce.number(),
     episodeNumber: z.coerce.number().optional(),
     reason: z.string().optional(),
   });
 
-  const addToReviewAllowlistResponseBodyValidator = responseValidationFactory(
+  const adminReviewAllowlistCreateResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_ReviewAllowlist],
-      ['400', s_Error],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['409', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // addToReviewAllowlist
+  // adminReviewAllowlistCreate
   router.post(`/v1/admin/review/allowlist`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(addToReviewAllowlistRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(adminReviewAllowlistCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -1603,31 +1617,33 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<t_ReviewAllowlist>(201);
         },
         with400() {
-          return new ExpressRuntimeResponse<t_Error>(400);
+          return new ExpressRuntimeResponse<t_Error400>(400);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with409() {
-          return new ExpressRuntimeResponse<t_Error>(409);
+          return new ExpressRuntimeResponse<t_Error409>(409);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.addToReviewAllowlist(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+      const response = await implementation
+        .adminReviewAllowlistCreate(input, responder, req, res, next)
+        .catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
 
       // escape hatch to allow responses to be sent by the implementation handler
       if (response === SkipResponse) {
@@ -1639,7 +1655,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(addToReviewAllowlistResponseBodyValidator(status, body));
+        res.json(adminReviewAllowlistCreateResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1648,25 +1664,25 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const removeFromReviewAllowlistParamSchema = z.object({ id: z.coerce.number() });
+  const adminReviewAllowlistDestroyParamSchema = z.object({ id: z.coerce.number() });
 
-  const removeFromReviewAllowlistResponseBodyValidator = responseValidationFactory(
+  const adminReviewAllowlistDestroyResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
-      ['401', s_Error],
-      ['403', s_Error],
-      ['404', s_Error],
-      ['429', s_Error],
-      ['500', s_Error],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
     ],
     undefined,
   );
 
-  // removeFromReviewAllowlist
+  // adminReviewAllowlistDestroy
   router.delete(`/v1/admin/review/allowlist/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(removeFromReviewAllowlistParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(adminReviewAllowlistDestroyParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -1677,28 +1693,30 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<void>(204);
         },
         with401() {
-          return new ExpressRuntimeResponse<t_Error>(401);
+          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
-          return new ExpressRuntimeResponse<t_Error>(403);
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with404() {
-          return new ExpressRuntimeResponse<t_Error>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with429() {
-          return new ExpressRuntimeResponse<t_Error>(429);
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
-          return new ExpressRuntimeResponse<t_Error>(500);
+          return new ExpressRuntimeResponse<t_Error500>(500);
         },
         withStatus(status: StatusCode) {
           return new ExpressRuntimeResponse(status);
         },
       };
 
-      const response = await implementation.removeFromReviewAllowlist(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+      const response = await implementation
+        .adminReviewAllowlistDestroy(input, responder, req, res, next)
+        .catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
 
       // escape hatch to allow responses to be sent by the implementation handler
       if (response === SkipResponse) {
@@ -1710,7 +1728,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(removeFromReviewAllowlistResponseBodyValidator(status, body));
+        res.json(adminReviewAllowlistDestroyResponseBodyValidator(status, body));
       } else {
         res.end();
       }

@@ -1,10 +1,8 @@
 <script setup>
-const route = useRoute();
+import { CATEGORY_API_MAPPING } from '~/utils/categories';
 
-const categoryMapping = {
-  anime: 'ANIME',
-  liveaction: 'JDRAMA',
-};
+const route = useRoute();
+const { mediaName } = useMediaName();
 
 const searchQuery = computed(() => {
   if (route.params.query) {
@@ -29,7 +27,7 @@ const fetchSentenceData = async () => {
       body.uuid = route.query.uuid;
     }
 
-    const categoryValue = categoryMapping[route.query.category];
+    const categoryValue = CATEGORY_API_MAPPING[route.query.category];
     if (categoryValue) {
       body.category = [categoryValue];
     }
@@ -63,7 +61,7 @@ const fetchStatsData = async () => {
       body.query = q;
     }
 
-    const categoryValue = categoryMapping[route.query.category];
+    const categoryValue = CATEGORY_API_MAPPING[route.query.category];
     if (categoryValue) {
       body.category = [categoryValue];
     }
@@ -90,7 +88,9 @@ const sentenceCacheKey = computed(() => {
 });
 
 const statsCacheKey = computed(() => {
-  const params = [searchQuery.value, route.query.category].filter(Boolean).join('-');
+  const params = [searchQuery.value, route.query.category, route.query.media, route.query.episode]
+    .filter(Boolean)
+    .join('-');
   return `search-stats-${params || 'default'}`;
 });
 
@@ -124,8 +124,8 @@ const metaTags = computed(() => {
 
   if (route.query.uuid && result) {
     const mediaInfo = `Episode ${result.segment.episodeNumber}`;
-    const title = `${result.media.nameEn} | Nadeshiko`;
-    const description = `「${result.segment.ja.content}」\n${mediaInfo}`;
+    const title = `${mediaName(result.media)} | Nadeshiko`;
+    const description = `「${result.segment.textJa.content}」\n${mediaInfo}`;
 
     tags.title = title;
     tags.meta = [
@@ -184,7 +184,7 @@ const metaTags = computed(() => {
     ];
   } else if (route.query.media && initialSentenceData.value?.results?.length > 0) {
     const firstResult = initialSentenceData.value.results[0];
-    const animeName = firstResult.media.nameEn;
+    const animeName = mediaName(firstResult.media);
     const mediaId = firstResult.media.mediaId;
 
     const mediaStats = initialStatsData.value?.media?.find((s) => s.mediaId === Number(mediaId));
