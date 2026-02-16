@@ -19,7 +19,8 @@
       "dmca": "DMCA",
       "terms": "利用規約",
       "contact": "お問い合わせ",
-      "settings": "設定"
+      "settings": "設定",
+      "media": "メディア"
     }
   },
   "home": {
@@ -35,8 +36,8 @@
         "description": "画像、音声、複数の言語を含む文をAnkiに保存できます。"
       },
       "feature2": {
-        "title": "文をダウンロード",
-        "description": "画像、音声、動画などの形式で文をダウンロードできます。"
+        "title": "文を保存",
+        "description": "画像、音声、動画などの形式で文を保存できます。"
       },
       "feature3": {
         "title": "文の前後の文脈を確認",
@@ -54,6 +55,7 @@
     "stats": {
       "title": "全体統計",
       "sentenceCount": "文",
+      "episodeCount": "エピソード",
       "mediaCount": "総コンテンツ数"
     }
   },
@@ -160,14 +162,22 @@
     "english": "英語",
     "spanish": "スペイン語",
     "machineTranslated": "機械翻訳",
+    "translations": "翻訳",
     "status": "ステータス",
-    "nsfw": "NSFWコンテンツ",
+    "contentRating": "コンテンツレーティング",
     "save": "保存",
     "saving": "保存中...",
     "cancel": "キャンセル",
     "close": "閉じる",
     "saveSuccess": "セグメントを更新しました",
-    "saveError": "セグメントの更新に失敗しました"
+    "saveError": "セグメントの更新に失敗しました",
+    "metadata": {
+      "media": "メディア",
+      "episode": "話",
+      "time": "時間",
+      "uuid": "UUID",
+      "copyUuid": "UUIDをコピー"
+    }
   },
   "filterContent": {
     "searchPlaceholder": "ここで検索"
@@ -182,6 +192,15 @@
   },
   "searchpage": {
     "main": {
+      "translationPreferences": {
+        "legend": "翻訳",
+        "english": "英語",
+        "spanish": "スペイン語",
+        "englishShown": "英語翻訳を表示しました",
+        "englishHidden": "英語翻訳を非表示にしました",
+        "spanishShown": "スペイン語翻訳を表示しました",
+        "spanishHidden": "スペイン語翻訳を非表示にしました"
+      },
       "buttons": {
         "addToAnkiLast": "Ankiに追加（最後に追加したカード）",
         "addToAnkiSearch": "Ankiに追加（コレクションを検索）",
@@ -202,6 +221,8 @@
         "expandLeft": "左に展開",
         "expandBoth": "両側に展開",
         "expandRight": "右に展開",
+        "hideMedia": "このメディアを非表示",
+        "unhideMedia": "このメディアを表示",
         "sortmain": "文を並び替え",
         "sortlengthnone": "なし",
         "sortlengthmin": "最短",
@@ -238,11 +259,11 @@
     "modalcontext": {
       "buttons": {
         "close": "閉じる",
-        "downloadmultipleaudios": "選択した音声をダウンロード"
+        "downloadmultipleaudios": "選択した音声を保存"
       },
       "labels": {
         "context": "文脈",
-        "errordownloadmultipleaudios": "音声のダウンロードエラー。再試行してください。",
+        "errordownloadmultipleaudios": "音声の保存エラー。再試行してください。",
         "errorconnection": "サーバー接続エラー。"
       }
     }
@@ -277,6 +298,7 @@
       "statusActive": "有効",
       "statusInactive": "無効",
       "options": "オプション",
+      "rename": "名前変更",
       "deactivate": "無効化",
       "unlimited": "無制限",
       "createApiKeyModal": {
@@ -286,6 +308,12 @@
         "permissionsLabel": "権限",
         "cancel": "キャンセル",
         "create": "作成"
+      },
+      "renameApiKeyModal": {
+        "title": "APIキーの名前変更",
+        "nameLabel": "名前",
+        "namePlaceholder": "このAPIキーの新しい名前を入力してください",
+        "save": "保存"
       }
     },
     "account": {
@@ -297,7 +325,25 @@
       "securityTitle": "セキュリティ",
       "passwordLabel": "パスワード",
       "additionalTitle": "エキストラ",
-      "deleteAccount": "アカウント削除（取り消し不可）"
+      "deleteAccount": "アカウント削除（取り消し不可）",
+      "suggestiveContent": "示唆的コンテンツ",
+      "suggestiveContentDesc": "ファンサービス、露出度の高い服装",
+      "explicitContent": "露骨なコンテンツ",
+      "explicitContentDesc": "露骨またはきわどいコンテンツ",
+      "contentRatingShow": "表示",
+      "contentRatingBlur": "ぼかし（デフォルト）",
+      "contentRatingHide": "非表示",
+      "contentRatingHint_show": "検索結果に含まれ、ぼかしなしで表示されます",
+      "contentRatingHint_blur": "検索結果に含まれますが、ぼかして表示されます",
+      "contentRatingHint_hide": "検索結果に含まれません",
+      "contentRatingPreview": "検索結果での表示プレビュー",
+      "contentRatingHidden": "非表示",
+      "preferenceSaved": "設定を保存しました",
+      "preferenceError": "設定の保存に失敗しました",
+      "hiddenMedia": "非表示メディア",
+      "hiddenMediaDescription": "検索結果から非表示にしたメディア。検索結果のメニューからも非表示にできます。",
+      "hiddenMediaSearchPlaceholder": "非表示にするメディアを検索...",
+      "hiddenMediaEmpty": "非表示のメディアはありません。検索結果にはすべてのメディアが表示されます。"
     },
     "anki": {
       "syncStatus": "同期状態",
@@ -334,9 +380,22 @@
   "segment": {
     "noResultsTitle": "404",
     "noResultsMessage": "探しましたが見つかりませんでした。別の検索をお試しください。",
-    "nsfwTag": "NSFW",
-    "nsfwShow": "表示",
-    "nsfwHide": "非表示",
+    "contentRatingShow": "表示",
+    "contentRatingHide": "非表示",
+    "status": {
+      "ACTIVE": "有効",
+      "VERIFIED": "検証済み",
+      "SUSPENDED": "停止中",
+      "DELETED": "削除済み",
+      "INVALID": "無効",
+      "TOO_LONG": "長すぎる"
+    },
+    "contentRating": {
+      "SAFE": "安全",
+      "SUGGESTIVE": "示唆的",
+      "QUESTIONABLE": "問題あり",
+      "EXPLICIT": "露骨"
+    },
     "expandLeft": "左に展開",
     "expandBoth": "両側に展開",
     "expandRight": "右に展開",
@@ -384,7 +443,7 @@
       "WRONG_TRANSLATION": "翻訳が間違っている",
       "WRONG_TIMING": "タイミングが間違っている",
       "WRONG_AUDIO": "音声が間違っている",
-      "NSFW_NOT_TAGGED": "NSFWタグが付いていない",
+      "NSFW_NOT_TAGGED": "コンテンツ未分類",
       "DUPLICATE_SEGMENT": "重複セグメント",
       "WRONG_METADATA": "メタデータが間違っている",
       "MISSING_EPISODES": "エピソードが不足している",
@@ -469,5 +528,22 @@
       "PUBLIC": "公開",
       "PRIVATE": "非公開"
     }
+  },
+  "shortcuts": {
+    "title": "キーボードショートカット",
+    "navigation": "ナビゲーション",
+    "navigateCards": "結果間を移動",
+    "prevNextSegment": "前 / 次のセグメント",
+    "backToSearch": "検索バーに戻る",
+    "playback": "再生",
+    "playSelected": "選択した結果を再生",
+    "playPause": "再生 / 一時停止",
+    "restart": "音声をリスタート",
+    "toggleAutoplay": "自動再生の切り替え",
+    "toggleImmersive": "没入モードの切り替え",
+    "actions": "アクション",
+    "openAnki": "Ankiに追加",
+    "openContext": "文脈を開く",
+    "hint": "検索バーに入力中はショートカットが無効になります。?キーでこのパネルを表示/非表示できます。"
   }
 }

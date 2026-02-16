@@ -1,0 +1,45 @@
+get:
+  tags:
+    - User
+  x-internal: true
+  operationId: userActivityHeatmapShow
+  summary: Get activity heatmap data
+  description: |
+    Returns daily activity counts for the authenticated user, grouped by date.
+    Designed for rendering a GitHub-style contribution heatmap.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: days
+      in: query
+      schema:
+        type: integer
+        default: 365
+        maximum: 730
+      description: Number of days to include in the heatmap
+    - name: activityType
+      in: query
+      schema:
+        $ref: "../../components/schemas/ActivityType.yaml"
+      description: Filter by activity type
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - counts
+            properties:
+              counts:
+                type: object
+                additionalProperties:
+                  type: integer
+                description: Map of YYYY-MM-DD date strings to activity counts
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -12,9 +12,70 @@ properties:
       - japanese
       - romaji
     description: Preferred language for media names display
+  contentRatingPreferences:
+    type: object
+    description: Per-category content rating display preferences
+    properties:
+      suggestive:
+        type: string
+        enum: [show, blur, hide]
+      explicit:
+        type: string
+        enum: [show, blur, hide]
   searchHistory:
     type: object
     properties:
       enabled:
         type: boolean
         description: Whether activity tracking is enabled (default true)
+  blogLastVisited:
+    type: string
+    format: date-time
+    description: ISO timestamp of when the user last visited the blog page
+  ankiProfiles:
+    type: array
+    items:
+      type: object
+      required: [id, name, serverAddress]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        deck:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        fields:
+          type: array
+          items:
+            type: object
+            required: [key, value]
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+        key:
+          type: string
+          nullable: true
+        serverAddress:
+          type: string
+  hiddenMedia:
+    type: array
+    description: Media hidden from search results by the user
+    items:
+      type: object
+      required: [mediaId]
+      properties:
+        mediaId:
+          type: integer
+        nameEn:
+          type: string
+        nameJa:
+          type: string
+        nameRomaji:
+          type: string
+    default: []

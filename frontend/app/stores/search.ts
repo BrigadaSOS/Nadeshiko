@@ -2,7 +2,6 @@ export type SearchCategory = 'ANIME' | 'JDRAMA';
 
 export type SearchResponse = {
   results?: SearchResult[];
-  cursor?: number[] | null;
   pagination?: PaginationInfo;
 };
 
@@ -21,11 +20,55 @@ export type SegmentContextResponse = {
   segments: SearchResult[];
 };
 
+// Raw API response types (before resolving includes)
+type RawSearchResult = {
+  segment: SearchResultSegment & { mediaId: number };
+  urls: SearchResultUrls;
+};
+
+type Includes = {
+  media?: Record<string, SearchResultMedia>;
+};
+
+type RawSearchResponse = {
+  segments?: RawSearchResult[];
+  includes?: Includes;
+  pagination?: PaginationInfo;
+};
+
+type RawSegmentContextResponse = {
+  segments: RawSearchResult[];
+  includes?: Includes;
+};
+
+function resolveIncludes(response: RawSearchResponse): SearchResponse {
+  const mediaMap = response.includes?.media ?? {};
+  return {
+    results: response.segments?.map((r) => ({
+      media: mediaMap[String(r.segment.mediaId)] ?? ({} as SearchResultMedia),
+      segment: r.segment,
+      urls: r.urls,
+    })),
+    pagination: response.pagination,
+  };
+}
+
+function resolveContextIncludes(response: RawSegmentContextResponse): SegmentContextResponse {
+  const mediaMap = response.includes?.media ?? {};
+  return {
+    segments: response.segments.map((r) => ({
+      media: mediaMap[String(r.segment.mediaId)] ?? ({} as SearchResultMedia),
+      segment: r.segment,
+      urls: r.urls,
+    })),
+  };
+}
+
 export type PaginationInfo = {
-  pageSize: number;
   hasMore: boolean;
   estimatedTotalHits: number;
   estimatedTotalHitsRelation: 'EXACT' | 'LOWER_BOUND';
+  cursor?: number[];
 };
 
 export type CategoryCount = {
@@ -64,13 +107,13 @@ export type SearchResultSegment = {
   status: string;
   uuid: string;
   position: number;
-  startTime: string;
-  endTime: string;
-  episodeNumber: number;
+  startTimeMs: number;
+  endTimeMs: number;
+  episode: number;
   textJa: { content: string; highlight?: string };
   textEn: { content?: string; highlight?: string; isMachineTranslated: boolean };
   textEs: { content?: string; highlight?: string; isMachineTranslated: boolean };
-  isNsfw: boolean;
+  contentRating: string;
 };
 
 export type MediaSearchStats = {
@@ -105,42 +148,45 @@ export interface MediaSummary {
   genres: string[];
   coverUrl: string;
   bannerUrl: string;
-  version: string;
   segmentCount?: number;
   episodeCount?: number;
   seasonName: string;
   seasonYear: number;
   studio: string;
-  storageBasePath?: string | null;
 }
+
+export type MediaFilterItem = {
+  mediaId: number;
+  episodes?: number[];
+};
+
+export type SearchFilters = {
+  media?: {
+    include?: MediaFilterItem[];
+    exclude?: MediaFilterItem[];
+  };
+  category?: SearchCategory[];
+  contentRating?: string[];
+  status?: string[];
+  segmentLength?: { min?: number; max?: number };
+  segmentDurationMs?: { min?: number; max?: number };
+};
 
 type SearchRequest = {
   query?: string;
   limit?: number;
   uuid?: string;
-  category?: SearchCategory[];
-  mediaId?: number;
-  episode?: number[];
-  randomSeed?: number;
-  contentSort?: string;
-  cursor?: number[];
-  excludedMediaIds?: number[];
-  minLength?: number;
-  maxLength?: number;
   exactMatch?: boolean;
-  status?: string[];
-  media?: Array<{ mediaId: number; episodes: number[] }>;
+  sort?: string;
+  cursor?: number[];
+  randomSeed?: number;
+  filters?: SearchFilters;
 };
 
 type SearchStatsRequest = {
   query?: string;
-  category?: SearchCategory[];
   exactMatch?: boolean;
-  minLength?: number;
-  maxLength?: number;
-  excludedMediaIds?: number[];
-  mediaIds?: number[];
-  status?: string[];
+  filters?: SearchFilters;
 };
 
 type MultiSearchRequest = {
@@ -150,6 +196,7 @@ type MultiSearchRequest = {
 type SegmentContextRequest = {
   uuid: string;
   limit?: number;
+  contentRating?: string[];
 };
 
 export const useApiSearch = defineStore('search', {
@@ -171,39 +218,28 @@ export const useApiSearch = defineStore('search', {
       });
     },
     async searchSegments(body: SearchRequest): Promise<SearchResponse> {
-      return await $fetch<SearchResponse>('/api/search/segments', {
+      const raw = await $fetch<RawSearchResponse>('/api/search/segments', {
         method: 'POST',
         body: {
           query: body.query,
           limit: body.limit,
           uuid: body.uuid,
-          category: body.category,
-          mediaId: body.mediaId,
-          episode: body.episode,
-          randomSeed: body.randomSeed,
-          contentSort: body.contentSort,
-          cursor: body.cursor,
-          excludedMediaIds: body.excludedMediaIds,
-          minLength: body.minLength,
-          maxLength: body.maxLength,
           exactMatch: body.exactMatch,
-          status: body.status,
-          media: body.media,
+          sort: body.sort,
+          cursor: body.cursor,
+          randomSeed: body.randomSeed,
+          filters: body.filters,
         },
       });
+      return resolveIncludes(raw);
     },
     async getSearchStats(body: SearchStatsRequest): Promise<SearchStatsResponse> {
       return await $fetch<SearchStatsResponse>('/api/search/stats', {
         method: 'POST',
         body: {
           query: body.query,
-          category: body.category,
           exactMatch: body.exactMatch,
-          minLength: body.minLength,
-          maxLength: body.maxLength,
-          excludedMediaIds: body.excludedMediaIds,
-          mediaIds: body.mediaIds,
-          status: body.status,
+          filters: body.filters,
         },
       });
     },
@@ -216,12 +252,14 @@ export const useApiSearch = defineStore('search', {
       });
     },
     async getSegmentContext(params: SegmentContextRequest): Promise<SegmentContextResponse> {
-      return await $fetch<SegmentContextResponse>(`/api/search/context/${params.uuid}`, {
+      const raw = await $fetch<RawSegmentContextResponse>(`/api/search/context/${params.uuid}`, {
         method: 'GET',
         params: {
           limit: params.limit,
+          contentRating: params.contentRating?.join(',') || undefined,
         },
       });
+      return resolveContextIncludes(raw);
     },
   },
 });

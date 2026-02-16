@@ -11,3 +11,22 @@ rules:
   no-path-trailing-slash: error
   path-not-include-query: error
   path-parameters-defined: error
+  no-empty-servers: error
+  no-server-trailing-slash: error
+  no-server-variables-empty-enum: error
+  no-undefined-server-variable: error
+  no-identical-paths: error
+  operation-operationId-unique: error
+  operation-operationId-url-safe: error
+  operation-parameters-unique: error
+  no-enum-type-mismatch: error
+  no-example-value-and-externalValue: error
+  no-schema-type-mismatch: error
+  no-duplicated-tag-names: warn
+  tag-description: warn
+  parameter-description: warn
+  operation-description: warn
+  operation-4xx-response: warn
+  info-contact: warn
+  info-license: warn
+  no-server-example.com: warn

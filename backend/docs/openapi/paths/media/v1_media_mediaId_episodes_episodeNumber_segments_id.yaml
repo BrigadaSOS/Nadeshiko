@@ -88,10 +88,10 @@ patch:
     content:
       application/json:
         schema:
-          $ref: "../../components/schemas/SegmentUpdateRequest.yaml"
+          $ref: "../../components/schemas/segment/SegmentRequests.yaml#/SegmentUpdateRequest"
   responses:
     "200":
-      $ref: "../../components/responses/SegmentResponse.yaml"
+      $ref: "../../components/responses/SegmentInternalResponse.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

@@ -5,11 +5,15 @@ const config = useRuntimeConfig();
 <template>
   <footer class="bg-white dark:bg-footer-background">
     <div class="max-w-[92%] px-6 py-4 md:py-6 mx-auto">
-      <div class="flex flex-col items-center ">
-        <div class="flex flex-wrap justify-center mt-4 -mx-4 sm:justify-start">
+      <div class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+        <p class="text-sm text-gray-500 dark:text-gray-300 whitespace-nowrap">
+          Nadeshiko {{ $t('home.version', { version: config.public.appVersion }) }} | 2024 - {{ getCurrentYear() }}
+        </p>
+
+        <div class="flex flex-wrap justify-center -mx-4">
           <NuxtLink
             to="/"
-            class="mx-4 text-sm mb-2 sm:mb-0 text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
+            class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Home"
           >
             {{ $t('navbar.buttons.home') }}
@@ -17,7 +21,7 @@ const config = useRuntimeConfig();
 
           <NuxtLink
             to="/about"
-            class="mx-4 text-sm mb-2 sm:mb-0 text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
+            class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="About"
           >
             {{ $t('navbar.buttons.about') }}
@@ -47,14 +51,6 @@ const config = useRuntimeConfig();
             {{ $t('navbar.buttons.dmca') }}
           </NuxtLink>
         </div>
-      </div>
-
-      <hr class="my-6 border-gray-200 md:my-8 dark:border-white/20" />
-
-      <div class="flex text-center flex-col items-center sm:flex-row sm:justify-between">
-        <p class="text-sm mb-4 sm:mb-0 text-gray-500 text-center dark:text-gray-300">
-          Nadeshiko | 2024 - {{ getCurrentYear() }} | {{ $t('home.version', { version: config.public.appVersion }) }}
-        </p>
 
         <div class="flex -mx-2">
           <a

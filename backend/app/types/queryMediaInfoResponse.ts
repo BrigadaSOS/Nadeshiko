@@ -30,5 +30,9 @@ export interface MediaInfoData {
   version: string;
   segmentCount: number;
   episodeCount: number;
+  studio: string;
+  seasonName: string;
+  seasonYear: number;
+  externalIds: Record<string, string>;
   storageBasePath: string;
 }

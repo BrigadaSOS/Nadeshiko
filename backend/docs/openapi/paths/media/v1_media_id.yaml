@@ -18,12 +18,14 @@ get:
       schema:
         type: integer
         example: 7674
-    - name: includeCharacters
+    - name: include
       in: query
-      description: Include character and voice actor data in the response
+      description: Resources to expand in the media response (`media.characters` implies `media`)
       schema:
-        type: boolean
-        default: false
+        type: array
+        items:
+          $ref: "../../components/schemas/MediaIncludeExpansion.yaml"
+        default: [media]
   responses:
     "200":
       description: OK
@@ -113,19 +115,8 @@ delete:
         type: integer
         example: 7674
   responses:
-    "200":
-      description: OK
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              message:
-                type: string
-                example: "Media deleted successfully"
-              id:
-                type: integer
-                example: 7674
+    "204":
+      description: No Content
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

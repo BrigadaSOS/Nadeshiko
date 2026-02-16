@@ -1,12 +1,15 @@
 import type { MediaIndex, MediaCreate, MediaShow, MediaUpdate, MediaDestroy } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
-import { Like } from 'typeorm';
+import { ILike } from 'typeorm';
 import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, CharacterRole } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
 import { AppDataSource } from '@config/database';
 import { Cache } from '@lib/cache';
 import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
+
+const shouldIncludeMediaCharacters = (include: string[] | undefined): boolean =>
+  include?.includes('media.characters') ?? false;
 
 function toCharacterData(char: {
   id: number;
@@ -45,22 +48,22 @@ export const mediaIndex: MediaIndex = async ({ query }, respond) => {
   let whereClause: Record<string, unknown> | Record<string, unknown>[] | undefined;
   if (query.query) {
     whereClause = [
-      { ...categoryFilter, nameEn: Like(`%${query.query}%`) },
-      { ...categoryFilter, nameJa: Like(`%${query.query}%`) },
-      { ...categoryFilter, nameRomaji: Like(`%${query.query}%`) },
+      { ...categoryFilter, nameEn: ILike(`%${query.query}%`) },
+      { ...categoryFilter, nameJa: ILike(`%${query.query}%`) },
+      { ...categoryFilter, nameRomaji: ILike(`%${query.query}%`) },
     ];
   } else if (Object.keys(categoryFilter).length > 0) {
     whereClause = categoryFilter;
   }
 
-  const characterRelations = query.includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
+  const includeCharacters = shouldIncludeMediaCharacters(query.include);
+  const characterRelations = includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
 
   const [mediaList] = await Media.findAndCount({
     where: whereClause,
     relations: {
       episodes: true,
       ...characterRelations,
-      listItems: { list: true },
       externalIds: true,
     },
     order: { id: 'ASC' },
@@ -72,9 +75,11 @@ export const mediaIndex: MediaIndex = async ({ query }, respond) => {
   const hasMoreResults = mediaList.length === query.limit;
 
   return respond.with200().body({
-    data: toMediaListDTO(mediaList),
-    cursor: hasMoreResults ? nextCursor : undefined,
-    hasMoreResults,
+    media: toMediaListDTO(mediaList, { includeCharacters }),
+    pagination: {
+      hasMore: hasMoreResults,
+      cursor: hasMoreResults ? nextCursor : null,
+    },
   });
 };
 
@@ -122,19 +127,19 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
 };
 
 export const mediaShow: MediaShow = async ({ params, query }, respond) => {
-  const characterRelations = query.includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
+  const includeCharacters = shouldIncludeMediaCharacters(query.include);
+  const characterRelations = includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
 
   const media = await Media.findOneOrFail({
     where: { id: params.id },
     relations: {
       episodes: true,
       ...characterRelations,
-      listItems: { list: true },
       externalIds: true,
     },
   });
 
-  return respond.with200().body(toMediaDTO(media));
+  return respond.with200().body(toMediaDTO(media, { includeCharacters }));
 };
 
 export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
@@ -142,7 +147,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
     const media = await manager.findOneOrFail(Media, { where: { id: params.id } });
 
     // Extract only the fields we want to update (exclude relations and computed fields)
-    const { characters, lists: _lists, segmentCount: _segmentCount, ...updateFields } = body;
+    const { characters, segmentCount: _segmentCount, ...updateFields } = body;
 
     Media.merge(media, updateFields as DeepPartial<Media>);
 
@@ -174,8 +179,5 @@ export const mediaDestroy: MediaDestroy = async ({ params }, respond) => {
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SEARCH_STATS_CACHE);
 
-  return respond.with200().body({
-    message: 'Media deleted successfully',
-    id: params.id,
-  });
+  return respond.with204();
 };

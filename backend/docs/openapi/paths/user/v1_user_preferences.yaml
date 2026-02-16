@@ -1,6 +1,7 @@
 get:
   tags:
     - User
+  x-internal: true
   operationId: userPreferencesShow
   summary: Get user preferences
   description: |
@@ -24,6 +25,7 @@ get:
 patch:
   tags:
     - User
+  x-internal: true
   operationId: userPreferencesUpdate
   summary: Update user preferences
   description: |

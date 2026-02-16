@@ -1,0 +1,15 @@
+type: object
+description: A media filter entry with optional episode restriction
+required:
+  - mediaId
+properties:
+  mediaId:
+    type: integer
+    description: Media ID to filter
+    example: 123
+  episodes:
+    type: array
+    description: Specific episodes (omit for all episodes)
+    items:
+      type: integer
+    example: [1, 2]

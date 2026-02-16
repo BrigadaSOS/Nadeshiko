@@ -23,7 +23,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: "../../components/schemas/Segment.yaml"
+            $ref: "../../components/schemas/segment/Segment.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

@@ -1,22 +1,19 @@
 <script setup lang="ts">
+import { getRequestHeader } from 'h3';
 import { authApiRequest } from '~/utils/authApi';
-import { userStore } from '~/stores/auth';
 
 const { t } = useI18n();
-const user = userStore();
-const router = useRouter();
-
-if (!user.isLoggedIn) {
-  router.push('/');
-}
+definePageMeta({ middleware: 'auth' });
 
 type Report = {
   id: number;
-  reportType: 'SEGMENT' | 'MEDIA';
-  targetId: string;
+  target:
+    | { type: 'SEGMENT'; mediaId: number; segmentUuid: string; episodeNumber?: number }
+    | { type: 'EPISODE'; mediaId: number; episodeNumber: number }
+    | { type: 'MEDIA'; mediaId: number };
   reason: string;
   description?: string | null;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED';
+  status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
   createdAt: string;
 };
 
@@ -26,41 +23,118 @@ const hasMore = ref(false);
 const cursor = ref<number | null>(null);
 const statusFilter = ref('');
 
+type ReportListResponse = {
+  reports: Report[];
+  pagination: {
+    hasMore: boolean;
+    cursor: number | null;
+  };
+};
+
+const getServerRequestContext = () => {
+  if (!import.meta.server) return null;
+  const event = useRequestEvent();
+  if (!event) return null;
+
+  const config = useRuntimeConfig();
+  const cookieHeader = getRequestHeader(event, 'cookie');
+  const headers: Record<string, string> = { cookie: cookieHeader || '' };
+  if (config.backendHostHeader) {
+    headers.host = String(config.backendHostHeader);
+  }
+
+  return {
+    baseUrl: String(config.backendInternalUrl || ''),
+    headers,
+  };
+};
+
+const requestWithAuth = async <T>(
+  path: string,
+  fallback: T,
+  options?: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown },
+): Promise<T> => {
+  if (import.meta.server) {
+    const ctx = getServerRequestContext();
+    if (!ctx || !ctx.baseUrl) return fallback;
+    return await $fetch<T>(`${ctx.baseUrl}${path}`, {
+      headers: ctx.headers,
+      method: options?.method,
+      body: options?.body,
+    }).catch(() => fallback);
+  }
+
+  const response = await authApiRequest<T>(path, {
+    method: options?.method,
+    body: options?.body,
+  });
+  return response.ok && response.data ? response.data : fallback;
+};
+
+const buildReportPath = (append = false) => {
+  const params = new URLSearchParams();
+  if (cursor.value && append) params.set('cursor', String(cursor.value));
+  if (statusFilter.value) params.set('status', statusFilter.value);
+  params.set('limit', '20');
+  return `/v1/user/reports?${params.toString()}`;
+};
+
 const fetchReports = async (append = false) => {
   isLoading.value = true;
   try {
-    const params = new URLSearchParams();
-    if (cursor.value && append) params.set('cursor', String(cursor.value));
-    if (statusFilter.value) params.set('status', statusFilter.value);
-    params.set('size', '20');
+    const result = await requestWithAuth<ReportListResponse>(buildReportPath(append), {
+      reports: [],
+      pagination: {
+        hasMore: false,
+        cursor: null,
+      },
+    });
 
-    const response = await authApiRequest<{
-      data: Report[];
-      total: number;
-      hasMore: boolean;
-      cursor: number | null;
-    }>(`/v1/user/reports?${params.toString()}`);
-
-    if (response.ok && response.data) {
-      if (append) {
-        reports.value.push(...response.data.data);
-      } else {
-        reports.value = response.data.data;
-      }
-      hasMore.value = response.data.hasMore;
-      cursor.value = response.data.cursor;
+    if (append) {
+      reports.value.push(...result.reports);
+    } else {
+      reports.value = result.reports;
     }
+    hasMore.value = result.pagination.hasMore;
+    cursor.value = result.pagination.cursor;
   } finally {
     isLoading.value = false;
   }
 };
 
+const { data: initialReportsData } = await useAsyncData(
+  'user-reports-initial',
+  async () => {
+    const result = await requestWithAuth<ReportListResponse>(buildReportPath(false), {
+      reports: [],
+      pagination: {
+        hasMore: false,
+        cursor: null,
+      },
+    });
+    return {
+      reports: result.reports,
+      hasMore: result.pagination.hasMore,
+      cursor: result.pagination.cursor,
+    };
+  },
+  {
+    default: () => ({
+      reports: [] as Report[],
+      hasMore: false,
+      cursor: null as number | null,
+    }),
+  },
+);
+
+reports.value = initialReportsData.value.reports;
+hasMore.value = initialReportsData.value.hasMore;
+cursor.value = initialReportsData.value.cursor;
+
 watch(statusFilter, () => {
   cursor.value = null;
   fetchReports();
 });
-
-onMounted(() => fetchReports());
 
 const statusClass = (status: string) => {
   switch (status) {
@@ -121,13 +195,21 @@ const statusClass = (status: string) => {
             <td class="px-4 py-3">
               <span
                 class="px-2 py-1 text-xs font-medium rounded border"
-                :class="report.reportType === 'SEGMENT' ? 'bg-purple-500/20 text-purple-400 border-purple-600' : 'bg-teal-500/20 text-teal-400 border-teal-600'"
+                :class="report.target.type === 'SEGMENT' ? 'bg-purple-500/20 text-purple-400 border-purple-600' : report.target.type === 'EPISODE' ? 'bg-amber-500/20 text-amber-400 border-amber-600' : 'bg-teal-500/20 text-teal-400 border-teal-600'"
               >
-                {{ report.reportType }}
+                {{ report.target.type }}
               </span>
             </td>
             <td class="px-4 py-3 font-mono text-xs max-w-[200px] truncate">
-              {{ report.targetId }}
+              <span>M{{ report.target.mediaId }}</span>
+              <span v-if="'episodeNumber' in report.target && report.target.episodeNumber"> EP{{ report.target.episodeNumber }}</span>
+              <NuxtLink
+                v-if="report.target.type === 'SEGMENT'"
+                :to="`/sentence/${report.target.segmentUuid}`"
+                class="block text-purple-400 hover:text-purple-300 underline truncate"
+              >
+                {{ report.target.segmentUuid }}
+              </NuxtLink>
             </td>
             <td class="px-4 py-3">
               {{ t(`reports.reasons.${report.reason}`) }}

@@ -14,33 +14,42 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
+  t_CursorPagination,
   t_Error400,
   t_Error401,
   t_Error404,
+  t_Error429,
   t_Error500,
   t_Report,
   t_ReportListResponse,
   t_UserActivity,
   t_UserActivityDestroyQuerySchema,
+  t_UserActivityHeatmapShowQuerySchema,
   t_UserActivityIndexQuerySchema,
+  t_UserActivityStatsShowQuerySchema,
+  t_UserExportResponse,
+  t_UserLabFeature,
   t_UserPreferences,
   t_UserPreferencesUpdateRequestBodySchema,
   t_UserQuotaResponse,
   t_UserReportCreateRequestBodySchema,
   t_UserReportIndexQuerySchema,
 } from '../models.ts';
-import type { CreateReportRequestOutput, UserActivityDestroyQueryOutput, UserActivityIndexQueryOutput, UserPreferencesOutput, UserReportIndexQueryOutput } from '../outputTypes.ts';
+import type { CreateReportRequestOutput, UserActivityDestroyQueryOutput, UserActivityHeatmapShowQueryOutput, UserActivityIndexQueryOutput, UserActivityStatsShowQueryOutput, UserPreferencesOutput, UserReportIndexQueryOutput } from '../outputTypes.ts';
 import {
-  PermissiveBoolean,
   s_ActivityType,
   s_CreateReportRequest,
+  s_CursorPagination,
   s_Error400,
   s_Error401,
   s_Error404,
+  s_Error429,
   s_Error500,
   s_Report,
   s_ReportListResponse,
   s_UserActivity,
+  s_UserExportResponse,
+  s_UserLabFeature,
   s_UserPreferences,
   s_UserQuotaResponse,
 } from '../schemas.ts';
@@ -48,6 +57,7 @@ import {
 export type UserQuotaShowResponder = {
   with200(): ExpressRuntimeResponse<t_UserQuotaResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -119,9 +129,8 @@ export type UserPreferencesUpdate = (
 
 export type UserActivityIndexResponder = {
   with200(): ExpressRuntimeResponse<{
-    cursor?: number | null;
-    data: t_UserActivity[];
-    hasMore: boolean;
+    activities: t_UserActivity[];
+    pagination: t_CursorPagination;
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with500(): ExpressRuntimeResponse<t_Error500>;
@@ -152,6 +161,24 @@ export type UserActivityDestroy = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type UserActivityHeatmapShowResponder = {
+  with200(): ExpressRuntimeResponse<{
+    counts: {
+      [key: string]: number | undefined;
+    };
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserActivityHeatmapShow = (
+  params: Params<void, UserActivityHeatmapShowQueryOutput, void, void>,
+  respond: UserActivityHeatmapShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type UserActivityStatsShowResponder = {
   with200(): ExpressRuntimeResponse<{
     streakDays: number;
@@ -169,7 +196,7 @@ export type UserActivityStatsShowResponder = {
 } & ExpressRuntimeResponder;
 
 export type UserActivityStatsShow = (
-  params: Params<void, void, void, void>,
+  params: Params<void, UserActivityStatsShowQueryOutput, void, void>,
   respond: UserActivityStatsShowResponder,
   req: Request,
   res: Response,
@@ -177,22 +204,7 @@ export type UserActivityStatsShow = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UserExportShowResponder = {
-  with200(): ExpressRuntimeResponse<{
-    activity: t_UserActivity[];
-    lists: {
-      [key: string]: unknown | undefined;
-    }[];
-    preferences: t_UserPreferences;
-    profile: {
-      createdAt?: string;
-      email?: string;
-      id?: number;
-      username?: string;
-    };
-    reports: {
-      [key: string]: unknown | undefined;
-    }[];
-  }>;
+  with200(): ExpressRuntimeResponse<t_UserExportResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
@@ -200,6 +212,20 @@ export type UserExportShowResponder = {
 export type UserExportShow = (
   params: Params<void, void, void, void>,
   respond: UserExportShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UserLabsIndexResponder = {
+  with200(): ExpressRuntimeResponse<t_UserLabFeature[]>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UserLabsIndex = (
+  params: Params<void, void, void, void>,
+  respond: UserLabsIndexResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -213,8 +239,10 @@ export type UserImplementation = {
   userPreferencesUpdate: UserPreferencesUpdate;
   userActivityIndex: UserActivityIndex;
   userActivityDestroy: UserActivityDestroy;
+  userActivityHeatmapShow: UserActivityHeatmapShow;
   userActivityStatsShow: UserActivityStatsShow;
   userExportShow: UserExportShow;
+  userLabsIndex: UserLabsIndex;
 };
 
 export function createUserRouter(implementation: UserImplementation): Router {
@@ -224,6 +252,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['200', s_UserQuotaResponse],
       ['401', s_Error401],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -245,6 +274,9 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -346,7 +378,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
   const userReportIndexQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
-    size: z.coerce.number().max(100).optional().default(20),
+    limit: z.coerce.number().max(100).optional().default(20),
     status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
   });
 
@@ -525,20 +557,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
   const userActivityIndexQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
-    size: z.coerce.number().max(100).optional().default(20),
+    limit: z.coerce.number().max(100).optional().default(20),
     activityType: s_ActivityType.optional(),
+    date: z.string().optional(),
   });
 
   const userActivityIndexResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          data: z.array(s_UserActivity),
-          hasMore: PermissiveBoolean,
-          cursor: z.coerce.number().nullable().optional(),
-        }),
-      ],
+      ['200', z.object({ activities: z.array(s_UserActivity), pagination: s_CursorPagination })],
       ['401', s_Error401],
       ['500', s_Error500],
     ],
@@ -558,9 +584,8 @@ export function createUserRouter(implementation: UserImplementation): Router {
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            cursor?: number | null;
-            data: t_UserActivity[];
-            hasMore: boolean;
+            activities: t_UserActivity[];
+            pagination: t_CursorPagination;
           }>(200);
         },
         with401() {
@@ -659,6 +684,74 @@ export function createUserRouter(implementation: UserImplementation): Router {
     }
   });
 
+  const userActivityHeatmapShowQuerySchema = z.object({
+    days: z.coerce.number().max(730).optional().default(365),
+    activityType: s_ActivityType.optional(),
+  });
+
+  const userActivityHeatmapShowResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ counts: z.record(z.coerce.number()) })],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userActivityHeatmapShow
+  router.get(`/v1/user/activity/heatmap`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(userActivityHeatmapShowQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            counts: {
+              [key: string]: number | undefined;
+            };
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userActivityHeatmapShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userActivityHeatmapShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userActivityStatsShowQuerySchema = z.object({ since: z.string().optional() });
+
   const userActivityStatsShowResponseBodyValidator = responseValidationFactory(
     [
       [
@@ -683,7 +776,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
     try {
       const input = {
         params: undefined,
-        query: undefined,
+        query: parseRequestInput(userActivityStatsShowQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -738,21 +831,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
   const userExportShowResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          profile: z.object({
-            id: z.coerce.number().optional(),
-            username: z.string().optional(),
-            email: z.string().optional(),
-            createdAt: z.string().datetime({ offset: true }).optional(),
-          }),
-          preferences: s_UserPreferences,
-          activity: z.array(s_UserActivity),
-          lists: z.array(z.record(z.unknown())),
-          reports: z.array(z.record(z.unknown())),
-        }),
-      ],
+      ['200', s_UserExportResponse],
       ['401', s_Error401],
       ['500', s_Error500],
     ],
@@ -771,22 +850,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            activity: t_UserActivity[];
-            lists: {
-              [key: string]: unknown | undefined;
-            }[];
-            preferences: t_UserPreferences;
-            profile: {
-              createdAt?: string;
-              email?: string;
-              id?: number;
-              username?: string;
-            };
-            reports: {
-              [key: string]: unknown | undefined;
-            }[];
-          }>(200);
+          return new ExpressRuntimeResponse<t_UserExportResponse>(200);
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
@@ -814,6 +878,63 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       if (body !== undefined) {
         res.json(userExportShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const userLabsIndexResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.array(s_UserLabFeature)],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // userLabsIndex
+  router.get(`/v1/user/labs`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_UserLabFeature[]>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.userLabsIndex(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(userLabsIndexResponseBodyValidator(status, body));
       } else {
         res.end();
       }

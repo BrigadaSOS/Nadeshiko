@@ -10,12 +10,8 @@ interface AnkiNote {
 }
 
 interface IAnkiState {
-  ankiPreferences: {
-    serverAddress: string;
-    availableDecks: string[];
-    availableModels: string[];
-    settings: IAnkiSettings;
-  };
+  availableDecks: string[];
+  availableModels: string[];
 }
 
 interface IField {
@@ -23,13 +19,14 @@ interface IField {
   value: string;
 }
 
-interface IAnkiSettings {
-  current: {
-    deck: string | null;
-    model: string | null;
-    fields: IField[];
-    key: string | null;
-  };
+export interface AnkiProfile {
+  id: string;
+  name: string;
+  deck: string | null;
+  model: string | null;
+  fields: IField[];
+  key: string | null;
+  serverAddress: string;
 }
 
 interface PermissionResponse {
@@ -71,37 +68,102 @@ interface NotesInfoResponse {
   error: string;
 }
 
+interface CollectionResponse {
+  id: number;
+  name: string;
+}
+
 import type { SearchResult } from './search';
 import { defineStore } from 'pinia';
+import { userStore } from '@/stores/auth';
+import { authApiRequest } from '~/utils/authApi';
+
+const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
+const DEFAULT_SERVER_ADDRESS = 'http://127.0.0.1:8765';
+
+function createDefaultProfile(name = 'Default'): AnkiProfile {
+  return {
+    id: crypto.randomUUID(),
+    name,
+    deck: null,
+    model: null,
+    fields: [],
+    key: null,
+    serverAddress: DEFAULT_SERVER_ADDRESS,
+  };
+}
 
 export const ankiStore = defineStore('anki', {
   state: (): IAnkiState => ({
-    ankiPreferences: {
-      serverAddress: 'http://127.0.0.1:8765',
-      availableDecks: [],
-      availableModels: [],
-      settings: {
-        current: {
-          deck: null,
-          model: null,
-          fields: [],
-          key: null,
-        },
-      },
-    },
+    availableDecks: [],
+    availableModels: [],
   }),
-  persist: import.meta.client
-    ? {
-        key: 'settings',
-        storage: piniaPluginPersistedstate.localStorage(),
-        pick: ['ankiPreferences'],
+  getters: {
+    profiles(): AnkiProfile[] {
+      return userStore().preferences?.ankiProfiles ?? [];
+    },
+    activeProfile(): AnkiProfile | null {
+      if (!import.meta.client) return null;
+      const profiles = this.profiles;
+      if (profiles.length === 0) return null;
+      const activeId = localStorage.getItem('anki-active-profile');
+      if (activeId) {
+        const found = profiles.find((p: AnkiProfile) => p.id === activeId);
+        if (found) return found;
       }
-    : false,
+      return profiles[0];
+    },
+  },
   actions: {
+    async saveProfiles(profiles: AnkiProfile[]) {
+      const store = userStore();
+      await $fetch('/v1/user/preferences', {
+        method: 'PATCH',
+        credentials: 'include',
+        body: { ankiProfiles: profiles },
+      });
+      store.preferences = { ...store.preferences, ankiProfiles: profiles };
+    },
+
+    async createProfile(name: string): Promise<AnkiProfile> {
+      const profile = createDefaultProfile(name);
+      const updated = [...this.profiles, profile];
+      await this.saveProfiles(updated);
+      return profile;
+    },
+
+    async updateActiveProfile(data: Partial<AnkiProfile>) {
+      const active = this.activeProfile;
+      if (!active) return;
+      const updated = this.profiles.map((p: AnkiProfile) => (p.id === active.id ? { ...p, ...data } : p));
+      await this.saveProfiles(updated);
+    },
+
+    async deleteProfile(id: string) {
+      const updated = this.profiles.filter((p: AnkiProfile) => p.id !== id);
+      await this.saveProfiles(updated);
+      if (import.meta.client) {
+        const activeId = localStorage.getItem('anki-active-profile');
+        if (activeId === id) {
+          if (updated.length > 0) {
+            localStorage.setItem('anki-active-profile', updated[0].id);
+          } else {
+            localStorage.removeItem('anki-active-profile');
+          }
+        }
+      }
+    },
+
+    setActiveProfileId(id: string) {
+      if (!import.meta.client) return;
+      localStorage.setItem('anki-active-profile', id);
+    },
+
     async executeAction(action: string, params = {}) {
       if (!import.meta.client) return null;
+      const serverAddress = this.activeProfile?.serverAddress ?? DEFAULT_SERVER_ADDRESS;
       try {
-        const response = await fetch(this.ankiPreferences.serverAddress, {
+        const response = await fetch(serverAddress, {
           method: 'POST',
           mode: 'cors',
           headers: {
@@ -135,10 +197,10 @@ export const ankiStore = defineStore('anki', {
           console.log('Permission was denied.');
         }
         if (decks && Array.isArray(decks)) {
-          this.ankiPreferences.availableDecks = decks;
+          this.availableDecks = decks;
         }
         if (models && Array.isArray(models)) {
-          this.ankiPreferences.availableModels = models;
+          this.availableModels = models;
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -156,13 +218,11 @@ export const ankiStore = defineStore('anki', {
       return response.result;
     },
 
-    // Gets the complete list of model names for the current user.
     async getAllModels(): Promise<string[]> {
       const response = (await this.executeAction('modelNames')) as ModelNamesResponse;
       return response.result;
     },
 
-    // Gets the complete list of field names for the provided model name.
     async getAllModelFieldNames(modelName: string): Promise<string[]> {
       const response = (await this.executeAction('modelFieldNames', {
         modelName: modelName,
@@ -171,13 +231,11 @@ export const ankiStore = defineStore('anki', {
       return response.result;
     },
 
-    // Gets n notes (depends on anki) where the ankiPreferences.current.key
-    // matches the query
     async getNotesWithCurrentKey(query: string, n: number = 5): Promise<Array<{ noteId: number; value: string }>> {
       if (!import.meta.client) return [];
 
       try {
-        const currentKey = this.ankiPreferences.settings.current.key ? this.ankiPreferences.settings.current.key : '';
+        const currentKey = this.activeProfile?.key ?? '';
 
         const response = (await this.executeAction('findNotes', { query: query })) as FindNotesResponse;
 
@@ -204,14 +262,64 @@ export const ankiStore = defineStore('anki', {
       return [];
     },
 
+    async getOrCreateAnkiExportsCollectionId(): Promise<number | null> {
+      if (!import.meta.client) return null;
+
+      const listResponse = await authApiRequest<CollectionResponse[]>('/v1/collections?limit=100', { method: 'GET' });
+      if (!listResponse.ok || !listResponse.data) return null;
+
+      const existing = listResponse.data.find((collection) => collection.name === DEFAULT_ANKI_EXPORTS_COLLECTION);
+      if (existing) return existing.id;
+
+      const createResponse = await authApiRequest<CollectionResponse>('/v1/collections', {
+        method: 'POST',
+        body: {
+          name: DEFAULT_ANKI_EXPORTS_COLLECTION,
+          visibility: 'PRIVATE',
+        },
+      });
+
+      if (!createResponse.ok || !createResponse.data) return null;
+      return createResponse.data.id;
+    },
+
+    async addSegmentToAnkiExportsCollection(sentence: SearchResult): Promise<void> {
+      if (!import.meta.client) return;
+      if (!userStore().isLoggedIn) return;
+
+      try {
+        const collectionId = await this.getOrCreateAnkiExportsCollectionId();
+        if (!collectionId) return;
+
+        const addResponse = await authApiRequest(`/v1/collections/${collectionId}/segments`, {
+          method: 'POST',
+          body: {
+            segmentUuid: sentence.segment.uuid,
+          },
+        });
+
+        if (!addResponse.ok && addResponse.status !== 409) {
+          console.warn('[Anki] Could not sync segment to Anki Exports collection', {
+            status: addResponse.status,
+            segmentUuid: sentence.segment.uuid,
+          });
+        }
+      } catch (error) {
+        console.warn('[Anki] Error syncing segment to Anki Exports collection', error);
+      }
+    },
+
+    async addSentenceToAnki(sentence: SearchResult, id?: number) {
+      await this.addResultToAnki(sentence, id);
+    },
+
     async addResultToAnki(sentence: SearchResult, id?: number) {
       if (!import.meta.client) return;
       const { $i18n } = useNuxtApp();
       const { mediaName } = useMediaName();
 
-      const localSettings = import.meta.client ? localStorage.getItem('settings') : null;
-
-      if (!localSettings) {
+      const profile = this.activeProfile;
+      if (!profile) {
         useToastError($i18n.t('anki.toast.noSettings'));
         return;
       }
@@ -221,20 +329,17 @@ export const ankiStore = defineStore('anki', {
 
         let cardID = id;
 
-        // If there's no ID, we'll update the latest card
         if (!id) {
-          // Find the most recent cards
           const queryParts = [];
           let queryString = '';
-          queryParts.push(`"deck:${this.ankiPreferences.settings.current.deck}"`);
-          queryParts.push(`"note:${this.ankiPreferences.settings.current.model}"`);
+          queryParts.push(`"deck:${profile.deck}"`);
+          queryParts.push(`"note:${profile.model}"`);
           queryParts.push('added:2 is:new');
           queryString = queryParts.join(' ');
 
           const response = (await this.executeAction('findNotes', { query: queryString })) as FindNotesResponse;
           const noteIDs = response.result;
 
-          // Select the latest card
           const latestCard = noteIDs.reduce((a: number, b: number) => Math.max(a, b), -1);
 
           if (!latestCard || latestCard === -1) {
@@ -245,25 +350,16 @@ export const ankiStore = defineStore('anki', {
           cardID = latestCard;
         }
 
-        // Extract the information of the note to update
         const infoResponse = await this.executeAction('notesInfo', { notes: [cardID] });
         const infoCard = infoResponse.result;
-        // Store the multimedia content in Anki
         const imageRequest = this.executeAction('storeMediaFile', {
           filename: `${sentence.segment.uuid}.webp`,
           url: sentence.urls.imageUrl,
         });
 
-        // We add blob audio if it exists (concatenated audio) otherwise,
-        // original audio
-
         let audioRequest;
         if (sentence.urls.blobAudioUrl && sentence.urls.blobAudio) {
           const blob64 = await blobToBase64(sentence.urls.blobAudio);
-          // Note: The blob's result cannot be directly decoded as Base64 without
-          // first removing the Data-URL declaration preceding the Base64-encoded
-          // data. To retrieve only the Base64 encoded string, first remove
-          // data:/;base64, from the result.
           const raw = blob64.substring(blob64.indexOf(',') + 1);
 
           audioRequest = this.executeAction('storeMediaFile', {
@@ -279,8 +375,6 @@ export const ankiStore = defineStore('anki', {
 
         const [imageResult, audioResult] = await Promise.all([imageRequest, audioRequest]);
 
-        // Perform a search in the Anki interface to switch to a generic card
-        // And avoid problems when updating
         await this.guiBrowse('nid:1 nid:2');
 
         const allowedFields = [
@@ -295,7 +389,7 @@ export const ankiStore = defineStore('anki', {
         ];
         const fieldsNew: Record<string, string> = {};
 
-        this.ankiPreferences.settings.current.fields.forEach((field) => {
+        profile.fields.forEach((field) => {
           if (field.value) {
             const regex = new RegExp(`\\{(${allowedFields.join('|')})\\}`);
             const match = field.value.match(regex);
@@ -334,7 +428,7 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-info':
                   fieldsNew[field.key] = field.value.replace(
                     `{${key}}`,
-                    `${mediaName(sentence.media)}・Episode ${sentence.segment.episodeNumber}, Timestamp: ${sentence.segment.startTime.split('.')[0]}`,
+                    `${mediaName(sentence.media)}・Episode ${sentence.segment.episode}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}`,
                   );
                   break;
               }
@@ -349,8 +443,8 @@ export const ankiStore = defineStore('anki', {
           },
         });
 
-        // Find the last inserted card
         await this.guiBrowse(`nid:${infoCard[0].noteId}`);
+        await this.addSegmentToAnkiExportsCollection(sentence);
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {
@@ -362,6 +456,51 @@ export const ankiStore = defineStore('anki', {
     async guiBrowse(query: string): Promise<number[]> {
       const response = (await this.executeAction('guiBrowse', { query: query })) as GuiBrowseResponse;
       return response.result;
+    },
+
+    async migrateFromLocalStorage() {
+      if (!import.meta.client) return;
+      if (!userStore().isLoggedIn) return;
+      if (localStorage.getItem('anki-migrated')) return;
+
+      // If server already has profiles, skip migration
+      if (this.profiles.length > 0) {
+        localStorage.setItem('anki-migrated', 'true');
+        localStorage.removeItem('settings');
+        return;
+      }
+
+      try {
+        const raw = localStorage.getItem('settings');
+        if (!raw) {
+          localStorage.setItem('anki-migrated', 'true');
+          return;
+        }
+
+        const parsed = JSON.parse(raw);
+        const oldPrefs = parsed?.ankiPreferences;
+        if (!oldPrefs) {
+          localStorage.setItem('anki-migrated', 'true');
+          return;
+        }
+
+        const profile: AnkiProfile = {
+          id: crypto.randomUUID(),
+          name: 'Default',
+          deck: oldPrefs.settings?.current?.deck ?? null,
+          model: oldPrefs.settings?.current?.model ?? null,
+          fields: oldPrefs.settings?.current?.fields ?? [],
+          key: oldPrefs.settings?.current?.key ?? null,
+          serverAddress: oldPrefs.serverAddress ?? DEFAULT_SERVER_ADDRESS,
+        };
+
+        await this.saveProfiles([profile]);
+        localStorage.setItem('anki-active-profile', profile.id);
+        localStorage.setItem('anki-migrated', 'true');
+        localStorage.removeItem('settings');
+      } catch (error) {
+        console.error('[Anki] Migration from localStorage failed:', error);
+      }
     },
   },
 });

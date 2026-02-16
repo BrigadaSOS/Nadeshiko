@@ -6,28 +6,29 @@ const { mediaName } = useMediaName();
 const props = defineProps<{ sentence: SearchResult | null }>();
 
 const apiSearch = useApiSearch();
+const { contentRating } = useContentRating();
 
 const isLoading = ref(false);
 const contextData = ref<SearchResponse | null>(null);
 const highlightedPosition = ref<number | null>(null);
 
 const getContextSentence = async () => {
-  if (!props.sentence || isLoading.value) return;
+  const sentence = props.sentence;
+  if (!sentence || isLoading.value) return;
   isLoading.value = true;
   contextData.value = null;
 
   try {
     const response = await apiSearch.getSegmentContext({
-      uuid: props.sentence.segment.uuid,
+      uuid: sentence.segment.uuid,
       limit: 15,
+      contentRating: contentRating.value,
     });
     contextData.value = { results: response.segments };
-    highlightedPosition.value = props.sentence.segment.position;
+    highlightedPosition.value = sentence.segment.position;
     await nextTick();
 
-    const match = response?.segments?.find(
-      (s: SearchResult) => s.segment.position === props.sentence!.segment.position,
-    );
+    const match = response?.segments?.find((s: SearchResult) => s.segment.position === sentence.segment.position);
     if (match) {
       scrollToElement(match.segment.uuid);
     }

@@ -17,6 +17,13 @@ export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', '
 
 export const s_Category = z.enum(['ANIME', 'JDRAMA']);
 
+export const s_Character = z.object({
+  id: z.coerce.number(),
+  nameJa: z.string(),
+  nameEn: z.string(),
+  imageUrl: z.string(),
+});
+
 export const s_CharacterInput = z.object({
   id: z.coerce.number(),
   nameJa: z.string(),
@@ -29,24 +36,21 @@ export const s_CharacterInput = z.object({
   seiyuuImageUrl: z.string(),
 });
 
-export const s_CreateReportRequest = z.object({
-  targetType: z.enum(['SEGMENT', 'MEDIA']),
-  targetMediaId: z.coerce.number(),
-  targetSegmentUuid: z.string().optional(),
-  reason: z.enum([
-    'WRONG_TRANSLATION',
-    'WRONG_TIMING',
-    'WRONG_AUDIO',
-    'NSFW_NOT_TAGGED',
-    'DUPLICATE_SEGMENT',
-    'WRONG_METADATA',
-    'MISSING_EPISODES',
-    'WRONG_COVER_IMAGE',
-    'INAPPROPRIATE_CONTENT',
-    'OTHER',
-  ]),
-  description: z.string().max(1000).optional(),
+export const s_Collection = z.object({
+  id: z.coerce.number(),
+  name: z.string(),
+  userId: z.coerce.number(),
+  visibility: z.enum(['PUBLIC', 'PRIVATE']),
 });
+
+export const s_CollectionRequests = z.object({
+  name: z.string(),
+  visibility: z.enum(['PUBLIC', 'PRIVATE']).optional(),
+});
+
+export const s_ContentRating = z.enum(['SAFE', 'SUGGESTIVE', 'QUESTIONABLE', 'EXPLICIT']);
+
+export const s_CursorPagination = z.object({ hasMore: PermissiveBoolean, cursor: z.coerce.number().nullable() });
 
 export const s_Episode = z.object({
   mediaId: z.coerce.number(),
@@ -163,62 +167,26 @@ export const s_ExternalId = z.object({
   tvdb: z.string().optional(),
 });
 
-export const s_JapaneseContent = z.object({
-  content: z.string().max(500),
-  characterCount: z.coerce.number().optional(),
+export const s_IncludeExpansion = z.enum(['media']);
+
+export const s_MediaFilterItem = z.object({
+  mediaId: z.coerce.number(),
+  episodes: z.array(z.coerce.number()).optional(),
 });
 
-export const s_JapaneseSearchContent = z.object({ content: z.string(), highlight: z.string().optional() });
+export const s_MediaIncludeExpansion = z.enum(['media', 'media.characters']);
 
-export const s_LabFeature = z.object({
-  key: z.string(),
-  name: z.string(),
-  description: z.string(),
-  enabled: PermissiveBoolean,
-});
-
-export const s_List = z.object({
-  id: z.coerce.number(),
-  name: z.string(),
-  type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']),
-  userId: z.coerce.number(),
-  visibility: z.enum(['PUBLIC', 'PRIVATE']),
-});
-
-export const s_ListCreateRequest = z.object({
-  name: z.string(),
-  type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']).optional(),
-  userId: z.coerce.number().optional(),
-  visibility: z.enum(['PUBLIC', 'PRIVATE']).optional(),
-});
-
-export const s_ListInput = z.object({
-  listId: z.coerce.number().nullable().optional(),
-  listName: z.string().nullable().optional(),
-  listType: z.enum(['SERIES', 'CUSTOM']).nullable().optional(),
-  listVisibility: z.enum(['PUBLIC', 'PRIVATE']).nullable().optional(),
-  position: z.coerce.number().min(1),
-});
-
-export const s_Morpheme = z.object({
-  surface: z.string(),
-  reading: z.string(),
-  baseform: z.string(),
-  pronunciation: z.string(),
-  pos: z.array(z.string()),
-  posShort: z.string(),
-  begin: z.coerce.number(),
-  end: z.coerce.number(),
-  pitchAccentType: z.array(z.coerce.number()).nullable(),
-  pitchCompoundRule: z.string().nullable(),
-  pitchModificationRule: z.string().nullable(),
+export const s_MediaSearchStats = z.object({
+  mediaId: z.coerce.number(),
+  matchCount: z.coerce.number(),
+  episodeHits: z.record(z.coerce.number()),
 });
 
 export const s_PaginationInfo = z.object({
-  pageSize: z.coerce.number().optional(),
   hasMore: PermissiveBoolean.optional(),
   estimatedTotalHits: z.coerce.number().optional(),
   estimatedTotalHitsRelation: z.enum(['EXACT', 'LOWER_BOUND']).optional(),
+  cursor: z.array(z.coerce.number()).optional(),
 });
 
 export const s_ReindexRequest = z.object({
@@ -239,41 +207,19 @@ export const s_ReindexResponse = z.object({
   errors: z.array(z.object({ segmentId: z.coerce.number().optional(), error: z.string().optional() })).optional(),
 });
 
-export const s_Report = z.object({
-  id: z.coerce.number(),
-  source: z.enum(['USER', 'AUTO']),
-  targetType: z.enum(['SEGMENT', 'EPISODE', 'MEDIA']),
-  targetMediaId: z.coerce.number(),
-  targetEpisodeNumber: z.coerce.number().nullable().optional(),
-  targetSegmentUuid: z.string().nullable().optional(),
-  reviewCheckRunId: z.coerce.number().nullable().optional(),
-  reason: z.enum([
-    'WRONG_TRANSLATION',
-    'WRONG_TIMING',
-    'WRONG_AUDIO',
-    'NSFW_NOT_TAGGED',
-    'DUPLICATE_SEGMENT',
-    'WRONG_METADATA',
-    'MISSING_EPISODES',
-    'WRONG_COVER_IMAGE',
-    'INAPPROPRIATE_CONTENT',
-    'OTHER',
-    'LOW_SEGMENT_MEDIA',
-    'EMPTY_EPISODES',
-    'MISSING_EPISODES_AUTO',
-    'BAD_SEGMENT_RATIO',
-    'MEDIA_WITH_NO_EPISODES',
-    'MISSING_TRANSLATIONS',
-    'DB_ES_SYNC_ISSUES',
-    'HIGH_REPORT_DENSITY',
-  ]),
-  description: z.string().nullable().optional(),
-  data: z.record(z.unknown()).nullable().optional(),
-  status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']),
-  adminNotes: z.string().max(1000).nullable().optional(),
-  userId: z.coerce.number().nullable().optional(),
-  createdAt: z.string().datetime({ offset: true }),
-  updatedAt: z.string().datetime({ offset: true }).nullable().optional(),
+export const s_ReportTargetEpisode = z.object({
+  type: z.enum(['EPISODE']),
+  mediaId: z.coerce.number(),
+  episodeNumber: z.coerce.number(),
+});
+
+export const s_ReportTargetMedia = z.object({ type: z.enum(['MEDIA']), mediaId: z.coerce.number() });
+
+export const s_ReportTargetSegment = z.object({
+  type: z.enum(['SEGMENT']),
+  mediaId: z.coerce.number(),
+  episodeNumber: z.coerce.number().optional(),
+  segmentUuid: z.string(),
 });
 
 export const s_ReviewAllowlist = z.object({
@@ -334,63 +280,6 @@ export const s_RunReviewResponse = z.object({
   totalReports: z.coerce.number(),
 });
 
-export const s_SearchMultipleRequest = z.object({
-  words: z.array(z.string()),
-  exactMatch: PermissiveBoolean.optional().default(false),
-});
-
-export const s_SearchResultUrls = z.object({
-  imageUrl: z.string().optional(),
-  audioUrl: z.string().optional(),
-  videoUrl: z.string().optional(),
-});
-
-export const s_SegmentCreateRequest = z.object({
-  position: z.coerce.number(),
-  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional().default('ACTIVE'),
-  startTime: z.string(),
-  endTime: z.string(),
-  textJa: z.object({ content: z.string().max(500).optional() }),
-  textEs: z
-    .object({
-      content: z.string().max(500).optional(),
-      isMachineTranslated: PermissiveBoolean.optional().default(false),
-    })
-    .optional(),
-  textEn: z
-    .object({
-      content: z.string().max(500).optional(),
-      isMachineTranslated: PermissiveBoolean.optional().default(false),
-    })
-    .optional(),
-  isNsfw: PermissiveBoolean.optional().default(false),
-  storage: z.enum(['LOCAL', 'R2']).default('R2'),
-  hashedId: z.string(),
-});
-
-export const s_SegmentUpdateRequest = z.object({
-  position: z.coerce.number().optional(),
-  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional().default('ACTIVE'),
-  startTime: z.string().optional(),
-  endTime: z.string().optional(),
-  textJa: z.object({ content: z.string().max(500).optional() }).optional(),
-  textEs: z
-    .object({
-      content: z.string().max(500).optional(),
-      isMachineTranslated: PermissiveBoolean.optional().default(false),
-    })
-    .optional(),
-  textEn: z
-    .object({
-      content: z.string().max(500).optional(),
-      isMachineTranslated: PermissiveBoolean.optional().default(false),
-    })
-    .optional(),
-  isNsfw: PermissiveBoolean.optional().default(false),
-  storage: z.enum(['LOCAL', 'R2']).optional().default('R2'),
-  hashedId: z.string().optional(),
-});
-
 export const s_Seiyuu = z.object({
   id: z.coerce.number(),
   nameJa: z.string(),
@@ -398,15 +287,11 @@ export const s_Seiyuu = z.object({
   imageUrl: z.string(),
 });
 
-export const s_TranslationContent = z.object({
-  content: z.string().max(500).nullable().optional(),
-  isMachineTranslated: PermissiveBoolean,
-});
-
-export const s_TranslationSearchContent = z.object({
-  content: z.string().optional(),
-  highlight: z.string().optional(),
-  isMachineTranslated: PermissiveBoolean,
+export const s_Series = z.object({
+  id: z.coerce.number(),
+  nameJa: z.string(),
+  nameRomaji: z.string(),
+  nameEn: z.string(),
 });
 
 export const s_UpdateReportRequest = z.object({
@@ -414,10 +299,49 @@ export const s_UpdateReportRequest = z.object({
   adminNotes: z.string().max(1000).optional(),
 });
 
+export const s_UserLabFeature = z.object({
+  key: z.string(),
+  name: z.string(),
+  description: z.string(),
+  enabled: PermissiveBoolean,
+  userEnabled: PermissiveBoolean,
+});
+
 export const s_UserPreferences = z.object({
   labs: z.record(PermissiveBoolean).optional(),
   mediaNameLanguage: z.enum(['english', 'japanese', 'romaji']).optional(),
+  contentRatingPreferences: z
+    .object({
+      suggestive: z.enum(['show', 'blur', 'hide']).optional(),
+      explicit: z.enum(['show', 'blur', 'hide']).optional(),
+    })
+    .optional(),
   searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
+  blogLastVisited: z.string().datetime({ offset: true }).optional(),
+  ankiProfiles: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        deck: z.string().nullable().optional(),
+        model: z.string().nullable().optional(),
+        fields: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+        key: z.string().nullable().optional(),
+        serverAddress: z.string(),
+      }),
+    )
+    .optional(),
+  hiddenMedia: z
+    .array(
+      z.object({
+        mediaId: z.coerce.number(),
+        nameEn: z.string().optional(),
+        nameJa: z.string().optional(),
+        nameRomaji: z.string().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export const s_UserQuotaResponse = z.object({
@@ -429,30 +353,24 @@ export const s_UserQuotaResponse = z.object({
   periodEnd: z.string().datetime({ offset: true }),
 });
 
-export const s_WordMatchMedia = z.object({
-  mediaId: z.coerce.number().optional(),
-  nameEn: z.string().optional(),
-  nameJa: z.string().optional(),
-  nameRomaji: z.string().optional(),
-  matchCount: z.coerce.number().optional(),
-});
-
-export const s_AdminReport = s_Report.merge(z.object({ reportCount: z.coerce.number(), reporterName: z.string() }));
+export const s_WordMatchMedia = z.object({ mediaId: z.coerce.number(), matchCount: z.coerce.number() });
 
 export const s_CategoryCount = z.object({ category: s_Category.optional(), count: z.coerce.number().optional() });
 
-export const s_Character = z.object({
+export const s_CollectionListResponse = z.object({
+  collections: z.array(s_Collection),
+  pagination: s_CursorPagination,
+});
+
+export const s_EpisodeListResponse = z.object({ episodes: z.array(s_Episode), pagination: s_CursorPagination });
+
+export const s_MediaCharacter = z.object({
   id: z.coerce.number(),
   nameJa: z.string(),
   nameEn: z.string(),
   imageUrl: z.string(),
   seiyuu: s_Seiyuu,
-});
-
-export const s_EpisodeListResponse = z.object({
-  data: z.array(s_Episode),
-  cursor: z.coerce.number().optional(),
-  hasMore: PermissiveBoolean,
+  role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']),
 });
 
 export const s_MediaCreateRequest = z.object({
@@ -474,17 +392,6 @@ export const s_MediaCreateRequest = z.object({
   seasonYear: z.coerce.number(),
   storageBasePath: z.string().optional(),
   characters: z.array(s_CharacterInput).optional().default([]),
-  lists: z.array(s_ListInput).optional().default([]),
-});
-
-export const s_MediaSearchStats = z.object({
-  mediaId: z.coerce.number().optional(),
-  category: s_Category.optional(),
-  nameRomaji: z.string().optional(),
-  nameEn: z.string().optional(),
-  nameJa: z.string().optional(),
-  segmentCount: z.coerce.number().optional(),
-  episodeHits: z.record(z.coerce.number()).optional(),
 });
 
 export const s_MediaUpdateRequest = z.object({
@@ -506,95 +413,99 @@ export const s_MediaUpdateRequest = z.object({
   seasonYear: z.coerce.number().optional(),
   storageBasePath: z.string().optional(),
   characters: z.array(s_CharacterInput).optional().default([]),
-  lists: z.array(s_ListInput).optional().default([]),
   segmentCount: z.coerce.number().optional(),
 });
 
-export const s_ReportListResponse = z.object({
-  data: z.array(s_Report),
-  hasMore: PermissiveBoolean,
-  cursor: z.coerce.number().nullable().optional(),
-});
+export const s_ReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetEpisode, s_ReportTargetSegment]);
 
-export const s_SearchRequest = z.object({
-  query: z.string().optional(),
-  limit: z.coerce.number().optional().default(10),
-  uuid: z.string().optional(),
+export const s_SearchFilters = z.object({
+  media: z
+    .object({ include: z.array(s_MediaFilterItem).optional(), exclude: z.array(s_MediaFilterItem).optional() })
+    .optional(),
   category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']),
-  mediaId: z.coerce.number().optional(),
-  episode: z.array(z.coerce.number()).optional(),
-  randomSeed: z.coerce.number().min(0).optional(),
-  contentSort: z.enum(['ASC', 'DESC', 'NONE', 'TIME_ASC', 'TIME_DESC', 'RANDOM']).optional().default('NONE'),
-  cursor: z.array(z.coerce.number()).optional(),
-  exactMatch: PermissiveBoolean.optional().default(false),
-  minLength: z.coerce.number().optional(),
-  maxLength: z.coerce.number().optional(),
-  excludedMediaIds: z.array(z.coerce.number()).optional().default([]),
+  contentRating: z.array(s_ContentRating).optional(),
   status: z
     .array(z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']))
     .optional()
     .default(['ACTIVE']),
-  media: z.array(z.object({ mediaId: z.coerce.number(), episodes: z.array(z.coerce.number()) })).optional(),
-});
-
-export const s_SearchResultMedia = z.object({
-  mediaId: z.coerce.number(),
-  nameRomaji: z.string(),
-  nameEn: z.string().optional(),
-  nameJa: z.string().optional(),
-  coverUrl: z.string().optional(),
-  bannerUrl: z.string().optional(),
-  category: s_Category,
-});
-
-export const s_SearchResultSegment = z.object({
-  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']),
-  uuid: z.string(),
-  position: z.coerce.number(),
-  startTime: z.string(),
-  endTime: z.string(),
-  episodeNumber: z.coerce.number(),
-  textJa: s_JapaneseSearchContent,
-  textEn: s_TranslationSearchContent,
-  textEs: s_TranslationSearchContent,
-  isNsfw: PermissiveBoolean,
-  morphemes: z.array(s_Morpheme).nullable().optional(),
-});
-
-export const s_SearchStatsRequest = z.object({
-  query: z.string().optional(),
-  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']),
-  exactMatch: PermissiveBoolean.optional().default(false),
-  minLength: z.coerce.number().optional(),
-  maxLength: z.coerce.number().optional(),
-  excludedMediaIds: z.array(z.coerce.number()).optional().default([]),
-  mediaIds: z.array(z.coerce.number()).optional().default([]),
-  status: z
-    .array(z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']))
-    .optional()
-    .default(['ACTIVE']),
+  segmentLengthChars: z.object({ min: z.coerce.number().optional(), max: z.coerce.number().optional() }).optional(),
+  segmentDurationMs: z.object({ min: z.coerce.number().optional(), max: z.coerce.number().optional() }).optional(),
 });
 
 export const s_Segment = z.object({
-  id: z.coerce.number(),
   uuid: z.string(),
   position: z.coerce.number(),
   status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']),
-  startTime: z.string(),
-  endTime: z.string(),
-  textJa: s_JapaneseContent,
-  textEn: s_TranslationContent,
-  textEs: s_TranslationContent,
-  isNsfw: PermissiveBoolean,
-  imageUrl: z.string().nullable().optional(),
-  audioUrl: z.string().nullable().optional(),
-  videoUrl: z.string().nullable().optional(),
+  startTimeMs: z.coerce.number(),
+  endTimeMs: z.coerce.number(),
+  contentRating: s_ContentRating,
   episode: z.coerce.number(),
   mediaId: z.coerce.number(),
-  storage: z.enum(['LOCAL', 'R2']),
-  hashedId: z.string(),
-  morphemes: z.array(s_Morpheme).nullable().optional(),
+  textJa: z.object({ content: z.string().max(500), highlight: z.string().optional() }),
+  textEn: z.object({
+    content: z.string().max(500),
+    isMachineTranslated: PermissiveBoolean,
+    highlight: z.string().optional(),
+  }),
+  textEs: z.object({
+    content: z.string().max(500),
+    isMachineTranslated: PermissiveBoolean,
+    highlight: z.string().optional(),
+  }),
+  urls: z.object({ imageUrl: z.string(), audioUrl: z.string(), videoUrl: z.string() }),
 });
+
+export const s_SegmentCreateRequest = z.object({
+  position: z.coerce.number(),
+  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional().default('ACTIVE'),
+  startTimeMs: z.coerce.number(),
+  endTimeMs: z.coerce.number(),
+  textJa: z.object({ content: z.string().max(500).optional() }),
+  textEs: z
+    .object({
+      content: z.string().max(500).optional(),
+      isMachineTranslated: PermissiveBoolean.optional().default(false),
+    })
+    .optional(),
+  textEn: z
+    .object({
+      content: z.string().max(500).optional(),
+      isMachineTranslated: PermissiveBoolean.optional().default(false),
+    })
+    .optional(),
+  contentRating: s_ContentRating.optional(),
+  ratingAnalysis: z.record(z.unknown()).nullable().optional(),
+  posAnalysis: z.record(z.unknown()).nullable().optional(),
+  storage: z.enum(['LOCAL', 'R2']).default('R2'),
+  hashedId: z.string(),
+});
+
+export const s_SegmentUpdateRequest = z.object({
+  position: z.coerce.number().optional(),
+  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional().default('ACTIVE'),
+  startTimeMs: z.coerce.number().optional(),
+  endTimeMs: z.coerce.number().optional(),
+  textJa: z.object({ content: z.string().max(500).optional() }).optional(),
+  textEs: z
+    .object({
+      content: z.string().max(500).optional(),
+      isMachineTranslated: PermissiveBoolean.optional().default(false),
+    })
+    .optional(),
+  textEn: z
+    .object({
+      content: z.string().max(500).optional(),
+      isMachineTranslated: PermissiveBoolean.optional().default(false),
+    })
+    .optional(),
+  contentRating: s_ContentRating.optional(),
+  ratingAnalysis: z.record(z.unknown()).nullable().optional(),
+  posAnalysis: z.record(z.unknown()).nullable().optional(),
+  storage: z.enum(['LOCAL', 'R2']).optional().default('R2'),
+  hashedId: z.string().optional(),
+});
+
+export const s_SeriesListResponse = z.object({ series: z.array(s_Series), pagination: s_CursorPagination });
 
 export const s_UserActivity = z.object({
   id: z.coerce.number(),
@@ -605,6 +516,10 @@ export const s_UserActivity = z.object({
   createdAt: z.string().datetime({ offset: true }),
 });
 
+export const s_UserExportCollection = s_Collection.merge(z.object({ segmentUuids: z.array(z.string()) }));
+
+export const s_UserReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetSegment]);
+
 export const s_WordMatch = z.object({
   word: z.string().optional(),
   isMatch: PermissiveBoolean.optional(),
@@ -612,55 +527,26 @@ export const s_WordMatch = z.object({
   media: z.array(s_WordMatchMedia).optional(),
 });
 
-export const s_AdminReportListResponse = z.object({
-  data: z.array(s_AdminReport),
-  hasMore: PermissiveBoolean,
-  cursor: z.coerce.number().nullable().optional(),
-});
-
-export const s_MediaCharacter = z.object({
-  character: s_Character,
-  role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']),
-});
-
-export const s_SearchMultipleResponse = z.object({ results: z.array(s_WordMatch).optional() });
-
-export const s_SearchResult = z.object({
-  media: s_SearchResultMedia,
-  segment: s_SearchResultSegment,
-  urls: s_SearchResultUrls,
-});
-
-export const s_SearchStatsResponse = z.object({
-  media: z.array(s_MediaSearchStats).optional(),
-  categories: z.array(s_CategoryCount).optional(),
-});
-
-export const s_SegmentListResponse = z.object({
-  data: z.array(s_Segment),
-  cursor: z.coerce.number().optional(),
-  hasMore: PermissiveBoolean,
-});
-
-export const s_ListWithSegments = z.object({
-  id: z.coerce.number(),
-  name: z.string(),
-  type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']),
-  userId: z.coerce.number(),
-  visibility: z.enum(['PUBLIC', 'PRIVATE']),
-  segments: z.array(
-    z.object({
-      position: z.coerce.number().optional(),
-      note: z.string().nullable().optional(),
-      result: s_SearchResult.optional(),
-    }),
-  ),
-  totalCount: z.coerce.number(),
+export const s_CreateReportRequest = z.object({
+  target: s_UserReportTarget,
+  reason: z.enum([
+    'WRONG_TRANSLATION',
+    'WRONG_TIMING',
+    'WRONG_AUDIO',
+    'NSFW_NOT_TAGGED',
+    'DUPLICATE_SEGMENT',
+    'WRONG_METADATA',
+    'MISSING_EPISODES',
+    'WRONG_COVER_IMAGE',
+    'INAPPROPRIATE_CONTENT',
+    'OTHER',
+  ]),
+  description: z.string().max(1000).optional(),
 });
 
 export const s_Media = z.object({
   id: z.coerce.number(),
-  externalIds: s_ExternalId.optional(),
+  externalIds: s_ExternalId,
   nameJa: z.string(),
   nameRomaji: z.string(),
   nameEn: z.string(),
@@ -672,55 +558,140 @@ export const s_Media = z.object({
   startDate: z.string(),
   endDate: z.string().nullable().optional(),
   category: s_Category,
-  segmentCount: z.coerce.number().optional(),
-  episodeCount: z.coerce.number().optional(),
-  version: z.string(),
+  segmentCount: z.coerce.number(),
+  episodeCount: z.coerce.number(),
   studio: z.string(),
   seasonName: z.string(),
   seasonYear: z.coerce.number(),
-  storageBasePath: z.string().nullable().optional(),
   characters: z.array(s_MediaCharacter).optional(),
-  lists: z.array(s_List).optional(),
 });
 
-export const s_SearchHealthCheckResponse = z.object({
-  results: z.array(s_SearchResult).optional(),
-  pagination: s_PaginationInfo.optional(),
+export const s_Report = z.object({
+  id: z.coerce.number(),
+  source: z.enum(['USER', 'AUTO']),
+  target: s_ReportTarget,
+  reviewCheckRunId: z.coerce.number().nullable().optional(),
+  reason: z.enum([
+    'WRONG_TRANSLATION',
+    'WRONG_TIMING',
+    'WRONG_AUDIO',
+    'NSFW_NOT_TAGGED',
+    'DUPLICATE_SEGMENT',
+    'WRONG_METADATA',
+    'MISSING_EPISODES',
+    'WRONG_COVER_IMAGE',
+    'INAPPROPRIATE_CONTENT',
+    'OTHER',
+    'LOW_SEGMENT_MEDIA',
+    'EMPTY_EPISODES',
+    'MISSING_EPISODES_AUTO',
+    'BAD_SEGMENT_RATIO',
+    'MEDIA_WITH_NO_EPISODES',
+    'MISSING_TRANSLATIONS',
+    'DB_ES_SYNC_ISSUES',
+    'HIGH_REPORT_DENSITY',
+  ]),
+  description: z.string().nullable().optional(),
+  data: z.record(z.unknown()).nullable().optional(),
+  status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']),
+  adminNotes: z.string().max(1000).nullable().optional(),
+  userId: z.coerce.number().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+export const s_SearchMultipleRequest = z.object({
+  query: z.object({ words: z.array(z.string()), exactMatch: PermissiveBoolean.optional().default(false) }),
+  filters: s_SearchFilters.optional(),
+  include: z.array(s_IncludeExpansion).optional().default([]),
+});
+
+export const s_SearchRequest = z.object({
+  query: z
+    .object({ search: z.string().optional(), exactMatch: PermissiveBoolean.optional().default(false) })
+    .optional(),
+  limit: z.coerce.number().optional().default(10),
   cursor: z.array(z.coerce.number()).optional(),
+  sort: z
+    .object({
+      mode: z.enum(['ASC', 'DESC', 'NONE', 'TIME_ASC', 'TIME_DESC', 'RANDOM']).optional().default('NONE'),
+      seed: z.coerce.number().min(0).optional(),
+    })
+    .optional(),
+  filters: s_SearchFilters.optional(),
+  include: z.array(s_IncludeExpansion).optional().default(['media']),
+});
+
+export const s_SearchStatsRequest = z.object({
+  query: z
+    .object({ search: z.string().optional(), exactMatch: PermissiveBoolean.optional().default(false) })
+    .optional(),
+  filters: s_SearchFilters.optional(),
+  include: z.array(s_IncludeExpansion).optional().default([]),
+});
+
+export const s_SegmentInternal = s_Segment.merge(
+  z.object({
+    storage: z.enum(['LOCAL', 'R2']).optional(),
+    hashedId: z.string().optional(),
+    storageBasePath: z.string().optional(),
+    ratingAnalysis: z.record(z.unknown()).nullable().optional(),
+    posAnalysis: z.record(z.unknown()).nullable().optional(),
+  }),
+);
+
+export const s_AdminReport = s_Report.merge(z.object({ reportCount: z.coerce.number(), reporterName: z.string() }));
+
+export const s_CharacterWithMedia = s_Character.merge(
+  z.object({
+    seiyuu: s_Seiyuu,
+    mediaAppearances: z.array(
+      z.object({ media: s_Media.optional(), role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']).optional() }),
+    ),
+  }),
+);
+
+export const s_CollectionWithSegments = z.object({
+  id: z.coerce.number(),
+  name: z.string(),
+  userId: z.coerce.number(),
+  visibility: z.enum(['PUBLIC', 'PRIVATE']),
+  segments: z.array(
+    z.object({
+      position: z.coerce.number().optional(),
+      note: z.string().nullable().optional(),
+      result: s_Segment.optional(),
+    }),
+  ),
+  includes: z.object({ media: z.record(s_Media).optional() }).optional(),
+  totalCount: z.coerce.number(),
+  pagination: s_CursorPagination,
+});
+
+export const s_MediaListResponse = z.object({ media: z.array(s_Media), pagination: s_CursorPagination });
+
+export const s_ReportListResponse = z.object({ reports: z.array(s_Report), pagination: s_CursorPagination });
+
+export const s_SearchMultipleResponse = z.object({
+  results: z.array(s_WordMatch).optional(),
+  includes: z.object({ media: z.record(s_Media).optional() }).optional(),
 });
 
 export const s_SearchResponse = z.object({
-  results: z.array(s_SearchResult).optional(),
+  segments: z.array(s_Segment).optional(),
+  includes: z.object({ media: z.record(s_Media).optional() }).optional(),
   pagination: s_PaginationInfo.optional(),
-  cursor: z.array(z.coerce.number()).nullable().optional(),
 });
 
-export const s_SegmentContextResponse = z.object({ segments: z.array(s_SearchResult) });
-
-export const s_CharacterWithMedia = z.object({
-  id: z.coerce.number(),
-  nameJa: z.string(),
-  nameEn: z.string(),
-  imageUrl: z.string(),
-  seiyuu: s_Seiyuu,
-  mediaAppearances: z.array(
-    z.object({ media: s_Media.optional(), role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']).optional() }),
-  ),
+export const s_SearchStatsResponse = z.object({
+  media: z.array(s_MediaSearchStats).optional(),
+  categories: z.array(s_CategoryCount).optional(),
+  includes: z.object({ media: z.record(s_Media).optional() }).optional(),
 });
 
-export const s_ListWithMedia = z.object({
-  id: z.coerce.number(),
-  name: z.string(),
-  type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']),
-  userId: z.coerce.number(),
-  visibility: z.enum(['PUBLIC', 'PRIVATE']),
-  media: z.array(z.object({ position: z.coerce.number().optional(), media: s_Media.optional() })),
-});
-
-export const s_MediaListResponse = z.object({
-  data: z.array(s_Media),
-  cursor: z.coerce.number().optional(),
-  hasMoreResults: PermissiveBoolean,
+export const s_SegmentContextResponse = z.object({
+  segments: z.array(s_Segment),
+  includes: z.object({ media: z.record(s_Media).optional() }).optional(),
 });
 
 export const s_SeiyuuWithRoles = z.object({
@@ -728,11 +699,30 @@ export const s_SeiyuuWithRoles = z.object({
   nameJa: z.string(),
   nameEn: z.string(),
   imageUrl: z.string(),
-  roles: z.array(
-    z.object({
-      character: s_Character.optional(),
-      media: s_Media.optional(),
-      role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']).optional(),
-    }),
+  characters: z.array(
+    s_Character.merge(z.object({ media: s_Media, role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']) })),
   ),
 });
+
+export const s_SeriesWithMedia = z.object({
+  id: z.coerce.number(),
+  nameJa: z.string(),
+  nameRomaji: z.string(),
+  nameEn: z.string(),
+  media: z.array(z.object({ position: z.coerce.number().optional(), media: s_Media.optional() })),
+});
+
+export const s_UserExportResponse = z.object({
+  profile: z.object({
+    id: z.coerce.number(),
+    username: z.string(),
+    email: z.string(),
+    createdAt: z.string().datetime({ offset: true }),
+  }),
+  preferences: s_UserPreferences,
+  activity: z.array(s_UserActivity),
+  collections: z.array(s_UserExportCollection),
+  reports: z.array(s_Report),
+});
+
+export const s_AdminReportListResponse = z.object({ reports: z.array(s_AdminReport), pagination: s_CursorPagination });

@@ -1,0 +1,8 @@
+type: string
+description: Content rating level for the segment
+enum:
+  - SAFE
+  - SUGGESTIVE
+  - QUESTIONABLE
+  - EXPLICIT
+example: "SAFE"

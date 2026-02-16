@@ -87,13 +87,13 @@ const {
     server: true,
     lazy: false,
     default: () => ({
-      data: [],
+      media: [],
       hasMore: false,
     }),
   },
 );
 
-const media = computed(() => mediaResponse.value?.data || []);
+const media = computed(() => mediaResponse.value?.media || []);
 const hasMore = computed(() => Boolean(mediaResponse.value?.hasMore && media.value.length > 0));
 const loading = computed(() => pending.value);
 const query = ref(searchQuery.value);

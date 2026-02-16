@@ -8,13 +8,6 @@ export interface LabFeatureDefinition {
   requiresRole?: UserRoleType;
 }
 
-export const LAB_FEATURES: LabFeatureDefinition[] = [
-  {
-    key: 'activity-tracking',
-    name: 'Activity Tracking',
-    description: 'Track your searches, exports, and listening history.',
-    enabled: true,
-  },
-];
+export const LAB_FEATURES: LabFeatureDefinition[] = [];
 
 export const LAB_FEATURES_MAP = new Map(LAB_FEATURES.map((f) => [f.key, f]));

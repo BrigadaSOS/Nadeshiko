@@ -18,7 +18,7 @@ get:
         type: integer
       description: ID of the media
       example: 7674
-    - name: size
+    - name: limit
       in: query
       required: false
       schema:

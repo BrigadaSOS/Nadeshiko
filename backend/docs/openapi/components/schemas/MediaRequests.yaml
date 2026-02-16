@@ -81,12 +81,6 @@ MediaFields: &mediaFields
       $ref: "./CharacterInput.yaml"
     description: List of characters appearing in the media with their voice actors
     default: []
-  lists:
-    type: array
-    items:
-      $ref: "./ListInput.yaml"
-    description: Lists to add this media to (e.g., series, franchise)
-    default: []
 
 # Update-only field (segmentCount)
 SegmentCountField: &segmentCountField

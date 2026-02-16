@@ -1,6 +1,7 @@
 <script setup>
 const store = userStore();
 const isAuth = computed(() => store.isLoggedIn);
+const { hasNewPost } = useBlogNotification();
 
 function openLoginModal() {
   window.NDOverlay?.open('#nd-vertically-centered-scrollable-loginsignup-modal');
@@ -46,16 +47,24 @@ function openLoginModal() {
                 aria-labelledby="nd-navbar-example-collapse">
                 <div class="flex flex-col  mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
                     <div class="gap-6 flex flex-col sm:flex-row mr-auto">
-                        <NuxtLink to="/about"
-                            class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
-                            {{ $t("navbar.buttons.about") }}
+                        <NuxtLink to="/media"
+                            class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
+                            {{ $t("navbar.buttons.media") }}
                         </NuxtLink>
                         <NuxtLink to="/blog"
-                            class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                            class="relative text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                             {{ $t("navbar.buttons.blog") }}
+                            <span
+                              v-if="hasNewPost"
+                              class="absolute -top-0.5 -right-2 size-[5px] rounded-full bg-white"
+                            />
+                        </NuxtLink>
+                        <NuxtLink to="/about"
+                            class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
+                            {{ $t("navbar.buttons.about") }}
                         </NuxtLink>
                         <NuxtLink to="/api/v1/docs"
-                            class="text-xs font-bold text-white transition-all duration-200 hover:text-opacity-80">
+                            class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                             API
                         </NuxtLink>
                     </div>
@@ -97,11 +106,16 @@ function openLoginModal() {
                         </template>
                         <template #content>
                             <SearchDropdownContent>
-                                <NuxtLink v-if="isAuth" to="/settings">
+                                <NuxtLink v-if="isAuth" to="/user/settings">
                                     <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                 </NuxtLink>
+                                <NuxtLink v-if="isAuth" to="/user/collections">
+                                    <SearchDropdownItem text="Collections" />
+                                </NuxtLink>
+                                <NuxtLink v-if="isAuth" to="/user/sync">
+                                    <SearchDropdownItem text="Anki" />
+                                </NuxtLink>
                                 <SearchDropdownItem v-if="!isAuth || isAuth == null" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
-                                <SearchDropdownItem v-else @click="store.logout()" :text="$t('navbar.buttons.logout')" />
                             </SearchDropdownContent>
                         </template>
                     </SearchDropdownContainer>

@@ -20,7 +20,8 @@
       "terms": "Terms and Conditions",
       "contact": "Contact",
       "settings": "Settings",
-      "blog": "Blog"
+      "blog": "Blog",
+      "media": "Media"
     }
   },
   "home": {
@@ -36,8 +37,8 @@
         "description": "Save any sentence in Anki including image, audio, and multiple languages."
       },
       "feature2": {
-        "title": "Download any sentence",
-        "description": "Download sentences in multiple formats such as images, audios, and videos."
+        "title": "Save any sentence",
+        "description": "Save sentences in multiple formats such as images, audios, and videos."
       },
       "feature3": {
         "title": "View the context of what you find",
@@ -55,6 +56,7 @@
     "stats": {
       "title": "General Stats",
       "sentenceCount": "Sentences",
+      "episodeCount": "Episodes",
       "mediaCount": "Total content"
     }
   },
@@ -161,14 +163,22 @@
     "english": "English",
     "spanish": "Spanish",
     "machineTranslated": "Machine translated",
+    "translations": "Translations",
     "status": "Status",
-    "nsfw": "NSFW content",
+    "contentRating": "Content Rating",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",
     "close": "Close",
     "saveSuccess": "Segment updated successfully",
-    "saveError": "Failed to update segment"
+    "saveError": "Failed to update segment",
+    "metadata": {
+      "media": "Media",
+      "episode": "Ep.",
+      "time": "Time",
+      "uuid": "UUID",
+      "copyUuid": "Copy UUID"
+    }
   },
   "filterContent": {
     "searchPlaceholder": "Search here"
@@ -183,6 +193,15 @@
   },
   "searchpage": {
     "main": {
+      "translationPreferences": {
+        "legend": "Translations",
+        "english": "English",
+        "spanish": "Spanish",
+        "englishShown": "English translations shown",
+        "englishHidden": "English translations hidden",
+        "spanishShown": "Spanish translations shown",
+        "spanishHidden": "Spanish translations hidden"
+      },
       "buttons": {
         "addToAnkiLast": "Add to Anki (Last added card)",
         "addToAnkiSearch": "Add to Anki (Search your collection)",
@@ -203,6 +222,8 @@
         "expandLeft": "Expand (left)",
         "expandBoth": "Expand (both)",
         "expandRight": "Expand (right)",
+        "hideMedia": "Hide this media",
+        "unhideMedia": "Unhide this media",
         "sortmain": "Sort sentences",
         "sortlengthnone": "None",
         "sortlengthmin": "Shortest",
@@ -239,11 +260,11 @@
     "modalcontext": {
       "buttons": {
         "close": "Close",
-        "downloadmultipleaudios": "Download selected audios"
+        "downloadmultipleaudios": "Save selected audios"
       },
       "labels": {
         "context": "Context",
-        "errordownloadmultipleaudios": "Error downloading audios. Try again.",
+        "errordownloadmultipleaudios": "Error saving audios. Try again.",
         "errorconnection": "Error connecting to the server."
       }
     }
@@ -255,7 +276,7 @@
     },
     "tabs": {
       "account": "Account",
-      "sync": "Anki Sync",
+      "sync": "Anki",
       "developer": "Developer"
     },
     "developer": {
@@ -278,6 +299,7 @@
       "statusActive": "Active",
       "statusInactive": "Inactive",
       "options": "Options",
+      "rename": "Rename",
       "deactivate": "Deactivate",
       "unlimited": "Unlimited",
       "createApiKeyModal": {
@@ -287,6 +309,12 @@
         "permissionsLabel": "Permissions",
         "cancel": "Cancel",
         "create": "Create"
+      },
+      "renameApiKeyModal": {
+        "title": "Rename API Key",
+        "nameLabel": "Name",
+        "namePlaceholder": "Enter a new name for this API key",
+        "save": "Save"
       }
     },
     "account": {
@@ -298,7 +326,25 @@
       "securityTitle": "Security",
       "passwordLabel": "Password",
       "additionalTitle": "Additional",
-      "deleteAccount": "Delete account (Irreversible action)"
+      "deleteAccount": "Delete account (Irreversible action)",
+      "suggestiveContent": "Suggestive Content",
+      "suggestiveContentDesc": "Heavy fanservice, revealing clothing",
+      "explicitContent": "Explicit Content",
+      "explicitContentDesc": "Questionable or explicit content",
+      "contentRatingShow": "Show",
+      "contentRatingBlur": "Blur (default)",
+      "contentRatingHide": "Hide",
+      "contentRatingHint_show": "Results will be included in search and not blurred",
+      "contentRatingHint_blur": "Results will be included in search but blurred",
+      "contentRatingHint_hide": "Results will not be included in search",
+      "contentRatingPreview": "Preview of how flagged results will appear in search",
+      "contentRatingHidden": "Hidden",
+      "preferenceSaved": "Preference saved",
+      "preferenceError": "Failed to save preference",
+      "hiddenMedia": "Hidden Media",
+      "hiddenMediaDescription": "Media hidden from search results. You can also hide media from the overflow menu on any search result.",
+      "hiddenMediaSearchPlaceholder": "Search for media to hide...",
+      "hiddenMediaEmpty": "No hidden media. Search results will include all available media."
     },
     "anki": {
       "syncStatus": "Sync Status",
@@ -335,9 +381,22 @@
   "segment": {
     "noResultsTitle": "404",
     "noResultsMessage": "We searched high and low but couldn't find what you're looking for. Try a different search.",
-    "nsfwTag": "NSFW",
-    "nsfwShow": "Show",
-    "nsfwHide": "Hide",
+    "contentRatingShow": "Show",
+    "contentRatingHide": "Hide",
+    "status": {
+      "ACTIVE": "Active",
+      "VERIFIED": "Verified",
+      "SUSPENDED": "Suspended",
+      "DELETED": "Deleted",
+      "INVALID": "Invalid",
+      "TOO_LONG": "Too Long"
+    },
+    "contentRating": {
+      "SAFE": "Safe",
+      "SUGGESTIVE": "Suggestive",
+      "QUESTIONABLE": "Questionable",
+      "EXPLICIT": "Explicit"
+    },
     "expandLeft": "Expand left",
     "expandBoth": "Expand both sides",
     "expandRight": "Expand right",
@@ -385,7 +444,7 @@
       "WRONG_TRANSLATION": "Wrong translation",
       "WRONG_TIMING": "Wrong timing",
       "WRONG_AUDIO": "Wrong audio",
-      "NSFW_NOT_TAGGED": "NSFW not tagged",
+      "NSFW_NOT_TAGGED": "Content not rated",
       "DUPLICATE_SEGMENT": "Duplicate segment",
       "WRONG_METADATA": "Wrong metadata",
       "MISSING_EPISODES": "Missing episodes",
@@ -470,5 +529,22 @@
       "PUBLIC": "Public",
       "PRIVATE": "Private"
     }
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "navigation": "Navigation",
+    "navigateCards": "Navigate between results",
+    "prevNextSegment": "Previous / Next segment",
+    "backToSearch": "Back to search bar",
+    "playback": "Playback",
+    "playSelected": "Play selected result",
+    "playPause": "Play / Pause",
+    "restart": "Restart audio",
+    "toggleAutoplay": "Toggle autoplay",
+    "toggleImmersive": "Toggle immersive mode",
+    "actions": "Actions",
+    "openAnki": "Add to Anki",
+    "openContext": "Open context",
+    "hint": "Shortcuts are disabled while typing in the search bar. Press ? to toggle this panel."
   }
 }

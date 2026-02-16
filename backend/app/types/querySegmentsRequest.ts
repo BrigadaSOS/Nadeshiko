@@ -2,24 +2,32 @@ import type { estypes } from '@elastic/elasticsearch';
 type FieldValue = estypes.FieldValue;
 
 export interface QuerySegmentsRequest {
-  readonly query?: string;
-  readonly uuid?: string;
-  readonly lengthSortOrder: string;
-  readonly minLength?: number;
-  readonly maxLength?: number;
-  readonly randomSeed?: number;
+  readonly query?: {
+    readonly search?: string;
+    readonly exactMatch?: boolean;
+  };
+  readonly sort?: {
+    readonly mode?: string;
+    readonly seed?: number;
+  };
   readonly limit: number;
-  readonly status: string[];
   readonly cursor?: FieldValue[];
-  readonly exactMatch?: boolean;
-  readonly mediaId?: number;
-  readonly episode?: number[];
-  readonly category?: string[]; // "ANIME", "JDRAMA"
-  readonly media?: QuerySegmentsMediaFilter[];
-  readonly excludedMediaIds?: number[];
+  readonly filters: QueryFilters;
 }
 
-export interface QuerySegmentsMediaFilter {
+export interface QueryFilters {
+  readonly media?: {
+    readonly include?: MediaFilterItem[];
+    readonly exclude?: MediaFilterItem[];
+  };
+  readonly category?: string[];
+  readonly contentRating?: string[];
+  readonly status: string[];
+  readonly segmentLengthChars?: { readonly min?: number; readonly max?: number };
+  readonly segmentDurationMs?: { readonly min?: number; readonly max?: number };
+}
+
+export interface MediaFilterItem {
   readonly mediaId: number;
-  readonly episodes: number[];
+  readonly episodes?: number[];
 }

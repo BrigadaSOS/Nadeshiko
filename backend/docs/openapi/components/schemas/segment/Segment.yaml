@@ -1,0 +1,116 @@
+type: object
+description: Segment with content, optional highlights, and media URLs
+required:
+  - uuid
+  - position
+  - status
+  - startTimeMs
+  - endTimeMs
+  - contentRating
+  - episode
+  - mediaId
+  - textJa
+  - textEn
+  - textEs
+  - urls
+properties:
+  uuid:
+    type: string
+    description: Unique identifier for the segment
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  position:
+    type: integer
+    description: Position of the segment within the episode
+    example: 1133
+  status:
+    type: string
+    enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    description: Segment status
+    example: "ACTIVE"
+  startTimeMs:
+    type: integer
+    description: Start time of the segment in milliseconds from the beginning of the episode
+    example: 2007255
+  endTimeMs:
+    type: integer
+    description: End time of the segment in milliseconds from the beginning of the episode
+    example: 2008464
+  contentRating:
+    $ref: "../ContentRating.yaml"
+  episode:
+    type: integer
+    description: Episode number this segment belongs to
+    example: 1
+  mediaId:
+    type: integer
+    description: Media ID this segment belongs to
+    example: 7674
+  textJa:
+    type: object
+    required:
+      - content
+    properties:
+      content:
+        type: string
+        maxLength: 500
+        description: Original Japanese content
+        example: "僕は僕で、君は君だ。"
+      highlight:
+        type: string
+        description: Japanese content with search terms highlighted
+  textEn:
+    type: object
+    required:
+      - content
+      - isMachineTranslated
+    properties:
+      content:
+        type: string
+        maxLength: 500
+        description: English translation
+        example: "I am me, and you are you."
+      isMachineTranslated:
+        type: boolean
+        description: Whether the translation was machine-translated
+        example: false
+      highlight:
+        type: string
+        description: English content with search terms highlighted
+  textEs:
+    type: object
+    required:
+      - content
+      - isMachineTranslated
+    properties:
+      content:
+        type: string
+        maxLength: 500
+        description: Spanish translation
+        example: "Yo soy yo, y tú eres tú."
+      isMachineTranslated:
+        type: boolean
+        description: Whether the translation was machine-translated
+        example: false
+      highlight:
+        type: string
+        description: Spanish content with search terms highlighted
+  urls:
+    type: object
+    description: URLs to media resources for this segment
+    required:
+      - imageUrl
+      - audioUrl
+      - videoUrl
+    properties:
+      imageUrl:
+        type: string
+        format: uri
+        description: URL to the subtitle image snapshot
+      audioUrl:
+        type: string
+        format: uri
+        description: URL to the audio clip for this segment
+      videoUrl:
+        type: string
+        format: uri
+        description: URL to the video clip for this segment

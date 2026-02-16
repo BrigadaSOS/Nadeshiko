@@ -1,6 +1,7 @@
 get:
   tags:
     - User
+  x-internal: true
   operationId: userActivityIndex
   summary: Get user activity history
   description: |
@@ -15,7 +16,7 @@ get:
       schema:
         type: integer
       description: Cursor for pagination (activity ID to start after)
-    - name: size
+    - name: limit
       in: query
       schema:
         type: integer
@@ -27,6 +28,12 @@ get:
       schema:
         $ref: "../../components/schemas/ActivityType.yaml"
       description: Filter by activity type
+    - name: date
+      in: query
+      schema:
+        type: string
+        format: date
+      description: Filter activities to a specific date (YYYY-MM-DD)
   responses:
     "200":
       description: OK
@@ -35,18 +42,15 @@ get:
           schema:
             type: object
             required:
-              - data
-              - hasMore
+              - activities
+              - pagination
             properties:
-              data:
+              activities:
                 type: array
                 items:
                   $ref: "../../components/schemas/UserActivity.yaml"
-              hasMore:
-                type: boolean
-              cursor:
-                type: integer
-                nullable: true
+              pagination:
+                $ref: "../../components/schemas/CursorPagination.yaml"
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
     "500":
@@ -55,6 +59,7 @@ get:
 delete:
   tags:
     - User
+  x-internal: true
   operationId: userActivityDestroy
   summary: Clear user activity history
   description: |

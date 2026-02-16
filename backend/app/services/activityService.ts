@@ -1,6 +1,6 @@
 import { UserActivity, ActivityType } from '@app/models/UserActivity';
 import { User } from '@app/models/User';
-import { List, Report } from '@app/models';
+import { Collection, Report } from '@app/models';
 import type { FindOptionsWhere } from 'typeorm';
 
 interface TrackActivityData {
@@ -22,31 +22,40 @@ export async function trackActivity(user: User, type: ActivityType, data: TrackA
   await activity.save();
 }
 
-export async function getUserActivityStats(userId: number) {
-  const counts = await UserActivity.createQueryBuilder('a')
+export async function getUserActivityStats(userId: number, since?: Date) {
+  const countsQb = UserActivity.createQueryBuilder('a')
     .select('a.activity_type', 'activityType')
     .addSelect('COUNT(*)', 'count')
     .where('a.user_id = :userId', { userId })
-    .groupBy('a.activity_type')
-    .getRawMany();
+    .groupBy('a.activity_type');
+
+  if (since) {
+    countsQb.andWhere('a.created_at >= :since', { since });
+  }
+
+  const counts = await countsQb.getRawMany();
 
   const countMap: Record<string, number> = {};
   for (const row of counts) {
     countMap[row.activityType] = Number(row.count);
   }
 
-  // Calculate streak: consecutive days with activity ending today
+  // Streak is always all-time
   const streakDays = await calculateStreak(userId);
 
-  // Top media by activity count
-  const topMedia = await UserActivity.createQueryBuilder('a')
+  const topMediaQb = UserActivity.createQueryBuilder('a')
     .select('a.media_id', 'mediaId')
     .addSelect('COUNT(*)', 'count')
     .where('a.user_id = :userId AND a.media_id IS NOT NULL', { userId })
     .groupBy('a.media_id')
     .orderBy('count', 'DESC')
-    .limit(10)
-    .getRawMany();
+    .limit(10);
+
+  if (since) {
+    topMediaQb.andWhere('a.created_at >= :since', { since });
+  }
+
+  const topMedia = await topMediaQb.getRawMany();
 
   return {
     totalSearches: countMap[ActivityType.SEARCH] || 0,
@@ -56,6 +65,35 @@ export async function getUserActivityStats(userId: number) {
     streakDays,
     topMedia: topMedia.map((r) => ({ mediaId: Number(r.mediaId), count: Number(r.count) })),
   };
+}
+
+export async function getActivityHeatmap(
+  userId: number,
+  days: number,
+  activityType?: string,
+): Promise<Record<string, number>> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  since.setHours(0, 0, 0, 0);
+
+  const qb = UserActivity.createQueryBuilder('a')
+    .select('DATE(a.created_at)', 'day')
+    .addSelect('COUNT(*)', 'count')
+    .where('a.user_id = :userId', { userId })
+    .andWhere('a.created_at >= :since', { since })
+    .groupBy('DATE(a.created_at)');
+
+  if (activityType) {
+    qb.andWhere('a.activity_type = :activityType', { activityType });
+  }
+
+  const rows = await qb.getRawMany();
+
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    counts[row.day] = Number(row.count);
+  }
+  return counts;
 }
 
 async function calculateStreak(userId: number): Promise<number> {
@@ -108,9 +146,9 @@ export async function exportAllUserData(userId: number) {
     order: { createdAt: 'DESC' },
   });
 
-  const lists = await List.find({
+  const collections = await Collection.find({
     where: { userId },
-    relations: { items: true },
+    relations: { segmentItems: true },
   });
 
   const reports = await Report.find({
@@ -134,22 +172,47 @@ export async function exportAllUserData(userId: number) {
       searchQuery: a.searchQuery,
       createdAt: a.createdAt.toISOString(),
     })),
-    lists: lists.map((l) => ({
-      id: l.id,
-      name: l.name,
-      type: l.type,
-      visibility: l.visibility,
-      items: l.items?.map((i) => ({ mediaId: i.mediaId, position: i.position })) || [],
+    collections: collections.map((c) => ({
+      id: c.id,
+      name: c.name,
+      userId: c.userId,
+      visibility: c.visibility,
+      segmentUuids:
+        c.segmentItems
+          ?.slice()
+          .sort((a, b) => a.position - b.position)
+          .map((s) => s.segmentUuid) || [],
     })),
     reports: reports.map((r) => ({
       id: r.id,
-      targetType: r.targetType,
-      targetMediaId: r.targetMediaId,
-      targetSegmentUuid: r.targetSegmentUuid,
+      source: r.source,
+      target:
+        r.targetType === 'SEGMENT'
+          ? {
+              type: 'SEGMENT' as const,
+              mediaId: r.targetMediaId,
+              segmentUuid: r.targetSegmentUuid ?? '',
+              ...(r.targetEpisodeNumber != null ? { episodeNumber: r.targetEpisodeNumber } : {}),
+            }
+          : r.targetType === 'EPISODE'
+            ? {
+                type: 'EPISODE' as const,
+                mediaId: r.targetMediaId,
+                episodeNumber: r.targetEpisodeNumber ?? 0,
+              }
+            : {
+                type: 'MEDIA' as const,
+                mediaId: r.targetMediaId,
+              },
+      reviewCheckRunId: r.reviewCheckRunId ?? null,
       reason: r.reason,
-      description: r.description,
+      description: r.description ?? null,
+      data: r.data ?? null,
       status: r.status,
+      adminNotes: r.adminNotes ?? null,
+      userId: r.userId ?? null,
       createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt?.toISOString() ?? null,
     })),
   };
 }

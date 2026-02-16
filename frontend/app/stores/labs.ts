@@ -1,19 +1,16 @@
 import { defineStore } from 'pinia';
 
-interface LabFeature {
+interface UserLabFeature {
   key: string;
   name: string;
   description: string;
   enabled: boolean;
-}
-
-interface LabFeatureWithStatus extends LabFeature {
   userEnabled: boolean;
 }
 
 export const useLabsStore = defineStore('labs', {
   state: () => ({
-    features: [] as LabFeatureWithStatus[],
+    features: [] as UserLabFeature[],
     loaded: false,
   }),
   getters: {
@@ -30,13 +27,12 @@ export const useLabsStore = defineStore('labs', {
       }
     : false,
   actions: {
-    async fetchFeatures(userPreferencesLabs?: Record<string, boolean>) {
+    async fetchFeatures() {
       try {
-        const features = await $fetch<LabFeature[]>('/v1/labs');
-        this.features = features.map((f) => ({
-          ...f,
-          userEnabled: userPreferencesLabs?.[f.key] ?? false,
-        }));
+        const features = await $fetch<UserLabFeature[]>('/v1/user/labs', {
+          credentials: 'include',
+        });
+        this.features = features;
         this.loaded = true;
       } catch (error) {
         console.error('[Labs] Failed to fetch features:', error);

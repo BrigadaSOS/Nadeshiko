@@ -1,0 +1,97 @@
+patch:
+  tags:
+    - Collections
+  operationId: collectionUpdateSegment
+  summary: Update segment in collection
+  description: |
+    Updates the note or position of a segment in a collection. Requires collection ownership.
+
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Collection ID
+      schema:
+        type: integer
+        example: 123
+    - name: uuid
+      in: path
+      required: true
+      description: Segment UUID
+      schema:
+        type: string
+        example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            position:
+              type: integer
+              description: New position in the collection
+              example: 2
+            note:
+              type: string
+              nullable: true
+              maxLength: 500
+              description: Updated annotation
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Collections
+  operationId: collectionRemoveSegment
+  summary: Remove segment from collection
+  description: |
+    Removes a segment from a collection. Requires collection ownership.
+
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Collection ID
+      schema:
+        type: integer
+        example: 123
+    - name: uuid
+      in: path
+      required: true
+      description: Segment UUID
+      schema:
+        type: string
+        example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

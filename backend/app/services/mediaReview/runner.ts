@@ -38,12 +38,14 @@ const CHECK_NAME_TO_REASON: Record<string, ReportReason> = {
   highReportDensity: ReportReason.HIGH_REPORT_DENSITY,
 };
 
-export async function runAllChecks(category?: string): Promise<RunResult> {
+export async function runAllChecks(category?: string, checkName?: string): Promise<RunResult> {
   const enabledChecks = await getEnabledChecks();
+  const checksToRun = checkName ? enabledChecks.filter((c) => c.name === checkName) : enabledChecks;
+
   const checksRun: RunCheckSummary[] = [];
   let totalReports = 0;
 
-  for (const check of enabledChecks) {
+  for (const check of checksToRun) {
     try {
       const summary = await runSingleCheck(check, category);
       checksRun.push(summary);

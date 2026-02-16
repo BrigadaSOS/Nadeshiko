@@ -1,0 +1,27 @@
+get:
+  tags:
+    - User
+  x-internal: true
+  operationId: userLabsIndex
+  summary: List lab features with user opt-in status
+  description: |
+    Returns all available lab features merged with the authenticated user's
+    opt-in status. Features gated by role are excluded if the user lacks
+    the required role.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../components/schemas/UserLabFeature.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

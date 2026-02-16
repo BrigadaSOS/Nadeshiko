@@ -5,4 +5,12 @@ properties:
   segments:
     type: array
     items:
-      $ref: "../schemas/SearchResult.yaml"
+      $ref: "../schemas/segment/Segment.yaml"
+  includes:
+    type: object
+    properties:
+      media:
+        type: object
+        additionalProperties:
+          $ref: "../schemas/Media.yaml"
+        description: Media objects keyed by mediaId

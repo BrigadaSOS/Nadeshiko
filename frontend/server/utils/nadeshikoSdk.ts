@@ -35,7 +35,7 @@ export function getNadeshikoSdkClient(): NadeshikoClient {
       ...(hostHeader ? { headers: { Host: hostHeader } } : {}),
     });
 
-    cachedClient.client.interceptors.error.use((error, response, request, options) => {
+    cachedClient.client.interceptors.error.use((error, response, _request, options) => {
       const err = error as Record<string, unknown> | undefined;
       const statusCode = (typeof err?.status === 'number' && err.status) || response?.status || 503;
       const statusMessage =

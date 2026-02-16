@@ -17,6 +17,59 @@ import { logger } from '@config/log';
 const BETTER_AUTH_PREFIX = 'nade_';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
 
+// In-memory cache for User lookups (avoids DB hit on every authenticated request)
+const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const userCache = new Map<number, { user: User; expiresAt: number }>();
+
+function getCachedUser(userId: number): User | null {
+  const entry = userCache.get(userId);
+  if (!entry || Date.now() > entry.expiresAt) {
+    if (entry) userCache.delete(userId);
+    return null;
+  }
+  return entry.user;
+}
+
+function setCachedUser(user: User): void {
+  userCache.set(user.id, { user, expiresAt: Date.now() + USER_CACHE_TTL_MS });
+}
+
+export function invalidateUserCache(userId: number): void {
+  userCache.delete(userId);
+}
+
+// In-memory cache for API key verification (avoids better-auth DB hit on every request)
+const API_KEY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+interface ApiKeyCacheEntry {
+  userId: number;
+  apiKeyId: string | undefined;
+  apiKeyKind: ApiKeyKind;
+  permissions: ApiPermission[];
+  expiresAt: number;
+}
+const apiKeyCache = new Map<string, ApiKeyCacheEntry>();
+
+function getCachedApiKey(key: string): ApiKeyCacheEntry | null {
+  const entry = apiKeyCache.get(key);
+  if (!entry || Date.now() > entry.expiresAt) {
+    if (entry) apiKeyCache.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function setCachedApiKey(key: string, entry: Omit<ApiKeyCacheEntry, 'expiresAt'>): void {
+  apiKeyCache.set(key, { ...entry, expiresAt: Date.now() + API_KEY_CACHE_TTL_MS });
+}
+
+export function invalidateApiKeyCacheForUser(userId: number): void {
+  for (const [key, entry] of apiKeyCache) {
+    if (entry.userId === userId) {
+      apiKeyCache.delete(key);
+    }
+  }
+}
+
 export const requireSessionAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     const sessionData = await auth.api.getSession({
@@ -213,8 +266,15 @@ async function attachAuthPayloadToRequest(
   authType: AuthType,
   apiKey?: { id?: string; kind?: ApiKeyKind; permissions: ApiPermission[] },
 ): Promise<void> {
-  const user = await User.findOne({ where: { id: userId } });
-  if (!user || !user.isActive) {
+  let user = getCachedUser(userId);
+  if (!user) {
+    user = await User.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new AuthCredentialsInvalidError('User is invalid or inactive.');
+    }
+    setCachedUser(user);
+  } else if (!user.isActive) {
+    invalidateUserCache(userId);
     throw new AuthCredentialsInvalidError('User is invalid or inactive.');
   }
 
@@ -226,6 +286,17 @@ async function attachAuthPayloadToRequest(
 }
 
 async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promise<void> {
+  // Check cache first to avoid better-auth DB call
+  const cached = getCachedApiKey(apiKey);
+  if (cached) {
+    await attachAuthPayloadToRequest(req, cached.userId, AuthType.API_KEY, {
+      id: cached.apiKeyId,
+      kind: cached.apiKeyKind,
+      permissions: cached.permissions,
+    });
+    return;
+  }
+
   let verification: {
     valid?: boolean;
     key?: {
@@ -270,6 +341,9 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
     verification.key.id !== undefined && verification.key.id !== null ? String(verification.key.id) : undefined;
   const apiKeyKind = inferApiKeyKind(verification.key);
   const permissions = flattenBetterAuthPermissions(verification.key.permissions);
+
+  // Cache the verified key for subsequent requests
+  setCachedApiKey(apiKey, { userId, apiKeyId, apiKeyKind, permissions });
 
   await attachAuthPayloadToRequest(req, userId, AuthType.API_KEY, {
     id: apiKeyId,

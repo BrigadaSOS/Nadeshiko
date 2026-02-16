@@ -2,7 +2,7 @@ import { getNadeshikoSdkClient } from '~~/server/utils/nadeshikoSdk';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { uuid, textJa, textEn, textEs, status, isNsfw } = body;
+  const { uuid, textJa, textEn, textEs, status, contentRating, ratingAnalysis } = body;
 
   if (!uuid) {
     throw createError({ statusCode: 400, statusMessage: 'uuid is required' });
@@ -30,7 +30,8 @@ export default defineEventHandler(async (event) => {
         textEs: { content: textEs.content, isMachineTranslated: textEs.isMachineTranslated },
       }),
       ...(status !== undefined && { status }),
-      ...(isNsfw !== undefined && { isNsfw }),
+      ...(contentRating !== undefined && { contentRating }),
+      ...(ratingAnalysis !== undefined && { ratingAnalysis }),
     },
   });
 

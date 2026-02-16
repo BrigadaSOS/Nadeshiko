@@ -26,7 +26,7 @@ get:
         type: integer
       description: Episode number
       example: 1
-    - name: size
+    - name: limit
       in: query
       required: false
       schema:
@@ -93,10 +93,10 @@ post:
     content:
       application/json:
         schema:
-          $ref: "../../components/schemas/SegmentCreateRequest.yaml"
+          $ref: "../../components/schemas/segment/SegmentRequests.yaml#/SegmentCreateRequest"
   responses:
     "201":
-      $ref: "../../components/responses/SegmentResponse.yaml"
+      $ref: "../../components/responses/SegmentInternalResponse.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

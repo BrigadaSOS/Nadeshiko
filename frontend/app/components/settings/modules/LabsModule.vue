@@ -1,23 +1,56 @@
 <script setup lang="ts">
+import { getRequestHeader } from 'h3';
 import { useLabsStore } from '@/stores/labs';
 
 const labsStore = useLabsStore();
 const togglingKey = ref<string | null>(null);
 
-// Fetch features on mount if not loaded
-onMounted(async () => {
-  if (!labsStore.loaded) {
-    // Fetch user preferences to get opt-in state
-    try {
-      const prefs = await $fetch<{ labs?: Record<string, boolean> }>('/v1/user/preferences', {
-        credentials: 'include',
-      });
-      await labsStore.fetchFeatures(prefs?.labs);
-    } catch {
-      await labsStore.fetchFeatures();
-    }
+type UserLabFeature = {
+  key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  userEnabled: boolean;
+};
+
+const getServerRequestContext = () => {
+  if (!import.meta.server) return null;
+  const event = useRequestEvent();
+  if (!event) return null;
+
+  const config = useRuntimeConfig();
+  const cookieHeader = getRequestHeader(event, 'cookie');
+  const headers: Record<string, string> = { cookie: cookieHeader || '' };
+  if (config.backendHostHeader) {
+    headers.host = String(config.backendHostHeader);
   }
+
+  return {
+    baseUrl: String(config.backendInternalUrl || ''),
+    headers,
+  };
+};
+
+const fetchLabsFeatures = async (): Promise<UserLabFeature[]> => {
+  if (import.meta.server) {
+    const ctx = getServerRequestContext();
+    if (!ctx || !ctx.baseUrl) return [];
+    return await $fetch<UserLabFeature[]>(`${ctx.baseUrl}/v1/user/labs`, {
+      headers: ctx.headers,
+    }).catch(() => []);
+  }
+
+  return await $fetch<UserLabFeature[]>('/v1/user/labs', {
+    credentials: 'include',
+  }).catch(() => []);
+};
+
+const { data: featuresData } = await useAsyncData('settings-labs-features', fetchLabsFeatures, {
+  default: () => [],
 });
+
+labsStore.features = featuresData.value;
+labsStore.loaded = true;
 
 const toggleFeature = async (key: string, currentEnabled: boolean) => {
   if (togglingKey.value) return;
@@ -43,9 +76,14 @@ const toggleFeature = async (key: string, currentEnabled: boolean) => {
   <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
     <div class="flex items-center gap-2">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">Nadeshiko Labs</h3>
-      <span class="inline-flex items-center rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-400">Beta</span>
+      <span class="inline-flex items-center rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">Beta</span>
     </div>
-    <p class="text-gray-400 text-sm mt-1">Try experimental features before they're released to everyone.</p>
+    <p class="text-gray-400 text-sm mt-1">
+      Try experimental features before they are released to everyone!
+    </p>
+    <p class="text-gray-400 text-sm mt-3">
+      These features are still under testing and might change at any time, but we would love to hear your feedback to help us improve them before they become default features in Nadeshiko.
+    </p>
     <div class="border-b pt-4 border-white/10" />
 
     <div v-if="labsStore.features.length === 0" class="mt-4 text-gray-400">
@@ -61,7 +99,7 @@ const toggleFeature = async (key: string, currentEnabled: boolean) => {
         <div class="flex-1">
           <div class="flex items-center gap-2">
             <span class="text-white font-medium">{{ feature.name }}</span>
-            <span class="inline-flex items-center rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-400">
+            <span class="inline-flex items-center rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">
               Beta
             </span>
           </div>

@@ -1,8 +1,7 @@
 import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
+import { ResponseSchemas, Internal } from '@lib/decorators';
 import type { Episode } from './Episode';
-import type { MorphemeData } from '@app/types/morpheme';
-
 export enum SegmentStatus {
   DELETED = 'DELETED',
   ACTIVE = 'ACTIVE',
@@ -12,6 +11,18 @@ export enum SegmentStatus {
   TOO_LONG = 'TOO_LONG',
 }
 
+export enum ContentRating {
+  SAFE = 'SAFE',
+  SUGGESTIVE = 'SUGGESTIVE',
+  QUESTIONABLE = 'QUESTIONABLE',
+  EXPLICIT = 'EXPLICIT',
+}
+
+export interface RatingAnalysisData {
+  scores?: Record<string, number>;
+  tags?: Record<string, number>;
+}
+
 export enum SegmentStorage {
   LOCAL = 'LOCAL',
   R2 = 'R2',
@@ -19,6 +30,7 @@ export enum SegmentStorage {
 
 @Entity('Segment')
 @Index(['uuid'], { unique: true })
+@ResponseSchemas('Segment')
 export class Segment extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
   id!: number;
@@ -36,17 +48,14 @@ export class Segment extends BaseEntity {
   })
   status!: SegmentStatus;
 
-  @Column({ name: 'start_time', type: 'varchar' })
-  startTime!: string;
+  @Column({ name: 'start_time_ms', type: 'int' })
+  startTimeMs!: number;
 
-  @Column({ name: 'end_time', type: 'varchar' })
-  endTime!: string;
+  @Column({ name: 'end_time_ms', type: 'int' })
+  endTimeMs!: number;
 
   @Column({ name: 'content', type: 'varchar', length: 500 })
   contentJa!: string;
-
-  @Column({ name: 'content_length', type: 'int' })
-  characterCount!: number;
 
   @Column({ name: 'content_spanish', type: 'varchar', length: 500 })
   contentEs!: string;
@@ -60,17 +69,24 @@ export class Segment extends BaseEntity {
   @Column({ name: 'content_english_mt', type: 'boolean', default: false })
   contentEnMt!: boolean;
 
-  @Column({ name: 'is_nsfw', type: 'boolean', default: false })
-  isNsfw!: boolean;
+  @Column({ name: 'content_rating', type: 'enum', enum: ContentRating, default: ContentRating.SAFE })
+  contentRating!: ContentRating;
 
+  @Internal()
+  @Column({ name: 'rating_analysis', type: 'jsonb', nullable: true })
+  ratingAnalysis?: RatingAnalysisData | null;
+
+  @Internal()
+  @Column({ name: 'pos_analysis', type: 'jsonb', nullable: true })
+  posAnalysis?: Record<string, unknown> | null;
+
+  @Internal()
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;
 
+  @Internal()
   @Column({ name: 'hashed_id', type: 'varchar' })
   hashedId!: string;
-
-  @Column({ name: 'morphemes', type: 'jsonb', nullable: true })
-  morphemes?: MorphemeData[] | null;
 
   @Column({ type: 'smallint' })
   episode!: number;
@@ -78,6 +94,7 @@ export class Segment extends BaseEntity {
   @Column({ name: 'media_id', type: 'int' })
   mediaId!: number;
 
+  @Internal()
   @Column({ name: 'storage_base_path', type: 'varchar' })
   storageBasePath!: string;
 

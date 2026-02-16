@@ -1,0 +1,16 @@
+description: Paginated segment list response with internal fields
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - segments
+        - pagination
+      properties:
+        segments:
+          type: array
+          items:
+            $ref: "../schemas/segment/SegmentInternal.yaml"
+          description: Array of segment objects with internal fields
+        pagination:
+          $ref: "../schemas/CursorPagination.yaml"
