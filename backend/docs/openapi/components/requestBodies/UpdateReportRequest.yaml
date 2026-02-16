@@ -2,7 +2,7 @@ type: object
 properties:
   status:
     type: string
-    enum: [PENDING, ACCEPTED, REJECTED, RESOLVED]
+    enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
     description: New status for the report
     example: "ACCEPTED"
   adminNotes:

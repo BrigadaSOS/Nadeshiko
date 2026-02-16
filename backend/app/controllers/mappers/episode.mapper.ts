@@ -4,7 +4,6 @@ import type { Episode } from '@app/models';
 export const toEpisodeDTO = (episode: Episode): t_Episode => ({
   mediaId: episode.mediaId,
   episodeNumber: episode.episodeNumber,
-  anilistEpisodeId: episode.anilistEpisodeId,
   titleEn: episode.titleEn,
   titleRomaji: episode.titleRomaji,
   titleJa: episode.titleJa,

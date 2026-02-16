@@ -61,7 +61,7 @@ get:
       in: query
       schema:
         type: string
-        enum: [PENDING, ACCEPTED, REJECTED, RESOLVED]
+        enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
       description: Filter by report status
   responses:
     "200":

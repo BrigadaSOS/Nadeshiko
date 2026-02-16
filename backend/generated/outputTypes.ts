@@ -14,6 +14,7 @@ export type EpisodeOutput = z.output<typeof schemas.s_Episode>;
 export type EpisodeCreateRequestOutput = z.output<typeof schemas.s_EpisodeCreateRequest>;
 export type EpisodeUpdateRequestOutput = z.output<typeof schemas.s_EpisodeUpdateRequest>;
 export type ErrorOutput = z.output<typeof schemas.s_Error>;
+export type ExternalIdOutput = z.output<typeof schemas.s_ExternalId>;
 export type JapaneseContentOutput = z.output<typeof schemas.s_JapaneseContent>;
 export type JapaneseSearchContentOutput = z.output<typeof schemas.s_JapaneseSearchContent>;
 export type ListOutput = z.output<typeof schemas.s_List>;
@@ -25,6 +26,10 @@ export type PaginationInfoOutput = z.output<typeof schemas.s_PaginationInfo>;
 export type ReindexRequestOutput = z.output<typeof schemas.s_ReindexRequest>;
 export type ReindexResponseOutput = z.output<typeof schemas.s_ReindexResponse>;
 export type ReportOutput = z.output<typeof schemas.s_Report>;
+export type ReviewAllowlistOutput = z.output<typeof schemas.s_ReviewAllowlist>;
+export type ReviewCheckOutput = z.output<typeof schemas.s_ReviewCheck>;
+export type ReviewCheckRunOutput = z.output<typeof schemas.s_ReviewCheckRun>;
+export type RunReviewResponseOutput = z.output<typeof schemas.s_RunReviewResponse>;
 export type SearchMultipleRequestOutput = z.output<typeof schemas.s_SearchMultipleRequest>;
 export type SearchResultUrlsOutput = z.output<typeof schemas.s_SearchResultUrls>;
 export type SegmentContextRequestOutput = z.output<typeof schemas.s_SegmentContextRequest>;
@@ -72,6 +77,13 @@ export type SeiyuuWithRolesOutput = z.output<typeof schemas.s_SeiyuuWithRoles>;
 // Inline query schemas and their output types
 // ============================================
 
+export const getUserReportsQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
+  });
+export type GetUserReportsQueryOutput = z.output<typeof getUserReportsQuerySchema>;
+
 export const listIndexQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
     type: z.enum(['SERIES', 'CUSTOM', 'SEGMENT']).optional(),
@@ -89,11 +101,26 @@ export type ListGetSegmentsQueryOutput = z.output<typeof listGetSegmentsQuerySch
 export const getAdminReportsQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
     size: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
-    reportType: z.enum(['SEGMENT', 'MEDIA']).optional(),
-    targetId: z.string().optional(),
+    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
+    source: z.enum(['USER', 'AUTO']).optional(),
+    targetType: z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    targetMediaId: z.coerce.number().optional(),
+    reviewCheckRunId: z.coerce.number().optional(),
   });
 export type GetAdminReportsQueryOutput = z.output<typeof getAdminReportsQuerySchema>;
+
+export const runReviewChecksQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
+export type RunReviewChecksQueryOutput = z.output<typeof runReviewChecksQuerySchema>;
+
+export const getReviewRunsQuerySchema = z.object({
+    checkName: z.string().optional(),
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+  });
+export type GetReviewRunsQueryOutput = z.output<typeof getReviewRunsQuerySchema>;
+
+export const getReviewAllowlistQuerySchema = z.object({ checkName: z.string().optional() });
+export type GetReviewAllowlistQueryOutput = z.output<typeof getReviewAllowlistQuerySchema>;
 
 export const browseMediaQuerySchema = z.object({
     size: z.coerce.number().optional().default(20),
@@ -121,10 +148,3 @@ export const segmentIndexQuerySchema = z.object({
     cursor: z.coerce.number().optional().default(0),
   });
 export type SegmentIndexQueryOutput = z.output<typeof segmentIndexQuerySchema>;
-
-export const getUserReportsQuerySchema = z.object({
-    cursor: z.coerce.number().optional(),
-    size: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
-  });
-export type GetUserReportsQueryOutput = z.output<typeof getUserReportsQuerySchema>;

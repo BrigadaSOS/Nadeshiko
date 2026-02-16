@@ -1,7 +1,8 @@
-import { Entity, PrimaryColumn, Column, OneToMany, DeleteDateColumn, Index, Not } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
 import { MediaCharacter } from './MediaCharacter';
+import { MediaExternalId } from './MediaExternalId';
 import { Segment, SegmentStatus } from './Segment';
 import type { ListItem } from './ListItem';
 import type { MediaInfoData } from '@app/types/queryMediaInfoResponse';
@@ -18,12 +19,8 @@ export enum CategoryType {
 
 @Entity('Media')
 export class Media extends BaseEntity {
-  @PrimaryColumn({ type: 'int' })
+  @PrimaryGeneratedColumn({ type: 'int' })
   id!: number;
-
-  @Index({ unique: true })
-  @Column({ name: 'anilist_id', type: 'int', unique: true })
-  anilistId!: number;
 
   @Column({ name: 'japanese_name', type: 'varchar' })
   nameJa!: string;
@@ -92,6 +89,9 @@ export class Media extends BaseEntity {
 
   @OneToMany('ListItem', 'media')
   listItems!: ListItem[];
+
+  @OneToMany('MediaExternalId', 'media', { cascade: true })
+  externalIds!: MediaExternalId[];
 
   static async getMediaInfoMap(): Promise<{
     results: Map<number, MediaInfoData>;

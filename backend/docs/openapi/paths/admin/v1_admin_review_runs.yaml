@@ -1,0 +1,58 @@
+get:
+  tags:
+    - Admin
+  operationId: getReviewRuns
+  summary: List past check runs
+  description: |
+    Returns past review check runs with summary stats.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: checkName
+      in: query
+      schema:
+        type: string
+      description: Filter by check name
+    - name: cursor
+      in: query
+      schema:
+        type: integer
+      description: Cursor for pagination
+    - name: size
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+      description: Number of results per page
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+              - hasMore
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "../../components/schemas/ReviewCheckRun.yaml"
+              hasMore:
+                type: boolean
+              cursor:
+                type: integer
+                nullable: true
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

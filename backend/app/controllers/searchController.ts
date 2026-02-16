@@ -114,7 +114,7 @@ export const browseMedia: BrowseMedia = async ({ query }, respond) => {
     order: { createdAt: 'DESC' },
     take: pageSize,
     skip: cursor,
-    relations: ['episodes'],
+    relations: ['episodes', 'externalIds'],
   });
 
   const globalStats = await Media.getGlobalStats();

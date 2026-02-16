@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, DeleteDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, DeleteDateColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { Media } from './Media';
 import type { Segment } from './Segment';
@@ -10,10 +10,6 @@ export class Episode extends BaseEntity {
 
   @PrimaryColumn({ name: 'episode_number', type: 'int' })
   episodeNumber!: number;
-
-  @Index({ unique: true, where: '"anilist_episode_id" IS NOT NULL' })
-  @Column({ name: 'anilist_episode_id', type: 'int', nullable: true })
-  anilistEpisodeId?: number;
 
   @ManyToOne('Media', 'episodes')
   @JoinColumn({ name: 'media_id' })

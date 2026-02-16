@@ -93,10 +93,16 @@ export interface MediaBrowseStats {
   readonly totalSegmentCount: number;
 }
 
+export interface ExternalIds {
+  anilist?: string;
+  imdb?: string;
+  tvdb?: string;
+}
+
 export interface MediaSummary {
   id: number;
   category: SearchCategory;
-  anilistId: number;
+  externalIds?: ExternalIds;
   createdAt: string;
   updatedAt?: number;
   nameRomaji: string;

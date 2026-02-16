@@ -5,7 +5,7 @@ get:
   summary: List all reports (admin)
   description: |
     Returns all reports with filtering and aggregation.
-    Reports are grouped by target and sorted by report count descending.
+    Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
 
     **Requirements:**
     - Required Scopes: `ADD_MEDIA` (admin-level permission)
@@ -28,19 +28,30 @@ get:
       in: query
       schema:
         type: string
-        enum: [PENDING, ACCEPTED, REJECTED, RESOLVED]
+        enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
       description: Filter by report status
-    - name: reportType
+    - name: source
       in: query
       schema:
         type: string
-        enum: [SEGMENT, MEDIA]
-      description: Filter by report type
-    - name: targetId
+        enum: [USER, AUTO]
+      description: Filter by report source
+    - name: targetType
       in: query
       schema:
         type: string
-      description: Filter by target ID
+        enum: [SEGMENT, EPISODE, MEDIA]
+      description: Filter by target type
+    - name: targetMediaId
+      in: query
+      schema:
+        type: integer
+      description: Filter by target media ID
+    - name: reviewCheckRunId
+      in: query
+      schema:
+        type: integer
+      description: Filter by review check run ID
   responses:
     "200":
       description: OK
