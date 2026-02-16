@@ -1,0 +1,31 @@
+type: object
+required:
+  - id
+  - checkName
+  - mediaId
+  - createdAt
+properties:
+  id:
+    type: integer
+    description: Allowlist entry ID
+  checkName:
+    type: string
+    description: Name of the check this entry applies to
+    example: "lowSegmentMedia"
+  mediaId:
+    type: integer
+    description: Media ID to exclude
+    example: 42
+  episodeNumber:
+    type: integer
+    nullable: true
+    description: Episode number to exclude (null for media-level checks)
+  reason:
+    type: string
+    nullable: true
+    description: Why this was allowlisted
+    example: "Known short OVA series"
+  createdAt:
+    type: string
+    format: date-time
+    description: When this entry was created

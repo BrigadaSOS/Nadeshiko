@@ -1,6 +1,16 @@
-import type { t_MediaSummary, t_Category } from 'generated/models';
+import type { t_MediaSummary, t_Category, t_ExternalId } from 'generated/models';
+import type { MediaExternalId } from '@app/models/MediaExternalId';
 import { Media } from '@app/models';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
+
+const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
+  const map: t_ExternalId = {};
+  for (const ext of externalIds ?? []) {
+    const key = ext.source.toLowerCase() as keyof t_ExternalId;
+    map[key] = ext.externalId;
+  }
+  return map;
+};
 
 /**
  * Maps Media entity to t_MediaSummary for browseMedia endpoint
@@ -8,7 +18,7 @@ import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 export const toMediaSummary = (media: Media): t_MediaSummary => {
   return {
     id: media.id,
-    anilistId: media.anilistId,
+    externalIds: toExternalIdsMap(media.externalIds),
     nameJa: media.nameJa,
     nameRomaji: media.nameRomaji,
     nameEn: media.nameEn,
@@ -26,6 +36,5 @@ export const toMediaSummary = (media: Media): t_MediaSummary => {
     folderMediaName: `${media.nameRomaji.replace(/[^a-zA-Z0-9]/g, '_')}`,
     createdAt: media.createdAt.toISOString(),
     updatedAt: undefined,
-    tmdbId: null,
   };
 };

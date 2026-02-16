@@ -28,7 +28,6 @@ export const episodeCreate: EpisodeCreate = async ({ params, body }, respond) =>
   const episode = Episode.create({
     mediaId: params.mediaId,
     episodeNumber: body.episodeNumber,
-    anilistEpisodeId: body.anilistEpisodeId,
     titleEn: body.titleEn,
     titleRomaji: body.titleRomaji,
     titleJa: body.titleJa,

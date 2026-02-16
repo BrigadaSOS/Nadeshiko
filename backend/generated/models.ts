@@ -54,7 +54,6 @@ export type t_CharacterWithMedia = {
 
 export type t_Episode = {
   airedAt?: string | null;
-  anilistEpisodeId?: number | null;
   description?: string | null;
   episodeNumber: number;
   lengthSeconds?: number | null;
@@ -82,6 +81,12 @@ export type t_Error = {
   status: number;
   title: string;
   type?: string;
+};
+
+export type t_ExternalId = {
+  anilist?: string;
+  imdb?: string;
+  tvdb?: string;
 };
 
 export type t_JapaneseContent = {
@@ -139,13 +144,13 @@ export type t_ListWithSegments = {
 export type t_Media = {
   airingFormat: string;
   airingStatus: string;
-  anilistId: number;
   bannerUrl: string;
   category: t_Category;
   characters?: t_MediaCharacter[];
   coverUrl: string;
   endDate?: string | null;
   episodeCount?: number;
+  externalIds?: t_ExternalId;
   genres: string[];
   id: number;
   lists?: t_List[];
@@ -200,13 +205,13 @@ export type t_MediaSearchStats = {
 export type t_MediaSummary = {
   airingFormat?: string;
   airingStatus?: string;
-  anilistId?: number | null;
   bannerUrl?: string;
   category?: t_Category;
   coverUrl?: string;
   createdAt?: string;
   endDate?: string | null;
   episodeCount?: number;
+  externalIds?: t_ExternalId;
   folderMediaName?: string;
   genres?: string[];
   id: number;
@@ -215,7 +220,6 @@ export type t_MediaSummary = {
   nameRomaji?: string;
   segmentCount?: number;
   startDate?: string;
-  tmdbId?: number | null;
   updatedAt?: number;
   version?: string;
 };
@@ -259,6 +263,9 @@ export type t_ReindexResponse = {
 export type t_Report = {
   adminNotes?: string | null;
   createdAt: string;
+  data?: {
+    [key: string]: unknown | undefined;
+  } | null;
   description?: string | null;
   id: number;
   reason:
@@ -271,20 +278,88 @@ export type t_Report = {
     | 'MISSING_EPISODES'
     | 'WRONG_COVER_IMAGE'
     | 'INAPPROPRIATE_CONTENT'
-    | 'OTHER';
-  reportType: 'SEGMENT' | 'MEDIA';
-  resolvedAt?: string | null;
-  resolvedById?: number | null;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED';
-  targetId: string;
+    | 'OTHER'
+    | 'LOW_SEGMENT_MEDIA'
+    | 'EMPTY_EPISODES'
+    | 'MISSING_EPISODES_AUTO'
+    | 'BAD_SEGMENT_RATIO'
+    | 'MEDIA_WITH_NO_EPISODES'
+    | 'MISSING_TRANSLATIONS'
+    | 'DB_ES_SYNC_ISSUES'
+    | 'HIGH_REPORT_DENSITY';
+  reviewCheckRunId?: number | null;
+  source: 'USER' | 'AUTO';
+  status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  targetEpisodeNumber?: number | null;
+  targetMediaId: number;
+  targetSegmentUuid?: string | null;
+  targetType: 'SEGMENT' | 'EPISODE' | 'MEDIA';
   updatedAt?: string | null;
-  userId: number;
+  userId?: number | null;
 };
 
 export type t_ReportListResponse = {
   cursor?: number | null;
   data: t_Report[];
   hasMore: boolean;
+};
+
+export type t_ReviewAllowlist = {
+  checkName: string;
+  createdAt: string;
+  episodeNumber?: number | null;
+  id: number;
+  mediaId: number;
+  reason?: string | null;
+};
+
+export type t_ReviewCheck = {
+  createdAt?: string;
+  description: string;
+  enabled: boolean;
+  id: number;
+  label: string;
+  latestRun?: {
+    createdAt?: string;
+    id?: number;
+    resultCount?: number;
+  } | null;
+  name: string;
+  targetType: 'MEDIA' | 'EPISODE';
+  threshold: {
+    [key: string]: unknown | undefined;
+  };
+  thresholdSchema?: {
+    default?: number | boolean;
+    key?: string;
+    label?: string;
+    max?: number;
+    min?: number;
+    type?: 'number' | 'boolean';
+  }[];
+  updatedAt?: string | null;
+};
+
+export type t_ReviewCheckRun = {
+  category?: string | null;
+  checkName: string;
+  createdAt: string;
+  id: number;
+  resultCount: number;
+  thresholdUsed: {
+    [key: string]: unknown | undefined;
+  };
+};
+
+export type t_RunReviewResponse = {
+  category: string | null;
+  checksRun: {
+    checkName: string;
+    label: string;
+    resultCount: number;
+    runId: number;
+  }[];
+  totalReports: number;
 };
 
 export type t_SearchHealthCheckResponse = {
@@ -429,6 +504,13 @@ export type t_WordMatchMedia = {
   nameRomaji?: string;
 };
 
+export type t_AddToReviewAllowlistRequestBodySchema = {
+  checkName: string;
+  episodeNumber?: number;
+  mediaId: number;
+  reason?: string;
+};
+
 export type t_BrowseMediaQuerySchema = {
   cursor?: number;
   query?: string;
@@ -453,8 +535,9 @@ export type t_CreateReportRequestBodySchema = {
     | 'WRONG_COVER_IMAGE'
     | 'INAPPROPRIATE_CONTENT'
     | 'OTHER';
-  reportType: 'SEGMENT' | 'MEDIA';
-  targetId: string;
+  targetMediaId: number;
+  targetSegmentUuid?: string;
+  targetType: 'SEGMENT' | 'MEDIA';
 };
 
 export type t_EpisodeCreateParamSchema = {
@@ -463,7 +546,6 @@ export type t_EpisodeCreateParamSchema = {
 
 export type t_EpisodeCreateRequestBodySchema = {
   airedAt?: string;
-  anilistEpisodeId?: number;
   description?: string;
   episodeNumber: number;
   lengthSeconds?: number;
@@ -499,7 +581,6 @@ export type t_EpisodeUpdateParamSchema = {
 
 export type t_EpisodeUpdateRequestBodySchema = {
   airedAt?: string;
-  anilistEpisodeId?: number;
   description?: string;
   lengthSeconds?: number;
   thumbnailUrl?: string;
@@ -510,10 +591,12 @@ export type t_EpisodeUpdateRequestBodySchema = {
 
 export type t_GetAdminReportsQuerySchema = {
   cursor?: number;
-  reportType?: 'SEGMENT' | 'MEDIA';
+  reviewCheckRunId?: number;
   size?: number;
-  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED';
-  targetId?: string;
+  source?: 'USER' | 'AUTO';
+  status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  targetMediaId?: number;
+  targetType?: 'SEGMENT' | 'EPISODE' | 'MEDIA';
 };
 
 export type t_GetFailedJobsParamSchema = {
@@ -522,6 +605,20 @@ export type t_GetFailedJobsParamSchema = {
 
 export type t_GetQueueDetailsParamSchema = {
   queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
+};
+
+export type t_GetReviewAllowlistQuerySchema = {
+  checkName?: string;
+};
+
+export type t_GetReviewRunDetailsParamSchema = {
+  id: number;
+};
+
+export type t_GetReviewRunsQuerySchema = {
+  checkName?: string;
+  cursor?: number;
+  size?: number;
 };
 
 export type t_GetSearchStatsRequestBodySchema = {
@@ -545,7 +642,7 @@ export type t_GetSegmentContextRequestBodySchema = {
 export type t_GetUserReportsQuerySchema = {
   cursor?: number;
   size?: number;
-  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED';
+  status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
 };
 
 export type t_ListAddItemParamSchema = {
@@ -638,10 +735,10 @@ export type t_ListUpdateSegmentRequestBodySchema = {
 export type t_MediaCreateRequestBodySchema = {
   airingFormat: string;
   airingStatus: string;
-  anilistId: number;
   category: 'ANIME' | 'JDRAMA';
   characters?: t_CharacterInput[];
   endDate?: string;
+  externalIds?: t_ExternalId;
   genres: string[];
   hashSalt: string;
   lists?: t_ListInput[];
@@ -677,10 +774,10 @@ export type t_MediaUpdateParamSchema = {
 export type t_MediaUpdateRequestBodySchema = {
   airingFormat?: string;
   airingStatus?: string;
-  anilistId?: number;
   category?: 'ANIME' | 'JDRAMA';
   characters?: t_CharacterInput[];
   endDate?: string;
+  externalIds?: t_ExternalId;
   genres?: string[];
   hashSalt?: string;
   lists?: t_ListInput[];
@@ -707,8 +804,16 @@ export type t_ReindexElasticsearchRequestBodySchema = {
   }[];
 };
 
+export type t_RemoveFromReviewAllowlistParamSchema = {
+  id: number;
+};
+
 export type t_RetryQueueJobsParamSchema = {
   queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
+};
+
+export type t_RunReviewChecksQuerySchema = {
+  category?: 'ANIME' | 'JDRAMA';
 };
 
 export type t_SearchSegmentsRequestBodySchema = {
@@ -826,5 +931,16 @@ export type t_UpdateReportParamSchema = {
 
 export type t_UpdateReportRequestBodySchema = {
   adminNotes?: string;
-  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED';
+  status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+};
+
+export type t_UpdateReviewCheckParamSchema = {
+  name: string;
+};
+
+export type t_UpdateReviewCheckRequestBodySchema = {
+  enabled?: boolean;
+  threshold?: {
+    [key: string]: unknown | undefined;
+  };
 };

@@ -4,8 +4,9 @@ import { authApiRequest } from '~/utils/authApi';
 const { t } = useI18n();
 
 const props = defineProps<{
-  targetId: string | null;
-  reportType: 'SEGMENT' | 'MEDIA';
+  targetType: 'SEGMENT' | 'MEDIA';
+  targetMediaId: number | null;
+  targetSegmentUuid?: string | null;
   mediaName?: string;
 }>();
 
@@ -36,11 +37,11 @@ const mediaReasons = [
 ] as const;
 
 const availableReasons = computed(() =>
-  props.reportType === 'SEGMENT' ? segmentReasons : mediaReasons,
+  props.targetType === 'SEGMENT' ? segmentReasons : mediaReasons,
 );
 
 watch(
-  () => props.targetId,
+  () => props.targetMediaId,
   () => {
     form.reason = '';
     form.description = '';
@@ -57,7 +58,7 @@ const closeModal = () => {
 };
 
 const submitReport = async () => {
-  if (!props.targetId || isSubmitting.value || !form.reason) return;
+  if (!props.targetMediaId || isSubmitting.value || !form.reason) return;
 
   isSubmitting.value = true;
   errorMessage.value = '';
@@ -66,8 +67,9 @@ const submitReport = async () => {
     const response = await authApiRequest('/v1/user/reports', {
       method: 'POST',
       body: {
-        reportType: props.reportType,
-        targetId: props.targetId,
+        targetType: props.targetType,
+        targetMediaId: props.targetMediaId,
+        targetSegmentUuid: props.targetSegmentUuid || undefined,
         reason: form.reason,
         description: form.description || undefined,
       },

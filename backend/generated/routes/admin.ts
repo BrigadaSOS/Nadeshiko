@@ -14,20 +14,32 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
+  t_AddToReviewAllowlistRequestBodySchema,
   t_AdminReportListResponse,
   t_Error,
   t_GetAdminReportsQuerySchema,
   t_GetFailedJobsParamSchema,
   t_GetQueueDetailsParamSchema,
+  t_GetReviewAllowlistQuerySchema,
+  t_GetReviewRunDetailsParamSchema,
+  t_GetReviewRunsQuerySchema,
   t_PurgeFailedJobsParamSchema,
   t_ReindexElasticsearchRequestBodySchema,
   t_ReindexResponse,
+  t_RemoveFromReviewAllowlistParamSchema,
   t_Report,
   t_RetryQueueJobsParamSchema,
+  t_ReviewAllowlist,
+  t_ReviewCheck,
+  t_ReviewCheckRun,
+  t_RunReviewChecksQuerySchema,
+  t_RunReviewResponse,
   t_UpdateReportParamSchema,
   t_UpdateReportRequestBodySchema,
+  t_UpdateReviewCheckParamSchema,
+  t_UpdateReviewCheckRequestBodySchema,
 } from '../models.ts';
-import type { GetAdminReportsQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { GetAdminReportsQueryOutput, GetReviewAllowlistQueryOutput, GetReviewRunsQueryOutput, RunReviewChecksQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
@@ -35,6 +47,10 @@ import {
   s_ReindexRequest,
   s_ReindexResponse,
   s_Report,
+  s_ReviewAllowlist,
+  s_ReviewCheck,
+  s_ReviewCheckRun,
+  s_RunReviewResponse,
   s_UpdateReportRequest,
 } from '../schemas.ts';
 
@@ -224,6 +240,147 @@ export type UpdateReport = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type RunReviewChecksResponder = {
+  with200(): ExpressRuntimeResponse<t_RunReviewResponse>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type RunReviewChecks = (
+  params: Params<void, RunReviewChecksQueryOutput, void, void>,
+  respond: RunReviewChecksResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetReviewChecksResponder = {
+  with200(): ExpressRuntimeResponse<t_ReviewCheck[]>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetReviewChecks = (
+  params: Params<void, void, void, void>,
+  respond: GetReviewChecksResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateReviewCheckResponder = {
+  with200(): ExpressRuntimeResponse<t_ReviewCheck>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type UpdateReviewCheck = (
+  params: Params<t_UpdateReviewCheckParamSchema, void, t_UpdateReviewCheckRequestBodySchema, void>,
+  respond: UpdateReviewCheckResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetReviewRunsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    cursor?: number | null;
+    data: t_ReviewCheckRun[];
+    hasMore: boolean;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetReviewRuns = (
+  params: Params<void, GetReviewRunsQueryOutput, void, void>,
+  respond: GetReviewRunsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetReviewRunDetailsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    reports: t_Report[];
+    run: t_ReviewCheckRun;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetReviewRunDetails = (
+  params: Params<t_GetReviewRunDetailsParamSchema, void, void, void>,
+  respond: GetReviewRunDetailsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetReviewAllowlistResponder = {
+  with200(): ExpressRuntimeResponse<t_ReviewAllowlist[]>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type GetReviewAllowlist = (
+  params: Params<void, GetReviewAllowlistQueryOutput, void, void>,
+  respond: GetReviewAllowlistResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type AddToReviewAllowlistResponder = {
+  with201(): ExpressRuntimeResponse<t_ReviewAllowlist>;
+  with400(): ExpressRuntimeResponse<t_Error>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with409(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type AddToReviewAllowlist = (
+  params: Params<void, void, t_AddToReviewAllowlistRequestBodySchema, void>,
+  respond: AddToReviewAllowlistResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type RemoveFromReviewAllowlistResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with401(): ExpressRuntimeResponse<t_Error>;
+  with403(): ExpressRuntimeResponse<t_Error>;
+  with404(): ExpressRuntimeResponse<t_Error>;
+  with429(): ExpressRuntimeResponse<t_Error>;
+  with500(): ExpressRuntimeResponse<t_Error>;
+} & ExpressRuntimeResponder;
+
+export type RemoveFromReviewAllowlist = (
+  params: Params<t_RemoveFromReviewAllowlistParamSchema, void, void, void>,
+  respond: RemoveFromReviewAllowlistResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type AdminImplementation = {
   reindexElasticsearch: ReindexElasticsearch;
   getQueueStats: GetQueueStats;
@@ -234,6 +391,14 @@ export type AdminImplementation = {
   morphemeBackfill: MorphemeBackfill;
   getAdminReports: GetAdminReports;
   updateReport: UpdateReport;
+  runReviewChecks: RunReviewChecks;
+  getReviewChecks: GetReviewChecks;
+  updateReviewCheck: UpdateReviewCheck;
+  getReviewRuns: GetReviewRuns;
+  getReviewRunDetails: GetReviewRunDetails;
+  getReviewAllowlist: GetReviewAllowlist;
+  addToReviewAllowlist: AddToReviewAllowlist;
+  removeFromReviewAllowlist: RemoveFromReviewAllowlist;
 };
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
@@ -819,9 +984,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   const getAdminReportsQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
     size: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'ACCEPTED', 'REJECTED', 'RESOLVED']).optional(),
-    reportType: z.enum(['SEGMENT', 'MEDIA']).optional(),
-    targetId: z.string().optional(),
+    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
+    source: z.enum(['USER', 'AUTO']).optional(),
+    targetType: z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    targetMediaId: z.coerce.number().optional(),
+    reviewCheckRunId: z.coerce.number().optional(),
   });
 
   const getAdminReportsResponseBodyValidator = responseValidationFactory(
@@ -958,6 +1125,592 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       if (body !== undefined) {
         res.json(updateReportResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const runReviewChecksQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
+
+  const runReviewChecksResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_RunReviewResponse],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // runReviewChecks
+  router.post(`/v1/admin/review/run`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(runReviewChecksQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_RunReviewResponse>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.runReviewChecks(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(runReviewChecksResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getReviewChecksResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.array(s_ReviewCheck)],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getReviewChecks
+  router.get(`/v1/admin/review/checks`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_ReviewCheck[]>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getReviewChecks(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getReviewChecksResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const updateReviewCheckParamSchema = z.object({ name: z.string() });
+
+  const updateReviewCheckRequestBodySchema = z.object({
+    threshold: z.record(z.unknown()).optional(),
+    enabled: PermissiveBoolean.optional(),
+  });
+
+  const updateReviewCheckResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_ReviewCheck],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // updateReviewCheck
+  router.patch(`/v1/admin/review/checks/:name`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(updateReviewCheckParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(updateReviewCheckRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_ReviewCheck>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.updateReviewCheck(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(updateReviewCheckResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getReviewRunsQuerySchema = z.object({
+    checkName: z.string().optional(),
+    cursor: z.coerce.number().optional(),
+    size: z.coerce.number().max(100).optional().default(20),
+  });
+
+  const getReviewRunsResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          data: z.array(s_ReviewCheckRun),
+          hasMore: PermissiveBoolean,
+          cursor: z.coerce.number().nullable().optional(),
+        }),
+      ],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getReviewRuns
+  router.get(`/v1/admin/review/runs`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(getReviewRunsQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            cursor?: number | null;
+            data: t_ReviewCheckRun[];
+            hasMore: boolean;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getReviewRuns(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getReviewRunsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getReviewRunDetailsParamSchema = z.object({ id: z.coerce.number() });
+
+  const getReviewRunDetailsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ run: s_ReviewCheckRun, reports: z.array(s_Report) })],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getReviewRunDetails
+  router.get(`/v1/admin/review/runs/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(getReviewRunDetailsParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            reports: t_Report[];
+            run: t_ReviewCheckRun;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getReviewRunDetails(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getReviewRunDetailsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getReviewAllowlistQuerySchema = z.object({ checkName: z.string().optional() });
+
+  const getReviewAllowlistResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.array(s_ReviewAllowlist)],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // getReviewAllowlist
+  router.get(`/v1/admin/review/allowlist`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(getReviewAllowlistQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_ReviewAllowlist[]>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getReviewAllowlist(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getReviewAllowlistResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const addToReviewAllowlistRequestBodySchema = z.object({
+    checkName: z.string(),
+    mediaId: z.coerce.number(),
+    episodeNumber: z.coerce.number().optional(),
+    reason: z.string().optional(),
+  });
+
+  const addToReviewAllowlistResponseBodyValidator = responseValidationFactory(
+    [
+      ['201', s_ReviewAllowlist],
+      ['400', s_Error],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['409', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // addToReviewAllowlist
+  router.post(`/v1/admin/review/allowlist`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(addToReviewAllowlistRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with201() {
+          return new ExpressRuntimeResponse<t_ReviewAllowlist>(201);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with409() {
+          return new ExpressRuntimeResponse<t_Error>(409);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.addToReviewAllowlist(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(addToReviewAllowlistResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const removeFromReviewAllowlistParamSchema = z.object({ id: z.coerce.number() });
+
+  const removeFromReviewAllowlistResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['401', s_Error],
+      ['403', s_Error],
+      ['404', s_Error],
+      ['429', s_Error],
+      ['500', s_Error],
+    ],
+    undefined,
+  );
+
+  // removeFromReviewAllowlist
+  router.delete(`/v1/admin/review/allowlist/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(removeFromReviewAllowlistParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.removeFromReviewAllowlist(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(removeFromReviewAllowlistResponseBodyValidator(status, body));
       } else {
         res.end();
       }

@@ -1,26 +1,45 @@
 type: object
 required:
   - id
-  - reportType
-  - targetId
+  - source
+  - targetType
+  - targetMediaId
   - reason
   - status
-  - userId
   - createdAt
 properties:
   id:
     type: integer
     description: Report ID
     example: 1
-  reportType:
+  source:
     type: string
-    enum: [SEGMENT, MEDIA]
-    description: Type of the reported entity
+    enum: [USER, AUTO]
+    description: Who created this report
+    example: "USER"
+  targetType:
+    type: string
+    enum: [SEGMENT, EPISODE, MEDIA]
+    description: What level the report targets
     example: "SEGMENT"
-  targetId:
+  targetMediaId:
+    type: integer
+    description: Media ID this report targets
+    example: 42
+  targetEpisodeNumber:
+    type: integer
+    nullable: true
+    description: Episode number (for EPISODE/SEGMENT targets)
+    example: 5
+  targetSegmentUuid:
     type: string
-    description: ID of the reported entity (segment UUID or media ID)
+    nullable: true
+    description: Segment UUID (for SEGMENT targets)
     example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  reviewCheckRunId:
+    type: integer
+    nullable: true
+    description: ID of the auto-check run that created this report (AUTO only)
   reason:
     type: string
     enum:
@@ -34,17 +53,28 @@ properties:
       - WRONG_COVER_IMAGE
       - INAPPROPRIATE_CONTENT
       - OTHER
+      - LOW_SEGMENT_MEDIA
+      - EMPTY_EPISODES
+      - MISSING_EPISODES_AUTO
+      - BAD_SEGMENT_RATIO
+      - MEDIA_WITH_NO_EPISODES
+      - MISSING_TRANSLATIONS
+      - DB_ES_SYNC_ISSUES
+      - HIGH_REPORT_DENSITY
     description: Reason for the report
     example: "WRONG_TRANSLATION"
   description:
     type: string
     nullable: true
-    maxLength: 1000
     description: Optional description with additional details
-    example: "The translation doesn't match the spoken Japanese"
+  data:
+    type: object
+    nullable: true
+    description: Check-specific metrics (AUTO reports) or null (USER reports)
+    additionalProperties: true
   status:
     type: string
-    enum: [PENDING, ACCEPTED, REJECTED, RESOLVED]
+    enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
     description: Current status of the report
     example: "PENDING"
   adminNotes:
@@ -52,19 +82,11 @@ properties:
     nullable: true
     maxLength: 1000
     description: Notes from the admin who reviewed the report
-  resolvedAt:
-    type: string
-    format: date-time
-    nullable: true
-    description: When the report was resolved
   userId:
     type: integer
-    description: ID of the user who submitted the report
-    example: 42
-  resolvedById:
-    type: integer
     nullable: true
-    description: ID of the admin who resolved the report
+    description: ID of the user who submitted the report (USER reports only)
+    example: 42
   createdAt:
     type: string
     format: date-time

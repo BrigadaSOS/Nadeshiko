@@ -1,0 +1,52 @@
+patch:
+  tags:
+    - Admin
+  operationId: updateReviewCheck
+  summary: Update a review check config
+  description: |
+    Update the threshold or enabled status of a check.
+
+    **Requirements:**
+    - Required Scopes: `ADD_MEDIA` (admin-level permission)
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: name
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Check name identifier
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            threshold:
+              type: object
+              description: New threshold values
+              additionalProperties: true
+            enabled:
+              type: boolean
+              description: Enable or disable this check
+  responses:
+    "200":
+      description: Check updated successfully
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/ReviewCheck.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

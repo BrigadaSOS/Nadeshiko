@@ -1,6 +1,16 @@
-import type { t_Seiyuu, t_Character, t_Media, t_List, t_MediaCharacter } from 'generated/models';
+import type { t_Seiyuu, t_Character, t_Media, t_List, t_MediaCharacter, t_ExternalId } from 'generated/models';
 import type { Seiyuu, Character, Media, List, MediaCharacter } from '@app/models';
+import type { MediaExternalId } from '@app/models/MediaExternalId';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
+
+const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
+  const map: t_ExternalId = {};
+  for (const ext of externalIds ?? []) {
+    const key = ext.source.toLowerCase() as keyof t_ExternalId;
+    map[key] = ext.externalId;
+  }
+  return map;
+};
 
 export const toSeiyuuDTO = (seiyuu: Seiyuu): t_Seiyuu => ({
   id: seiyuu.id,
@@ -41,7 +51,7 @@ const toDateString = (date: Date | string): string => {
  */
 export const toMediaBaseDTO = (media: Media): t_Media => ({
   id: media.id,
-  anilistId: media.anilistId,
+  externalIds: toExternalIdsMap(media.externalIds),
   nameJa: media.nameJa,
   nameRomaji: media.nameRomaji,
   nameEn: media.nameEn,

@@ -146,6 +146,20 @@ paths:
     $ref: "./paths/admin/v1_admin_reports.yaml"
   "/v1/admin/reports/{id}":
     $ref: "./paths/admin/v1_admin_reports_id.yaml"
+  "/v1/admin/review/run":
+    $ref: "./paths/admin/v1_admin_review_run.yaml"
+  "/v1/admin/review/checks":
+    $ref: "./paths/admin/v1_admin_review_checks.yaml"
+  "/v1/admin/review/checks/{name}":
+    $ref: "./paths/admin/v1_admin_review_checks_name.yaml"
+  "/v1/admin/review/runs":
+    $ref: "./paths/admin/v1_admin_review_runs.yaml"
+  "/v1/admin/review/runs/{id}":
+    $ref: "./paths/admin/v1_admin_review_runs_id.yaml"
+  "/v1/admin/review/allowlist":
+    $ref: "./paths/admin/v1_admin_review_allowlist.yaml"
+  "/v1/admin/review/allowlist/{id}":
+    $ref: "./paths/admin/v1_admin_review_allowlist_id.yaml"
 
 components:
   securitySchemes:

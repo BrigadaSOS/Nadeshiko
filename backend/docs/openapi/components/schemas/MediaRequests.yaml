@@ -2,10 +2,8 @@
 # Shared field definitions using YAML anchors
 
 MediaFields: &mediaFields
-  anilistId:
-    type: integer
-    description: AniList database ID for the media
-    example: 7674
+  externalIds:
+    $ref: "./ExternalId.yaml"
   nameJa:
     type: string
     description: Original Japanese name of the media
@@ -97,7 +95,6 @@ MediaCreateRequest:
   type: object
   description: Request body for creating a new media entry
   required:
-    - anilistId
     - nameJa
     - nameRomaji
     - nameEn
