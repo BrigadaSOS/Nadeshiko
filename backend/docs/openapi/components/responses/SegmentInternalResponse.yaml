@@ -1,0 +1,5 @@
+description: Single segment response with internal fields
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/segment/SegmentInternal.yaml"

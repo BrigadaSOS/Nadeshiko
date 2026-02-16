@@ -35,6 +35,6 @@ export const toMediaSummary = (media: Media): t_Media => {
     seasonName: media.seasonName,
     seasonYear: media.seasonYear,
     studio: media.studio,
-    version: media.version,
+    characters: [],
   };
 };

@@ -1,64 +1,91 @@
 import { querySearchStats, querySegments, queryWordsMatched } from '@app/services/elasticsearch';
 import { trackActivity } from '@app/services/activityService';
 import { ActivityType } from '@app/models/UserActivity';
-import type { HealthCheck, SearchIndex, SearchStats, SearchWords } from 'generated/routes/search';
-import type { t_SearchHealthCheckResponse } from 'generated/models';
+import type { SearchIndex, SearchStats, SearchWords } from 'generated/routes/search';
 
-export const healthCheck: HealthCheck = async (_params, respond) => {
-  const searchResults = await querySegments({
-    query: 'あ',
-    lengthSortOrder: 'none',
-    limit: 10,
-    status: ['ACTIVE'],
-  });
+const shouldIncludeMedia = (include?: string[]): boolean => include?.includes('media') ?? false;
 
-  return respond.with200().body(searchResults as t_SearchHealthCheckResponse);
-};
+const stripIncludes = <T extends { includes?: { media?: unknown } }>(result: T): T => ({
+  ...result,
+  includes: { media: {} },
+});
 
 export const searchIndex: SearchIndex = async ({ body }, respond, req) => {
+  const f = body.filters;
   const searchResults = await querySegments({
-    query: body.query,
-    uuid: body.uuid,
-    lengthSortOrder: body.contentSort,
+    query: body.query
+      ? {
+          search: body.query.search,
+          exactMatch: body.query.exactMatch,
+        }
+      : undefined,
+    sort: body.sort
+      ? {
+          mode: body.sort.mode,
+          seed: body.sort.seed,
+        }
+      : undefined,
     limit: body.limit,
-    status: body.status,
     cursor: body.cursor,
-    randomSeed: body.randomSeed,
-    media: body.media,
-    mediaId: body.mediaId,
-    exactMatch: body.exactMatch,
-    episode: body.episode,
-    category: body.category,
-    minLength: body.minLength,
-    maxLength: body.maxLength,
-    excludedMediaIds: body.excludedMediaIds,
+    filters: {
+      media: f?.media,
+      category: f?.category,
+      contentRating: f?.contentRating,
+      status: f?.status ?? ['ACTIVE'],
+      segmentLengthChars: f?.segmentLengthChars,
+      segmentDurationMs: f?.segmentDurationMs,
+    },
   });
 
   // Track search activity (fire-and-forget, don't block response)
-  if (req.user && body.query) {
-    trackActivity(req.user, ActivityType.SEARCH, { searchQuery: body.query }).catch(() => {});
+  if (req.user && body.query?.search) {
+    trackActivity(req.user, ActivityType.SEARCH, { searchQuery: body.query.search }).catch(() => {});
   }
 
-  return respond.with200().body(searchResults);
+  const response = shouldIncludeMedia(body.include) ? searchResults : stripIncludes(searchResults);
+  return respond.with200().body(response);
 };
 
 export const searchStats: SearchStats = async ({ body }, respond) => {
+  const f = body.filters;
   const stats = await querySearchStats({
-    query: body.query,
-    exactMatch: body.exactMatch,
-    category: body.category,
-    minLength: body.minLength,
-    maxLength: body.maxLength,
-    excludedMediaIds: body.excludedMediaIds,
-    mediaIds: body.mediaIds,
-    status: body.status,
+    query: body.query
+      ? {
+          search: body.query.search,
+          exactMatch: body.query.exactMatch,
+        }
+      : undefined,
+    filters: {
+      media: f?.media,
+      category: f?.category,
+      contentRating: f?.contentRating,
+      status: f?.status ?? ['ACTIVE'],
+      segmentLengthChars: f?.segmentLengthChars,
+      segmentDurationMs: f?.segmentDurationMs,
+    },
   });
 
-  return respond.with200().body(stats);
+  const response = shouldIncludeMedia(body.include) ? stats : stripIncludes(stats);
+  return respond.with200().body(response);
 };
 
 export const searchWords: SearchWords = async ({ body }, respond) => {
-  const searchResults = await queryWordsMatched(body.words, body.exactMatch);
+  const f = body.filters;
+  const searchResults = await queryWordsMatched(
+    body.query.words,
+    body.query.exactMatch,
+    f
+      ? {
+          media: f.media,
+          category: f.category,
+          contentRating: f.contentRating,
+          status: f.status ?? ['ACTIVE'],
+          segmentLengthChars: f.segmentLengthChars,
+          segmentDurationMs: f.segmentDurationMs,
+        }
+      : undefined,
+  );
 
-  return respond.with200().body(searchResults);
+  const response = shouldIncludeMedia(body.include) ? searchResults : stripIncludes(searchResults);
+  return respond.with200().body(response);
 };

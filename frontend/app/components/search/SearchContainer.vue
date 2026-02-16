@@ -5,6 +5,7 @@ import { usePlayerStore } from '~/stores/player';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 
 const { mediaName } = useMediaName();
+const { hiddenMediaExcludeFilter } = useHiddenMedia();
 
 const props = defineProps({
   initialSentenceData: {
@@ -23,6 +24,7 @@ const props = defineProps({
 
 const { t } = useI18n();
 const apiSearch = useApiSearch();
+const { contentRating } = useContentRating();
 const route = useRoute();
 const router = useRouter();
 const playerStore = usePlayerStore();
@@ -31,7 +33,8 @@ const sentenceData = ref(props.initialSentenceData);
 const statsData = ref(props.initialStatsData);
 const isLoading = ref(false);
 const endOfResults = ref(false);
-const hasMoreResults = ref(true);
+const isSingleSentenceView = computed(() => route.path.startsWith('/sentence/'));
+const hasMoreResults = ref(!route.path.startsWith('/sentence/'));
 const showLoadMoreButton = ref(false);
 const initialError = ref(false);
 
@@ -51,7 +54,7 @@ const searchData = computed(() => {
 
   return {
     results: sentencePayload.results || [],
-    cursor: sentencePayload.cursor,
+    cursor: sentencePayload.pagination?.cursor,
     pagination: sentencePayload.pagination,
     categories: statsPayload.categories || [],
     media: statsPayload.media || [],
@@ -93,6 +96,7 @@ applyRouteQuery(route);
 const fetchStats = async () => {
   try {
     const body = {};
+    const filters = {};
 
     if (query.value) {
       body.query = query.value;
@@ -100,13 +104,21 @@ const fetchStats = async () => {
 
     const mappedCategory = categoryApiMapping[category.value];
     if (mappedCategory) {
-      body.category = [mappedCategory];
+      filters.category = [mappedCategory];
     }
 
     if (props.listMediaIds && props.listMediaIds.length > 0) {
-      body.mediaIds = props.listMediaIds;
+      filters.media = { include: props.listMediaIds.map((id) => ({ mediaId: id })) };
     }
 
+    filters.contentRating = contentRating.value;
+    if (hiddenMediaExcludeFilter.value.length > 0) {
+      filters.media = {
+        ...(filters.media || {}),
+        exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
+      };
+    }
+    body.filters = filters;
     statsData.value = await apiSearch.getSearchStats(body);
   } catch (error) {
     console.error('Error fetching search stats:', error);
@@ -133,6 +145,7 @@ const fetchSentences = async () => {
     const body = {
       limit: 20,
     };
+    const filters = {};
 
     if (query.value) {
       body.query = query.value;
@@ -140,19 +153,29 @@ const fetchSentences = async () => {
 
     const mappedCategory = categoryApiMapping[category.value];
     if (mappedCategory) {
-      body.category = [mappedCategory];
+      filters.category = [mappedCategory];
     }
 
+    // Build media include filter
+    const mediaInclude = [];
     if (media.value) {
-      body.mediaId = Number(media.value);
+      const mediaEntry = { mediaId: Number(media.value) };
+      if (episode.value !== null) {
+        mediaEntry.episodes = [episode.value];
+      }
+      mediaInclude.push(mediaEntry);
     }
-
-    if (episode.value !== null) {
-      body.episode = [episode.value];
+    if (props.listMediaIds && props.listMediaIds.length > 0) {
+      for (const id of props.listMediaIds) {
+        mediaInclude.push({ mediaId: id });
+      }
+    }
+    if (mediaInclude.length > 0) {
+      filters.media = { include: mediaInclude };
     }
 
     if (sort.value && sort.value !== 'NONE') {
-      body.contentSort = sort.value;
+      body.sort = sort.value;
     }
 
     if (cursor.value) {
@@ -163,10 +186,14 @@ const fetchSentences = async () => {
       body.uuid = uuid.value;
     }
 
-    if (props.listMediaIds && props.listMediaIds.length > 0) {
-      body.media = props.listMediaIds.map((id) => ({ mediaId: id, episodes: [] }));
+    filters.contentRating = contentRating.value;
+    if (hiddenMediaExcludeFilter.value.length > 0) {
+      filters.media = {
+        ...(filters.media || {}),
+        exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
+      };
     }
-
+    body.filters = filters;
     const response = await apiSearch.searchSegments(body);
     const incomingResults = response?.results || [];
 
@@ -184,9 +211,11 @@ const fetchSentences = async () => {
       };
     }
 
-    cursor.value = response?.cursor || null;
+    const nextCursor = response?.pagination?.cursor || null;
+    const hasMore = response?.pagination?.hasMore ?? false;
+    cursor.value = nextCursor;
 
-    if (!response?.cursor) {
+    if (!hasMore || !nextCursor || isSingleSentenceView.value) {
       endOfResults.value = true;
       hasMoreResults.value = false;
     } else {
@@ -270,8 +299,8 @@ const handleRandomLogic = () => {
 };
 
 if (props.initialSentenceData) {
-  cursor.value = props.initialSentenceData.cursor || null;
-  if (!props.initialSentenceData.cursor) {
+  cursor.value = props.initialSentenceData.pagination?.cursor || null;
+  if (!props.initialSentenceData.pagination?.hasMore || !props.initialSentenceData.pagination?.cursor) {
     endOfResults.value = true;
     hasMoreResults.value = false;
   }

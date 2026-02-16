@@ -1,9 +1,12 @@
-import type { UserActivityIndex, UserActivityDestroy, UserActivityStatsShow } from 'generated/routes/user';
+import type {
+  UserActivityIndex,
+  UserActivityDestroy,
+  UserActivityStatsShow,
+  UserActivityHeatmapShow,
+} from 'generated/routes/user';
 import { UserActivity } from '@app/models/UserActivity';
 import { AuthCredentialsInvalidError } from '@app/errors';
-import { getUserActivityStats, clearUserActivity } from '@app/services/activityService';
-import { type FindOptionsWhere, LessThan } from 'typeorm';
-import type { ActivityType } from '@app/models/UserActivity';
+import { getUserActivityStats, getActivityHeatmap, clearUserActivity } from '@app/services/activityService';
 
 export const userActivityIndex: UserActivityIndex = async ({ query }, respond, req) => {
   const user = req.user;
@@ -11,28 +14,31 @@ export const userActivityIndex: UserActivityIndex = async ({ query }, respond, r
     throw new AuthCredentialsInvalidError('Invalid session user.');
   }
 
-  const { cursor, size, activityType } = query;
+  const { cursor, limit, activityType, date } = query;
 
-  const where: FindOptionsWhere<UserActivity> = { userId: user.id };
+  const qb = UserActivity.createQueryBuilder('a')
+    .where('a.user_id = :userId', { userId: user.id })
+    .orderBy('a.id', 'DESC')
+    .take(limit + 1);
+
   if (activityType) {
-    where.activityType = activityType as ActivityType;
+    qb.andWhere('a.activity_type = :activityType', { activityType });
   }
   if (cursor) {
-    where.id = LessThan(cursor);
+    qb.andWhere('a.id < :cursor', { cursor });
+  }
+  if (date) {
+    qb.andWhere('DATE(a.created_at) = :date', { date });
   }
 
-  const activities = await UserActivity.find({
-    where,
-    order: { id: 'DESC' },
-    take: size + 1,
-  });
+  const activities = await qb.getMany();
 
-  const hasMore = activities.length > size;
-  const data = hasMore ? activities.slice(0, size) : activities;
+  const hasMore = activities.length > limit;
+  const data = hasMore ? activities.slice(0, limit) : activities;
   const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
 
   return respond.with200().body({
-    data: data.map((a) => ({
+    activities: data.map((a) => ({
       id: a.id,
       activityType: a.activityType,
       segmentUuid: a.segmentUuid,
@@ -40,18 +46,32 @@ export const userActivityIndex: UserActivityIndex = async ({ query }, respond, r
       searchQuery: a.searchQuery,
       createdAt: a.createdAt.toISOString(),
     })),
-    hasMore,
-    cursor: nextCursor,
+    pagination: {
+      hasMore,
+      cursor: nextCursor,
+    },
   });
 };
 
-export const userActivityStatsShow: UserActivityStatsShow = async (_params, respond, req) => {
+export const userActivityHeatmapShow: UserActivityHeatmapShow = async ({ query }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
   }
 
-  const stats = await getUserActivityStats(user.id);
+  const days = query.days ?? 365;
+  const counts = await getActivityHeatmap(user.id, days, query.activityType);
+  return respond.with200().body({ counts });
+};
+
+export const userActivityStatsShow: UserActivityStatsShow = async ({ query }, respond, req) => {
+  const user = req.user;
+  if (!user) {
+    throw new AuthCredentialsInvalidError('Invalid session user.');
+  }
+
+  const since = query.since ? new Date(query.since) : undefined;
+  const stats = await getUserActivityStats(user.id, since);
   return respond.with200().body(stats);
 };
 

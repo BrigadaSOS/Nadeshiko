@@ -40,12 +40,14 @@ get:
       schema:
         type: string
         example: steins
-    - name: includeCharacters
+    - name: include
       in: query
-      description: Include character and voice actor data in the response
+      description: Resources to expand in the media response (`media.characters` implies `media`)
       schema:
-        type: boolean
-        default: false
+        type: array
+        items:
+          $ref: "../../components/schemas/MediaIncludeExpansion.yaml"
+        default: [media]
   responses:
     "200":
       description: OK

@@ -8,3 +8,11 @@ properties:
     type: array
     items:
       $ref: "../schemas/CategoryCount.yaml"
+  includes:
+    type: object
+    properties:
+      media:
+        type: object
+        additionalProperties:
+          $ref: "../schemas/Media.yaml"
+        description: Media objects keyed by mediaId

@@ -1,4 +1,8 @@
 type: object
+required:
+  - stats
+  - results
+  - pagination
 properties:
   stats:
     $ref: "../schemas/MediaBrowseStats.yaml"
@@ -6,9 +10,5 @@ properties:
     type: array
     items:
       $ref: "../schemas/MediaSummary.yaml"
-  cursor:
-    type: integer
-    description: Next cursor for pagination
-  hasMore:
-    type: boolean
-    description: Whether more results are available
+  pagination:
+    $ref: "../schemas/CursorPagination.yaml"

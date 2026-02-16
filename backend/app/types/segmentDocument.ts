@@ -1,5 +1,3 @@
-import type { MorphemeData } from '@app/types/morpheme';
-
 // Field names match the ES index mapping in elasticsearch-schema.json
 export interface SegmentDocument {
   uuid: string;
@@ -14,12 +12,11 @@ export interface SegmentDocument {
   contentEsMt: boolean;
   contentEn?: string;
   contentEnMt: boolean;
-  isNsfw: boolean;
+  contentRating: string;
   storage: string;
   hashedId: string;
   category: string; // "ANIME", "JDRAMA"
   episode: number;
   mediaId: number;
   storageBasePath?: string;
-  morphemes?: MorphemeData[];
 }

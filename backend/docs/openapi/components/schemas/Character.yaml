@@ -5,7 +5,6 @@ required:
   - nameJa
   - nameEn
   - imageUrl
-  - seiyuu
 properties:
   id:
     type: integer
@@ -24,5 +23,3 @@ properties:
     format: uri
     description: Character image URL
     example: "https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg"
-  seiyuu:
-    $ref: "./Seiyuu.yaml"

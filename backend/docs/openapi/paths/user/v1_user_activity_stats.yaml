@@ -1,6 +1,7 @@
 get:
   tags:
     - User
+  x-internal: true
   operationId: userActivityStatsShow
   summary: Get user activity statistics
   description: |
@@ -10,6 +11,13 @@ get:
     **Permissions:** Session authentication (cookie-based).
   security:
     - sessionCookie: []
+  parameters:
+    - name: since
+      in: query
+      schema:
+        type: string
+        format: date
+      description: Only count activities from this date onward (YYYY-MM-DD)
   responses:
     "200":
       description: OK

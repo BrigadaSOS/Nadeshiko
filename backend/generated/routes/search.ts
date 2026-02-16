@@ -18,7 +18,6 @@ import type {
   t_Error403,
   t_Error429,
   t_Error500,
-  t_SearchHealthCheckResponse,
   t_SearchIndexRequestBodySchema,
   t_SearchMultipleResponse,
   t_SearchResponse,
@@ -33,7 +32,6 @@ import {
   s_Error403,
   s_Error429,
   s_Error500,
-  s_SearchHealthCheckResponse,
   s_SearchMultipleRequest,
   s_SearchMultipleResponse,
   s_SearchRequest,
@@ -41,22 +39,6 @@ import {
   s_SearchStatsRequest,
   s_SearchStatsResponse,
 } from '../schemas.ts';
-
-export type HealthCheckResponder = {
-  with200(): ExpressRuntimeResponse<t_SearchHealthCheckResponse>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type HealthCheck = (
-  params: Params<void, void, void, void>,
-  respond: HealthCheckResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type SearchIndexResponder = {
   with200(): ExpressRuntimeResponse<t_SearchResponse>;
@@ -110,7 +92,6 @@ export type SearchWords = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type SearchImplementation = {
-  healthCheck: HealthCheck;
   searchIndex: SearchIndex;
   searchStats: SearchStats;
   searchWords: SearchWords;
@@ -118,71 +99,6 @@ export type SearchImplementation = {
 
 export function createSearchRouter(implementation: SearchImplementation): Router {
   const router = Router();
-
-  const healthCheckResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_SearchHealthCheckResponse],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // healthCheck
-  router.get(`/v1/health`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_SearchHealthCheckResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.healthCheck(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(healthCheckResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
 
   const searchIndexRequestBodySchema = s_SearchRequest;
 

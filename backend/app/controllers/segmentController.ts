@@ -9,8 +9,8 @@ import type {
 } from 'generated/routes/media';
 import { v3 as uuidv3 } from 'uuid';
 import { config } from '@config/config';
-import { Segment, Episode, Media, SegmentStorage, SegmentStatus } from '@app/models';
-import { toSegmentDTO, toSegmentListDTO } from './mappers/segment.mapper';
+import { Segment, Episode, Media, SegmentStorage, SegmentStatus, ContentRating } from '@app/models';
+import { toSegmentDTO, toSegmentInternalDTO, toSegmentListDTO } from './mappers/segment.mapper';
 import { querySurroundingSegments } from '@app/services/elasticsearch';
 
 export const segmentIndex: SegmentIndex = async ({ params, query }, respond) => {
@@ -19,17 +19,19 @@ export const segmentIndex: SegmentIndex = async ({ params, query }, respond) => 
   const [segments, count] = await Segment.findAndCount({
     where: { mediaId: params.mediaId, episode: params.episodeNumber },
     order: { id: 'ASC' },
-    take: query.size,
+    take: query.limit,
     skip: query.cursor,
   });
 
   const nextCursor = query.cursor + count;
-  const hasMore = count === query.size;
+  const hasMore = count === query.limit;
 
   return respond.with200().body({
-    data: toSegmentListDTO(segments),
-    cursor: hasMore ? nextCursor : undefined,
-    hasMore,
+    segments: toSegmentListDTO(segments),
+    pagination: {
+      hasMore,
+      cursor: hasMore ? nextCursor : null,
+    },
   });
 };
 
@@ -49,15 +51,16 @@ export const segmentCreate: SegmentCreate = async ({ params, body }, respond) =>
     uuid,
     position: body.position,
     status: body.status as SegmentStatus,
-    startTime: body.startTime,
-    endTime: body.endTime,
+    startTimeMs: body.startTimeMs,
+    endTimeMs: body.endTimeMs,
     contentJa: jaContent,
-    characterCount: jaContent.length,
     contentEs: body.textEs?.content,
     contentEsMt: body.textEs?.isMachineTranslated ?? false,
     contentEn: body.textEn?.content,
     contentEnMt: body.textEn?.isMachineTranslated ?? false,
-    isNsfw: body.isNsfw,
+    contentRating: (body.contentRating ?? ContentRating.SAFE) as ContentRating,
+    ratingAnalysis: body.ratingAnalysis,
+    posAnalysis: body.posAnalysis,
     storage: body.storage as SegmentStorage,
     hashedId: body.hashedId,
     episode: params.episodeNumber,
@@ -65,7 +68,7 @@ export const segmentCreate: SegmentCreate = async ({ params, body }, respond) =>
 
   await segment.save();
 
-  return respond.with201().body(toSegmentDTO(segment));
+  return respond.with201().body(toSegmentInternalDTO(segment));
 };
 
 export const segmentShow: SegmentShow = async ({ params }, respond) => {
@@ -88,7 +91,6 @@ export const segmentUpdate: SegmentUpdate = async ({ params, body }, respond) =>
   // Unpack nested body into flat entity fields
   if (body.textJa?.content !== undefined) {
     segment.contentJa = body.textJa.content;
-    segment.characterCount = body.textJa.content.length;
   }
   if (body.textEn?.content !== undefined) segment.contentEn = body.textEn.content;
   if (body.textEn?.isMachineTranslated !== undefined) segment.contentEnMt = body.textEn.isMachineTranslated;
@@ -96,15 +98,17 @@ export const segmentUpdate: SegmentUpdate = async ({ params, body }, respond) =>
   if (body.textEs?.isMachineTranslated !== undefined) segment.contentEsMt = body.textEs.isMachineTranslated;
   if (body.status !== undefined) segment.status = body.status as any;
   if (body.storage !== undefined) segment.storage = body.storage as any;
-  if (body.startTime !== undefined) segment.startTime = body.startTime;
-  if (body.endTime !== undefined) segment.endTime = body.endTime;
+  if (body.startTimeMs !== undefined) segment.startTimeMs = body.startTimeMs;
+  if (body.endTimeMs !== undefined) segment.endTimeMs = body.endTimeMs;
   if (body.position !== undefined) segment.position = body.position;
-  if (body.isNsfw !== undefined) segment.isNsfw = body.isNsfw;
+  if (body.contentRating !== undefined) segment.contentRating = body.contentRating as ContentRating;
+  if (body.ratingAnalysis !== undefined) segment.ratingAnalysis = body.ratingAnalysis;
+  if (body.posAnalysis !== undefined) segment.posAnalysis = body.posAnalysis;
   if (body.hashedId !== undefined) segment.hashedId = body.hashedId;
 
   await segment.save();
 
-  return respond.with200().body(toSegmentDTO(segment));
+  return respond.with200().body(toSegmentInternalDTO(segment));
 };
 
 export const segmentDestroy: SegmentDestroy = async ({ params }, respond) => {
@@ -139,7 +143,10 @@ export const segmentContextShow: SegmentContextShow = async ({ params, query }, 
     episodeNumber: segment.episode,
     segmentPosition: segment.position,
     limit: query.limit || 3,
+    contentRating: query.contentRating,
   });
 
-  return respond.with200().body(searchResults);
+  const includeMedia = query.include?.includes('media') ?? false;
+  const response = includeMedia ? searchResults : { ...searchResults, includes: { media: {} } };
+  return respond.with200().body(response);
 };

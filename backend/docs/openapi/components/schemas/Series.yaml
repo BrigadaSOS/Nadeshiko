@@ -1,0 +1,24 @@
+type: object
+description: Ordered media series grouping
+required:
+  - id
+  - nameJa
+  - nameRomaji
+  - nameEn
+properties:
+  id:
+    type: integer
+    description: Series ID
+    example: 1
+  nameJa:
+    type: string
+    description: Japanese name of the series
+    example: "バクマン。シリーズ"
+  nameRomaji:
+    type: string
+    description: Romaji name of the series
+    example: "Bakuman. Series"
+  nameEn:
+    type: string
+    description: English name of the series
+    example: "Bakuman Series"

@@ -4,7 +4,7 @@ get:
   operationId: adminQueueShow
   summary: Get detailed queue information
   description: |
-    Returns detailed information about a specific queue including completed, expired, and cancelled jobs.
+    Returns live queue stats and queue metadata from PgBoss for a specific queue.
 
     **Queue names:**
     - `es-sync-create` - Jobs to create new segments in Elasticsearch
@@ -30,34 +30,96 @@ get:
         application/json:
           schema:
             type: object
+            required:
+              - queue
+              - stats
+              - metadata
             properties:
               queue:
                 type: string
                 example: "es-sync-create"
-              size:
-                type: integer
-                description: Current queue size (pending jobs)
-                example: 10
-              created:
-                type: integer
-                description: Total jobs created
-                example: 1250
-              failed:
-                type: integer
-                description: Total failed jobs
-                example: 5
-              complete:
-                type: integer
-                description: Total completed jobs
-                example: 1235
-              expired:
-                type: integer
-                description: Total expired jobs
-                example: 2
-              cancelled:
-                type: integer
-                description: Total cancelled jobs
-                example: 3
+              stats:
+                type: object
+                required: [deferred, queued, active, total]
+                properties:
+                  deferred:
+                    type: integer
+                    description: Jobs scheduled for future execution (`start_after > now()`)
+                    example: 1
+                  queued:
+                    type: integer
+                    description: Jobs currently queued and waiting to be processed
+                    example: 10
+                  active:
+                    type: integer
+                    description: Jobs currently being processed
+                    example: 2
+                  total:
+                    type: integer
+                    description: Total jobs currently stored in the queue table
+                    example: 13
+              metadata:
+                type: object
+                required:
+                  - policy
+                  - partition
+                  - createdOn
+                  - updatedOn
+                  - singletonsActive
+                  - table
+                properties:
+                  policy:
+                    type: string
+                    example: "standard"
+                  partition:
+                    type: boolean
+                    example: false
+                  deadLetter:
+                    type: string
+                    nullable: true
+                  warningQueueSize:
+                    type: integer
+                    nullable: true
+                  retryLimit:
+                    type: integer
+                    nullable: true
+                    example: 5
+                  retryDelay:
+                    type: integer
+                    nullable: true
+                    description: Initial retry delay in seconds
+                    example: 1
+                  retryBackoff:
+                    type: boolean
+                    nullable: true
+                    example: true
+                  retryDelayMax:
+                    type: integer
+                    nullable: true
+                  expireInSeconds:
+                    type: integer
+                    nullable: true
+                    example: 3600
+                  retentionSeconds:
+                    type: integer
+                    nullable: true
+                    example: 86400
+                  deleteAfterSeconds:
+                    type: integer
+                    nullable: true
+                  createdOn:
+                    type: string
+                    format: date-time
+                  updatedOn:
+                    type: string
+                    format: date-time
+                  singletonsActive:
+                    type: array
+                    items:
+                      type: string
+                  table:
+                    type: string
+                    example: "job"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

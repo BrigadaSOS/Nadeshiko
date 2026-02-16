@@ -3,4 +3,5 @@ export interface QuerySurroundingSegmentsRequest {
   readonly episodeNumber: number;
   readonly segmentPosition: number;
   readonly limit?: number;
+  readonly contentRating?: string[];
 }

@@ -1,27 +1,17 @@
 type: object
-description: Search result statistics grouped by media
+description: Search hit statistics for a single media
+required:
+  - mediaId
+  - matchCount
+  - episodeHits
 properties:
   mediaId:
     type: integer
-    description: Unique identifier for the media
+    description: Media identifier (look up full details in includes.media)
     example: 110316
-  category:
-    $ref: "./Category.yaml"
-  nameRomaji:
-    type: string
-    description: Romaji transliteration of the media name
-    example: "Steins;Gate"
-  nameEn:
-    type: string
-    description: English name of the media
-    example: "Steins;Gate"
-  nameJa:
-    type: string
-    description: Original Japanese name of the media
-    example: "シュタインズ・ゲート"
-  segmentCount:
+  matchCount:
     type: integer
-    description: Total number of segments found for this media
+    description: Number of matching segments found in this media
     example: 42
   episodeHits:
     type: object

@@ -1,0 +1,139 @@
+get:
+  tags:
+    - Media
+  operationId: seriesShow
+  summary: Get series details
+  description: |
+    Returns a series with all media entries sorted by position.
+
+  security:
+    - apiKeyHeader: []
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Series ID
+      schema:
+        type: integer
+        example: 1
+    - name: include
+      in: query
+      description: Resources to expand in the series response (`media.characters` implies `media`)
+      schema:
+        type: array
+        items:
+          $ref: "../../components/schemas/MediaIncludeExpansion.yaml"
+        default: [media]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/SeriesWithMedia.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  tags:
+    - Media
+  operationId: seriesUpdate
+  x-internal: true
+  summary: Update series metadata
+  description: |
+    Updates series localized names.
+
+  security:
+    - apiKeyHeader: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Series ID
+      schema:
+        type: integer
+        example: 1
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            nameJa:
+              type: string
+              description: Updated Japanese name
+              example: "更新バクマン。シリーズ"
+            nameRomaji:
+              type: string
+              description: Updated Romaji name
+              example: "Updated Bakuman. Series"
+            nameEn:
+              type: string
+              description: Updated English name
+              example: "Updated Bakuman Series"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Series.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Media
+  operationId: seriesDestroy
+  x-internal: true
+  summary: Delete series
+  description: |
+    Deletes a series and all its media associations.
+
+  security:
+    - apiKeyHeader: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Series ID
+      schema:
+        type: integer
+        example: 1
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

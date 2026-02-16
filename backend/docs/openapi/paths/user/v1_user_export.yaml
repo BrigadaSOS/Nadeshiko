@@ -1,11 +1,12 @@
 get:
   tags:
     - User
+  x-internal: true
   operationId: userExportShow
   summary: Export all user data
   description: |
     Returns a full JSON export of all user-related data for GDPR data portability.
-    Includes profile, preferences, activity history, lists, and reports.
+    Includes profile, preferences, activity history, collections, and reports.
 
     **Permissions:** Session authentication (cookie-based).
   security:
@@ -16,40 +17,7 @@ get:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - profile
-              - preferences
-              - activity
-              - lists
-              - reports
-            properties:
-              profile:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  username:
-                    type: string
-                  email:
-                    type: string
-                  createdAt:
-                    type: string
-                    format: date-time
-              preferences:
-                $ref: "../../components/schemas/UserPreferences.yaml"
-              activity:
-                type: array
-                items:
-                  $ref: "../../components/schemas/UserActivity.yaml"
-              lists:
-                type: array
-                items:
-                  type: object
-              reports:
-                type: array
-                items:
-                  type: object
+            $ref: "../../components/schemas/UserExportResponse.yaml"
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
     "500":

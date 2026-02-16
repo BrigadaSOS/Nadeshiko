@@ -10,9 +10,8 @@ export type t_AdminReport = t_Report & {
 };
 
 export type t_AdminReportListResponse = {
-  cursor?: number | null;
-  data: t_AdminReport[];
-  hasMore: boolean;
+  pagination: t_CursorPagination;
+  reports: t_AdminReport[];
 };
 
 export type t_Category = 'ANIME' | 'JDRAMA';
@@ -27,7 +26,6 @@ export type t_Character = {
   imageUrl: string;
   nameEn: string;
   nameJa: string;
-  seiyuu: t_Seiyuu;
 };
 
 export type t_CharacterInput = {
@@ -42,16 +40,50 @@ export type t_CharacterInput = {
   seiyuuNameJa: string;
 };
 
-export type t_CharacterWithMedia = {
-  id: number;
-  imageUrl: string;
+export type t_CharacterWithMedia = t_Character & {
   mediaAppearances: {
     media?: t_Media;
     role?: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
   }[];
-  nameEn: string;
-  nameJa: string;
   seiyuu: t_Seiyuu;
+};
+
+export type t_Collection = {
+  id: number;
+  name: string;
+  userId: number;
+  visibility: 'PUBLIC' | 'PRIVATE';
+};
+
+export type t_CollectionListResponse = {
+  collections: t_Collection[];
+  pagination: t_CursorPagination;
+};
+
+export type t_CollectionWithSegments = {
+  id: number;
+  includes?: {
+    media?: {
+      [key: string]: t_Media | undefined;
+    };
+  };
+  name: string;
+  pagination: t_CursorPagination;
+  segments: {
+    note?: string | null;
+    position?: number;
+    result?: t_Segment;
+  }[];
+  totalCount: number;
+  userId: number;
+  visibility: 'PUBLIC' | 'PRIVATE';
+};
+
+export type t_ContentRating = 'SAFE' | 'SUGGESTIVE' | 'QUESTIONABLE' | 'EXPLICIT';
+
+export type t_CursorPagination = {
+  cursor: number | null;
+  hasMore: boolean;
 };
 
 export type t_Episode = {
@@ -68,9 +100,8 @@ export type t_Episode = {
 };
 
 export type t_EpisodeListResponse = {
-  cursor?: number;
-  data: t_Episode[];
-  hasMore: boolean;
+  episodes: t_Episode[];
+  pagination: t_CursorPagination;
 };
 
 export type t_Error400 = {
@@ -163,64 +194,7 @@ export type t_ExternalId = {
   tvdb?: string;
 };
 
-export type t_JapaneseContent = {
-  characterCount?: number;
-  content: string;
-};
-
-export type t_JapaneseSearchContent = {
-  content: string;
-  highlight?: string;
-};
-
-export type t_LabFeature = {
-  description: string;
-  enabled: boolean;
-  key: string;
-  name: string;
-};
-
-export type t_List = {
-  id: number;
-  name: string;
-  type: 'SERIES' | 'CUSTOM' | 'SEGMENT';
-  userId: number;
-  visibility: 'PUBLIC' | 'PRIVATE';
-};
-
-export type t_ListInput = {
-  listId?: number | null;
-  listName?: string | null;
-  listType?: 'SERIES' | 'CUSTOM' | null;
-  listVisibility?: 'PUBLIC' | 'PRIVATE' | null;
-  position: number;
-};
-
-export type t_ListWithMedia = {
-  id: number;
-  media: {
-    media?: t_Media;
-    position?: number;
-  }[];
-  name: string;
-  type: 'SERIES' | 'CUSTOM' | 'SEGMENT';
-  userId: number;
-  visibility: 'PUBLIC' | 'PRIVATE';
-};
-
-export type t_ListWithSegments = {
-  id: number;
-  name: string;
-  segments: {
-    note?: string | null;
-    position?: number;
-    result?: t_SearchResult;
-  }[];
-  totalCount: number;
-  type: 'SERIES' | 'CUSTOM' | 'SEGMENT';
-  userId: number;
-  visibility: 'PUBLIC' | 'PRIVATE';
-};
+export type t_IncludeExpansion = 'media';
 
 export type t_Media = {
   airingFormat: string;
@@ -230,65 +204,54 @@ export type t_Media = {
   characters?: t_MediaCharacter[];
   coverUrl: string;
   endDate?: string | null;
-  episodeCount?: number;
-  externalIds?: t_ExternalId;
+  episodeCount: number;
+  externalIds: t_ExternalId;
   genres: string[];
   id: number;
-  lists?: t_List[];
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
   seasonName: string;
   seasonYear: number;
-  segmentCount?: number;
+  segmentCount: number;
   startDate: string;
-  storageBasePath?: string | null;
   studio: string;
-  version: string;
 };
 
 export type t_MediaCharacter = {
-  character: t_Character;
+  id: number;
+  imageUrl: string;
+  nameEn: string;
+  nameJa: string;
   role: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
+  seiyuu: t_Seiyuu;
 };
 
+export type t_MediaFilterItem = {
+  episodes?: number[];
+  mediaId: number;
+};
+
+export type t_MediaIncludeExpansion = 'media' | 'media.characters';
+
 export type t_MediaListResponse = {
-  cursor?: number;
-  data: t_Media[];
-  hasMoreResults: boolean;
+  media: t_Media[];
+  pagination: t_CursorPagination;
 };
 
 export type t_MediaSearchStats = {
-  category?: t_Category;
-  episodeHits?: {
+  episodeHits: {
     [key: string]: number | undefined;
   };
-  mediaId?: number;
-  nameEn?: string;
-  nameJa?: string;
-  nameRomaji?: string;
-  segmentCount?: number;
-};
-
-export type t_Morpheme = {
-  baseform: string;
-  begin: number;
-  end: number;
-  pitchAccentType: number[] | null;
-  pitchCompoundRule: string | null;
-  pitchModificationRule: string | null;
-  pos: string[];
-  posShort: string;
-  pronunciation: string;
-  reading: string;
-  surface: string;
+  matchCount: number;
+  mediaId: number;
 };
 
 export type t_PaginationInfo = {
+  cursor?: number[];
   estimatedTotalHits?: number;
   estimatedTotalHitsRelation?: 'EXACT' | 'LOWER_BOUND';
   hasMore?: boolean;
-  pageSize?: number;
 };
 
 export type t_ReindexResponse = {
@@ -336,18 +299,34 @@ export type t_Report = {
   reviewCheckRunId?: number | null;
   source: 'USER' | 'AUTO';
   status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
-  targetEpisodeNumber?: number | null;
-  targetMediaId: number;
-  targetSegmentUuid?: string | null;
-  targetType: 'SEGMENT' | 'EPISODE' | 'MEDIA';
+  target: t_ReportTarget;
   updatedAt?: string | null;
   userId?: number | null;
 };
 
 export type t_ReportListResponse = {
-  cursor?: number | null;
-  data: t_Report[];
-  hasMore: boolean;
+  pagination: t_CursorPagination;
+  reports: t_Report[];
+};
+
+export type t_ReportTarget = t_ReportTargetMedia | t_ReportTargetEpisode | t_ReportTargetSegment;
+
+export type t_ReportTargetEpisode = {
+  episodeNumber: number;
+  mediaId: number;
+  type: 'EPISODE';
+};
+
+export type t_ReportTargetMedia = {
+  mediaId: number;
+  type: 'MEDIA';
+};
+
+export type t_ReportTargetSegment = {
+  episodeNumber?: number;
+  mediaId: number;
+  segmentUuid: string;
+  type: 'SEGMENT';
 };
 
 export type t_ReviewAllowlist = {
@@ -408,92 +387,102 @@ export type t_RunReviewResponse = {
   totalReports: number;
 };
 
-export type t_SearchHealthCheckResponse = {
-  cursor?: number[];
-  pagination?: t_PaginationInfo;
-  results?: t_SearchResult[];
+export type t_SearchFilters = {
+  category?: t_Category[];
+  contentRating?: t_ContentRating[];
+  media?: {
+    exclude?: t_MediaFilterItem[];
+    include?: t_MediaFilterItem[];
+  };
+  segmentDurationMs?: {
+    max?: number;
+    min?: number;
+  };
+  segmentLengthChars?: {
+    max?: number;
+    min?: number;
+  };
+  status?: ('DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG')[];
 };
 
 export type t_SearchMultipleResponse = {
+  includes?: {
+    media?: {
+      [key: string]: t_Media | undefined;
+    };
+  };
   results?: t_WordMatch[];
 };
 
 export type t_SearchResponse = {
-  cursor?: number[] | null;
+  includes?: {
+    media?: {
+      [key: string]: t_Media | undefined;
+    };
+  };
   pagination?: t_PaginationInfo;
-  results?: t_SearchResult[];
-};
-
-export type t_SearchResult = {
-  media: t_SearchResultMedia;
-  segment: t_SearchResultSegment;
-  urls: t_SearchResultUrls;
-};
-
-export type t_SearchResultMedia = {
-  bannerUrl?: string;
-  category: t_Category;
-  coverUrl?: string;
-  mediaId: number;
-  nameEn?: string;
-  nameJa?: string;
-  nameRomaji: string;
-};
-
-export type t_SearchResultSegment = {
-  endTime: string;
-  episodeNumber: number;
-  isNsfw: boolean;
-  morphemes?: t_Morpheme[] | null;
-  position: number;
-  startTime: string;
-  status: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
-  textEn: t_TranslationSearchContent;
-  textEs: t_TranslationSearchContent;
-  textJa: t_JapaneseSearchContent;
-  uuid: string;
-};
-
-export type t_SearchResultUrls = {
-  audioUrl?: string;
-  imageUrl?: string;
-  videoUrl?: string;
+  segments?: t_Segment[];
 };
 
 export type t_SearchStatsResponse = {
   categories?: t_CategoryCount[];
+  includes?: {
+    media?: {
+      [key: string]: t_Media | undefined;
+    };
+  };
   media?: t_MediaSearchStats[];
 };
 
 export type t_Segment = {
-  audioUrl?: string | null;
-  endTime: string;
+  contentRating: t_ContentRating;
+  endTimeMs: number;
   episode: number;
-  hashedId: string;
-  id: number;
-  imageUrl?: string | null;
-  isNsfw: boolean;
   mediaId: number;
-  morphemes?: t_Morpheme[] | null;
   position: number;
-  startTime: string;
+  startTimeMs: number;
   status: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
-  storage: 'LOCAL' | 'R2';
-  textEn: t_TranslationContent;
-  textEs: t_TranslationContent;
-  textJa: t_JapaneseContent;
+  textEn: {
+    content: string;
+    highlight?: string;
+    isMachineTranslated: boolean;
+  };
+  textEs: {
+    content: string;
+    highlight?: string;
+    isMachineTranslated: boolean;
+  };
+  textJa: {
+    content: string;
+    highlight?: string;
+  };
+  urls: {
+    audioUrl: string;
+    imageUrl: string;
+    videoUrl: string;
+  };
   uuid: string;
-  videoUrl?: string | null;
 };
 
 export type t_SegmentContextResponse = {
-  segments: t_SearchResult[];
+  includes?: {
+    media?: {
+      [key: string]: t_Media | undefined;
+    };
+  };
+  segments: t_Segment[];
 };
 
-export type t_SegmentListResponse = {
-  cursor?: number;
-  data: t_Segment[];
-  hasMore: boolean;
+export type t_SegmentInternal = t_Segment & {
+  hashedId?: string;
+  posAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  ratingAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  storage?: 'LOCAL' | 'R2';
+  storageBasePath?: string;
 };
 
 export type t_Seiyuu = {
@@ -504,26 +493,37 @@ export type t_Seiyuu = {
 };
 
 export type t_SeiyuuWithRoles = {
+  characters: (t_Character & {
+    media: t_Media;
+    role: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
+  })[];
   id: number;
   imageUrl: string;
   nameEn: string;
   nameJa: string;
-  roles: {
-    character?: t_Character;
+};
+
+export type t_Series = {
+  id: number;
+  nameEn: string;
+  nameJa: string;
+  nameRomaji: string;
+};
+
+export type t_SeriesListResponse = {
+  pagination: t_CursorPagination;
+  series: t_Series[];
+};
+
+export type t_SeriesWithMedia = {
+  id: number;
+  media: {
     media?: t_Media;
-    role?: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
+    position?: number;
   }[];
-};
-
-export type t_TranslationContent = {
-  content?: string | null;
-  isMachineTranslated: boolean;
-};
-
-export type t_TranslationSearchContent = {
-  content?: string;
-  highlight?: string;
-  isMachineTranslated: boolean;
+  nameEn: string;
+  nameJa: string;
+  nameRomaji: string;
 };
 
 export type t_UserActivity = {
@@ -535,7 +535,55 @@ export type t_UserActivity = {
   segmentUuid?: string | null;
 };
 
+export type t_UserExportCollection = t_Collection & {
+  segmentUuids: string[];
+};
+
+export type t_UserExportResponse = {
+  activity: t_UserActivity[];
+  collections: t_UserExportCollection[];
+  preferences: t_UserPreferences;
+  profile: {
+    createdAt: string;
+    email: string;
+    id: number;
+    username: string;
+  };
+  reports: t_Report[];
+};
+
+export type t_UserLabFeature = {
+  description: string;
+  enabled: boolean;
+  key: string;
+  name: string;
+  userEnabled: boolean;
+};
+
 export type t_UserPreferences = {
+  ankiProfiles?: {
+    deck?: string | null;
+    fields?: {
+      key: string;
+      value: string;
+    }[];
+    id: string;
+    key?: string | null;
+    model?: string | null;
+    name: string;
+    serverAddress: string;
+  }[];
+  blogLastVisited?: string;
+  contentRatingPreferences?: {
+    explicit?: 'show' | 'blur' | 'hide';
+    suggestive?: 'show' | 'blur' | 'hide';
+  };
+  hiddenMedia?: {
+    mediaId: number;
+    nameEn?: string;
+    nameJa?: string;
+    nameRomaji?: string;
+  }[];
   labs?: {
     [key: string]: boolean | undefined;
   };
@@ -554,6 +602,8 @@ export type t_UserQuotaResponse = {
   quotaUsed: number;
 };
 
+export type t_UserReportTarget = t_ReportTargetMedia | t_ReportTargetSegment;
+
 export type t_WordMatch = {
   isMatch?: boolean;
   matchCount?: number;
@@ -562,11 +612,8 @@ export type t_WordMatch = {
 };
 
 export type t_WordMatchMedia = {
-  matchCount?: number;
-  mediaId?: number;
-  nameEn?: string;
-  nameJa?: string;
-  nameRomaji?: string;
+  matchCount: number;
+  mediaId: number;
 };
 
 export type t_AdminQueueFailedDestroyParamSchema = {
@@ -594,12 +641,14 @@ export type t_AdminReindexCreateRequestBodySchema = {
 
 export type t_AdminReportIndexQuerySchema = {
   cursor?: number;
+  limit?: number;
   reviewCheckRunId?: number;
-  size?: number;
   source?: 'USER' | 'AUTO';
   status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
-  targetMediaId?: number;
-  targetType?: 'SEGMENT' | 'EPISODE' | 'MEDIA';
+  'target.episodeNumber'?: number;
+  'target.mediaId'?: number;
+  'target.segmentUuid'?: string;
+  'target.type'?: 'SEGMENT' | 'EPISODE' | 'MEDIA';
 };
 
 export type t_AdminReportUpdateParamSchema = {
@@ -639,12 +688,13 @@ export type t_AdminReviewCheckUpdateRequestBodySchema = {
 
 export type t_AdminReviewRunCreateQuerySchema = {
   category?: 'ANIME' | 'JDRAMA';
+  checkName?: string;
 };
 
 export type t_AdminReviewRunIndexQuerySchema = {
   checkName?: string;
   cursor?: number;
-  size?: number;
+  limit?: number;
 };
 
 export type t_AdminReviewRunShowParamSchema = {
@@ -653,6 +703,65 @@ export type t_AdminReviewRunShowParamSchema = {
 
 export type t_CharacterShowParamSchema = {
   id: number;
+};
+
+export type t_CollectionAddSegmentParamSchema = {
+  id: number;
+};
+
+export type t_CollectionAddSegmentRequestBodySchema = {
+  note?: string;
+  segmentUuid: string;
+};
+
+export type t_CollectionCreateRequestBodySchema = {
+  name: string;
+  visibility?: 'PUBLIC' | 'PRIVATE';
+};
+
+export type t_CollectionDestroyParamSchema = {
+  id: number;
+};
+
+export type t_CollectionIndexQuerySchema = {
+  cursor?: number;
+  limit?: number;
+  page?: number;
+  visibility?: 'public' | 'private';
+};
+
+export type t_CollectionRemoveSegmentParamSchema = {
+  id: number;
+  uuid: string;
+};
+
+export type t_CollectionShowParamSchema = {
+  id: number;
+};
+
+export type t_CollectionShowQuerySchema = {
+  cursor?: number;
+  limit?: number;
+  page?: number;
+};
+
+export type t_CollectionUpdateParamSchema = {
+  id: number;
+};
+
+export type t_CollectionUpdateRequestBodySchema = {
+  name?: string;
+  visibility?: 'PUBLIC' | 'PRIVATE';
+};
+
+export type t_CollectionUpdateSegmentParamSchema = {
+  id: number;
+  uuid: string;
+};
+
+export type t_CollectionUpdateSegmentRequestBodySchema = {
+  note?: string | null;
+  position?: number;
 };
 
 export type t_EpisodeCreateParamSchema = {
@@ -681,7 +790,7 @@ export type t_EpisodeIndexParamSchema = {
 
 export type t_EpisodeIndexQuerySchema = {
   cursor?: number;
-  size?: number;
+  limit?: number;
 };
 
 export type t_EpisodeShowParamSchema = {
@@ -704,93 +813,6 @@ export type t_EpisodeUpdateRequestBodySchema = {
   titleRomaji?: string;
 };
 
-export type t_ListAddItemParamSchema = {
-  id: number;
-};
-
-export type t_ListAddItemRequestBodySchema = {
-  mediaId: number;
-  position: number;
-};
-
-export type t_ListAddSegmentParamSchema = {
-  id: number;
-};
-
-export type t_ListAddSegmentRequestBodySchema = {
-  note?: string;
-  segmentUuid: string;
-};
-
-export type t_ListCreateRequestBodySchema = {
-  name: string;
-  type?: 'SERIES' | 'CUSTOM' | 'SEGMENT';
-  userId?: number;
-  visibility?: 'PUBLIC' | 'PRIVATE';
-};
-
-export type t_ListDestroyParamSchema = {
-  id: number;
-};
-
-export type t_ListGetSegmentsParamSchema = {
-  id: number;
-};
-
-export type t_ListGetSegmentsQuerySchema = {
-  limit?: number;
-  page?: number;
-};
-
-export type t_ListIndexQuerySchema = {
-  mediaId?: number;
-  type?: 'SERIES' | 'CUSTOM' | 'SEGMENT';
-  userId?: number;
-  visibility?: 'public' | 'private';
-};
-
-export type t_ListRemoveItemParamSchema = {
-  id: number;
-  mediaId: number;
-};
-
-export type t_ListRemoveSegmentParamSchema = {
-  id: number;
-  uuid: string;
-};
-
-export type t_ListShowParamSchema = {
-  id: number;
-};
-
-export type t_ListUpdateParamSchema = {
-  id: number;
-};
-
-export type t_ListUpdateRequestBodySchema = {
-  name?: string;
-  visibility?: 'PUBLIC' | 'PRIVATE';
-};
-
-export type t_ListUpdateItemParamSchema = {
-  id: number;
-  mediaId: number;
-};
-
-export type t_ListUpdateItemRequestBodySchema = {
-  position: number;
-};
-
-export type t_ListUpdateSegmentParamSchema = {
-  id: number;
-  uuid: string;
-};
-
-export type t_ListUpdateSegmentRequestBodySchema = {
-  note?: string | null;
-  position?: number;
-};
-
 export type t_MediaCreateRequestBodySchema = {
   airingFormat: string;
   airingStatus: string;
@@ -800,7 +822,6 @@ export type t_MediaCreateRequestBodySchema = {
   externalIds?: t_ExternalId;
   genres: string[];
   hashSalt: string;
-  lists?: t_ListInput[];
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
@@ -820,7 +841,7 @@ export type t_MediaDestroyParamSchema = {
 export type t_MediaIndexQuerySchema = {
   category?: 'ANIME' | 'JDRAMA';
   cursor?: number;
-  includeCharacters?: boolean;
+  include?: t_MediaIncludeExpansion[];
   limit?: number;
   query?: string;
 };
@@ -830,7 +851,7 @@ export type t_MediaShowParamSchema = {
 };
 
 export type t_MediaShowQuerySchema = {
-  includeCharacters?: boolean;
+  include?: t_MediaIncludeExpansion[];
 };
 
 export type t_MediaUpdateParamSchema = {
@@ -846,7 +867,6 @@ export type t_MediaUpdateRequestBodySchema = {
   externalIds?: t_ExternalId;
   genres?: string[];
   hashSalt?: string;
-  lists?: t_ListInput[];
   nameEn?: string;
   nameJa?: string;
   nameRomaji?: string;
@@ -861,40 +881,36 @@ export type t_MediaUpdateRequestBodySchema = {
 };
 
 export type t_SearchIndexRequestBodySchema = {
-  category?: t_Category[];
-  contentSort?: 'ASC' | 'DESC' | 'NONE' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM';
   cursor?: number[];
-  episode?: number[];
-  exactMatch?: boolean;
-  excludedMediaIds?: number[];
+  filters?: t_SearchFilters;
+  include?: t_IncludeExpansion[];
   limit?: number;
-  maxLength?: number;
-  media?: {
-    episodes: number[];
-    mediaId: number;
-  }[];
-  mediaId?: number;
-  minLength?: number;
-  query?: string;
-  randomSeed?: number;
-  status?: ('DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG')[];
-  uuid?: string;
+  query?: {
+    exactMatch?: boolean;
+    search?: string;
+  };
+  sort?: {
+    mode?: 'ASC' | 'DESC' | 'NONE' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM';
+    seed?: number;
+  };
 };
 
 export type t_SearchStatsRequestBodySchema = {
-  category?: t_Category[];
-  exactMatch?: boolean;
-  excludedMediaIds?: number[];
-  maxLength?: number;
-  mediaIds?: number[];
-  minLength?: number;
-  query?: string;
-  status?: ('DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG')[];
+  filters?: t_SearchFilters;
+  include?: t_IncludeExpansion[];
+  query?: {
+    exactMatch?: boolean;
+    search?: string;
+  };
 };
 
 export type t_SearchWordsRequestBodySchema = {
-  exactMatch?: boolean;
-  words: string[];
+  filters?: t_SearchFilters;
+  include?: t_IncludeExpansion[];
+  query: {
+    exactMatch?: boolean;
+    words: string[];
+  };
 };
 
 export type t_SegmentContextShowParamSchema = {
@@ -902,6 +918,8 @@ export type t_SegmentContextShowParamSchema = {
 };
 
 export type t_SegmentContextShowQuerySchema = {
+  contentRating?: t_ContentRating[];
+  include?: t_IncludeExpansion[];
   limit?: number;
 };
 
@@ -911,11 +929,17 @@ export type t_SegmentCreateParamSchema = {
 };
 
 export type t_SegmentCreateRequestBodySchema = {
-  endTime: string;
+  contentRating?: t_ContentRating;
+  endTimeMs: number;
   hashedId: string;
-  isNsfw?: boolean;
+  posAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
   position: number;
-  startTime: string;
+  ratingAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  startTimeMs: number;
   status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   storage: 'LOCAL' | 'R2';
   textEn?: {
@@ -944,7 +968,7 @@ export type t_SegmentIndexParamSchema = {
 
 export type t_SegmentIndexQuerySchema = {
   cursor?: number;
-  size?: number;
+  limit?: number;
 };
 
 export type t_SegmentShowParamSchema = {
@@ -964,11 +988,17 @@ export type t_SegmentUpdateParamSchema = {
 };
 
 export type t_SegmentUpdateRequestBodySchema = {
-  endTime?: string;
+  contentRating?: t_ContentRating;
+  endTimeMs?: number;
   hashedId?: string;
-  isNsfw?: boolean;
+  posAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
   position?: number;
-  startTime?: string;
+  ratingAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  startTimeMs?: number;
   status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   storage?: 'LOCAL' | 'R2';
   textEn?: {
@@ -988,17 +1018,111 @@ export type t_SeiyuuShowParamSchema = {
   id: number;
 };
 
+export type t_SeiyuuShowQuerySchema = {
+  include?: 'character'[];
+};
+
+export type t_SeriesAddMediaParamSchema = {
+  id: number;
+};
+
+export type t_SeriesAddMediaRequestBodySchema = {
+  mediaId: number;
+  position: number;
+};
+
+export type t_SeriesCreateRequestBodySchema = {
+  nameEn: string;
+  nameJa: string;
+  nameRomaji: string;
+};
+
+export type t_SeriesDestroyParamSchema = {
+  id: number;
+};
+
+export type t_SeriesIndexQuerySchema = {
+  cursor?: number;
+  limit?: number;
+  query?: string;
+};
+
+export type t_SeriesRemoveMediaParamSchema = {
+  id: number;
+  mediaId: number;
+};
+
+export type t_SeriesShowParamSchema = {
+  id: number;
+};
+
+export type t_SeriesShowQuerySchema = {
+  include?: t_MediaIncludeExpansion[];
+};
+
+export type t_SeriesUpdateParamSchema = {
+  id: number;
+};
+
+export type t_SeriesUpdateRequestBodySchema = {
+  nameEn?: string;
+  nameJa?: string;
+  nameRomaji?: string;
+};
+
+export type t_SeriesUpdateMediaParamSchema = {
+  id: number;
+  mediaId: number;
+};
+
+export type t_SeriesUpdateMediaRequestBodySchema = {
+  position: number;
+};
+
 export type t_UserActivityDestroyQuerySchema = {
   activityType?: t_ActivityType;
+};
+
+export type t_UserActivityHeatmapShowQuerySchema = {
+  activityType?: t_ActivityType;
+  days?: number;
 };
 
 export type t_UserActivityIndexQuerySchema = {
   activityType?: t_ActivityType;
   cursor?: number;
-  size?: number;
+  date?: string;
+  limit?: number;
+};
+
+export type t_UserActivityStatsShowQuerySchema = {
+  since?: string;
 };
 
 export type t_UserPreferencesUpdateRequestBodySchema = {
+  ankiProfiles?: {
+    deck?: string | null;
+    fields?: {
+      key: string;
+      value: string;
+    }[];
+    id: string;
+    key?: string | null;
+    model?: string | null;
+    name: string;
+    serverAddress: string;
+  }[];
+  blogLastVisited?: string;
+  contentRatingPreferences?: {
+    explicit?: 'show' | 'blur' | 'hide';
+    suggestive?: 'show' | 'blur' | 'hide';
+  };
+  hiddenMedia?: {
+    mediaId: number;
+    nameEn?: string;
+    nameJa?: string;
+    nameRomaji?: string;
+  }[];
   labs?: {
     [key: string]: boolean | undefined;
   };
@@ -1021,13 +1145,11 @@ export type t_UserReportCreateRequestBodySchema = {
     | 'WRONG_COVER_IMAGE'
     | 'INAPPROPRIATE_CONTENT'
     | 'OTHER';
-  targetMediaId: number;
-  targetSegmentUuid?: string;
-  targetType: 'SEGMENT' | 'MEDIA';
+  target: t_UserReportTarget;
 };
 
 export type t_UserReportIndexQuerySchema = {
   cursor?: number;
-  size?: number;
+  limit?: number;
   status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
 };

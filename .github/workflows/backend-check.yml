@@ -53,13 +53,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Lint OpenAPI spec
-        run: bunx @redocly/cli lint
+        run: bun run lint:openapi
 
       - name: Bundle OpenAPI spec
         run: bun run docs:bundle
 
       - name: Validate bundled spec
-        run: bunx @redocly/cli lint docs/generated/openapi.yaml --skip-rule no-unused-components
+        run: bun run lint:openapi:bundled
 
       - name: Check codegen is up to date
         run: |

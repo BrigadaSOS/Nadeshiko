@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { getRequestHeader } from 'h3';
-import { mdiPlus, mdiCheckBold } from '@mdi/js';
+import { mdiPlus, mdiCheckBold, mdiPencilOutline } from '@mdi/js';
 
 import type { ApiKeyListItem } from '@/stores/api';
 import { normalizeApiKey, asObject } from '@/stores/api';
@@ -13,8 +13,12 @@ const isSuccess = ref(false);
 const generatedApiKey = ref<string | null>(null);
 const deactivatedApiKey = ref(false);
 
-// Modal state
+// Create modal state
 const modalKeyName = ref('');
+
+// Rename modal state
+const renameKeyId = ref<string | null>(null);
+const renameKeyName = ref('');
 
 // SSR-compatible API key + quota fetch
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
@@ -89,18 +93,55 @@ const closeCreateModal = () => {
   window.NDOverlay?.close('#nd-vertically-centered-scrollable-createapikey-modal');
 };
 
-const handleBackdropClick = (event: MouseEvent) => {
-  // Only close if clicking directly on the backdrop (not on modal content)
+const handleCreateBackdropClick = (event: MouseEvent) => {
   if (event.target === event.currentTarget) {
     closeCreateModal();
   }
 };
 
+const openRenameModal = (item: ApiKeyListItem) => {
+  renameKeyId.value = item.id;
+  renameKeyName.value = item.name;
+  window.NDOverlay?.open('#nd-vertically-centered-scrollable-renameapikey-modal');
+};
+
+const closeRenameModal = () => {
+  window.NDOverlay?.close('#nd-vertically-centered-scrollable-renameapikey-modal');
+};
+
+const handleRenameBackdropClick = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    closeRenameModal();
+  }
+};
+
+const confirmRenameApiKey = async () => {
+  if (!renameKeyId.value || !renameKeyName.value) return;
+
+  isLoading.value = true;
+  isError.value = false;
+
+  try {
+    await api_store.renameApiKey(renameKeyId.value, renameKeyName.value);
+    closeRenameModal();
+    await refreshApiKeys();
+  } catch (error) {
+    isError.value = true;
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 // Cleanup modal state when navigating away
 onBeforeUnmount(() => {
-  const modal = document.querySelector('#nd-vertically-centered-scrollable-createapikey-modal');
-  if (modal && !modal.classList.contains('hidden')) {
+  const createModal = document.querySelector('#nd-vertically-centered-scrollable-createapikey-modal');
+  if (createModal && !createModal.classList.contains('hidden')) {
     window.NDOverlay?.close('#nd-vertically-centered-scrollable-createapikey-modal');
+  }
+  const renameModal = document.querySelector('#nd-vertically-centered-scrollable-renameapikey-modal');
+  if (renameModal && !renameModal.classList.contains('hidden')) {
+    window.NDOverlay?.close('#nd-vertically-centered-scrollable-renameapikey-modal');
   }
 });
 
@@ -179,6 +220,10 @@ const formatDate = (value?: string) => {
           used: fieldOptions.quota?.quotaUsed,
           limit: fieldOptions.quota?.quotaLimit
         }) }}</p>
+        <p class="mt-2 text-gray-400 text-sm">
+          If you need to increase your API usage limit, please reach out to us at
+          <a href="mailto:contact@nadeshiko.co" class="text-red-400 hover:underline">contact@nadeshiko.co</a>.
+        </p>
     </div>
 
     <!-- Card -->
@@ -226,7 +271,7 @@ const formatDate = (value?: string) => {
                             <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.permissions') }}</th>
                             <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.createdAt') }}</th>
                             <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.status') }}</th>
-                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase"></th>
+                            <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.options') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-white/20">
@@ -287,10 +332,13 @@ const formatDate = (value?: string) => {
                                         <div class="nd-dropdown-menu absolute right-0 top-full z-30 min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
                                             aria-labelledby="nd-dropdown-with-title">
                                             <div class="py-2 first:pt-0 last:pb-0">
-                                                <span class="block py-2 px-3 text-xs font-medium item uppercase text-gray-400 dark:text-gray-500">
-                                                    {{ $t('accountSettings.developer.options') }}
-                                                </span>
-                                                <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-redalert dark:hover:text-white"
+                                                <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
+                                                    @click="openRenameModal(item)">
+                                                    <UiBaseIcon display="inline-block" vertical-align="top"
+                                                        :path="mdiPencilOutline" fill="#DDDF" w="w-5" h="h-5" size="20" />
+                                                    {{ $t('accountSettings.developer.rename') }}
+                                                </a>
+                                                <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                                                     @click="deactivateApiKey(item)">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                         xmlns:xlink="http://www.w3.org/1999/xlink" width="20"
@@ -317,17 +365,6 @@ const formatDate = (value?: string) => {
                                                     </svg>
                                                     {{ $t('accountSettings.developer.deactivate') }}
                                                 </a>
-                                                <!--
-                                                <a @click="currentSentence = sentence"
-                                                    data-nd-overlay="#nd-vertically-centered-scrollable-editsentencemodal"
-                                                    type="button"
-                                                    class="flex items-center w-full cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300">
-                                                    <UiBaseIcon display="inline-block" vertical-align="top"
-                                                        :path="mdiPencilOutline" fill="#DDDF" w="w-5" h="h-5" size="20"
-                                                        class="text-center" />
-                                                    Cambiar nombre
-                                                </a>
-                                                -->
                                             </div>
                                         </div>
                                     </div>
@@ -349,7 +386,7 @@ const formatDate = (value?: string) => {
                     </div>
                 </section>
                 <section v-else-if="fieldOptions.keys.length === 0" class="rounded-xl mx-auto">
-                    <div class="flex items-center text-center h-96 dark:border-gray-700 bg-sgrayhover">
+                    <div class="flex items-center text-center h-96 dark:border-gray-700 bg-card-background">
                         <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
                             <div class="p-3 mx-auto text-sred bg-blue-100 rounded-full dark:bg-sgray">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -372,10 +409,10 @@ const formatDate = (value?: string) => {
     <!-- Create API Key Modal -->
     <div id="nd-vertically-centered-scrollable-createapikey-modal"
         class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
-        @click="handleBackdropClick">
+        @click="handleCreateBackdropClick">
         <div
             class="justify-center nd-overlay-open:opacity-100 nd-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
-            @click="handleBackdropClick"
+            @click="handleCreateBackdropClick"
         >
             <div
                 class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
@@ -436,6 +473,64 @@ const formatDate = (value?: string) => {
                         :disabled="!modalKeyName || isLoading"
                     >
                         {{ $t('accountSettings.developer.createApiKeyModal.create') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename API Key Modal -->
+    <div id="nd-vertically-centered-scrollable-renameapikey-modal"
+        class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
+        @click="handleRenameBackdropClick">
+        <div
+            class="justify-center nd-overlay-open:opacity-100 nd-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
+            @click="handleRenameBackdropClick"
+        >
+            <div
+                class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
+            >
+                <div
+                    class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
+                >
+                    <h3 class="font-bold text-gray-800 dark:text-gray-200">{{ $t('accountSettings.developer.renameApiKeyModal.title') }}</h3>
+                    <button
+                        type="button"
+                        class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+                        @click="closeRenameModal"
+                    >
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0.772004 0.772004C0.907186 0.636856 1.08918 0.560669 1.279 0.560669C1.46882 0.560669 1.65081 0.636856 1.786 0.772004L6.228 5.21401C6.36315 5.34919 6.43933 5.53119 6.43933 5.72101C6.43933 5.91082 6.36315 6.09282 6.228 6.22801C6.09282 6.36315 5.91082 6.43933 5.721 6.43933C5.53119 6.43933 5.34919 6.36315 5.214 6.22801L0.772004 1.786C0.636856 1.65081 0.560669 1.46882 0.560669 1.279C0.560669 1.08918 0.636856 0.907186 0.772004 0.772004Z" fill="currentColor" />
+                            <path d="M6.228 0.772004C6.36315 0.907186 6.43933 1.08918 6.43933 1.279C6.43933 1.46882 6.36315 1.65081 6.228 1.786L1.786 6.22801C1.65081 6.36315 1.46882 6.43933 1.279 6.43933C1.08918 6.43933 0.907186 6.36315 0.772004 6.22801C0.636856 6.09282 0.560669 5.91082 0.560669 5.72101C0.560669 5.53119 0.636856 5.34919 0.772004 5.21401L5.214 0.772004C5.34919 0.636856 5.53119 0.560669 5.721 0.560669C5.91082 0.560669 6.09282 0.636856 6.228 0.772004Z" fill="currentColor" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="overflow-y-auto p-4">
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $t('accountSettings.developer.renameApiKeyModal.nameLabel') }}
+                            </label>
+                            <input
+                                v-model="renameKeyName"
+                                type="text"
+                                class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-modal-input dark:border-white/5 dark:text-white"
+                                :placeholder="$t('accountSettings.developer.renameApiKeyModal.namePlaceholder')"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="flex justify-end items-center gap-2 py-3 px-4 border-t dark:border-modal-border"
+                >
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="confirmRenameApiKey"
+                        :disabled="!renameKeyName || isLoading"
+                    >
+                        {{ $t('accountSettings.developer.renameApiKeyModal.save') }}
                     </button>
                 </div>
             </div>

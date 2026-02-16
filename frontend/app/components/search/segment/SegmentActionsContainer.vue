@@ -17,6 +17,8 @@ import {
   mdiTransferRight,
   mdiPencilOutline,
   mdiFlagOutline,
+  mdiEyeOffOutline,
+  mdiEyeOutline,
 } from '@mdi/js';
 
 import { ankiStore } from '@/stores/anki';
@@ -30,11 +32,13 @@ type Props = {
 const props = defineProps<Props>();
 const anki = ankiStore();
 const user = userStore();
+const { isMediaHidden, toggleHideMedia } = useHiddenMedia();
 const isAnkiConfigured = ref(false);
 
 onMounted(() => {
-  const current = anki.ankiPreferences.settings.current;
-  isAnkiConfigured.value = current.deck !== null && current.model !== null && current.fields.length > 0;
+  const profile = anki.activeProfile;
+  isAnkiConfigured.value =
+    profile !== null && profile.deck !== null && profile.model !== null && profile.fields.length > 0;
 });
 
 const emit = defineEmits([
@@ -183,6 +187,14 @@ const openAnkiModal = () => {
           @click="concatSentence('both')" />
         <SearchDropdownItem :text="$t('searchpage.main.buttons.expandRight')" :iconPath="mdiTransferRight"
           @click="concatSentence('forward')" />
+        <div
+          class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
+        </div>
+        <SearchDropdownItem
+          :text="isMediaHidden(content.media.mediaId) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia')"
+          :iconPath="isMediaHidden(content.media.mediaId) ? mdiEyeOutline : mdiEyeOffOutline"
+          @click="toggleHideMedia(content.media)"
+        />
         <template v-if="user.isLoggedIn">
           <div
             class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">

@@ -2,7 +2,6 @@ import { client } from '@app/services/elasticsearch';
 import { logger } from '@config/log';
 import { SegmentDocument } from '@app/types/segmentDocument';
 import { Segment, Media } from '@app/models';
-import { timeToSeconds } from '@lib/utils/time';
 import { In } from 'typeorm';
 import type { t_ReindexResponse } from 'generated/models';
 
@@ -14,8 +13,8 @@ export interface ReindexMediaItem {
 }
 
 function buildSegmentDocument(segment: Segment, media: Media): SegmentDocument {
-  const startSeconds = timeToSeconds(segment.startTime ?? '');
-  const endSeconds = timeToSeconds(segment.endTime ?? '');
+  const startSeconds = segment.startTimeMs / 1000;
+  const endSeconds = segment.endTimeMs / 1000;
 
   return {
     uuid: segment.uuid,
@@ -25,19 +24,18 @@ function buildSegmentDocument(segment: Segment, media: Media): SegmentDocument {
     endSeconds: endSeconds,
     durationSeconds: endSeconds - startSeconds,
     contentJa: segment.contentJa,
-    characterCount: segment.characterCount,
+    characterCount: segment.contentJa.length,
     contentEs: segment.contentEs ?? undefined,
     contentEsMt: segment.contentEsMt,
     contentEn: segment.contentEn ?? undefined,
     contentEnMt: segment.contentEnMt,
-    isNsfw: segment.isNsfw,
+    contentRating: segment.contentRating,
     storage: segment.storage,
     hashedId: segment.hashedId,
     category: media.category,
     episode: segment.episode,
     mediaId: segment.mediaId,
     storageBasePath: segment.storageBasePath ?? media.storageBasePath,
-    morphemes: segment.morphemes ?? undefined,
   };
 }
 

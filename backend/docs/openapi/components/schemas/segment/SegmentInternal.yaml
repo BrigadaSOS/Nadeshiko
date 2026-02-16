@@ -1,0 +1,28 @@
+description: Segment with internal fields (for internal API responses)
+allOf:
+  - $ref: "./Segment.yaml"
+  - type: object
+    properties:
+      storage:
+        type: string
+        enum: [LOCAL, R2]
+        description: Storage backend for segment assets
+        example: "R2"
+      hashedId:
+        type: string
+        description: Hash identifier for the segment
+        example: "0d39e46b14"
+      storageBasePath:
+        type: string
+        description: Base path in the storage backend
+        example: "anime/steins-gate"
+      ratingAnalysis:
+        type: object
+        additionalProperties: true
+        nullable: true
+        description: Raw WD Tagger v3 classifier output used to derive content rating
+      posAnalysis:
+        type: object
+        additionalProperties: true
+        nullable: true
+        description: POS tokenization results keyed by engine (sudachi, unidic)

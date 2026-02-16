@@ -1,22 +1,10 @@
 type: object
 required:
-  - targetType
-  - targetMediaId
+  - target
   - reason
 properties:
-  targetType:
-    type: string
-    enum: [SEGMENT, MEDIA]
-    description: Type of the entity being reported
-    example: "SEGMENT"
-  targetMediaId:
-    type: integer
-    description: Media ID of the reported entity
-    example: 42
-  targetSegmentUuid:
-    type: string
-    description: Segment UUID (required when targetType is SEGMENT)
-    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  target:
+    $ref: "../schemas/UserReportTarget.yaml"
   reason:
     type: string
     enum:

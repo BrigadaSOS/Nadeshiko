@@ -1,0 +1,40 @@
+type: object
+description: User data export payload (identifier-oriented references)
+required:
+  - profile
+  - preferences
+  - activity
+  - collections
+  - reports
+properties:
+  profile:
+    type: object
+    required:
+      - id
+      - username
+      - email
+      - createdAt
+    properties:
+      id:
+        type: integer
+      username:
+        type: string
+      email:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+  preferences:
+    $ref: "./UserPreferences.yaml"
+  activity:
+    type: array
+    items:
+      $ref: "./UserActivity.yaml"
+  collections:
+    type: array
+    items:
+      $ref: "./UserExportCollection.yaml"
+  reports:
+    type: array
+    items:
+      $ref: "./Report.yaml"

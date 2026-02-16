@@ -1,0 +1,52 @@
+post:
+  tags:
+    - Media
+  operationId: seriesAddMedia
+  x-internal: true
+  summary: Add media to series
+  description: |
+    Adds a media entry to a series at a specific position.
+
+  security:
+    - apiKeyHeader: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Series ID
+      schema:
+        type: integer
+        example: 1
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - mediaId
+            - position
+          properties:
+            mediaId:
+              type: integer
+              description: Media ID to add
+              example: 42
+            position:
+              type: integer
+              description: Position in the series (1-indexed)
+              example: 1
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

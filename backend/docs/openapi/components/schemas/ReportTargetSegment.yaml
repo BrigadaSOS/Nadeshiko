@@ -1,0 +1,23 @@
+type: object
+required:
+  - type
+  - mediaId
+  - segmentUuid
+properties:
+  type:
+    type: string
+    enum: [SEGMENT]
+    description: Report target type
+    example: "SEGMENT"
+  mediaId:
+    type: integer
+    description: Media ID this report targets
+    example: 42
+  episodeNumber:
+    type: integer
+    description: Episode number containing the segment
+    example: 5
+  segmentUuid:
+    type: string
+    description: Segment UUID this report targets
+    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"

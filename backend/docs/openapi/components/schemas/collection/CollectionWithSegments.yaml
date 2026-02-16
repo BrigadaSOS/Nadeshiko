@@ -1,0 +1,58 @@
+type: object
+description: Collection with saved segments (search result format)
+required:
+  - id
+  - name
+  - userId
+  - visibility
+  - segments
+  - totalCount
+  - pagination
+properties:
+  id:
+    type: integer
+    description: Collection ID
+    example: 123
+  name:
+    type: string
+    description: Name of the collection
+    example: "Study Favorites"
+  userId:
+    type: integer
+    description: User ID who owns the collection
+    example: 1
+  visibility:
+    type: string
+    enum: [PUBLIC, PRIVATE]
+    description: Visibility of the collection
+    example: "PRIVATE"
+  segments:
+    type: array
+    description: Saved segments with their search result data
+    items:
+      type: object
+      properties:
+        position:
+          type: integer
+          description: Position in the collection
+          example: 1
+        note:
+          type: string
+          nullable: true
+          description: User annotation
+        result:
+          $ref: "../segment/Segment.yaml"
+  includes:
+    type: object
+    properties:
+      media:
+        type: object
+        additionalProperties:
+          $ref: "../Media.yaml"
+        description: Media objects keyed by mediaId
+  totalCount:
+    type: integer
+    description: Total number of segments in the collection
+    example: 42
+  pagination:
+    $ref: "../CursorPagination.yaml"

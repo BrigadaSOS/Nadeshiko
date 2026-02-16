@@ -16,7 +16,7 @@ get:
       schema:
         type: integer
       description: Cursor for pagination (report ID to start after)
-    - name: size
+    - name: limit
       in: query
       schema:
         type: integer
@@ -35,17 +35,27 @@ get:
         type: string
         enum: [USER, AUTO]
       description: Filter by report source
-    - name: targetType
+    - name: target.type
       in: query
       schema:
         type: string
         enum: [SEGMENT, EPISODE, MEDIA]
       description: Filter by target type
-    - name: targetMediaId
+    - name: target.mediaId
       in: query
       schema:
         type: integer
       description: Filter by target media ID
+    - name: target.episodeNumber
+      in: query
+      schema:
+        type: integer
+      description: Filter by target episode number
+    - name: target.segmentUuid
+      in: query
+      schema:
+        type: string
+      description: Filter by target segment UUID
     - name: reviewCheckRunId
       in: query
       schema:

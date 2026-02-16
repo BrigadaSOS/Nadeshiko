@@ -1,0 +1,19 @@
+type: object
+required:
+  - type
+  - mediaId
+  - episodeNumber
+properties:
+  type:
+    type: string
+    enum: [EPISODE]
+    description: Report target type
+    example: "EPISODE"
+  mediaId:
+    type: integer
+    description: Media ID this report targets
+    example: 42
+  episodeNumber:
+    type: integer
+    description: Episode number this report targets
+    example: 5

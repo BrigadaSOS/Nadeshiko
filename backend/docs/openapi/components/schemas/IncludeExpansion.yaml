@@ -1,0 +1,4 @@
+type: string
+description: Resource to expand in the response includes block
+enum:
+  - media

@@ -4,3 +4,11 @@ properties:
     type: array
     items:
       $ref: "../schemas/WordMatch.yaml"
+  includes:
+    type: object
+    properties:
+      media:
+        type: object
+        additionalProperties:
+          $ref: "../schemas/Media.yaml"
+        description: Media objects keyed by mediaId

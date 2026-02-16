@@ -1,18 +1,12 @@
 type: object
 required:
-  - data
-  - hasMore
+  - episodes
+  - pagination
 properties:
-  data:
+  episodes:
     type: array
     items:
       $ref: "./Episode.yaml"
     description: Array of episode objects
-  cursor:
-    type: integer
-    description: Cursor for pagination (last episode number in current page)
-    example: 12
-  hasMore:
-    type: boolean
-    description: Whether more results are available
-    example: true
+  pagination:
+    $ref: "./CursorPagination.yaml"
