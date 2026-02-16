@@ -152,6 +152,26 @@ export const apiStore = defineStore('api', {
       }
     },
 
+    async renameApiKey(apiKeyId: string, newName: string): Promise<ApiResponse> {
+      try {
+        const response = await authApiRequest('/v1/auth/api-key/update', {
+          method: 'POST',
+          body: {
+            keyId: apiKeyId,
+            name: newName,
+          },
+        });
+
+        return {
+          status: response.status,
+          ...asObject(response.data),
+        };
+      } catch (error) {
+        console.error(error);
+        return { status: 500 };
+      }
+    },
+
     async createApiKeyGeneral(nameApiKey: string): Promise<ApiKeyActionResponse> {
       try {
         const response = await authApiRequest('/v1/auth/api-key/create', {

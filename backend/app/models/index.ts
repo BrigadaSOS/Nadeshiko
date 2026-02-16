@@ -9,14 +9,16 @@ export { AccountQuotaUsage } from './AccountQuotaUsage';
 // Media domain
 export { Media, CategoryType } from './Media';
 export { MediaExternalId, ExternalSourceType } from './MediaExternalId';
-export { Segment, SegmentStatus, SegmentStorage } from './Segment';
+export { Segment, SegmentStatus, SegmentStorage, ContentRating } from './Segment';
+export type { RatingAnalysisData } from './Segment';
 export { Episode } from './Episode';
 export { Character } from './Character';
 export { Seiyuu } from './Seiyuu';
 export { MediaCharacter, CharacterRole } from './MediaCharacter';
-export { List, ListType, ListVisibility } from './List';
-export { ListItem } from './ListItem';
-export { ListSegmentItem } from './ListSegmentItem';
+export { Collection, CollectionVisibility } from './Collection';
+export { CollectionSegment } from './CollectionSegment';
+export { Series } from './Series';
+export { SeriesMedia } from './SeriesMedia';
 
 // API domain
 export { ApiAuth } from './ApiAuth';

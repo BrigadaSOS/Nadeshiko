@@ -24,10 +24,13 @@ export default defineEventHandler((event) => {
 
   // UUID redirects on search pages: /search/sentence?uuid=abc or /search?uuid=abc → /sentence/abc
   if (url.searchParams.has('uuid')) {
-    const uuid = url.searchParams.get('uuid')!;
+    const uuid = url.searchParams.get('uuid');
+    if (uuid === null) {
+      return;
+    }
     url.searchParams.delete('uuid');
     const remaining = url.searchParams.toString();
-    return sendRedirect(event, `/sentence/${uuid}${remaining ? '?' + remaining : ''}`, 301);
+    return sendRedirect(event, `/sentence/${uuid}${remaining ? `?${remaining}` : ''}`, 301);
   }
 
   // /search/media → /media  (preserves all query params)
@@ -44,16 +47,19 @@ export default defineEventHandler((event) => {
     url.searchParams.delete('query');
     const remaining = url.searchParams.toString();
     if (query) {
-      return sendRedirect(event, `/search/${encodeURIComponent(query)}${remaining ? '?' + remaining : ''}`, 301);
+      return sendRedirect(event, `/search/${encodeURIComponent(query)}${remaining ? `?${remaining}` : ''}`, 301);
     }
-    return sendRedirect(event, `/search${remaining ? '?' + remaining : ''}`, 301);
+    return sendRedirect(event, `/search${remaining ? `?${remaining}` : ''}`, 301);
   }
 
   // /search?query=term → /search/term  (preserves other query params like category, sort)
   if (path === '/search' && url.searchParams.has('query')) {
-    const query = url.searchParams.get('query')!;
+    const query = url.searchParams.get('query');
+    if (query === null) {
+      return;
+    }
     url.searchParams.delete('query');
     const remaining = url.searchParams.toString();
-    return sendRedirect(event, `/search/${encodeURIComponent(query)}${remaining ? '?' + remaining : ''}`, 301);
+    return sendRedirect(event, `/search/${encodeURIComponent(query)}${remaining ? `?${remaining}` : ''}`, 301);
   }
 });

@@ -4,12 +4,13 @@ get:
   operationId: userQuotaShow
   summary: Get current monthly API quota
   description: |
-    Returns the authenticated user's API quota usage for the current billing period.
+    Returns the API quota usage for the current billing period.
+    Accepts both session cookie and API key authentication.
 
-    **Permissions:** Session authentication (cookie-based).
-
+    **Permissions:** Session authentication (cookie-based) or API key (`READ_MEDIA`).
   security:
     - sessionCookie: []
+    - apiKeyHeader: [READ_MEDIA]
   responses:
     "200":
       description: OK
@@ -19,5 +20,7 @@ get:
             $ref: "../../components/responses/UserQuotaResponse.yaml"
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

@@ -43,7 +43,7 @@ const formattedDate = computed(() => {
     }
 
     const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return null;
+    if (Number.isNaN(date.getTime())) return null;
 
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -59,7 +59,7 @@ const formattedDate = computed(() => {
 const contentPreview = computed(() => {
   // First, try to get content from the body
   const body = props.post.body;
-  if (body && body.children && Array.isArray(body.children)) {
+  if (Array.isArray(body?.children)) {
     // Extract text content from paragraph elements
     const paragraphs = body.children
       .filter((child: any) => child?.tag === 'p')
@@ -76,7 +76,7 @@ const contentPreview = computed(() => {
     if (paragraphs) {
       const words = paragraphs.split(/\s+/);
       if (words.length > 500) {
-        return words.slice(0, 500).join(' ') + '...';
+        return `${words.slice(0, 500).join(' ')}...`;
       }
       return paragraphs;
     }
@@ -92,7 +92,7 @@ const contentPreview = computed(() => {
     <div class="flex flex-col">
       <!-- Title -->
       <NuxtLink :to="`/blog/${blogSlug}`" class="group block">
-        <h2 class="text-2xl font-bold text-white group-hover:text-[#ef5552] transition-colors duration-200">
+        <h2 class="text-2xl font-bold text-white group-hover:text-red-400 transition-colors duration-200">
           {{ post.title }}
         </h2>
       </NuxtLink>
@@ -130,7 +130,7 @@ const contentPreview = computed(() => {
       <!-- Read more link -->
       <NuxtLink
         :to="`/blog/${blogSlug}`"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-[#ef5552] hover:text-[#ef5552]/80 transition-colors duration-200 group"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 group"
       >
         <span>Read more</span>
         <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">

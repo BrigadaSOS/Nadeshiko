@@ -1,5 +1,16 @@
-description: Paginated list of segments
+description: Paginated segment list response
 content:
   application/json:
     schema:
-      $ref: "../schemas/SegmentListResponse.yaml"
+      type: object
+      required:
+        - segments
+        - pagination
+      properties:
+        segments:
+          type: array
+          items:
+            $ref: "../schemas/segment/Segment.yaml"
+          description: Array of segment objects
+        pagination:
+          $ref: "../schemas/CursorPagination.yaml"

@@ -1,0 +1,15 @@
+type: object
+description: Cursor pagination metadata
+required:
+  - hasMore
+  - cursor
+properties:
+  hasMore:
+    type: boolean
+    description: Whether more results are available
+    example: true
+  cursor:
+    type: integer
+    nullable: true
+    description: Cursor for the next page (`null` when `hasMore` is `false`)
+    example: 42

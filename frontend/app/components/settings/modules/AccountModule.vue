@@ -2,8 +2,12 @@
 import { getRequestHeader } from 'h3';
 import { useI18n } from 'vue-i18n';
 
+import { mdiClose, mdiMagnify } from '@mdi/js';
+
 import type { UserSession } from '@/stores/auth';
+import type { SearchResult, MediaSummary } from '~/stores/search';
 import { authApiRequest } from '~/utils/authApi';
+import { useToastSuccess, useToastError } from '~/utils/toast';
 
 const { t } = useI18n();
 
@@ -13,23 +17,113 @@ const isAuth = computed(() => user_store.isLoggedIn);
 const sessionsActionLoading = ref(false);
 const sessionsError = ref('');
 const deletingAccount = ref(false);
+const loggingOut = ref(false);
+const exportingData = ref(false);
 const savingPreferences = ref(false);
 
-const updateMediaNameLanguage = async (value: string) => {
+const updatePreference = async (key: string, value: string) => {
   savingPreferences.value = true;
   try {
     await $fetch('/v1/user/preferences', {
       method: 'PATCH',
       credentials: 'include',
-      body: { mediaNameLanguage: value },
+      body: { [key]: value },
     });
-    user_store.preferences = { ...user_store.preferences, mediaNameLanguage: value };
+    user_store.preferences = { ...user_store.preferences, [key]: value };
+    useToastSuccess(t('accountSettings.account.preferenceSaved'));
   } catch (error) {
     console.error('Failed to update preference:', error);
+    useToastError(t('accountSettings.account.preferenceError'));
   } finally {
     savingPreferences.value = false;
   }
 };
+
+const mediaNameExamples: Record<string, string> = {
+  english: 'Attack on Titan',
+  japanese: '進撃の巨人',
+  romaji: 'Shingeki no Kyojin',
+};
+
+const mediaNameLanguageLabel = computed(() => {
+  const lang = user_store.preferences?.mediaNameLanguage || 'english';
+  return lang.charAt(0).toUpperCase() + lang.slice(1);
+});
+
+const mediaNameExample = computed(() => {
+  const lang = user_store.preferences?.mediaNameLanguage || 'english';
+  return mediaNameExamples[lang] ?? mediaNameExamples.english;
+});
+
+// Content rating preview segment
+const PREVIEW_SEGMENT_UUID = 'TODO_REPLACE_WITH_REAL_UUID';
+const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
+  $fetch<{ segments: SearchResult[] }>(`/api/search/context/${PREVIEW_SEGMENT_UUID}`, {
+    params: { limit: 1 },
+  }).catch(() => null),
+);
+const previewSegment = computed(() => previewData.value?.segments?.[0] ?? null);
+
+const suggestiveMode = computed(() => user_store.preferences?.contentRatingPreferences?.suggestive || 'blur');
+
+const contentRatingDescription = (category: string) => {
+  const value = user_store.preferences?.contentRatingPreferences?.[category] || 'blur';
+  return t(`accountSettings.account.contentRatingHint_${value}`);
+};
+
+const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLanguage', value);
+
+const updateContentRatingPreference = async (category: string, value: string) => {
+  savingPreferences.value = true;
+  try {
+    const current = user_store.preferences?.contentRatingPreferences ?? {};
+    const updated = { ...current, [category]: value };
+    await $fetch('/v1/user/preferences', {
+      method: 'PATCH',
+      credentials: 'include',
+      body: { contentRatingPreferences: updated },
+    });
+    user_store.preferences = { ...user_store.preferences, contentRatingPreferences: updated };
+    useToastSuccess(t('accountSettings.account.preferenceSaved'));
+  } catch (error) {
+    console.error('Failed to update content rating preference:', error);
+    useToastError(t('accountSettings.account.preferenceError'));
+  } finally {
+    savingPreferences.value = false;
+  }
+};
+
+// Hidden media management
+const { mediaName } = useMediaName();
+const { prefs: hiddenMediaPrefs, toggleHideMedia, isMediaHidden } = useHiddenMedia();
+const apiSearch = useApiSearch();
+const hiddenMediaSearchQuery = ref('');
+const hiddenMediaSearchResults = ref<MediaSummary[]>([]);
+const hiddenMediaSearching = ref(false);
+let hiddenMediaSearchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const hiddenMediaItems = computed(() => hiddenMediaPrefs.value.items);
+
+const searchMediaToHide = (query: string) => {
+  if (hiddenMediaSearchTimeout) clearTimeout(hiddenMediaSearchTimeout);
+  if (!query.trim()) {
+    hiddenMediaSearchResults.value = [];
+    return;
+  }
+  hiddenMediaSearchTimeout = setTimeout(async () => {
+    hiddenMediaSearching.value = true;
+    try {
+      const response = await apiSearch.getRecentMedia({ query, limit: 10 });
+      hiddenMediaSearchResults.value = response.data;
+    } catch {
+      hiddenMediaSearchResults.value = [];
+    } finally {
+      hiddenMediaSearching.value = false;
+    }
+  }, 300);
+};
+
+watch(hiddenMediaSearchQuery, searchMediaToHide);
 
 // SSR-compatible sessions fetch
 const {
@@ -166,6 +260,25 @@ const revokeAllUserSessions = async () => {
   }
 };
 
+const exportData = async () => {
+  if (exportingData.value) return;
+  exportingData.value = true;
+  try {
+    const data = await $fetch('/v1/user/export', { credentials: 'include' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nadeshiko-data-export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('[Account] Failed to export data:', error);
+  } finally {
+    exportingData.value = false;
+  }
+};
+
 const deleteCurrentAccount = async () => {
   if (deletingAccount.value) return;
   if (!confirm('This action permanently deletes your account. Continue?')) return;
@@ -184,12 +297,31 @@ const deleteCurrentAccount = async () => {
     deletingAccount.value = false;
   }
 };
+
+const logoutCurrentUser = async () => {
+  if (loggingOut.value) return;
+  loggingOut.value = true;
+  try {
+    await user_store.logout();
+  } finally {
+    loggingOut.value = false;
+  }
+};
 </script>
 
 <template>
   <!-- Card -->
   <div class="dark:bg-card-background p-6  mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.infoTitle') }}</h3>
+    <div class="flex items-center justify-between gap-2">
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.infoTitle') }}</h3>
+      <button
+        class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+        :disabled="loggingOut"
+        @click="logoutCurrentUser"
+      >
+        {{ loggingOut ? 'Logging out...' : 'Logout' }}
+      </button>
+    </div>
     <div class="border-b pt-4 border-white/10" />
     <div class="mt-4">
       <div class="flex justify-between items-center">
@@ -213,21 +345,21 @@ const deleteCurrentAccount = async () => {
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">Sessions</h3>
       <div class="flex flex-wrap gap-2">
         <button
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="refresh()"
         >
           Refresh
         </button>
         <button
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeOtherUserSessions"
         >
           Log Out Other Devices
         </button>
         <button
-          class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeAllUserSessions"
         >
@@ -245,7 +377,6 @@ const deleteCurrentAccount = async () => {
       <table v-if="sessionRows.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
         <thead>
           <tr>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">IP</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">User Agent</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Created</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Expires</th>
@@ -254,7 +385,6 @@ const deleteCurrentAccount = async () => {
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
           <tr v-for="session in sessionRows" :key="session.token" :class="{ 'bg-white/5': isCurrentSession(session.token) }">
-            <td class="py-3 text-sm text-gray-200">{{ session.ipAddress || '-' }}</td>
             <td class="py-3 text-sm text-gray-200">
               {{ formatUserAgent(session.userAgent) }}
               <span v-if="isCurrentSession(session.token)" class="ml-2 inline-flex items-center rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">
@@ -266,7 +396,7 @@ const deleteCurrentAccount = async () => {
             <td class="py-3 text-sm text-right">
               <button
                 v-if="!isCurrentSession(session.token)"
-                class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-1 px-3 rounded disabled:opacity-50"
+                class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-1 px-3 rounded disabled:opacity-50"
                 :disabled="sessionsActionLoading"
                 @click="revokeSingleSession(session.token)"
               >
@@ -289,7 +419,7 @@ const deleteCurrentAccount = async () => {
       <div class="flex justify-between items-center">
         <div>
           <p class="text-white">Media Name Language</p>
-          <p class="text-gray-400 text-sm">Choose which language to display anime and media names in</p>
+          <p class="text-gray-400 text-sm">Media names will appear in {{ mediaNameLanguageLabel }} when possible. Example: <span class="text-white/80 italic">{{ mediaNameExample }}</span></p>
         </div>
         <select
           :value="user_store.preferences?.mediaNameLanguage || 'english'"
@@ -302,6 +432,120 @@ const deleteCurrentAccount = async () => {
           <option value="romaji">Romaji</option>
         </select>
       </div>
+      <div class="flex justify-between items-center mt-4">
+        <div>
+          <p class="text-white">{{ $t('accountSettings.account.suggestiveContent') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.suggestiveContentDesc') }}. {{ contentRatingDescription('suggestive') }}</p>
+        </div>
+        <select
+          :value="user_store.preferences?.contentRatingPreferences?.suggestive || 'blur'"
+          @change="updateContentRatingPreference('suggestive', ($event.target as HTMLSelectElement).value)"
+          :disabled="savingPreferences"
+          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+        >
+          <option value="show">{{ $t('accountSettings.account.contentRatingShow') }}</option>
+          <option value="blur">{{ $t('accountSettings.account.contentRatingBlur') }}</option>
+          <option value="hide">{{ $t('accountSettings.account.contentRatingHide') }}</option>
+        </select>
+      </div>
+      <!-- Content rating visual example -->
+      <div v-if="previewSegment" class="mt-3 rounded-lg bg-white/5 overflow-hidden">
+        <div class="flex flex-col sm:flex-row items-stretch">
+          <!-- Image preview -->
+          <div class="relative h-36 sm:h-auto sm:w-48 shrink-0 overflow-hidden">
+            <img
+              v-if="suggestiveMode !== 'hide'"
+              :src="previewSegment.urls.imageUrl"
+              class="h-full w-full object-cover object-center transition-all duration-300"
+              :class="suggestiveMode === 'blur' ? 'blur-[60px] scale-125' : ''"
+            />
+            <div
+              v-else
+              class="h-full min-h-[6rem] w-full flex items-center justify-center bg-neutral-800"
+            >
+              <span class="text-gray-500 text-sm">{{ $t('accountSettings.account.contentRatingHidden') }}</span>
+            </div>
+          </div>
+          <!-- Text preview -->
+          <div class="flex-1 px-4 py-3 flex flex-col justify-center gap-1.5">
+            <p class="text-white text-sm leading-snug">{{ previewSegment.segment.textJa.content }}</p>
+            <p class="text-gray-400 text-xs leading-snug">{{ previewSegment.segment.textEn.content }}</p>
+            <p class="text-gray-500 text-xs mt-1">{{ $t('accountSettings.account.contentRatingPreview') }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-between items-center mt-4">
+        <div>
+          <p class="text-white">{{ $t('accountSettings.account.explicitContent') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.explicitContentDesc') }}. {{ contentRatingDescription('explicit') }}</p>
+        </div>
+        <select
+          :value="user_store.preferences?.contentRatingPreferences?.explicit || 'blur'"
+          @change="updateContentRatingPreference('explicit', ($event.target as HTMLSelectElement).value)"
+          :disabled="savingPreferences"
+          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+        >
+          <option value="show">{{ $t('accountSettings.account.contentRatingShow') }}</option>
+          <option value="blur">{{ $t('accountSettings.account.contentRatingBlur') }}</option>
+          <option value="hide">{{ $t('accountSettings.account.contentRatingHide') }}</option>
+        </select>
+      </div>
+
+      <!-- Hidden Media Section -->
+      <div class="border-t border-white/10 mt-6 pt-6">
+        <h4 class="text-white font-medium">{{ $t('accountSettings.account.hiddenMedia') }}</h4>
+        <p class="text-gray-400 text-sm mt-1">{{ $t('accountSettings.account.hiddenMediaDescription') }}</p>
+
+        <!-- Search input -->
+        <div class="relative mt-3">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <UiBaseIcon :path="mdiMagnify" class="text-gray-400" w="w-4" h="h-4" />
+          </div>
+          <input
+            v-model="hiddenMediaSearchQuery"
+            type="text"
+            :placeholder="$t('accountSettings.account.hiddenMediaSearchPlaceholder')"
+            class="w-full pl-9 pr-3 py-2 bg-neutral-800 text-white border border-white/10 rounded-lg text-sm focus:ring-gray-500 focus:border-gray-500"
+          />
+        </div>
+
+        <!-- Search results dropdown -->
+        <div v-if="hiddenMediaSearchResults.length > 0" class="mt-1 bg-neutral-800 border border-white/10 rounded-lg max-h-48 overflow-y-auto">
+          <button
+            v-for="result in hiddenMediaSearchResults"
+            :key="result.id"
+            class="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 text-left transition-colors"
+            @click="toggleHideMedia({ mediaId: result.id, nameEn: result.nameEn, nameJa: result.nameJa, nameRomaji: result.nameRomaji }); hiddenMediaSearchQuery = ''; hiddenMediaSearchResults = [];"
+          >
+            <span class="text-white text-sm truncate">{{ mediaName(result) }}</span>
+            <span
+              class="text-xs px-2 py-0.5 rounded-full shrink-0 ml-2"
+              :class="isMediaHidden(result.id) ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+            >
+              {{ isMediaHidden(result.id) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia') }}
+            </span>
+          </button>
+        </div>
+        <p v-else-if="hiddenMediaSearching" class="mt-1 text-gray-400 text-sm">{{ $t('accountSettings.anki.loading') }}</p>
+
+        <!-- Hidden media list -->
+        <div v-if="hiddenMediaItems.length > 0" class="mt-3 space-y-1">
+          <div
+            v-for="item in hiddenMediaItems"
+            :key="item.mediaId"
+            class="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg"
+          >
+            <span class="text-white text-sm truncate">{{ mediaName({ nameEn: item.nameEn || '', nameJa: item.nameJa || '', nameRomaji: item.nameRomaji || '' }) }}</span>
+            <button
+              class="text-gray-400 hover:text-white transition-colors shrink-0 ml-2"
+              @click="toggleHideMedia(item)"
+            >
+              <UiBaseIcon :path="mdiClose" w="w-4" h="h-4" />
+            </button>
+          </div>
+        </div>
+        <p v-else class="mt-3 text-gray-500 text-sm">{{ $t('accountSettings.account.hiddenMediaEmpty') }}</p>
+      </div>
     </div>
   </div>
 
@@ -309,13 +553,26 @@ const deleteCurrentAccount = async () => {
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
     <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.additionalTitle') }}</h3>
     <div class="border-b pt-4 border-white/10" />
-    <div class="mt-4">
-      <div class="flex justify-between items-center mt-3">
+    <div class="mt-4 space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-white">Export Data</p>
+          <p class="text-gray-400 text-sm">Download all your data as a JSON file.</p>
+        </div>
+        <button
+          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          :disabled="exportingData"
+          @click="exportData"
+        >
+          {{ exportingData ? 'Exporting...' : 'Export Data' }}
+        </button>
+      </div>
+      <div class="flex justify-between items-center">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
-          class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="deletingAccount"
           @click="deleteCurrentAccount"
         >

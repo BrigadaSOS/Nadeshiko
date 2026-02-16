@@ -748,8 +748,8 @@
       "characterCount": {
         "type": "short"
       },
-      "isNsfw": {
-        "type": "boolean"
+      "contentRating": {
+        "type": "keyword"
       },
       "storage": {
         "type": "keyword"
@@ -765,10 +765,6 @@
       },
       "storageBasePath": {
         "type": "keyword"
-      },
-      "morphemes": {
-        "type": "object",
-        "enabled": false
       }
     }
   }

@@ -9,9 +9,29 @@ export enum UserRoleType {
   PATREON = 'PATREON',
 }
 
+export interface AnkiProfile {
+  id: string;
+  name: string;
+  deck?: string | null;
+  model?: string | null;
+  fields?: { key: string; value: string }[];
+  key?: string | null;
+  serverAddress: string;
+}
+
+export interface HiddenMediaItem {
+  mediaId: number;
+  nameEn?: string;
+  nameJa?: string;
+  nameRomaji?: string;
+}
+
 export interface UserPreferences {
   labs?: Record<string, boolean>;
   searchHistory?: { enabled: boolean };
+  blogLastVisited?: string;
+  ankiProfiles?: AnkiProfile[];
+  hiddenMedia?: HiddenMediaItem[];
 }
 
 @Entity('User')

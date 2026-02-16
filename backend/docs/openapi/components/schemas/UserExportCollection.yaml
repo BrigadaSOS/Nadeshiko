@@ -1,0 +1,12 @@
+allOf:
+  - $ref: "./collection/Collection.yaml"
+  - type: object
+    required:
+      - segmentUuids
+    properties:
+      segmentUuids:
+        type: array
+        description: Segment UUIDs in saved order
+        items:
+          type: string
+          format: uuid

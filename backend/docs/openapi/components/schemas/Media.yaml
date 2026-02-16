@@ -2,6 +2,7 @@ type: object
 description: Media entry with full metadata
 required:
   - id
+  - externalIds
   - nameJa
   - nameRomaji
   - nameEn
@@ -12,7 +13,8 @@ required:
   - bannerUrl
   - startDate
   - category
-  - version
+  - segmentCount
+  - episodeCount
   - studio
   - seasonName
   - seasonYear
@@ -80,10 +82,6 @@ properties:
     type: integer
     description: Total number of episodes available
     example: 25
-  version:
-    type: string
-    description: Version identifier for the media entry
-    example: "6"
   studio:
     type: string
     description: Animation studio that produced the media
@@ -96,18 +94,8 @@ properties:
     type: integer
     description: Airing year for the media
     example: 2010
-  storageBasePath:
-    type: string
-    nullable: true
-    description: Base path for R2/CDN storage (e.g. "media/21459")
-    example: "media/21459"
   characters:
     type: array
     items:
       $ref: "./MediaCharacter.yaml"
     description: Characters appearing in the media with their voice actors
-  lists:
-    type: array
-    items:
-      $ref: "./List.yaml"
-    description: Lists that contain this media

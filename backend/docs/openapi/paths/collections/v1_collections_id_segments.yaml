@@ -1,0 +1,50 @@
+post:
+  tags:
+    - Collections
+  operationId: collectionAddSegment
+  summary: Add segment to collection
+  description: |
+    Adds a segment to a collection. Requires collection ownership.
+
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Collection ID
+      schema:
+        type: integer
+        example: 123
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - segmentUuid
+          properties:
+            segmentUuid:
+              type: string
+              description: UUID of the segment to add
+              example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+            note:
+              type: string
+              maxLength: 500
+              description: Optional annotation
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

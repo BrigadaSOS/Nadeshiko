@@ -1,22 +1,13 @@
 type: object
-description: Media entry containing word matches
+description: Media match count entry
+required:
+  - mediaId
+  - matchCount
 properties:
   mediaId:
     type: integer
-    description: Unique identifier for the media
+    description: Media identifier (look up full details in includes.media)
     example: 110316
-  nameEn:
-    type: string
-    description: English name of the media
-    example: "Steins;Gate"
-  nameJa:
-    type: string
-    description: Original Japanese name of the media
-    example: "シュタインズ・ゲート"
-  nameRomaji:
-    type: string
-    description: Romaji transliteration of the media name
-    example: "Steins;Gate"
   matchCount:
     type: integer
     description: Number of times the word appears in this media

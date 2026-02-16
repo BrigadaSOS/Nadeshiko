@@ -1,10 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not } from 'typeorm';
 import { BaseEntity } from './base.entity';
+import { ResponseSchemas, Internal } from '@lib/decorators';
 import { Episode } from './Episode';
 import { MediaCharacter } from './MediaCharacter';
 import { MediaExternalId } from './MediaExternalId';
 import { Segment, SegmentStatus } from './Segment';
-import type { ListItem } from './ListItem';
+import type { SeriesMedia } from './SeriesMedia';
 import type { MediaInfoData } from '@app/types/queryMediaInfoResponse';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 import { SegmentStorage } from './Segment';
@@ -19,6 +20,7 @@ export enum CategoryType {
 }
 
 @Entity('Media')
+@ResponseSchemas('Media')
 export class Media extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id!: number;
@@ -41,6 +43,7 @@ export class Media extends BaseEntity {
   @Column({ type: 'text', array: true })
   genres!: string[];
 
+  @Internal()
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;
 
@@ -70,12 +73,15 @@ export class Media extends BaseEntity {
   @Column({ name: 'num_segments', type: 'int', default: 0 })
   segmentCount!: number;
 
+  @Internal()
   @Column({ type: 'varchar' })
   version!: string;
 
+  @Internal()
   @Column({ name: 'hash_salt', type: 'varchar', nullable: true })
   hashSalt?: string;
 
+  @Internal()
   @Column({ name: 'storage_base_path', type: 'varchar' })
   storageBasePath!: string;
 
@@ -91,8 +97,8 @@ export class Media extends BaseEntity {
   @OneToMany('MediaCharacter', 'media', { cascade: true })
   characters!: MediaCharacter[];
 
-  @OneToMany('ListItem', 'media')
-  listItems!: ListItem[];
+  @OneToMany('SeriesMedia', 'media')
+  seriesEntries!: SeriesMedia[];
 
   @OneToMany('MediaExternalId', 'media', { cascade: true })
   externalIds!: MediaExternalId[];
@@ -108,7 +114,7 @@ export class Media extends BaseEntity {
   }> {
     return Cache.fetch(MEDIA_INFO_CACHE, 'all', MEDIA_INFO_TTL_MS, async () => {
       const allMedia = await Media.find({
-        relations: ['episodes'],
+        relations: ['episodes', 'externalIds'],
         order: { createdAt: 'DESC' },
       });
 
@@ -194,6 +200,11 @@ export class Media extends BaseEntity {
   }
 
   private static toMediaInfoData(media: Media): MediaInfoData {
+    const externalIds: Record<string, string> = {};
+    for (const ext of media.externalIds ?? []) {
+      externalIds[ext.source.toLowerCase()] = ext.externalId;
+    }
+
     return {
       mediaId: media.id,
       category: media.category, // "ANIME", "JDRAMA"
@@ -214,6 +225,10 @@ export class Media extends BaseEntity {
       version: media.version,
       segmentCount: media.segmentCount,
       episodeCount: media.episodes?.length ?? 0,
+      studio: media.studio,
+      seasonName: media.seasonName,
+      seasonYear: media.seasonYear,
+      externalIds,
       storageBasePath: media.storageBasePath,
     };
   }

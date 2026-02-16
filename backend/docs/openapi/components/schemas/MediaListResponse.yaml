@@ -1,18 +1,12 @@
 type: object
 description: Paginated list of media entries
+required:
+  - media
+  - pagination
 properties:
-  data:
+  media:
     type: array
     items:
       $ref: "./Media.yaml"
-  cursor:
-    type: integer
-    description: Next cursor for pagination
-    example: 20
-  hasMore:
-    type: boolean
-    description: Whether more results are available
-    example: true
-required:
-  - data
-  - hasMore
+  pagination:
+    $ref: "./CursorPagination.yaml"

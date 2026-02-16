@@ -1,0 +1,96 @@
+patch:
+  tags:
+    - Media
+  operationId: seriesUpdateMedia
+  x-internal: true
+  summary: Update media position in series
+  description: |
+    Updates the position of a media entry in a series.
+
+  security:
+    - apiKeyHeader: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Series ID
+      schema:
+        type: integer
+        example: 1
+    - name: mediaId
+      in: path
+      required: true
+      description: Media ID
+      schema:
+        type: integer
+        example: 42
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - position
+          properties:
+            position:
+              type: integer
+              description: New position in the series (1-indexed)
+              example: 2
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Media
+  operationId: seriesRemoveMedia
+  x-internal: true
+  summary: Remove media from series
+  description: |
+    Removes a media entry from a series.
+
+  security:
+    - apiKeyHeader: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Series ID
+      schema:
+        type: integer
+        example: 1
+    - name: mediaId
+      in: path
+      required: true
+      description: Media ID
+      schema:
+        type: integer
+        example: 42
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

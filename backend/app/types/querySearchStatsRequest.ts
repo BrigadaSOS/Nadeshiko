@@ -1,12 +1,9 @@
-import { QuerySegmentsRequest } from './querySegmentsRequest';
+import type { QueryFilters } from './querySegmentsRequest';
 
 export type QuerySearchStatsRequest = {
-  readonly query?: string;
-  readonly category?: QuerySegmentsRequest['category'];
-  readonly exactMatch?: boolean;
-  readonly minLength?: number;
-  readonly maxLength?: number;
-  readonly excludedMediaIds?: number[];
-  readonly mediaIds?: number[];
-  readonly status: string[];
+  readonly query?: {
+    readonly search?: string;
+    readonly exactMatch?: boolean;
+  };
+  readonly filters: QueryFilters;
 };

@@ -1,0 +1,11 @@
+type: object
+required:
+  - series
+  - pagination
+properties:
+  series:
+    type: array
+    items:
+      $ref: "../schemas/Series.yaml"
+  pagination:
+    $ref: "../schemas/CursorPagination.yaml"

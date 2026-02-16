@@ -1,11 +1,11 @@
 type: object
-description: Seiyuu with all voice acting roles
+description: Seiyuu details with optional character appearances
 required:
   - id
   - nameJa
   - nameEn
   - imageUrl
-  - roles
+  - characters
 properties:
   id:
     type: integer
@@ -24,18 +24,21 @@ properties:
     format: uri
     description: Profile image URL
     example: "https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg"
-  roles:
+  characters:
     type: array
-    description: All characters voiced by this seiyuu with their media appearances
+    description: Characters voiced by this seiyuu with their media appearances
     items:
-      type: object
-      properties:
-        character:
-          $ref: "./Character.yaml"
-        media:
-          $ref: "./Media.yaml"
-        role:
-          type: string
-          enum: [MAIN, SUPPORTING, BACKGROUND]
-          description: Character role in this media
-          example: MAIN
+      allOf:
+        - $ref: "./Character.yaml"
+        - type: object
+          required:
+            - media
+            - role
+          properties:
+            media:
+              $ref: "./Media.yaml"
+            role:
+              type: string
+              enum: [MAIN, SUPPORTING, BACKGROUND]
+              description: Character role in this media
+              example: MAIN

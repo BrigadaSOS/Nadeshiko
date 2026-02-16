@@ -1,6 +1,9 @@
 <script setup>
+import { buildSentenceMetaTags } from '~/utils/metaTags';
+
 const route = useRoute();
 const { mediaName } = useMediaName();
+const { contentRating } = useContentRating();
 
 const uuid = computed(() => String(route.params.uuid));
 
@@ -8,8 +11,8 @@ const fetchSentenceData = async () => {
   try {
     const apiSearch = useApiSearch();
     return await apiSearch.searchSegments({
-      limit: 20,
       uuid: uuid.value,
+      filters: { contentRating: contentRating.value },
     });
   } catch (error) {
     console.error('Error fetching sentence data:', error);
@@ -20,7 +23,7 @@ const fetchSentenceData = async () => {
 const fetchStatsData = async () => {
   try {
     const apiSearch = useApiSearch();
-    return await apiSearch.getSearchStats({});
+    return await apiSearch.getSearchStats({ filters: { contentRating: contentRating.value } });
   } catch (error) {
     console.error('Error fetching search stats:', error);
     return null;
@@ -57,31 +60,9 @@ const metaTags = computed(() => {
   const result = initialSentenceData.value?.results?.[0];
 
   if (result) {
-    const mediaInfo = `Episode ${result.segment.episodeNumber}`;
-    const title = `${mediaName(result.media)} | Nadeshiko`;
-    const description = `「${result.segment.textJa.content}」\n${mediaInfo}`;
-
-    tags.title = title;
-    tags.meta = [
-      { name: 'description', content: description },
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:image', content: result.urls.imageUrl },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: description },
-      { name: 'twitter:image', content: result.urls.imageUrl },
-    ];
-
-    if (result.urls.videoUrl) {
-      tags.meta.push(
-        { property: 'og:video', content: result.urls.videoUrl },
-        { property: 'og:video:type', content: 'video/mp4' },
-        { property: 'og:video:width', content: '1280' },
-        { property: 'og:video:height', content: '720' },
-      );
-    }
+    const sentenceTags = buildSentenceMetaTags(result, mediaName);
+    tags.title = sentenceTags.title;
+    tags.meta = sentenceTags.meta;
   }
 
   return tags;

@@ -38,7 +38,7 @@ useHead({
           <div v-if="isBlogPost" class="mt-10 pt-6 border-t border-gray-800">
             <NuxtLink
               to="/blog"
-              class="inline-flex items-center gap-2 text-sm font-semibold text-[#ef5552] hover:text-[#ef5552]/80 transition-colors duration-200 group"
+              class="inline-flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 group"
             >
               <svg class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -60,6 +60,15 @@ useHead({
 @media (min-width: 640px) {
   .content-markdown {
     padding: 1.75rem 2.5rem 3.5rem 2.5rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .content-markdown :deep(.about-contributors-grid > .about-contributor-card:last-child:nth-child(odd)) {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: calc(50% - 0.5rem);
+    justify-self: center;
   }
 }
 
@@ -85,7 +94,7 @@ useHead({
 }
 
 .content-markdown :deep(li::marker) {
-  color: #ef5552;
+  color: #f87171;
   font-weight: 600;
 }
 
@@ -114,7 +123,7 @@ useHead({
   top: 0.25rem;
   bottom: 0.25rem;
   width: 4px;
-  background: #ef5552;
+  background: #f87171;
   border-radius: 2px;
 }
 
@@ -190,7 +199,7 @@ useHead({
 
 /* Links */
 .content-markdown :deep(a) {
-  color: #ef5552;
+  color: #f87171;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -198,8 +207,8 @@ useHead({
 }
 
 .content-markdown :deep(a:hover) {
-  color: #ff6b68;
-  border-bottom-color: #ef5552;
+  color: #fca5a5;
+  border-bottom-color: #f87171;
 }
 
 /* Links inside headings */
@@ -215,7 +224,14 @@ useHead({
 .content-markdown :deep(h2 a:hover),
 .content-markdown :deep(h3 a:hover),
 .content-markdown :deep(h4 a:hover) {
-  color: #ef5552;
+  color: #f87171;
+}
+
+/* Contributor card description overrides */
+.content-markdown :deep(.about-contributor-card p) {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 0;
 }
 
 /* Contributor boxes and grid styling */

@@ -2,8 +2,7 @@ type: object
 required:
   - id
   - source
-  - targetType
-  - targetMediaId
+  - target
   - reason
   - status
   - createdAt
@@ -17,25 +16,8 @@ properties:
     enum: [USER, AUTO]
     description: Who created this report
     example: "USER"
-  targetType:
-    type: string
-    enum: [SEGMENT, EPISODE, MEDIA]
-    description: What level the report targets
-    example: "SEGMENT"
-  targetMediaId:
-    type: integer
-    description: Media ID this report targets
-    example: 42
-  targetEpisodeNumber:
-    type: integer
-    nullable: true
-    description: Episode number (for EPISODE/SEGMENT targets)
-    example: 5
-  targetSegmentUuid:
-    type: string
-    nullable: true
-    description: Segment UUID (for SEGMENT targets)
-    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  target:
+    $ref: "./ReportTarget.yaml"
   reviewCheckRunId:
     type: integer
     nullable: true

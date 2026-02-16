@@ -20,7 +20,7 @@ get:
       schema:
         type: integer
       description: Cursor for pagination
-    - name: size
+    - name: limit
       in: query
       schema:
         type: integer
@@ -35,18 +35,15 @@ get:
           schema:
             type: object
             required:
-              - data
-              - hasMore
+              - runs
+              - pagination
             properties:
-              data:
+              runs:
                 type: array
                 items:
                   $ref: "../../components/schemas/ReviewCheckRun.yaml"
-              hasMore:
-                type: boolean
-              cursor:
-                type: integer
-                nullable: true
+              pagination:
+                $ref: "../../components/schemas/CursorPagination.yaml"
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
     "403":

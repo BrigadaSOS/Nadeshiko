@@ -8,17 +8,19 @@ export const episodeIndex: EpisodeIndex = async ({ params, query }, respond) => 
   const [episodes, count] = await Episode.findAndCount({
     where: { mediaId: params.mediaId },
     order: { episodeNumber: 'ASC' },
-    take: query.size,
+    take: query.limit,
     skip: query.cursor,
   });
 
   const nextCursor = query.cursor + count;
-  const hasMore = count === query.size;
+  const hasMore = count === query.limit;
 
   return respond.with200().body({
-    data: toEpisodeListDTO(episodes),
-    cursor: hasMore ? nextCursor : undefined,
-    hasMore,
+    episodes: toEpisodeListDTO(episodes),
+    pagination: {
+      hasMore,
+      cursor: hasMore ? nextCursor : null,
+    },
   });
 };
 

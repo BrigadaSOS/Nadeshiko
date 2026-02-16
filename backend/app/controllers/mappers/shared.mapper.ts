@@ -1,5 +1,5 @@
-import type { t_Seiyuu, t_Character, t_Media, t_List, t_MediaCharacter, t_ExternalId } from 'generated/models';
-import type { Seiyuu, Character, Media, List, MediaCharacter } from '@app/models';
+import type { t_Seiyuu, t_Character, t_Media, t_MediaCharacter, t_ExternalId } from 'generated/models';
+import type { Seiyuu, Character, Media, MediaCharacter } from '@app/models';
 import type { MediaExternalId } from '@app/models/MediaExternalId';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 
@@ -24,19 +24,14 @@ export const toCharacterDTO = (character: Character): t_Character => ({
   nameJa: character.nameJapanese,
   nameEn: character.nameEnglish,
   imageUrl: character.imageUrl,
-  seiyuu: toSeiyuuDTO(character.seiyuu),
-});
-
-export const toListDTO = (list: List): t_List => ({
-  id: list.id,
-  name: list.name,
-  type: list.type as 'SERIES' | 'CUSTOM' | 'SEGMENT',
-  userId: list.userId,
-  visibility: list.visibility as 'PUBLIC' | 'PRIVATE',
 });
 
 export const toMediaCharacterDTO = (mediaCharacter: MediaCharacter): t_MediaCharacter => ({
-  character: toCharacterDTO(mediaCharacter.character),
+  id: mediaCharacter.character.id,
+  nameJa: mediaCharacter.character.nameJapanese,
+  nameEn: mediaCharacter.character.nameEnglish,
+  imageUrl: mediaCharacter.character.imageUrl,
+  seiyuu: toSeiyuuDTO(mediaCharacter.character.seiyuu),
   role: mediaCharacter.role as 'MAIN' | 'SUPPORTING' | 'BACKGROUND',
 });
 
@@ -65,9 +60,7 @@ export const toMediaBaseDTO = (media: Media): t_Media => ({
   category: media.category as 'ANIME' | 'JDRAMA',
   segmentCount: media.segmentCount,
   episodeCount: media.episodes?.length ?? 0,
-  version: media.version,
   studio: media.studio,
   seasonName: media.seasonName,
   seasonYear: media.seasonYear,
-  storageBasePath: media.storageBasePath ?? null,
 });

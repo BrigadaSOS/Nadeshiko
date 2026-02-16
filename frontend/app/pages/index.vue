@@ -20,6 +20,7 @@ useSchemaOrg([
 ]);
 
 useHead({
+  titleTemplate: '%s',
   link: [{ rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' }],
 });
 const config = useRuntimeConfig();
@@ -61,25 +62,25 @@ const {
                                         <ul class="list-disc ml-8 py-4 text-sm font-normal">
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
-                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
                                                     to="/search/彼女">彼女</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionOtherSearch') }}:
-                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
                                                     to="/search/school">School</NuxtLink>,
-                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
                                                     to="/search/escuela">Escuela</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:
-                                                <NuxtLink class="underline text-blue-400/95 underline-offset-4"
+                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
                                                     :to="`/search/${encodeURIComponent('卒業 -みんな')}`">卒業 -みんな</NuxtLink>
                                             </li>
                                             <li class="">
                                                 {{ $t('home.nadeDbDescriptionExactSearch') }}:
                                                 <NuxtLink :to='`/search/${encodeURIComponent(`"食べられない"`)}`'
-                                                    class="underline text-blue-400/90 underline-offset-4">"食べられない"
+                                                    class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors">"食べられない"
                                                 </NuxtLink>
                                             </li>
                                         </ul>
@@ -138,20 +139,30 @@ const {
                                     <div class="mb-5 border-b border-white/10" />
 
                                     <div class="flex gap-4 text-center">
-                                        <div class="md:w-2/4 sm:w-1/2 w-full">
+                                        <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
                                                 <h2 class="title-font font-medium text-2xl text-white">
-                                                    +{{ Math.ceil((media?.data?.reduce((sum, m) => sum + (m.segmentCount || 0), 0) || 0) / 100) * 100 }}
+                                                    +{{ Math.ceil((media?.media?.reduce((sum, m) => sum + (m.segmentCount || 0), 0) || 0) / 100) * 100 }}
                                                 </h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.sentenceCount') }}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="md:w-2/4 sm:w-1/2 w-full">
+                                        <div class="md:w-1/3 sm:w-1/3 w-full">
+                                            <div class="dark:bg-card-background px-4 py-4 rounded-lg">
+                                                <h2 class="title-font font-medium text-2xl text-white">
+                                                    {{ media?.media?.reduce((sum, m) => sum + (m.episodeCount || 0), 0) || 0 }}
+                                                </h2>
+                                                <p class="leading-relaxed text-sm">
+                                                    {{ $t('home.stats.episodeCount') }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg">
                                                 <h2 class="title-font font-medium text-2xl text-white">{{
-                                                    media?.data?.length || 0 }}</h2>
+                                                    media?.media?.length || 0 }}</h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.mediaCount') }}
                                                 </p>
@@ -213,9 +224,9 @@ const {
                                                 <div
                                                     v-else
                                                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
-                                                    <template v-if="media?.data?.length">
+                                                    <template v-if="media?.media?.length">
                                                         <NuxtLink
-                                                            v-for="(media_info, index) in media.data"
+                                                            v-for="(media_info, index) in media.media"
                                                             :key="media_info.id"
                                                             :to="`/search?media=${media_info.id}`"
                                                             class="w-full relative">

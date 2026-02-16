@@ -11,29 +11,30 @@ export const userReportCreate: UserReportCreate = async ({ body }, respond, req)
     throw new AuthCredentialsInvalidError('Invalid session user.');
   }
 
-  const { targetType, targetMediaId, targetSegmentUuid, reason, description } = body;
+  const { target, reason, description } = body;
 
   // Validate target exists
-  if (targetType === 'SEGMENT') {
-    if (!targetSegmentUuid) {
-      throw new InvalidRequestError('targetSegmentUuid is required for SEGMENT reports');
-    }
-    const segment = await Segment.findOne({ where: { uuid: targetSegmentUuid } });
+  if (target.type === 'SEGMENT') {
+    const segment = await Segment.findOne({ where: { uuid: target.segmentUuid } });
     if (!segment) {
-      throw new NotFoundError(`Segment with UUID ${targetSegmentUuid} not found`);
+      throw new NotFoundError(`Segment with UUID ${target.segmentUuid} not found`);
+    }
+    if (segment.mediaId !== target.mediaId) {
+      throw new InvalidRequestError('SEGMENT target mediaId does not match segment mediaId');
     }
   }
 
-  const media = await Media.findOne({ where: { id: targetMediaId } });
+  const media = await Media.findOne({ where: { id: target.mediaId } });
   if (!media) {
-    throw new NotFoundError(`Media with ID ${targetMediaId} not found`);
+    throw new NotFoundError(`Media with ID ${target.mediaId} not found`);
   }
 
   const report = new Report();
   report.source = ReportSource.USER;
-  report.targetType = targetType as ReportTargetType;
-  report.targetMediaId = targetMediaId;
-  report.targetSegmentUuid = targetSegmentUuid ?? null;
+  report.targetType = target.type as ReportTargetType;
+  report.targetMediaId = target.mediaId;
+  report.targetEpisodeNumber = 'episodeNumber' in target ? (target.episodeNumber ?? null) : null;
+  report.targetSegmentUuid = target.type === 'SEGMENT' ? target.segmentUuid : null;
   report.reason = reason as ReportReason;
   report.description = description ?? null;
   report.userId = Number(user.id);
@@ -50,7 +51,7 @@ export const userReportIndex: UserReportIndex = async ({ query }, respond, req) 
     throw new AuthCredentialsInvalidError('Invalid session user.');
   }
 
-  const { cursor, size, status } = query;
+  const { cursor, limit, status } = query;
 
   const where: FindOptionsWhere<Report> = { userId: Number(user.id), source: ReportSource.USER };
   if (status) {
@@ -63,22 +64,28 @@ export const userReportIndex: UserReportIndex = async ({ query }, respond, req) 
   const reports = await Report.find({
     where,
     order: { id: 'DESC' },
-    take: size + 1,
+    take: limit + 1,
   });
 
-  const hasMore = reports.length > size;
-  const data = hasMore ? reports.slice(0, size) : reports;
+  const hasMore = reports.length > limit;
+  const data = hasMore ? reports.slice(0, limit) : reports;
   const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
 
   return respond.with200().body({
-    data: data.map(toReportDTO),
-    hasMore,
-    cursor: nextCursor,
+    reports: data.map(toReportDTO),
+    pagination: {
+      hasMore,
+      cursor: nextCursor,
+    },
   });
 };
 
 export const adminReportIndex: AdminReportIndex = async ({ query }, respond) => {
-  const { cursor, size = 20, status, source, targetType, targetMediaId, reviewCheckRunId } = query;
+  const { cursor, limit = 20, status, source, reviewCheckRunId } = query;
+  const targetType = (query as Record<string, unknown>)['target.type'] as ReportTargetType | undefined;
+  const targetMediaId = (query as Record<string, unknown>)['target.mediaId'] as number | undefined;
+  const targetEpisodeNumber = (query as Record<string, unknown>)['target.episodeNumber'] as number | undefined;
+  const targetSegmentUuid = (query as Record<string, unknown>)['target.segmentUuid'] as string | undefined;
 
   const where: FindOptionsWhere<Report> = {};
   if (status) {
@@ -90,8 +97,14 @@ export const adminReportIndex: AdminReportIndex = async ({ query }, respond) => 
   if (targetType) {
     where.targetType = targetType as ReportTargetType;
   }
-  if (targetMediaId) {
+  if (targetMediaId !== undefined) {
     where.targetMediaId = targetMediaId;
+  }
+  if (targetEpisodeNumber !== undefined) {
+    where.targetEpisodeNumber = targetEpisodeNumber;
+  }
+  if (targetSegmentUuid !== undefined) {
+    where.targetSegmentUuid = targetSegmentUuid;
   }
   if (reviewCheckRunId) {
     where.reviewCheckRunId = reviewCheckRunId;
@@ -104,11 +117,11 @@ export const adminReportIndex: AdminReportIndex = async ({ query }, respond) => 
     where,
     relations: ['user'],
     order: { id: 'DESC' },
-    take: size + 1,
+    take: limit + 1,
   });
 
-  const hasMore = reports.length > size;
-  const data = hasMore ? reports.slice(0, size) : reports;
+  const hasMore = reports.length > limit;
+  const data = hasMore ? reports.slice(0, limit) : reports;
   const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
 
   // Compute report counts per (targetType, targetMediaId) for the returned reports
@@ -142,11 +155,13 @@ export const adminReportIndex: AdminReportIndex = async ({ query }, respond) => 
   }
 
   return respond.with200().body({
-    data: data.map((report) =>
+    reports: data.map((report) =>
       toAdminReportDTO(report, countMap.get(`${report.targetType}:${report.targetMediaId}`) ?? 1),
     ),
-    hasMore,
-    cursor: nextCursor,
+    pagination: {
+      hasMore,
+      cursor: nextCursor,
+    },
   });
 };
 

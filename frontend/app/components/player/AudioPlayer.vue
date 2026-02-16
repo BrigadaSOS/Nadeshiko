@@ -48,6 +48,24 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
       event.preventDefault();
       playerStore.next();
       break;
+    case 'KeyR':
+      if (showPlayer.value) {
+        event.preventDefault();
+        playerStore.restart();
+      }
+      break;
+    case 'KeyF':
+      if (showPlayer.value) {
+        event.preventDefault();
+        playerStore.toggleImmersive();
+      }
+      break;
+    case 'KeyL':
+      if (showPlayer.value) {
+        event.preventDefault();
+        playerStore.toggleAutoplay();
+      }
+      break;
     case 'Escape':
       if (isImmersive.value) {
         playerStore.toggleImmersive();

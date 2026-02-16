@@ -1,0 +1,59 @@
+type: object
+description: Search filters for narrowing segment results
+properties:
+  media:
+    type: object
+    description: Media inclusion/exclusion filters
+    properties:
+      include:
+        type: array
+        description: Include only segments from these media (with optional episode filter)
+        items:
+          $ref: "./MediaFilterItem.yaml"
+      exclude:
+        type: array
+        description: Exclude segments from these media (with optional episode filter)
+        items:
+          $ref: "./MediaFilterItem.yaml"
+  category:
+    type: array
+    description: Media category filter
+    items:
+      $ref: "./Category.yaml"
+    default: [ANIME, JDRAMA]
+  contentRating:
+    type: array
+    description: Content ratings to include (omit for all ratings)
+    items:
+      $ref: "./ContentRating.yaml"
+  status:
+    type: array
+    description: Segment status filter
+    items:
+      type: string
+      enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    default: ["ACTIVE"]
+  segmentLengthChars:
+    type: object
+    description: Content character count range filter
+    properties:
+      min:
+        type: integer
+        description: Minimum content length
+        example: 10
+      max:
+        type: integer
+        description: Maximum content length
+        example: 50
+  segmentDurationMs:
+    type: object
+    description: Segment audio duration range filter (in milliseconds)
+    properties:
+      min:
+        type: integer
+        description: Minimum duration in ms
+        example: 1000
+      max:
+        type: integer
+        description: Maximum duration in ms
+        example: 10000

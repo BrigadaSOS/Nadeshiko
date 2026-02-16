@@ -9,11 +9,6 @@ export interface EsSyncJobData {
   operation: 'CREATE' | 'UPDATE' | 'DELETE';
 }
 
-export interface MorphemeJobData {
-  segmentId: number;
-  operation: 'CREATE' | 'UPDATE';
-}
-
 export interface EmailJobData {
   to: string;
   subject: string;
@@ -105,16 +100,6 @@ export async function initPgBoss(pgBossConfig: PgBossConfig = {}): Promise<PgBos
       },
     },
     {
-      name: 'morpheme-analyze',
-      options: {
-        retryLimit: 5,
-        retryDelay: 5000,
-        retryBackoff: true,
-        expireInSeconds: 3600,
-        retentionSeconds: 86400, // Remove completed jobs after 1 day
-      },
-    },
-    {
       name: 'email-send',
       options: {
         retryLimit: 5,
@@ -179,23 +164,6 @@ export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null>
 }
 
 /**
- * Send a morpheme analysis job with deduplication by segmentId.
- */
-export async function sendMorphemeJob(data: MorphemeJobData): Promise<string | null> {
-  const boss = getPgBoss();
-
-  try {
-    const jobId = await boss.sendDebounced('morpheme-analyze', data, null, 1, `${data.segmentId}`);
-    logger.info(`Enqueued morpheme job ${jobId} for segment ${data.segmentId} (${data.operation})`);
-    return jobId;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to enqueue morpheme job: ${errorMessage}`);
-    return null;
-  }
-}
-
-/**
  * Get stuck jobs across all ES sync queues.
  * Returns counts of pending and failed jobs.
  */
@@ -236,12 +204,29 @@ export async function getStuckJobs(): Promise<
  */
 export async function fetchQueueDetails(queueName: string): Promise<{
   queue: string;
-  size: number;
-  created: number;
-  failed: number;
-  complete: number;
-  expired: number;
-  cancelled: number;
+  stats: {
+    deferred: number;
+    queued: number;
+    active: number;
+    total: number;
+  };
+  metadata: {
+    policy: string;
+    partition: boolean;
+    deadLetter: string | null;
+    warningQueueSize: number | null;
+    retryLimit: number | null;
+    retryDelay: number | null;
+    retryBackoff: boolean | null;
+    retryDelayMax: number | null;
+    expireInSeconds: number | null;
+    retentionSeconds: number | null;
+    deleteAfterSeconds: number | null;
+    createdOn: string;
+    updatedOn: string;
+    singletonsActive: string[];
+    table: string;
+  };
 } | null> {
   const boss = getPgBoss();
 
@@ -250,12 +235,29 @@ export async function fetchQueueDetails(queueName: string): Promise<{
 
     return {
       queue: queueName,
-      size: stats.totalCount,
-      created: 0, // PgBoss doesn't track total created count
-      failed: 0, // Not available in QueueResult
-      complete: 0, // Not available in QueueResult
-      expired: 0, // PgBoss doesn't track this directly
-      cancelled: 0, // Not available in QueueResult
+      stats: {
+        deferred: stats.deferredCount,
+        queued: stats.queuedCount,
+        active: stats.activeCount,
+        total: stats.totalCount,
+      },
+      metadata: {
+        policy: stats.policy || 'standard',
+        partition: Boolean(stats.partition),
+        deadLetter: stats.deadLetter ?? null,
+        warningQueueSize: stats.warningQueueSize ?? null,
+        retryLimit: stats.retryLimit ?? null,
+        retryDelay: stats.retryDelay ?? null,
+        retryBackoff: stats.retryBackoff ?? null,
+        retryDelayMax: stats.retryDelayMax ?? null,
+        expireInSeconds: stats.expireInSeconds ?? null,
+        retentionSeconds: stats.retentionSeconds ?? null,
+        deleteAfterSeconds: stats.deleteAfterSeconds ?? null,
+        createdOn: stats.createdOn.toISOString(),
+        updatedOn: stats.updatedOn.toISOString(),
+        singletonsActive: stats.singletonsActive ?? [],
+        table: stats.table,
+      },
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

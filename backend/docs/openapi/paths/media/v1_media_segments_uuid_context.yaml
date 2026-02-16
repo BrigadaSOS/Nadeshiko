@@ -27,6 +27,21 @@ get:
         minimum: 1
         maximum: 30
       description: Number of segments to return before and after the target
+    - name: contentRating
+      in: query
+      schema:
+        type: array
+        items:
+          $ref: "../../components/schemas/ContentRating.yaml"
+      description: Content ratings to include (omit for all ratings)
+    - name: include
+      in: query
+      schema:
+        type: array
+        items:
+          $ref: "../../components/schemas/IncludeExpansion.yaml"
+        default: [media]
+      description: Resources to expand in the response includes block
   responses:
     "200":
       description: OK

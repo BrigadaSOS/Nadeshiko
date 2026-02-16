@@ -1,0 +1,81 @@
+get:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: adminHealthShow
+  summary: System health check
+  description: |
+    Returns connectivity status and version information for all backend subsystems
+    (Elasticsearch, PostgreSQL, application).
+
+    **Permissions:** `ADD_MEDIA`
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - status
+              - app
+              - elasticsearch
+              - database
+            properties:
+              status:
+                type: string
+                enum: [healthy, degraded]
+                description: Overall system status
+              app:
+                type: object
+                required:
+                  - version
+                properties:
+                  version:
+                    type: string
+                    description: API version from OpenAPI spec
+              elasticsearch:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum: [connected, disconnected]
+                  version:
+                    type: string
+                    nullable: true
+                  clusterName:
+                    type: string
+                    nullable: true
+                  clusterStatus:
+                    type: string
+                    nullable: true
+                    description: ES cluster health (green, yellow, red)
+                  indexName:
+                    type: string
+                    nullable: true
+                  documentCount:
+                    type: integer
+                    nullable: true
+              database:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum: [connected, disconnected]
+                  version:
+                    type: string
+                    nullable: true
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

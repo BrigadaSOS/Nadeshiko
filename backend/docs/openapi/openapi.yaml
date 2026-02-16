@@ -23,7 +23,7 @@ info:
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
 
-  version: 1.4.0
+  version: 1.4.1
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -53,28 +53,22 @@ tags:
       Media CRUD endpoints for managing anime, J-Drama, and audiobook entries, episodes, segments, characters, and seiyuu.
 
   - name: User
+    x-internal: true
     description: |
       User endpoints for account data including quota, preferences, activity history, reports, and data export.
 
-  - name: Lists
+  - name: Collections
     description: |
-      List endpoints for managing media collections, watch orders, and saved segments.
-
-  - name: Labs
-    description: |
-      Lab feature endpoints for experimental features and beta flags.
+      Collection endpoints for managing saved segment collections.
 
 paths:
   # Search endpoints
-  "/v1/health":
-    $ref: "./paths/search/v1_health.yaml"
   "/v1/search":
     $ref: "./paths/search/v1_search.yaml"
   "/v1/search/stats":
     $ref: "./paths/search/v1_search_stats.yaml"
   "/v1/search/words":
     $ref: "./paths/search/v1_search_words.yaml"
-
   # Media endpoints
   "/v1/media":
     $ref: "./paths/media/v1_media.yaml"
@@ -99,6 +93,16 @@ paths:
   "/v1/media/segments/{uuid}/context":
     $ref: "./paths/media/v1_media_segments_uuid_context.yaml"
 
+  # Series endpoints (media groupings)
+  "/v1/media/series":
+    $ref: "./paths/media/v1_media_series.yaml"
+  "/v1/media/series/{id}":
+    $ref: "./paths/media/v1_media_series_id.yaml"
+  "/v1/media/series/{id}/media":
+    $ref: "./paths/media/v1_media_series_id_media.yaml"
+  "/v1/media/series/{id}/media/{mediaId}":
+    $ref: "./paths/media/v1_media_series_id_media_mediaId.yaml"
+
   # Character endpoints (nested under media)
   "/v1/media/characters/{id}":
     $ref: "./paths/media/v1_media_characters_id.yaml"
@@ -116,30 +120,30 @@ paths:
     $ref: "./paths/user/v1_user_preferences.yaml"
   "/v1/user/activity":
     $ref: "./paths/user/v1_user_activity.yaml"
+  "/v1/user/activity/heatmap":
+    $ref: "./paths/user/v1_user_activity_heatmap.yaml"
   "/v1/user/activity/stats":
     $ref: "./paths/user/v1_user_activity_stats.yaml"
   "/v1/user/export":
     $ref: "./paths/user/v1_user_export.yaml"
+  "/v1/user/labs":
+    $ref: "./paths/user/v1_user_labs.yaml"
 
-  # Labs endpoints
-  "/v1/labs":
-    $ref: "./paths/labs/v1_labs.yaml"
-
-  # List endpoints
-  "/v1/lists":
-    $ref: "./paths/lists/v1_lists.yaml"
-  "/v1/lists/{id}":
-    $ref: "./paths/lists/v1_lists_id.yaml"
-  "/v1/lists/{id}/items":
-    $ref: "./paths/lists/v1_lists_id_items.yaml"
-  "/v1/lists/{id}/items/{mediaId}":
-    $ref: "./paths/lists/v1_lists_id_items_mediaId.yaml"
-  "/v1/lists/{id}/segments":
-    $ref: "./paths/lists/v1_lists_id_segments.yaml"
-  "/v1/lists/{id}/segments/{uuid}":
-    $ref: "./paths/lists/v1_lists_id_segments_uuid.yaml"
+  # Collection endpoints
+  "/v1/collections":
+    $ref: "./paths/collections/v1_collections.yaml"
+  "/v1/collections/{id}":
+    $ref: "./paths/collections/v1_collections_id.yaml"
+  "/v1/collections/{id}/segments":
+    $ref: "./paths/collections/v1_collections_id_segments.yaml"
+  "/v1/collections/{id}/segments/{uuid}":
+    $ref: "./paths/collections/v1_collections_id_segments_uuid.yaml"
 
   # Admin endpoints
+  "/v1/admin/dashboard":
+    $ref: "./paths/admin/v1_admin_dashboard.yaml"
+  "/v1/admin/health":
+    $ref: "./paths/admin/v1_admin_health.yaml"
   "/v1/admin/reindex":
     $ref: "./paths/admin/v1_admin_reindex.yaml"
   "/v1/admin/queues/stats":
@@ -152,8 +156,6 @@ paths:
     $ref: "./paths/admin/v1_admin_queues__queueName__retry.yaml"
   "/v1/admin/queues/{queueName}/purge":
     $ref: "./paths/admin/v1_admin_queues__queueName__purge.yaml"
-  "/v1/admin/morpheme-backfill":
-    $ref: "./paths/admin/v1_admin_morpheme_backfill.yaml"
   "/v1/admin/reports":
     $ref: "./paths/admin/v1_admin_reports.yaml"
   "/v1/admin/reports/{id}":
@@ -186,4 +188,5 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
+
 

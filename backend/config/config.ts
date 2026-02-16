@@ -43,8 +43,6 @@ const envSchema = z.object({
   EMAIL_API_NADEDB: z.string().optional(),
 
   // Rate limiting
-  ORIGIN_SAFETY_WINDOW_MS: z.coerce.number().int().positive().default(60000),
-  ORIGIN_SAFETY_LIMIT: z.coerce.number().int().positive().default(2000),
   API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(300000),
   API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(2000),
 

@@ -1,0 +1,12 @@
+type: object
+description: Paginated collection list response
+required:
+  - collections
+  - pagination
+properties:
+  collections:
+    type: array
+    items:
+      $ref: "./Collection.yaml"
+  pagination:
+    $ref: "../CursorPagination.yaml"

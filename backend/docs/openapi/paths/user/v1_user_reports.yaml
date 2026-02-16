@@ -1,6 +1,7 @@
 post:
   tags:
     - User
+  x-internal: true
   operationId: userReportCreate
   summary: Create a new report
   description: |
@@ -34,6 +35,7 @@ post:
 get:
   tags:
     - User
+  x-internal: true
   operationId: userReportIndex
   summary: List user's own reports
   description: |
@@ -48,7 +50,7 @@ get:
       schema:
         type: integer
       description: Cursor for pagination (report ID to start after)
-    - name: size
+    - name: limit
       in: query
       schema:
         type: integer

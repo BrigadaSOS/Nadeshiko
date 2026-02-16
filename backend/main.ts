@@ -10,7 +10,6 @@ import '@app/subscribers'; // Import TypeORM subscribers
 import { initPgBoss, stopPgBoss } from '@app/workers/pgBoss';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { registerEmailWorkers } from '@app/workers/emailWorker';
-import { registerMorphemeWorkers } from '@app/workers/morphemeWorker';
 import { registerActivityRetentionWorker } from '@app/workers/activityRetentionWorker';
 import { seedCheckConfigs } from '@app/services/mediaReview/runner';
 import { router } from '@app/routes/router';
@@ -20,7 +19,6 @@ import { handleErrors } from '@app/middleware/errorHandler';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 import { logger, httpLogger } from '@config/log';
 import { NotFoundError } from '@app/errors';
-import { originSafetyLimiter } from '@app/middleware/apiLimiterRate';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
 import { tracingMiddleware } from '@app/middleware/tracing';
 import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
@@ -80,7 +78,6 @@ app.use(responseBodyLogger);
 // Parse incoming request bodies BEFORE httpLogger so req.rawBody is available for logging
 // The verify callback in both captures the raw body to req.rawBody for logging
 app.use(express.json({ limit: '10mb', verify: rawBodySaver as any }));
-app.use(express.urlencoded({ extended: true, limit: '10mb', verify: rawBodySaver as any }));
 app.use(handleJsonParseErrors);
 
 app.use(httpLogger);
@@ -94,7 +91,7 @@ const noCache = (_req: any, res: any, next: any) => {
 };
 app.all('/v1/auth', noCache, toNodeHandler(auth));
 app.all('/v1/auth/*splat', noCache, toNodeHandler(auth));
-app.use('/', originSafetyLimiter, router);
+app.use('/', router);
 
 // Catch-all 404 handler
 app.use((req, res) => {
@@ -121,7 +118,6 @@ app.listen(PORT, async () => {
     const boss = await initPgBoss();
     await registerEsSyncWorkers(boss);
     await registerEmailWorkers(boss);
-    await registerMorphemeWorkers(boss);
     await registerActivityRetentionWorker(boss);
 
     // Seed review check configs (idempotent)

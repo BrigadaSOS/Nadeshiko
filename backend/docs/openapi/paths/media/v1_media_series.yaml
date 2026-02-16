@@ -1,0 +1,102 @@
+get:
+  tags:
+    - Media
+  operationId: seriesIndex
+  summary: List all series
+  description: |
+    Returns a paginated list of media series groupings.
+
+  security:
+    - apiKeyHeader: []
+    - sessionCookie: []
+  parameters:
+    - name: limit
+      in: query
+      description: Number of results per page
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+    - name: cursor
+      in: query
+      description: Pagination cursor offset
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    - name: query
+      in: query
+      description: Case-insensitive search across English, Japanese, and Romaji names
+      schema:
+        type: string
+        example: bakuman
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/SeriesListResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+post:
+  tags:
+    - Media
+  operationId: seriesCreate
+  x-internal: true
+  summary: Create series
+  description: |
+    Creates a new media series grouping.
+
+  security:
+    - apiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - nameJa
+            - nameRomaji
+            - nameEn
+          properties:
+            nameJa:
+              type: string
+              description: Japanese name of the series
+              example: "バクマン。シリーズ"
+            nameRomaji:
+              type: string
+              description: Romaji name of the series
+              example: "Bakuman. Series"
+            nameEn:
+              type: string
+              description: English name of the series
+              example: "Bakuman Series"
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Series.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

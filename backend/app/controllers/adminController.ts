@@ -5,7 +5,6 @@ import type {
   AdminQueueRetryCreate,
   AdminQueueFailedIndex,
   AdminQueueFailedDestroy,
-  AdminMorphemeBackfillCreate,
 } from 'generated/routes/admin';
 import { reindexSegments, ReindexMediaItem } from '@app/services/elasticsearchSync';
 import {
@@ -18,7 +17,6 @@ import {
 import { Cache } from '@lib/cache';
 import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
 import { NotFoundError } from '@app/errors';
-import { logger } from '@config/log';
 
 export const adminReindexCreate: AdminReindexCreate = async ({ body }, respond) => {
   const media = body?.media?.map(
@@ -83,16 +81,5 @@ export const adminQueueRetryCreate: AdminQueueRetryCreate = async ({ params }, r
     success: true,
     retriedCount,
     message: `Retried ${retriedCount} failed jobs from ${queueName}`,
-  });
-};
-
-export const adminMorphemeBackfillCreate: AdminMorphemeBackfillCreate = async (_1, respond) => {
-  // TEMPORARILY DISABLED - lindera.js dependency removed
-  const errorMessage = 'Morpheme analysis temporarily disabled - lindera.js dependency removed';
-  logger.warn(errorMessage);
-  return respond.with200().body({
-    success: false,
-    message: errorMessage,
-    stats: { totalSegments: 0, successfulAnalyses: 0, failedAnalyses: 0 },
   });
 };

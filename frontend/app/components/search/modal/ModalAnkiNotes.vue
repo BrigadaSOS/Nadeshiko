@@ -42,7 +42,7 @@ watch(
 // }
 
 const validateAnkiConfig = () => {
-  if (store.ankiPreferences.settings.current.key) {
+  if (store.activeProfile?.key) {
     isConfigValid.value = true;
   } else {
     isConfigValid.value = false;
@@ -57,11 +57,9 @@ onMounted(() => {
 const getNotesFromQuery = async () => {
   if (!isConfigValid.value) return;
 
-  const currentKey = store.ankiPreferences.settings.current.key ? store.ankiPreferences.settings.current.key : '';
+  const currentKey = store.activeProfile?.key ?? '';
 
-  const currentDeck = store.ankiPreferences.settings.current.deck
-    ? `"deck:${store.ankiPreferences.settings.current.deck}"`
-    : '';
+  const currentDeck = store.activeProfile?.deck ? `"deck:${store.activeProfile.deck}"` : '';
 
   const query = `${currentDeck} ${currentKey}:*${inputVal.value}*`;
   notes.value = await store.getNotesWithCurrentKey(query);
@@ -188,7 +186,7 @@ const handleSelectNote = (noteId: number) => {
                             {{ $t('anki.modal.idColumn') }}
                           </th>
                           <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
-                            {{ store.ankiPreferences.settings.current.key || $t('anki.modal.keyColumn') }}
+                            {{ store.activeProfile?.key || $t('anki.modal.keyColumn') }}
                           </th>
                           <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">
                           </th>

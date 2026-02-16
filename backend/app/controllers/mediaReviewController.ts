@@ -13,10 +13,12 @@ import { NotFoundError, InvalidRequestError } from '@app/errors';
 import { runAllChecks } from '@app/services/mediaReview/runner';
 import { checkRegistry } from '@app/services/mediaReview/registry';
 import { type FindOptionsWhere, LessThan } from 'typeorm';
+import { toReportDTO } from '@app/controllers/mappers/report.mapper';
 
 export const adminReviewRunCreate: AdminReviewRunCreate = async ({ query }, respond) => {
   const category = query?.category as string | undefined;
-  const result = await runAllChecks(category);
+  const checkName = query?.checkName as string | undefined;
+  const result = await runAllChecks(category, checkName);
 
   return respond.with200().body({
     category: result.category ?? null,
@@ -27,32 +29,36 @@ export const adminReviewRunCreate: AdminReviewRunCreate = async ({ query }, resp
 
 export const adminReviewCheckIndex: AdminReviewCheckIndex = async (_params, respond) => {
   const dbChecks = await ReviewCheck.find({ order: { id: 'ASC' } });
-
-  const registryMap = new Map(checkRegistry.map((c) => [c.name, c]));
+  const dbCheckMap = new Map(dbChecks.map((c) => [c.name, c]));
 
   const checksWithMeta = await Promise.all(
-    dbChecks.map(async (dbCheck) => {
-      const regCheck = registryMap.get(dbCheck.name);
+    checkRegistry.map(async (regCheck) => {
+      const dbCheck = dbCheckMap.get(regCheck.name);
 
       const latestRun = await ReviewCheckRun.findOne({
-        where: { checkName: dbCheck.name },
+        where: { checkName: regCheck.name },
         order: { createdAt: 'DESC' },
       });
 
+      const defaults: Record<string, number | boolean> = {};
+      for (const field of regCheck.thresholdSchema) {
+        defaults[field.key] = field.default;
+      }
+
       return {
-        id: dbCheck.id,
-        name: dbCheck.name,
-        label: dbCheck.label,
-        description: dbCheck.description,
-        targetType: dbCheck.targetType,
-        threshold: dbCheck.threshold,
-        enabled: dbCheck.enabled,
-        thresholdSchema: regCheck?.thresholdSchema ?? [],
+        id: dbCheck?.id ?? 0,
+        name: regCheck.name,
+        label: regCheck.label,
+        description: regCheck.description,
+        targetType: dbCheck?.targetType ?? regCheck.targetType,
+        threshold: dbCheck?.threshold ?? defaults,
+        enabled: dbCheck?.enabled ?? true,
+        thresholdSchema: regCheck.thresholdSchema,
         latestRun: latestRun
           ? { id: latestRun.id, resultCount: latestRun.resultCount, createdAt: latestRun.createdAt.toISOString() }
           : null,
-        createdAt: dbCheck.createdAt.toISOString(),
-        updatedAt: dbCheck.updatedAt?.toISOString() ?? null,
+        createdAt: dbCheck?.createdAt.toISOString() ?? null,
+        updatedAt: dbCheck?.updatedAt?.toISOString() ?? null,
       };
     }),
   );
@@ -95,7 +101,7 @@ export const adminReviewCheckUpdate: AdminReviewCheckUpdate = async ({ params, b
 };
 
 export const adminReviewRunIndex: AdminReviewRunIndex = async ({ query }, respond) => {
-  const { checkName, cursor, size = 20 } = query;
+  const { checkName, cursor, limit = 20 } = query;
 
   const where: FindOptionsWhere<ReviewCheckRun> = {};
   if (checkName) {
@@ -108,15 +114,15 @@ export const adminReviewRunIndex: AdminReviewRunIndex = async ({ query }, respon
   const runs = await ReviewCheckRun.find({
     where,
     order: { id: 'DESC' },
-    take: size + 1,
+    take: limit + 1,
   });
 
-  const hasMore = runs.length > size;
-  const data = hasMore ? runs.slice(0, size) : runs;
+  const hasMore = runs.length > limit;
+  const data = hasMore ? runs.slice(0, limit) : runs;
   const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
 
   return respond.with200().body({
-    data: data.map((run) => ({
+    runs: data.map((run) => ({
       id: run.id,
       checkName: run.checkName,
       category: run.category ?? null,
@@ -124,8 +130,10 @@ export const adminReviewRunIndex: AdminReviewRunIndex = async ({ query }, respon
       thresholdUsed: run.thresholdUsed,
       createdAt: run.createdAt.toISOString(),
     })),
-    hasMore,
-    cursor: nextCursor,
+    pagination: {
+      hasMore,
+      cursor: nextCursor,
+    },
   });
 };
 
@@ -151,23 +159,7 @@ export const adminReviewRunShow: AdminReviewRunShow = async ({ params }, respond
       thresholdUsed: run.thresholdUsed,
       createdAt: run.createdAt.toISOString(),
     },
-    reports: reports.map((r) => ({
-      id: r.id,
-      source: r.source,
-      targetType: r.targetType,
-      targetMediaId: r.targetMediaId,
-      targetEpisodeNumber: r.targetEpisodeNumber ?? null,
-      targetSegmentUuid: r.targetSegmentUuid ?? null,
-      reviewCheckRunId: r.reviewCheckRunId ?? null,
-      reason: r.reason,
-      description: r.description ?? null,
-      data: r.data ?? null,
-      status: r.status,
-      adminNotes: r.adminNotes ?? null,
-      userId: r.userId ?? null,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt?.toISOString() ?? null,
-    })),
+    reports: reports.map(toReportDTO),
   });
 };
 

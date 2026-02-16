@@ -1,8 +1,12 @@
 <script setup>
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
+import { buildSentenceMetaTags } from '~/utils/metaTags';
+
+const shortcutsModal = ref(null);
 
 const route = useRoute();
 const { mediaName } = useMediaName();
+const { contentRating } = useContentRating();
 
 const searchQuery = computed(() => {
   if (route.params.query) {
@@ -17,6 +21,7 @@ const fetchSentenceData = async () => {
     const body = {
       limit: 20,
     };
+    const filters = {};
 
     const q = searchQuery.value;
     if (q) {
@@ -29,21 +34,23 @@ const fetchSentenceData = async () => {
 
     const categoryValue = CATEGORY_API_MAPPING[route.query.category];
     if (categoryValue) {
-      body.category = [categoryValue];
+      filters.category = [categoryValue];
     }
 
     if (route.query.media) {
-      body.mediaId = route.query.media;
-    }
-
-    if (route.query.episode) {
-      body.episode = [Number(route.query.episode)];
+      const mediaEntry = { mediaId: Number(route.query.media) };
+      if (route.query.episode) {
+        mediaEntry.episodes = [Number(route.query.episode)];
+      }
+      filters.media = { include: [mediaEntry] };
     }
 
     if (route.query.sort && route.query.sort !== 'NONE') {
-      body.contentSort = route.query.sort;
+      body.sort = route.query.sort;
     }
 
+    filters.contentRating = contentRating.value;
+    body.filters = filters;
     return await apiSearch.searchSegments(body);
   } catch (error) {
     console.error('Error fetching sentence data:', error);
@@ -55,6 +62,7 @@ const fetchStatsData = async () => {
   try {
     const apiSearch = useApiSearch();
     const body = {};
+    const filters = {};
 
     const q = searchQuery.value;
     if (q) {
@@ -63,9 +71,11 @@ const fetchStatsData = async () => {
 
     const categoryValue = CATEGORY_API_MAPPING[route.query.category];
     if (categoryValue) {
-      body.category = [categoryValue];
+      filters.category = [categoryValue];
     }
 
+    filters.contentRating = contentRating.value;
+    body.filters = filters;
     return await apiSearch.getSearchStats(body);
   } catch (error) {
     console.error('Error fetching search stats:', error);
@@ -123,31 +133,9 @@ const metaTags = computed(() => {
   const q = searchQuery.value;
 
   if (route.query.uuid && result) {
-    const mediaInfo = `Episode ${result.segment.episodeNumber}`;
-    const title = `${mediaName(result.media)} | Nadeshiko`;
-    const description = `「${result.segment.textJa.content}」\n${mediaInfo}`;
-
-    tags.title = title;
-    tags.meta = [
-      { name: 'description', content: description },
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:image', content: result.urls.imageUrl },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: description },
-      { name: 'twitter:image', content: result.urls.imageUrl },
-    ];
-
-    if (result.urls.videoUrl) {
-      tags.meta.push(
-        { property: 'og:video', content: result.urls.videoUrl },
-        { property: 'og:video:type', content: 'video/mp4' },
-        { property: 'og:video:width', content: '1280' },
-        { property: 'og:video:height', content: '720' },
-      );
-    }
+    const sentenceTags = buildSentenceMetaTags(result, mediaName);
+    tags.title = sentenceTags.title;
+    tags.meta = sentenceTags.meta;
   } else if (q) {
     const stats = initialStatsData.value?.categories;
     const pagination = initialSentenceData.value?.pagination;
@@ -238,7 +226,18 @@ useHead(metaTags);
             <div class="relative text-white">
                 <div class="pt-2">
                     <div class="md:max-w-[92%] mx-auto">
+                        <SearchModalKeyboardShortcuts ref="shortcutsModal" />
                         <SearchBaseInputSegment />
+                        <div class="mt-2 flex items-center justify-end gap-3">
+                            <SearchTranslationVisibilityPreferences />
+                            <button
+                                class="rounded-md px-3 py-1 text-sm font-medium bg-neutral-800 text-neutral-500 border border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                                @click="shortcutsModal?.open()"
+                                :title="$t('shortcuts.title')"
+                            >
+                                ? {{ $t('shortcuts.title') }}
+                            </button>
+                        </div>
                         <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
                     </div>
                 </div>

@@ -31,6 +31,7 @@ import type {
   t_AdminReviewRunCreateQuerySchema,
   t_AdminReviewRunIndexQuerySchema,
   t_AdminReviewRunShowParamSchema,
+  t_CursorPagination,
   t_Error400,
   t_Error401,
   t_Error403,
@@ -49,6 +50,7 @@ import type { AdminReportIndexQueryOutput, AdminReviewAllowlistIndexQueryOutput,
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
+  s_CursorPagination,
   s_Error400,
   s_Error401,
   s_Error403,
@@ -65,6 +67,106 @@ import {
   s_RunReviewResponse,
   s_UpdateReportRequest,
 } from '../schemas.ts';
+
+export type AdminDashboardShowResponder = {
+  with200(): ExpressRuntimeResponse<{
+    activity: {
+      activeSearchers7d: number;
+      dailyActivity30d: {
+        count: number;
+        date: string;
+      }[];
+      topQueries7d: {
+        count: number;
+        query: string;
+      }[];
+      totalCollectionAdds: number;
+      totalExports: number;
+      totalPlays: number;
+      totalSearches: number;
+    };
+    media: {
+      totalCharacters: number;
+      totalEpisodes: number;
+      totalMedia: number;
+      totalSegments: number;
+      totalSeiyuu: number;
+    };
+    system: {
+      app: {
+        version: string;
+      };
+      database: {
+        status: 'connected' | 'disconnected';
+        version?: string | null;
+      };
+      elasticsearch: {
+        clusterName?: string | null;
+        clusterStatus?: string | null;
+        documentCount?: number | null;
+        indexName?: string | null;
+        status: 'connected' | 'disconnected';
+        version?: string | null;
+      };
+      queues: {
+        failedCount: number;
+        queue: string;
+        stuckCount: number;
+      }[];
+      status: 'healthy' | 'degraded';
+    };
+    users: {
+      recentlyActiveCount: number;
+      recentlyRegisteredCount: number;
+      totalUsers: number;
+    };
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type AdminDashboardShow = (
+  params: Params<void, void, void, void>,
+  respond: AdminDashboardShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type AdminHealthShowResponder = {
+  with200(): ExpressRuntimeResponse<{
+    app: {
+      version: string;
+    };
+    database: {
+      status: 'connected' | 'disconnected';
+      version?: string | null;
+    };
+    elasticsearch: {
+      clusterName?: string | null;
+      clusterStatus?: string | null;
+      documentCount?: number | null;
+      indexName?: string | null;
+      status: 'connected' | 'disconnected';
+      version?: string | null;
+    };
+    status: 'healthy' | 'degraded';
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type AdminHealthShow = (
+  params: Params<void, void, void, void>,
+  respond: AdminHealthShowResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AdminReindexCreateResponder = {
   with200(): ExpressRuntimeResponse<t_ReindexResponse>;
@@ -108,13 +210,30 @@ export type AdminQueueStatsIndex = (
 
 export type AdminQueueShowResponder = {
   with200(): ExpressRuntimeResponse<{
-    cancelled?: number;
-    complete?: number;
-    created?: number;
-    expired?: number;
-    failed?: number;
-    queue?: string;
-    size?: number;
+    metadata: {
+      createdOn: string;
+      deadLetter?: string | null;
+      deleteAfterSeconds?: number | null;
+      expireInSeconds?: number | null;
+      partition: boolean;
+      policy: string;
+      retentionSeconds?: number | null;
+      retryBackoff?: boolean | null;
+      retryDelay?: number | null;
+      retryDelayMax?: number | null;
+      retryLimit?: number | null;
+      singletonsActive: string[];
+      table: string;
+      updatedOn: string;
+      warningQueueSize?: number | null;
+    };
+    queue: string;
+    stats: {
+      active: number;
+      deferred: number;
+      queued: number;
+      total: number;
+    };
   }>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -193,26 +312,6 @@ export type AdminQueueFailedDestroyResponder = {
 export type AdminQueueFailedDestroy = (
   params: Params<t_AdminQueueFailedDestroyParamSchema, void, void, void>,
   respond: AdminQueueFailedDestroyResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type AdminMorphemeBackfillCreateResponder = {
-  with200(): ExpressRuntimeResponse<{
-    message: string;
-    stats: {
-      failedAnalyses: number;
-      successfulAnalyses: number;
-      totalSegments: number;
-    };
-    success: boolean;
-  }>;
-} & ExpressRuntimeResponder;
-
-export type AdminMorphemeBackfillCreate = (
-  params: Params<void, void, void, void>,
-  respond: AdminMorphemeBackfillCreateResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -304,9 +403,8 @@ export type AdminReviewCheckUpdate = (
 
 export type AdminReviewRunIndexResponder = {
   with200(): ExpressRuntimeResponse<{
-    cursor?: number | null;
-    data: t_ReviewCheckRun[];
-    hasMore: boolean;
+    pagination: t_CursorPagination;
+    runs: t_ReviewCheckRun[];
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -394,13 +492,14 @@ export type AdminReviewAllowlistDestroy = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AdminImplementation = {
+  adminDashboardShow: AdminDashboardShow;
+  adminHealthShow: AdminHealthShow;
   adminReindexCreate: AdminReindexCreate;
   adminQueueStatsIndex: AdminQueueStatsIndex;
   adminQueueShow: AdminQueueShow;
   adminQueueFailedIndex: AdminQueueFailedIndex;
   adminQueueRetryCreate: AdminQueueRetryCreate;
   adminQueueFailedDestroy: AdminQueueFailedDestroy;
-  adminMorphemeBackfillCreate: AdminMorphemeBackfillCreate;
   adminReportIndex: AdminReportIndex;
   adminReportUpdate: AdminReportUpdate;
   adminReviewRunCreate: AdminReviewRunCreate;
@@ -415,6 +514,266 @@ export type AdminImplementation = {
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
   const router = Router();
+
+  const adminDashboardShowResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          media: z.object({
+            totalMedia: z.coerce.number(),
+            totalEpisodes: z.coerce.number(),
+            totalSegments: z.coerce.number(),
+            totalCharacters: z.coerce.number(),
+            totalSeiyuu: z.coerce.number(),
+          }),
+          users: z.object({
+            totalUsers: z.coerce.number(),
+            recentlyRegisteredCount: z.coerce.number(),
+            recentlyActiveCount: z.coerce.number(),
+          }),
+          activity: z.object({
+            totalSearches: z.coerce.number(),
+            totalExports: z.coerce.number(),
+            totalPlays: z.coerce.number(),
+            totalCollectionAdds: z.coerce.number(),
+            activeSearchers7d: z.coerce.number(),
+            topQueries7d: z.array(z.object({ query: z.string(), count: z.coerce.number() })),
+            dailyActivity30d: z.array(z.object({ date: z.string(), count: z.coerce.number() })),
+          }),
+          system: z.object({
+            status: z.enum(['healthy', 'degraded']),
+            app: z.object({ version: z.string() }),
+            elasticsearch: z.object({
+              status: z.enum(['connected', 'disconnected']),
+              version: z.string().nullable().optional(),
+              clusterName: z.string().nullable().optional(),
+              clusterStatus: z.string().nullable().optional(),
+              indexName: z.string().nullable().optional(),
+              documentCount: z.coerce.number().nullable().optional(),
+            }),
+            database: z.object({
+              status: z.enum(['connected', 'disconnected']),
+              version: z.string().nullable().optional(),
+            }),
+            queues: z.array(
+              z.object({ queue: z.string(), stuckCount: z.coerce.number(), failedCount: z.coerce.number() }),
+            ),
+          }),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // adminDashboardShow
+  router.get(`/v1/admin/dashboard`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            activity: {
+              activeSearchers7d: number;
+              dailyActivity30d: {
+                count: number;
+                date: string;
+              }[];
+              topQueries7d: {
+                count: number;
+                query: string;
+              }[];
+              totalCollectionAdds: number;
+              totalExports: number;
+              totalPlays: number;
+              totalSearches: number;
+            };
+            media: {
+              totalCharacters: number;
+              totalEpisodes: number;
+              totalMedia: number;
+              totalSegments: number;
+              totalSeiyuu: number;
+            };
+            system: {
+              app: {
+                version: string;
+              };
+              database: {
+                status: 'connected' | 'disconnected';
+                version?: string | null;
+              };
+              elasticsearch: {
+                clusterName?: string | null;
+                clusterStatus?: string | null;
+                documentCount?: number | null;
+                indexName?: string | null;
+                status: 'connected' | 'disconnected';
+                version?: string | null;
+              };
+              queues: {
+                failedCount: number;
+                queue: string;
+                stuckCount: number;
+              }[];
+              status: 'healthy' | 'degraded';
+            };
+            users: {
+              recentlyActiveCount: number;
+              recentlyRegisteredCount: number;
+              totalUsers: number;
+            };
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.adminDashboardShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(adminDashboardShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const adminHealthShowResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          status: z.enum(['healthy', 'degraded']),
+          app: z.object({ version: z.string() }),
+          elasticsearch: z.object({
+            status: z.enum(['connected', 'disconnected']),
+            version: z.string().nullable().optional(),
+            clusterName: z.string().nullable().optional(),
+            clusterStatus: z.string().nullable().optional(),
+            indexName: z.string().nullable().optional(),
+            documentCount: z.coerce.number().nullable().optional(),
+          }),
+          database: z.object({
+            status: z.enum(['connected', 'disconnected']),
+            version: z.string().nullable().optional(),
+          }),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // adminHealthShow
+  router.get(`/v1/admin/health`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            app: {
+              version: string;
+            };
+            database: {
+              status: 'connected' | 'disconnected';
+              version?: string | null;
+            };
+            elasticsearch: {
+              clusterName?: string | null;
+              clusterStatus?: string | null;
+              documentCount?: number | null;
+              indexName?: string | null;
+              status: 'connected' | 'disconnected';
+              version?: string | null;
+            };
+            status: 'healthy' | 'degraded';
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.adminHealthShow(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(adminHealthShowResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
 
   const adminReindexCreateRequestBodySchema = s_ReindexRequest.optional();
 
@@ -580,13 +939,30 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       [
         '200',
         z.object({
-          queue: z.string().optional(),
-          size: z.coerce.number().optional(),
-          created: z.coerce.number().optional(),
-          failed: z.coerce.number().optional(),
-          complete: z.coerce.number().optional(),
-          expired: z.coerce.number().optional(),
-          cancelled: z.coerce.number().optional(),
+          queue: z.string(),
+          stats: z.object({
+            deferred: z.coerce.number(),
+            queued: z.coerce.number(),
+            active: z.coerce.number(),
+            total: z.coerce.number(),
+          }),
+          metadata: z.object({
+            policy: z.string(),
+            partition: PermissiveBoolean,
+            deadLetter: z.string().nullable().optional(),
+            warningQueueSize: z.coerce.number().nullable().optional(),
+            retryLimit: z.coerce.number().nullable().optional(),
+            retryDelay: z.coerce.number().nullable().optional(),
+            retryBackoff: PermissiveBoolean.nullable().optional(),
+            retryDelayMax: z.coerce.number().nullable().optional(),
+            expireInSeconds: z.coerce.number().nullable().optional(),
+            retentionSeconds: z.coerce.number().nullable().optional(),
+            deleteAfterSeconds: z.coerce.number().nullable().optional(),
+            createdOn: z.string().datetime({ offset: true }),
+            updatedOn: z.string().datetime({ offset: true }),
+            singletonsActive: z.array(z.string()),
+            table: z.string(),
+          }),
         }),
       ],
       ['400', s_Error400],
@@ -612,13 +988,30 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            cancelled?: number;
-            complete?: number;
-            created?: number;
-            expired?: number;
-            failed?: number;
-            queue?: string;
-            size?: number;
+            metadata: {
+              createdOn: string;
+              deadLetter?: string | null;
+              deleteAfterSeconds?: number | null;
+              expireInSeconds?: number | null;
+              partition: boolean;
+              policy: string;
+              retentionSeconds?: number | null;
+              retryBackoff?: boolean | null;
+              retryDelay?: number | null;
+              retryDelayMax?: number | null;
+              retryLimit?: number | null;
+              singletonsActive: string[];
+              table: string;
+              updatedOn: string;
+              warningQueueSize?: number | null;
+            };
+            queue: string;
+            stats: {
+              active: number;
+              deferred: number;
+              queued: number;
+              total: number;
+            };
           }>(200);
         },
         with400() {
@@ -925,83 +1318,15 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const adminMorphemeBackfillCreateResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          success: PermissiveBoolean,
-          message: z.string(),
-          stats: z.object({
-            totalSegments: z.coerce.number(),
-            successfulAnalyses: z.coerce.number(),
-            failedAnalyses: z.coerce.number(),
-          }),
-        }),
-      ],
-    ],
-    undefined,
-  );
-
-  // adminMorphemeBackfillCreate
-  router.post(`/v1/admin/morpheme-backfill`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            message: string;
-            stats: {
-              failedAnalyses: number;
-              successfulAnalyses: number;
-              totalSegments: number;
-            };
-            success: boolean;
-          }>(200);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation
-        .adminMorphemeBackfillCreate(input, responder, req, res, next)
-        .catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(adminMorphemeBackfillCreateResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
   const adminReportIndexQuerySchema = z.object({
     cursor: z.coerce.number().optional(),
-    size: z.coerce.number().max(100).optional().default(20),
+    limit: z.coerce.number().max(100).optional().default(20),
     status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
     source: z.enum(['USER', 'AUTO']).optional(),
-    targetType: z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
-    targetMediaId: z.coerce.number().optional(),
+    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    'target.mediaId': z.coerce.number().optional(),
+    'target.episodeNumber': z.coerce.number().optional(),
+    'target.segmentUuid': z.string().optional(),
     reviewCheckRunId: z.coerce.number().optional(),
   });
 
@@ -1147,7 +1472,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const adminReviewRunCreateQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
+  const adminReviewRunCreateQuerySchema = z.object({
+    category: z.enum(['ANIME', 'JDRAMA']).optional(),
+    checkName: z.string().optional(),
+  });
 
   const adminReviewRunCreateResponseBodyValidator = responseValidationFactory(
     [
@@ -1362,19 +1690,12 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   const adminReviewRunIndexQuerySchema = z.object({
     checkName: z.string().optional(),
     cursor: z.coerce.number().optional(),
-    size: z.coerce.number().max(100).optional().default(20),
+    limit: z.coerce.number().max(100).optional().default(20),
   });
 
   const adminReviewRunIndexResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          data: z.array(s_ReviewCheckRun),
-          hasMore: PermissiveBoolean,
-          cursor: z.coerce.number().nullable().optional(),
-        }),
-      ],
+      ['200', z.object({ runs: z.array(s_ReviewCheckRun), pagination: s_CursorPagination })],
       ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
@@ -1396,9 +1717,8 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            cursor?: number | null;
-            data: t_ReviewCheckRun[];
-            hasMore: boolean;
+            pagination: t_CursorPagination;
+            runs: t_ReviewCheckRun[];
           }>(200);
         },
         with401() {

@@ -131,6 +131,14 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    restart() {
+      if (this.currentAudio) {
+        this.currentAudio.currentTime = 0;
+        this.currentAudio.play();
+        this.isPlaying = true;
+      }
+    },
+
     hidePlayer() {
       if (this.currentAudio) {
         this.currentAudio.pause();
