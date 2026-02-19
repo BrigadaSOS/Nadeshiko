@@ -16,6 +16,7 @@ import { z } from 'zod/v3';
 import type {
   t_AddMediaToSeriesParamSchema,
   t_AddMediaToSeriesRequestBodySchema,
+  t_AutocompleteMediaQuerySchema,
   t_CharacterWithMedia,
   t_CreateEpisodeParamSchema,
   t_CreateEpisodeRequestBodySchema,
@@ -56,6 +57,7 @@ import type {
   t_ListSegmentsQuerySchema,
   t_ListSeriesQuerySchema,
   t_Media,
+  t_MediaAutocompleteResponse,
   t_MediaListResponse,
   t_RemoveMediaFromSeriesParamSchema,
   t_Segment,
@@ -76,7 +78,7 @@ import type {
   t_UpdateSeriesParamSchema,
   t_UpdateSeriesRequestBodySchema,
 } from '../models.ts';
-import type { EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentContextQueryOutput, GetSeiyuuQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
+import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentContextQueryOutput, GetSeiyuuQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
   s_CharacterWithMedia,
   s_ContentRating,
@@ -94,6 +96,7 @@ import {
   s_Error500,
   s_IncludeExpansion,
   s_Media,
+  s_MediaAutocompleteResponse,
   s_MediaCreateRequest,
   s_MediaIncludeExpansion,
   s_MediaListResponse,
@@ -139,6 +142,23 @@ export type CreateMediaResponder = {
 export type CreateMedia = (
   params: Params<void, void, MediaCreateRequestOutput, void>,
   respond: CreateMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type AutocompleteMediaResponder = {
+  with200(): ExpressRuntimeResponse<t_MediaAutocompleteResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type AutocompleteMedia = (
+  params: Params<void, AutocompleteMediaQueryOutput, void, void>,
+  respond: AutocompleteMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -600,6 +620,7 @@ export type GetSeiyuu = (
 export type MediaImplementation = {
   listMedia: ListMedia;
   createMedia: CreateMedia;
+  autocompleteMedia: AutocompleteMedia;
   getMedia: GetMedia;
   updateMedia: UpdateMedia;
   deleteMedia: DeleteMedia;
@@ -780,6 +801,81 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
       if (body !== undefined) {
         res.json(createMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const autocompleteMediaQuerySchema = z.object({
+    query: z.string().min(1),
+    limit: z.coerce.number().min(1).max(25).optional().default(10),
+    category: z.enum(['ANIME', 'JDRAMA']).optional(),
+  });
+
+  const autocompleteMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_MediaAutocompleteResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // autocompleteMedia
+  router.get(`/v1/media/autocomplete`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(autocompleteMediaQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_MediaAutocompleteResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.autocompleteMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(autocompleteMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }

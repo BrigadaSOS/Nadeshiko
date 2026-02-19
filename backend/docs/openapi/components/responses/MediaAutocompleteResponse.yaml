@@ -1,0 +1,8 @@
+type: object
+required:
+  - media
+properties:
+  media:
+    type: array
+    items:
+      $ref: "../schemas/Media.yaml"

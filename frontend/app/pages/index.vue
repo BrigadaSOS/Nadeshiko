@@ -41,8 +41,8 @@ const {
     <NuxtLayout>
         <div class="mx-auto">
             <div class="relative text-white">
-                <div class="py-2">
-                    <div class="max-w-[92%] mx-auto">
+                <div class="pt-2">
+                    <div class="md:max-w-[92%] mx-auto">
                         <SearchBaseInputSegment />
                         <div class="py-2 xl:py-4">
                             <div class="flex dark:text-white/80 gap-10 flex-col xl:flex-row justify-between">

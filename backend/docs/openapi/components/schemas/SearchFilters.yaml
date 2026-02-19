@@ -57,3 +57,13 @@ properties:
         type: integer
         description: Maximum duration in ms
         example: 10000
+  languages:
+    type: object
+    description: Language inclusion/exclusion for search matching
+    properties:
+      exclude:
+        type: array
+        description: Language codes to exclude from search matching (e.g., ["en"], ["es"], ["en","es"])
+        items:
+          type: string
+          enum: [en, es]

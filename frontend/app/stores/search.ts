@@ -130,6 +130,9 @@ export type SearchFilters = {
   segmentLength?: { min?: number; max?: number };
   segmentLengthChars?: { min?: number; max?: number };
   segmentDurationMs?: { min?: number; max?: number };
+  languages?: {
+    exclude?: string[];
+  };
 };
 
 type SearchRequest = {

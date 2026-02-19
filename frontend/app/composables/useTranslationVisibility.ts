@@ -124,9 +124,29 @@ export function useTranslationVisibility() {
   };
 
   if (import.meta.server) {
-    if (user.isLoggedIn) {
-      prefs.value = getServerPreferences();
+    const base = user.isLoggedIn ? getServerPreferences() : defaultPreferences();
+    const route = useRoute();
+    const hideLangs = typeof route.query.hideLangs === 'string'
+      ? route.query.hideLangs.split(',').filter((l: string) => l === 'en' || l === 'es')
+      : [];
+    const blurLangs = typeof route.query.blurLangs === 'string'
+      ? route.query.blurLangs.split(',').filter((l: string) => l === 'en' || l === 'es')
+      : [];
+    if (hideLangs.includes('en')) {
+      base.englishMode = 'hidden';
+      base.showEnglish = false;
+    } else if (blurLangs.includes('en')) {
+      base.englishMode = 'spoiler';
+      base.showEnglish = true;
     }
+    if (hideLangs.includes('es')) {
+      base.spanishMode = 'hidden';
+      base.showSpanish = false;
+    } else if (blurLangs.includes('es')) {
+      base.spanishMode = 'spoiler';
+      base.showSpanish = true;
+    }
+    prefs.value = base;
   } else if (!initialized.value) {
     if (user.isLoggedIn) {
       prefs.value = getServerPreferences();
@@ -236,6 +256,19 @@ export function useTranslationVisibility() {
   const englishMode = computed(() => prefs.value.englishMode);
   const spanishMode = computed(() => prefs.value.spanishMode);
   const hasVisibleTranslations = computed(() => englishMode.value !== 'hidden' || spanishMode.value !== 'hidden');
+  const excludedLanguages = computed(() => {
+    const excluded: string[] = [];
+    if (englishMode.value === 'hidden') excluded.push('en');
+    if (spanishMode.value === 'hidden') excluded.push('es');
+    return excluded;
+  });
+
+  const blurredLanguages = computed(() => {
+    const blurred: string[] = [];
+    if (englishMode.value === 'spoiler') blurred.push('en');
+    if (spanishMode.value === 'spoiler') blurred.push('es');
+    return blurred;
+  });
 
   const setShowEnglish = (value: boolean) => updatePreference('showEnglish', value);
   const setShowSpanish = (value: boolean) => updatePreference('showSpanish', value);
@@ -251,6 +284,8 @@ export function useTranslationVisibility() {
     englishMode,
     spanishMode,
     hasVisibleTranslations,
+    excludedLanguages,
+    blurredLanguages,
     setShowEnglish,
     setShowSpanish,
     setEnglishMode,

@@ -34,6 +34,7 @@ export const search: Search = async ({ body }, respond, req) => {
       status: f?.status ?? ['ACTIVE'],
       segmentLengthChars: f?.segmentLengthChars,
       segmentDurationMs: f?.segmentDurationMs,
+      languages: f?.languages,
     },
   });
 
@@ -63,6 +64,7 @@ export const getSearchStats: GetSearchStats = async ({ body }, respond) => {
       status: f?.status ?? ['ACTIVE'],
       segmentLengthChars: f?.segmentLengthChars,
       segmentDurationMs: f?.segmentDurationMs,
+      languages: f?.languages,
     },
   });
 
@@ -83,6 +85,7 @@ export const searchWords: SearchWords = async ({ body }, respond) => {
           status: f.status ?? ['ACTIVE'],
           segmentLengthChars: f.segmentLengthChars,
           segmentDurationMs: f.segmentDurationMs,
+          languages: f.languages,
         }
       : undefined,
   );
