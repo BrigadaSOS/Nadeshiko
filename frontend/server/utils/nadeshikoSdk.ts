@@ -1,4 +1,4 @@
-import { createClient, type NadeshikoClient } from '@brigadasos/nadeshiko-sdk';
+import { createNadeshikoClient, type NadeshikoClient } from '@brigadasos/nadeshiko-sdk';
 import type { H3Event } from 'h3';
 import { createLogger } from './logger';
 
@@ -67,7 +67,7 @@ export function getNadeshikoSdkClient(): NadeshikoClient {
 
   if (!cachedClient || cachedBaseUrl !== baseUrl || cachedApiKey !== apiKey) {
     const hostHeader = String(config.backendHostHeader || '');
-    cachedClient = createClient({ apiKey, baseUrl });
+    cachedClient = createNadeshikoClient({ apiKey, baseUrl });
     applyInterceptors(cachedClient, hostHeader);
     cachedBaseUrl = baseUrl;
     cachedApiKey = apiKey;
@@ -80,11 +80,10 @@ export function getNadeshikoSdkClient(): NadeshikoClient {
  * Returns a per-request SDK client authenticated with the user's session cookie.
  * Use for user-specific endpoints (/v1/user/*, /v1/collections/*, etc.).
  */
-export function getNadeshikoUserClient(event: H3Event): NadeshikoClient {
+export function useNadeshikoClient(event: H3Event): NadeshikoClient {
   const config = useRuntimeConfig();
   const baseUrl = String(config.backendInternalUrl || '');
   const hostHeader = String(config.backendHostHeader || '');
-  const sessionToken = getCookie(event, 'nadeshiko.session_token') ?? '';
 
   if (!baseUrl) {
     throw createError({
@@ -93,7 +92,10 @@ export function getNadeshikoUserClient(event: H3Event): NadeshikoClient {
     });
   }
 
-  const userClient = createClient({ sessionToken, baseUrl });
+  const userClient = createNadeshikoClient({
+    sessionToken: () => getCookie(event, 'nadeshiko.session_token'),
+    baseUrl,
+  });
   applyInterceptors(userClient, hostHeader);
   return userClient;
 }

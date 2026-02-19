@@ -20,4 +20,5 @@ COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY package.json bun.lock ./
 RUN bun install --production --frozen-lockfile
 
+ENTRYPOINT []
 CMD ["bun", "run", "start"]
