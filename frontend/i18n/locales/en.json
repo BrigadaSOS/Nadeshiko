@@ -176,8 +176,14 @@
       "media": "Media",
       "episode": "Ep.",
       "time": "Time",
+      "duration": "Duration",
+      "id": "ID",
+      "position": "Position",
       "uuid": "UUID",
-      "copyUuid": "Copy UUID"
+      "copyUuid": "Copy UUID",
+      "image": "Image",
+      "audio": "Audio",
+      "video": "Video"
     }
   },
   "filterContent": {
@@ -198,8 +204,10 @@
         "english": "English",
         "spanish": "Spanish",
         "englishShown": "English translations shown",
+        "englishSpoiler": "English translations in spoiler mode",
         "englishHidden": "English translations hidden",
         "spanishShown": "Spanish translations shown",
+        "spanishSpoiler": "Spanish translations in spoiler mode",
         "spanishHidden": "Spanish translations hidden"
       },
       "buttons": {
@@ -219,11 +227,17 @@
         "context": "Context",
         "report": "Report",
         "share": "Share",
+        "more": "More",
         "expandLeft": "Expand (left)",
         "expandBoth": "Expand (both)",
         "expandRight": "Expand (right)",
-        "hideMedia": "Hide this media",
-        "unhideMedia": "Unhide this media",
+        "hideMedia": "Hide",
+        "unhideMedia": "Unhide",
+        "addToCollection": "Add to collection",
+        "manageCollections": "Manage collections",
+        "collectionsLoading": "Loading collections...",
+        "collectionsEmpty": "No collections yet",
+        "chooseCollection": "Choose collection...",
         "sortmain": "Sort sentences",
         "sortlengthnone": "None",
         "sortlengthmin": "Shortest",
@@ -254,6 +268,8 @@
         "errorcopiedcontent": "Error copying content to clipboard. Try again.",
         "copiedsharingurl": "The URL has been copied to the clipboard.",
         "errorcopiedsharingurl": "Error copying URL to clipboard. Try again.",
+        "collectionAdded": "Added to \"{name}\"",
+        "collectionAddFailed": "Could not add to collection. Try again.",
         "mtTooltip": "This sentence has been machine translated, content might not be accurate"
       }
     },
@@ -268,6 +284,10 @@
         "errorconnection": "Error connecting to the server."
       }
     }
+  },
+  "activity": {
+    "deleteDayActivity": "Delete activity for this day",
+    "deletingDayActivity": "Deleting..."
   },
   "accountSettings": {
     "menu": {
@@ -341,10 +361,35 @@
       "contentRatingHidden": "Hidden",
       "preferenceSaved": "Preference saved",
       "preferenceError": "Failed to save preference",
-      "hiddenMedia": "Hidden Media",
+      "hiddenMedia": "Hide Media",
       "hiddenMediaDescription": "Media hidden from search results. You can also hide media from the overflow menu on any search result.",
       "hiddenMediaSearchPlaceholder": "Search for media to hide...",
       "hiddenMediaEmpty": "No hidden media. Search results will include all available media."
+    },
+    "collections": {
+      "segmentCount": "{count} segments",
+      "created": "Created {date}",
+      "updated": "Updated {date}",
+      "removeFromCollection": "Remove from collection",
+      "confirmRemove": "Remove?",
+      "yes": "Yes",
+      "no": "No",
+      "rename": "Rename",
+      "delete": "Delete",
+      "renameTitle": "Rename collection",
+      "renameConfirm": "Save",
+      "renameCancel": "Cancel",
+      "renamed": "Collection renamed",
+      "deleteTitle": "Delete collection",
+      "deleteMessage": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel",
+      "deleted": "Collection deleted",
+      "visibility": {
+        "PUBLIC": "Public",
+        "PRIVATE": "Private"
+      },
+      "noCollections": "No collections yet."
     },
     "anki": {
       "syncStatus": "Sync Status",
@@ -380,7 +425,7 @@
   },
   "segment": {
     "noResultsTitle": "404",
-    "noResultsMessage": "We searched high and low but couldn't find what you're looking for. Try a different search.",
+    "noResultsMessage": "Try a different search or search in {link}",
     "contentRatingShow": "Show",
     "contentRatingHide": "Hide",
     "status": {
@@ -396,6 +441,12 @@
       "SUGGESTIVE": "Suggestive",
       "QUESTIONABLE": "Questionable",
       "EXPLICIT": "Explicit"
+    },
+    "nsfwTag": "NSFW",
+    "contentRatingDescription": {
+      "SUGGESTIVE": "Sensitive content (Suggestive)",
+      "QUESTIONABLE": "Questionable content",
+      "EXPLICIT": "Explicit adult content"
     },
     "expandLeft": "Expand left",
     "expandBoth": "Expand both sides",
@@ -419,11 +470,14 @@
     "categoryAll": "All",
     "categoryAnime": "Anime",
     "categoryLiveaction": "Live Action",
-    "categoryAudiobook": "Audiobook"
+    "categoryAudiobook": "Audiobook",
+    "collectionTabPrefix": "Collection",
+    "backToCollections": "Collections"
   },
   "reports": {
     "title": "My Reports",
     "modalTitle": "Report an Issue",
+    "targetLabel": "Target",
     "reason": "Reason",
     "selectReason": "Select a reason...",
     "description": "Description (optional)",

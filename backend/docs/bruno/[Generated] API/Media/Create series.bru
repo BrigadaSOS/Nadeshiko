@@ -1,0 +1,28 @@
+meta {
+  name: Create series
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/v1/media/series
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "nameJa": "バクマン。シリーズ",
+    "nameRomaji": "Bakuman. Series",
+    "nameEn": "Bakuman Series"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

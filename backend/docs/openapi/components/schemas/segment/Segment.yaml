@@ -1,6 +1,7 @@
 type: object
 description: Segment with content, optional highlights, and media URLs
 required:
+  - id
   - uuid
   - position
   - status
@@ -14,6 +15,10 @@ required:
   - textEs
   - urls
 properties:
+  id:
+    type: integer
+    description: Numeric identifier for the segment
+    example: 120045
   uuid:
     type: string
     description: Unique identifier for the segment

@@ -1,23 +1,39 @@
 <script setup lang="ts">
 const { t } = useI18n();
-const { showEnglish, showSpanish, setShowEnglish, setShowSpanish } = useTranslationVisibility();
+const { englishMode, spanishMode, cycleEnglishMode, cycleSpanishMode } = useTranslationVisibility();
+
+type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
 const liveMessage = ref('');
 
+const modeButtonClass = (mode: TranslationVisibilityMode) => {
+  if (mode === 'show') {
+    return 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30';
+  }
+  if (mode === 'spoiler') {
+    return 'bg-amber-500/20 text-amber-200 border-amber-500/40 hover:bg-amber-500/30';
+  }
+  return 'bg-neutral-800 text-neutral-500 border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50';
+};
+
+const modeTitle = (lang: 'english' | 'spanish', mode: TranslationVisibilityMode) => {
+  if (mode === 'show') {
+    return t(`searchpage.main.translationPreferences.${lang}Shown`);
+  }
+  if (mode === 'spoiler') {
+    return t(`searchpage.main.translationPreferences.${lang}Spoiler`);
+  }
+  return t(`searchpage.main.translationPreferences.${lang}Hidden`);
+};
+
 const toggleEnglish = async () => {
-  const next = !showEnglish.value;
-  await setShowEnglish(next);
-  liveMessage.value = next
-    ? t('searchpage.main.translationPreferences.englishShown')
-    : t('searchpage.main.translationPreferences.englishHidden');
+  await cycleEnglishMode();
+  liveMessage.value = modeTitle('english', englishMode.value);
 };
 
 const toggleSpanish = async () => {
-  const next = !showSpanish.value;
-  await setShowSpanish(next);
-  liveMessage.value = next
-    ? t('searchpage.main.translationPreferences.spanishShown')
-    : t('searchpage.main.translationPreferences.spanishHidden');
+  await cycleSpanishMode();
+  liveMessage.value = modeTitle('spanish', spanishMode.value);
 };
 </script>
 
@@ -25,12 +41,10 @@ const toggleSpanish = async () => {
   <div class="flex items-center gap-3">
     <button
       type="button"
-      :aria-pressed="showEnglish"
-      :title="showEnglish ? t('searchpage.main.translationPreferences.englishShown') : t('searchpage.main.translationPreferences.englishHidden')"
+      :aria-pressed="englishMode !== 'hidden'"
+      :title="modeTitle('english', englishMode)"
       class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-      :class="showEnglish
-        ? 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30'
-        : 'bg-neutral-800 text-neutral-500 border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50'"
+      :class="modeButtonClass(englishMode)"
       @click="toggleEnglish"
     >
       EN
@@ -38,12 +52,10 @@ const toggleSpanish = async () => {
 
     <button
       type="button"
-      :aria-pressed="showSpanish"
-      :title="showSpanish ? t('searchpage.main.translationPreferences.spanishShown') : t('searchpage.main.translationPreferences.spanishHidden')"
+      :aria-pressed="spanishMode !== 'hidden'"
+      :title="modeTitle('spanish', spanishMode)"
       class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-      :class="showSpanish
-        ? 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30'
-        : 'bg-neutral-800 text-neutral-500 border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50'"
+      :class="modeButtonClass(spanishMode)"
       @click="toggleSpanish"
     >
       ES

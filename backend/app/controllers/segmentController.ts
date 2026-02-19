@@ -1,11 +1,11 @@
 import type {
-  SegmentIndex,
-  SegmentCreate,
-  SegmentShow,
-  SegmentUpdate,
-  SegmentDestroy,
-  SegmentShowByUuid,
-  SegmentContextShow,
+  ListSegments,
+  CreateSegment,
+  GetSegment,
+  UpdateSegment,
+  DeleteSegment,
+  GetSegmentByUuid,
+  GetSegmentContext,
 } from 'generated/routes/media';
 import { v3 as uuidv3 } from 'uuid';
 import { config } from '@config/config';
@@ -13,7 +13,7 @@ import { Segment, Episode, Media, SegmentStorage, SegmentStatus, ContentRating }
 import { toSegmentDTO, toSegmentInternalDTO, toSegmentListDTO } from './mappers/segment.mapper';
 import { querySurroundingSegments } from '@app/services/elasticsearch';
 
-export const segmentIndex: SegmentIndex = async ({ params, query }, respond) => {
+export const listSegments: ListSegments = async ({ params, query }, respond) => {
   await Episode.findOneOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
 
   const [segments, count] = await Segment.findAndCount({
@@ -35,7 +35,7 @@ export const segmentIndex: SegmentIndex = async ({ params, query }, respond) => 
   });
 };
 
-export const segmentCreate: SegmentCreate = async ({ params, body }, respond) => {
+export const createSegment: CreateSegment = async ({ params, body }, respond) => {
   await Episode.findOneOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
 
   const media = await Media.findOneOrFail({ where: { id: params.mediaId } });
@@ -71,7 +71,7 @@ export const segmentCreate: SegmentCreate = async ({ params, body }, respond) =>
   return respond.with201().body(toSegmentInternalDTO(segment));
 };
 
-export const segmentShow: SegmentShow = async ({ params }, respond) => {
+export const getSegment: GetSegment = async ({ params }, respond) => {
   const segment = await Segment.findOneOrFail({
     where: {
       id: params.id,
@@ -83,7 +83,7 @@ export const segmentShow: SegmentShow = async ({ params }, respond) => {
   return respond.with200().body(toSegmentDTO(segment));
 };
 
-export const segmentUpdate: SegmentUpdate = async ({ params, body }, respond) => {
+export const updateSegment: UpdateSegment = async ({ params, body }, respond) => {
   const segment = await Segment.findOneOrFail({
     where: { id: params.id as number },
   });
@@ -111,7 +111,7 @@ export const segmentUpdate: SegmentUpdate = async ({ params, body }, respond) =>
   return respond.with200().body(toSegmentInternalDTO(segment));
 };
 
-export const segmentDestroy: SegmentDestroy = async ({ params }, respond) => {
+export const deleteSegment: DeleteSegment = async ({ params }, respond) => {
   const segment = await Segment.findOneOrFail({
     where: {
       id: params.id,
@@ -125,7 +125,7 @@ export const segmentDestroy: SegmentDestroy = async ({ params }, respond) => {
   return respond.with204();
 };
 
-export const segmentShowByUuid: SegmentShowByUuid = async ({ params }, respond) => {
+export const getSegmentByUuid: GetSegmentByUuid = async ({ params }, respond) => {
   const segment = await Segment.findOneOrFail({
     where: { uuid: params.uuid },
   });
@@ -133,7 +133,7 @@ export const segmentShowByUuid: SegmentShowByUuid = async ({ params }, respond) 
   return respond.with200().body(toSegmentDTO(segment));
 };
 
-export const segmentContextShow: SegmentContextShow = async ({ params, query }, respond) => {
+export const getSegmentContext: GetSegmentContext = async ({ params, query }, respond) => {
   const segment = await Segment.findOneOrFail({
     where: { uuid: params.uuid },
   });

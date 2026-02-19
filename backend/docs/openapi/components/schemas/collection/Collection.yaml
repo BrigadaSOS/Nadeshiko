@@ -23,3 +23,15 @@ properties:
     enum: [PUBLIC, PRIVATE]
     description: Visibility of the collection
     example: "PRIVATE"
+  segmentCount:
+    type: integer
+    description: Number of segments in the collection
+    example: 42
+  createdAt:
+    type: string
+    format: date-time
+    description: When the collection was created
+  updatedAt:
+    type: string
+    format: date-time
+    description: When the collection was last updated

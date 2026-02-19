@@ -1,8 +1,8 @@
-import type { CharacterShow } from 'generated/routes/media';
+import type { GetCharacter } from 'generated/routes/media';
 import { Character } from '@app/models';
 import { toCharacterWithMediaDTO } from './mappers/character.mapper';
 
-export const characterShow: CharacterShow = async ({ params }, respond) => {
+export const getCharacter: GetCharacter = async ({ params }, respond) => {
   const character = await Character.findOneOrFail({
     where: { id: params.id },
     relations: {

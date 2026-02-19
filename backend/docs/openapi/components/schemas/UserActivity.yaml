@@ -17,6 +17,12 @@ properties:
   searchQuery:
     type: string
     nullable: true
+  animeName:
+    type: string
+    nullable: true
+  japaneseText:
+    type: string
+    nullable: true
   createdAt:
     type: string
     format: date-time

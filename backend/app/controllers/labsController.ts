@@ -1,7 +1,7 @@
-import type { UserLabsIndex } from 'generated/routes/user';
+import type { ListUserLabs } from 'generated/routes/user';
 import { LAB_FEATURES } from '@app/config/labFeatures';
 
-export const userLabsIndex: UserLabsIndex = async (_params, respond, req) => {
+export const listUserLabs: ListUserLabs = async (_params, respond, req) => {
   const user = (req as any).user;
 
   const features = LAB_FEATURES.filter((f) => !f.requiresRole || user?.role === f.requiresRole).map((f) => ({

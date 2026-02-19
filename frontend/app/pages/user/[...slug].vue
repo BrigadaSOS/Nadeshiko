@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
@@ -6,20 +7,33 @@ import {
   mdiSync,
   mdiCodeTags,
   mdiFlask,
+  mdiEyeOffOutline,
   mdiHistory,
   mdiFormatListBulletedSquare,
   mdiViewDashboardOutline,
   mdiShieldCrownOutline,
 } from '@mdi/js';
 import { useDragScroll } from '~/composables/useDragScroll';
-import SettingsAccountModule from '../../components/settings/modules/AccountModule.vue';
-import SettingsAnkiModule from '../../components/settings/modules/AnkiModule.vue';
-import SettingsDeveloperModule from '../../components/settings/modules/DeveloperModule.vue';
-import SettingsLabsModule from '../../components/settings/modules/LabsModule.vue';
-import SettingsActivityModule from '../../components/settings/modules/ActivityModule.vue';
-import SettingsCollectionsModule from '../../components/settings/modules/CollectionsModule.vue';
-import SettingsDashboardModule from '../../components/settings/modules/DashboardModule.vue';
-import SettingsReportsModule from '../../components/settings/modules/ReportsModule.vue';
+
+const SettingsAccountModule = defineAsyncComponent(() => import('../../components/settings/modules/AccountModule.vue'));
+const SettingsAnkiModule = defineAsyncComponent(() => import('../../components/settings/modules/AnkiModule.vue'));
+const SettingsDeveloperModule = defineAsyncComponent(
+  () => import('../../components/settings/modules/DeveloperModule.vue'),
+);
+const SettingsLabsModule = defineAsyncComponent(() => import('../../components/settings/modules/LabsModule.vue'));
+const SettingsActivityModule = defineAsyncComponent(
+  () => import('../../components/settings/modules/ActivityModule.vue'),
+);
+const SettingsCollectionsModule = defineAsyncComponent(
+  () => import('../../components/settings/modules/CollectionsModule.vue'),
+);
+const SettingsHiddenMediaModule = defineAsyncComponent(
+  () => import('../../components/settings/modules/HiddenMediaModule.vue'),
+);
+const SettingsDashboardModule = defineAsyncComponent(
+  () => import('../../components/settings/modules/DashboardModule.vue'),
+);
+const SettingsReportsModule = defineAsyncComponent(() => import('../../components/settings/modules/ReportsModule.vue'));
 
 const { t } = useI18n();
 const route = useRoute();
@@ -34,6 +48,7 @@ const tabsGeneral = computed(() => [
   { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/user/sync', requiresAuth: true },
   { name: 'Collections', icon: mdiFormatListBulletedSquare, route: '/user/collections', requiresAuth: true },
   { name: 'Activity', icon: mdiHistory, route: '/user/activity', requiresAuth: true },
+  { name: 'Hide Media', icon: mdiEyeOffOutline, route: '/user/hide-media', requiresAuth: true },
 ]);
 
 const tabsAdvanced = computed(() => [
@@ -66,6 +81,7 @@ const activeTabRoute = computed(() => {
   if (path.startsWith('/user/sync')) return '/user/sync';
   if (path.startsWith('/user/collections')) return '/user/collections';
   if (path.startsWith('/user/activity')) return '/user/activity';
+  if (path.startsWith('/user/hide-media')) return '/user/hide-media';
   if (path.startsWith('/user/developer')) return '/user/developer';
   if (path.startsWith('/user/labs')) return '/user/labs';
   return '';
@@ -76,6 +92,7 @@ const navigateToTab = (path: string) => {
 };
 
 definePageMeta({
+  robots: false,
   middleware: defineNuxtRouteMiddleware((to) => {
     const store = userStore();
     const allowed = [
@@ -83,6 +100,7 @@ definePageMeta({
       '/user/sync',
       '/user/collections',
       '/user/activity',
+      '/user/hide-media',
       '/user/developer',
       '/user/labs',
     ];
@@ -133,7 +151,7 @@ useDragScroll(mobileTabsRef);
   <NuxtLayout>
     <div class="w-11/12 mx-auto my-2 text-white min-h-screen">
       <div class="flex flex-col md:flex-row">
-        <div class="hidden mx-auto md:block md:sticky top-0 md:h-screen md:overflow-y-auto md:w-1/4 xl:w-3/12 md:min-w-[220px]">
+        <div class="hidden mx-auto md:block md:w-1/4 xl:w-3/12 md:min-w-[220px]">
           <nav aria-label="Tabs" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">
             <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.generalTitle") }}</h3>
             <div class="border-b border-white/10" />
@@ -211,6 +229,7 @@ useDragScroll(mobileTabsRef);
           <SettingsAnkiModule v-if="activeTabRoute === '/user/sync'" />
           <SettingsCollectionsModule v-if="activeTabRoute === '/user/collections'" />
           <SettingsActivityModule v-if="activeTabRoute === '/user/activity'" />
+          <SettingsHiddenMediaModule v-if="activeTabRoute === '/user/hide-media'" />
           <SettingsDeveloperModule v-if="activeTabRoute === '/user/developer'" />
           <SettingsLabsModule v-if="activeTabRoute === '/user/labs'" />
           <SettingsDashboardModule v-if="activeTabRoute === '/user/admin/dashboard'" />

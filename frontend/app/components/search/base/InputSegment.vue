@@ -1,6 +1,13 @@
 <script setup>
 import { mdiTextSearch } from '@mdi/js';
 
+const props = defineProps({
+  compact: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const route = useRoute();
 const query = ref('');
 
@@ -57,7 +64,10 @@ onBeforeUnmount(() => {
 
   <!-- Form -->
   <div @submit.prevent="navigateSearchSentence">
-    <div class="relative mt-2 flex space-x-3 py-2 rounded-lg shadow-gray-100  dark:border-neutral-500">
+    <div
+      class="relative flex space-x-3 rounded-lg shadow-gray-100 dark:border-neutral-500"
+      :class="props.compact ? 'mt-1 py-1' : 'mt-2 py-2'"
+    >
       <div class="relative flex-[1_0_0%]">
         <label for="sentence-search-input" class="block text-sm text-gray-700 font-medium dark:text-white"><span
             class="sr-only">Search anything!</span></label>

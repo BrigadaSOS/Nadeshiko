@@ -61,6 +61,17 @@ export const usePlayerStore = defineStore('player', {
           .play()
           .then(() => {
             this.isPlaying = true;
+            $fetch('/v1/user/activity', {
+              method: 'POST',
+              credentials: 'include',
+              body: {
+                activityType: 'SEGMENT_PLAY',
+                segmentUuid: this.currentResult?.segment.uuid,
+                mediaId: this.currentResult?.media.mediaId,
+                animeName: this.currentResult?.media.nameRomaji,
+                japaneseText: this.currentResult?.segment.textJa.content,
+              },
+            }).catch(() => {});
           })
           .catch((error) => {
             console.error('Error playing audio:', error);

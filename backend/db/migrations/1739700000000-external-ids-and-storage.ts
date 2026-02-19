@@ -34,7 +34,17 @@ export class ExternalIdsAndStorage1739700000000 implements MigrationInterface {
 
     // Add auto-increment sequence for Media IDs
     await queryRunner.query(`CREATE SEQUENCE "Media_id_seq" OWNED BY "Media"."id"`);
-    await queryRunner.query(`SELECT setval('"Media_id_seq"', GREATEST((SELECT MAX(id) FROM "Media"), 1))`);
+    await queryRunner.query(`
+      WITH media_max AS (
+        SELECT MAX(id) AS max_id
+        FROM "Media"
+      )
+      SELECT setval(
+        '"Media_id_seq"',
+        COALESCE((SELECT max_id FROM media_max), 1),
+        (SELECT max_id IS NOT NULL FROM media_max)
+      )
+    `);
     await queryRunner.query(`ALTER TABLE "Media" ALTER COLUMN "id" SET DEFAULT nextval('"Media_id_seq"')`);
 
     // ===== STORAGE CHANGES =====

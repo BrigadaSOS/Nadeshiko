@@ -1,7 +1,7 @@
 delete:
   tags:
     - Admin
-  operationId: adminReviewAllowlistDestroy
+  operationId: deleteAdminReviewAllowlistEntry
   summary: Remove from allowlist
   description: |
     Removes an item from the review allowlist, re-enabling auto-checks for that media/episode.

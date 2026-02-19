@@ -2,7 +2,7 @@ get:
   tags:
     - User
   x-internal: true
-  operationId: userActivityHeatmapShow
+  operationId: getUserActivityHeatmap
   summary: Get activity heatmap data
   description: |
     Returns daily activity counts for the authenticated user, grouped by date.

@@ -1,7 +1,7 @@
 get:
   tags:
     - Media
-  operationId: characterShow
+  operationId: getCharacter
   summary: Get character details
   description: |
     Returns a character with their voice actors (seiyuu) and all media appearances.

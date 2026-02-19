@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminQueueFailedIndex
+  operationId: listAdminQueueFailed
   summary: Get failed jobs from a queue
   description: |
     Returns jobs that have exceeded their retry limit and permanently failed.

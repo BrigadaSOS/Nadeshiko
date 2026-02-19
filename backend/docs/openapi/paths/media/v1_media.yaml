@@ -1,7 +1,7 @@
 get:
   tags:
     - Media
-  operationId: mediaIndex
+  operationId: listMedia
   summary: List all media
   description: |
     Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
@@ -69,7 +69,7 @@ get:
 post:
   tags:
     - Media
-  operationId: mediaCreate
+  operationId: createMedia
   x-internal: true
   summary: Create new media
   description: |

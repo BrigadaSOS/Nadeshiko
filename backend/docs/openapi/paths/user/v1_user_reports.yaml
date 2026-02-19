@@ -2,7 +2,7 @@ post:
   tags:
     - User
   x-internal: true
-  operationId: userReportCreate
+  operationId: createUserReport
   summary: Create a new report
   description: |
     Submit a report for a segment or media entry.
@@ -36,7 +36,7 @@ get:
   tags:
     - User
   x-internal: true
-  operationId: userReportIndex
+  operationId: listUserReports
   summary: List user's own reports
   description: |
     Returns the authenticated user's submitted reports with cursor pagination.

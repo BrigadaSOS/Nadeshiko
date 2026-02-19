@@ -2,7 +2,7 @@ get:
   tags:
     - User
   x-internal: true
-  operationId: userActivityIndex
+  operationId: listUserActivity
   summary: Get user activity history
   description: |
     Returns the authenticated user's activity history with cursor-based pagination.
@@ -60,7 +60,7 @@ delete:
   tags:
     - User
   x-internal: true
-  operationId: userActivityDestroy
+  operationId: deleteUserActivity
   summary: Clear user activity history
   description: |
     Deletes the authenticated user's activity history. Optionally filter by activity type.

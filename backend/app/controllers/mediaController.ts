@@ -1,6 +1,7 @@
-import type { MediaIndex, MediaCreate, MediaShow, MediaUpdate, MediaDestroy } from 'generated/routes/media';
+import type { ListMedia, CreateMedia, GetMedia, UpdateMedia, DeleteMedia } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
 import { ILike } from 'typeorm';
+import { ValidationFailedError } from '@app/errors';
 import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, CharacterRole } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
@@ -39,7 +40,7 @@ function toCharacterData(char: {
   };
 }
 
-export const mediaIndex: MediaIndex = async ({ query }, respond) => {
+export const listMedia: ListMedia = async ({ query }, respond) => {
   const categoryFilter: Record<string, unknown> = {};
   if (query.category) {
     categoryFilter.category = query.category as CategoryType;
@@ -83,7 +84,57 @@ export const mediaIndex: MediaIndex = async ({ query }, respond) => {
   });
 };
 
-export const mediaCreate: MediaCreate = async ({ body }, respond) => {
+const AUTOCOMPLETE_DEFAULT_LIMIT = 10;
+const AUTOCOMPLETE_MAX_LIMIT = 25;
+
+const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
+
+export const autocompleteMedia = async (params: { query?: string; limit?: number; category?: string }) => {
+  const rawQuery = params.query?.trim() ?? '';
+  if (!rawQuery) {
+    throw new ValidationFailedError({ query: 'Query is required.' });
+  }
+
+  const limit = Math.max(1, Math.min(params.limit ?? AUTOCOMPLETE_DEFAULT_LIMIT, AUTOCOMPLETE_MAX_LIMIT));
+  const normalizedQuery = rawQuery.toLowerCase();
+  const escaped = escapeLikePattern(normalizedQuery);
+  const containsPattern = `%${escaped}%`;
+  const prefixPattern = `${escaped}%`;
+
+  const qb = Media.createQueryBuilder('media')
+    .leftJoinAndSelect('media.externalIds', 'externalIds')
+    .leftJoinAndSelect('media.episodes', 'episodes')
+    .where(
+      `(LOWER(media.nameEn) LIKE :contains ESCAPE '\\'
+      OR LOWER(media.nameJa) LIKE :contains ESCAPE '\\'
+      OR LOWER(media.nameRomaji) LIKE :contains ESCAPE '\\')`,
+      { contains: containsPattern },
+    )
+    .setParameter('exact', normalizedQuery)
+    .setParameter('prefix', prefixPattern)
+    .orderBy(
+      `CASE
+        WHEN LOWER(media.nameEn) = :exact OR LOWER(media.nameJa) = :exact OR LOWER(media.nameRomaji) = :exact THEN 0
+        WHEN LOWER(media.nameEn) LIKE :prefix ESCAPE '\\' OR LOWER(media.nameJa) LIKE :prefix ESCAPE '\\' OR LOWER(media.nameRomaji) LIKE :prefix ESCAPE '\\' THEN 1
+        ELSE 2
+      END`,
+      'ASC',
+    )
+    .addOrderBy('LENGTH(media.nameEn)', 'ASC')
+    .addOrderBy('media.id', 'ASC')
+    .take(limit);
+
+  if (params.category === 'ANIME' || params.category === 'JDRAMA') {
+    qb.andWhere('media.category = :category', { category: params.category as CategoryType });
+  }
+
+  const media = await qb.getMany();
+  return {
+    media: toMediaListDTO(media),
+  };
+};
+
+export const createMedia: CreateMedia = async ({ body }, respond) => {
   const media = await AppDataSource.transaction(async (manager) => {
     const externalIds: DeepPartial<MediaExternalId>[] = [];
     if (body.externalIds) {
@@ -126,7 +177,7 @@ export const mediaCreate: MediaCreate = async ({ body }, respond) => {
   return respond.with201().body(toMediaDTO(media));
 };
 
-export const mediaShow: MediaShow = async ({ params, query }, respond) => {
+export const getMedia: GetMedia = async ({ params, query }, respond) => {
   const includeCharacters = shouldIncludeMediaCharacters(query.include);
   const characterRelations = includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
 
@@ -142,7 +193,7 @@ export const mediaShow: MediaShow = async ({ params, query }, respond) => {
   return respond.with200().body(toMediaDTO(media, { includeCharacters }));
 };
 
-export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
+export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
   const media = await AppDataSource.transaction(async (manager) => {
     const media = await manager.findOneOrFail(Media, { where: { id: params.id } });
 
@@ -170,7 +221,7 @@ export const mediaUpdate: MediaUpdate = async ({ params, body }, respond) => {
   return respond.with200().body(toMediaDTO(media));
 };
 
-export const mediaDestroy: MediaDestroy = async ({ params }, respond) => {
+export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
   const media = await Media.findOneOrFail({
     where: { id: params.id },
   });

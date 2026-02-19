@@ -1,8 +1,8 @@
-import type { UserQuotaShow } from 'generated/routes/user';
+import type { GetUserQuota } from 'generated/routes/user';
 import { AuthCredentialsInvalidError } from '@app/errors';
 import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 
-export const userQuotaShow: UserQuotaShow = async (_params, respond, req) => {
+export const getUserQuota: GetUserQuota = async (_params, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');

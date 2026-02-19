@@ -2,17 +2,14 @@
 import { getRequestHeader } from 'h3';
 import { useI18n } from 'vue-i18n';
 
-import { mdiClose, mdiMagnify } from '@mdi/js';
-
 import type { UserSession } from '@/stores/auth';
-import type { SearchResult, MediaSummary } from '~/stores/search';
+import type { SearchResult } from '~/stores/search';
 import { authApiRequest } from '~/utils/authApi';
 import { useToastSuccess, useToastError } from '~/utils/toast';
 
 const { t } = useI18n();
 
 const user_store = userStore();
-const isAuth = computed(() => user_store.isLoggedIn);
 
 const sessionsActionLoading = ref(false);
 const sessionsError = ref('');
@@ -92,38 +89,6 @@ const updateContentRatingPreference = async (category: string, value: string) =>
     savingPreferences.value = false;
   }
 };
-
-// Hidden media management
-const { mediaName } = useMediaName();
-const { prefs: hiddenMediaPrefs, toggleHideMedia, isMediaHidden } = useHiddenMedia();
-const apiSearch = useApiSearch();
-const hiddenMediaSearchQuery = ref('');
-const hiddenMediaSearchResults = ref<MediaSummary[]>([]);
-const hiddenMediaSearching = ref(false);
-let hiddenMediaSearchTimeout: ReturnType<typeof setTimeout> | null = null;
-
-const hiddenMediaItems = computed(() => hiddenMediaPrefs.value.items);
-
-const searchMediaToHide = (query: string) => {
-  if (hiddenMediaSearchTimeout) clearTimeout(hiddenMediaSearchTimeout);
-  if (!query.trim()) {
-    hiddenMediaSearchResults.value = [];
-    return;
-  }
-  hiddenMediaSearchTimeout = setTimeout(async () => {
-    hiddenMediaSearching.value = true;
-    try {
-      const response = await apiSearch.getRecentMedia({ query, limit: 10 });
-      hiddenMediaSearchResults.value = response.data;
-    } catch {
-      hiddenMediaSearchResults.value = [];
-    } finally {
-      hiddenMediaSearching.value = false;
-    }
-  }, 300);
-};
-
-watch(hiddenMediaSearchQuery, searchMediaToHide);
 
 // SSR-compatible sessions fetch
 const {
@@ -456,8 +421,9 @@ const logoutCurrentUser = async () => {
             <img
               v-if="suggestiveMode !== 'hide'"
               :src="previewSegment.urls.imageUrl"
+              :alt="`Preview image for content rating sample`"
               class="h-full w-full object-cover object-center transition-all duration-300"
-              :class="suggestiveMode === 'blur' ? 'blur-[60px] scale-125' : ''"
+              :class="suggestiveMode === 'blur' ? 'blur-[42px] scale-125' : ''"
             />
             <div
               v-else
@@ -490,61 +456,17 @@ const logoutCurrentUser = async () => {
           <option value="hide">{{ $t('accountSettings.account.contentRatingHide') }}</option>
         </select>
       </div>
-
-      <!-- Hidden Media Section -->
-      <div class="border-t border-white/10 mt-6 pt-6">
-        <h4 class="text-white font-medium">{{ $t('accountSettings.account.hiddenMedia') }}</h4>
-        <p class="text-gray-400 text-sm mt-1">{{ $t('accountSettings.account.hiddenMediaDescription') }}</p>
-
-        <!-- Search input -->
-        <div class="relative mt-3">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <UiBaseIcon :path="mdiMagnify" class="text-gray-400" w="w-4" h="h-4" />
-          </div>
-          <input
-            v-model="hiddenMediaSearchQuery"
-            type="text"
-            :placeholder="$t('accountSettings.account.hiddenMediaSearchPlaceholder')"
-            class="w-full pl-9 pr-3 py-2 bg-neutral-800 text-white border border-white/10 rounded-lg text-sm focus:ring-gray-500 focus:border-gray-500"
-          />
+      <div class="flex justify-between items-center mt-4">
+        <div>
+          <p class="text-white">{{ $t('accountSettings.account.hiddenMedia') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.hiddenMediaDescription') }}</p>
         </div>
-
-        <!-- Search results dropdown -->
-        <div v-if="hiddenMediaSearchResults.length > 0" class="mt-1 bg-neutral-800 border border-white/10 rounded-lg max-h-48 overflow-y-auto">
-          <button
-            v-for="result in hiddenMediaSearchResults"
-            :key="result.id"
-            class="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 text-left transition-colors"
-            @click="toggleHideMedia({ mediaId: result.id, nameEn: result.nameEn, nameJa: result.nameJa, nameRomaji: result.nameRomaji }); hiddenMediaSearchQuery = ''; hiddenMediaSearchResults = [];"
-          >
-            <span class="text-white text-sm truncate">{{ mediaName(result) }}</span>
-            <span
-              class="text-xs px-2 py-0.5 rounded-full shrink-0 ml-2"
-              :class="isMediaHidden(result.id) ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
-            >
-              {{ isMediaHidden(result.id) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia') }}
-            </span>
-          </button>
-        </div>
-        <p v-else-if="hiddenMediaSearching" class="mt-1 text-gray-400 text-sm">{{ $t('accountSettings.anki.loading') }}</p>
-
-        <!-- Hidden media list -->
-        <div v-if="hiddenMediaItems.length > 0" class="mt-3 space-y-1">
-          <div
-            v-for="item in hiddenMediaItems"
-            :key="item.mediaId"
-            class="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg"
-          >
-            <span class="text-white text-sm truncate">{{ mediaName({ nameEn: item.nameEn || '', nameJa: item.nameJa || '', nameRomaji: item.nameRomaji || '' }) }}</span>
-            <button
-              class="text-gray-400 hover:text-white transition-colors shrink-0 ml-2"
-              @click="toggleHideMedia(item)"
-            >
-              <UiBaseIcon :path="mdiClose" w="w-4" h="h-4" />
-            </button>
-          </div>
-        </div>
-        <p v-else class="mt-3 text-gray-500 text-sm">{{ $t('accountSettings.account.hiddenMediaEmpty') }}</p>
+        <NuxtLink
+          to="/user/hidden-media"
+          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded"
+        >
+          Manage
+        </NuxtLink>
       </div>
     </div>
   </div>

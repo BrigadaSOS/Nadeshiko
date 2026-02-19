@@ -1,396 +1,335 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
-import { authApiRequest } from '~/utils/authApi';
-import type { SearchResult, SearchResultMedia } from '~/stores/search';
+import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline } from '@mdi/js';
 
 type Collection = {
   id: number;
   name: string;
   userId: number;
   visibility: 'PUBLIC' | 'PRIVATE';
+  segmentCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-type CollectionDetailResponse = {
-  id: number;
-  name: string;
-  userId: number;
-  visibility: 'PUBLIC' | 'PRIVATE';
-  segments: Array<{
-    position?: number;
-    note?: string | null;
-    result?: {
-      uuid: string;
-      position: number;
-      status: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
-      startTimeMs: number;
-      endTimeMs: number;
-      episode: number;
-      mediaId: number;
-      contentRating: 'SAFE' | 'SUGGESTIVE' | 'QUESTIONABLE' | 'EXPLICIT';
-      textJa: { content: string; highlight?: string };
-      textEn: { content: string; highlight?: string; isMachineTranslated: boolean };
-      textEs: { content: string; highlight?: string; isMachineTranslated: boolean };
-      urls: { imageUrl: string; audioUrl: string; videoUrl: string };
-    };
-  }>;
-  includes?: {
-    media?: Record<
-      string,
-      | {
-          id: number;
-          nameEn: string;
-          nameJa: string;
-          nameRomaji: string;
-          coverUrl: string;
-          bannerUrl: string;
-          category: 'ANIME' | 'JDRAMA';
-        }
-      | undefined
-    >;
-  };
-  totalCount: number;
+type CollectionListResponse = {
+  collections: Collection[];
+  pagination: { hasMore: boolean; cursor: number | null };
 };
 
-type CollectionSegmentRow = {
-  position: number;
-  note?: string | null;
-  result: SearchResult;
-};
-
-type OrderedSegmentLang = 'textEn' | 'textEs';
-
-const PAGE_LIMIT = 10;
-
-const { locale } = useI18n();
-const { mediaName } = useMediaName();
-const { shouldBlur } = useContentRating();
-
-const collections = ref<Collection[]>([]);
-const selectedCollectionId = ref<number | null>(null);
-const selectedCollectionName = ref('');
-const segmentRows = ref<CollectionSegmentRow[]>([]);
-const totalCount = ref(0);
-const currentPage = ref(1);
-const loadingSegments = ref(false);
-const revealedContent = ref(new Set<string>());
-
-const orderedSegmentLangs = computed<OrderedSegmentLang[]>(() => {
-  if (locale.value === 'en') return ['textEn', 'textEs'];
-  return ['textEs', 'textEn'];
-});
-
-const getServerRequestContext = () => {
-  if (!import.meta.server) return null;
-  const event = useRequestEvent();
-  if (!event) return null;
-
-  const config = useRuntimeConfig();
-  const cookieHeader = getRequestHeader(event, 'cookie');
-  const headers: Record<string, string> = { cookie: cookieHeader || '' };
-  if (config.backendHostHeader) {
-    headers.host = String(config.backendHostHeader);
-  }
-
-  return {
-    baseUrl: String(config.backendInternalUrl || ''),
-    headers,
-  };
-};
-
-const requestWithAuth = async <T>(
-  path: string,
-  fallback: T,
-  options?: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown },
-): Promise<T> => {
-  if (import.meta.server) {
-    const ctx = getServerRequestContext();
-    if (!ctx || !ctx.baseUrl) return fallback;
-    return await $fetch<T>(`${ctx.baseUrl}${path}`, {
-      headers: ctx.headers,
-      method: options?.method,
-      body: options?.body,
-    }).catch(() => fallback);
-  }
-
-  const response = await authApiRequest<T>(path, {
-    method: options?.method,
-    body: options?.body,
-  });
-  return response.ok && response.data ? response.data : fallback;
-};
-
-const toSearchResultMedia = (
-  mediaMap: CollectionDetailResponse['includes'] extends { media?: infer T } ? T : never,
-  mediaId: number,
-): SearchResultMedia => {
-  const media = mediaMap?.[String(mediaId)];
-  if (!media) {
-    return {
-      mediaId,
-      nameRomaji: `Media #${mediaId}`,
-      nameEn: `Media #${mediaId}`,
-      nameJa: `Media #${mediaId}`,
-      coverUrl: '',
-      bannerUrl: '',
-      category: 'ANIME',
-    };
-  }
-
-  return {
-    mediaId: media.id,
-    nameRomaji: media.nameRomaji,
-    nameEn: media.nameEn,
-    nameJa: media.nameJa,
-    coverUrl: media.coverUrl,
-    bannerUrl: media.bannerUrl,
-    category: media.category,
-  };
-};
-
-const normalizeCollectionDetail = (detail: CollectionDetailResponse) => {
-  const mediaMap = detail.includes?.media;
-  const rows: CollectionSegmentRow[] = detail.segments
-    .map((entry) => {
-      const segment = entry.result;
-      if (!segment) return null;
-      return {
-        position: entry.position ?? segment.position,
-        note: entry.note ?? null,
-        result: {
-          media: toSearchResultMedia(mediaMap, segment.mediaId),
-          segment: {
-            status: segment.status,
-            uuid: segment.uuid,
-            position: segment.position,
-            startTimeMs: segment.startTimeMs,
-            endTimeMs: segment.endTimeMs,
-            episode: segment.episode,
-            textJa: segment.textJa,
-            textEn: segment.textEn,
-            textEs: segment.textEs,
-            contentRating: segment.contentRating,
-          },
-          urls: {
-            imageUrl: segment.urls.imageUrl,
-            audioUrl: segment.urls.audioUrl,
-            videoUrl: segment.urls.videoUrl,
-            blobAudio: null,
-            blobAudioUrl: null,
-          },
-        },
-      } satisfies CollectionSegmentRow;
-    })
-    .filter((row): row is CollectionSegmentRow => row !== null);
-
-  return {
-    name: detail.name,
-    rows,
-    totalCount: detail.totalCount,
-  };
-};
-
-const fetchCollectionPage = async (collectionId: number, page: number, append = false) => {
-  loadingSegments.value = true;
-  const detail = await requestWithAuth<CollectionDetailResponse>(
-    `/v1/collections/${collectionId}?page=${page}&limit=${PAGE_LIMIT}`,
-    {
-      id: collectionId,
-      name: '',
-      userId: 0,
-      visibility: 'PRIVATE',
-      segments: [],
-      totalCount: 0,
-    },
-  );
-  const normalized = normalizeCollectionDetail(detail);
-
-  selectedCollectionId.value = collectionId;
-  selectedCollectionName.value = normalized.name;
-  totalCount.value = normalized.totalCount;
-  currentPage.value = page;
-  segmentRows.value = append ? [...segmentRows.value, ...normalized.rows] : normalized.rows;
-  loadingSegments.value = false;
-};
-
-const selectCollection = async (collectionId: number) => {
-  if (loadingSegments.value) return;
-  if (selectedCollectionId.value === collectionId) return;
-  await fetchCollectionPage(collectionId, 1);
-};
-
-const loadMoreSegments = async () => {
-  if (!selectedCollectionId.value || loadingSegments.value || !hasMoreSegments.value) return;
-  await fetchCollectionPage(selectedCollectionId.value, currentPage.value + 1, true);
-};
-
-const formatMsTime = (ms: number) => {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-};
-
-const hasMoreSegments = computed(() => segmentRows.value.length < totalCount.value);
+const { t, d } = useI18n();
 
 const { data: initialData } = await useAsyncData(
-  'settings-account-collections-initial',
+  'settings-account-collections',
   async () => {
-    const list = await requestWithAuth<Collection[]>('/v1/collections?limit=100', []);
-    if (list.length === 0) {
-      return {
-        collections: [] as Collection[],
-        selectedCollectionId: null as number | null,
-        selectedCollectionName: '',
-        segments: [] as CollectionSegmentRow[],
-        totalCount: 0,
-      };
-    }
+    const response = await $fetch<CollectionListResponse>('/api/collections', {
+      query: { limit: 100 },
+    }).catch(() => ({ collections: [] as Collection[], pagination: { hasMore: false, cursor: null } }));
 
-    const first = list[0];
-    if (!first) {
-      return {
-        collections: [] as Collection[],
-        selectedCollectionId: null as number | null,
-        selectedCollectionName: '',
-        segments: [] as CollectionSegmentRow[],
-        totalCount: 0,
-      };
-    }
-    const detail = await requestWithAuth<CollectionDetailResponse>(
-      `/v1/collections/${first.id}?page=1&limit=${PAGE_LIMIT}`,
-      {
-        id: first.id,
-        name: first.name,
-        userId: first.userId,
-        visibility: first.visibility,
-        segments: [],
-        totalCount: 0,
-      },
-    );
-    const normalized = normalizeCollectionDetail(detail);
-
-    return {
-      collections: list,
-      selectedCollectionId: first.id,
-      selectedCollectionName: normalized.name || first.name,
-      segments: normalized.rows,
-      totalCount: normalized.totalCount,
-    };
+    return response.collections;
   },
   {
-    default: () => ({
-      collections: [] as Collection[],
-      selectedCollectionId: null as number | null,
-      selectedCollectionName: '',
-      segments: [] as CollectionSegmentRow[],
-      totalCount: 0,
-    }),
+    default: () => [] as Collection[],
   },
 );
 
-collections.value = initialData.value.collections;
-selectedCollectionId.value = initialData.value.selectedCollectionId;
-selectedCollectionName.value = initialData.value.selectedCollectionName;
-segmentRows.value = initialData.value.segments;
-totalCount.value = initialData.value.totalCount;
+const collections = ref<Collection[]>(initialData.value);
+
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '';
+  return d(new Date(dateStr), 'short');
+};
+
+// Actions dropdown
+const openMenuId = ref<number | null>(null);
+
+const toggleMenu = (id: number) => {
+  openMenuId.value = openMenuId.value === id ? null : id;
+};
+
+const closeMenu = () => {
+  openMenuId.value = null;
+};
+
+// Click outside to close menu
+const onClickOutside = (e: MouseEvent) => {
+  if (openMenuId.value !== null && !(e.target as HTMLElement).closest('.nd-collection-actions')) {
+    closeMenu();
+  }
+};
+
+onMounted(() => document.addEventListener('click', onClickOutside));
+onUnmounted(() => document.removeEventListener('click', onClickOutside));
+
+// Rename modal
+const renameTarget = ref<Collection | null>(null);
+const renameValue = ref('');
+const isRenaming = ref(false);
+
+const openRename = (collection: Collection) => {
+  closeMenu();
+  renameTarget.value = collection;
+  renameValue.value = collection.name;
+  nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>('#nd-rename-input');
+    input?.focus();
+    input?.select();
+  });
+};
+
+const submitRename = async () => {
+  if (!renameTarget.value || isRenaming.value || !renameValue.value.trim()) return;
+
+  isRenaming.value = true;
+  try {
+    await $fetch(`/api/collections/${renameTarget.value.id}`, {
+      method: 'PATCH',
+      body: { name: renameValue.value.trim() },
+    });
+
+    const idx = collections.value.findIndex((c) => c.id === renameTarget.value!.id);
+    if (idx !== -1) collections.value[idx].name = renameValue.value.trim();
+
+    useToastSuccess(t('accountSettings.collections.renamed'));
+    renameTarget.value = null;
+  } catch {
+    useToastError('Failed to rename collection');
+  } finally {
+    isRenaming.value = false;
+  }
+};
+
+// Delete confirmation
+const deleteTarget = ref<Collection | null>(null);
+const isDeleting = ref(false);
+
+const openDelete = (collection: Collection) => {
+  closeMenu();
+  deleteTarget.value = collection;
+};
+
+const submitDelete = async () => {
+  if (!deleteTarget.value || isDeleting.value) return;
+
+  isDeleting.value = true;
+  try {
+    await $fetch(`/api/collections/${deleteTarget.value.id}`, {
+      method: 'DELETE',
+    });
+
+    collections.value = collections.value.filter((c) => c.id !== deleteTarget.value!.id);
+
+    useToastSuccess(t('accountSettings.collections.deleted'));
+    deleteTarget.value = null;
+  } catch {
+    useToastError('Failed to delete collection');
+  } finally {
+    isDeleting.value = false;
+  }
+};
 </script>
 
 <template>
   <div class="dark:bg-card-background p-6 mb-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Collections</h3>
+    <div class="flex flex-wrap items-center gap-2 justify-between">
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Collections</h3>
+      <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ collections.length }} collections</p>
+    </div>
     <div class="border-b pt-4 border-white/10" />
 
-    <p v-if="collections.length === 0" class="mt-4 text-gray-300">No collections yet.</p>
-
-    <div v-else class="mt-4 space-y-2">
-      <button
-        v-for="collection in collections"
-        :key="collection.id"
-        class="w-full text-left rounded-lg px-3 py-2 border transition-colors"
-        :class="selectedCollectionId === collection.id
-          ? 'bg-white/10 border-white/30 text-white'
-          : 'bg-white/5 border-white/10 text-gray-200 hover:bg-white/10'"
-        @click="selectCollection(collection.id)"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <span class="font-medium truncate">{{ collection.name }}</span>
-          <span class="text-xs px-2 py-0.5 rounded border border-white/20 text-gray-300">{{ collection.visibility }}</span>
-        </div>
-      </button>
-    </div>
-  </div>
-
-  <div v-if="selectedCollectionId">
-    <p v-if="loadingSegments && segmentRows.length === 0" class="text-gray-300 mb-4">Loading segments...</p>
-    <p v-else-if="segmentRows.length === 0" class="text-gray-300 mb-4">No segments in this collection yet.</p>
-
-    <template v-else>
-      <div
-        v-for="row in segmentRows"
-        :key="`${selectedCollectionId}-${row.result.segment.uuid}-${row.position}`"
-        class="hover:bg-neutral-800/20 items-stretch rounded-lg transition-all flex flex-col lg:flex-row py-2"
-      >
-        <div class="h-56 shrink-0 w-auto lg:w-[25rem] min-w-[200px] flex justify-center relative overflow-hidden">
-          <img
-            :src="row.result.urls.imageUrl"
-            class="inset-0 h-full w-full object-cover object-center transition-all duration-300"
-            :class="shouldBlur(row.result.segment.contentRating) && !revealedContent.has(row.result.segment.uuid)
-              ? 'blur-[60px] scale-125'
-              : ''"
-          />
-          <button
-            v-if="shouldBlur(row.result.segment.contentRating)"
-            class="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/50 hover:bg-black/70 text-white transition-colors z-10 text-xs"
-            @click="revealedContent.has(row.result.segment.uuid)
-              ? revealedContent.delete(row.result.segment.uuid)
-              : revealedContent.add(row.result.segment.uuid)"
-          >
-            {{ revealedContent.has(row.result.segment.uuid) ? 'Hide' : 'Show' }}
-          </button>
-        </div>
-
-        <div class="w-full py-3 sm:py-2 px-4 rounded-e-lg text-white flex flex-col justify-between">
-          <div>
-            <h3 class="text-xl leading-snug">{{ row.result.segment.textJa.content }}</h3>
-
-            <ul class="ml-5 list-disc text-gray-400 mt-2">
-              <li
-                v-for="lang in orderedSegmentLangs"
-                :key="`${row.result.segment.uuid}-${lang}`"
-                class="my-1 text-sm"
+    <div class="mt-4 overflow-x-auto">
+      <table v-if="collections.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
+        <thead>
+          <tr>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Name</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Segments</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Visibility</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden sm:table-cell">Created</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden lg:table-cell">Updated</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+          <tr v-for="collection in collections" :key="collection.id">
+            <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
+              <NuxtLink
+                :to="{ path: '/search', query: { collectionId: collection.id } }"
+                class="font-medium truncate block hover:text-blue-400 transition-colors"
               >
-                {{ row.result.segment[lang].content }}
-              </li>
-            </ul>
+                {{ collection.name }}
+              </NuxtLink>
+            </td>
+            <td class="py-3 text-sm text-gray-300 tabular-nums">
+              {{ collection.segmentCount ?? 0 }}
+            </td>
+            <td class="py-3 text-sm">
+              <span
+                class="text-xs px-2 py-0.5 rounded-full border"
+                :class="collection.visibility === 'PUBLIC'
+                  ? 'border-emerald-700/50 text-emerald-400/80'
+                  : 'border-white/10 text-gray-500'"
+              >
+                {{ t(`accountSettings.collections.visibility.${collection.visibility}`) }}
+              </span>
+            </td>
+            <td class="py-3 text-sm text-gray-300 hidden sm:table-cell">
+              {{ formatDate(collection.createdAt) }}
+            </td>
+            <td class="py-3 text-sm text-gray-300 hidden lg:table-cell">
+              {{ formatDate(collection.updatedAt) }}
+            </td>
+            <td class="py-3 text-sm text-right">
+              <div class="nd-collection-actions relative inline-block">
+                <button
+                  type="button"
+                  class="p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+                  @click="toggleMenu(collection.id)"
+                >
+                  <UiBaseIcon :path="mdiDotsVertical" size="18" />
+                </button>
 
-            <p class="text-sm text-white/60 tracking-wide font-semibold mt-3">
-              {{ mediaName(row.result.media) }} &bull; Episode {{ row.result.segment.episode }} &bull; {{ formatMsTime(row.result.segment.startTimeMs) }}
-            </p>
-            <p v-if="row.note" class="text-sm text-gray-300 mt-2">Note: {{ row.note }}</p>
-          </div>
+                <Transition
+                  enter-active-class="transition duration-100 ease-out"
+                  enter-from-class="opacity-0 scale-95"
+                  enter-to-class="opacity-100 scale-100"
+                  leave-active-class="transition duration-75 ease-in"
+                  leave-from-class="opacity-100 scale-100"
+                  leave-to-class="opacity-0 scale-95"
+                >
+                  <div
+                    v-if="openMenuId === collection.id"
+                    class="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-white/10 bg-neutral-800 shadow-xl py-1"
+                  >
+                    <button
+                      type="button"
+                      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                      @click="openRename(collection)"
+                    >
+                      <UiBaseIcon :path="mdiPencilOutline" size="16" />
+                      {{ t('accountSettings.collections.rename') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                      @click="openDelete(collection)"
+                    >
+                      <UiBaseIcon :path="mdiDeleteOutline" size="16" />
+                      {{ t('accountSettings.collections.delete') }}
+                    </button>
+                  </div>
+                </Transition>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-          <div class="mt-3">
-            <NuxtLink
-              :to="`/sentence/${row.result.segment.uuid}`"
-              class="inline-flex items-center px-3 py-1.5 rounded-lg bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium"
-            >
-              Open Segment
-            </NuxtLink>
+      <p v-else class="text-gray-400 text-sm">{{ t('accountSettings.collections.noCollections') }}</p>
+    </div>
+
+    <!-- Rename modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="renameTarget"
+          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
+          @click.self="renameTarget = null"
+        >
+          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
+            <div class="px-4 py-3 border-b border-modal-border">
+              <h3 class="font-bold text-white">{{ t('accountSettings.collections.renameTitle') }}</h3>
+            </div>
+            <div class="p-4">
+              <input
+                id="nd-rename-input"
+                v-model="renameValue"
+                type="text"
+                maxlength="100"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                @keydown.enter="submitRename"
+                @keydown.escape="renameTarget = null"
+              />
+            </div>
+            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+              <button
+                type="button"
+                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+                @click="renameTarget = null"
+              >
+                {{ t('accountSettings.collections.renameCancel') }}
+              </button>
+              <button
+                type="button"
+                :disabled="isRenaming || !renameValue.trim()"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                @click="submitRename"
+              >
+                <span
+                  v-if="isRenaming"
+                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+                />
+                {{ t('accountSettings.collections.renameConfirm') }}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </Transition>
+    </Teleport>
 
-      <div class="flex items-center justify-between mt-4">
-        <p class="text-sm text-gray-400">{{ segmentRows.length }} / {{ totalCount }} segments</p>
-        <button
-          v-if="hasMoreSegments"
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
-          :disabled="loadingSegments"
-          @click="loadMoreSegments"
+    <!-- Delete confirmation modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="deleteTarget"
+          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
+          @click.self="deleteTarget = null"
         >
-          {{ loadingSegments ? 'Loading...' : 'Load more' }}
-        </button>
-      </div>
-    </template>
+          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
+            <div class="px-4 py-3 border-b border-modal-border">
+              <h3 class="font-bold text-white">{{ t('accountSettings.collections.deleteTitle') }}</h3>
+            </div>
+            <div class="p-4">
+              <p class="text-sm text-gray-300">
+                {{ t('accountSettings.collections.deleteMessage', { name: deleteTarget.name }) }}
+              </p>
+            </div>
+            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+              <button
+                type="button"
+                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+                @click="deleteTarget = null"
+              >
+                {{ t('accountSettings.collections.deleteCancel') }}
+              </button>
+              <button
+                type="button"
+                :disabled="isDeleting"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
+                @click="submitDelete"
+              >
+                <span
+                  v-if="isDeleting"
+                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+                />
+                {{ t('accountSettings.collections.deleteConfirm') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

@@ -1,0 +1,27 @@
+meta {
+  name: Get surrounding context for a segment
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/v1/media/segments/:uuid/context
+  body: none
+  auth: bearer
+}
+
+params:query {
+  uuid:
+  limit:
+  contentRating:
+  include:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

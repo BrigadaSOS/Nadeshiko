@@ -1,5 +1,5 @@
 get:
-  operationId: segmentShow
+  operationId: getSegment
   tags:
     - Media
   summary: Get single segment
@@ -49,7 +49,7 @@ get:
       $ref: "../../components/responses/InternalServerError.yaml"
 
 patch:
-  operationId: segmentUpdate
+  operationId: updateSegment
   x-internal: true
   tags:
     - Media
@@ -108,7 +108,7 @@ patch:
 delete:
   tags:
     - Media
-  operationId: segmentDestroy
+  operationId: deleteSegment
   x-internal: true
   summary: Delete segment
   description: |

@@ -1,0 +1,31 @@
+meta {
+  name: Update a report
+  type: http
+  seq: 59
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/reports/:id
+  body: json
+  auth: bearer
+}
+
+params:query {
+  id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "status": "",
+    "adminNotes": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

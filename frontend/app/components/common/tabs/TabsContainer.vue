@@ -22,6 +22,8 @@
   padding: 1rem 1.25rem;
   position: relative;
   display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
   cursor: pointer;
   flex-shrink: 0;
 }

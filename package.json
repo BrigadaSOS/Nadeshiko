@@ -11,7 +11,7 @@
     "lint": "bun run --cwd backend lint && bun run --cwd frontend lint",
     "lint:fix": "bun run --cwd backend lint:fix && bun run --cwd frontend lint:fix",
     "format": "bun run --cwd backend format && bun run --cwd frontend format",
-    "release:set-version": "bun run scripts/releaseVersion.ts set",
+    "release:set-version": "bash -c 'bun run scripts/releaseVersion.ts set \"$1\" && bun run --cwd backend generate:all \"$1\" && bun run scripts/releaseVersion.ts check \"$1\"' --",
     "release:check-version": "bun run scripts/releaseVersion.ts check"
   }
 }

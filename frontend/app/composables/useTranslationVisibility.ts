@@ -1,10 +1,14 @@
 import { authApiRequest } from '~/utils/authApi';
 
 type TranslationPrefKey = 'showEnglish' | 'showSpanish';
+type TranslationModePrefKey = 'englishMode' | 'spanishMode';
+export type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
 export type TranslationVisibilityPreferences = {
   showEnglish: boolean;
   showSpanish: boolean;
+  englishMode: TranslationVisibilityMode;
+  spanishMode: TranslationVisibilityMode;
   updatedAt: string;
 };
 
@@ -14,8 +18,27 @@ const USER_PREFS_KEY = 'translationVisibilityPreferences';
 const defaultPreferences = (): TranslationVisibilityPreferences => ({
   showEnglish: true,
   showSpanish: true,
+  englishMode: 'show',
+  spanishMode: 'show',
   updatedAt: '',
 });
+
+function normalizeMode(value: unknown, fallback: TranslationVisibilityMode): TranslationVisibilityMode {
+  if (value === 'show' || value === 'spoiler' || value === 'hidden') {
+    return value;
+  }
+  return fallback;
+}
+
+function modeToShowFlag(mode: TranslationVisibilityMode): boolean {
+  return mode !== 'hidden';
+}
+
+function nextMode(current: TranslationVisibilityMode): TranslationVisibilityMode {
+  if (current === 'show') return 'spoiler';
+  if (current === 'spoiler') return 'hidden';
+  return 'show';
+}
 
 function parseTimestamp(value: string): number {
   const timestamp = Date.parse(value);
@@ -29,9 +52,16 @@ function normalizePreferences(raw: unknown): TranslationVisibilityPreferences {
   }
 
   const source = raw as Partial<TranslationVisibilityPreferences>;
+  const legacyShowEnglish = typeof source.showEnglish === 'boolean' ? source.showEnglish : undefined;
+  const legacyShowSpanish = typeof source.showSpanish === 'boolean' ? source.showSpanish : undefined;
+  const englishMode = normalizeMode(source.englishMode, legacyShowEnglish === false ? 'hidden' : base.englishMode);
+  const spanishMode = normalizeMode(source.spanishMode, legacyShowSpanish === false ? 'hidden' : base.spanishMode);
+
   return {
-    showEnglish: typeof source.showEnglish === 'boolean' ? source.showEnglish : base.showEnglish,
-    showSpanish: typeof source.showSpanish === 'boolean' ? source.showSpanish : base.showSpanish,
+    showEnglish: modeToShowFlag(englishMode),
+    showSpanish: modeToShowFlag(spanishMode),
+    englishMode,
+    spanishMode,
     updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : base.updatedAt,
   };
 }
@@ -93,10 +123,14 @@ export function useTranslationVisibility() {
     return true;
   };
 
-  if (!initialized.value) {
+  if (import.meta.server) {
     if (user.isLoggedIn) {
       prefs.value = getServerPreferences();
-    } else if (import.meta.client) {
+    }
+  } else if (!initialized.value) {
+    if (user.isLoggedIn) {
+      prefs.value = getServerPreferences();
+    } else {
       prefs.value = readGuestPreferences().prefs;
     }
     initialized.value = true;
@@ -135,9 +169,29 @@ export function useTranslationVisibility() {
   const updatePreference = async (key: TranslationPrefKey, value: boolean) => {
     if (import.meta.server) return;
 
+    const nextModeValue: TranslationVisibilityMode = value ? 'show' : 'hidden';
     const next: TranslationVisibilityPreferences = {
       ...prefs.value,
       [key]: value,
+      ...(key === 'showEnglish' ? { englishMode: nextModeValue } : { spanishMode: nextModeValue }),
+      updatedAt: new Date().toISOString(),
+    };
+
+    prefs.value = next;
+    writeGuestPreferences(next);
+
+    if (user.isLoggedIn) {
+      await persistToServer(next);
+    }
+  };
+
+  const updateModePreference = async (key: TranslationModePrefKey, mode: TranslationVisibilityMode) => {
+    if (import.meta.server) return;
+
+    const next: TranslationVisibilityPreferences = {
+      ...prefs.value,
+      [key]: mode,
+      ...(key === 'englishMode' ? { showEnglish: modeToShowFlag(mode) } : { showSpanish: modeToShowFlag(mode) }),
       updatedAt: new Date().toISOString(),
     };
 
@@ -179,17 +233,29 @@ export function useTranslationVisibility() {
 
   const showEnglish = computed(() => prefs.value.showEnglish);
   const showSpanish = computed(() => prefs.value.showSpanish);
-  const hasVisibleTranslations = computed(() => showEnglish.value || showSpanish.value);
+  const englishMode = computed(() => prefs.value.englishMode);
+  const spanishMode = computed(() => prefs.value.spanishMode);
+  const hasVisibleTranslations = computed(() => englishMode.value !== 'hidden' || spanishMode.value !== 'hidden');
 
   const setShowEnglish = (value: boolean) => updatePreference('showEnglish', value);
   const setShowSpanish = (value: boolean) => updatePreference('showSpanish', value);
+  const setEnglishMode = (mode: TranslationVisibilityMode) => updateModePreference('englishMode', mode);
+  const setSpanishMode = (mode: TranslationVisibilityMode) => updateModePreference('spanishMode', mode);
+  const cycleEnglishMode = () => setEnglishMode(nextMode(englishMode.value));
+  const cycleSpanishMode = () => setSpanishMode(nextMode(spanishMode.value));
 
   return {
     prefs,
     showEnglish,
     showSpanish,
+    englishMode,
+    spanishMode,
     hasVisibleTranslations,
     setShowEnglish,
     setShowSpanish,
+    setEnglishMode,
+    setSpanishMode,
+    cycleEnglishMode,
+    cycleSpanishMode,
   };
 }

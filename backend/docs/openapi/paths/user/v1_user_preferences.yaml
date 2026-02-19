@@ -2,7 +2,7 @@ get:
   tags:
     - User
   x-internal: true
-  operationId: userPreferencesShow
+  operationId: getUserPreferences
   summary: Get user preferences
   description: |
     Returns the authenticated user's full preferences object.
@@ -26,7 +26,7 @@ patch:
   tags:
     - User
   x-internal: true
-  operationId: userPreferencesUpdate
+  operationId: updateUserPreferences
   summary: Update user preferences
   description: |
     Deep-merges a partial preferences update into the user's existing preferences.

@@ -1,0 +1,20 @@
+meta {
+  name: System health check
+  type: http
+  seq: 51
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/health
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

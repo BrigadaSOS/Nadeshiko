@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { buildSentenceMetaTags } from '~/utils/metaTags';
 
@@ -7,6 +7,33 @@ const shortcutsModal = ref(null);
 const route = useRoute();
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
+
+const firstQueryValue = (value) => (Array.isArray(value) ? value[0] : value);
+const getStringQueryValue = (value) => {
+  const normalized = firstQueryValue(value);
+  if (normalized === undefined || normalized === null || normalized === '') {
+    return null;
+  }
+  return String(normalized);
+};
+
+const collectionIdParam = computed(() => {
+  const raw = getStringQueryValue(route.query.collectionId);
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isNaN(parsed) ? null : parsed;
+});
+
+const mediaQueryParam = computed(() => getStringQueryValue(route.query.media ?? route.query.mediaId));
+const episodeQueryParam = computed(() => getStringQueryValue(route.query.episode ?? route.query.episodeId));
+
+const episodeNumberParam = computed(() => {
+  if (!episodeQueryParam.value) {
+    return null;
+  }
+  const parsed = Number(episodeQueryParam.value);
+  return Number.isNaN(parsed) ? null : parsed;
+});
 
 const searchQuery = computed(() => {
   if (route.params.query) {
@@ -18,6 +45,11 @@ const searchQuery = computed(() => {
 const fetchSentenceData = async () => {
   try {
     const apiSearch = useApiSearch();
+
+    if (collectionIdParam.value) {
+      return await apiSearch.searchCollectionSegments(collectionIdParam.value);
+    }
+
     const body = {
       limit: 20,
     };
@@ -37,10 +69,10 @@ const fetchSentenceData = async () => {
       filters.category = [categoryValue];
     }
 
-    if (route.query.media) {
-      const mediaEntry = { mediaId: Number(route.query.media) };
-      if (route.query.episode) {
-        mediaEntry.episodes = [Number(route.query.episode)];
+    if (mediaQueryParam.value) {
+      const mediaEntry = { mediaId: Number(mediaQueryParam.value) };
+      if (episodeNumberParam.value !== null) {
+        mediaEntry.episodes = [episodeNumberParam.value];
       }
       filters.media = { include: [mediaEntry] };
     }
@@ -61,6 +93,11 @@ const fetchSentenceData = async () => {
 const fetchStatsData = async () => {
   try {
     const apiSearch = useApiSearch();
+
+    if (collectionIdParam.value) {
+      return await apiSearch.getCollectionStats(collectionIdParam.value);
+    }
+
     const body = {};
     const filters = {};
 
@@ -88,8 +125,8 @@ const sentenceCacheKey = computed(() => {
     searchQuery.value,
     route.query.uuid,
     route.query.category,
-    route.query.media,
-    route.query.episode,
+    mediaQueryParam.value,
+    episodeQueryParam.value,
     route.query.sort,
   ]
     .filter(Boolean)
@@ -98,7 +135,7 @@ const sentenceCacheKey = computed(() => {
 });
 
 const statsCacheKey = computed(() => {
-  const params = [searchQuery.value, route.query.category, route.query.media, route.query.episode]
+  const params = [searchQuery.value, route.query.category, mediaQueryParam.value, episodeQueryParam.value]
     .filter(Boolean)
     .join('-');
   return `search-stats-${params || 'default'}`;
@@ -113,6 +150,15 @@ const { data: initialStatsData } = await useAsyncData(statsCacheKey.value, () =>
   server: true,
   lazy: false,
 });
+
+const { data: collectionDetails } = await useAsyncData(
+  `collection-details-${collectionIdParam.value ?? 'none'}`,
+  async () => {
+    if (!collectionIdParam.value) return null;
+    return await $fetch<{ name?: string }>(`/api/collections/${collectionIdParam.value}`).catch(() => null);
+  },
+  { server: true, lazy: false },
+);
 
 const metaTags = computed(() => {
   const defaultDescription =
@@ -158,7 +204,7 @@ const metaTags = computed(() => {
         .map((s) => `${categoryNames[s.category]}: ${s.count.toLocaleString()}`)
         .join(', ');
       if (breakdown) {
-        description += `\n(${breakdown})`;
+        description += ` (${breakdown})`;
       }
     }
 
@@ -170,14 +216,14 @@ const metaTags = computed(() => {
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
     ];
-  } else if (route.query.media && initialSentenceData.value?.results?.length > 0) {
+  } else if (mediaQueryParam.value && initialSentenceData.value?.results?.length > 0) {
     const firstResult = initialSentenceData.value.results[0];
     const animeName = mediaName(firstResult.media);
     const mediaId = firstResult.media.mediaId;
 
     const mediaStats = initialStatsData.value?.media?.find((s) => s.mediaId === Number(mediaId));
 
-    const filterEpisode = route.query.episode ? Number(route.query.episode) : null;
+    const filterEpisode = episodeNumberParam.value;
 
     let totalResults = mediaStats?.segmentCount || 0;
     const episodeHits = mediaStats?.episodeHits;
@@ -192,9 +238,9 @@ const metaTags = computed(() => {
     if (episodeHits && Object.keys(episodeHits).length > 0) {
       const episodeCount = Object.keys(episodeHits).length;
       if (filterEpisode) {
-        description = `${totalResults.toLocaleString()} sentences\nEpisode ${filterEpisode}`;
+        description = `${totalResults.toLocaleString()} sentences, episode ${filterEpisode}`;
       } else {
-        description += `\n${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
+        description += ` across ${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
       }
     }
 
@@ -227,18 +273,21 @@ useHead(metaTags);
                 <div class="pt-2">
                     <div class="md:max-w-[92%] mx-auto">
                         <SearchModalKeyboardShortcuts ref="shortcutsModal" />
-                        <SearchBaseInputSegment />
-                        <div class="mt-2 flex items-center justify-end gap-3">
-                            <SearchTranslationVisibilityPreferences />
-                            <button
-                                class="rounded-md px-3 py-1 text-sm font-medium bg-neutral-800 text-neutral-500 border border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-                                @click="shortcutsModal?.open()"
-                                :title="$t('shortcuts.title')"
-                            >
-                                ? {{ $t('shortcuts.title') }}
-                            </button>
-                        </div>
-                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
+                        <SearchBaseInputSegment compact />
+                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" :collection-id="collectionIdParam" :collection-name="collectionDetails?.name ?? null">
+                            <template #result-controls>
+                                <div class="flex items-center gap-3">
+                                    <SearchTranslationVisibilityPreferences />
+                                    <button
+                                        class="hidden lg:inline-flex rounded-md px-3 py-1 text-sm font-medium bg-neutral-800 text-neutral-500 border border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                                        @click="shortcutsModal?.open()"
+                                        :title="$t('shortcuts.title')"
+                                    >
+                                        ? {{ $t('shortcuts.title') }}
+                                    </button>
+                                </div>
+                            </template>
+                        </SearchContainer>
                     </div>
                 </div>
             </div>

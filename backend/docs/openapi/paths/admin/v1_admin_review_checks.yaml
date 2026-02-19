@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminReviewCheckIndex
+  operationId: listAdminReviewChecks
   summary: List all review checks
   description: |
     Returns all check definitions with current config, threshold schema, and latest run info.

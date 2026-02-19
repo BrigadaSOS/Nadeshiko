@@ -1,7 +1,7 @@
 get:
   tags:
     - Media
-  operationId: mediaShow
+  operationId: getMedia
   summary: Get single media
   description: |
     Returns a single media entry by its ID with full metadata.
@@ -49,7 +49,7 @@ get:
 patch:
   tags:
     - Media
-  operationId: mediaUpdate
+  operationId: updateMedia
   x-internal: true
   summary: Update media
   description: |
@@ -96,7 +96,7 @@ patch:
 delete:
   tags:
     - Media
-  operationId: mediaDestroy
+  operationId: deleteMedia
   x-internal: true
   summary: Delete media (soft delete)
   description: |

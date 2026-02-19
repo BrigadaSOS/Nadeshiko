@@ -1,0 +1,35 @@
+meta {
+  name: Update segment in collection
+  type: http
+  seq: 48
+}
+
+patch {
+  url: {{baseUrl}}/v1/collections/:id/segments/:uuid
+  body: json
+  auth: none
+}
+
+params:query {
+  id:
+  uuid:
+}
+
+body:json {
+  {
+    "position": 0,
+    "note": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

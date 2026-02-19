@@ -1,7 +1,7 @@
 get:
   tags:
     - Collections
-  operationId: collectionIndex
+  operationId: listCollections
   summary: List user's collections
   description: |
     Returns all collections for the authenticated user. Can filter by visibility.
@@ -62,7 +62,7 @@ get:
 post:
   tags:
     - Collections
-  operationId: collectionCreate
+  operationId: createCollection
   summary: Create collection
   description: |
     Creates a new segment collection for the authenticated user.

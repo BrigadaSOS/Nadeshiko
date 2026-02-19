@@ -1,0 +1,30 @@
+meta {
+  name: List user's collections
+  type: http
+  seq: 42
+}
+
+get {
+  url: {{baseUrl}}/v1/collections?visibility=private&page=1&limit=20
+  body: none
+  auth: none
+}
+
+params:query {
+  visibility: private
+  cursor:
+  page: 1
+  limit: 20
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

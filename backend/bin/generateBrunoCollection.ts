@@ -8,7 +8,7 @@ import { auth } from '@config/auth';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const OPENAPI_FILE = join(__dirname, '../docs/generated/openapi-internal.yaml');
+const OPENAPI_FILE = join(__dirname, '../docs/generated/openapi.yaml');
 const BRUNO_DIR = join(__dirname, '../docs/bruno');
 const GENERATED_SUBFOLDER = '[Generated] API';
 const GENERATED_DIR = join(BRUNO_DIR, GENERATED_SUBFOLDER);

@@ -14,19 +14,22 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
-  t_CharacterShowParamSchema,
+  t_AddMediaToSeriesParamSchema,
+  t_AddMediaToSeriesRequestBodySchema,
   t_CharacterWithMedia,
+  t_CreateEpisodeParamSchema,
+  t_CreateEpisodeRequestBodySchema,
+  t_CreateMediaRequestBodySchema,
+  t_CreateSegmentParamSchema,
+  t_CreateSegmentRequestBodySchema,
+  t_CreateSeriesRequestBodySchema,
   t_CursorPagination,
+  t_DeleteEpisodeParamSchema,
+  t_DeleteMediaParamSchema,
+  t_DeleteSegmentParamSchema,
+  t_DeleteSeriesParamSchema,
   t_Episode,
-  t_EpisodeCreateParamSchema,
-  t_EpisodeCreateRequestBodySchema,
-  t_EpisodeDestroyParamSchema,
-  t_EpisodeIndexParamSchema,
-  t_EpisodeIndexQuerySchema,
   t_EpisodeListResponse,
-  t_EpisodeShowParamSchema,
-  t_EpisodeUpdateParamSchema,
-  t_EpisodeUpdateRequestBodySchema,
   t_Error400,
   t_Error401,
   t_Error403,
@@ -34,49 +37,46 @@ import type {
   t_Error409,
   t_Error429,
   t_Error500,
+  t_GetCharacterParamSchema,
+  t_GetEpisodeParamSchema,
+  t_GetMediaParamSchema,
+  t_GetMediaQuerySchema,
+  t_GetSegmentByUuidParamSchema,
+  t_GetSegmentContextParamSchema,
+  t_GetSegmentContextQuerySchema,
+  t_GetSegmentParamSchema,
+  t_GetSeiyuuParamSchema,
+  t_GetSeiyuuQuerySchema,
+  t_GetSeriesParamSchema,
+  t_GetSeriesQuerySchema,
+  t_ListEpisodesParamSchema,
+  t_ListEpisodesQuerySchema,
+  t_ListMediaQuerySchema,
+  t_ListSegmentsParamSchema,
+  t_ListSegmentsQuerySchema,
+  t_ListSeriesQuerySchema,
   t_Media,
-  t_MediaCreateRequestBodySchema,
-  t_MediaDestroyParamSchema,
-  t_MediaIndexQuerySchema,
   t_MediaListResponse,
-  t_MediaShowParamSchema,
-  t_MediaShowQuerySchema,
-  t_MediaUpdateParamSchema,
-  t_MediaUpdateRequestBodySchema,
+  t_RemoveMediaFromSeriesParamSchema,
   t_Segment,
   t_SegmentContextResponse,
-  t_SegmentContextShowParamSchema,
-  t_SegmentContextShowQuerySchema,
-  t_SegmentCreateParamSchema,
-  t_SegmentCreateRequestBodySchema,
-  t_SegmentDestroyParamSchema,
-  t_SegmentIndexParamSchema,
-  t_SegmentIndexQuerySchema,
   t_SegmentInternal,
-  t_SegmentShowByUuidParamSchema,
-  t_SegmentShowParamSchema,
-  t_SegmentUpdateParamSchema,
-  t_SegmentUpdateRequestBodySchema,
-  t_SeiyuuShowParamSchema,
-  t_SeiyuuShowQuerySchema,
   t_SeiyuuWithRoles,
   t_Series,
-  t_SeriesAddMediaParamSchema,
-  t_SeriesAddMediaRequestBodySchema,
-  t_SeriesCreateRequestBodySchema,
-  t_SeriesDestroyParamSchema,
-  t_SeriesIndexQuerySchema,
   t_SeriesListResponse,
-  t_SeriesRemoveMediaParamSchema,
-  t_SeriesShowParamSchema,
-  t_SeriesShowQuerySchema,
-  t_SeriesUpdateMediaParamSchema,
-  t_SeriesUpdateMediaRequestBodySchema,
-  t_SeriesUpdateParamSchema,
-  t_SeriesUpdateRequestBodySchema,
   t_SeriesWithMedia,
+  t_UpdateEpisodeParamSchema,
+  t_UpdateEpisodeRequestBodySchema,
+  t_UpdateMediaParamSchema,
+  t_UpdateMediaRequestBodySchema,
+  t_UpdateSegmentParamSchema,
+  t_UpdateSegmentRequestBodySchema,
+  t_UpdateSeriesMediaParamSchema,
+  t_UpdateSeriesMediaRequestBodySchema,
+  t_UpdateSeriesParamSchema,
+  t_UpdateSeriesRequestBodySchema,
 } from '../models.ts';
-import type { EpisodeCreateRequestOutput, EpisodeIndexQueryOutput, EpisodeUpdateRequestOutput, MediaCreateRequestOutput, MediaIndexQueryOutput, MediaShowQueryOutput, MediaUpdateRequestOutput, SegmentContextShowQueryOutput, SegmentCreateRequestOutput, SegmentIndexQueryOutput, SegmentUpdateRequestOutput, SeiyuuShowQueryOutput, SeriesIndexQueryOutput, SeriesShowQueryOutput } from '../outputTypes.ts';
+import type { EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentContextQueryOutput, GetSeiyuuQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
   s_CharacterWithMedia,
   s_ContentRating,
@@ -109,7 +109,7 @@ import {
   s_SeriesWithMedia,
 } from '../schemas.ts';
 
-export type MediaIndexResponder = {
+export type ListMediaResponder = {
   with200(): ExpressRuntimeResponse<t_MediaListResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -118,15 +118,15 @@ export type MediaIndexResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type MediaIndex = (
-  params: Params<void, MediaIndexQueryOutput, void, void>,
-  respond: MediaIndexResponder,
+export type ListMedia = (
+  params: Params<void, ListMediaQueryOutput, void, void>,
+  respond: ListMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type MediaCreateResponder = {
+export type CreateMediaResponder = {
   with201(): ExpressRuntimeResponse<t_Media>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -136,15 +136,15 @@ export type MediaCreateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type MediaCreate = (
+export type CreateMedia = (
   params: Params<void, void, MediaCreateRequestOutput, void>,
-  respond: MediaCreateResponder,
+  respond: CreateMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type MediaShowResponder = {
+export type GetMediaResponder = {
   with200(): ExpressRuntimeResponse<t_Media>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -154,15 +154,15 @@ export type MediaShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type MediaShow = (
-  params: Params<t_MediaShowParamSchema, MediaShowQueryOutput, void, void>,
-  respond: MediaShowResponder,
+export type GetMedia = (
+  params: Params<t_GetMediaParamSchema, GetMediaQueryOutput, void, void>,
+  respond: GetMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type MediaUpdateResponder = {
+export type UpdateMediaResponder = {
   with200(): ExpressRuntimeResponse<t_Media>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -172,15 +172,15 @@ export type MediaUpdateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type MediaUpdate = (
-  params: Params<t_MediaUpdateParamSchema, void, MediaUpdateRequestOutput, void>,
-  respond: MediaUpdateResponder,
+export type UpdateMedia = (
+  params: Params<t_UpdateMediaParamSchema, void, MediaUpdateRequestOutput, void>,
+  respond: UpdateMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type MediaDestroyResponder = {
+export type DeleteMediaResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -190,15 +190,15 @@ export type MediaDestroyResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type MediaDestroy = (
-  params: Params<t_MediaDestroyParamSchema, void, void, void>,
-  respond: MediaDestroyResponder,
+export type DeleteMedia = (
+  params: Params<t_DeleteMediaParamSchema, void, void, void>,
+  respond: DeleteMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type EpisodeIndexResponder = {
+export type ListEpisodesResponder = {
   with200(): ExpressRuntimeResponse<t_EpisodeListResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -208,15 +208,15 @@ export type EpisodeIndexResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type EpisodeIndex = (
-  params: Params<t_EpisodeIndexParamSchema, EpisodeIndexQueryOutput, void, void>,
-  respond: EpisodeIndexResponder,
+export type ListEpisodes = (
+  params: Params<t_ListEpisodesParamSchema, ListEpisodesQueryOutput, void, void>,
+  respond: ListEpisodesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type EpisodeCreateResponder = {
+export type CreateEpisodeResponder = {
   with201(): ExpressRuntimeResponse<t_Episode>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -227,15 +227,15 @@ export type EpisodeCreateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type EpisodeCreate = (
-  params: Params<t_EpisodeCreateParamSchema, void, EpisodeCreateRequestOutput, void>,
-  respond: EpisodeCreateResponder,
+export type CreateEpisode = (
+  params: Params<t_CreateEpisodeParamSchema, void, EpisodeCreateRequestOutput, void>,
+  respond: CreateEpisodeResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type EpisodeShowResponder = {
+export type GetEpisodeResponder = {
   with200(): ExpressRuntimeResponse<t_Episode>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -245,15 +245,15 @@ export type EpisodeShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type EpisodeShow = (
-  params: Params<t_EpisodeShowParamSchema, void, void, void>,
-  respond: EpisodeShowResponder,
+export type GetEpisode = (
+  params: Params<t_GetEpisodeParamSchema, void, void, void>,
+  respond: GetEpisodeResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type EpisodeUpdateResponder = {
+export type UpdateEpisodeResponder = {
   with200(): ExpressRuntimeResponse<t_Episode>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -263,15 +263,15 @@ export type EpisodeUpdateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type EpisodeUpdate = (
-  params: Params<t_EpisodeUpdateParamSchema, void, EpisodeUpdateRequestOutput, void>,
-  respond: EpisodeUpdateResponder,
+export type UpdateEpisode = (
+  params: Params<t_UpdateEpisodeParamSchema, void, EpisodeUpdateRequestOutput, void>,
+  respond: UpdateEpisodeResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type EpisodeDestroyResponder = {
+export type DeleteEpisodeResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -281,15 +281,15 @@ export type EpisodeDestroyResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type EpisodeDestroy = (
-  params: Params<t_EpisodeDestroyParamSchema, void, void, void>,
-  respond: EpisodeDestroyResponder,
+export type DeleteEpisode = (
+  params: Params<t_DeleteEpisodeParamSchema, void, void, void>,
+  respond: DeleteEpisodeResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SegmentIndexResponder = {
+export type ListSegmentsResponder = {
   with200(): ExpressRuntimeResponse<{
     pagination: t_CursorPagination;
     segments: t_Segment[];
@@ -302,15 +302,15 @@ export type SegmentIndexResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SegmentIndex = (
-  params: Params<t_SegmentIndexParamSchema, SegmentIndexQueryOutput, void, void>,
-  respond: SegmentIndexResponder,
+export type ListSegments = (
+  params: Params<t_ListSegmentsParamSchema, ListSegmentsQueryOutput, void, void>,
+  respond: ListSegmentsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SegmentCreateResponder = {
+export type CreateSegmentResponder = {
   with201(): ExpressRuntimeResponse<t_SegmentInternal>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -321,15 +321,15 @@ export type SegmentCreateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SegmentCreate = (
-  params: Params<t_SegmentCreateParamSchema, void, SegmentCreateRequestOutput, void>,
-  respond: SegmentCreateResponder,
+export type CreateSegment = (
+  params: Params<t_CreateSegmentParamSchema, void, SegmentCreateRequestOutput, void>,
+  respond: CreateSegmentResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SegmentShowResponder = {
+export type GetSegmentResponder = {
   with200(): ExpressRuntimeResponse<t_Segment>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -339,15 +339,15 @@ export type SegmentShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SegmentShow = (
-  params: Params<t_SegmentShowParamSchema, void, void, void>,
-  respond: SegmentShowResponder,
+export type GetSegment = (
+  params: Params<t_GetSegmentParamSchema, void, void, void>,
+  respond: GetSegmentResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SegmentUpdateResponder = {
+export type UpdateSegmentResponder = {
   with200(): ExpressRuntimeResponse<t_SegmentInternal>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -357,15 +357,15 @@ export type SegmentUpdateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SegmentUpdate = (
-  params: Params<t_SegmentUpdateParamSchema, void, SegmentUpdateRequestOutput, void>,
-  respond: SegmentUpdateResponder,
+export type UpdateSegment = (
+  params: Params<t_UpdateSegmentParamSchema, void, SegmentUpdateRequestOutput, void>,
+  respond: UpdateSegmentResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SegmentDestroyResponder = {
+export type DeleteSegmentResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -375,15 +375,15 @@ export type SegmentDestroyResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SegmentDestroy = (
-  params: Params<t_SegmentDestroyParamSchema, void, void, void>,
-  respond: SegmentDestroyResponder,
+export type DeleteSegment = (
+  params: Params<t_DeleteSegmentParamSchema, void, void, void>,
+  respond: DeleteSegmentResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SegmentShowByUuidResponder = {
+export type GetSegmentByUuidResponder = {
   with200(): ExpressRuntimeResponse<t_Segment>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -393,15 +393,15 @@ export type SegmentShowByUuidResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SegmentShowByUuid = (
-  params: Params<t_SegmentShowByUuidParamSchema, void, void, void>,
-  respond: SegmentShowByUuidResponder,
+export type GetSegmentByUuid = (
+  params: Params<t_GetSegmentByUuidParamSchema, void, void, void>,
+  respond: GetSegmentByUuidResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SegmentContextShowResponder = {
+export type GetSegmentContextResponder = {
   with200(): ExpressRuntimeResponse<t_SegmentContextResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -411,15 +411,15 @@ export type SegmentContextShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SegmentContextShow = (
-  params: Params<t_SegmentContextShowParamSchema, SegmentContextShowQueryOutput, void, void>,
-  respond: SegmentContextShowResponder,
+export type GetSegmentContext = (
+  params: Params<t_GetSegmentContextParamSchema, GetSegmentContextQueryOutput, void, void>,
+  respond: GetSegmentContextResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesIndexResponder = {
+export type ListSeriesResponder = {
   with200(): ExpressRuntimeResponse<t_SeriesListResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -428,15 +428,15 @@ export type SeriesIndexResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesIndex = (
-  params: Params<void, SeriesIndexQueryOutput, void, void>,
-  respond: SeriesIndexResponder,
+export type ListSeries = (
+  params: Params<void, ListSeriesQueryOutput, void, void>,
+  respond: ListSeriesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesCreateResponder = {
+export type CreateSeriesResponder = {
   with201(): ExpressRuntimeResponse<t_Series>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -445,15 +445,15 @@ export type SeriesCreateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesCreate = (
-  params: Params<void, void, t_SeriesCreateRequestBodySchema, void>,
-  respond: SeriesCreateResponder,
+export type CreateSeries = (
+  params: Params<void, void, t_CreateSeriesRequestBodySchema, void>,
+  respond: CreateSeriesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesShowResponder = {
+export type GetSeriesResponder = {
   with200(): ExpressRuntimeResponse<t_SeriesWithMedia>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -463,15 +463,15 @@ export type SeriesShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesShow = (
-  params: Params<t_SeriesShowParamSchema, SeriesShowQueryOutput, void, void>,
-  respond: SeriesShowResponder,
+export type GetSeries = (
+  params: Params<t_GetSeriesParamSchema, GetSeriesQueryOutput, void, void>,
+  respond: GetSeriesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesUpdateResponder = {
+export type UpdateSeriesResponder = {
   with200(): ExpressRuntimeResponse<t_Series>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -481,15 +481,15 @@ export type SeriesUpdateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesUpdate = (
-  params: Params<t_SeriesUpdateParamSchema, void, t_SeriesUpdateRequestBodySchema, void>,
-  respond: SeriesUpdateResponder,
+export type UpdateSeries = (
+  params: Params<t_UpdateSeriesParamSchema, void, t_UpdateSeriesRequestBodySchema, void>,
+  respond: UpdateSeriesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesDestroyResponder = {
+export type DeleteSeriesResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -499,15 +499,15 @@ export type SeriesDestroyResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesDestroy = (
-  params: Params<t_SeriesDestroyParamSchema, void, void, void>,
-  respond: SeriesDestroyResponder,
+export type DeleteSeries = (
+  params: Params<t_DeleteSeriesParamSchema, void, void, void>,
+  respond: DeleteSeriesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesAddMediaResponder = {
+export type AddMediaToSeriesResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -517,15 +517,15 @@ export type SeriesAddMediaResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesAddMedia = (
-  params: Params<t_SeriesAddMediaParamSchema, void, t_SeriesAddMediaRequestBodySchema, void>,
-  respond: SeriesAddMediaResponder,
+export type AddMediaToSeries = (
+  params: Params<t_AddMediaToSeriesParamSchema, void, t_AddMediaToSeriesRequestBodySchema, void>,
+  respond: AddMediaToSeriesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesUpdateMediaResponder = {
+export type UpdateSeriesMediaResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -535,15 +535,15 @@ export type SeriesUpdateMediaResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesUpdateMedia = (
-  params: Params<t_SeriesUpdateMediaParamSchema, void, t_SeriesUpdateMediaRequestBodySchema, void>,
-  respond: SeriesUpdateMediaResponder,
+export type UpdateSeriesMedia = (
+  params: Params<t_UpdateSeriesMediaParamSchema, void, t_UpdateSeriesMediaRequestBodySchema, void>,
+  respond: UpdateSeriesMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeriesRemoveMediaResponder = {
+export type RemoveMediaFromSeriesResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -553,15 +553,15 @@ export type SeriesRemoveMediaResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeriesRemoveMedia = (
-  params: Params<t_SeriesRemoveMediaParamSchema, void, void, void>,
-  respond: SeriesRemoveMediaResponder,
+export type RemoveMediaFromSeries = (
+  params: Params<t_RemoveMediaFromSeriesParamSchema, void, void, void>,
+  respond: RemoveMediaFromSeriesResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CharacterShowResponder = {
+export type GetCharacterResponder = {
   with200(): ExpressRuntimeResponse<t_CharacterWithMedia>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -571,15 +571,15 @@ export type CharacterShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CharacterShow = (
-  params: Params<t_CharacterShowParamSchema, void, void, void>,
-  respond: CharacterShowResponder,
+export type GetCharacter = (
+  params: Params<t_GetCharacterParamSchema, void, void, void>,
+  respond: GetCharacterResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SeiyuuShowResponder = {
+export type GetSeiyuuResponder = {
   with200(): ExpressRuntimeResponse<t_SeiyuuWithRoles>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -589,48 +589,48 @@ export type SeiyuuShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SeiyuuShow = (
-  params: Params<t_SeiyuuShowParamSchema, SeiyuuShowQueryOutput, void, void>,
-  respond: SeiyuuShowResponder,
+export type GetSeiyuu = (
+  params: Params<t_GetSeiyuuParamSchema, GetSeiyuuQueryOutput, void, void>,
+  respond: GetSeiyuuResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type MediaImplementation = {
-  mediaIndex: MediaIndex;
-  mediaCreate: MediaCreate;
-  mediaShow: MediaShow;
-  mediaUpdate: MediaUpdate;
-  mediaDestroy: MediaDestroy;
-  episodeIndex: EpisodeIndex;
-  episodeCreate: EpisodeCreate;
-  episodeShow: EpisodeShow;
-  episodeUpdate: EpisodeUpdate;
-  episodeDestroy: EpisodeDestroy;
-  segmentIndex: SegmentIndex;
-  segmentCreate: SegmentCreate;
-  segmentShow: SegmentShow;
-  segmentUpdate: SegmentUpdate;
-  segmentDestroy: SegmentDestroy;
-  segmentShowByUuid: SegmentShowByUuid;
-  segmentContextShow: SegmentContextShow;
-  seriesIndex: SeriesIndex;
-  seriesCreate: SeriesCreate;
-  seriesShow: SeriesShow;
-  seriesUpdate: SeriesUpdate;
-  seriesDestroy: SeriesDestroy;
-  seriesAddMedia: SeriesAddMedia;
-  seriesUpdateMedia: SeriesUpdateMedia;
-  seriesRemoveMedia: SeriesRemoveMedia;
-  characterShow: CharacterShow;
-  seiyuuShow: SeiyuuShow;
+  listMedia: ListMedia;
+  createMedia: CreateMedia;
+  getMedia: GetMedia;
+  updateMedia: UpdateMedia;
+  deleteMedia: DeleteMedia;
+  listEpisodes: ListEpisodes;
+  createEpisode: CreateEpisode;
+  getEpisode: GetEpisode;
+  updateEpisode: UpdateEpisode;
+  deleteEpisode: DeleteEpisode;
+  listSegments: ListSegments;
+  createSegment: CreateSegment;
+  getSegment: GetSegment;
+  updateSegment: UpdateSegment;
+  deleteSegment: DeleteSegment;
+  getSegmentByUuid: GetSegmentByUuid;
+  getSegmentContext: GetSegmentContext;
+  listSeries: ListSeries;
+  createSeries: CreateSeries;
+  getSeries: GetSeries;
+  updateSeries: UpdateSeries;
+  deleteSeries: DeleteSeries;
+  addMediaToSeries: AddMediaToSeries;
+  updateSeriesMedia: UpdateSeriesMedia;
+  removeMediaFromSeries: RemoveMediaFromSeries;
+  getCharacter: GetCharacter;
+  getSeiyuu: GetSeiyuu;
 };
 
 export function createMediaRouter(implementation: MediaImplementation): Router {
   const router = Router();
 
-  const mediaIndexQuerySchema = z.object({
+  const listMediaQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.coerce.number().min(0).optional().default(0),
     category: z.enum(['ANIME', 'JDRAMA']).optional(),
@@ -644,7 +644,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       .default(['media']),
   });
 
-  const mediaIndexResponseBodyValidator = responseValidationFactory(
+  const listMediaResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_MediaListResponse],
       ['400', s_Error400],
@@ -656,12 +656,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // mediaIndex
+  // listMedia
   router.get(`/v1/media`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(mediaIndexQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(listMediaQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -690,7 +690,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.mediaIndex(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.listMedia(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -704,7 +704,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(mediaIndexResponseBodyValidator(status, body));
+        res.json(listMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -713,9 +713,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const mediaCreateRequestBodySchema = s_MediaCreateRequest;
+  const createMediaRequestBodySchema = s_MediaCreateRequest;
 
-  const mediaCreateResponseBodyValidator = responseValidationFactory(
+  const createMediaResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Media],
       ['400', s_Error400],
@@ -728,13 +728,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // mediaCreate
+  // createMedia
   router.post(`/v1/media`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(mediaCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(createMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -765,7 +765,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.mediaCreate(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.createMedia(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -779,7 +779,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(mediaCreateResponseBodyValidator(status, body));
+        res.json(createMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -788,9 +788,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const mediaShowParamSchema = z.object({ id: z.coerce.number() });
+  const getMediaParamSchema = z.object({ id: z.coerce.number() });
 
-  const mediaShowQuerySchema = z.object({
+  const getMediaQuerySchema = z.object({
     include: z
       .preprocess(
         (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
@@ -800,7 +800,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       .default(['media']),
   });
 
-  const mediaShowResponseBodyValidator = responseValidationFactory(
+  const getMediaResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Media],
       ['400', s_Error400],
@@ -813,12 +813,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // mediaShow
+  // getMedia
   router.get(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(mediaShowParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(mediaShowQuerySchema, req.query, RequestInputType.QueryString),
+        params: parseRequestInput(getMediaParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(getMediaQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -850,7 +850,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.mediaShow(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getMedia(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -864,7 +864,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(mediaShowResponseBodyValidator(status, body));
+        res.json(getMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -873,11 +873,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const mediaUpdateParamSchema = z.object({ id: z.coerce.number() });
+  const updateMediaParamSchema = z.object({ id: z.coerce.number() });
 
-  const mediaUpdateRequestBodySchema = s_MediaUpdateRequest;
+  const updateMediaRequestBodySchema = s_MediaUpdateRequest;
 
-  const mediaUpdateResponseBodyValidator = responseValidationFactory(
+  const updateMediaResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Media],
       ['400', s_Error400],
@@ -890,13 +890,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // mediaUpdate
+  // updateMedia
   router.patch(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(mediaUpdateParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(updateMediaParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(mediaUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(updateMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -927,7 +927,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.mediaUpdate(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.updateMedia(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -941,7 +941,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(mediaUpdateResponseBodyValidator(status, body));
+        res.json(updateMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -950,9 +950,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const mediaDestroyParamSchema = z.object({ id: z.coerce.number() });
+  const deleteMediaParamSchema = z.object({ id: z.coerce.number() });
 
-  const mediaDestroyResponseBodyValidator = responseValidationFactory(
+  const deleteMediaResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -965,11 +965,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // mediaDestroy
+  // deleteMedia
   router.delete(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(mediaDestroyParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(deleteMediaParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -1002,7 +1002,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.mediaDestroy(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.deleteMedia(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1016,7 +1016,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(mediaDestroyResponseBodyValidator(status, body));
+        res.json(deleteMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1025,14 +1025,14 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const episodeIndexParamSchema = z.object({ mediaId: z.coerce.number() });
+  const listEpisodesParamSchema = z.object({ mediaId: z.coerce.number() });
 
-  const episodeIndexQuerySchema = z.object({
+  const listEpisodesQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).optional().default(50),
     cursor: z.coerce.number().optional().default(0),
   });
 
-  const episodeIndexResponseBodyValidator = responseValidationFactory(
+  const listEpisodesResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_EpisodeListResponse],
       ['400', s_Error400],
@@ -1045,12 +1045,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // episodeIndex
+  // listEpisodes
   router.get(`/v1/media/:mediaId/episodes`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(episodeIndexParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(episodeIndexQuerySchema, req.query, RequestInputType.QueryString),
+        params: parseRequestInput(listEpisodesParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(listEpisodesQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -1082,7 +1082,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.episodeIndex(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.listEpisodes(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1096,7 +1096,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(episodeIndexResponseBodyValidator(status, body));
+        res.json(listEpisodesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1105,11 +1105,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const episodeCreateParamSchema = z.object({ mediaId: z.coerce.number() });
+  const createEpisodeParamSchema = z.object({ mediaId: z.coerce.number() });
 
-  const episodeCreateRequestBodySchema = s_EpisodeCreateRequest;
+  const createEpisodeRequestBodySchema = s_EpisodeCreateRequest;
 
-  const episodeCreateResponseBodyValidator = responseValidationFactory(
+  const createEpisodeResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Episode],
       ['400', s_Error400],
@@ -1123,13 +1123,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // episodeCreate
+  // createEpisode
   router.post(`/v1/media/:mediaId/episodes`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(episodeCreateParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(createEpisodeParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(episodeCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(createEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -1163,7 +1163,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.episodeCreate(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.createEpisode(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1177,7 +1177,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(episodeCreateResponseBodyValidator(status, body));
+        res.json(createEpisodeResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1186,9 +1186,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const episodeShowParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const getEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
-  const episodeShowResponseBodyValidator = responseValidationFactory(
+  const getEpisodeResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Episode],
       ['400', s_Error400],
@@ -1201,11 +1201,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // episodeShow
+  // getEpisode
   router.get(`/v1/media/:mediaId/episodes/:episodeNumber`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(episodeShowParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(getEpisodeParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -1238,7 +1238,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.episodeShow(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getEpisode(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1252,7 +1252,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(episodeShowResponseBodyValidator(status, body));
+        res.json(getEpisodeResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1261,11 +1261,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const episodeUpdateParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const updateEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
-  const episodeUpdateRequestBodySchema = s_EpisodeUpdateRequest;
+  const updateEpisodeRequestBodySchema = s_EpisodeUpdateRequest;
 
-  const episodeUpdateResponseBodyValidator = responseValidationFactory(
+  const updateEpisodeResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Episode],
       ['400', s_Error400],
@@ -1278,15 +1278,15 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // episodeUpdate
+  // updateEpisode
   router.patch(
     `/v1/media/:mediaId/episodes/:episodeNumber`,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const input = {
-          params: parseRequestInput(episodeUpdateParamSchema, req.params, RequestInputType.RouteParam),
+          params: parseRequestInput(updateEpisodeParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(episodeUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(updateEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -1317,7 +1317,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.episodeUpdate(input, responder, req, res, next).catch((err) => {
+        const response = await implementation.updateEpisode(input, responder, req, res, next).catch((err) => {
           throw ExpressRuntimeError.HandlerError(err);
         });
 
@@ -1331,7 +1331,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         res.status(status);
 
         if (body !== undefined) {
-          res.json(episodeUpdateResponseBodyValidator(status, body));
+          res.json(updateEpisodeResponseBodyValidator(status, body));
         } else {
           res.end();
         }
@@ -1341,9 +1341,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const episodeDestroyParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const deleteEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
-  const episodeDestroyResponseBodyValidator = responseValidationFactory(
+  const deleteEpisodeResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -1356,13 +1356,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // episodeDestroy
+  // deleteEpisode
   router.delete(
     `/v1/media/:mediaId/episodes/:episodeNumber`,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const input = {
-          params: parseRequestInput(episodeDestroyParamSchema, req.params, RequestInputType.RouteParam),
+          params: parseRequestInput(deleteEpisodeParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
           body: undefined,
           headers: undefined,
@@ -1395,7 +1395,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.episodeDestroy(input, responder, req, res, next).catch((err) => {
+        const response = await implementation.deleteEpisode(input, responder, req, res, next).catch((err) => {
           throw ExpressRuntimeError.HandlerError(err);
         });
 
@@ -1409,7 +1409,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         res.status(status);
 
         if (body !== undefined) {
-          res.json(episodeDestroyResponseBodyValidator(status, body));
+          res.json(deleteEpisodeResponseBodyValidator(status, body));
         } else {
           res.end();
         }
@@ -1419,14 +1419,14 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentIndexParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const listSegmentsParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
-  const segmentIndexQuerySchema = z.object({
+  const listSegmentsQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).optional().default(50),
     cursor: z.coerce.number().optional().default(0),
   });
 
-  const segmentIndexResponseBodyValidator = responseValidationFactory(
+  const listSegmentsResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ segments: z.array(s_Segment), pagination: s_CursorPagination })],
       ['400', s_Error400],
@@ -1439,14 +1439,14 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // segmentIndex
+  // listSegments
   router.get(
     `/v1/media/:mediaId/episodes/:episodeNumber/segments`,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const input = {
-          params: parseRequestInput(segmentIndexParamSchema, req.params, RequestInputType.RouteParam),
-          query: parseRequestInput(segmentIndexQuerySchema, req.query, RequestInputType.QueryString),
+          params: parseRequestInput(listSegmentsParamSchema, req.params, RequestInputType.RouteParam),
+          query: parseRequestInput(listSegmentsQuerySchema, req.query, RequestInputType.QueryString),
           body: undefined,
           headers: undefined,
         };
@@ -1481,7 +1481,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.segmentIndex(input, responder, req, res, next).catch((err) => {
+        const response = await implementation.listSegments(input, responder, req, res, next).catch((err) => {
           throw ExpressRuntimeError.HandlerError(err);
         });
 
@@ -1495,7 +1495,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         res.status(status);
 
         if (body !== undefined) {
-          res.json(segmentIndexResponseBodyValidator(status, body));
+          res.json(listSegmentsResponseBodyValidator(status, body));
         } else {
           res.end();
         }
@@ -1505,11 +1505,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentCreateParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const createSegmentParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
 
-  const segmentCreateRequestBodySchema = s_SegmentCreateRequest;
+  const createSegmentRequestBodySchema = s_SegmentCreateRequest;
 
-  const segmentCreateResponseBodyValidator = responseValidationFactory(
+  const createSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_SegmentInternal],
       ['400', s_Error400],
@@ -1523,15 +1523,15 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // segmentCreate
+  // createSegment
   router.post(
     `/v1/media/:mediaId/episodes/:episodeNumber/segments`,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const input = {
-          params: parseRequestInput(segmentCreateParamSchema, req.params, RequestInputType.RouteParam),
+          params: parseRequestInput(createSegmentParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(segmentCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(createSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -1565,7 +1565,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.segmentCreate(input, responder, req, res, next).catch((err) => {
+        const response = await implementation.createSegment(input, responder, req, res, next).catch((err) => {
           throw ExpressRuntimeError.HandlerError(err);
         });
 
@@ -1579,7 +1579,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         res.status(status);
 
         if (body !== undefined) {
-          res.json(segmentCreateResponseBodyValidator(status, body));
+          res.json(createSegmentResponseBodyValidator(status, body));
         } else {
           res.end();
         }
@@ -1589,13 +1589,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentShowParamSchema = z.object({
+  const getSegmentParamSchema = z.object({
     mediaId: z.coerce.number(),
     episodeNumber: z.coerce.number(),
     id: z.coerce.number(),
   });
 
-  const segmentShowResponseBodyValidator = responseValidationFactory(
+  const getSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Segment],
       ['400', s_Error400],
@@ -1608,13 +1608,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // segmentShow
+  // getSegment
   router.get(
     `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const input = {
-          params: parseRequestInput(segmentShowParamSchema, req.params, RequestInputType.RouteParam),
+          params: parseRequestInput(getSegmentParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
           body: undefined,
           headers: undefined,
@@ -1647,7 +1647,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.segmentShow(input, responder, req, res, next).catch((err) => {
+        const response = await implementation.getSegment(input, responder, req, res, next).catch((err) => {
           throw ExpressRuntimeError.HandlerError(err);
         });
 
@@ -1661,7 +1661,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         res.status(status);
 
         if (body !== undefined) {
-          res.json(segmentShowResponseBodyValidator(status, body));
+          res.json(getSegmentResponseBodyValidator(status, body));
         } else {
           res.end();
         }
@@ -1671,15 +1671,15 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentUpdateParamSchema = z.object({
+  const updateSegmentParamSchema = z.object({
     mediaId: z.coerce.number(),
     episodeNumber: z.coerce.number(),
     id: z.coerce.number(),
   });
 
-  const segmentUpdateRequestBodySchema = s_SegmentUpdateRequest;
+  const updateSegmentRequestBodySchema = s_SegmentUpdateRequest;
 
-  const segmentUpdateResponseBodyValidator = responseValidationFactory(
+  const updateSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SegmentInternal],
       ['400', s_Error400],
@@ -1692,15 +1692,15 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // segmentUpdate
+  // updateSegment
   router.patch(
     `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const input = {
-          params: parseRequestInput(segmentUpdateParamSchema, req.params, RequestInputType.RouteParam),
+          params: parseRequestInput(updateSegmentParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(segmentUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(updateSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -1731,7 +1731,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.segmentUpdate(input, responder, req, res, next).catch((err) => {
+        const response = await implementation.updateSegment(input, responder, req, res, next).catch((err) => {
           throw ExpressRuntimeError.HandlerError(err);
         });
 
@@ -1745,7 +1745,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         res.status(status);
 
         if (body !== undefined) {
-          res.json(segmentUpdateResponseBodyValidator(status, body));
+          res.json(updateSegmentResponseBodyValidator(status, body));
         } else {
           res.end();
         }
@@ -1755,13 +1755,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentDestroyParamSchema = z.object({
+  const deleteSegmentParamSchema = z.object({
     mediaId: z.coerce.number(),
     episodeNumber: z.coerce.number(),
     id: z.coerce.number(),
   });
 
-  const segmentDestroyResponseBodyValidator = responseValidationFactory(
+  const deleteSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -1774,13 +1774,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // segmentDestroy
+  // deleteSegment
   router.delete(
     `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const input = {
-          params: parseRequestInput(segmentDestroyParamSchema, req.params, RequestInputType.RouteParam),
+          params: parseRequestInput(deleteSegmentParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
           body: undefined,
           headers: undefined,
@@ -1813,7 +1813,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.segmentDestroy(input, responder, req, res, next).catch((err) => {
+        const response = await implementation.deleteSegment(input, responder, req, res, next).catch((err) => {
           throw ExpressRuntimeError.HandlerError(err);
         });
 
@@ -1827,7 +1827,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         res.status(status);
 
         if (body !== undefined) {
-          res.json(segmentDestroyResponseBodyValidator(status, body));
+          res.json(deleteSegmentResponseBodyValidator(status, body));
         } else {
           res.end();
         }
@@ -1837,9 +1837,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const segmentShowByUuidParamSchema = z.object({ uuid: z.string() });
+  const getSegmentByUuidParamSchema = z.object({ uuid: z.string() });
 
-  const segmentShowByUuidResponseBodyValidator = responseValidationFactory(
+  const getSegmentByUuidResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Segment],
       ['400', s_Error400],
@@ -1852,11 +1852,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // segmentShowByUuid
+  // getSegmentByUuid
   router.get(`/v1/media/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(segmentShowByUuidParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(getSegmentByUuidParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -1889,7 +1889,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.segmentShowByUuid(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getSegmentByUuid(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1903,7 +1903,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(segmentShowByUuidResponseBodyValidator(status, body));
+        res.json(getSegmentByUuidResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1912,9 +1912,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const segmentContextShowParamSchema = z.object({ uuid: z.string() });
+  const getSegmentContextParamSchema = z.object({ uuid: z.string() });
 
-  const segmentContextShowQuerySchema = z.object({
+  const getSegmentContextQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(30).optional().default(3),
     contentRating: z
       .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(s_ContentRating))
@@ -1925,7 +1925,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       .default(['media']),
   });
 
-  const segmentContextShowResponseBodyValidator = responseValidationFactory(
+  const getSegmentContextResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SegmentContextResponse],
       ['400', s_Error400],
@@ -1938,12 +1938,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // segmentContextShow
+  // getSegmentContext
   router.get(`/v1/media/segments/:uuid/context`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(segmentContextShowParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(segmentContextShowQuerySchema, req.query, RequestInputType.QueryString),
+        params: parseRequestInput(getSegmentContextParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(getSegmentContextQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -1975,7 +1975,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.segmentContextShow(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getSegmentContext(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1989,7 +1989,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(segmentContextShowResponseBodyValidator(status, body));
+        res.json(getSegmentContextResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1998,13 +1998,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesIndexQuerySchema = z.object({
+  const listSeriesQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).optional().default(20),
     cursor: z.coerce.number().min(0).optional().default(0),
     query: z.string().optional(),
   });
 
-  const seriesIndexResponseBodyValidator = responseValidationFactory(
+  const listSeriesResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SeriesListResponse],
       ['400', s_Error400],
@@ -2016,12 +2016,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesIndex
+  // listSeries
   router.get(`/v1/media/series`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(seriesIndexQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(listSeriesQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -2050,7 +2050,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesIndex(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.listSeries(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2064,7 +2064,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesIndexResponseBodyValidator(status, body));
+        res.json(listSeriesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2073,9 +2073,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesCreateRequestBodySchema = z.object({ nameJa: z.string(), nameRomaji: z.string(), nameEn: z.string() });
+  const createSeriesRequestBodySchema = z.object({ nameJa: z.string(), nameRomaji: z.string(), nameEn: z.string() });
 
-  const seriesCreateResponseBodyValidator = responseValidationFactory(
+  const createSeriesResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Series],
       ['400', s_Error400],
@@ -2087,13 +2087,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesCreate
+  // createSeries
   router.post(`/v1/media/series`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(seriesCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(createSeriesRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -2121,7 +2121,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesCreate(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.createSeries(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2135,7 +2135,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesCreateResponseBodyValidator(status, body));
+        res.json(createSeriesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2144,9 +2144,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesShowParamSchema = z.object({ id: z.coerce.number() });
+  const getSeriesParamSchema = z.object({ id: z.coerce.number() });
 
-  const seriesShowQuerySchema = z.object({
+  const getSeriesQuerySchema = z.object({
     include: z
       .preprocess(
         (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
@@ -2156,7 +2156,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       .default(['media']),
   });
 
-  const seriesShowResponseBodyValidator = responseValidationFactory(
+  const getSeriesResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SeriesWithMedia],
       ['400', s_Error400],
@@ -2169,12 +2169,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesShow
+  // getSeries
   router.get(`/v1/media/series/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(seriesShowParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(seriesShowQuerySchema, req.query, RequestInputType.QueryString),
+        params: parseRequestInput(getSeriesParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(getSeriesQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -2206,7 +2206,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesShow(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getSeries(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2220,7 +2220,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesShowResponseBodyValidator(status, body));
+        res.json(getSeriesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2229,15 +2229,15 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesUpdateParamSchema = z.object({ id: z.coerce.number() });
+  const updateSeriesParamSchema = z.object({ id: z.coerce.number() });
 
-  const seriesUpdateRequestBodySchema = z.object({
+  const updateSeriesRequestBodySchema = z.object({
     nameJa: z.string().optional(),
     nameRomaji: z.string().optional(),
     nameEn: z.string().optional(),
   });
 
-  const seriesUpdateResponseBodyValidator = responseValidationFactory(
+  const updateSeriesResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Series],
       ['400', s_Error400],
@@ -2250,13 +2250,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesUpdate
+  // updateSeries
   router.patch(`/v1/media/series/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(seriesUpdateParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(updateSeriesParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(seriesUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(updateSeriesRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -2287,7 +2287,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesUpdate(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.updateSeries(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2301,7 +2301,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesUpdateResponseBodyValidator(status, body));
+        res.json(updateSeriesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2310,9 +2310,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesDestroyParamSchema = z.object({ id: z.coerce.number() });
+  const deleteSeriesParamSchema = z.object({ id: z.coerce.number() });
 
-  const seriesDestroyResponseBodyValidator = responseValidationFactory(
+  const deleteSeriesResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -2325,11 +2325,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesDestroy
+  // deleteSeries
   router.delete(`/v1/media/series/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(seriesDestroyParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(deleteSeriesParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -2362,7 +2362,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesDestroy(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.deleteSeries(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2376,7 +2376,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesDestroyResponseBodyValidator(status, body));
+        res.json(deleteSeriesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2385,11 +2385,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesAddMediaParamSchema = z.object({ id: z.coerce.number() });
+  const addMediaToSeriesParamSchema = z.object({ id: z.coerce.number() });
 
-  const seriesAddMediaRequestBodySchema = z.object({ mediaId: z.coerce.number(), position: z.coerce.number() });
+  const addMediaToSeriesRequestBodySchema = z.object({ mediaId: z.coerce.number(), position: z.coerce.number() });
 
-  const seriesAddMediaResponseBodyValidator = responseValidationFactory(
+  const addMediaToSeriesResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -2402,13 +2402,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesAddMedia
+  // addMediaToSeries
   router.post(`/v1/media/series/:id/media`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(seriesAddMediaParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(addMediaToSeriesParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(seriesAddMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(addMediaToSeriesRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -2439,7 +2439,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesAddMedia(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.addMediaToSeries(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2453,7 +2453,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesAddMediaResponseBodyValidator(status, body));
+        res.json(addMediaToSeriesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2462,11 +2462,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesUpdateMediaParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
+  const updateSeriesMediaParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
 
-  const seriesUpdateMediaRequestBodySchema = z.object({ position: z.coerce.number() });
+  const updateSeriesMediaRequestBodySchema = z.object({ position: z.coerce.number() });
 
-  const seriesUpdateMediaResponseBodyValidator = responseValidationFactory(
+  const updateSeriesMediaResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -2479,13 +2479,13 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesUpdateMedia
+  // updateSeriesMedia
   router.patch(`/v1/media/series/:id/media/:mediaId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(seriesUpdateMediaParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(updateSeriesMediaParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(seriesUpdateMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(updateSeriesMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -2516,7 +2516,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesUpdateMedia(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.updateSeriesMedia(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2530,7 +2530,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesUpdateMediaResponseBodyValidator(status, body));
+        res.json(updateSeriesMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2539,9 +2539,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seriesRemoveMediaParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
+  const removeMediaFromSeriesParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
 
-  const seriesRemoveMediaResponseBodyValidator = responseValidationFactory(
+  const removeMediaFromSeriesResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -2554,11 +2554,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seriesRemoveMedia
+  // removeMediaFromSeries
   router.delete(`/v1/media/series/:id/media/:mediaId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(seriesRemoveMediaParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(removeMediaFromSeriesParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -2591,7 +2591,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seriesRemoveMedia(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.removeMediaFromSeries(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2605,7 +2605,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seriesRemoveMediaResponseBodyValidator(status, body));
+        res.json(removeMediaFromSeriesResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2614,9 +2614,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const characterShowParamSchema = z.object({ id: z.coerce.number() });
+  const getCharacterParamSchema = z.object({ id: z.coerce.number() });
 
-  const characterShowResponseBodyValidator = responseValidationFactory(
+  const getCharacterResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_CharacterWithMedia],
       ['400', s_Error400],
@@ -2629,11 +2629,11 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // characterShow
+  // getCharacter
   router.get(`/v1/media/characters/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(characterShowParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(getCharacterParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -2666,7 +2666,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.characterShow(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getCharacter(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2680,7 +2680,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(characterShowResponseBodyValidator(status, body));
+        res.json(getCharacterResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2689,16 +2689,16 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const seiyuuShowParamSchema = z.object({ id: z.coerce.number() });
+  const getSeiyuuParamSchema = z.object({ id: z.coerce.number() });
 
-  const seiyuuShowQuerySchema = z.object({
+  const getSeiyuuQuerySchema = z.object({
     include: z
       .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(z.enum(['character'])))
       .optional()
       .default(['character']),
   });
 
-  const seiyuuShowResponseBodyValidator = responseValidationFactory(
+  const getSeiyuuResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SeiyuuWithRoles],
       ['400', s_Error400],
@@ -2711,12 +2711,12 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     undefined,
   );
 
-  // seiyuuShow
+  // getSeiyuu
   router.get(`/v1/media/seiyuu/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(seiyuuShowParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(seiyuuShowQuerySchema, req.query, RequestInputType.QueryString),
+        params: parseRequestInput(getSeiyuuParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(getSeiyuuQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -2748,7 +2748,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.seiyuuShow(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getSeiyuu(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2762,7 +2762,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(seiyuuShowResponseBodyValidator(status, body));
+        res.json(getSeiyuuResponseBodyValidator(status, body));
       } else {
         res.end();
       }

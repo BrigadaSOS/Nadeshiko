@@ -1,12 +1,12 @@
 import type {
-  CollectionIndex,
-  CollectionShow,
-  CollectionCreate,
-  CollectionUpdate,
-  CollectionDestroy,
-  CollectionAddSegment,
-  CollectionUpdateSegment,
-  CollectionRemoveSegment,
+  ListCollections,
+  GetCollection,
+  CreateCollection,
+  UpdateCollection,
+  DeleteCollection,
+  AddSegmentToCollection,
+  UpdateCollectionSegment,
+  RemoveSegmentFromCollection,
 } from 'generated/routes/collections';
 import { Collection, CollectionSegment, CollectionVisibility, Segment, UserRoleType } from '@app/models';
 import { toCollectionDTO } from './mappers/collection.mapper';
@@ -39,7 +39,7 @@ const ensureDefaultAnkiExportsCollection = async (userId: number): Promise<void>
   });
 };
 
-export const collectionIndex: CollectionIndex = async ({ query }, respond, req) => {
+export const listCollections: ListCollections = async ({ query }, respond, req) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AccessDeniedError('Authentication required to view collections.');
@@ -69,8 +69,25 @@ export const collectionIndex: CollectionIndex = async ({ query }, respond, req) 
   const hasMore = offset + collections.length < totalCount;
   const nextCursor = hasMore ? offset + collections.length : null;
 
+  // Get segment counts for all fetched collections in a single query
+  const collectionIds = collections.map((c) => c.id);
+  const countMap = new Map<number, number>();
+
+  if (collectionIds.length > 0) {
+    const counts = await CollectionSegment.createQueryBuilder('cs')
+      .select('cs.collectionId', 'collectionId')
+      .addSelect('COUNT(*)', 'count')
+      .where('cs.collectionId IN (:...ids)', { ids: collectionIds })
+      .groupBy('cs.collectionId')
+      .getRawMany<{ collectionId: number; count: string }>();
+
+    for (const row of counts) {
+      countMap.set(row.collectionId, Number(row.count));
+    }
+  }
+
   return respond.with200().body({
-    collections: collections.map(toCollectionDTO),
+    collections: collections.map((c) => toCollectionDTO(c, countMap.get(c.id) ?? 0)),
     pagination: {
       hasMore,
       cursor: nextCursor,
@@ -78,7 +95,7 @@ export const collectionIndex: CollectionIndex = async ({ query }, respond, req) 
   });
 };
 
-export const collectionShow: CollectionShow = async ({ params, query }, respond) => {
+export const getCollection: GetCollection = async ({ params, query }, respond) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
 
   const limit = Math.min(query.limit || 20, 100);
@@ -136,7 +153,7 @@ export const collectionShow: CollectionShow = async ({ params, query }, respond)
   });
 };
 
-export const collectionCreate: CollectionCreate = async ({ body }, respond, req) => {
+export const createCollection: CreateCollection = async ({ body }, respond, req) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AccessDeniedError('Authentication required to create collections.');
@@ -151,7 +168,7 @@ export const collectionCreate: CollectionCreate = async ({ body }, respond, req)
   return respond.with201().body(toCollectionDTO(collection));
 };
 
-export const collectionUpdate: CollectionUpdate = async ({ params, body }, respond, req) => {
+export const updateCollection: UpdateCollection = async ({ params, body }, respond, req) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 
@@ -163,7 +180,7 @@ export const collectionUpdate: CollectionUpdate = async ({ params, body }, respo
   return respond.with200().body(toCollectionDTO(collection));
 };
 
-export const collectionDestroy: CollectionDestroy = async ({ params }, respond, req) => {
+export const deleteCollection: DeleteCollection = async ({ params }, respond, req) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 
@@ -172,7 +189,7 @@ export const collectionDestroy: CollectionDestroy = async ({ params }, respond, 
   return respond.with204();
 };
 
-export const collectionAddSegment: CollectionAddSegment = async ({ params, body }, respond, req) => {
+export const addSegmentToCollection: AddSegmentToCollection = async ({ params, body }, respond, req) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 
@@ -210,7 +227,7 @@ export const collectionAddSegment: CollectionAddSegment = async ({ params, body 
   return respond.with204();
 };
 
-export const collectionUpdateSegment: CollectionUpdateSegment = async ({ params, body }, respond, req) => {
+export const updateCollectionSegment: UpdateCollectionSegment = async ({ params, body }, respond, req) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 
@@ -226,7 +243,7 @@ export const collectionUpdateSegment: CollectionUpdateSegment = async ({ params,
   return respond.with204();
 };
 
-export const collectionRemoveSegment: CollectionRemoveSegment = async ({ params }, respond, req) => {
+export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({ params }, respond, req) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 

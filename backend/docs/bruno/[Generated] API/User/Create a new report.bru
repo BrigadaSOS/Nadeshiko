@@ -1,0 +1,31 @@
+meta {
+  name: Create a new report
+  type: http
+  seq: 32
+}
+
+post {
+  url: {{baseUrl}}/v1/user/reports
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "target": "",
+    "reason": "WRONG_TRANSLATION",
+    "description": "The translation doesn't match the spoken Japanese"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

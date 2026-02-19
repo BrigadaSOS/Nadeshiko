@@ -1,0 +1,31 @@
+meta {
+  name: Update media position in series
+  type: http
+  seq: 27
+}
+
+patch {
+  url: {{baseUrl}}/v1/media/series/:id/media/:mediaId
+  body: json
+  auth: bearer
+}
+
+params:query {
+  id:
+  mediaId:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "position": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

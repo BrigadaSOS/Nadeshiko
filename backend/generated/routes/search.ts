@@ -18,10 +18,10 @@ import type {
   t_Error403,
   t_Error429,
   t_Error500,
-  t_SearchIndexRequestBodySchema,
+  t_GetSearchStatsRequestBodySchema,
   t_SearchMultipleResponse,
+  t_SearchRequestBodySchema,
   t_SearchResponse,
-  t_SearchStatsRequestBodySchema,
   t_SearchStatsResponse,
   t_SearchWordsRequestBodySchema,
 } from '../models.ts';
@@ -40,7 +40,7 @@ import {
   s_SearchStatsResponse,
 } from '../schemas.ts';
 
-export type SearchIndexResponder = {
+export type SearchResponder = {
   with200(): ExpressRuntimeResponse<t_SearchResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -49,15 +49,15 @@ export type SearchIndexResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SearchIndex = (
+export type Search = (
   params: Params<void, void, SearchRequestOutput, void>,
-  respond: SearchIndexResponder,
+  respond: SearchResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type SearchStatsResponder = {
+export type GetSearchStatsResponder = {
   with200(): ExpressRuntimeResponse<t_SearchStatsResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -66,9 +66,9 @@ export type SearchStatsResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type SearchStats = (
+export type GetSearchStats = (
   params: Params<void, void, SearchStatsRequestOutput, void>,
-  respond: SearchStatsResponder,
+  respond: GetSearchStatsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -92,17 +92,17 @@ export type SearchWords = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type SearchImplementation = {
-  searchIndex: SearchIndex;
-  searchStats: SearchStats;
+  search: Search;
+  getSearchStats: GetSearchStats;
   searchWords: SearchWords;
 };
 
 export function createSearchRouter(implementation: SearchImplementation): Router {
   const router = Router();
 
-  const searchIndexRequestBodySchema = s_SearchRequest;
+  const searchRequestBodySchema = s_SearchRequest;
 
-  const searchIndexResponseBodyValidator = responseValidationFactory(
+  const searchResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchResponse],
       ['400', s_Error400],
@@ -114,13 +114,13 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // searchIndex
+  // search
   router.post(`/v1/search`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchIndexRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(searchRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -148,7 +148,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.searchIndex(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.search(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -162,7 +162,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(searchIndexResponseBodyValidator(status, body));
+        res.json(searchResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -171,9 +171,9 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     }
   });
 
-  const searchStatsRequestBodySchema = s_SearchStatsRequest;
+  const getSearchStatsRequestBodySchema = s_SearchStatsRequest;
 
-  const searchStatsResponseBodyValidator = responseValidationFactory(
+  const getSearchStatsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SearchStatsResponse],
       ['400', s_Error400],
@@ -185,13 +185,13 @@ export function createSearchRouter(implementation: SearchImplementation): Router
     undefined,
   );
 
-  // searchStats
+  // getSearchStats
   router.post(`/v1/search/stats`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(getSearchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -219,7 +219,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.searchStats(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getSearchStats(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -233,7 +233,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       res.status(status);
 
       if (body !== undefined) {
-        res.json(searchStatsResponseBodyValidator(status, body));
+        res.json(getSearchStatsResponseBodyValidator(status, body));
       } else {
         res.end();
       }

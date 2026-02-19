@@ -1,7 +1,7 @@
 meta {
   name: Update segment
   type: http
-  seq: 20
+  seq: 17
 }
 
 patch {
@@ -24,20 +24,22 @@ body:json {
   {
     "position": 0,
     "status": "",
-    "startTime": "",
-    "endTime": "",
-    "ja": {
+    "startTimeMs": 0,
+    "endTimeMs": 0,
+    "textJa": {
       "content": ""
     },
-    "es": {
+    "textEs": {
       "content": "",
       "isMachineTranslated": false
     },
-    "en": {
+    "textEn": {
       "content": "",
       "isMachineTranslated": false
     },
-    "isNsfw": false,
+    "contentRating": "",
+    "ratingAnalysis": {},
+    "posAnalysis": {},
     "storage": "",
     "hashedId": ""
   }

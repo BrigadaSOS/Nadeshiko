@@ -2,7 +2,7 @@ get:
   tags:
     - User
   x-internal: true
-  operationId: userActivityStatsShow
+  operationId: getUserActivityStats
   summary: Get user activity statistics
   description: |
     Returns aggregate statistics about the authenticated user's activity:

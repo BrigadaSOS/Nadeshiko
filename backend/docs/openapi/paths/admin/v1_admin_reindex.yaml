@@ -1,7 +1,7 @@
 post:
   tags:
     - Admin
-  operationId: adminReindexCreate
+  operationId: triggerReindex
   summary: Reindex database into Elasticsearch
   description: |
     Reindexes segments from the PostgreSQL database into Elasticsearch.

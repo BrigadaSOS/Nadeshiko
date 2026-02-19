@@ -1,7 +1,7 @@
 import { querySearchStats, querySegments, queryWordsMatched } from '@app/services/elasticsearch';
 import { trackActivity } from '@app/services/activityService';
 import { ActivityType } from '@app/models/UserActivity';
-import type { SearchIndex, SearchStats, SearchWords } from 'generated/routes/search';
+import type { Search, GetSearchStats, SearchWords } from 'generated/routes/search';
 
 const shouldIncludeMedia = (include?: string[]): boolean => include?.includes('media') ?? false;
 
@@ -10,7 +10,7 @@ const stripIncludes = <T extends { includes?: { media?: unknown } }>(result: T):
   includes: { media: {} },
 });
 
-export const searchIndex: SearchIndex = async ({ body }, respond, req) => {
+export const search: Search = async ({ body }, respond, req) => {
   const f = body.filters;
   const searchResults = await querySegments({
     query: body.query
@@ -38,7 +38,8 @@ export const searchIndex: SearchIndex = async ({ body }, respond, req) => {
   });
 
   // Track search activity (fire-and-forget, don't block response)
-  if (req.user && body.query?.search) {
+  // Only track the initial search, not pagination (scroll-to-load-more)
+  if (req.user && body.query?.search && !body.cursor) {
     trackActivity(req.user, ActivityType.SEARCH, { searchQuery: body.query.search }).catch(() => {});
   }
 
@@ -46,7 +47,7 @@ export const searchIndex: SearchIndex = async ({ body }, respond, req) => {
   return respond.with200().body(response);
 };
 
-export const searchStats: SearchStats = async ({ body }, respond) => {
+export const getSearchStats: GetSearchStats = async ({ body }, respond) => {
   const f = body.filters;
   const stats = await querySearchStats({
     query: body.query

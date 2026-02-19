@@ -3,7 +3,7 @@
         <slot></slot>
         <div
             :class="dropdownContainerClass"
-            :aria-labelledby="dropdownId"
+            :aria-labelledby="resolvedDropdownId"
         >
             <slot name="content"></slot>
         </div>
@@ -11,10 +11,12 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed, provide, useId } from 'vue';
+
+const props = defineProps({
   dropdownId: {
     type: String,
-    required: true,
+    default: 'nd-dropdown',
   },
   dropdownContainerClass: {
     type: String,
@@ -22,6 +24,12 @@ defineProps({
       'nd-dropdown-menu absolute top-full z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg',
   },
 });
+
+const dropdownUid = useId();
+const resolvedDropdownId = computed(
+  () => `${(props.dropdownId || 'nd-dropdown').trim() || 'nd-dropdown'}-${dropdownUid}`,
+);
+provide('ndDropdownResolvedId', resolvedDropdownId);
 </script>
 
 <style>

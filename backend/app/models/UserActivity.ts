@@ -30,6 +30,12 @@ export class UserActivity extends BaseEntity {
   @Column({ name: 'search_query', type: 'varchar', nullable: true })
   searchQuery?: string | null;
 
+  @Column({ name: 'anime_name', type: 'varchar', nullable: true })
+  animeName?: string | null;
+
+  @Column({ name: 'japanese_text', type: 'varchar', nullable: true })
+  japaneseText?: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
