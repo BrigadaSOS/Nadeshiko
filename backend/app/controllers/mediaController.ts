@@ -1,7 +1,6 @@
-import type { ListMedia, CreateMedia, GetMedia, UpdateMedia, DeleteMedia } from 'generated/routes/media';
+import type { ListMedia, CreateMedia, GetMedia, UpdateMedia, DeleteMedia, AutocompleteMedia } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
 import { ILike } from 'typeorm';
-import { ValidationFailedError } from '@app/errors';
 import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, CharacterRole } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
@@ -84,19 +83,10 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
   });
 };
 
-const AUTOCOMPLETE_DEFAULT_LIMIT = 10;
-const AUTOCOMPLETE_MAX_LIMIT = 25;
-
 const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
 
-export const autocompleteMedia = async (params: { query?: string; limit?: number; category?: string }) => {
-  const rawQuery = params.query?.trim() ?? '';
-  if (!rawQuery) {
-    throw new ValidationFailedError({ query: 'Query is required.' });
-  }
-
-  const limit = Math.max(1, Math.min(params.limit ?? AUTOCOMPLETE_DEFAULT_LIMIT, AUTOCOMPLETE_MAX_LIMIT));
-  const normalizedQuery = rawQuery.toLowerCase();
+export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, respond) => {
+  const normalizedQuery = params.query.trim().toLowerCase();
   const escaped = escapeLikePattern(normalizedQuery);
   const containsPattern = `%${escaped}%`;
   const prefixPattern = `${escaped}%`;
@@ -122,16 +112,16 @@ export const autocompleteMedia = async (params: { query?: string; limit?: number
     )
     .addOrderBy('LENGTH(media.nameEn)', 'ASC')
     .addOrderBy('media.id', 'ASC')
-    .take(limit);
+    .take(params.limit);
 
-  if (params.category === 'ANIME' || params.category === 'JDRAMA') {
+  if (params.category) {
     qb.andWhere('media.category = :category', { category: params.category as CategoryType });
   }
 
   const media = await qb.getMany();
-  return {
+  return respond.with200().body({
     media: toMediaListDTO(media),
-  };
+  });
 };
 
 export const createMedia: CreateMedia = async ({ body }, respond) => {

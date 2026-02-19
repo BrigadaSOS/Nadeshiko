@@ -33,6 +33,7 @@ const props = defineProps({
 const { t } = useI18n();
 const apiSearch = useApiSearch();
 const { contentRating } = useContentRating();
+const { excludedLanguages } = useTranslationVisibility();
 const route = useRoute();
 const router = useRouter();
 const playerStore = usePlayerStore();
@@ -161,6 +162,9 @@ const fetchStats = async () => {
         exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
       };
     }
+    if (excludedLanguages.value.length > 0) {
+      filters.languages = { exclude: excludedLanguages.value };
+    }
     body.filters = filters;
     statsData.value = await apiSearch.getSearchStats(body);
   } catch (error) {
@@ -240,6 +244,9 @@ const fetchSentences = async () => {
           ...(filters.media || {}),
           exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
         };
+      }
+      if (excludedLanguages.value.length > 0) {
+        filters.languages = { exclude: excludedLanguages.value };
       }
       body.filters = filters;
       response = await apiSearch.searchSegments(body);
@@ -389,7 +396,18 @@ onMounted(async () => {
   }
 });
 
+const isOnlyLangPreferenceChange = (to, from) => {
+  if (to.path !== from.path) return false;
+  if (getSearchQuery(to) !== getSearchQuery(from)) return false;
+  const keys = ['category', 'media', 'mediaId', 'episode', 'episodeId', 'sort', 'uuid', 'collectionId'];
+  return keys.every((key) => (to.query[key] ?? '') === (from.query[key] ?? ''));
+};
+
 onBeforeRouteUpdate(async (to, from) => {
+  if (isOnlyLangPreferenceChange(to, from)) {
+    return;
+  }
+
   const toQuery = getSearchQuery(to);
   const fromQuery = getSearchQuery(from);
   const statsScopeChanged = toQuery !== fromQuery || to.query.category !== from.query.category;
@@ -408,6 +426,13 @@ onBeforeRouteUpdate(async (to, from) => {
 <template>
     <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :media="media" />
     <div v-if="initialError">
+        <div v-if="$slots['result-controls']" class="pb-3">
+            <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] pb-3">
+                <div class="shrink-0">
+                    <slot name="result-controls" />
+                </div>
+            </div>
+        </div>
         <section class="w-full">
             <div class="py-10 px-4">
                 <div class="w-full align-top items-center">
@@ -467,7 +492,7 @@ onBeforeRouteUpdate(async (to, from) => {
             <div class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21]">
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
-                        <CommonTabsHeader>
+                        <CommonTabsHeader :showBorder="false">
                             <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')"
                                 :isActive="category === 'all' || media" @click="categoryFilter('all')" />
                             <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'ANIME')"
@@ -493,6 +518,13 @@ onBeforeRouteUpdate(async (to, from) => {
                 </CommonTabsHeader>
             </CommonTabsContainer>
         </div>
+        <div v-else-if="$slots['result-controls']" class="pb-3">
+            <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] py-4">
+                <div class="shrink-0">
+                    <slot name="result-controls" />
+                </div>
+            </div>
+        </div>
         <div class="flex mx-auto w-full">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
@@ -511,7 +543,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
             <!-- Filters -->
-            <div class="2xl:min-w-[18rem] 2xl:max-w-[18rem]">
+            <div v-if="searchData?.media?.length > 0 || isLoading" class="2xl:min-w-[18rem] 2xl:max-w-[18rem]">
                 <div v-if="searchData?.media?.length > 0" class="p-2 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
@@ -538,13 +570,3 @@ onBeforeRouteUpdate(async (to, from) => {
     </div>
 </template>
 
-<style scoped>
-.search-tabs-main :deep(#tab-headers ul) {
-  border-bottom: 0;
-}
-
-.search-tabs-main :deep(#tab-headers ul li.active:after) {
-  bottom: 0;
-  z-index: 1;
-}
-</style>

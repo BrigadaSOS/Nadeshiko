@@ -321,6 +321,65 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/media/autocomplete:
+    get:
+      tags:
+        - Media
+      operationId: autocompleteMedia
+      x-internal: true
+      summary: Autocomplete media by name
+      description: |
+        Returns a short list of media matching a name prefix or substring.
+        Results are ranked by exact match, then prefix match, then contains match,
+        and further sorted by name length.
+
+        **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Search term to match against media names (English, Japanese, romaji)
+          schema:
+            type: string
+            minLength: 1
+            example: steins
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 25
+        - name: category
+          in: query
+          description: Filter by media category
+          schema:
+            type: string
+            enum:
+              - ANIME
+              - JDRAMA
+            example: ANIME
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaAutocompleteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{id}:
     get:
       tags:
@@ -3653,6 +3712,18 @@ components:
               type: integer
               description: Maximum duration in ms
               example: 10000
+        languages:
+          type: object
+          description: Language inclusion/exclusion for search matching
+          properties:
+            exclude:
+              type: array
+              description: Language codes to exclude from search matching (e.g., ["en"], ["es"], ["en","es"])
+              items:
+                type: string
+                enum:
+                  - en
+                  - es
     IncludeExpansion:
       type: string
       description: Resource to expand in the response includes block
@@ -4654,6 +4725,15 @@ components:
           additionalProperties:
             type: string
           description: Optional map of field names to their error messages (for validation errors)
+    MediaAutocompleteResponse:
+      type: object
+      required:
+        - media
+      properties:
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Media'
     Error404:
       type: object
       description: Not Found error response

@@ -72,6 +72,8 @@ paths:
   # Media endpoints
   "/v1/media":
     $ref: "./paths/media/v1_media.yaml"
+  "/v1/media/autocomplete":
+    $ref: "./paths/media/v1_media_autocomplete.yaml"
   "/v1/media/{id}":
     $ref: "./paths/media/v1_media_id.yaml"
 

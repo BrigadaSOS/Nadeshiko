@@ -221,6 +221,10 @@ export type t_Media = {
   studio: string;
 };
 
+export type t_MediaAutocompleteResponse = {
+  media: t_Media[];
+};
+
 export type t_MediaCharacter = {
   id: number;
   imageUrl: string;
@@ -393,6 +397,9 @@ export type t_RunReviewResponse = {
 export type t_SearchFilters = {
   category?: t_Category[];
   contentRating?: t_ContentRating[];
+  languages?: {
+    exclude?: ('en' | 'es')[];
+  };
   media?: {
     exclude?: t_MediaFilterItem[];
     include?: t_MediaFilterItem[];
@@ -638,6 +645,12 @@ export type t_AddSegmentToCollectionParamSchema = {
 export type t_AddSegmentToCollectionRequestBodySchema = {
   note?: string;
   segmentUuid: string;
+};
+
+export type t_AutocompleteMediaQuerySchema = {
+  category?: 'ANIME' | 'JDRAMA';
+  limit?: number;
+  query: string;
 };
 
 export type t_CreateAdminReviewAllowlistEntryRequestBodySchema = {

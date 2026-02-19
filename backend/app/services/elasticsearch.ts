@@ -516,6 +516,7 @@ const querySearchStatisticsWithMustQueries = async (
 const buildSearchMustQueries = (
   request: Pick<QuerySegmentsRequest, 'query' | 'filters'>,
   parserMode: QueryParserMode,
+  excludeLanguages?: string[],
 ): {
   must: estypes.QueryDslQueryContainer[];
   isMatchAll: boolean;
@@ -554,7 +555,7 @@ const buildSearchMustQueries = (
       must.push({ match_all: {} });
     }
   } else if (searchTerm) {
-    const textQuery = buildTextSearchQuery(searchTerm, Boolean(q?.exactMatch), hasLengthConstraints, parserMode);
+    const textQuery = buildTextSearchQuery(searchTerm, Boolean(q?.exactMatch), hasLengthConstraints, parserMode, excludeLanguages);
     must.push(textQuery);
   }
 
@@ -574,7 +575,7 @@ export const querySegments = async (
     throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
   }
 
-  const { must, isMatchAll, hasQuery } = buildSearchMustQueries(request, parserMode);
+  const { must, isMatchAll, hasQuery } = buildSearchMustQueries(request, parserMode, request.filters.languages?.exclude);
 
   const { filter, must_not } = buildCommonFilters(request.filters);
 
@@ -600,25 +601,32 @@ export const querySegments = async (
     }
   }
 
+  const excludeLangs = new Set(request.filters.languages?.exclude ?? []);
+  const highlightFields: Record<string, estypes.SearchHighlightField> = {
+    contentJa: {
+      matched_fields: ['contentJa', 'contentJa.kana', 'contentJa.baseform', 'contentJa.normalized'],
+      type: 'fvh',
+    },
+  };
+  if (!excludeLangs.has('en')) {
+    highlightFields.contentEn = {
+      matched_fields: ['contentEn', 'contentEn.exact'],
+      type: 'fvh',
+    };
+  }
+  if (!excludeLangs.has('es')) {
+    highlightFields.contentEs = {
+      matched_fields: ['contentEs', 'contentEs.exact'],
+      type: 'fvh',
+    };
+  }
+
   const esResponse = client.search({
     size: request.limit,
     sort,
     index: INDEX_NAME,
     highlight: {
-      fields: {
-        contentJa: {
-          matched_fields: ['contentJa', 'contentJa.kana', 'contentJa.baseform', 'contentJa.normalized'],
-          type: 'fvh',
-        },
-        contentEn: {
-          matched_fields: ['contentEn', 'contentEn.exact'],
-          type: 'fvh',
-        },
-        contentEs: {
-          matched_fields: ['contentEs', 'contentEs.exact'],
-          type: 'fvh',
-        },
-      },
+      fields: highlightFields,
     },
     query: {
       bool: {
@@ -656,7 +664,7 @@ export const querySearchStats = async (
     throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
   }
 
-  const { must, hasQuery } = buildSearchMustQueries(request, parserMode);
+  const { must, hasQuery } = buildSearchMustQueries(request, parserMode, request.filters?.languages?.exclude);
   const mediaInfo = Media.getMediaInfoMap();
 
   return withSafeQueryFallback(
@@ -682,7 +690,7 @@ export const queryWordsMatched = async (
     : { filter: [] as estypes.QueryDslQueryContainer[], must_not: [] as estypes.QueryDslQueryContainer[] };
 
   const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
-    const baseQuery = buildMultiLanguageQuery(word, exactMatch, parserMode);
+    const baseQuery = buildMultiLanguageQuery(word, exactMatch, parserMode, filters?.languages?.exclude);
     return [
       {},
       {
@@ -1060,10 +1068,12 @@ const buildMultiLanguageQuery = (
   query: string,
   exactMatch: boolean,
   parserMode: QueryParserMode = 'strict',
+  excludeLanguages?: string[],
 ): estypes.QueryDslQueryContainer => {
   const queryText = exactMatch ? `"${query}"` : query;
   const detectedScript = detectInputScript(query);
   const boosts = getScriptBoosts(detectedScript);
+  const excludeSet = new Set(excludeLanguages ?? []);
 
   const japaneseQuery = buildStringQuery({
     query: queryText,
@@ -1093,47 +1103,47 @@ const buildMultiLanguageQuery = (
   }
 
   if (exactMatch) {
-    languageQueries.push(
-      ...[
-        {
-          multi_match: {
-            query: query,
-            fields: [`contentEs.exact^${boosts.spanish}`],
-          },
+    if (!excludeSet.has('es')) {
+      languageQueries.push({
+        multi_match: {
+          query: query,
+          fields: [`contentEs.exact^${boosts.spanish}`],
         },
-        {
-          multi_match: {
-            query: query,
-            fields: [`contentEn.exact^${boosts.english}`],
-          },
+      });
+    }
+    if (!excludeSet.has('en')) {
+      languageQueries.push({
+        multi_match: {
+          query: query,
+          fields: [`contentEn.exact^${boosts.english}`],
         },
-      ],
-    );
+      });
+    }
   } else {
-    languageQueries.push(
-      ...[
-        {
-          ...buildStringQuery({
-            query,
-            parserMode,
-            analyzeWildcard: true,
-            fields: [`contentEs^${boosts.spanish}`, 'contentEs.exact^1'],
-            defaultOperator: 'AND' as estypes.QueryDslOperator,
-            quoteFieldSuffix: '.exact',
-          }),
-        },
-        {
-          ...buildStringQuery({
-            query,
-            parserMode,
-            analyzeWildcard: true,
-            fields: [`contentEn^${boosts.english}`, 'contentEn.exact^1'],
-            defaultOperator: 'AND' as estypes.QueryDslOperator,
-            quoteFieldSuffix: '.exact',
-          }),
-        },
-      ],
-    );
+    if (!excludeSet.has('es')) {
+      languageQueries.push({
+        ...buildStringQuery({
+          query,
+          parserMode,
+          analyzeWildcard: true,
+          fields: [`contentEs^${boosts.spanish}`, 'contentEs.exact^1'],
+          defaultOperator: 'AND' as estypes.QueryDslOperator,
+          quoteFieldSuffix: '.exact',
+        }),
+      });
+    }
+    if (!excludeSet.has('en')) {
+      languageQueries.push({
+        ...buildStringQuery({
+          query,
+          parserMode,
+          analyzeWildcard: true,
+          fields: [`contentEn^${boosts.english}`, 'contentEn.exact^1'],
+          defaultOperator: 'AND' as estypes.QueryDslOperator,
+          quoteFieldSuffix: '.exact',
+        }),
+      });
+    }
   }
 
   return {
@@ -1273,8 +1283,9 @@ const buildTextSearchQuery = (
   exactMatch: boolean,
   hasLengthConstraints: boolean,
   parserMode: QueryParserMode = 'strict',
+  excludeLanguages?: string[],
 ): estypes.QueryDslQueryContainer => {
-  const baseQuery = buildMultiLanguageQuery(query, exactMatch, parserMode);
+  const baseQuery = buildMultiLanguageQuery(query, exactMatch, parserMode, excludeLanguages);
 
   if (!hasLengthConstraints) {
     return {
