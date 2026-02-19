@@ -1,8 +1,8 @@
-import { getNadeshikoUserClient } from '~~/server/utils/nadeshikoSdk';
+import { useNadeshikoClient } from '~~/server/utils/nadeshikoSdk';
 
 export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'));
-  const sdk = getNadeshikoUserClient(event);
+  const sdk = useNadeshikoClient(event);
 
   // Fetch all segments from the collection by paging through
   const allSegments: Array<{ mediaId: number; episode: number }> = [];

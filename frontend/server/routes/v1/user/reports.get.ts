@@ -1,4 +1,4 @@
-import { getNadeshikoUserClient } from '~~/server/utils/nadeshikoSdk';
+import { useNadeshikoClient } from '~~/server/utils/nadeshikoSdk';
 
 type ReportStatus = 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
 
@@ -28,7 +28,7 @@ function parseStatus(value: unknown): ReportStatus | undefined {
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
-  const sdk = getNadeshikoUserClient(event);
+  const sdk = useNadeshikoClient(event);
   const limit = parseNumber(query.limit ?? query.size);
   const cursor = parseNumber(query.cursor);
   const status = parseStatus(query.status);

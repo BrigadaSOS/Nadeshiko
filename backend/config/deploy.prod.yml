@@ -85,7 +85,6 @@ accessories:
         http.host: "0.0.0.0"
     volumes:
       - nadeshiko-elasticsearch-data:/usr/share/elasticsearch/data
-      - nadeshiko-elasticsearch-config:/usr/share/elasticsearch/config
     cmd: >
       bash -c '
         export ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD";
