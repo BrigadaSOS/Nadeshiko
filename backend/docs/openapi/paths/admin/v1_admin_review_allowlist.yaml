@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminReviewAllowlistIndex
+  operationId: listAdminReviewAllowlist
   summary: List allowlisted items
   description: |
     Returns all allowlisted items (media/episodes) that are excluded from auto-check runs.
@@ -36,7 +36,7 @@ get:
 post:
   tags:
     - Admin
-  operationId: adminReviewAllowlistCreate
+  operationId: createAdminReviewAllowlistEntry
   summary: Add to allowlist
   description: |
     Adds a media or episode to the allowlist for a specific check, excluding it from future auto-check runs.

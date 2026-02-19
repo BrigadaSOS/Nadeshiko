@@ -1,7 +1,7 @@
 patch:
   tags:
     - Admin
-  operationId: adminReportUpdate
+  operationId: updateAdminReport
   summary: Update a report
   description: |
     Updates the status and/or admin notes of a report.

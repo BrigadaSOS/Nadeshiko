@@ -5,83 +5,92 @@ import { requirePermissions } from '@app/middleware/authorization';
 import { ApiPermission } from '@app/models/ApiPermission';
 import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
 import { InsufficientPermissionsError } from '@app/errors';
-import { searchIndex, searchStats, searchWords } from '@app/controllers/searchController';
-import { adminHealthShow } from '@app/controllers/adminHealthController';
-import { adminDashboardShow } from '@app/controllers/adminDashboardController';
+import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
+import { trackActivity } from '@app/services/activityService';
+import { ActivityType, UserActivity } from '@app/models/UserActivity';
+import { getAdminHealth } from '@app/controllers/adminHealthController';
+import { getAdminDashboard } from '@app/controllers/adminDashboardController';
 import {
-  adminReindexCreate,
-  adminQueueStatsIndex,
-  adminQueueShow,
-  adminQueueRetryCreate,
-  adminQueueFailedIndex,
-  adminQueueFailedDestroy,
+  triggerReindex,
+  listAdminQueueStats,
+  getAdminQueue,
+  retryAdminQueueFailed,
+  listAdminQueueFailed,
+  purgeAdminQueueFailed,
 } from '@app/controllers/adminController';
 import { impersonateUserForDevelopment, clearDevelopmentImpersonation } from '@app/controllers/devAuthController';
 import { isLocalEnvironment } from '@config/environment';
-import { mediaIndex, mediaCreate, mediaShow, mediaUpdate, mediaDestroy } from '@app/controllers/mediaController';
-import { characterShow } from '@app/controllers/characterController';
-import { seiyuuShow } from '@app/controllers/seiyuuController';
 import {
-  collectionIndex,
-  collectionShow,
-  collectionCreate,
-  collectionUpdate,
-  collectionDestroy,
-  collectionAddSegment,
-  collectionUpdateSegment,
-  collectionRemoveSegment,
+  listMedia,
+  createMedia,
+  getMedia,
+  updateMedia,
+  deleteMedia,
+  autocompleteMedia,
+} from '@app/controllers/mediaController';
+import { getCharacter } from '@app/controllers/characterController';
+import { getSeiyuu } from '@app/controllers/seiyuuController';
+import {
+  listCollections,
+  getCollection,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+  addSegmentToCollection,
+  updateCollectionSegment,
+  removeSegmentFromCollection,
 } from '@app/controllers/collectionController';
 import {
-  seriesIndex,
-  seriesShow,
-  seriesCreate,
-  seriesUpdate,
-  seriesDestroy,
-  seriesAddMedia,
-  seriesUpdateMedia,
-  seriesRemoveMedia,
+  listSeries,
+  getSeries,
+  createSeries,
+  updateSeries,
+  deleteSeries,
+  addMediaToSeries,
+  updateSeriesMedia,
+  removeMediaFromSeries,
 } from '@app/controllers/seriesController';
 import {
-  episodeIndex,
-  episodeCreate,
-  episodeShow,
-  episodeUpdate,
-  episodeDestroy,
+  listEpisodes,
+  createEpisode,
+  getEpisode,
+  updateEpisode,
+  deleteEpisode,
 } from '@app/controllers/episodeController';
 import {
-  segmentIndex,
-  segmentCreate,
-  segmentShow,
-  segmentUpdate,
-  segmentDestroy,
-  segmentShowByUuid,
-  segmentContextShow,
+  listSegments,
+  createSegment,
+  getSegment,
+  updateSegment,
+  deleteSegment,
+  getSegmentByUuid,
+  getSegmentContext,
 } from '@app/controllers/segmentController';
-import { userQuotaShow } from '@app/controllers/userQuotaController';
+import { getUserQuota } from '@app/controllers/userQuotaController';
 import {
-  userReportCreate,
-  userReportIndex,
-  adminReportIndex,
-  adminReportUpdate,
+  createUserReport,
+  listUserReports,
+  listAdminReports,
+  updateAdminReport,
 } from '@app/controllers/reportController';
-import { userPreferencesShow, userPreferencesUpdate } from '@app/controllers/preferencesController';
-import { userLabsIndex } from '@app/controllers/labsController';
+import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
+import { listUserLabs } from '@app/controllers/labsController';
 import {
-  userActivityIndex,
-  userActivityHeatmapShow,
-  userActivityStatsShow,
-  userActivityDestroy,
+  listUserActivity,
+  getUserActivityHeatmap,
+  getUserActivityStats,
+  deleteUserActivity,
 } from '@app/controllers/activityController';
-import { userExportShow } from '@app/controllers/userExportController';
+import { exportUserData } from '@app/controllers/userExportController';
 import {
-  adminReviewRunCreate,
-  adminReviewCheckIndex,
-  adminReviewCheckUpdate,
-  adminReviewRunIndex,
-  adminReviewRunShow,
-  adminReviewAllowlistIndex,
-  adminReviewAllowlistCreate,
-  adminReviewAllowlistDestroy,
+  runAdminReview,
+  listAdminReviewChecks,
+  updateAdminReviewCheck,
+  listAdminReviewRuns,
+  getAdminReviewRun,
+  listAdminReviewAllowlist,
+  createAdminReviewAllowlistEntry,
+  deleteAdminReviewAllowlistEntry,
 } from '@app/controllers/mediaReviewController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
@@ -92,85 +101,85 @@ import { createRouter as createUserRouter } from 'generated/routes/user';
 const router = express.Router();
 
 const SearchRoutes = createSearchRouter({
-  searchIndex,
-  searchStats,
+  search,
+  getSearchStats,
   searchWords,
 });
 
 const MediaRoutes = createMediaRouter({
-  mediaIndex,
-  mediaCreate,
-  mediaShow,
-  mediaUpdate,
-  mediaDestroy,
-  characterShow,
-  seiyuuShow,
-  episodeIndex,
-  episodeCreate,
-  episodeShow,
-  episodeUpdate,
-  episodeDestroy,
-  segmentIndex,
-  segmentCreate,
-  segmentShow,
-  segmentUpdate,
-  segmentDestroy,
-  segmentShowByUuid,
-  segmentContextShow,
-  seriesIndex,
-  seriesShow,
-  seriesCreate,
-  seriesUpdate,
-  seriesDestroy,
-  seriesAddMedia,
-  seriesUpdateMedia,
-  seriesRemoveMedia,
+  listMedia,
+  createMedia,
+  getMedia,
+  updateMedia,
+  deleteMedia,
+  listEpisodes,
+  createEpisode,
+  getEpisode,
+  updateEpisode,
+  deleteEpisode,
+  listSegments,
+  createSegment,
+  getSegment,
+  updateSegment,
+  deleteSegment,
+  getSegmentByUuid,
+  getSegmentContext,
+  listSeries,
+  createSeries,
+  getSeries,
+  updateSeries,
+  deleteSeries,
+  addMediaToSeries,
+  updateSeriesMedia,
+  removeMediaFromSeries,
+  getCharacter,
+  getSeiyuu,
 });
 
 const CollectionsRoutes = createCollectionsRouter({
-  collectionIndex,
-  collectionCreate,
-  collectionShow,
-  collectionUpdate,
-  collectionDestroy,
-  collectionAddSegment,
-  collectionUpdateSegment,
-  collectionRemoveSegment,
+  listCollections,
+  createCollection,
+  getCollection,
+  updateCollection,
+  deleteCollection,
+  addSegmentToCollection,
+  updateCollectionSegment,
+  removeSegmentFromCollection,
 });
 
 const AdminRoutes = createAdminRouter({
-  adminDashboardShow,
-  adminHealthShow,
-  adminReindexCreate,
-  adminQueueStatsIndex,
-  adminQueueShow,
-  adminQueueFailedIndex,
-  adminQueueFailedDestroy,
-  adminQueueRetryCreate,
-  adminReportIndex,
-  adminReportUpdate,
-  adminReviewRunCreate,
-  adminReviewCheckIndex,
-  adminReviewCheckUpdate,
-  adminReviewRunIndex,
-  adminReviewRunShow,
-  adminReviewAllowlistIndex,
-  adminReviewAllowlistCreate,
-  adminReviewAllowlistDestroy,
+  getAdminDashboard,
+  getAdminHealth,
+  triggerReindex,
+  listAdminQueueStats,
+  getAdminQueue,
+  listAdminQueueFailed,
+  retryAdminQueueFailed,
+  purgeAdminQueueFailed,
+  listAdminReports,
+  updateAdminReport,
+  runAdminReview,
+  listAdminReviewChecks,
+  updateAdminReviewCheck,
+  listAdminReviewRuns,
+  getAdminReviewRun,
+  listAdminReviewAllowlist,
+  createAdminReviewAllowlistEntry,
+  deleteAdminReviewAllowlistEntry,
 });
 
 const UserRoutes = createUserRouter({
-  userQuotaShow,
-  userReportCreate,
-  userReportIndex,
-  userPreferencesShow,
-  userPreferencesUpdate,
-  userActivityIndex,
-  userActivityHeatmapShow,
-  userActivityDestroy,
-  userActivityStatsShow,
-  userExportShow,
-  userLabsIndex,
+  getUserQuota,
+  createUserReport,
+  listUserReports,
+  getUserPreferences,
+  updateUserPreferences,
+  listUserActivity,
+  deleteUserActivity,
+  getUserActivityHeatmap,
+  getUserActivityStats,
+  exportUserData,
+  listUserLabs,
 });
 
 const apiKeyOnly = [requireApiKeyAuth, rateLimitApiQuota] as const;
@@ -236,6 +245,105 @@ router.get('/v1/media/*path', ...mediaReadPermission);
 router.post('/v1/media/*path', ...mediaAddPermission);
 router.patch('/v1/media/*path', ...mediaUpdatePermission);
 router.delete('/v1/media/*path', ...mediaRemovePermission);
+
+// Internal-only helper for frontend media autocomplete.
+router.get('/v1/media/autocomplete', async (req: any, res: any, next: any) => {
+  try {
+    const queryParam = Array.isArray(req.query.query) ? req.query.query[0] : req.query.query;
+    const limitParam = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+    const categoryParam = Array.isArray(req.query.category) ? req.query.category[0] : req.query.category;
+
+    const query = typeof queryParam === 'string' ? queryParam : undefined;
+    const parsedLimit = Number(limitParam);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+    const category = typeof categoryParam === 'string' ? categoryParam : undefined;
+
+    const data = await autocompleteMedia({
+      query,
+      limit,
+      category,
+    });
+
+    res.status(200).json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Track activity (segment plays) — manual route outside OpenAPI-generated router
+router.post('/v1/user/activity', async (req: any, res: any, next: any) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { activityType, segmentUuid, mediaId, animeName, japaneseText } = req.body ?? {};
+    if (activityType !== ActivityType.SEGMENT_PLAY) {
+      return res.status(400).json({ message: 'Only SEGMENT_PLAY tracking is supported via this endpoint.' });
+    }
+
+    trackActivity(user, ActivityType.SEGMENT_PLAY, {
+      segmentUuid: typeof segmentUuid === 'string' ? segmentUuid : undefined,
+      mediaId: typeof mediaId === 'number' ? mediaId : undefined,
+      animeName: typeof animeName === 'string' ? animeName : undefined,
+      japaneseText: typeof japaneseText === 'string' ? japaneseText : undefined,
+    }).catch(() => {});
+
+    return res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete all activity for a specific date
+router.delete('/v1/user/activity/date/:date', async (req: any, res: any, next: any) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const date = req.params.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ message: 'Invalid date format. Use YYYY-MM-DD.' });
+    }
+
+    const result = await UserActivity.createQueryBuilder()
+      .delete()
+      .where('user_id = :userId', { userId: user.id })
+      .andWhere('DATE(created_at) = :date', { date })
+      .execute();
+
+    return res.status(200).json({ deletedCount: result.affected || 0 });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete a single activity row by ID
+router.delete('/v1/user/activity/:id', async (req: any, res: any, next: any) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ message: 'Invalid activity ID.' });
+    }
+
+    const result = await UserActivity.delete({ id, userId: user.id });
+    if (!result.affected) {
+      return res.status(404).json({ message: 'Activity not found.' });
+    }
+
+    return res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.use('/', SearchRoutes);
 router.use('/', MediaRoutes);

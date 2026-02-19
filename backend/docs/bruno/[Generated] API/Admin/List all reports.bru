@@ -1,0 +1,32 @@
+meta {
+  name: List all reports
+  type: http
+  seq: 58
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/reports?limit=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  cursor:
+  limit: 20
+  status:
+  source:
+  target.type:
+  target.mediaId:
+  target.episodeNumber:
+  target.segmentUuid:
+  reviewCheckRunId:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

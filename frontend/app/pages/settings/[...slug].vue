@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
+  robots: false,
   middleware: defineNuxtRouteMiddleware((to) => {
     const raw = to.params.slug;
     const slugParts = Array.isArray(raw) ? raw : raw ? [raw] : [];

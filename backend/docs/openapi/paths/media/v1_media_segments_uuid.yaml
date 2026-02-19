@@ -1,7 +1,7 @@
 get:
   tags:
     - Media
-  operationId: segmentShowByUuid
+  operationId: getSegmentByUuid
   summary: Get segment by UUID
   description: |
     Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.

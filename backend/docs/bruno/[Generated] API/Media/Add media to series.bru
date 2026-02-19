@@ -1,0 +1,31 @@
+meta {
+  name: Add media to series
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/v1/media/series/:id/media
+  body: json
+  auth: bearer
+}
+
+params:query {
+  id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "mediaId": 0,
+    "position": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

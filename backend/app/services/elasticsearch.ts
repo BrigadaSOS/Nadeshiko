@@ -858,6 +858,7 @@ const buildSearchResultSegments = (
     .map((hit: any) => {
       const data: any = hit['_source'];
       const highlight: any = hit['highlight'] || {};
+      const segmentId = Number(hit['_id'] ?? data['id']);
       const mediaId = Number(data['mediaId']);
       const mediaInfo = mediaInfoResponse.results.get(mediaId);
 
@@ -867,6 +868,10 @@ const buildSearchResultSegments = (
 
       if (!mediaInfo) {
         logger.error({ mediaId: data['mediaId'] }, 'Media Info not found');
+        return null;
+      }
+      if (!Number.isFinite(segmentId)) {
+        logger.error({ uuid: data['uuid'], id: hit['_id'] }, 'Segment id missing in Elasticsearch hit');
         return null;
       }
 
@@ -917,6 +922,7 @@ const buildSearchResultSegments = (
           : 'SAFE';
 
       return {
+        id: segmentId,
         status: data['status'],
         uuid: data['uuid'],
         position: data['position'],

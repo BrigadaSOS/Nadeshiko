@@ -22,6 +22,29 @@ export default defineEventHandler((event) => {
     return;
   }
 
+  // Canonicalize legacy filter query params used by older links:
+  // - mediaId -> media
+  // - episodeId -> episode
+  // Keep canonical keys when both exist.
+  let normalizedLegacyParams = false;
+  const mediaId = url.searchParams.get('mediaId');
+  if (mediaId !== null) {
+    if (!url.searchParams.has('media')) {
+      url.searchParams.set('media', mediaId);
+    }
+    url.searchParams.delete('mediaId');
+    normalizedLegacyParams = true;
+  }
+
+  const episodeId = url.searchParams.get('episodeId');
+  if (episodeId !== null) {
+    if (!url.searchParams.has('episode')) {
+      url.searchParams.set('episode', episodeId);
+    }
+    url.searchParams.delete('episodeId');
+    normalizedLegacyParams = true;
+  }
+
   // UUID redirects on search pages: /search/sentence?uuid=abc or /search?uuid=abc → /sentence/abc
   if (url.searchParams.has('uuid')) {
     const uuid = url.searchParams.get('uuid');
@@ -61,5 +84,10 @@ export default defineEventHandler((event) => {
     url.searchParams.delete('query');
     const remaining = url.searchParams.toString();
     return sendRedirect(event, `/search/${encodeURIComponent(query)}${remaining ? `?${remaining}` : ''}`, 301);
+  }
+
+  if (normalizedLegacyParams) {
+    const remaining = url.searchParams.toString();
+    return sendRedirect(event, `${path}${remaining ? `?${remaining}` : ''}`, 301);
   }
 });

@@ -1,7 +1,7 @@
 patch:
   tags:
     - Collections
-  operationId: collectionUpdateSegment
+  operationId: updateCollectionSegment
   summary: Update segment in collection
   description: |
     Updates the note or position of a segment in a collection. Requires collection ownership.
@@ -58,7 +58,7 @@ patch:
 delete:
   tags:
     - Collections
-  operationId: collectionRemoveSegment
+  operationId: removeSegmentFromCollection
   summary: Remove segment from collection
   description: |
     Removes a segment from a collection. Requires collection ownership.

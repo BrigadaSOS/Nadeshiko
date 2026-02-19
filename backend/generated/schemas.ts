@@ -41,6 +41,9 @@ export const s_Collection = z.object({
   name: z.string(),
   userId: z.coerce.number(),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
+  segmentCount: z.coerce.number().optional(),
+  createdAt: z.string().datetime({ offset: true }).optional(),
+  updatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export const s_CollectionRequests = z.object({
@@ -433,6 +436,7 @@ export const s_SearchFilters = z.object({
 });
 
 export const s_Segment = z.object({
+  id: z.coerce.number(),
   uuid: z.string(),
   position: z.coerce.number(),
   status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']),
@@ -513,6 +517,8 @@ export const s_UserActivity = z.object({
   segmentUuid: z.string().nullable().optional(),
   mediaId: z.coerce.number().nullable().optional(),
   searchQuery: z.string().nullable().optional(),
+  animeName: z.string().nullable().optional(),
+  japaneseText: z.string().nullable().optional(),
   createdAt: z.string().datetime({ offset: true }),
 });
 

@@ -20,6 +20,14 @@ const props = defineProps({
     type: Array,
     default: null,
   },
+  collectionId: {
+    type: Number,
+    default: null,
+  },
+  collectionName: {
+    type: String,
+    default: null,
+  },
 });
 
 const { t } = useI18n();
@@ -48,6 +56,15 @@ const episode = ref(null);
 
 const categoryApiMapping = CATEGORY_API_MAPPING;
 
+const firstQueryValue = (value) => (Array.isArray(value) ? value[0] : value);
+const getStringQueryValue = (value) => {
+  const normalized = firstQueryValue(value);
+  if (normalized === undefined || normalized === null || normalized === '') {
+    return null;
+  }
+  return String(normalized);
+};
+
 const searchData = computed(() => {
   const sentencePayload = sentenceData.value || {};
   const statsPayload = statsData.value || {};
@@ -62,13 +79,27 @@ const searchData = computed(() => {
 });
 
 const animeTabName = computed(() => {
-  if (media.value && searchData.value?.results?.length > 0) {
-    let name = mediaName(searchData.value.results[0].media);
-    if (episode.value !== null) {
-      name += `, ${t('searchpage.main.labels.episode')} ${episode.value}`;
+  if (props.collectionId) {
+    return props.collectionName
+      ? `${t('searchContainer.collectionTabPrefix')}: ${props.collectionName}`
+      : t('searchContainer.collectionTabPrefix');
+  }
+  if (media.value) {
+    const mediaId = Number(media.value);
+    const mediaStat = Number.isNaN(mediaId)
+      ? null
+      : (searchData.value?.media || []).find((item) => item.mediaId === mediaId);
+    const mediaSource = mediaStat || searchData.value?.results?.[0]?.media || null;
+
+    if (mediaSource) {
+      let name = mediaName(mediaSource);
+      if (episode.value !== null) {
+        name += `, ${t('searchpage.main.labels.episode')} ${episode.value}`;
+      }
+      return name;
     }
 
-    return name;
+    return t('searchContainer.categoryAll');
   }
   return t('searchContainer.categoryAll');
 });
@@ -83,18 +114,30 @@ const getSearchQuery = (r) => {
 const applyRouteQuery = (r) => {
   query.value = getSearchQuery(r);
   const queryParams = r.query || {};
-  category.value =
-    queryParams.category === 'anime' || queryParams.category === 'liveaction' ? queryParams.category : 'all';
-  media.value = queryParams.media || null;
-  sort.value = queryParams.sort || null;
-  uuid.value = queryParams.uuid || null;
-  episode.value = queryParams.episode ? Number(queryParams.episode) : null;
+  const categoryParam = getStringQueryValue(queryParams.category);
+  category.value = categoryParam === 'anime' || categoryParam === 'liveaction' ? categoryParam : 'all';
+  media.value = getStringQueryValue(queryParams.media ?? queryParams.mediaId);
+  sort.value = getStringQueryValue(queryParams.sort);
+  uuid.value = getStringQueryValue(queryParams.uuid);
+
+  const episodeParam = getStringQueryValue(queryParams.episode ?? queryParams.episodeId);
+  if (episodeParam === null) {
+    episode.value = null;
+  } else {
+    const parsedEpisode = Number(episodeParam);
+    episode.value = Number.isNaN(parsedEpisode) ? null : parsedEpisode;
+  }
 };
 
 applyRouteQuery(route);
 
 const fetchStats = async () => {
   try {
+    if (props.collectionId) {
+      statsData.value = await apiSearch.getCollectionStats(props.collectionId);
+      return;
+    }
+
     const body = {};
     const filters = {};
 
@@ -142,59 +185,65 @@ const fetchSentences = async () => {
     isLoading.value = true;
     showLoadMoreButton.value = false;
 
-    const body = {
-      limit: 20,
-    };
-    const filters = {};
+    let response;
 
-    if (query.value) {
-      body.query = query.value;
-    }
-
-    const mappedCategory = categoryApiMapping[category.value];
-    if (mappedCategory) {
-      filters.category = [mappedCategory];
-    }
-
-    // Build media include filter
-    const mediaInclude = [];
-    if (media.value) {
-      const mediaEntry = { mediaId: Number(media.value) };
-      if (episode.value !== null) {
-        mediaEntry.episodes = [episode.value];
-      }
-      mediaInclude.push(mediaEntry);
-    }
-    if (props.listMediaIds && props.listMediaIds.length > 0) {
-      for (const id of props.listMediaIds) {
-        mediaInclude.push({ mediaId: id });
-      }
-    }
-    if (mediaInclude.length > 0) {
-      filters.media = { include: mediaInclude };
-    }
-
-    if (sort.value && sort.value !== 'NONE') {
-      body.sort = sort.value;
-    }
-
-    if (cursor.value) {
-      body.cursor = cursor.value;
-    }
-
-    if (uuid.value) {
-      body.uuid = uuid.value;
-    }
-
-    filters.contentRating = contentRating.value;
-    if (hiddenMediaExcludeFilter.value.length > 0) {
-      filters.media = {
-        ...(filters.media || {}),
-        exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
+    if (props.collectionId) {
+      response = await apiSearch.searchCollectionSegments(props.collectionId, cursor.value ?? undefined);
+    } else {
+      const body = {
+        limit: 20,
       };
+      const filters = {};
+
+      if (query.value) {
+        body.query = query.value;
+      }
+
+      const mappedCategory = categoryApiMapping[category.value];
+      if (mappedCategory) {
+        filters.category = [mappedCategory];
+      }
+
+      // Build media include filter
+      const mediaInclude = [];
+      if (media.value) {
+        const mediaEntry = { mediaId: Number(media.value) };
+        if (episode.value !== null) {
+          mediaEntry.episodes = [episode.value];
+        }
+        mediaInclude.push(mediaEntry);
+      }
+      if (props.listMediaIds && props.listMediaIds.length > 0) {
+        for (const id of props.listMediaIds) {
+          mediaInclude.push({ mediaId: id });
+        }
+      }
+      if (mediaInclude.length > 0) {
+        filters.media = { include: mediaInclude };
+      }
+
+      if (sort.value && sort.value !== 'NONE') {
+        body.sort = sort.value;
+      }
+
+      if (cursor.value) {
+        body.cursor = cursor.value;
+      }
+
+      if (uuid.value) {
+        body.uuid = uuid.value;
+      }
+
+      filters.contentRating = contentRating.value;
+      if (hiddenMediaExcludeFilter.value.length > 0) {
+        filters.media = {
+          ...(filters.media || {}),
+          exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
+        };
+      }
+      body.filters = filters;
+      response = await apiSearch.searchSegments(body);
     }
-    body.filters = filters;
-    const response = await apiSearch.searchSegments(body);
     const incomingResults = response?.results || [];
 
     if (cursor.value === null) {
@@ -293,6 +342,24 @@ const getEpisodeHitsData = () => {
   return selectedMedia?.episodeHits || {};
 };
 
+const handleRemoveFromCollection = async (uuid) => {
+  if (!props.collectionId) return;
+  try {
+    await $fetch(`/api/collections/${props.collectionId}/segments/${uuid}`, { method: 'DELETE' });
+    // Remove from current results
+    if (sentenceData.value?.results) {
+      sentenceData.value = {
+        ...sentenceData.value,
+        results: sentenceData.value.results.filter((r) => r.segment.uuid !== uuid),
+      };
+    }
+    // Refresh stats
+    fetchStats();
+  } catch (error) {
+    console.error('Error removing segment from collection:', error);
+  }
+};
+
 const handleRandomLogic = () => {
   resetSentencePagination();
   fetchSentences();
@@ -300,7 +367,12 @@ const handleRandomLogic = () => {
 
 if (props.initialSentenceData) {
   cursor.value = props.initialSentenceData.pagination?.cursor || null;
-  if (!props.initialSentenceData.pagination?.hasMore || !props.initialSentenceData.pagination?.cursor) {
+  const initialResults = props.initialSentenceData.results || [];
+  if (
+    !props.initialSentenceData.pagination?.hasMore ||
+    !props.initialSentenceData.pagination?.cursor ||
+    initialResults.length < 20
+  ) {
     endOfResults.value = true;
     hasMoreResults.value = false;
   }
@@ -341,7 +413,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 <div class="w-full align-top items-center">
                     <div class="flex flex-col items-center max-w-lg mx-auto text-center">
                         <img class="mb-6"
-                            src="/assets/no-results.gif" />
+                            src="/assets/no-results.gif" alt="No results illustration" />
                         <h2 class="font-bold text-red-400 text-3xl">{{ $t('searchContainer.errorTitle') }}</h2>
                         <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchContainer.errorMessage1') }}</h1>
                         <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.errorMessage2') }}
@@ -376,20 +448,41 @@ onBeforeRouteUpdate(async (to, from) => {
         </section>
     </div>
     <div v-else class="flex-1 mx-auto">
+        <!-- Collection breadcrumb -->
+        <div v-if="collectionId" class="mt-4 pb-2 flex items-center gap-2 text-sm">
+            <NuxtLink
+                to="/user/collections"
+                class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
+            >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
+                </svg>
+                {{ $t('searchContainer.backToCollections') }}
+            </NuxtLink>
+            <span v-if="collectionName" class="text-gray-600">/</span>
+            <span v-if="collectionName" class="text-white/70 font-medium truncate max-w-[20rem]">{{ collectionName }}</span>
+        </div>
         <!-- Tabs -->
-        <div class="pb-4" v-if="searchData?.categories?.length > 0">
-            <CommonTabsContainer>
-                <CommonTabsHeader>
-                    <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')"
-                        :isActive="category === 'all' || media" @click="categoryFilter('all')" />
-                    <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'ANIME')"
-                        category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :isActive="category === 'anime'"
-                        @click="categoryFilter('anime')" />
-                    <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
-                        category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :isActive="category === 'liveaction'"
-                        @click="categoryFilter('liveaction')" />
-                </CommonTabsHeader>
-            </CommonTabsContainer>
+        <div class="pb-3" v-if="searchData?.categories?.length > 0">
+            <div class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21]">
+                <div class="search-tabs-main min-w-0 flex-1">
+                    <CommonTabsContainer>
+                        <CommonTabsHeader>
+                            <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')"
+                                :isActive="category === 'all' || media" @click="categoryFilter('all')" />
+                            <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'ANIME')"
+                                category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :isActive="category === 'anime'"
+                                @click="categoryFilter('anime')" />
+                            <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
+                                category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :isActive="category === 'liveaction'"
+                                @click="categoryFilter('liveaction')" />
+                        </CommonTabsHeader>
+                    </CommonTabsContainer>
+                </div>
+                <div v-if="$slots['result-controls']" class="shrink-0">
+                    <slot name="result-controls" />
+                </div>
+            </div>
         </div>
         <div v-else-if="isLoading && !searchData?.results?.length || !searchData" class="w-full pb-4  animate-pulse">
             <CommonTabsContainer>
@@ -403,7 +496,7 @@ onBeforeRouteUpdate(async (to, from) => {
         <div class="flex mx-auto w-full">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
-                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" />
+                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" :collectionId="collectionId" @remove-from-collection="handleRemoveFromCollection" />
                 <CommonInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults && !isLoading" />
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">
@@ -444,3 +537,14 @@ onBeforeRouteUpdate(async (to, from) => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.search-tabs-main :deep(#tab-headers ul) {
+  border-bottom: 0;
+}
+
+.search-tabs-main :deep(#tab-headers ul li.active:after) {
+  bottom: 0;
+  z-index: 1;
+}
+</style>

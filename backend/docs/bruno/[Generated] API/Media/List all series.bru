@@ -1,0 +1,26 @@
+meta {
+  name: List all series
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/v1/media/series?limit=20&query=bakuman
+  body: none
+  auth: bearer
+}
+
+params:query {
+  limit: 20
+  cursor:
+  query: bakuman
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

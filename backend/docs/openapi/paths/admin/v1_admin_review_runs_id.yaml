@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminReviewRunShow
+  operationId: getAdminReviewRun
   summary: Get a specific run's details
   description: |
     Returns a specific review check run record with its linked reports.

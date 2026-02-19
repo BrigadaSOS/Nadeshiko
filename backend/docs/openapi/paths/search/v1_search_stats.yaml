@@ -1,7 +1,7 @@
 post:
   tags:
     - Search
-  operationId: searchStats
+  operationId: getSearchStats
   summary: Get search statistics
   description: |
     Returns statistics for search filters and category tabs without fetching segment rows.

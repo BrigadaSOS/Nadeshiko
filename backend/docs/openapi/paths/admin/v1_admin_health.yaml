@@ -2,7 +2,7 @@ get:
   tags:
     - Admin
   x-internal: true
-  operationId: adminHealthShow
+  operationId: getAdminHealth
   summary: System health check
   description: |
     Returns connectivity status and version information for all backend subsystems

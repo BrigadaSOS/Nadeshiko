@@ -1,7 +1,7 @@
 post:
   tags:
     - Admin
-  operationId: adminQueueRetryCreate
+  operationId: retryAdminQueueFailed
   summary: Retry failed jobs from a queue
   description: |
     Re-enqueues all failed jobs from a specific queue for another attempt.

@@ -1,0 +1,20 @@
+meta {
+  name: List all review checks
+  type: http
+  seq: 61
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/review/checks
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

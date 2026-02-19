@@ -1,7 +1,7 @@
 post:
   tags:
     - Search
-  operationId: searchIndex
+  operationId: search
   summary: Search segments by query
   description: |
     The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama, audiobooks).

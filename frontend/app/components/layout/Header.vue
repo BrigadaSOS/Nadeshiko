@@ -63,7 +63,7 @@ function openLoginModal() {
                             class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                             {{ $t("navbar.buttons.about") }}
                         </NuxtLink>
-                        <NuxtLink to="/api/v1/docs"
+                        <NuxtLink to="/api/v1/docs" :prefetch="false"
                             class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                             API
                         </NuxtLink>
@@ -106,13 +106,13 @@ function openLoginModal() {
                         </template>
                         <template #content>
                             <SearchDropdownContent>
-                                <NuxtLink v-if="isAuth" to="/user/settings">
+                                <NuxtLink v-if="isAuth" to="/user/settings" :prefetch="false">
                                     <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                 </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/collections">
+                                <NuxtLink v-if="isAuth" to="/user/collections" :prefetch="false">
                                     <SearchDropdownItem text="Collections" />
                                 </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/sync">
+                                <NuxtLink v-if="isAuth" to="/user/sync" :prefetch="false">
                                     <SearchDropdownItem text="Anki" />
                                 </NuxtLink>
                                 <SearchDropdownItem v-if="!isAuth || isAuth == null" @click="openLoginModal" :text="$t('navbar.buttons.login')" />

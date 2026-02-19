@@ -1,7 +1,7 @@
 delete:
   tags:
     - Admin
-  operationId: adminQueueFailedDestroy
+  operationId: purgeAdminQueueFailed
   summary: Purge failed jobs from a queue
   description: |
     Permanently deletes all failed jobs from a queue.

@@ -1,7 +1,7 @@
 get:
   tags:
     - Media
-  operationId: seriesIndex
+  operationId: listSeries
   summary: List all series
   description: |
     Returns a paginated list of media series groupings.
@@ -52,7 +52,7 @@ get:
 post:
   tags:
     - Media
-  operationId: seriesCreate
+  operationId: createSeries
   x-internal: true
   summary: Create series
   description: |

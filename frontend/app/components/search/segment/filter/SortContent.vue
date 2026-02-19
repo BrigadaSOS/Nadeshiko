@@ -56,7 +56,7 @@ watch(
             </SearchDropdownMainButton>
         </template>
         <template #content>
-            <SearchDropdownContent>
+            <SearchDropdownContent :header="t('searchpage.main.buttons.sortmain')">
                 <SearchDropdownItem @click="sortContent('none')" :text="t('searchpage.main.buttons.sortlengthnone')"
                     :iconPath="mdiSort" />
                 <SearchDropdownItem @click="sortContent('asc')" :text="t('searchpage.main.buttons.sortlengthmin')"

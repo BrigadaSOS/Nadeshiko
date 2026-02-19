@@ -1,7 +1,7 @@
 get:
   tags:
     - Media
-  operationId: seriesShow
+  operationId: getSeries
   summary: Get series details
   description: |
     Returns a series with all media entries sorted by position.
@@ -48,7 +48,7 @@ get:
 patch:
   tags:
     - Media
-  operationId: seriesUpdate
+  operationId: updateSeries
   x-internal: true
   summary: Update series metadata
   description: |
@@ -106,7 +106,7 @@ patch:
 delete:
   tags:
     - Media
-  operationId: seriesDestroy
+  operationId: deleteSeries
   x-internal: true
   summary: Delete series
   description: |

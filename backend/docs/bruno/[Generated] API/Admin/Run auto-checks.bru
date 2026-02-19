@@ -1,0 +1,25 @@
+meta {
+  name: Run auto-checks
+  type: http
+  seq: 60
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/review/run
+  body: none
+  auth: bearer
+}
+
+params:query {
+  category:
+  checkName:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

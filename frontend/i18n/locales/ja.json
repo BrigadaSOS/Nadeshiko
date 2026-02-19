@@ -175,8 +175,14 @@
       "media": "メディア",
       "episode": "話",
       "time": "時間",
+      "duration": "長さ",
+      "id": "ID",
+      "position": "位置",
       "uuid": "UUID",
-      "copyUuid": "UUIDをコピー"
+      "copyUuid": "UUIDをコピー",
+      "image": "画像",
+      "audio": "音声",
+      "video": "動画"
     }
   },
   "filterContent": {
@@ -197,8 +203,10 @@
         "english": "英語",
         "spanish": "スペイン語",
         "englishShown": "英語翻訳を表示しました",
+        "englishSpoiler": "英語翻訳をスポイラーモードにしました",
         "englishHidden": "英語翻訳を非表示にしました",
         "spanishShown": "スペイン語翻訳を表示しました",
+        "spanishSpoiler": "スペイン語翻訳をスポイラーモードにしました",
         "spanishHidden": "スペイン語翻訳を非表示にしました"
       },
       "buttons": {
@@ -218,11 +226,17 @@
         "context": "文脈",
         "report": "報告",
         "share": "共有",
+        "more": "その他",
         "expandLeft": "左に展開",
         "expandBoth": "両側に展開",
         "expandRight": "右に展開",
-        "hideMedia": "このメディアを非表示",
-        "unhideMedia": "このメディアを表示",
+        "hideMedia": "非表示",
+        "unhideMedia": "表示",
+        "addToCollection": "コレクションに追加",
+        "manageCollections": "コレクションを管理",
+        "collectionsLoading": "コレクションを読み込み中...",
+        "collectionsEmpty": "コレクションがまだありません",
+        "chooseCollection": "コレクションを選択...",
         "sortmain": "文を並び替え",
         "sortlengthnone": "なし",
         "sortlengthmin": "最短",
@@ -253,7 +267,9 @@
         "errorcopiedcontent": "コピーエラー。再試行してください。",
         "copiedsharingurl": "URLがクリップボードにコピーされました。",
         "errorcopiedsharingurl": "URLのコピーに失敗しました。再試行してください。",
-        "mtTooltip": "この文は機械翻訳されたため、正確ではない可能性があります。"
+        "collectionAdded": "\"{name}\" に追加しました",
+        "collectionAddFailed": "コレクションへの追加に失敗しました。再試行してください。",
+        "mtTooltip": "この文は機械翻訳されたため、正確ではない可能性があります"
       }
     },
     "modalcontext": {
@@ -267,6 +283,10 @@
         "errorconnection": "サーバー接続エラー。"
       }
     }
+  },
+  "activity": {
+    "deleteDayActivity": "この日のアクティビティを削除",
+    "deletingDayActivity": "削除中..."
   },
   "accountSettings": {
     "menu": {
@@ -345,6 +365,31 @@
       "hiddenMediaSearchPlaceholder": "非表示にするメディアを検索...",
       "hiddenMediaEmpty": "非表示のメディアはありません。検索結果にはすべてのメディアが表示されます。"
     },
+    "collections": {
+      "segmentCount": "{count} セグメント",
+      "created": "作成日: {date}",
+      "updated": "更新日: {date}",
+      "removeFromCollection": "コレクションから削除",
+      "confirmRemove": "削除しますか？",
+      "yes": "はい",
+      "no": "いいえ",
+      "rename": "名前を変更",
+      "delete": "削除",
+      "renameTitle": "コレクション名を変更",
+      "renameConfirm": "保存",
+      "renameCancel": "キャンセル",
+      "renamed": "コレクション名を変更しました",
+      "deleteTitle": "コレクションを削除",
+      "deleteMessage": "「{name}」を削除しますか？この操作は取り消せません。",
+      "deleteConfirm": "削除",
+      "deleteCancel": "キャンセル",
+      "deleted": "コレクションを削除しました",
+      "visibility": {
+        "PUBLIC": "公開",
+        "PRIVATE": "非公開"
+      },
+      "noCollections": "コレクションはまだありません。"
+    },
     "anki": {
       "syncStatus": "同期状態",
       "loading": "読み込み中...",
@@ -379,7 +424,7 @@
   },
   "segment": {
     "noResultsTitle": "404",
-    "noResultsMessage": "探しましたが見つかりませんでした。別の検索をお試しください。",
+    "noResultsMessage": "別の検索をお試しいただくか、{link} で検索してみてください",
     "contentRatingShow": "表示",
     "contentRatingHide": "非表示",
     "status": {
@@ -395,6 +440,12 @@
       "SUGGESTIVE": "示唆的",
       "QUESTIONABLE": "問題あり",
       "EXPLICIT": "露骨"
+    },
+    "nsfwTag": "NSFW",
+    "contentRatingDescription": {
+      "SUGGESTIVE": "センシティブな内容（示唆的）",
+      "QUESTIONABLE": "問題のある可能性が高い内容",
+      "EXPLICIT": "露骨な成人向け表現を含む内容"
     },
     "expandLeft": "左に展開",
     "expandBoth": "両側に展開",
@@ -418,11 +469,14 @@
     "categoryAll": "すべて",
     "categoryAnime": "アニメ",
     "categoryLiveaction": "実写",
-    "categoryAudiobook": "オーディオブック"
+    "categoryAudiobook": "オーディオブック",
+    "collectionTabPrefix": "コレクション",
+    "backToCollections": "コレクション一覧"
   },
   "reports": {
     "title": "マイレポート",
     "modalTitle": "問題を報告する",
+    "targetLabel": "対象",
     "reason": "理由",
     "selectReason": "理由を選択...",
     "description": "説明（任意）",

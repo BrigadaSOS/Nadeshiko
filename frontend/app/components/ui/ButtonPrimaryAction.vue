@@ -6,15 +6,3 @@
     <slot></slot>
     </button>
 </template>
-
-
-
-<style>
-.nd-dropdown-toggle svg {
-    transition: transform 0.3s;
-}
-
-.nd-dropdown-open .nd-dropdown-toggle svg {
-    transform: rotate(180deg);
-}
-</style>

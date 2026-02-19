@@ -10,6 +10,7 @@ interface OpenAPIOperation {
   summary?: string;
   operationId?: string;
   description?: string;
+  'x-internal'?: boolean;
 }
 
 interface OpenAPISpec {
@@ -117,38 +118,26 @@ function loadManualRuntimeRoutes(): RouteInfo[] {
   ];
 }
 
-const internalSpec = loadSpec('docs/generated/openapi-internal.yaml');
-const publicSpec = loadSpec('docs/generated/openapi.yaml');
+const spec = loadSpec('docs/generated/openapi.yaml');
 
-if (!internalSpec) {
-  console.error('OpenAPI spec not found at docs/generated/openapi-internal.yaml');
-  console.error('Run "bun run docs:bundle:internal" first to generate it.');
+if (!spec) {
+  console.error('OpenAPI spec not found at docs/generated/openapi.yaml');
+  console.error('Run "bun run docs:bundle" first to generate it.');
   process.exit(1);
-}
-
-const publicRoutes = new Set<string>();
-if (publicSpec) {
-  for (const [path, methods] of Object.entries(publicSpec.paths)) {
-    for (const method of Object.keys(methods)) {
-      if (method === 'parameters') continue;
-      publicRoutes.add(getRouteKey(method, path));
-    }
-  }
 }
 
 const routes: RouteInfo[] = [];
 
-for (const [path, methods] of Object.entries(internalSpec.paths)) {
+for (const [path, methods] of Object.entries(spec.paths)) {
   for (const [method, details] of Object.entries(methods)) {
     if (method === 'parameters') continue;
 
-    const key = getRouteKey(method, path);
     routes.push({
       method: method.toUpperCase(),
       path,
       tag: details.tags?.[0] || 'Other',
       summary: details.summary || details.operationId || details.description || '',
-      internal: !publicRoutes.has(key),
+      internal: details['x-internal'] === true,
       source: 'openapi',
     });
   }

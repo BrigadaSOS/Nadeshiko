@@ -1,10 +1,10 @@
 import type {
-  AdminReindexCreate,
-  AdminQueueStatsIndex,
-  AdminQueueShow,
-  AdminQueueRetryCreate,
-  AdminQueueFailedIndex,
-  AdminQueueFailedDestroy,
+  TriggerReindex,
+  ListAdminQueueStats,
+  GetAdminQueue,
+  RetryAdminQueueFailed,
+  ListAdminQueueFailed,
+  PurgeAdminQueueFailed,
 } from 'generated/routes/admin';
 import { reindexSegments, ReindexMediaItem } from '@app/services/elasticsearchSync';
 import {
@@ -18,7 +18,7 @@ import { Cache } from '@lib/cache';
 import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
 import { NotFoundError } from '@app/errors';
 
-export const adminReindexCreate: AdminReindexCreate = async ({ body }, respond) => {
+export const triggerReindex: TriggerReindex = async ({ body }, respond) => {
   const media = body?.media?.map(
     (item: { mediaId: number; episodes?: number[] }) =>
       ({
@@ -33,12 +33,12 @@ export const adminReindexCreate: AdminReindexCreate = async ({ body }, respond) 
   return respond.with200().body(result);
 };
 
-export const adminQueueStatsIndex: AdminQueueStatsIndex = async (_1, respond) => {
+export const listAdminQueueStats: ListAdminQueueStats = async (_1, respond) => {
   const stats = await getStuckJobs();
   return respond.with200().body(stats);
 };
 
-export const adminQueueShow: AdminQueueShow = async ({ params }, respond) => {
+export const getAdminQueue: GetAdminQueue = async ({ params }, respond) => {
   const { queueName } = params;
   const details = await fetchQueueDetails(queueName);
 
@@ -49,7 +49,7 @@ export const adminQueueShow: AdminQueueShow = async ({ params }, respond) => {
   return respond.with200().body(details);
 };
 
-export const adminQueueFailedIndex: AdminQueueFailedIndex = async ({ params }, respond) => {
+export const listAdminQueueFailed: ListAdminQueueFailed = async ({ params }, respond) => {
   const { queueName } = params;
   const failedJobs = await fetchFailedJobs(queueName);
 
@@ -62,7 +62,7 @@ export const adminQueueFailedIndex: AdminQueueFailedIndex = async ({ params }, r
   return respond.with200().body(jobs);
 };
 
-export const adminQueueFailedDestroy: AdminQueueFailedDestroy = async ({ params }, respond) => {
+export const purgeAdminQueueFailed: PurgeAdminQueueFailed = async ({ params }, respond) => {
   const { queueName } = params;
   const purgedCount = await deleteFailedJobs(queueName);
 
@@ -73,7 +73,7 @@ export const adminQueueFailedDestroy: AdminQueueFailedDestroy = async ({ params 
   });
 };
 
-export const adminQueueRetryCreate: AdminQueueRetryCreate = async ({ params }, respond) => {
+export const retryAdminQueueFailed: RetryAdminQueueFailed = async ({ params }, respond) => {
   const { queueName } = params;
   const retriedCount = await retryFailedJobs(queueName);
 

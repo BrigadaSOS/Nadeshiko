@@ -1,0 +1,31 @@
+meta {
+  name: Update a review check config
+  type: http
+  seq: 62
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/review/checks/:name
+  body: json
+  auth: bearer
+}
+
+params:query {
+  name:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "threshold": {},
+    "enabled": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

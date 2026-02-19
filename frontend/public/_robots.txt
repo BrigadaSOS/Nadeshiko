@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /settings
+Disallow: /settings/
+Disallow: /user
+Disallow: /user/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /reports
+Disallow: /reports/
+Disallow: /api/
+Disallow: /v1/
+
+Sitemap: https://nadeshiko.co/sitemap.xml

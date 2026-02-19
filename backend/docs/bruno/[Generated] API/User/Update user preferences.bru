@@ -1,0 +1,55 @@
+meta {
+  name: Update user preferences
+  type: http
+  seq: 35
+}
+
+patch {
+  url: {{baseUrl}}/v1/user/preferences
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "labs": "",
+    "mediaNameLanguage": "",
+    "contentRatingPreferences": {
+      "suggestive": "",
+      "explicit": ""
+    },
+    "searchHistory": {
+      "enabled": false
+    },
+    "blogLastVisited": "",
+    "ankiProfiles": [
+      {
+        "id": "",
+        "name": "",
+        "deck": "",
+        "model": "",
+        "fields": [
+          {
+            "key": "",
+            "value": ""
+          }
+        ],
+        "key": "",
+        "serverAddress": ""
+      }
+    ],
+    "hiddenMedia": []
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

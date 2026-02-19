@@ -2,7 +2,7 @@ get:
   tags:
     - User
   x-internal: true
-  operationId: userExportShow
+  operationId: exportUserData
   summary: Export all user data
   description: |
     Returns a full JSON export of all user-related data for GDPR data portability.

@@ -1,7 +1,7 @@
 post:
   tags:
     - Collections
-  operationId: collectionAddSegment
+  operationId: addSegmentToCollection
   summary: Add segment to collection
   description: |
     Adds a segment to a collection. Requires collection ownership.

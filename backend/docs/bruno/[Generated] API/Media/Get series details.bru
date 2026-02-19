@@ -1,0 +1,25 @@
+meta {
+  name: Get series details
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/v1/media/series/:id
+  body: none
+  auth: bearer
+}
+
+params:query {
+  id:
+  include:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -7,6 +7,13 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
 export default defineNuxtConfig({
   app: {
     head: {
+      meta: [
+        {
+          name: 'description',
+          content:
+            'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.',
+        },
+      ],
       link: [
         { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
       ],
@@ -38,10 +45,10 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
     '@nuxtjs/i18n',
+    '@nuxtjs/seo',
     '@nuxt/content',
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
-    '@nuxtjs/seo',
     'nuxt-umami',
   ],
   umami: {
@@ -52,13 +59,26 @@ export default defineNuxtConfig({
   site: {
     url: 'https://nadeshiko.co',
     name: 'Nadeshiko',
+    description:
+      'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.',
   },
   robots: {
     groups: [
       {
         userAgent: '*',
         allow: ['/', '/search', '/media', '/sentence'],
-        disallow: ['/settings', '/api/', '/v1/'],
+        disallow: [
+          '/settings',
+          '/settings/',
+          '/user',
+          '/user/',
+          '/admin',
+          '/admin/',
+          '/reports',
+          '/reports/',
+          '/api/',
+          '/v1/',
+        ],
       },
     ],
     sitemap: 'https://nadeshiko.co/sitemap.xml',
@@ -114,11 +134,70 @@ export default defineNuxtConfig({
   routeRules: {
     // SSR pages vary by user (auth, language) — never cache on CDN
     '/**': {
-      headers: { 'CDN-Cache-Control': 'no-store' },
+      headers: {
+        'CDN-Cache-Control': 'no-store',
+        'Cache-Control': 'no-store',
+      },
+    },
+    // Private/authenticated areas should never be indexed.
+    '/settings/**': {
+      robots: false,
+    },
+    '/user/**': {
+      robots: false,
+    },
+    '/admin/**': {
+      robots: false,
+    },
+    '/reports': {
+      robots: false,
+    },
+    '/reports/**': {
+      robots: false,
     },
     // Static assets are fine to cache (Nuxt fingerprints them)
     '/_nuxt/**': {
-      headers: { 'CDN-Cache-Control': 'public, max-age=31536000, immutable' },
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    // Public static assets — long cache, versioned by filename if needed
+    '/assets/**': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/favicon.ico': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+      },
+    },
+    '/github.png': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/patreon.png': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/logo.webp': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/github/**': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
     },
   },
   nitro: {

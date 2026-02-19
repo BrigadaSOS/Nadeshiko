@@ -49,7 +49,15 @@ export class ListsToCollectionsAndSeries1739900000000 implements MigrationInterf
 
     // Fix Series id sequence after explicit id insert
     await queryRunner.query(`
-      SELECT setval(pg_get_serial_sequence('"Series"', 'id'), COALESCE((SELECT MAX(id) FROM "Series"), 0))
+      WITH series_max AS (
+        SELECT MAX(id) AS max_id
+        FROM "Series"
+      )
+      SELECT setval(
+        pg_get_serial_sequence('"Series"', 'id'),
+        COALESCE((SELECT max_id FROM series_max), 1),
+        (SELECT max_id IS NOT NULL FROM series_max)
+      )
     `);
 
     // ===== 3. DROP ListItem TABLE =====

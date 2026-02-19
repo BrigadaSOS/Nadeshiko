@@ -1,9 +1,7 @@
-import { getNadeshikoSdkClient, getUserAuthHeaders } from '~~/server/utils/nadeshikoSdk';
+import { getNadeshikoUserClient } from '~~/server/utils/nadeshikoSdk';
 
 export default defineEventHandler(async (event) => {
-  const sdk = getNadeshikoSdkClient();
-  const { data } = await sdk.userQuotaShow({
-    headers: getUserAuthHeaders(event),
-  });
+  const sdk = getNadeshikoUserClient(event);
+  const { data } = await sdk.getUserQuota();
   return data;
 });

@@ -1,7 +1,7 @@
 get:
   tags:
     - Collections
-  operationId: collectionShow
+  operationId: getCollection
   summary: Get collection details
   description: |
     Returns a collection with paginated segments and their search result data.
@@ -64,7 +64,7 @@ get:
 patch:
   tags:
     - Collections
-  operationId: collectionUpdate
+  operationId: updateCollection
   summary: Update collection metadata
   description: |
     Updates collection name or visibility. Requires collection ownership.
@@ -116,7 +116,7 @@ patch:
 delete:
   tags:
     - Collections
-  operationId: collectionDestroy
+  operationId: deleteCollection
   summary: Delete collection
   description: |
     Deletes a collection and all its segment entries. Requires collection ownership.

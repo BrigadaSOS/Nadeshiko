@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminQueueShow
+  operationId: getAdminQueue
   summary: Get detailed queue information
   description: |
     Returns live queue stats and queue metadata from PgBoss for a specific queue.

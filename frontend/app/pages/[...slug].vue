@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const route = useRoute();
 const { locale } = useI18n();
+const siteUrl = 'https://nadeshiko.co';
 
 const isBlogPost = computed(() => route.path.startsWith('/blog/'));
 
@@ -18,9 +19,103 @@ const { data } = await useAsyncData(
   { watch: [() => route.path, locale] },
 );
 
-useHead({
-  title: data.value?.title || 'Nadeshiko',
-  meta: [{ name: 'description', content: data.value?.description || '' }],
+const title = computed(() => data.value?.title || 'Nadeshiko');
+const description = computed(() => data.value?.description || '');
+const canonicalUrl = computed(() => new URL(route.path || '/', siteUrl).toString());
+const contentDate = computed(() => {
+  const raw = (data.value as Record<string, unknown> | null)?.date;
+  return typeof raw === 'string' && raw ? raw : null;
+});
+const contentAuthor = computed(() => {
+  const raw = (data.value as Record<string, unknown> | null)?.author;
+  return typeof raw === 'string' && raw ? raw : null;
+});
+
+const breadcrumbSchema = computed(() => {
+  const items = [{ name: 'Home', item: `${siteUrl}/` }];
+  if (isBlogPost.value) {
+    items.push({ name: 'Blog', item: `${siteUrl}/blog` });
+  }
+  items.push({ name: title.value, item: canonicalUrl.value });
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((entry, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: entry.name,
+      item: entry.item,
+    })),
+  };
+});
+
+const webPageSchema = computed(() => ({
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: title.value,
+  description: description.value || undefined,
+  url: canonicalUrl.value,
+  inLanguage: locale.value,
+}));
+
+const articleSchema = computed(() => {
+  if (!isBlogPost.value || !data.value?.title) {
+    return null;
+  }
+
+  const article: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: data.value.title,
+    description: description.value || undefined,
+    url: canonicalUrl.value,
+    mainEntityOfPage: canonicalUrl.value,
+    inLanguage: locale.value,
+  };
+
+  if (contentDate.value) {
+    article.datePublished = contentDate.value;
+    article.dateModified = contentDate.value;
+  }
+
+  if (contentAuthor.value) {
+    article.author = {
+      '@type': 'Person',
+      name: contentAuthor.value,
+    };
+  }
+
+  return article;
+});
+
+useHead(() => {
+  const scripts = [
+    {
+      key: 'ld-webpage',
+      type: 'application/ld+json',
+      children: JSON.stringify(webPageSchema.value),
+    },
+    {
+      key: 'ld-breadcrumb',
+      type: 'application/ld+json',
+      children: JSON.stringify(breadcrumbSchema.value),
+    },
+  ];
+
+  if (articleSchema.value) {
+    scripts.push({
+      key: 'ld-article',
+      type: 'application/ld+json',
+      children: JSON.stringify(articleSchema.value),
+    });
+  }
+
+  return {
+    title: title.value,
+    meta: [{ name: 'description', content: description.value }],
+    script: scripts,
+  };
 });
 </script>
 

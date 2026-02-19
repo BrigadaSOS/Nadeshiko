@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const sdk = getNadeshikoSdkClient();
 
-  const { data } = await sdk.mediaIndex({
+  const { data } = await sdk.listMedia({
     query: {
       limit: parseNumber(query.limit),
       query: firstQueryValue(query.query),

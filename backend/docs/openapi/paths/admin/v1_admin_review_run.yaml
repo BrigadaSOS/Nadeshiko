@@ -1,7 +1,7 @@
 post:
   tags:
     - Admin
-  operationId: adminReviewRunCreate
+  operationId: runAdminReview
   summary: Run auto-checks
   description: |
     Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports for any findings.

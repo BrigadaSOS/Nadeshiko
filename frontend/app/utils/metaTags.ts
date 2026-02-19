@@ -9,7 +9,7 @@ export function buildSentenceMetaTags(
 ): MetaTags {
   const mediaInfo = `Episode ${result.segment.episode}`;
   const title = `${mediaNameFn(result.media)} | Nadeshiko`;
-  const description = `「${result.segment.textJa.content}」\n${mediaInfo}`;
+  const description = `「${result.segment.textJa.content}」 - ${mediaInfo}`;
 
   const meta: MetaTag[] = [
     { name: 'description', content: description },

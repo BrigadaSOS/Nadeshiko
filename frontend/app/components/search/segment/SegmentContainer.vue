@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye } from '@mdi/js';
+import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose } from '@mdi/js';
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
@@ -9,9 +9,28 @@ type Props = {
   searchData: SearchResponse | null;
   isLoading: boolean;
   highlightedPosition?: number | null;
+  collectionId?: number | null;
 };
 
 const props = defineProps<Props>();
+const emit = defineEmits<{
+  'remove-from-collection': [uuid: string];
+}>();
+
+const confirmingRemoveUuid = ref<string | null>(null);
+
+const confirmRemove = (uuid: string) => {
+  confirmingRemoveUuid.value = uuid;
+};
+
+const cancelRemove = () => {
+  confirmingRemoveUuid.value = null;
+};
+
+const executeRemove = (uuid: string) => {
+  confirmingRemoveUuid.value = null;
+  emit('remove-from-collection', uuid);
+};
 const { locale } = useI18n();
 const resultList = computed(() => props.searchData?.results ?? []);
 
@@ -20,7 +39,7 @@ const { isPlaying, currentResult } = storeToRefs(playerStore);
 const user = userStore();
 const { mediaName } = useMediaName();
 const { shouldBlur, isRestricted } = useContentRating();
-const { showEnglish, showSpanish, hasVisibleTranslations } = useTranslationVisibility();
+const { englishMode, spanishMode } = useTranslationVisibility();
 
 const selectedResult = ref<SearchResult | null>(null);
 const searchNoteResult = ref<SearchResult | null>(null);
@@ -118,12 +137,18 @@ const reportTarget = ref<{
         type: 'MEDIA';
         mediaId: number;
       };
+  segment: SearchResult;
   mediaName?: string;
 } | null>(null);
 
 const revealedContent = ref(new Set<string>());
 
 type OrderedSegmentLang = 'textEn' | 'textEs';
+
+const segmentLanguageLabel: Record<OrderedSegmentLang, string> = {
+  textEn: 'EN',
+  textEs: 'ES',
+};
 
 // Order segment according to website language
 const orderedSegmentLangs = computed<OrderedSegmentLang[]>(() => {
@@ -133,13 +158,17 @@ const orderedSegmentLangs = computed<OrderedSegmentLang[]>(() => {
   return ['textEs', 'textEn'];
 });
 
-const visibleSegmentLangs = computed<OrderedSegmentLang[]>(() =>
-  orderedSegmentLangs.value.filter((lang) => {
-    if (lang === 'textEn') {
-      return showEnglish.value;
-    }
-    return showSpanish.value;
-  }),
+const segmentLangRows = computed(() =>
+  orderedSegmentLangs.value
+    .map((lang) => {
+      const mode = lang === 'textEn' ? englishMode.value : spanishMode.value;
+      return {
+        lang,
+        mode,
+        isSpoiler: mode === 'spoiler',
+      };
+    })
+    .filter((row) => row.mode !== 'hidden'),
 );
 
 const openModal = (content: SearchResult) => {
@@ -160,6 +189,7 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
       type === 'SEGMENT'
         ? { type: 'SEGMENT', mediaId: result.media.mediaId, segmentUuid: result.segment.uuid }
         : { type: 'MEDIA', mediaId: result.media.mediaId },
+    segment: result,
     mediaName: mediaName(result.media),
   };
 };
@@ -204,6 +234,7 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
 
     <SearchModalReport
       :target="reportTarget?.target ?? null"
+      :segment="reportTarget?.segment ?? null"
       :mediaName="reportTarget?.mediaName"
     />
 
@@ -213,14 +244,16 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
-        'ring-1 ring-white/30 bg-neutral-800/30': focusedIndex === index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
+        'bg-neutral-700/30 hover:bg-neutral-700/40': focusedIndex === index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
       }">
       <!-- Image -->
       <div class="h-56 shrink-0 w-auto lg:w-[25rem] min-w-[200px] flex justify-center relative overflow-hidden">
         <img loading="lazy" :src="result.urls.imageUrl"
+          :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
           @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid)) && zoomImage(result.urls.imageUrl)"
-          class="inset-0 h-full w-full object-cover filter object-center transition-all duration-300"
-          :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid) ? 'blur-[60px] scale-125' : 'hover:brightness-75 cursor-pointer'"
+          class="inset-0 h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
+          :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
+          @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
           :key="result.urls.imageUrl" />
         <button
           v-if="shouldBlur(result.segment.contentRating)"
@@ -231,12 +264,34 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
             w="w-3.5" h="h-3.5" size="14" />
           <span>{{ revealedContent.has(result.segment.uuid) ? $t('segment.contentRatingHide') : $t('segment.contentRatingShow') }}</span>
         </button>
+        <!-- Remove from collection button -->
+        <div v-if="collectionId" class="absolute top-2 z-10" :class="shouldBlur(result.segment.contentRating) ? 'right-24' : 'right-2'">
+          <button
+            v-if="confirmingRemoveUuid !== result.segment.uuid"
+            @click.stop="confirmRemove(result.segment.uuid)"
+            class="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md bg-black/50 hover:bg-red-600/80 text-white/70 hover:text-white"
+            :title="$t('accountSettings.collections.removeFromCollection')"
+          >
+            <UiBaseIcon :path="mdiClose" w="w-4" h="h-4" size="16" />
+          </button>
+          <div v-else class="flex items-center gap-1.5 bg-black/80 rounded-md px-2 py-1.5">
+            <span class="text-xs text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
+            <button
+              @click.stop="executeRemove(result.segment.uuid)"
+              class="px-2 py-0.5 rounded text-xs bg-red-600 hover:bg-red-500 text-white font-medium"
+            >{{ $t('accountSettings.collections.yes') }}</button>
+            <button
+              @click.stop="cancelRemove()"
+              class="px-2 py-0.5 rounded text-xs bg-neutral-600 hover:bg-neutral-500 text-white font-medium"
+            >{{ $t('accountSettings.collections.no') }}</button>
+          </div>
+        </div>
       </div>
       <!-- End Image -->
 
       <!-- Details -->
-      <div class="w-full py-3 sm:py-2 px-4 rounded-e-lg text-white flex flex-col justify-between">
-        <div>
+      <div class="w-full py-3 sm:py-2 px-4 rounded-e-lg text-white flex flex-col">
+        <div class="h-full flex flex-col">
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button -->
@@ -251,91 +306,117 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
 
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
-              <h3 class=" ml-2 items-start text-xl xxl:text-lg leading-snug">
-                <span v-html="result.segment.textJa.highlight
+              <h3 class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
+                <span class="leading-snug" v-html="result.segment.textJa.highlight
                   ? result.segment.textJa.highlight
                   : result.segment.textJa.content
                   "></span>
+                <!-- Content Rating Badge -->
+                <span v-if="result.segment.contentRating?.toUpperCase() === 'SUGGESTIVE'"
+                  class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-amber-700/50 bg-amber-100 px-2.5 py-1.5 text-[11px] font-semibold leading-none text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 whitespace-nowrap align-middle ml-2">
+                  <span>{{ $t('segment.nsfwTag') }}</span>
+                  <span
+                    class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
+                    role="tooltip">
+                    {{ $t('segment.contentRatingDescription.SUGGESTIVE') }}
+                    <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
+                  </span>
+                </span>
+                <span v-else-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
+                  class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-orange-700/50 bg-orange-100 px-2.5 py-1.5 text-[11px] font-semibold leading-none text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 whitespace-nowrap align-middle ml-2">
+                  <span>{{ $t('segment.nsfwTag') }}</span>
+                  <span
+                    class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
+                    role="tooltip">
+                    {{ $t('segment.contentRatingDescription.QUESTIONABLE') }}
+                    <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
+                  </span>
+                </span>
+                <span v-else-if="result.segment.contentRating?.toUpperCase() === 'EXPLICIT'"
+                  class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-red-700/50 bg-red-100 px-2.5 py-1.5 text-[11px] font-semibold leading-none text-red-800 dark:bg-red-900/40 dark:text-red-300 whitespace-nowrap align-middle ml-2">
+                  <span>{{ $t('segment.nsfwTag') }}</span>
+                  <span
+                    class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
+                    role="tooltip">
+                    {{ $t('segment.contentRatingDescription.EXPLICIT') }}
+                    <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
+                  </span>
+                </span>
               </h3>
 
             </div>
             <!-- End Japanese Sentence -->
           </div>
           <!-- Second Row -->
-          <div class="items-start flex-1 pt-1 justify-center flex flex-wrap gap-2">
-            <!-- Tag Translation -->
-            <span
-              v-if="hasVisibleTranslations"
-              class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-neutral-700 bg-red-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-400">{{
-                $t('searchpage.main.labels.translation') }}</span>
-
-            <!-- Content Rating Badge -->
-            <span v-if="result.segment.contentRating?.toUpperCase() === 'SUGGESTIVE'"
-              class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-amber-700/50 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-              {{ $t('segment.contentRating.SUGGESTIVE') }}
-            </span>
-            <span v-else-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
-              class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-orange-700/50 bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300">
-              {{ $t('segment.contentRating.QUESTIONABLE') }}
-            </span>
-            <span v-else-if="result.segment.contentRating?.toUpperCase() === 'EXPLICIT'"
-              class="inline-flex items-center gap-x-1 py-1 px-3 rounded-lg text-xs font-medium border border-red-700/50 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
-              {{ $t('segment.contentRating.EXPLICIT') }}
-            </span>
-
-            <div class="font-normal flex-1 text-sm xxl:text-base xxm:text-2xl leading-snug mt-3">
-            </div>
-          </div>
-
-          <!-- Third Row -->
-          <div v-if="hasVisibleTranslations" class="items-start pb-2 flex-1 justify-center">
+          <div v-if="segmentLangRows.length > 0" class="mt-1 pb-2 flex-1 flex items-center">
             <!-- Spanish and English Sentences -->
-            <ul class="ml-5 xxm:ml-8 list-disc text-gray-400">
-              <li class="my-2 text-sm xxl:text-base xxm:text-2xl" v-for="lang in visibleSegmentLangs"
-                :key="lang">
-                <span v-html="result.segment[lang].highlight
-                  ? result.segment[lang].highlight
-                  : result.segment[lang].content
-                  "></span>
-                <div v-if="result.segment[lang].isMachineTranslated" class="nd-tooltip inline-block">
-                  <UiBaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4"
-                    h="h-4" size="19" class="ml-2 nd-tooltip-toggle" />
-                  <span
-                    class="nd-tooltip-content nd-tooltip-shown:opacity-90 nd-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-[#181818] shadow-sm rounded-md text-white"
-                    role="tooltip">
-                    {{ $t('searchpage.main.labels.mtTooltip') }}
-                  </span>
+            <ul class="m-0 w-full list-none text-gray-400 space-y-1.5">
+              <li class="text-base xxl:text-lg xxm:text-2xl flex items-center gap-2 transition-opacity duration-200"
+                v-for="row in segmentLangRows"
+                :key="row.lang">
+                <span
+                  class="inline-flex w-9 items-center justify-center rounded-md border border-neutral-600/80 bg-neutral-700/60 px-2.5 py-1.5 text-[11px] font-semibold leading-none tracking-wide transition-all duration-200"
+                  :class="row.isSpoiler ? 'text-neutral-300/80' : 'text-neutral-200'">
+                  {{ segmentLanguageLabel[row.lang] }}
+                </span>
+                <div class="group/translation min-w-0 flex-1">
+                  <span class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
+                    :class="row.isSpoiler
+                      ? 'bg-neutral-700/85 text-transparent group-hover/translation:bg-transparent group-hover/translation:text-gray-400'
+                      : 'bg-transparent text-gray-400'"
+                    :title="row.isSpoiler ? 'Hover over sentence to preview translation' : undefined"
+                    v-html="row.isSpoiler
+                      ? result.segment[row.lang].content
+                      : (result.segment[row.lang].highlight
+                        ? result.segment[row.lang].highlight
+                        : result.segment[row.lang].content
+                      )"></span>
+                  <div v-if="result.segment[row.lang].isMachineTranslated" class="relative inline-flex group/mt-tooltip align-middle ml-2"
+                    :class="row.isSpoiler
+                      ? 'opacity-40 transition-opacity duration-200 group-hover/translation:opacity-100'
+                      : 'opacity-100'">
+                    <UiBaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4"
+                      h="h-4" size="19" />
+                    <span
+                      class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/mt-tooltip:opacity-100 group-hover/mt-tooltip:visible"
+                      role="tooltip">
+                      {{ $t('searchpage.main.labels.mtTooltip') }}
+                      <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
+                    </span>
+                  </div>
                 </div>
               </li>
             </ul>
             <!-- End Spanish and English Sentences -->
           </div>
 
-          <!-- Fourth Row -->
-          <!-- Buttons  -->
-          <div class="flex-1 pb-2">
-            <SearchSegmentActionsContainer :content="result" @open-context-modal="openModal"
-              @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, apiSearch, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
-          </div>
-          <!-- End Buttons  -->
+          <div class="mt-auto">
+            <!-- Fourth Row -->
+            <!-- Buttons  -->
+            <div class="pb-2">
+              <SearchSegmentActionsContainer :content="result" @open-context-modal="openModal"
+                @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, apiSearch, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
+            </div>
+            <!-- End Buttons  -->
 
-          <!-- Fifth Row -->
-          <!-- Media details  -->
-          <div class="flex-1 justify-left">
-            <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold my-2">
-              <button
-                @click="filterByMedia(result.media.mediaId)"
-                class="hover:text-white hover:underline transition-colors cursor-pointer">
-                {{ mediaName(result.media) }}
-              </button>
-              &bull;
-              <button
-                @click="filterByMedia(result.media.mediaId, result.segment.episode)"
-                class="hover:text-white hover:underline transition-colors cursor-pointer">
-                {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
-              </button>
-              &bull; {{ formatMs(result.segment.startTimeMs) }}
-            </p>
+            <!-- Fifth Row -->
+            <!-- Media details  -->
+            <div class="justify-left">
+              <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
+                <button
+                  @click="filterByMedia(result.media.mediaId)"
+                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  {{ mediaName(result.media) }}
+                </button>
+                &bull;
+                <button
+                  @click="filterByMedia(result.media.mediaId, result.segment.episode)"
+                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
+                </button>
+                &bull; {{ formatMs(result.segment.startTimeMs) }}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -391,10 +472,16 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
         <div class="w-full align-top items-center">
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
             <img class="mb-6"
-              src="/assets/no-results.gif" />
+              src="/assets/no-results.gif" alt="No results illustration" />
             <h2 class="font-bold text-red-400 text-3xl">{{ $t('segment.noResultsTitle') }}</h2>
             <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchpage.main.labels.noresults') }}</h1>
-            <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('segment.noResultsMessage') }}</p>
+            <p class="mt-4 text-gray-500 dark:text-gray-400">
+              <i18n-t keypath="segment.noResultsMessage" tag="span">
+                <template #link>
+                  <a href="https://www.immersionkit.com" target="_blank" rel="noopener noreferrer" class="text-red-400 hover:text-red-300 underline underline-offset-4">immersionkit.com</a>
+                </template>
+              </i18n-t>
+            </p>
           </div>
         </div>
       </div>

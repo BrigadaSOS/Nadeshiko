@@ -10,12 +10,12 @@ export default defineEventHandler(async (event) => {
 
   const sdk = getNadeshikoSdkClient();
 
-  const { data: segment } = await sdk.segmentShowByUuid({ path: { uuid } });
+  const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid } });
   if (!segment) {
     throw createError({ statusCode: 404, statusMessage: 'Segment not found' });
   }
 
-  const { data } = await sdk.segmentUpdate({
+  const { data } = await sdk.updateSegment({
     path: {
       mediaId: segment.mediaId,
       episodeNumber: segment.episode,
