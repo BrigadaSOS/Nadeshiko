@@ -1,7 +1,7 @@
 patch:
   tags:
     - Media
-  operationId: seriesUpdateMedia
+  operationId: updateSeriesMedia
   x-internal: true
   summary: Update media position in series
   description: |
@@ -56,7 +56,7 @@ patch:
 delete:
   tags:
     - Media
-  operationId: seriesRemoveMedia
+  operationId: removeMediaFromSeries
   x-internal: true
   summary: Remove media from series
   description: |

@@ -1,11 +1,11 @@
-import type { UserReportCreate, UserReportIndex } from 'generated/routes/user';
-import type { AdminReportIndex, AdminReportUpdate } from 'generated/routes/admin';
+import type { CreateUserReport, ListUserReports } from 'generated/routes/user';
+import type { ListAdminReports, UpdateAdminReport } from 'generated/routes/admin';
 import { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason, Segment, Media } from '@app/models';
 import { AuthCredentialsInvalidError, NotFoundError, InvalidRequestError } from '@app/errors';
 import { toReportDTO, toAdminReportDTO } from '@app/controllers/mappers/report.mapper';
 import { type FindOptionsWhere, LessThan } from 'typeorm';
 
-export const userReportCreate: UserReportCreate = async ({ body }, respond, req) => {
+export const createUserReport: CreateUserReport = async ({ body }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
@@ -45,7 +45,7 @@ export const userReportCreate: UserReportCreate = async ({ body }, respond, req)
   return respond.with201().body(toReportDTO(report));
 };
 
-export const userReportIndex: UserReportIndex = async ({ query }, respond, req) => {
+export const listUserReports: ListUserReports = async ({ query }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
@@ -80,7 +80,7 @@ export const userReportIndex: UserReportIndex = async ({ query }, respond, req) 
   });
 };
 
-export const adminReportIndex: AdminReportIndex = async ({ query }, respond) => {
+export const listAdminReports: ListAdminReports = async ({ query }, respond) => {
   const { cursor, limit = 20, status, source, reviewCheckRunId } = query;
   const targetType = (query as Record<string, unknown>)['target.type'] as ReportTargetType | undefined;
   const targetMediaId = (query as Record<string, unknown>)['target.mediaId'] as number | undefined;
@@ -165,7 +165,7 @@ export const adminReportIndex: AdminReportIndex = async ({ query }, respond) => 
   });
 };
 
-export const adminReportUpdate: AdminReportUpdate = async ({ params, body }, respond) => {
+export const updateAdminReport: UpdateAdminReport = async ({ params, body }, respond) => {
   const { id } = params;
 
   const report = await Report.findOne({ where: { id } });

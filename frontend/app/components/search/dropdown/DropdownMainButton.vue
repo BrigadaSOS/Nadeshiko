@@ -1,6 +1,6 @@
 <template>
     <button
-        :id="dropdownId"
+        :id="resolvedDropdownId"
         type="button"
         :class="dropdownButtonClass"
     >
@@ -14,16 +14,30 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed, inject, useId } from 'vue';
+
+const props = defineProps({
   dropdownId: {
     type: String,
-    required: true,
+    default: 'nd-dropdown',
   },
   dropdownButtonClass: {
     type: String,
     default:
       'nd-dropdown-toggle py-2.5 px-3 text-center flex justify-center items-center gap-x-2 font-semibold rounded-lg border border-transparent  hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-400 dark:hover:text-neutral-300',
   },
+});
+
+const dropdownUid = useId();
+const providedDropdownId = inject('ndDropdownResolvedId', null);
+const resolvedDropdownId = computed(() => {
+  if (providedDropdownId && typeof providedDropdownId === 'object' && 'value' in providedDropdownId) {
+    return providedDropdownId.value;
+  }
+  if (typeof providedDropdownId === 'string' && providedDropdownId) {
+    return providedDropdownId;
+  }
+  return `${(props.dropdownId || 'nd-dropdown').trim() || 'nd-dropdown'}-${dropdownUid}`;
 });
 </script>
 

@@ -1,7 +1,7 @@
 meta {
   name: Search by multiple words
   type: http
-  seq: 4
+  seq: 3
 }
 
 post {
@@ -16,11 +16,19 @@ auth:bearer {
 
 body:json {
   {
+    "query": {
+      "words": [
+        "彼女",
+        "私"
+      ],
+      "exactMatch": false
+    },
+    "filters": "",
+    "include": [],
     "words": [
       "彼女",
       "私"
     ],
-    "exactMatch": false,
     "exact_match": false
   }
 }

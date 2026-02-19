@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminQueueStatsIndex
+  operationId: listAdminQueueStats
   summary: Get queue statistics
   description: |
     Returns statistics for all ES sync queues including pending and failed job counts.

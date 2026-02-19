@@ -1,11 +1,8 @@
-import { getNadeshikoSdkClient, getUserAuthHeaders } from '~~/server/utils/nadeshikoSdk';
+import { getNadeshikoUserClient } from '~~/server/utils/nadeshikoSdk';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const sdk = getNadeshikoSdkClient();
-  const { data } = await sdk.userReportCreate({
-    body,
-    headers: getUserAuthHeaders(event),
-  });
+  const sdk = getNadeshikoUserClient(event);
+  const { data } = await sdk.createUserReport({ body });
   return data;
 });

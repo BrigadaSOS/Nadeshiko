@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminReportIndex
+  operationId: listAdminReports
   summary: List all reports
   description: |
     Returns all reports with filtering and cursor pagination.

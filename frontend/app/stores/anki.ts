@@ -73,10 +73,14 @@ interface CollectionResponse {
   name: string;
 }
 
+type CollectionListResponse = {
+  collections: CollectionResponse[];
+  pagination: { hasMore: boolean; cursor: number | null };
+};
+
 import type { SearchResult } from './search';
 import { defineStore } from 'pinia';
 import { userStore } from '@/stores/auth';
-import { authApiRequest } from '~/utils/authApi';
 
 const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
 const DEFAULT_SERVER_ADDRESS = 'http://127.0.0.1:8765';
@@ -265,22 +269,28 @@ export const ankiStore = defineStore('anki', {
     async getOrCreateAnkiExportsCollectionId(): Promise<number | null> {
       if (!import.meta.client) return null;
 
-      const listResponse = await authApiRequest<CollectionResponse[]>('/v1/collections?limit=100', { method: 'GET' });
-      if (!listResponse.ok || !listResponse.data) return null;
+      try {
+        const listResponse = await $fetch<CollectionListResponse>('/api/collections', {
+          query: { limit: 100 },
+        });
 
-      const existing = listResponse.data.find((collection) => collection.name === DEFAULT_ANKI_EXPORTS_COLLECTION);
-      if (existing) return existing.id;
+        const existing = listResponse.collections.find(
+          (collection) => collection.name === DEFAULT_ANKI_EXPORTS_COLLECTION,
+        );
+        if (existing) return existing.id;
 
-      const createResponse = await authApiRequest<CollectionResponse>('/v1/collections', {
-        method: 'POST',
-        body: {
-          name: DEFAULT_ANKI_EXPORTS_COLLECTION,
-          visibility: 'PRIVATE',
-        },
-      });
+        const created = await $fetch<CollectionResponse>('/api/collections', {
+          method: 'POST',
+          body: {
+            name: DEFAULT_ANKI_EXPORTS_COLLECTION,
+            visibility: 'PRIVATE',
+          },
+        });
 
-      if (!createResponse.ok || !createResponse.data) return null;
-      return createResponse.data.id;
+        return created.id;
+      } catch {
+        return null;
+      }
     },
 
     async addSegmentToAnkiExportsCollection(sentence: SearchResult): Promise<void> {
@@ -291,21 +301,20 @@ export const ankiStore = defineStore('anki', {
         const collectionId = await this.getOrCreateAnkiExportsCollectionId();
         if (!collectionId) return;
 
-        const addResponse = await authApiRequest(`/v1/collections/${collectionId}/segments`, {
+        await $fetch(`/api/collections/${collectionId}/segments`, {
           method: 'POST',
           body: {
             segmentUuid: sentence.segment.uuid,
           },
         });
-
-        if (!addResponse.ok && addResponse.status !== 409) {
+      } catch (error: unknown) {
+        const err = error as { statusCode?: number };
+        if (err.statusCode !== 409) {
           console.warn('[Anki] Could not sync segment to Anki Exports collection', {
-            status: addResponse.status,
             segmentUuid: sentence.segment.uuid,
+            error,
           });
         }
-      } catch (error) {
-        console.warn('[Anki] Error syncing segment to Anki Exports collection', error);
       }
     },
 

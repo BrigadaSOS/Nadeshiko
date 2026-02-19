@@ -1,8 +1,8 @@
-import type { EpisodeIndex, EpisodeCreate, EpisodeShow, EpisodeUpdate, EpisodeDestroy } from 'generated/routes/media';
+import type { ListEpisodes, CreateEpisode, GetEpisode, UpdateEpisode, DeleteEpisode } from 'generated/routes/media';
 import { Episode, Media } from '@app/models';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episode.mapper';
 
-export const episodeIndex: EpisodeIndex = async ({ params, query }, respond) => {
+export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
   await Media.findOneOrFail({ where: { id: params.mediaId } });
 
   const [episodes, count] = await Episode.findAndCount({
@@ -24,7 +24,7 @@ export const episodeIndex: EpisodeIndex = async ({ params, query }, respond) => 
   });
 };
 
-export const episodeCreate: EpisodeCreate = async ({ params, body }, respond) => {
+export const createEpisode: CreateEpisode = async ({ params, body }, respond) => {
   await Media.findOneOrFail({ where: { id: params.mediaId } });
 
   const episode = Episode.create({
@@ -44,7 +44,7 @@ export const episodeCreate: EpisodeCreate = async ({ params, body }, respond) =>
   return respond.with201().body(toEpisodeDTO(episode));
 };
 
-export const episodeShow: EpisodeShow = async ({ params }, respond) => {
+export const getEpisode: GetEpisode = async ({ params }, respond) => {
   const episode = await Episode.findOneOrFail({
     where: {
       mediaId: params.mediaId,
@@ -55,7 +55,7 @@ export const episodeShow: EpisodeShow = async ({ params }, respond) => {
   return respond.with200().body(toEpisodeDTO(episode));
 };
 
-export const episodeUpdate: EpisodeUpdate = async ({ params, body }, respond) => {
+export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) => {
   const episode = await Episode.findOneOrFail({
     where: {
       mediaId: params.mediaId,
@@ -69,7 +69,7 @@ export const episodeUpdate: EpisodeUpdate = async ({ params, body }, respond) =>
   return respond.with200().body(toEpisodeDTO(episode));
 };
 
-export const episodeDestroy: EpisodeDestroy = async ({ params }, respond) => {
+export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
   const episode = await Episode.findOneOrFail({
     where: {
       mediaId: params.mediaId,

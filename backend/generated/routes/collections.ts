@@ -14,29 +14,29 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v3';
 import type {
+  t_AddSegmentToCollectionParamSchema,
+  t_AddSegmentToCollectionRequestBodySchema,
   t_Collection,
-  t_CollectionAddSegmentParamSchema,
-  t_CollectionAddSegmentRequestBodySchema,
-  t_CollectionCreateRequestBodySchema,
-  t_CollectionDestroyParamSchema,
-  t_CollectionIndexQuerySchema,
   t_CollectionListResponse,
-  t_CollectionRemoveSegmentParamSchema,
-  t_CollectionShowParamSchema,
-  t_CollectionShowQuerySchema,
-  t_CollectionUpdateParamSchema,
-  t_CollectionUpdateRequestBodySchema,
-  t_CollectionUpdateSegmentParamSchema,
-  t_CollectionUpdateSegmentRequestBodySchema,
   t_CollectionWithSegments,
+  t_CreateCollectionRequestBodySchema,
+  t_DeleteCollectionParamSchema,
   t_Error400,
   t_Error401,
   t_Error403,
   t_Error404,
   t_Error429,
   t_Error500,
+  t_GetCollectionParamSchema,
+  t_GetCollectionQuerySchema,
+  t_ListCollectionsQuerySchema,
+  t_RemoveSegmentFromCollectionParamSchema,
+  t_UpdateCollectionParamSchema,
+  t_UpdateCollectionRequestBodySchema,
+  t_UpdateCollectionSegmentParamSchema,
+  t_UpdateCollectionSegmentRequestBodySchema,
 } from '../models.ts';
-import type { CollectionIndexQueryOutput, CollectionRequestsOutput, CollectionShowQueryOutput } from '../outputTypes.ts';
+import type { CollectionRequestsOutput, GetCollectionQueryOutput, ListCollectionsQueryOutput } from '../outputTypes.ts';
 import {
   s_Collection,
   s_CollectionListResponse,
@@ -50,7 +50,7 @@ import {
   s_Error500,
 } from '../schemas.ts';
 
-export type CollectionIndexResponder = {
+export type ListCollectionsResponder = {
   with200(): ExpressRuntimeResponse<t_CollectionListResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -59,15 +59,15 @@ export type CollectionIndexResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionIndex = (
-  params: Params<void, CollectionIndexQueryOutput, void, void>,
-  respond: CollectionIndexResponder,
+export type ListCollections = (
+  params: Params<void, ListCollectionsQueryOutput, void, void>,
+  respond: ListCollectionsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CollectionCreateResponder = {
+export type CreateCollectionResponder = {
   with201(): ExpressRuntimeResponse<t_Collection>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -76,15 +76,15 @@ export type CollectionCreateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionCreate = (
+export type CreateCollection = (
   params: Params<void, void, CollectionRequestsOutput, void>,
-  respond: CollectionCreateResponder,
+  respond: CreateCollectionResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CollectionShowResponder = {
+export type GetCollectionResponder = {
   with200(): ExpressRuntimeResponse<t_CollectionWithSegments>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -94,15 +94,15 @@ export type CollectionShowResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionShow = (
-  params: Params<t_CollectionShowParamSchema, CollectionShowQueryOutput, void, void>,
-  respond: CollectionShowResponder,
+export type GetCollection = (
+  params: Params<t_GetCollectionParamSchema, GetCollectionQueryOutput, void, void>,
+  respond: GetCollectionResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CollectionUpdateResponder = {
+export type UpdateCollectionResponder = {
   with200(): ExpressRuntimeResponse<t_Collection>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -112,15 +112,15 @@ export type CollectionUpdateResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionUpdate = (
-  params: Params<t_CollectionUpdateParamSchema, void, t_CollectionUpdateRequestBodySchema, void>,
-  respond: CollectionUpdateResponder,
+export type UpdateCollection = (
+  params: Params<t_UpdateCollectionParamSchema, void, t_UpdateCollectionRequestBodySchema, void>,
+  respond: UpdateCollectionResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CollectionDestroyResponder = {
+export type DeleteCollectionResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -130,15 +130,15 @@ export type CollectionDestroyResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionDestroy = (
-  params: Params<t_CollectionDestroyParamSchema, void, void, void>,
-  respond: CollectionDestroyResponder,
+export type DeleteCollection = (
+  params: Params<t_DeleteCollectionParamSchema, void, void, void>,
+  respond: DeleteCollectionResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CollectionAddSegmentResponder = {
+export type AddSegmentToCollectionResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -148,15 +148,15 @@ export type CollectionAddSegmentResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionAddSegment = (
-  params: Params<t_CollectionAddSegmentParamSchema, void, t_CollectionAddSegmentRequestBodySchema, void>,
-  respond: CollectionAddSegmentResponder,
+export type AddSegmentToCollection = (
+  params: Params<t_AddSegmentToCollectionParamSchema, void, t_AddSegmentToCollectionRequestBodySchema, void>,
+  respond: AddSegmentToCollectionResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CollectionUpdateSegmentResponder = {
+export type UpdateCollectionSegmentResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -166,15 +166,15 @@ export type CollectionUpdateSegmentResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionUpdateSegment = (
-  params: Params<t_CollectionUpdateSegmentParamSchema, void, t_CollectionUpdateSegmentRequestBodySchema, void>,
-  respond: CollectionUpdateSegmentResponder,
+export type UpdateCollectionSegment = (
+  params: Params<t_UpdateCollectionSegmentParamSchema, void, t_UpdateCollectionSegmentRequestBodySchema, void>,
+  respond: UpdateCollectionSegmentResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type CollectionRemoveSegmentResponder = {
+export type RemoveSegmentFromCollectionResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -184,36 +184,36 @@ export type CollectionRemoveSegmentResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type CollectionRemoveSegment = (
-  params: Params<t_CollectionRemoveSegmentParamSchema, void, void, void>,
-  respond: CollectionRemoveSegmentResponder,
+export type RemoveSegmentFromCollection = (
+  params: Params<t_RemoveSegmentFromCollectionParamSchema, void, void, void>,
+  respond: RemoveSegmentFromCollectionResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type CollectionsImplementation = {
-  collectionIndex: CollectionIndex;
-  collectionCreate: CollectionCreate;
-  collectionShow: CollectionShow;
-  collectionUpdate: CollectionUpdate;
-  collectionDestroy: CollectionDestroy;
-  collectionAddSegment: CollectionAddSegment;
-  collectionUpdateSegment: CollectionUpdateSegment;
-  collectionRemoveSegment: CollectionRemoveSegment;
+  listCollections: ListCollections;
+  createCollection: CreateCollection;
+  getCollection: GetCollection;
+  updateCollection: UpdateCollection;
+  deleteCollection: DeleteCollection;
+  addSegmentToCollection: AddSegmentToCollection;
+  updateCollectionSegment: UpdateCollectionSegment;
+  removeSegmentFromCollection: RemoveSegmentFromCollection;
 };
 
 export function createCollectionsRouter(implementation: CollectionsImplementation): Router {
   const router = Router();
 
-  const collectionIndexQuerySchema = z.object({
+  const listCollectionsQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
     cursor: z.coerce.number().min(0).optional(),
     page: z.coerce.number().min(1).optional().default(1),
     limit: z.coerce.number().min(1).max(100).optional().default(20),
   });
 
-  const collectionIndexResponseBodyValidator = responseValidationFactory(
+  const listCollectionsResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_CollectionListResponse],
       ['400', s_Error400],
@@ -225,12 +225,12 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionIndex
+  // listCollections
   router.get(`/v1/collections`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(collectionIndexQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(listCollectionsQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -259,7 +259,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionIndex(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.listCollections(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -273,7 +273,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionIndexResponseBodyValidator(status, body));
+        res.json(listCollectionsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -282,9 +282,9 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const collectionCreateRequestBodySchema = s_CollectionRequests;
+  const createCollectionRequestBodySchema = s_CollectionRequests;
 
-  const collectionCreateResponseBodyValidator = responseValidationFactory(
+  const createCollectionResponseBodyValidator = responseValidationFactory(
     [
       ['201', s_Collection],
       ['400', s_Error400],
@@ -296,13 +296,13 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionCreate
+  // createCollection
   router.post(`/v1/collections`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(collectionCreateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(createCollectionRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -330,7 +330,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionCreate(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.createCollection(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -344,7 +344,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionCreateResponseBodyValidator(status, body));
+        res.json(createCollectionResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -353,15 +353,15 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const collectionShowParamSchema = z.object({ id: z.coerce.number() });
+  const getCollectionParamSchema = z.object({ id: z.coerce.number() });
 
-  const collectionShowQuerySchema = z.object({
+  const getCollectionQuerySchema = z.object({
     cursor: z.coerce.number().min(0).optional(),
     page: z.coerce.number().min(1).optional().default(1),
     limit: z.coerce.number().min(1).max(100).optional().default(20),
   });
 
-  const collectionShowResponseBodyValidator = responseValidationFactory(
+  const getCollectionResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_CollectionWithSegments],
       ['400', s_Error400],
@@ -374,12 +374,12 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionShow
+  // getCollection
   router.get(`/v1/collections/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(collectionShowParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(collectionShowQuerySchema, req.query, RequestInputType.QueryString),
+        params: parseRequestInput(getCollectionParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(getCollectionQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -411,7 +411,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionShow(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getCollection(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -425,7 +425,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionShowResponseBodyValidator(status, body));
+        res.json(getCollectionResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -434,14 +434,14 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const collectionUpdateParamSchema = z.object({ id: z.coerce.number() });
+  const updateCollectionParamSchema = z.object({ id: z.coerce.number() });
 
-  const collectionUpdateRequestBodySchema = z.object({
+  const updateCollectionRequestBodySchema = z.object({
     name: z.string().optional(),
     visibility: z.enum(['PUBLIC', 'PRIVATE']).optional(),
   });
 
-  const collectionUpdateResponseBodyValidator = responseValidationFactory(
+  const updateCollectionResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_Collection],
       ['400', s_Error400],
@@ -454,13 +454,13 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionUpdate
+  // updateCollection
   router.patch(`/v1/collections/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(collectionUpdateParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(updateCollectionParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(collectionUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(updateCollectionRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -491,7 +491,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionUpdate(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.updateCollection(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -505,7 +505,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionUpdateResponseBodyValidator(status, body));
+        res.json(updateCollectionResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -514,9 +514,9 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const collectionDestroyParamSchema = z.object({ id: z.coerce.number() });
+  const deleteCollectionParamSchema = z.object({ id: z.coerce.number() });
 
-  const collectionDestroyResponseBodyValidator = responseValidationFactory(
+  const deleteCollectionResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -529,11 +529,11 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionDestroy
+  // deleteCollection
   router.delete(`/v1/collections/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(collectionDestroyParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(deleteCollectionParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -566,7 +566,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionDestroy(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.deleteCollection(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -580,7 +580,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionDestroyResponseBodyValidator(status, body));
+        res.json(deleteCollectionResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -589,14 +589,14 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const collectionAddSegmentParamSchema = z.object({ id: z.coerce.number() });
+  const addSegmentToCollectionParamSchema = z.object({ id: z.coerce.number() });
 
-  const collectionAddSegmentRequestBodySchema = z.object({
+  const addSegmentToCollectionRequestBodySchema = z.object({
     segmentUuid: z.string(),
     note: z.string().max(500).optional(),
   });
 
-  const collectionAddSegmentResponseBodyValidator = responseValidationFactory(
+  const addSegmentToCollectionResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -609,13 +609,13 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionAddSegment
+  // addSegmentToCollection
   router.post(`/v1/collections/:id/segments`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(collectionAddSegmentParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(addSegmentToCollectionParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(collectionAddSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(addSegmentToCollectionRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -646,7 +646,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionAddSegment(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.addSegmentToCollection(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -660,7 +660,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionAddSegmentResponseBodyValidator(status, body));
+        res.json(addSegmentToCollectionResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -669,14 +669,14 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const collectionUpdateSegmentParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
+  const updateCollectionSegmentParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
 
-  const collectionUpdateSegmentRequestBodySchema = z.object({
+  const updateCollectionSegmentRequestBodySchema = z.object({
     position: z.coerce.number().optional(),
     note: z.string().max(500).nullable().optional(),
   });
 
-  const collectionUpdateSegmentResponseBodyValidator = responseValidationFactory(
+  const updateCollectionSegmentResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -689,13 +689,13 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionUpdateSegment
+  // updateCollectionSegment
   router.patch(`/v1/collections/:id/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(collectionUpdateSegmentParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(updateCollectionSegmentParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(collectionUpdateSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(updateCollectionSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -726,7 +726,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionUpdateSegment(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.updateCollectionSegment(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -740,7 +740,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionUpdateSegmentResponseBodyValidator(status, body));
+        res.json(updateCollectionSegmentResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -749,9 +749,9 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const collectionRemoveSegmentParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
+  const removeSegmentFromCollectionParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
 
-  const collectionRemoveSegmentResponseBodyValidator = responseValidationFactory(
+  const removeSegmentFromCollectionResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
@@ -764,11 +764,11 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     undefined,
   );
 
-  // collectionRemoveSegment
+  // removeSegmentFromCollection
   router.delete(`/v1/collections/:id/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(collectionRemoveSegmentParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(removeSegmentFromCollectionParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -801,9 +801,11 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.collectionRemoveSegment(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
+      const response = await implementation
+        .removeSegmentFromCollection(input, responder, req, res, next)
+        .catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
 
       // escape hatch to allow responses to be sent by the implementation handler
       if (response === SkipResponse) {
@@ -815,7 +817,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       res.status(status);
 
       if (body !== undefined) {
-        res.json(collectionRemoveSegmentResponseBodyValidator(status, body));
+        res.json(removeSegmentFromCollectionResponseBodyValidator(status, body));
       } else {
         res.end();
       }

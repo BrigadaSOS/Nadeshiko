@@ -1,0 +1,34 @@
+meta {
+  name: Update collection metadata
+  type: http
+  seq: 45
+}
+
+patch {
+  url: {{baseUrl}}/v1/collections/:id
+  body: json
+  auth: none
+}
+
+params:query {
+  id:
+}
+
+body:json {
+  {
+    "name": "",
+    "visibility": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

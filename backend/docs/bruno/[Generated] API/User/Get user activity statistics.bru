@@ -1,0 +1,27 @@
+meta {
+  name: Get user activity statistics
+  type: http
+  seq: 39
+}
+
+get {
+  url: {{baseUrl}}/v1/user/activity/stats
+  body: none
+  auth: none
+}
+
+params:query {
+  since:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

@@ -1,7 +1,7 @@
 get:
   tags:
     - Admin
-  operationId: adminReviewRunIndex
+  operationId: listAdminReviewRuns
   summary: List past check runs
   description: |
     Returns past review check runs with summary stats. Supports filtering by check name and cursor pagination.

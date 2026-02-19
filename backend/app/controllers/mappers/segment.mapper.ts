@@ -12,6 +12,7 @@ export const toSegmentDTO = (segment: Segment): t_Segment => {
   const videoUrl = hasUrls ? getSegmentVideoUrl(segment) : '';
 
   return {
+    id: segment.id,
     uuid: segment.uuid,
     position: segment.position,
     status: segment.status as t_Segment['status'],

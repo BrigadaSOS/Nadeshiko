@@ -1,5 +1,5 @@
 get:
-  operationId: episodeShow
+  operationId: getEpisode
   tags:
     - Media
   summary: Get single episode
@@ -44,7 +44,7 @@ get:
 patch:
   tags:
     - Media
-  operationId: episodeUpdate
+  operationId: updateEpisode
   x-internal: true
   summary: Update episode
   description: |
@@ -94,7 +94,7 @@ patch:
 delete:
   tags:
     - Media
-  operationId: episodeDestroy
+  operationId: deleteEpisode
   x-internal: true
   summary: Delete an episode
   description: |

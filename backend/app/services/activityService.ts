@@ -7,6 +7,8 @@ interface TrackActivityData {
   segmentUuid?: string;
   mediaId?: number;
   searchQuery?: string;
+  animeName?: string;
+  japaneseText?: string;
 }
 
 export async function trackActivity(user: User, type: ActivityType, data: TrackActivityData): Promise<void> {
@@ -18,6 +20,8 @@ export async function trackActivity(user: User, type: ActivityType, data: TrackA
   activity.segmentUuid = data.segmentUuid ?? null;
   activity.mediaId = data.mediaId ?? null;
   activity.searchQuery = data.searchQuery ?? null;
+  activity.animeName = data.animeName ?? null;
+  activity.japaneseText = data.japaneseText ?? null;
 
   await activity.save();
 }
@@ -77,7 +81,7 @@ export async function getActivityHeatmap(
   since.setHours(0, 0, 0, 0);
 
   const qb = UserActivity.createQueryBuilder('a')
-    .select('DATE(a.created_at)', 'day')
+    .select("TO_CHAR(DATE(a.created_at), 'YYYY-MM-DD')", 'day')
     .addSelect('COUNT(*)', 'count')
     .where('a.user_id = :userId', { userId })
     .andWhere('a.created_at >= :since', { since })
@@ -170,6 +174,8 @@ export async function exportAllUserData(userId: number) {
       segmentUuid: a.segmentUuid,
       mediaId: a.mediaId,
       searchQuery: a.searchQuery,
+      animeName: a.animeName,
+      japaneseText: a.japaneseText,
       createdAt: a.createdAt.toISOString(),
     })),
     collections: collections.map((c) => ({

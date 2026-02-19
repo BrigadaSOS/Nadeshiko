@@ -1,0 +1,25 @@
+meta {
+  name: Remove media from series
+  type: http
+  seq: 28
+}
+
+delete {
+  url: {{baseUrl}}/v1/media/series/:id/media/:mediaId
+  body: none
+  auth: bearer
+}
+
+params:query {
+  id:
+  mediaId:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,7 +1,7 @@
 get:
   tags:
     - User
-  operationId: userQuotaShow
+  operationId: getUserQuota
   summary: Get current monthly API quota
   description: |
     Returns the API quota usage for the current billing period.

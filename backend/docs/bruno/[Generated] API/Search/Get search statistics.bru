@@ -1,7 +1,7 @@
 meta {
   name: Get search statistics
   type: http
-  seq: 3
+  seq: 2
 }
 
 post {
@@ -16,18 +16,12 @@ auth:bearer {
 
 body:json {
   {
-    "query": "彼女",
-    "category": [
-      "ANIME",
-      "JDRAMA"
-    ],
-    "exactMatch": false,
-    "minLength": 10,
-    "maxLength": 50,
-    "excludedMediaIds": [],
-    "status": [
-      "ACTIVE"
-    ]
+    "query": {
+      "search": "彼女",
+      "exactMatch": false
+    },
+    "filters": "",
+    "include": []
   }
 }
 

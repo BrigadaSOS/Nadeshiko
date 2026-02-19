@@ -150,9 +150,20 @@ export function zoomImage(url: string) {
   imgAmpliada.src = url;
   ampliada.appendChild(imgAmpliada);
   document.body.appendChild(ampliada);
-  ampliada.onclick = () => {
+
+  const close = () => {
+    document.removeEventListener('keydown', onKeydown, true);
     document.body.removeChild(ampliada);
   };
+  const onKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      close();
+    }
+  };
+  document.addEventListener('keydown', onKeydown, true);
+  ampliada.onclick = close;
 }
 
 const stripHTMLTags = (html: string): string => {

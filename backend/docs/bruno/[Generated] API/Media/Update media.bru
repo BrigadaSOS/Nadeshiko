@@ -1,7 +1,7 @@
 meta {
   name: Update media
   type: http
-  seq: 10
+  seq: 7
 }
 
 patch {
@@ -20,7 +20,11 @@ auth:bearer {
 
 body:json {
   {
-    "anilistId": 0,
+    "externalIds": {
+      "anilist": "",
+      "imdb": "",
+      "tvdb": ""
+    },
     "nameJa": "",
     "nameRomaji": "",
     "nameEn": "",
@@ -36,6 +40,7 @@ body:json {
     "studio": "",
     "seasonName": "",
     "seasonYear": 0,
+    "storageBasePath": "",
     "characters": [
       {
         "id": 0,
@@ -47,15 +52,6 @@ body:json {
         "seiyuuNameJa": "",
         "seiyuuNameEn": "",
         "seiyuuImageUrl": ""
-      }
-    ],
-    "lists": [
-      {
-        "listId": 0,
-        "listName": "",
-        "listType": "",
-        "listVisibility": "",
-        "position": 0
       }
     ],
     "segmentCount": 0

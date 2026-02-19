@@ -18,6 +18,7 @@ const ROOT_DIR = join(__dirname, '..');
 const BACKEND_PACKAGE_JSON_PATH = join(ROOT_DIR, 'backend', 'package.json');
 const FRONTEND_PACKAGE_JSON_PATH = join(ROOT_DIR, 'frontend', 'package.json');
 const OPENAPI_PATH = join(ROOT_DIR, 'backend', 'docs', 'openapi', 'openapi.yaml');
+const OPENAPI_GENERATED_PATH = join(ROOT_DIR, 'backend', 'docs', 'generated', 'openapi.yaml');
 
 function fail(message: string): never {
   console.error(`releaseVersion failed: ${message}`);
@@ -63,13 +64,13 @@ function writePackageVersion(path: string, label: string, version: string): stri
   return previous;
 }
 
-function readOpenApiLines(): string[] {
-  return readFileSync(OPENAPI_PATH, 'utf8').split('\n');
+function readOpenApiLines(path: string = OPENAPI_PATH): string[] {
+  return readFileSync(path, 'utf8').split('\n');
 }
 
-function getOpenApiVersionIndex(lines: string[]): number {
+function getOpenApiVersionIndex(lines: string[], label: string): number {
   const infoIndex = lines.findIndex((line) => line.trim() === 'info:');
-  if (infoIndex === -1) fail('Could not find `info:` block in backend/docs/openapi/openapi.yaml');
+  if (infoIndex === -1) fail(`Could not find \`info:\` block in ${label}`);
 
   for (let i = infoIndex + 1; i < lines.length; i += 1) {
     const line = lines[i] ?? '';
@@ -77,19 +78,28 @@ function getOpenApiVersionIndex(lines: string[]): number {
     if (/^ {2}version:\s*/.test(line)) return i;
   }
 
-  fail('Could not find `info.version` in backend/docs/openapi/openapi.yaml');
+  fail(`Could not find \`info.version\` in ${label}`);
 }
 
 function readOpenApiVersion(): string {
-  const lines = readOpenApiLines();
-  const versionLine = lines[getOpenApiVersionIndex(lines)] ?? '';
+  const label = 'backend/docs/openapi/openapi.yaml';
+  const lines = readOpenApiLines(OPENAPI_PATH);
+  const versionLine = lines[getOpenApiVersionIndex(lines, label)] ?? '';
   const rawVersion = versionLine.replace(/^ {2}version:\s*/, '').trim();
-  return normalizeVersion(rawVersion, 'backend/docs/openapi/openapi.yaml info.version');
+  return normalizeVersion(rawVersion, `${label} info.version`);
+}
+
+function readGeneratedOpenApiVersion(): string {
+  const label = 'backend/docs/generated/openapi.yaml';
+  const lines = readOpenApiLines(OPENAPI_GENERATED_PATH);
+  const versionLine = lines[getOpenApiVersionIndex(lines, label)] ?? '';
+  const rawVersion = versionLine.replace(/^ {2}version:\s*/, '').trim();
+  return normalizeVersion(rawVersion, `${label} info.version`);
 }
 
 function writeOpenApiVersion(version: string): string {
   const lines = readOpenApiLines();
-  const versionIndex = getOpenApiVersionIndex(lines);
+  const versionIndex = getOpenApiVersionIndex(lines, 'backend/docs/openapi/openapi.yaml');
   const currentLine = lines[versionIndex] ?? '';
   const previous = normalizeVersion(
     currentLine.replace(/^ {2}version:\s*/, '').trim(),
@@ -148,11 +158,18 @@ function runCheck(expectedInput: unknown | undefined, scope: CheckScope): void {
   const backendVersion = readPackageVersion(BACKEND_PACKAGE_JSON_PATH, 'backend/package.json');
   const frontendVersion = readPackageVersion(FRONTEND_PACKAGE_JSON_PATH, 'frontend/package.json');
   const openApiVersion = readOpenApiVersion();
+  const generatedOpenApiVersion = readGeneratedOpenApiVersion();
 
-  // OpenAPI version must always match backend exactly
+  // OpenAPI source and generated versions must always match backend exactly
   if (openApiVersion !== backendVersion) {
     fail(
       `backend/docs/openapi/openapi.yaml info.version (${openApiVersion}) does not match backend/package.json (${backendVersion})`,
+    );
+  }
+
+  if (generatedOpenApiVersion !== backendVersion) {
+    fail(
+      `backend/docs/generated/openapi.yaml info.version (${generatedOpenApiVersion}) does not match backend/package.json (${backendVersion}) — run generate:all`,
     );
   }
 

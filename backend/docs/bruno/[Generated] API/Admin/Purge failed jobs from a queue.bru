@@ -1,0 +1,24 @@
+meta {
+  name: Purge failed jobs from a queue
+  type: http
+  seq: 57
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/queues/:queueName/purge
+  body: none
+  auth: bearer
+}
+
+params:query {
+  queueName:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

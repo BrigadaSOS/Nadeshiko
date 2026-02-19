@@ -13,6 +13,23 @@ useSeoMeta({
 const apiSearch = useApiSearch();
 const router = useRouter();
 const route = useRoute();
+const { mediaName, language } = useMediaName();
+
+const secondaryMediaNames = (mediaInfo) => {
+  const namesByLanguage = {
+    english: mediaInfo?.nameEn || '',
+    japanese: mediaInfo?.nameJa || '',
+    romaji: mediaInfo?.nameRomaji || '',
+  };
+
+  const order = ['english', 'japanese', 'romaji'];
+  const secondary = order
+    .filter((lang) => lang !== language.value)
+    .map((lang) => namesByLanguage[lang])
+    .filter(Boolean);
+
+  return secondary.join(' - ');
+};
 
 const allowedFilterTypes = new Set(['ANIME', 'JDRAMA']);
 const pageSize = 28;
@@ -244,15 +261,23 @@ watch([page, currentView, searchQuery, filterCategory], () => {
           >
             <img
               :src="mediaInfo.coverUrl"
-              :alt="mediaInfo.nameEn"
+              :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
               class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
             />
           </div>
-          <p
-            class="mt-2 text-sm font-medium text-gray-200 text-left line-clamp-2 px-2 w-full"
-          >
-            {{ mediaInfo?.englishName }}
-          </p>
+          <div class="mt-2 text-center justify-center flex flex-col items-center">
+            <h3 class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
+              {{ mediaName(mediaInfo) }}
+            </h3>
+          </div>
+          <div class="text-center mt-1 mb-5 justify-center flex flex-col items-center">
+            <h3 class="text-sm text-center font-medium dark:text-gray-300">
+              {{ mediaInfo.segmentCount }} {{ $t('animeList.sentenceCount') }}
+            </h3>
+            <h3 class="text-sm text-center font-medium dark:text-gray-300">
+              {{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.episodes') }}
+            </h3>
+          </div>
         </NuxtLink>
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
@@ -279,11 +304,12 @@ watch([page, currentView, searchQuery, filterCategory], () => {
           class="w-full relative mb-4"
         >
           <div
-            class="relative flex flex-col z-20 items-center sm:items-start sm:flex-row rounded-lg dark:bg-card-background transition-all dark:border-white/10 border"
+            class="relative flex flex-col z-20 items-center sm:items-stretch sm:flex-row rounded-lg dark:bg-card-background transition-all dark:border-white/10 border"
           >
             <div class="absolute inset-0">
               <img
                 :src="mediaInfo.bannerUrl"
+                :alt="`Banner image for ${mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'media'}`"
                 class="object-cover w-full h-full rounded-lg"
               />
               <div
@@ -293,14 +319,15 @@ watch([page, currentView, searchQuery, filterCategory], () => {
             <div class="relative flex-none w-[16em] h-[21em]">
               <img
                 :src="mediaInfo.coverUrl"
+                :alt="`Cover image for ${mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'media'}`"
                 class="absolute inset-0 object-cover w-full h-full rounded-lg"
               />
             </div>
 
-            <div class="relative flex-auto p-6 z-10 flex flex-col">
+            <div class="relative flex-auto p-6 z-10 flex flex-col sm:self-stretch">
               <div class="flex flex-wrap">
                 <h1 class="flex-auto text-xl font-semibold dark:text-gray-50">
-                  {{ mediaInfo.nameEn }}
+                  {{ mediaName(mediaInfo) }}
                 </h1>
                 <div
                   class="text-lg font-semibold bg-graypalid px-3 rounded-lg dark:bg-graypalid dark:border-sgray2 text-white"
@@ -310,7 +337,7 @@ watch([page, currentView, searchQuery, filterCategory], () => {
                 <div
                   class="flex-none w-full mt-2 text-sm font-medium text-gray-500 dark:text-gray-300"
                 >
-                  {{ mediaInfo.nameJa }} - {{ mediaInfo.nameRomaji }}
+                  {{ secondaryMediaNames(mediaInfo) }}
                 </div>
               </div>
 
@@ -318,37 +345,21 @@ watch([page, currentView, searchQuery, filterCategory], () => {
                 class="mt-2 py-2 flex items-center text-sm text-gray-800 gap-x-1.5 after:flex-[1_1_0%] after:border-t after:border-gray-200 after:ms-0 dark:text-white dark:after:border-white/20"
               ></div>
 
-              <div class="grid grid-cols-1">
+              <div class="grid grid-cols-1 gap-1">
                 <p
                   class="text-sm font-semibold text-gray-500 dark:text-gray-300"
                 >
                   {{ $t('animeList.sentenceCountLabel') }} {{ mediaInfo.segmentCount }}
                 </p>
+                <p
+                  class="text-sm font-semibold text-gray-500 dark:text-gray-300"
+                >
+                  {{ $t('animeList.episodes') }}: {{ mediaInfo.episodeCount || 0 }}
+                </p>
               </div>
 
-              <div
-                class="mt-2 py-2 flex items-center text-sm text-gray-800 gap-x-1.5 after:flex-[1_1_0%] after:border-t after:border-gray-200 after:ms-0 dark:text-white dark:after:border-white/20"
-              ></div>
-
-              <div class="flex mt-auto items-center flex-wrap">
-                <div
-                  class="flex h-8 flex-row border shadow-sm rounded-xl dark:bg-modal-input dark:border-sgray2"
-                >
-                  <div class="px-2 py-2 text-center">
-                    <div class="flex items-center gap-x-2">
-                      <p class="text-xs uppercase tracking-wide text-white">
-                        {{ $t('animeList.episodes') }}:
-                      </p>
-                      <p
-                        class="text-xs font-medium text-gray-800 dark:text-gray-200"
-                      >
-                        {{ mediaInfo.episodeCount }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="ml-auto mt-4 md:mt-1 flex">
+              <div class="mt-auto pt-3 flex justify-end items-center flex-wrap gap-3">
+                <div class="flex">
                   <a
                     v-if="mediaInfo.externalIds?.anilist"
                     :href="`https://anilist.co/anime/${mediaInfo.externalIds.anilist}`"
@@ -361,7 +372,7 @@ watch([page, currentView, searchQuery, filterCategory], () => {
 
                   <NuxtLink
                     :to="`/search?media=${mediaInfo.id}`"
-                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-green-500/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-green-400 dark:placeholder-gray-400 dark:text-green-400"
+                    class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-red-500 dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
                   >
                     <div>{{ $t('animeList.vocabularyButton') }}</div>
                     <UiBaseIcon

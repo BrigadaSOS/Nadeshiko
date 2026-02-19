@@ -1,0 +1,29 @@
+meta {
+  name: Add to allowlist
+  type: http
+  seq: 66
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/review/allowlist
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "checkName": "",
+    "mediaId": 0,
+    "episodeNumber": 0,
+    "reason": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

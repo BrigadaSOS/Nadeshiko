@@ -1,4 +1,4 @@
-import type { AdminDashboardShow } from 'generated/routes/admin';
+import type { GetAdminDashboard } from 'generated/routes/admin';
 import { checkElasticsearch, checkDatabase } from '@app/services/systemHealth';
 import { getStuckJobs } from '@app/workers/pgBoss';
 import { AppDataSource } from '@config/database';
@@ -83,7 +83,7 @@ async function getActivityStats() {
   };
 }
 
-export const adminDashboardShow: AdminDashboardShow = async (_params, respond) => {
+export const getAdminDashboard: GetAdminDashboard = async (_params, respond) => {
   const [media, users, activity, esHealth, dbHealth, queues] = await Promise.all([
     getMediaStats(),
     getUserStats(),

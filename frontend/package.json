@@ -1,6 +1,6 @@
 {
   "name": "nuxt-app",
-  "version": "1.4.1",
+  "version": "1.4.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "^1.4.0-dev.7a7fd76",
+    "@brigadasos/nadeshiko-sdk": "1.4.3-dev.5fa35ac",
     "@mdi/js": "^7.4.47",
     "@nuxt/content": "^3.11.0",
     "@nuxtjs/i18n": "^10.2.1",

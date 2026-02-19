@@ -1,7 +1,7 @@
 get:
   tags:
     - Media
-  operationId: segmentContextShow
+  operationId: getSegmentContext
   summary: Get surrounding context for a segment
   description: |
     Retrieves segments surrounding a specific segment within an episode.

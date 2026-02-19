@@ -176,8 +176,14 @@
       "media": "Medio",
       "episode": "Ep.",
       "time": "Tiempo",
+      "duration": "Duración",
+      "id": "ID",
+      "position": "Posición",
       "uuid": "UUID",
-      "copyUuid": "Copiar UUID"
+      "copyUuid": "Copiar UUID",
+      "image": "Imagen",
+      "audio": "Audio",
+      "video": "Video"
     }
   },
   "filterContent": {
@@ -198,8 +204,10 @@
         "english": "Inglés",
         "spanish": "Español",
         "englishShown": "Traducciones en inglés visibles",
+        "englishSpoiler": "Traducciones en inglés en modo spoiler",
         "englishHidden": "Traducciones en inglés ocultas",
         "spanishShown": "Traducciones en español visibles",
+        "spanishSpoiler": "Traducciones en español en modo spoiler",
         "spanishHidden": "Traducciones en español ocultas"
       },
       "buttons": {
@@ -219,11 +227,17 @@
         "context": "Contexto",
         "report": "Reportar",
         "share": "Compartir",
+        "more": "Más",
         "expandLeft": "Expandir (izquierda)",
         "expandBoth": "Expandir (ambos lados)",
         "expandRight": "Expandir (derecha)",
-        "hideMedia": "Ocultar este medio",
-        "unhideMedia": "Mostrar este medio",
+        "hideMedia": "Ocultar",
+        "unhideMedia": "Mostrar",
+        "addToCollection": "Añadir a colección",
+        "manageCollections": "Gestionar colecciones",
+        "collectionsLoading": "Cargando colecciones...",
+        "collectionsEmpty": "Todavía no hay colecciones",
+        "chooseCollection": "Elegir colección...",
         "sortmain": "Ordenar oraciones",
         "sortlengthnone": "Ninguno",
         "sortlengthmin": "Más cortas",
@@ -254,6 +268,8 @@
         "errorcopiedcontent": "No ha sido posible copiar el contenido al portapapeles. Inténtalo de nuevo.",
         "copiedsharingurl": "Se ha copiado la URL al portapapeles.",
         "errorcopiedsharingurl": "No ha sido posible copiar la URL al portapapeles. Inténtalo de nuevo.",
+        "collectionAdded": "Añadido a \"{name}\"",
+        "collectionAddFailed": "No se pudo añadir a la colección. Inténtalo de nuevo.",
         "mtTooltip": "Esta frase ha sido traducida automáticamente, puede que el contenido no sea exacto"
       }
     },
@@ -268,6 +284,10 @@
         "errorconnection": "No ha sido posible conectar con el servidor."
       }
     }
+  },
+  "activity": {
+    "deleteDayActivity": "Eliminar actividad de este día",
+    "deletingDayActivity": "Eliminando..."
   },
   "accountSettings": {
     "menu": {
@@ -346,6 +366,31 @@
       "hiddenMediaSearchPlaceholder": "Buscar medios para ocultar...",
       "hiddenMediaEmpty": "Sin medios ocultos. Los resultados incluirán todo el contenido disponible."
     },
+    "collections": {
+      "segmentCount": "{count} segmentos",
+      "created": "Creado el {date}",
+      "updated": "Actualizado el {date}",
+      "removeFromCollection": "Eliminar de la colección",
+      "confirmRemove": "¿Eliminar?",
+      "yes": "Sí",
+      "no": "No",
+      "rename": "Renombrar",
+      "delete": "Eliminar",
+      "renameTitle": "Renombrar colección",
+      "renameConfirm": "Guardar",
+      "renameCancel": "Cancelar",
+      "renamed": "Colección renombrada",
+      "deleteTitle": "Eliminar colección",
+      "deleteMessage": "¿Estás seguro de que quieres eliminar \"{name}\"? Esta acción no se puede deshacer.",
+      "deleteConfirm": "Eliminar",
+      "deleteCancel": "Cancelar",
+      "deleted": "Colección eliminada",
+      "visibility": {
+        "PUBLIC": "Pública",
+        "PRIVATE": "Privada"
+      },
+      "noCollections": "No hay colecciones todavía."
+    },
     "anki": {
       "syncStatus": "Estado Sincronización",
       "loading": "Cargando...",
@@ -380,7 +425,7 @@
   },
   "segment": {
     "noResultsTitle": "404",
-    "noResultsMessage": "Buscamos de arriba a abajo, pero no pudimos encontrar lo que buscas. Intenta con una nueva búsqueda diferente.",
+    "noResultsMessage": "Prueba con otra búsqueda o busca en {link}",
     "contentRatingShow": "Mostrar",
     "contentRatingHide": "Ocultar",
     "status": {
@@ -396,6 +441,12 @@
       "SUGGESTIVE": "Sugestivo",
       "QUESTIONABLE": "Cuestionable",
       "EXPLICIT": "Explícito"
+    },
+    "nsfwTag": "NSFW",
+    "contentRatingDescription": {
+      "SUGGESTIVE": "Contenido sensible (sugestivo)",
+      "QUESTIONABLE": "Contenido cuestionable",
+      "EXPLICIT": "Contenido adulto explícito"
     },
     "expandLeft": "Expandir izquierda",
     "expandBoth": "Expandir ambos lados",
@@ -419,11 +470,14 @@
     "categoryAll": "Todo",
     "categoryAnime": "Anime",
     "categoryLiveaction": "Live Action",
-    "categoryAudiobook": "Audiolibro"
+    "categoryAudiobook": "Audiolibro",
+    "collectionTabPrefix": "Colección",
+    "backToCollections": "Colecciones"
   },
   "reports": {
     "title": "Mis Reportes",
     "modalTitle": "Reportar un problema",
+    "targetLabel": "Objetivo",
     "reason": "Razón",
     "selectReason": "Selecciona una razón...",
     "description": "Descripción (opcional)",

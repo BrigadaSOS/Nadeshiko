@@ -1,0 +1,32 @@
+meta {
+  name: Update series metadata
+  type: http
+  seq: 24
+}
+
+patch {
+  url: {{baseUrl}}/v1/media/series/:id
+  body: json
+  auth: bearer
+}
+
+params:query {
+  id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "nameJa": "",
+    "nameRomaji": "",
+    "nameEn": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,7 +1,7 @@
 meta {
   name: Create new segment
   type: http
-  seq: 18
+  seq: 15
 }
 
 post {
@@ -23,20 +23,22 @@ body:json {
   {
     "position": 0,
     "status": "",
-    "startTime": "",
-    "endTime": "",
-    "ja": {
+    "startTimeMs": 0,
+    "endTimeMs": 0,
+    "textJa": {
       "content": ""
     },
-    "es": {
+    "textEs": {
       "content": "",
       "isMachineTranslated": false
     },
-    "en": {
+    "textEn": {
       "content": "",
       "isMachineTranslated": false
     },
-    "isNsfw": false,
+    "contentRating": "",
+    "ratingAnalysis": {},
+    "posAnalysis": {},
     "storage": "",
     "hashedId": ""
   }

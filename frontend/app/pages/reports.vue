@@ -3,7 +3,7 @@ import { getRequestHeader } from 'h3';
 import { authApiRequest } from '~/utils/authApi';
 
 const { t } = useI18n();
-definePageMeta({ middleware: 'auth' });
+definePageMeta({ middleware: 'auth', robots: false });
 
 type Report = {
   id: number;

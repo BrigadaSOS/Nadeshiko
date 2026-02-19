@@ -22,7 +22,7 @@ info:
     | Default      | 2500 requests   |
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
-  version: 1.4.0
+  version: 1.4.3
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -57,7 +57,7 @@ paths:
     post:
       tags:
         - Search
-      operationId: searchIndex
+      operationId: search
       summary: Search segments by query
       description: |
         The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama, audiobooks).
@@ -115,7 +115,7 @@ paths:
     post:
       tags:
         - Search
-      operationId: searchStats
+      operationId: getSearchStats
       summary: Get search statistics
       description: |
         Returns statistics for search filters and category tabs without fetching segment rows.
@@ -216,7 +216,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: mediaIndex
+      operationId: listMedia
       summary: List all media
       description: |
         Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
@@ -286,7 +286,7 @@ paths:
     post:
       tags:
         - Media
-      operationId: mediaCreate
+      operationId: createMedia
       x-internal: true
       summary: Create new media
       description: |
@@ -325,7 +325,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: mediaShow
+      operationId: getMedia
       summary: Get single media
       description: |
         Returns a single media entry by its ID with full metadata.
@@ -373,7 +373,7 @@ paths:
     patch:
       tags:
         - Media
-      operationId: mediaUpdate
+      operationId: updateMedia
       x-internal: true
       summary: Update media
       description: |
@@ -419,7 +419,7 @@ paths:
     delete:
       tags:
         - Media
-      operationId: mediaDestroy
+      operationId: deleteMedia
       x-internal: true
       summary: Delete media (soft delete)
       description: |
@@ -454,7 +454,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes:
     get:
-      operationId: episodeIndex
+      operationId: listEpisodes
       tags:
         - Media
       summary: List episodes for a media
@@ -507,7 +507,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
-      operationId: episodeCreate
+      operationId: createEpisode
       x-internal: true
       tags:
         - Media
@@ -552,7 +552,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes/{episodeNumber}:
     get:
-      operationId: episodeShow
+      operationId: getEpisode
       tags:
         - Media
       summary: Get single episode
@@ -596,7 +596,7 @@ paths:
     patch:
       tags:
         - Media
-      operationId: episodeUpdate
+      operationId: updateEpisode
       x-internal: true
       summary: Update episode
       description: |
@@ -645,7 +645,7 @@ paths:
     delete:
       tags:
         - Media
-      operationId: episodeDestroy
+      operationId: deleteEpisode
       x-internal: true
       summary: Delete an episode
       description: |
@@ -689,7 +689,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: segmentIndex
+      operationId: listSegments
       x-internal: true
       summary: List segments for an episode
       description: |
@@ -750,7 +750,7 @@ paths:
     post:
       tags:
         - Media
-      operationId: segmentCreate
+      operationId: createSegment
       x-internal: true
       summary: Create new segment
       description: |
@@ -800,7 +800,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
     get:
-      operationId: segmentShow
+      operationId: getSegment
       tags:
         - Media
       summary: Get single segment
@@ -849,7 +849,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
-      operationId: segmentUpdate
+      operationId: updateSegment
       x-internal: true
       tags:
         - Media
@@ -907,7 +907,7 @@ paths:
     delete:
       tags:
         - Media
-      operationId: segmentDestroy
+      operationId: deleteSegment
       x-internal: true
       summary: Delete segment
       description: |
@@ -958,7 +958,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: segmentShowByUuid
+      operationId: getSegmentByUuid
       summary: Get segment by UUID
       description: |
         Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
@@ -997,7 +997,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: segmentContextShow
+      operationId: getSegmentContext
       summary: Get surrounding context for a segment
       description: |
         Retrieves segments surrounding a specific segment within an episode.
@@ -1078,7 +1078,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: seriesIndex
+      operationId: listSeries
       summary: List all series
       description: |
         Returns a paginated list of media series groupings.
@@ -1127,7 +1127,7 @@ paths:
     post:
       tags:
         - Media
-      operationId: seriesCreate
+      operationId: createSeries
       x-internal: true
       summary: Create series
       description: |
@@ -1178,7 +1178,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: seriesShow
+      operationId: getSeries
       summary: Get series details
       description: |
         Returns a series with all media entries sorted by position.
@@ -1224,7 +1224,7 @@ paths:
     patch:
       tags:
         - Media
-      operationId: seriesUpdate
+      operationId: updateSeries
       x-internal: true
       summary: Update series metadata
       description: |
@@ -1280,7 +1280,7 @@ paths:
     delete:
       tags:
         - Media
-      operationId: seriesDestroy
+      operationId: deleteSeries
       x-internal: true
       summary: Delete series
       description: |
@@ -1314,7 +1314,7 @@ paths:
     post:
       tags:
         - Media
-      operationId: seriesAddMedia
+      operationId: addMediaToSeries
       x-internal: true
       summary: Add media to series
       description: |
@@ -1366,7 +1366,7 @@ paths:
     patch:
       tags:
         - Media
-      operationId: seriesUpdateMedia
+      operationId: updateSeriesMedia
       x-internal: true
       summary: Update media position in series
       description: |
@@ -1419,7 +1419,7 @@ paths:
     delete:
       tags:
         - Media
-      operationId: seriesRemoveMedia
+      operationId: removeMediaFromSeries
       x-internal: true
       summary: Remove media from series
       description: |
@@ -1460,7 +1460,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: characterShow
+      operationId: getCharacter
       summary: Get character details
       description: |
         Returns a character with their voice actors (seiyuu) and all media appearances.
@@ -1500,7 +1500,7 @@ paths:
     get:
       tags:
         - Media
-      operationId: seiyuuShow
+      operationId: getSeiyuu
       summary: Get seiyuu details
       description: |
         Returns a voice actor (seiyuu) with all characters they voiced and their media appearances.
@@ -1551,7 +1551,7 @@ paths:
     get:
       tags:
         - User
-      operationId: userQuotaShow
+      operationId: getUserQuota
       summary: Get current monthly API quota
       description: |
         Returns the API quota usage for the current billing period.
@@ -1580,7 +1580,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userReportCreate
+      operationId: createUserReport
       summary: Create a new report
       description: |
         Submit a report for a segment or media entry.
@@ -1613,7 +1613,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userReportIndex
+      operationId: listUserReports
       summary: List user's own reports
       description: |
         Returns the authenticated user's submitted reports with cursor pagination.
@@ -1662,7 +1662,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userPreferencesShow
+      operationId: getUserPreferences
       summary: Get user preferences
       description: |
         Returns the authenticated user's full preferences object.
@@ -1685,7 +1685,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userPreferencesUpdate
+      operationId: updateUserPreferences
       summary: Update user preferences
       description: |
         Deep-merges a partial preferences update into the user's existing preferences.
@@ -1716,7 +1716,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userActivityIndex
+      operationId: listUserActivity
       summary: Get user activity history
       description: |
         Returns the authenticated user's activity history with cursor-based pagination.
@@ -1773,7 +1773,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userActivityDestroy
+      operationId: deleteUserActivity
       summary: Clear user activity history
       description: |
         Deletes the authenticated user's activity history. Optionally filter by activity type.
@@ -1811,7 +1811,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userActivityHeatmapShow
+      operationId: getUserActivityHeatmap
       summary: Get activity heatmap data
       description: |
         Returns daily activity counts for the authenticated user, grouped by date.
@@ -1857,7 +1857,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userActivityStatsShow
+      operationId: getUserActivityStats
       summary: Get user activity statistics
       description: |
         Returns aggregate statistics about the authenticated user's activity:
@@ -1920,7 +1920,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userExportShow
+      operationId: exportUserData
       summary: Export all user data
       description: |
         Returns a full JSON export of all user-related data for GDPR data portability.
@@ -1945,7 +1945,7 @@ paths:
       tags:
         - User
       x-internal: true
-      operationId: userLabsIndex
+      operationId: listUserLabs
       summary: List lab features with user opt-in status
       description: |
         Returns all available lab features merged with the authenticated user's
@@ -1972,7 +1972,7 @@ paths:
     get:
       tags:
         - Collections
-      operationId: collectionIndex
+      operationId: listCollections
       summary: List user's collections
       description: |
         Returns all collections for the authenticated user. Can filter by visibility.
@@ -2033,7 +2033,7 @@ paths:
     post:
       tags:
         - Collections
-      operationId: collectionCreate
+      operationId: createCollection
       summary: Create collection
       description: |
         Creates a new segment collection for the authenticated user.
@@ -2066,7 +2066,7 @@ paths:
     get:
       tags:
         - Collections
-      operationId: collectionShow
+      operationId: getCollection
       summary: Get collection details
       description: |
         Returns a collection with paginated segments and their search result data.
@@ -2127,7 +2127,7 @@ paths:
     patch:
       tags:
         - Collections
-      operationId: collectionUpdate
+      operationId: updateCollection
       summary: Update collection metadata
       description: |
         Updates collection name or visibility. Requires collection ownership.
@@ -2179,7 +2179,7 @@ paths:
     delete:
       tags:
         - Collections
-      operationId: collectionDestroy
+      operationId: deleteCollection
       summary: Delete collection
       description: |
         Deletes a collection and all its segment entries. Requires collection ownership.
@@ -2212,7 +2212,7 @@ paths:
     post:
       tags:
         - Collections
-      operationId: collectionAddSegment
+      operationId: addSegmentToCollection
       summary: Add segment to collection
       description: |
         Adds a segment to a collection. Requires collection ownership.
@@ -2262,7 +2262,7 @@ paths:
     patch:
       tags:
         - Collections
-      operationId: collectionUpdateSegment
+      operationId: updateCollectionSegment
       summary: Update segment in collection
       description: |
         Updates the note or position of a segment in a collection. Requires collection ownership.
@@ -2317,7 +2317,7 @@ paths:
     delete:
       tags:
         - Collections
-      operationId: collectionRemoveSegment
+      operationId: removeSegmentFromCollection
       summary: Remove segment from collection
       description: |
         Removes a segment from a collection. Requires collection ownership.
@@ -2358,7 +2358,7 @@ paths:
       tags:
         - Admin
       x-internal: true
-      operationId: adminDashboardShow
+      operationId: getAdminDashboard
       summary: Admin dashboard statistics
       description: |
         Returns at-a-glance statistics for the admin dashboard including media counts,
@@ -2548,7 +2548,7 @@ paths:
       tags:
         - Admin
       x-internal: true
-      operationId: adminHealthShow
+      operationId: getAdminHealth
       summary: System health check
       description: |
         Returns connectivity status and version information for all backend subsystems
@@ -2636,7 +2636,7 @@ paths:
     post:
       tags:
         - Admin
-      operationId: adminReindexCreate
+      operationId: triggerReindex
       summary: Reindex database into Elasticsearch
       description: |
         Reindexes segments from the PostgreSQL database into Elasticsearch.
@@ -2678,7 +2678,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminQueueStatsIndex
+      operationId: listAdminQueueStats
       summary: Get queue statistics
       description: |
         Returns statistics for all ES sync queues including pending and failed job counts.
@@ -2727,7 +2727,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminQueueShow
+      operationId: getAdminQueue
       summary: Get detailed queue information
       description: |
         Returns live queue stats and queue metadata from PgBoss for a specific queue.
@@ -2870,7 +2870,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminQueueFailedIndex
+      operationId: listAdminQueueFailed
       summary: Get failed jobs from a queue
       description: |
         Returns jobs that have exceeded their retry limit and permanently failed.
@@ -2934,7 +2934,7 @@ paths:
     post:
       tags:
         - Admin
-      operationId: adminQueueRetryCreate
+      operationId: retryAdminQueueFailed
       summary: Retry failed jobs from a queue
       description: |
         Re-enqueues all failed jobs from a specific queue for another attempt.
@@ -2991,7 +2991,7 @@ paths:
     delete:
       tags:
         - Admin
-      operationId: adminQueueFailedDestroy
+      operationId: purgeAdminQueueFailed
       summary: Purge failed jobs from a queue
       description: |
         Permanently deletes all failed jobs from a queue.
@@ -3049,7 +3049,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminReportIndex
+      operationId: listAdminReports
       summary: List all reports
       description: |
         Returns all reports with filtering and cursor pagination.
@@ -3140,7 +3140,7 @@ paths:
     patch:
       tags:
         - Admin
-      operationId: adminReportUpdate
+      operationId: updateAdminReport
       summary: Update a report
       description: |
         Updates the status and/or admin notes of a report.
@@ -3186,7 +3186,7 @@ paths:
     post:
       tags:
         - Admin
-      operationId: adminReviewRunCreate
+      operationId: runAdminReview
       summary: Run auto-checks
       description: |
         Triggers all enabled auto-checks. Creates ReviewCheckRun records and AUTO reports for any findings.
@@ -3228,7 +3228,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminReviewCheckIndex
+      operationId: listAdminReviewChecks
       summary: List all review checks
       description: |
         Returns all check definitions with current config, threshold schema, and latest run info.
@@ -3258,7 +3258,7 @@ paths:
     patch:
       tags:
         - Admin
-      operationId: adminReviewCheckUpdate
+      operationId: updateAdminReviewCheck
       summary: Update a review check config
       description: |
         Updates the threshold values or enabled status of a check.
@@ -3311,7 +3311,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminReviewRunIndex
+      operationId: listAdminReviewRuns
       summary: List past check runs
       description: |
         Returns past review check runs with summary stats. Supports filtering by check name and cursor pagination.
@@ -3367,7 +3367,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminReviewRunShow
+      operationId: getAdminReviewRun
       summary: Get a specific run's details
       description: |
         Returns a specific review check run record with its linked reports.
@@ -3414,7 +3414,7 @@ paths:
     get:
       tags:
         - Admin
-      operationId: adminReviewAllowlistIndex
+      operationId: listAdminReviewAllowlist
       summary: List allowlisted items
       description: |
         Returns all allowlisted items (media/episodes) that are excluded from auto-check runs.
@@ -3449,7 +3449,7 @@ paths:
     post:
       tags:
         - Admin
-      operationId: adminReviewAllowlistCreate
+      operationId: createAdminReviewAllowlistEntry
       summary: Add to allowlist
       description: |
         Adds a media or episode to the allowlist for a specific check, excluding it from future auto-check runs.
@@ -3503,7 +3503,7 @@ paths:
     delete:
       tags:
         - Admin
-      operationId: adminReviewAllowlistDestroy
+      operationId: deleteAdminReviewAllowlistEntry
       summary: Remove from allowlist
       description: |
         Removes an item from the review allowlist, re-enabling auto-checks for that media/episode.
@@ -3718,6 +3718,7 @@ components:
       type: object
       description: Segment with content, optional highlights, and media URLs
       required:
+        - id
         - uuid
         - position
         - status
@@ -3731,6 +3732,10 @@ components:
         - textEs
         - urls
       properties:
+        id:
+          type: integer
+          description: Numeric identifier for the segment
+          example: 120045
         uuid:
           type: string
           description: Unique identifier for the segment
@@ -5691,6 +5696,12 @@ components:
         searchQuery:
           type: string
           nullable: true
+        animeName:
+          type: string
+          nullable: true
+        japaneseText:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -5722,6 +5733,18 @@ components:
             - PRIVATE
           description: Visibility of the collection
           example: PRIVATE
+        segmentCount:
+          type: integer
+          description: Number of segments in the collection
+          example: 42
+        createdAt:
+          type: string
+          format: date-time
+          description: When the collection was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the collection was last updated
     UserExportCollection:
       allOf:
         - $ref: '#/components/schemas/Collection'

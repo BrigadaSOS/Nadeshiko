@@ -2,7 +2,7 @@ get:
   tags:
     - User
   x-internal: true
-  operationId: userLabsIndex
+  operationId: listUserLabs
   summary: List lab features with user opt-in status
   description: |
     Returns all available lab features merged with the authenticated user's

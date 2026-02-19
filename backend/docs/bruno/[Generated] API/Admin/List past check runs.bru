@@ -1,0 +1,26 @@
+meta {
+  name: List past check runs
+  type: http
+  seq: 63
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/review/runs?limit=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  checkName:
+  cursor:
+  limit: 20
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

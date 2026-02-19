@@ -68,7 +68,11 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
       break;
     case 'Escape':
       if (isImmersive.value) {
+        event.stopImmediatePropagation();
         playerStore.toggleImmersive();
+      } else if (showPlayer.value) {
+        event.stopImmediatePropagation();
+        playerStore.hidePlayer();
       }
       break;
   }
@@ -84,11 +88,11 @@ watch(
 );
 
 onMounted(() => {
-  window.addEventListener('keydown', handleGlobalKeydown);
+  window.addEventListener('keydown', handleGlobalKeydown, true);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleGlobalKeydown);
+  window.removeEventListener('keydown', handleGlobalKeydown, true);
 });
 
 const waitForElement = async (selector: string, retries = 5, delay = 100) => {
@@ -316,7 +320,11 @@ const getAnimeImage = (result: any) => {
 
                         <div
                             class="flex-shrink-0 mb-6 md:mb-1 shadow-2xl overflow-hidden hidden md:block transition-all duration-700 ring-1 ring-white/10">
-                            <img :src="getAnimeImage(currentResult)" class="w-full h-full object-fit opacity-90" />
+                            <img
+                                :src="getAnimeImage(currentResult)"
+                                :alt="`Cover art for ${mediaName(currentResult.media)}`"
+                                class="w-full h-full object-fit opacity-90"
+                            />
                         </div>
 
                         <div class="relative w-full h-full overflow-hidden flex flex-col items-center">
@@ -407,6 +415,7 @@ const getAnimeImage = (result: any) => {
                 <div class="flex flex-wrap items-center justify-between p-3 gap-3 md:px-6">
                     <div class="flex items-center gap-4 flex-grow min-w-0">
                         <img :src="getAnimeImage(currentResult)"
+                            :alt="`Cover art for ${mediaName(currentResult.media)}`"
                             class="w-12 h-12 object-cover rounded-lg shadow-sm" />
                         <div class="flex-grow min-w-0">
                             <p class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentResult)">
@@ -465,46 +474,3 @@ const getAnimeImage = (result: any) => {
         </div>
     </transition>
 </template>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-
-.zoom-fade-enter-active,
-.zoom-fade-leave-active {
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.zoom-fade-enter-from,
-.zoom-fade-leave-to {
-    opacity: 0;
-    transform: scale(0.95);
-    filter: blur(10px);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-
-.no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* Volví a añadir la máscara de gradiente al texto para que se desvanezca suavemente en los bordes superior e inferior sobre el fondo negro */
-.mask-gradient {
-    mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-}
-
-.safe-pb {
-    padding-bottom: env(safe-area-inset-bottom);
-}
-</style>

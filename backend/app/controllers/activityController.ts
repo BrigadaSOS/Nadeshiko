@@ -1,14 +1,18 @@
 import type {
-  UserActivityIndex,
-  UserActivityDestroy,
-  UserActivityStatsShow,
-  UserActivityHeatmapShow,
+  ListUserActivity,
+  DeleteUserActivity,
+  GetUserActivityStats,
+  GetUserActivityHeatmap,
 } from 'generated/routes/user';
 import { UserActivity } from '@app/models/UserActivity';
 import { AuthCredentialsInvalidError } from '@app/errors';
-import { getUserActivityStats, getActivityHeatmap, clearUserActivity } from '@app/services/activityService';
+import {
+  getUserActivityStats as fetchUserActivityStats,
+  getActivityHeatmap,
+  clearUserActivity,
+} from '@app/services/activityService';
 
-export const userActivityIndex: UserActivityIndex = async ({ query }, respond, req) => {
+export const listUserActivity: ListUserActivity = async ({ query }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
@@ -44,6 +48,8 @@ export const userActivityIndex: UserActivityIndex = async ({ query }, respond, r
       segmentUuid: a.segmentUuid,
       mediaId: a.mediaId,
       searchQuery: a.searchQuery,
+      animeName: a.animeName,
+      japaneseText: a.japaneseText,
       createdAt: a.createdAt.toISOString(),
     })),
     pagination: {
@@ -53,7 +59,7 @@ export const userActivityIndex: UserActivityIndex = async ({ query }, respond, r
   });
 };
 
-export const userActivityHeatmapShow: UserActivityHeatmapShow = async ({ query }, respond, req) => {
+export const getUserActivityHeatmap: GetUserActivityHeatmap = async ({ query }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
@@ -64,18 +70,18 @@ export const userActivityHeatmapShow: UserActivityHeatmapShow = async ({ query }
   return respond.with200().body({ counts });
 };
 
-export const userActivityStatsShow: UserActivityStatsShow = async ({ query }, respond, req) => {
+export const getUserActivityStats: GetUserActivityStats = async ({ query }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
   }
 
   const since = query.since ? new Date(query.since) : undefined;
-  const stats = await getUserActivityStats(user.id, since);
+  const stats = await fetchUserActivityStats(user.id, since);
   return respond.with200().body(stats);
 };
 
-export const userActivityDestroy: UserActivityDestroy = async ({ query }, respond, req) => {
+export const deleteUserActivity: DeleteUserActivity = async ({ query }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');

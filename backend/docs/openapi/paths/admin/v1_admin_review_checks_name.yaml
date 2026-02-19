@@ -1,7 +1,7 @@
 patch:
   tags:
     - Admin
-  operationId: adminReviewCheckUpdate
+  operationId: updateAdminReviewCheck
   summary: Update a review check config
   description: |
     Updates the threshold values or enabled status of a check.

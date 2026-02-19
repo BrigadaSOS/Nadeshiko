@@ -1,8 +1,8 @@
-import type { UserPreferencesShow, UserPreferencesUpdate } from 'generated/routes/user';
+import type { GetUserPreferences, UpdateUserPreferences } from 'generated/routes/user';
 import { User } from '@app/models/User';
 import { AuthCredentialsInvalidError } from '@app/errors';
 
-export const userPreferencesShow: UserPreferencesShow = async (_params, respond, req) => {
+export const getUserPreferences: GetUserPreferences = async (_params, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');
@@ -11,7 +11,7 @@ export const userPreferencesShow: UserPreferencesShow = async (_params, respond,
   return respond.with200().body(user.preferences || {});
 };
 
-export const userPreferencesUpdate: UserPreferencesUpdate = async ({ body }, respond, req) => {
+export const updateUserPreferences: UpdateUserPreferences = async ({ body }, respond, req) => {
   const user = req.user;
   if (!user) {
     throw new AuthCredentialsInvalidError('Invalid session user.');

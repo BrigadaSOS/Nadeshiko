@@ -1,9 +1,12 @@
 import type { t_Collection } from 'generated/models';
 import type { Collection } from '@app/models';
 
-export const toCollectionDTO = (collection: Collection): t_Collection => ({
+export const toCollectionDTO = (collection: Collection, segmentCount = 0): t_Collection => ({
   id: collection.id,
   name: collection.name,
   userId: collection.userId,
   visibility: collection.visibility as 'PUBLIC' | 'PRIVATE',
+  segmentCount,
+  createdAt: collection.createdAt?.toISOString(),
+  updatedAt: collection.updatedAt?.toISOString(),
 });

@@ -2,7 +2,7 @@ get:
   tags:
     - Admin
   x-internal: true
-  operationId: adminDashboardShow
+  operationId: getAdminDashboard
   summary: Admin dashboard statistics
   description: |
     Returns at-a-glance statistics for the admin dashboard including media counts,

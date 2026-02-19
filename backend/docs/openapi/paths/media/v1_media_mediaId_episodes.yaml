@@ -1,5 +1,5 @@
 get:
-  operationId: episodeIndex
+  operationId: listEpisodes
   tags:
     - Media
   summary: List episodes for a media
@@ -53,7 +53,7 @@ get:
       $ref: "../../components/responses/InternalServerError.yaml"
 
 post:
-  operationId: episodeCreate
+  operationId: createEpisode
   x-internal: true
   tags:
     - Media

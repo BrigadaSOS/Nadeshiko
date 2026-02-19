@@ -9,6 +9,8 @@ type ActivityItem = {
   segmentUuid?: string | null;
   mediaId?: number | null;
   searchQuery?: string | null;
+  animeName?: string | null;
+  japaneseText?: string | null;
   createdAt: string;
 };
 
@@ -255,6 +257,51 @@ const clearHistory = async () => {
   }
 };
 
+const deletingIds = ref<Set<number>>(new Set());
+
+const deleteActivity = async (id: number) => {
+  if (deletingIds.value.has(id)) return;
+  deletingIds.value.add(id);
+  try {
+    await $fetch(`/v1/user/activity/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    activities.value = activities.value.filter((a) => a.id !== id);
+  } catch (error) {
+    console.error('[Activity] Failed to delete activity:', error);
+  } finally {
+    deletingIds.value.delete(id);
+  }
+};
+
+const clearingDay = ref(false);
+
+const clearDayActivity = async () => {
+  if (!selectedDay.value || clearingDay.value) return;
+  if (!confirm(`Delete all activity for ${formatDayLabel(selectedDay.value)}? This cannot be undone.`)) return;
+
+  clearingDay.value = true;
+  try {
+    await $fetch(`/v1/user/activity/date/${selectedDay.value}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    activities.value = [];
+    hasMore.value = false;
+    activityCursor.value = null;
+    // Remove the day from heatmap
+    const updated = { ...searchCountsByDay.value };
+    delete updated[selectedDay.value];
+    searchCountsByDay.value = updated;
+    await fetchStats();
+  } catch (error) {
+    console.error('[Activity] Failed to clear day activity:', error);
+  } finally {
+    clearingDay.value = false;
+  }
+};
+
 const activityTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
     SEARCH: 'Search',
@@ -472,17 +519,26 @@ onMounted(async () => {
         <p class="text-sm text-gray-400 mt-1">Latest events from your account.</p>
       </div>
 
-      <div
-        v-if="selectedDay"
-        class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-400/40 bg-red-500/10 text-red-300 text-sm"
-      >
-        <span>Showing: {{ formatDayLabel(selectedDay) }}</span>
-        <button
-          class="hover:text-white transition-colors ml-1"
-          title="Clear day filter"
-          @click="clearDayFilter"
+      <div v-if="selectedDay" class="flex items-center gap-2">
+        <div
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-400/40 bg-red-500/10 text-red-300 text-sm"
         >
-          &times;
+          <span>Showing: {{ formatDayLabel(selectedDay) }}</span>
+          <button
+            class="hover:text-white transition-colors ml-1"
+            title="Clear day filter"
+            @click="clearDayFilter"
+          >
+            &times;
+          </button>
+        </div>
+        <button
+          class="px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 text-sm hover:bg-red-500/20 hover:text-red-200 transition-colors disabled:opacity-50"
+          :disabled="clearingDay || activities.length === 0"
+          title="Delete all activity for this day"
+          @click="clearDayActivity"
+        >
+          {{ clearingDay ? $t('activity.deletingDayActivity') : $t('activity.deleteDayActivity') }}
         </button>
       </div>
     </div>
@@ -494,8 +550,9 @@ onMounted(async () => {
         <thead>
           <tr class="border-b border-white/10 text-left">
             <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">Type</th>
-            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">Query / Details</th>
-            <th class="pb-2 text-xs uppercase tracking-wide text-gray-400 font-medium text-right">Date</th>
+            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">Details</th>
+            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium text-right">Date</th>
+            <th class="pb-2 w-8" />
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
@@ -515,11 +572,32 @@ onMounted(async () => {
               </span>
             </td>
             <td class="py-2.5 pr-4 max-w-md truncate">
-              <span v-if="activity.searchQuery" class="text-gray-200">"{{ activity.searchQuery }}"</span>
+              <span v-if="activity.searchQuery" class="text-gray-200">{{ activity.searchQuery }}</span>
+              <a
+                v-else-if="activity.activityType === 'SEGMENT_PLAY' && activity.segmentUuid && (activity.animeName || activity.japaneseText)"
+                :href="`/search?uuid=${activity.segmentUuid}`"
+                class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
+              >
+                <span v-if="activity.animeName" class="text-gray-400">{{ activity.animeName }}</span>
+                <span v-if="activity.animeName && activity.japaneseText" class="text-gray-600 mx-1">—</span>
+                <span v-if="activity.japaneseText">{{ activity.japaneseText }}</span>
+              </a>
               <span v-else class="text-gray-500">-</span>
             </td>
-            <td class="py-2.5 text-right text-gray-400 text-xs whitespace-nowrap">
+            <td class="py-2.5 pr-4 text-right text-gray-400 text-xs whitespace-nowrap">
               {{ formatDate(activity.createdAt) }}
+            </td>
+            <td class="py-2.5 text-center w-8">
+              <button
+                class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all disabled:opacity-30"
+                title="Remove"
+                :disabled="deletingIds.has(activity.id)"
+                @click="deleteActivity(activity.id)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+              </button>
             </td>
           </tr>
         </tbody>
@@ -569,7 +647,7 @@ onMounted(async () => {
           <p class="text-gray-400 text-sm">Permanently delete all activity data from your account.</p>
         </div>
         <button
-          class="bg-button-danger-main hover:bg-button-danger-hover text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-1.5 px-3 rounded disabled:opacity-50"
           :disabled="clearingHistory"
           @click="clearHistory"
         >

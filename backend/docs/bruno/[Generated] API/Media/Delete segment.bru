@@ -1,0 +1,26 @@
+meta {
+  name: Delete segment
+  type: http
+  seq: 18
+}
+
+delete {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id
+  body: none
+  auth: bearer
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+  id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,7 +1,7 @@
 post:
   tags:
     - Media
-  operationId: seriesAddMedia
+  operationId: addMediaToSeries
   x-internal: true
   summary: Add media to series
   description: |

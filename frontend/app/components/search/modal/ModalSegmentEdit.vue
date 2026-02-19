@@ -50,7 +50,7 @@ const charCountColor = (len: number) => {
 
 const statusPillClasses = (value: string, active: boolean) => {
   const base =
-    'px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 cursor-pointer';
+    'px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 cursor-pointer';
   if (!active)
     return `${base} border border-neutral-600 text-neutral-400 hover:border-neutral-400 hover:text-neutral-300`;
   const colors: Record<string, string> = {
@@ -138,7 +138,7 @@ const submitEdit = async () => {
     class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/60 hidden w-full h-full flex items-center justify-center fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
   >
     <div
-      class="w-full max-w-2xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
+      class="w-full max-w-3xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
     >
       <!-- Header -->
       <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
@@ -172,16 +172,36 @@ const submitEdit = async () => {
 
         <!-- Metadata Header -->
         <div v-if="segment" class="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 space-y-2 text-sm">
+          <!-- Media name + cover thumbnail -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.media') }}</span>
+            <img
+              v-if="segment.media.coverUrl"
+              :src="segment.media.coverUrl"
+              class="w-10 h-10 rounded object-cover flex-shrink-0 text-transparent"
+              :alt="segment.media.nameRomaji"
+              @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
+            />
             <span class="font-medium text-white truncate">{{ segment.media.nameRomaji }}</span>
             <span class="text-neutral-500">—</span>
             <span class="text-neutral-400">{{ t('modalSegmentEdit.metadata.episode') }} {{ segment.segment.episode }}</span>
           </div>
+          <!-- Time -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.time') }}</span>
             <span class="font-mono text-neutral-300">{{ formatMs(segment.segment.startTimeMs) }} → {{ formatMs(segment.segment.endTimeMs) }}</span>
           </div>
+          <!-- Duration -->
+          <div class="flex items-center gap-2 text-neutral-300">
+            <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.duration') }}</span>
+            <span class="font-mono text-neutral-300">{{ ((segment.segment.endTimeMs - segment.segment.startTimeMs) / 1000).toFixed(2) }}s</span>
+          </div>
+          <!-- ID + position -->
+          <div class="flex items-center gap-2 text-neutral-300">
+            <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
+            <span class="font-mono text-neutral-300">#{{ segment.segment.id }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
+          </div>
+          <!-- UUID -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.uuid') }}</span>
             <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.uuid }}</code>
@@ -196,6 +216,19 @@ const submitEdit = async () => {
                 <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
               </svg>
             </button>
+          </div>
+          <!-- Resource URLs -->
+          <div v-if="segment.urls.imageUrl" class="flex items-center gap-2 text-neutral-300">
+            <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.image') }}</span>
+            <a :href="segment.urls.imageUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.urls.imageUrl }}</a>
+          </div>
+          <div v-if="segment.urls.audioUrl" class="flex items-center gap-2 text-neutral-300">
+            <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.audio') }}</span>
+            <a :href="segment.urls.audioUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.urls.audioUrl }}</a>
+          </div>
+          <div v-if="segment.urls.videoUrl" class="flex items-center gap-2 text-neutral-300">
+            <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.video') }}</span>
+            <a :href="segment.urls.videoUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.urls.videoUrl }}</a>
           </div>
         </div>
 
@@ -215,56 +248,49 @@ const submitEdit = async () => {
           </div>
         </div>
 
-        <!-- Translations Section -->
-        <div class="border border-neutral-700 rounded-lg p-4 space-y-4">
-          <h4 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-            {{ t('modalSegmentEdit.translations') }}
-          </h4>
-
-          <!-- English -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-sm font-medium text-gray-300">
-                {{ t('modalSegmentEdit.english') }}
-              </label>
-              <label class="toggle-switch">
-                <input v-model="form.enMt" type="checkbox" class="sr-only peer" />
-                <span class="toggle-track peer-checked:bg-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400" />
-                <span class="ml-2 text-xs text-neutral-400">{{ t('modalSegmentEdit.machineTranslated') }}</span>
-              </label>
-            </div>
-            <textarea
-              v-model="form.en"
-              :maxlength="TEXT_MAX_LENGTH"
-              rows="2"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div class="text-right text-xs mt-0.5" :class="charCountColor(form.en.length)">
-              {{ form.en.length }}/{{ TEXT_MAX_LENGTH }}
-            </div>
+        <!-- English -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-sm font-medium text-gray-300">
+              {{ t('modalSegmentEdit.english') }}
+            </label>
+            <label class="toggle-switch">
+              <input v-model="form.enMt" type="checkbox" class="sr-only peer" />
+              <span class="toggle-track peer-checked:bg-button-danger-main peer-focus-visible:ring-2 peer-focus-visible:ring-button-danger-main" />
+              <span class="ml-2 text-xs text-neutral-400">{{ t('modalSegmentEdit.machineTranslated') }}</span>
+            </label>
           </div>
+          <textarea
+            v-model="form.en"
+            :maxlength="TEXT_MAX_LENGTH"
+            rows="2"
+            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <div class="text-right text-xs mt-0.5" :class="charCountColor(form.en.length)">
+            {{ form.en.length }}/{{ TEXT_MAX_LENGTH }}
+          </div>
+        </div>
 
-          <!-- Spanish -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-sm font-medium text-gray-300">
-                {{ t('modalSegmentEdit.spanish') }}
-              </label>
-              <label class="toggle-switch">
-                <input v-model="form.esMt" type="checkbox" class="sr-only peer" />
-                <span class="toggle-track peer-checked:bg-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400" />
-                <span class="ml-2 text-xs text-neutral-400">{{ t('modalSegmentEdit.machineTranslated') }}</span>
-              </label>
-            </div>
-            <textarea
-              v-model="form.es"
-              :maxlength="TEXT_MAX_LENGTH"
-              rows="2"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div class="text-right text-xs mt-0.5" :class="charCountColor(form.es.length)">
-              {{ form.es.length }}/{{ TEXT_MAX_LENGTH }}
-            </div>
+        <!-- Spanish -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-sm font-medium text-gray-300">
+              {{ t('modalSegmentEdit.spanish') }}
+            </label>
+            <label class="toggle-switch">
+              <input v-model="form.esMt" type="checkbox" class="sr-only peer" />
+              <span class="toggle-track peer-checked:bg-button-danger-main peer-focus-visible:ring-2 peer-focus-visible:ring-button-danger-main" />
+              <span class="ml-2 text-xs text-neutral-400">{{ t('modalSegmentEdit.machineTranslated') }}</span>
+            </label>
+          </div>
+          <textarea
+            v-model="form.es"
+            :maxlength="TEXT_MAX_LENGTH"
+            rows="2"
+            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <div class="text-right text-xs mt-0.5" :class="charCountColor(form.es.length)">
+            {{ form.es.length }}/{{ TEXT_MAX_LENGTH }}
           </div>
         </div>
 
@@ -317,7 +343,7 @@ const submitEdit = async () => {
         <button
           type="button"
           :disabled="isSubmitting"
-          class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="submitEdit"
         >
           <span

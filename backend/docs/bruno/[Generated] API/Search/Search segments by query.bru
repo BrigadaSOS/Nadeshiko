@@ -1,11 +1,11 @@
 meta {
   name: Search segments by query
   type: http
-  seq: 2
+  seq: 1
 }
 
 post {
-  url: {{baseUrl}}/v1/search/segments
+  url: {{baseUrl}}/v1/search
   body: json
   auth: bearer
 }
@@ -16,39 +16,22 @@ auth:bearer {
 
 body:json {
   {
-    "query": "彼女",
+    "query": {
+      "search": "(猫 OR 犬) AND 好き",
+      "exactMatch": false
+    },
     "limit": 10,
-    "uuid": "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e",
-    "category": [
-      "ANIME",
-      "JDRAMA"
-    ],
-    "mediaId": 5,
-    "episode": [
-      5,
-      8
-    ],
-    "randomSeed": 42,
-    "contentSort": "NONE",
     "cursor": [
       23.31727,
       7
     ],
-    "exactMatch": false,
-    "minLength": 10,
-    "maxLength": 50,
-    "excludedMediaIds": [],
-    "status": [
-      "ACTIVE"
-    ],
-    "media": [
-      {
-        "mediaId": 123,
-        "episodes": [
-          1,
-          2
-        ]
-      }
+    "sort": {
+      "mode": "NONE",
+      "seed": 42
+    },
+    "filters": "",
+    "include": [
+      "media"
     ]
   }
 }
