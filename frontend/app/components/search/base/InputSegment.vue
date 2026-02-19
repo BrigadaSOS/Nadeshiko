@@ -9,7 +9,9 @@ const props = defineProps({
 });
 
 const route = useRoute();
+const router = useRouter();
 const query = ref('');
+const forceSearchCounter = useState('force-search-counter', () => 0);
 
 const headers = useRequestHeaders(['user-agent']);
 const isMobile = computed(() => {
@@ -22,17 +24,19 @@ const navigateSearchSentence = async () => {
   const term = query.value?.trim();
   const remaining = Object.keys(restOfQuery).length > 0 ? restOfQuery : undefined;
 
-  if (term) {
-    await navigateTo({
-      path: `/search/${encodeURIComponent(term)}`,
-      query: remaining,
-    });
-  } else {
-    await navigateTo({
-      path: '/search',
-      query: remaining,
-    });
+  const target = {
+    path: term ? `/search/${encodeURIComponent(term)}` : '/search',
+    query: remaining,
+  };
+
+  // If already at the target URL (e.g. after toggling EN/ES which only changed hideLangs/blurLangs),
+  // skip navigation and signal SearchContainer to re-fetch with current preferences instead.
+  if (router.resolve(target).fullPath === route.fullPath) {
+    forceSearchCounter.value++;
+    return;
   }
+
+  await navigateTo(target);
 };
 
 const handleKeyDown = (event) => {

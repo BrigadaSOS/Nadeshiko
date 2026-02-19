@@ -6,9 +6,7 @@ export default defineEventHandler(async (event) => {
 
   const sdk = getNadeshikoSdkClient();
 
-  // TODO: Replace with sdk.autocompleteMedia() once the SDK is rebuilt with the new OpenAPI spec.
-  const { data, error } = await sdk.client.get({
-    url: '/v1/media/autocomplete',
+  const { data, error } = await sdk.autocompleteMedia({
     query: {
       query: String(query.query ?? ''),
       limit: query.limit ? Number(query.limit) : undefined,

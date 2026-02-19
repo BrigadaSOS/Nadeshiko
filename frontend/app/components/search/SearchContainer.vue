@@ -396,6 +396,14 @@ onMounted(async () => {
   }
 });
 
+const forceSearchCounter = useState('force-search-counter', () => 0);
+
+watch(forceSearchCounter, () => {
+  resetSentencePagination();
+  fetchStats();
+  fetchSentences();
+});
+
 const isOnlyLangPreferenceChange = (to, from) => {
   if (to.path !== from.path) return false;
   if (getSearchQuery(to) !== getSearchQuery(from)) return false;

@@ -1,4 +1,4 @@
-import { getNadeshikoUserClient } from '~~/server/utils/nadeshikoSdk';
+import { useNadeshikoClient } from '~~/server/utils/nadeshikoSdk';
 
 export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'));
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const cursor = query.cursor ? Number(query.cursor) : undefined;
   const limit = query.limit ? Number(query.limit) : 20;
 
-  const sdk = getNadeshikoUserClient(event);
+  const sdk = useNadeshikoClient(event);
   const { data } = await sdk.getCollection({
     path: { id },
     query: {
