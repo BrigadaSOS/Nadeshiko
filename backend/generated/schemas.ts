@@ -433,6 +433,7 @@ export const s_SearchFilters = z.object({
     .default(['ACTIVE']),
   segmentLengthChars: z.object({ min: z.coerce.number().optional(), max: z.coerce.number().optional() }).optional(),
   segmentDurationMs: z.object({ min: z.coerce.number().optional(), max: z.coerce.number().optional() }).optional(),
+  languages: z.object({ exclude: z.array(z.enum(['en', 'es'])).optional() }).optional(),
 });
 
 export const s_Segment = z.object({
@@ -673,6 +674,8 @@ export const s_CollectionWithSegments = z.object({
   totalCount: z.coerce.number(),
   pagination: s_CursorPagination,
 });
+
+export const s_MediaAutocompleteResponse = z.object({ media: z.array(s_Media) });
 
 export const s_MediaListResponse = z.object({ media: z.array(s_Media), pagination: s_CursorPagination });
 

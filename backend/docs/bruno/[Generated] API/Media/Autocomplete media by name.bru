@@ -1,0 +1,26 @@
+meta {
+  name: Autocomplete media by name
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/media/autocomplete?query=steins&limit=10&category=ANIME
+  body: none
+  auth: bearer
+}
+
+params:query {
+  query: steins
+  limit: 10
+  category: ANIME
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

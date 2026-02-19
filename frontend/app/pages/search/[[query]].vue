@@ -7,6 +7,7 @@ const shortcutsModal = ref(null);
 const route = useRoute();
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
+const { excludedLanguages } = useTranslationVisibility();
 
 const firstQueryValue = (value) => (Array.isArray(value) ? value[0] : value);
 const getStringQueryValue = (value) => {
@@ -82,6 +83,9 @@ const fetchSentenceData = async () => {
     }
 
     filters.contentRating = contentRating.value;
+    if (excludedLanguages.value.length > 0) {
+      filters.languages = { exclude: excludedLanguages.value };
+    }
     body.filters = filters;
     return await apiSearch.searchSegments(body);
   } catch (error) {
@@ -112,6 +116,9 @@ const fetchStatsData = async () => {
     }
 
     filters.contentRating = contentRating.value;
+    if (excludedLanguages.value.length > 0) {
+      filters.languages = { exclude: excludedLanguages.value };
+    }
     body.filters = filters;
     return await apiSearch.getSearchStats(body);
   } catch (error) {
@@ -128,6 +135,7 @@ const sentenceCacheKey = computed(() => {
     mediaQueryParam.value,
     episodeQueryParam.value,
     route.query.sort,
+    excludedLanguages.value.length > 0 ? `hideLangs:${excludedLanguages.value.join(',')}` : '',
   ]
     .filter(Boolean)
     .join('-');
@@ -135,7 +143,7 @@ const sentenceCacheKey = computed(() => {
 });
 
 const statsCacheKey = computed(() => {
-  const params = [searchQuery.value, route.query.category, mediaQueryParam.value, episodeQueryParam.value]
+  const params = [searchQuery.value, route.query.category, mediaQueryParam.value, episodeQueryParam.value, excludedLanguages.value.length > 0 ? `hideLangs:${excludedLanguages.value.join(',')}` : '']
     .filter(Boolean)
     .join('-');
   return `search-stats-${params || 'default'}`;
@@ -273,7 +281,7 @@ useHead(metaTags);
                 <div class="pt-2">
                     <div class="md:max-w-[92%] mx-auto">
                         <SearchModalKeyboardShortcuts ref="shortcutsModal" />
-                        <SearchBaseInputSegment compact />
+                        <SearchBaseInputSegment />
                         <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" :collection-id="collectionIdParam" :collection-name="collectionDetails?.name ?? null">
                             <template #result-controls>
                                 <div class="flex items-center gap-3">

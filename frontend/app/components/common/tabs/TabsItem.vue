@@ -1,7 +1,13 @@
 <template>
-  <li @click="handleClick" :class="{ active: isActive }">
-    <span class="tab-label">{{ categoryName }}</span>
-    <span class="tab-count bg-gray-100 text-gray-800 text-sm px-2.5 py-1 rounded-lg dark:bg-button-primary-main dark:text-gray-300">
+  <li
+    @click="handleClick"
+    class="py-4 px-5 relative inline-flex items-center gap-2.5 cursor-pointer shrink-0"
+    :class="isActive
+      ? 'font-bold text-[rgb(251,120,120)] after:content-[\'\'] after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-[#d74e67] after:z-[1]'
+      : ''"
+  >
+    <span class="leading-tight">{{ categoryName }}</span>
+    <span class="inline-flex items-center justify-center leading-none min-h-6 bg-gray-100 text-gray-800 text-sm px-2.5 py-1 rounded-lg dark:bg-button-primary-main dark:text-gray-300">
       {{ count }}
     </span>
   </li>
@@ -15,21 +21,3 @@ const handleClick = () => {
   emit('click');
 };
 </script>
-
-<style scoped>
-.active {
-  font-weight: bold;
-}
-
-.tab-label {
-  line-height: 1.2;
-}
-
-.tab-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  min-height: 1.5rem;
-}
-</style>

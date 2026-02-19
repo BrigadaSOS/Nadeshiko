@@ -109,6 +109,7 @@ const SearchRoutes = createSearchRouter({
 const MediaRoutes = createMediaRouter({
   listMedia,
   createMedia,
+  autocompleteMedia,
   getMedia,
   updateMedia,
   deleteMedia,
@@ -246,29 +247,6 @@ router.post('/v1/media/*path', ...mediaAddPermission);
 router.patch('/v1/media/*path', ...mediaUpdatePermission);
 router.delete('/v1/media/*path', ...mediaRemovePermission);
 
-// Internal-only helper for frontend media autocomplete.
-router.get('/v1/media/autocomplete', async (req: any, res: any, next: any) => {
-  try {
-    const queryParam = Array.isArray(req.query.query) ? req.query.query[0] : req.query.query;
-    const limitParam = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
-    const categoryParam = Array.isArray(req.query.category) ? req.query.category[0] : req.query.category;
-
-    const query = typeof queryParam === 'string' ? queryParam : undefined;
-    const parsedLimit = Number(limitParam);
-    const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
-    const category = typeof categoryParam === 'string' ? categoryParam : undefined;
-
-    const data = await autocompleteMedia({
-      query,
-      limit,
-      category,
-    });
-
-    res.status(200).json(data);
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Track activity (segment plays) — manual route outside OpenAPI-generated router
 router.post('/v1/user/activity', async (req: any, res: any, next: any) => {

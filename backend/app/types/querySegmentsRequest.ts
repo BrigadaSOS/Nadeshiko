@@ -25,6 +25,9 @@ export interface QueryFilters {
   readonly status: string[];
   readonly segmentLengthChars?: { readonly min?: number; readonly max?: number };
   readonly segmentDurationMs?: { readonly min?: number; readonly max?: number };
+  readonly languages?: {
+    readonly exclude?: string[];
+  };
 }
 
 export interface MediaFilterItem {
