@@ -7,6 +7,8 @@ import type {
   AddSegmentToCollection,
   UpdateCollectionSegment,
   RemoveSegmentFromCollection,
+  SearchCollectionSegments,
+  GetCollectionStats,
 } from 'generated/routes/collections';
 import { Collection, CollectionSegment, CollectionVisibility, Segment, UserRoleType } from '@app/models';
 import { toCollectionDTO } from './mappers/collection.mapper';
@@ -253,4 +255,106 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
   });
 
   return respond.with204();
+};
+
+export const searchCollectionSegments: SearchCollectionSegments = async ({ params, query }, respond) => {
+  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+
+  const limit = Math.min(query.limit || 20, 100);
+  const offset = query.cursor ?? 0;
+
+  const [segmentItems, totalCount] = await CollectionSegment.findAndCount({
+    where: { collectionId: collection.id },
+    order: { position: 'ASC' },
+    skip: offset,
+    take: limit,
+  });
+
+  const hasMore = offset + segmentItems.length < totalCount;
+  const nextCursor = hasMore ? offset + segmentItems.length : null;
+
+  if (segmentItems.length === 0) {
+    return respond.with200().body({
+      segments: [],
+      includes: { media: {} },
+      pagination: {
+        hasMore,
+        cursor: nextCursor != null ? [nextCursor] : undefined,
+        estimatedTotalHits: totalCount,
+        estimatedTotalHitsRelation: 'EXACT' as const,
+      },
+    });
+  }
+
+  const uuids = segmentItems.map((item) => item.segmentUuid);
+  const { segments: searchResults, includes } = await querySegmentsByUuids(uuids);
+
+  // Preserve collection ordering
+  const resultByUuid = new Map(searchResults.map((r) => [r.uuid, r]));
+  const segments = segmentItems
+    .map((item) => resultByUuid.get(item.segmentUuid))
+    .filter((s): s is NonNullable<typeof s> => s != null);
+
+  return respond.with200().body({
+    segments,
+    includes,
+    pagination: {
+      hasMore,
+      cursor: nextCursor != null ? [nextCursor] : undefined,
+      estimatedTotalHits: totalCount,
+      estimatedTotalHitsRelation: 'EXACT' as const,
+    },
+  });
+};
+
+export const getCollectionStats: GetCollectionStats = async ({ params }, respond) => {
+  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+
+  // Fetch all segment items from the collection
+  const allSegmentItems = await CollectionSegment.find({
+    where: { collectionId: collection.id },
+    order: { position: 'ASC' },
+  });
+
+  if (allSegmentItems.length === 0) {
+    return respond.with200().body({ media: [], categories: [] });
+  }
+
+  // Get full segment data from ES to access media info
+  const uuids = allSegmentItems.map((item) => item.segmentUuid);
+  const { segments: searchResults, includes } = await querySegmentsByUuids(uuids);
+
+  const mediaIncludes = includes.media;
+
+  // Compute per-media stats
+  const mediaMap = new Map<number, { matchCount: number; episodeHits: Record<string, number> }>();
+  const categoryCountMap = new Map<string, number>();
+
+  for (const seg of searchResults) {
+    let entry = mediaMap.get(seg.mediaId);
+    if (!entry) {
+      entry = { matchCount: 0, episodeHits: {} };
+      mediaMap.set(seg.mediaId, entry);
+    }
+    entry.matchCount++;
+    const epKey = String(seg.episode);
+    entry.episodeHits[epKey] = (entry.episodeHits[epKey] ?? 0) + 1;
+
+    const mediaInfo = mediaIncludes[String(seg.mediaId)];
+    const category = (mediaInfo as any)?.category ?? 'ANIME';
+    categoryCountMap.set(category, (categoryCountMap.get(category) ?? 0) + 1);
+  }
+
+  const media = Array.from(mediaMap.entries()).map(([mediaId, stats]) => ({
+    mediaId,
+    matchCount: stats.matchCount,
+    episodeHits: stats.episodeHits,
+  }));
+
+  const categories = Array.from(categoryCountMap.entries()).map(([category, count]) => ({
+    category: category as any,
+    count,
+  }));
+
+  return respond.with200().body({ media, categories, includes });
 };

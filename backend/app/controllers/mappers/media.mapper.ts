@@ -5,9 +5,9 @@ import { toMediaBaseDTO, toMediaCharacterDTO } from './shared.mapper';
 /**
  * Full media mapper with relations (characters).
  */
-export const toMediaDTO = (media: Media, options?: { includeCharacters?: boolean }): t_Media => {
+export const toMediaDTO = (media: Media): t_Media => {
   const base = toMediaBaseDTO(media);
-  if (!options?.includeCharacters) {
+  if (media.characters === undefined) {
     return base;
   }
 
@@ -17,5 +17,4 @@ export const toMediaDTO = (media: Media, options?: { includeCharacters?: boolean
   };
 };
 
-export const toMediaListDTO = (mediaList: Media[], options?: { includeCharacters?: boolean }): t_Media[] =>
-  mediaList.map((media) => toMediaDTO(media, options));
+export const toMediaListDTO = (mediaList: Media[]): t_Media[] => mediaList.map(toMediaDTO);

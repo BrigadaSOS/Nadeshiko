@@ -1,16 +1,19 @@
 <script setup lang="ts">
+import type { SearchFilters } from '~/types/search';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { buildSentenceMetaTags } from '~/utils/metaTags';
+import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 
-const shortcutsModal = ref(null);
+const shortcutsModal = ref<{ open: () => void } | null>(null);
 
 const route = useRoute();
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
 
-const firstQueryValue = (value) => (Array.isArray(value) ? value[0] : value);
-const getStringQueryValue = (value) => {
+const firstQueryValue = (value: string | string[] | undefined | null) =>
+  Array.isArray(value) ? value[0] : value;
+const getStringQueryValue = (value: string | string[] | undefined | null) => {
   const normalized = firstQueryValue(value);
   if (normalized === undefined || normalized === null || normalized === '') {
     return null;
@@ -19,14 +22,18 @@ const getStringQueryValue = (value) => {
 };
 
 const collectionIdParam = computed(() => {
-  const raw = getStringQueryValue(route.query.collectionId);
+  const raw = getStringQueryValue(route.query.collectionId as string | string[] | undefined);
   if (!raw) return null;
   const parsed = Number(raw);
   return Number.isNaN(parsed) ? null : parsed;
 });
 
-const mediaQueryParam = computed(() => getStringQueryValue(route.query.media ?? route.query.mediaId));
-const episodeQueryParam = computed(() => getStringQueryValue(route.query.episode ?? route.query.episodeId));
+const mediaQueryParam = computed(() =>
+  getStringQueryValue((route.query.media ?? route.query.mediaId) as string | string[] | undefined),
+);
+const episodeQueryParam = computed(() =>
+  getStringQueryValue((route.query.episode ?? route.query.episodeId) as string | string[] | undefined),
+);
 
 const episodeNumberParam = computed(() => {
   if (!episodeQueryParam.value) {
@@ -45,72 +52,97 @@ const searchQuery = computed(() => {
 
 const fetchSentenceData = async () => {
   try {
-    const apiSearch = useApiSearch();
+    const sdk = useNadeshikoSdk();
 
     if (collectionIdParam.value) {
-      return await apiSearch.searchCollectionSegments(collectionIdParam.value);
+      const { data } = await sdk.getCollection({
+        path: { id: collectionIdParam.value },
+        query: { limit: 20 },
+      });
+      if (!data) return null;
+      // Reshape collection response to search response format
+      const segments = (data.segments ?? []).map((entry: any) => entry.result).filter(Boolean);
+      return resolveSearchResponse({
+        segments,
+        includes: data.includes,
+        pagination: {
+          hasMore: data.pagination?.hasMore ?? false,
+          cursor: data.pagination?.cursor != null ? [data.pagination.cursor] : undefined,
+          estimatedTotalHits: data.totalCount ?? 0,
+          estimatedTotalHitsRelation: 'EXACT',
+        },
+      });
     }
 
-    const body = {
-      limit: 20,
-    };
-    const filters = {};
-
+    const filters: SearchFilters = {};
     const q = searchQuery.value;
-    if (q) {
-      body.query = q;
-    }
 
     if (route.query.uuid) {
-      body.uuid = route.query.uuid;
+      // UUID lookup: fetch segment + media directly
+      const uuid = String(route.query.uuid);
+      const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid } });
+      if (!segment) return null;
+      const { data: media } = await sdk.getMedia({ path: { id: segment.mediaId } });
+      return resolveSearchResponse({
+        segments: [segment],
+        includes: media ? { media: { [String(segment.mediaId)]: media } } : {},
+      });
     }
 
-    const categoryValue = CATEGORY_API_MAPPING[route.query.category];
+    const categoryValue = CATEGORY_API_MAPPING[route.query.category as string];
     if (categoryValue) {
       filters.category = [categoryValue];
     }
 
     if (mediaQueryParam.value) {
-      const mediaEntry = { mediaId: Number(mediaQueryParam.value) };
+      const mediaEntry: { mediaId: number; episodes?: number[] } = {
+        mediaId: Number(mediaQueryParam.value),
+      };
       if (episodeNumberParam.value !== null) {
         mediaEntry.episodes = [episodeNumberParam.value];
       }
       filters.media = { include: [mediaEntry] };
     }
 
-    if (route.query.sort && route.query.sort !== 'NONE') {
-      body.sort = route.query.sort;
-    }
-
     filters.contentRating = contentRating.value;
     if (excludedLanguages.value.length > 0) {
       filters.languages = { exclude: excludedLanguages.value };
     }
-    body.filters = filters;
-    return await apiSearch.searchSegments(body);
-  } catch (error) {
-    console.error('Error fetching sentence data:', error);
+
+    const sortParam = route.query.sort;
+    const sort = sortParam && sortParam !== 'NONE' ? { mode: String(sortParam) as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' } : undefined;
+
+    const { data } = await sdk.search({
+      body: {
+        query: q ? { search: q } : undefined,
+        limit: 30,
+        sort,
+        filters,
+        include: ['media'],
+      },
+    });
+    return data ? resolveSearchResponse(data) : null;
+  } catch {
     return null;
   }
 };
 
 const fetchStatsData = async () => {
   try {
-    const apiSearch = useApiSearch();
+    const sdk = useNadeshikoSdk();
 
     if (collectionIdParam.value) {
-      return await apiSearch.getCollectionStats(collectionIdParam.value);
+      // Collection stats: use $fetch through proxy for new endpoint
+      const raw = await $fetch(`/v1/collections/${collectionIdParam.value}/stats`, {
+        credentials: 'include',
+      });
+      return resolveStatsResponse(raw as any);
     }
 
-    const body = {};
-    const filters = {};
-
+    const filters: SearchFilters = {};
     const q = searchQuery.value;
-    if (q) {
-      body.query = q;
-    }
 
-    const categoryValue = CATEGORY_API_MAPPING[route.query.category];
+    const categoryValue = CATEGORY_API_MAPPING[route.query.category as string];
     if (categoryValue) {
       filters.category = [categoryValue];
     }
@@ -119,8 +151,15 @@ const fetchStatsData = async () => {
     if (excludedLanguages.value.length > 0) {
       filters.languages = { exclude: excludedLanguages.value };
     }
-    body.filters = filters;
-    return await apiSearch.getSearchStats(body);
+
+    const { data } = await sdk.getSearchStats({
+      body: {
+        query: q ? { search: q } : undefined,
+        filters,
+        include: ['media'],
+      },
+    });
+    return data ? resolveStatsResponse(data) : null;
   } catch (error) {
     console.error('Error fetching search stats:', error);
     return null;
@@ -135,7 +174,6 @@ const sentenceCacheKey = computed(() => {
     mediaQueryParam.value,
     episodeQueryParam.value,
     route.query.sort,
-    excludedLanguages.value.length > 0 ? `hideLangs:${excludedLanguages.value.join(',')}` : '',
   ]
     .filter(Boolean)
     .join('-');
@@ -143,7 +181,7 @@ const sentenceCacheKey = computed(() => {
 });
 
 const statsCacheKey = computed(() => {
-  const params = [searchQuery.value, route.query.category, mediaQueryParam.value, episodeQueryParam.value, excludedLanguages.value.length > 0 ? `hideLangs:${excludedLanguages.value.join(',')}` : '']
+  const params = [searchQuery.value, route.query.category, mediaQueryParam.value, episodeQueryParam.value]
     .filter(Boolean)
     .join('-');
   return `search-stats-${params || 'default'}`;
@@ -152,18 +190,25 @@ const statsCacheKey = computed(() => {
 const { data: initialSentenceData } = await useAsyncData(sentenceCacheKey.value, () => fetchSentenceData(), {
   server: true,
   lazy: false,
+  watch: [],
 });
 
 const { data: initialStatsData } = await useAsyncData(statsCacheKey.value, () => fetchStatsData(), {
   server: true,
   lazy: false,
+  watch: [],
 });
 
 const { data: collectionDetails } = await useAsyncData(
   `collection-details-${collectionIdParam.value ?? 'none'}`,
   async () => {
     if (!collectionIdParam.value) return null;
-    return await $fetch<{ name?: string }>(`/api/collections/${collectionIdParam.value}`).catch(() => null);
+    const sdk = useNadeshikoSdk();
+    const { data } = await sdk.getCollection({
+      path: { id: collectionIdParam.value },
+      query: { limit: 1 },
+    });
+    return data ? { name: data.name } : null;
   },
   { server: true, lazy: false },
 );
@@ -172,7 +217,7 @@ const metaTags = computed(() => {
   const defaultDescription =
     'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!';
 
-  const tags = {
+  const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
     title: 'Nadeshiko',
     meta: [
       { name: 'description', content: defaultDescription },
@@ -193,7 +238,7 @@ const metaTags = computed(() => {
   } else if (q) {
     const stats = initialStatsData.value?.categories;
     const pagination = initialSentenceData.value?.pagination;
-    const totalResults = pagination?.estimatedTotalHits || stats?.reduce((sum, s) => sum + s.count, 0) || 0;
+    const totalResults = pagination?.estimatedTotalHits || stats?.reduce((sum, s) => sum + (s.count ?? 0), 0) || 0;
     const isLowerBound = pagination?.estimatedTotalHitsRelation === 'LOWER_BOUND';
 
     const title = `Search: ${q} | Nadeshiko`;
@@ -203,13 +248,13 @@ const metaTags = computed(() => {
         : 'Search for Japanese sentences';
 
     if (stats && stats.length > 0) {
-      const categoryNames = { ANIME: 'anime', JDRAMA: 'live-action' };
+      const categoryNames: Record<string, string> = { ANIME: 'anime', JDRAMA: 'live-action' };
       const order = ['ANIME', 'JDRAMA'];
       const breakdown = order
         .map((cat) => stats.find((s) => s.category === cat))
-        .filter(Boolean)
-        .filter((s) => s.count > 0)
-        .map((s) => `${categoryNames[s.category]}: ${s.count.toLocaleString()}`)
+        .filter((s): s is NonNullable<typeof s> => s != null)
+        .filter((s) => (s.count ?? 0) > 0)
+        .map((s) => `${categoryNames[s.category]}: ${(s.count ?? 0).toLocaleString()}`)
         .join(', ');
       if (breakdown) {
         description += ` (${breakdown})`;
@@ -224,16 +269,16 @@ const metaTags = computed(() => {
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
     ];
-  } else if (mediaQueryParam.value && initialSentenceData.value?.results?.length > 0) {
-    const firstResult = initialSentenceData.value.results[0];
+  } else if (mediaQueryParam.value && (initialSentenceData.value?.results?.length ?? 0) > 0) {
+    const firstResult = initialSentenceData.value!.results[0]!;
     const animeName = mediaName(firstResult.media);
-    const mediaId = firstResult.media.mediaId;
+    const mediaId = firstResult.media.id;
 
     const mediaStats = initialStatsData.value?.media?.find((s) => s.mediaId === Number(mediaId));
 
     const filterEpisode = episodeNumberParam.value;
 
-    let totalResults = mediaStats?.segmentCount || 0;
+    let totalResults = mediaStats?.matchCount || 0;
     const episodeHits = mediaStats?.episodeHits;
 
     if (episodeHits && filterEpisode) {
@@ -252,7 +297,7 @@ const metaTags = computed(() => {
       }
     }
 
-    const thumbnail = firstResult.media?.coverUrl || firstResult.urls.imageUrl;
+    const thumbnail = firstResult.media?.coverUrl || firstResult.segment.urls.imageUrl;
 
     tags.title = title;
     tags.meta = [
@@ -282,7 +327,7 @@ useHead(metaTags);
                     <div class="md:max-w-[92%] mx-auto">
                         <SearchModalKeyboardShortcuts ref="shortcutsModal" />
                         <SearchBaseInputSegment />
-                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" :collection-id="collectionIdParam" :collection-name="collectionDetails?.name ?? null">
+                        <SearchContainer :initial-sentence-data="initialSentenceData ?? undefined" :initial-stats-data="initialStatsData ?? undefined" :collection-id="collectionIdParam ?? undefined" :collection-name="collectionDetails?.name ?? undefined">
                             <template #result-controls>
                                 <div class="flex items-center gap-3">
                                     <SearchTranslationVisibilityPreferences />

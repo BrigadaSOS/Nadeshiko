@@ -18,15 +18,6 @@ get:
       schema:
         type: integer
         example: 95991
-    - name: include
-      in: query
-      description: Resources to expand in the response (`character` is included by default)
-      schema:
-        type: array
-        items:
-          type: string
-          enum: [character]
-        default: [character]
   responses:
     "200":
       description: OK

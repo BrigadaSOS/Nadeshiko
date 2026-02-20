@@ -69,7 +69,7 @@ const contentPreview = computed(() => {
         }
         return '';
       })
-      .filter((text) => text.trim().length > 0)
+      .filter((text: string) => text.trim().length > 0)
       .join(' ');
 
     // Limit to approximately 500 words

@@ -1,4 +1,4 @@
-export type ContentRating = 'SAFE' | 'SUGGESTIVE' | 'QUESTIONABLE' | 'EXPLICIT';
+import type { ContentRating } from '@brigadasos/nadeshiko-sdk';
 export type ContentRatingMode = 'show' | 'blur' | 'hide';
 
 export interface ContentRatingPreferences {

@@ -15,6 +15,7 @@
       "db/**",
       "lib/**",
       "!lib/emails",
+      "tests/**",
       "package.json",
       "tsconfig.json"
     ]

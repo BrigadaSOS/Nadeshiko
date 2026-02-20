@@ -9,7 +9,7 @@ import type {
   DeleteAdminReviewAllowlistEntry,
 } from 'generated/routes/admin';
 import { ReviewCheck, ReviewCheckRun, ReviewAllowlist, Report } from '@app/models';
-import { NotFoundError, InvalidRequestError } from '@app/errors';
+import { NotFoundError } from '@app/errors';
 import { runAllChecks } from '@app/services/mediaReview/runner';
 import { checkRegistry } from '@app/services/mediaReview/registry';
 import { type FindOptionsWhere, LessThan } from 'typeorm';
@@ -186,20 +186,12 @@ export const listAdminReviewAllowlist: ListAdminReviewAllowlist = async ({ query
 export const createAdminReviewAllowlistEntry: CreateAdminReviewAllowlistEntry = async ({ body }, respond) => {
   const { checkName, mediaId, episodeNumber, reason } = body;
 
-  const existing = await ReviewAllowlist.findOne({
-    where: { checkName, mediaId, episodeNumber: episodeNumber ?? undefined },
-  });
-  if (existing) {
-    throw new InvalidRequestError('This item is already allowlisted');
-  }
-
-  const entry = ReviewAllowlist.create({
+  const entry = await ReviewAllowlist.save({
     checkName,
     mediaId,
     episodeNumber: episodeNumber ?? null,
     reason: reason ?? null,
   });
-  await entry.save();
 
   return respond.with201().body({
     id: entry.id,

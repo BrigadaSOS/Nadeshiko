@@ -29,14 +29,19 @@ import type {
   t_Error500,
   t_GetCollectionParamSchema,
   t_GetCollectionQuerySchema,
+  t_GetCollectionStatsParamSchema,
   t_ListCollectionsQuerySchema,
   t_RemoveSegmentFromCollectionParamSchema,
+  t_SearchCollectionSegmentsParamSchema,
+  t_SearchCollectionSegmentsQuerySchema,
+  t_SearchResponse,
+  t_SearchStatsResponse,
   t_UpdateCollectionParamSchema,
   t_UpdateCollectionRequestBodySchema,
   t_UpdateCollectionSegmentParamSchema,
   t_UpdateCollectionSegmentRequestBodySchema,
 } from '../models.ts';
-import type { CollectionRequestsOutput, GetCollectionQueryOutput, ListCollectionsQueryOutput } from '../outputTypes.ts';
+import type { CollectionRequestsOutput, GetCollectionQueryOutput, ListCollectionsQueryOutput, SearchCollectionSegmentsQueryOutput } from '../outputTypes.ts';
 import {
   s_Collection,
   s_CollectionListResponse,
@@ -48,6 +53,8 @@ import {
   s_Error404,
   s_Error429,
   s_Error500,
+  s_SearchResponse,
+  s_SearchStatsResponse,
 } from '../schemas.ts';
 
 export type ListCollectionsResponder = {
@@ -192,6 +199,42 @@ export type RemoveSegmentFromCollection = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type SearchCollectionSegmentsResponder = {
+  with200(): ExpressRuntimeResponse<t_SearchResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type SearchCollectionSegments = (
+  params: Params<t_SearchCollectionSegmentsParamSchema, SearchCollectionSegmentsQueryOutput, void, void>,
+  respond: SearchCollectionSegmentsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetCollectionStatsResponder = {
+  with200(): ExpressRuntimeResponse<t_SearchStatsResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetCollectionStats = (
+  params: Params<t_GetCollectionStatsParamSchema, void, void, void>,
+  respond: GetCollectionStatsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type CollectionsImplementation = {
   listCollections: ListCollections;
   createCollection: CreateCollection;
@@ -201,6 +244,8 @@ export type CollectionsImplementation = {
   addSegmentToCollection: AddSegmentToCollection;
   updateCollectionSegment: UpdateCollectionSegment;
   removeSegmentFromCollection: RemoveSegmentFromCollection;
+  searchCollectionSegments: SearchCollectionSegments;
+  getCollectionStats: GetCollectionStats;
 };
 
 export function createCollectionsRouter(implementation: CollectionsImplementation): Router {
@@ -818,6 +863,161 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
 
       if (body !== undefined) {
         res.json(removeSegmentFromCollectionResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const searchCollectionSegmentsParamSchema = z.object({ id: z.coerce.number() });
+
+  const searchCollectionSegmentsQuerySchema = z.object({
+    cursor: z.coerce.number().min(0).optional(),
+    limit: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+
+  const searchCollectionSegmentsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SearchResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // searchCollectionSegments
+  router.get(`/v1/collections/:id/search`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(searchCollectionSegmentsParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(searchCollectionSegmentsQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_SearchResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.searchCollectionSegments(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(searchCollectionSegmentsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getCollectionStatsParamSchema = z.object({ id: z.coerce.number() });
+
+  const getCollectionStatsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SearchStatsResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getCollectionStats
+  router.get(`/v1/collections/:id/stats`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(getCollectionStatsParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_SearchStatsResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getCollectionStats(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getCollectionStatsResponseBodyValidator(status, body));
       } else {
         res.end();
       }

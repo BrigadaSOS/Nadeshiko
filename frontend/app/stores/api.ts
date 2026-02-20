@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { authApiRequest } from '~/utils/authApi';
 
 interface ApiResponse {
   status: number;
@@ -74,52 +73,21 @@ export const apiStore = defineStore('api', {
   actions: {
     async getApiKeysByUser(): Promise<ApiKeysByUserResponse> {
       try {
-        const [keysResponse, quotaResponse] = await Promise.all([
-          authApiRequest<unknown[]>('/v1/auth/api-key/list', {
-            method: 'GET',
-          }),
-          authApiRequest<Record<string, unknown>>('/v1/user/quota', {
-            method: 'GET',
-          }),
+        const [keysRaw, quotaRaw] = await Promise.all([
+          $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []),
+          $fetch<Record<string, unknown>>('/v1/user/quota', { method: 'GET', credentials: 'include' }).catch(() => ({})),
         ]);
 
-        const data = keysResponse.data;
-
-        if (!keysResponse.ok) {
-          return {
-            status: keysResponse.status,
-            keys: [],
-            quota: {
-              quotaUsed: 0,
-              quotaLimit: 2500,
-              quotaRemaining: 2500,
-            },
-          };
-        }
-
-        const keys = Array.isArray(data) ? data.map(normalizeApiKey) : [];
-        let quota: QuotaInfo = {
-          quotaUsed: 0,
-          quotaLimit: 2500,
-          quotaRemaining: 2500,
+        const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey);
+        const quotaData = asObject(quotaRaw);
+        const quota: QuotaInfo = {
+          quotaUsed: Number(quotaData.quotaUsed ?? 0),
+          quotaLimit: Number(quotaData.quotaLimit ?? 2500),
+          quotaRemaining: Number(quotaData.quotaRemaining ?? 0),
         };
 
-        if (quotaResponse.ok) {
-          const quotaData = asObject(quotaResponse.data);
-          quota = {
-            quotaUsed: Number(quotaData.quotaUsed ?? 0),
-            quotaLimit: Number(quotaData.quotaLimit ?? 2500),
-            quotaRemaining: Number(quotaData.quotaRemaining ?? 0),
-          };
-        }
-
-        return {
-          status: keysResponse.status,
-          keys,
-          quota,
-        };
-      } catch (error) {
-        console.error(error);
+        return { status: 200, keys, quota };
+      } catch {
         return {
           status: 500,
           keys: [],
@@ -134,59 +102,50 @@ export const apiStore = defineStore('api', {
 
     async deactivateApiKey(apiKeyId: string): Promise<ApiResponse> {
       try {
-        const response = await authApiRequest('/v1/auth/api-key/update', {
+        const data = await $fetch('/v1/auth/api-key/update', {
           method: 'POST',
+          credentials: 'include',
           body: {
             keyId: apiKeyId,
             enabled: false,
           },
         });
 
-        return {
-          status: response.status,
-          ...asObject(response.data),
-        };
-      } catch (error) {
-        console.error(error);
+        return { status: 200, ...asObject(data) };
+      } catch {
         return { status: 500 };
       }
     },
 
     async renameApiKey(apiKeyId: string, newName: string): Promise<ApiResponse> {
       try {
-        const response = await authApiRequest('/v1/auth/api-key/update', {
+        const data = await $fetch('/v1/auth/api-key/update', {
           method: 'POST',
+          credentials: 'include',
           body: {
             keyId: apiKeyId,
             name: newName,
           },
         });
 
-        return {
-          status: response.status,
-          ...asObject(response.data),
-        };
-      } catch (error) {
-        console.error(error);
+        return { status: 200, ...asObject(data) };
+      } catch {
         return { status: 500 };
       }
     },
 
     async createApiKeyGeneral(nameApiKey: string): Promise<ApiKeyActionResponse> {
       try {
-        const response = await authApiRequest('/v1/auth/api-key/create', {
+        const data = await $fetch('/v1/auth/api-key/create', {
           method: 'POST',
+          credentials: 'include',
           body: {
             name: nameApiKey,
           },
         });
 
-        return {
-          status: response.status,
-          ...asObject(response.data),
-        };
-      } catch (error) {
-        console.error(error);
+        return { status: 200, ...asObject(data) };
+      } catch {
         return { status: 500 };
       }
     },

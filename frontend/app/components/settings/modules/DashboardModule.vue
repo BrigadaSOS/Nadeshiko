@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { getRequestHeader } from 'h3';
-import { authApiRequest } from '~/utils/authApi';
 
 type DashboardData = {
   media: {
@@ -72,8 +71,7 @@ const fetchDashboardData = async (): Promise<DashboardData | null> => {
     }).catch(() => null);
   }
 
-  const response = await authApiRequest<DashboardData>('/v1/admin/dashboard');
-  return response.ok && response.data ? response.data : null;
+  return await $fetch<DashboardData>('/v1/admin/dashboard', { credentials: 'include' }).catch(() => null);
 };
 
 const { data, refresh } = await useAsyncData('settings-admin-dashboard', fetchDashboardData, {

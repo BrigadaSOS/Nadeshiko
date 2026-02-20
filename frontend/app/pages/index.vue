@@ -26,13 +26,16 @@ useHead({
 const config = useRuntimeConfig();
 const { mediaName } = useMediaName();
 
-const apiSearch = useApiSearch();
+const sdk = useNadeshikoSdk();
 const {
   data: media,
   pending: isLoading,
   error,
   refresh,
-} = await useAsyncData('recentMedia', () => apiSearch.getRecentMedia({ limit: 10 }), {
+} = await useAsyncData('recentMedia', async () => {
+  const { data } = await sdk.listMedia({ query: { limit: 10, sort: 'RECENT' } });
+  return data?.media ?? null;
+}, {
   default: () => null,
 });
 </script>

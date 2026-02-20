@@ -68,7 +68,7 @@ const filteredMedia = computed(() => {
   const selectedCategory = categoryApiMapping[categorySelected.value];
   const totalCount = normalizedStatistics.value
     .filter((item) => categorySelected.value === 'all' || item.category === selectedCategory)
-    .reduce((a, b) => a + parseInt(b.segmentCount || 0, 10), 0);
+    .reduce((a, b) => a + parseInt(b.matchCount || 0, 10), 0);
 
   const filteredItems = normalizedStatistics.value.filter((item) => {
     const categoryFilter = categorySelected.value === 'all' || item.category === selectedCategory;
@@ -82,7 +82,7 @@ const filteredMedia = computed(() => {
   const allOption = {
     mediaId: 0,
     displayName: allLabel.value,
-    segmentCount: totalCount,
+    matchCount: totalCount,
   };
 
   if (filteredItems.length === 0) {
@@ -157,7 +157,7 @@ const clearFilters = () => {
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.displayName }}</span>
                         <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
-                            {{ item.segmentCount }}
+                            {{ item.matchCount }}
                         </span>
                     </button>
                 </li>

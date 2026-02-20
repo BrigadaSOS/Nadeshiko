@@ -1,0 +1,49 @@
+meta {
+  name: Update segment by UUID
+  type: http
+  seq: 21
+}
+
+patch {
+  url: {{baseUrl}}/v1/media/segments/:uuid
+  body: json
+  auth: bearer
+}
+
+params:query {
+  uuid:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "position": 0,
+    "status": "",
+    "startTimeMs": 0,
+    "endTimeMs": 0,
+    "textJa": {
+      "content": ""
+    },
+    "textEs": {
+      "content": "",
+      "isMachineTranslated": false
+    },
+    "textEn": {
+      "content": "",
+      "isMachineTranslated": false
+    },
+    "contentRating": "",
+    "ratingAnalysis": {},
+    "posAnalysis": {},
+    "storage": "",
+    "hashedId": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

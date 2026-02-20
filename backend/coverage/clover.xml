@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1771645128840" clover="3.2.0">
+  <project timestamp="1771645128841" name="All files">
+    <metrics statements="126" coveredstatements="58" conditionals="25" coveredconditionals="5" methods="39" coveredmethods="20" elements="190" coveredelements="83" complexity="0" loc="126" ncloc="126" packages="5" files="22" classes="22"/>
+    <package name="app.controllers">
+      <metrics statements="16" coveredstatements="16" conditionals="0" coveredconditionals="0" methods="5" coveredmethods="5"/>
+      <file name="episodeController.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/controllers/episodeController.ts">
+        <metrics statements="16" coveredstatements="16" conditionals="0" coveredconditionals="0" methods="5" coveredmethods="5"/>
+        <line num="5" count="1" type="stmt"/>
+        <line num="6" count="4" type="stmt"/>
+        <line num="19" count="3" type="stmt"/>
+        <line num="25" count="1" type="stmt"/>
+        <line num="26" count="3" type="stmt"/>
+        <line num="38" count="3" type="stmt"/>
+        <line num="40" count="3" type="stmt"/>
+        <line num="43" count="1" type="stmt"/>
+        <line num="44" count="2" type="stmt"/>
+        <line num="51" count="1" type="stmt"/>
+        <line num="54" count="1" type="stmt"/>
+        <line num="55" count="3" type="stmt"/>
+        <line num="63" count="2" type="stmt"/>
+        <line num="66" count="1" type="stmt"/>
+        <line num="67" count="3" type="stmt"/>
+        <line num="72" count="2" type="stmt"/>
+      </file>
+    </package>
+    <package name="app.controllers.mappers">
+      <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
+      <file name="episode.mapper.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/controllers/mappers/episode.mapper.ts">
+        <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
+        <line num="4" count="14" type="stmt"/>
+        <line num="17" count="4" type="stmt"/>
+      </file>
+    </package>
+    <package name="app.errors">
+      <metrics statements="90" coveredstatements="23" conditionals="20" coveredconditionals="1" methods="20" coveredmethods="3"/>
+      <file name="accessDeniedError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/accessDeniedError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="accountConflictError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/accountConflictError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="apiError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/apiError.ts">
+        <metrics statements="11" coveredstatements="4" conditionals="4" coveredconditionals="0" methods="3" coveredmethods="1"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="17" count="3" type="stmt"/>
+        <line num="22" count="3" type="stmt"/>
+        <line num="23" count="3" type="stmt"/>
+        <line num="27" count="0" type="stmt"/>
+        <line num="35" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="36" count="0" type="stmt"/>
+        <line num="39" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="40" count="0" type="stmt"/>
+        <line num="43" count="0" type="stmt"/>
+        <line num="48" count="0" type="stmt"/>
+      </file>
+      <file name="authCredentialsExpiredError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/authCredentialsExpiredError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="authCredentialsInvalidError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/authCredentialsInvalidError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="8" count="1" type="stmt"/>
+        <line num="11" count="0" type="stmt"/>
+      </file>
+      <file name="authCredentialsRequiredError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/authCredentialsRequiredError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="8" count="1" type="stmt"/>
+        <line num="11" count="0" type="stmt"/>
+      </file>
+      <file name="emailNotVerifiedError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/emailNotVerifiedError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="index.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/index.ts">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="insufficientPermissionsError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/insufficientPermissionsError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="internalServerError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/internalServerError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="invalidCredentialsError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/invalidCredentialsError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="invalidJsonError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/invalidJsonError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="invalidRequestError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/invalidRequestError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="notFoundError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/notFoundError.ts">
+        <metrics statements="6" coveredstatements="5" conditionals="1" coveredconditionals="1" methods="2" coveredmethods="2"/>
+        <line num="4" count="3" type="stmt"/>
+        <line num="5" count="3" type="stmt"/>
+        <line num="6" count="3" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="3" type="stmt"/>
+        <line num="14" count="0" type="stmt"/>
+      </file>
+      <file name="quotaExceededError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/quotaExceededError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="rateLimitExceededError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/rateLimitExceededError.ts">
+        <metrics statements="5" coveredstatements="1" conditionals="1" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="10" count="0" type="stmt"/>
+      </file>
+      <file name="validationFailedError.ts" path="/home/davafons/workspace/Nadeshiko/backend/app/errors/validationFailedError.ts">
+        <metrics statements="8" coveredstatements="1" conditionals="2" coveredconditionals="0" methods="2" coveredmethods="0"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="stmt"/>
+        <line num="6" count="0" type="stmt"/>
+        <line num="8" count="1" type="stmt"/>
+        <line num="11" count="0" type="stmt"/>
+        <line num="12" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="13" count="0" type="stmt"/>
+        <line num="19" count="0" type="stmt"/>
+      </file>
+    </package>
+    <package name="tests.factories">
+      <metrics statements="6" coveredstatements="6" conditionals="3" coveredconditionals="3" methods="4" coveredmethods="4"/>
+      <file name="episode.ts" path="/home/davafons/workspace/Nadeshiko/backend/tests/factories/episode.ts">
+        <metrics statements="4" coveredstatements="4" conditionals="1" coveredconditionals="1" methods="2" coveredmethods="2"/>
+        <line num="3" count="2" type="stmt"/>
+        <line num="6" count="14" type="stmt"/>
+        <line num="7" count="14" type="stmt"/>
+        <line num="25" count="19" type="stmt"/>
+      </file>
+      <file name="requests.ts" path="/home/davafons/workspace/Nadeshiko/backend/tests/factories/requests.ts">
+        <metrics statements="2" coveredstatements="2" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+        <line num="2" count="3" type="stmt"/>
+        <line num="10" count="3" type="stmt"/>
+      </file>
+    </package>
+    <package name="tests.helpers">
+      <metrics statements="12" coveredstatements="11" conditionals="2" coveredconditionals="1" methods="8" coveredmethods="6"/>
+      <file name="mockResponder.ts" path="/home/davafons/workspace/Nadeshiko/backend/tests/helpers/mockResponder.ts">
+        <metrics statements="12" coveredstatements="11" conditionals="2" coveredconditionals="1" methods="8" coveredmethods="6"/>
+        <line num="9" count="15" type="stmt"/>
+        <line num="13" count="11" type="stmt"/>
+        <line num="14" count="11" type="cond" truecount="1" falsecount="1"/>
+        <line num="16" count="11" type="stmt"/>
+        <line num="17" count="11" type="stmt"/>
+        <line num="18" count="11" type="stmt"/>
+        <line num="20" count="9" type="stmt"/>
+        <line num="21" count="9" type="stmt"/>
+        <line num="23" count="0" type="stmt"/>
+        <line num="30" count="15" type="stmt"/>
+        <line num="32" count="5" type="stmt"/>
+        <line num="33" count="6" type="stmt"/>
+      </file>
+    </package>
+  </project>
+</coverage>

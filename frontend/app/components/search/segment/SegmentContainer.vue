@@ -3,7 +3,7 @@ import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose } from '@mdi/j
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
-import type { SearchResult, SearchResponse } from '~/stores/search';
+import type { SearchResult, SearchResponse } from '~/types/search';
 
 type Props = {
   searchData: SearchResponse | null;
@@ -96,14 +96,14 @@ const handleKeydown = (event: KeyboardEvent) => {
     case 'KeyA':
       if (focusedIndex.value !== null) {
         event.preventDefault();
-        openAnkiModal(resultList.value[focusedIndex.value]);
+        openAnkiModal(resultList.value[focusedIndex.value]!);
       }
       break;
 
     case 'KeyC':
       if (focusedIndex.value !== null) {
         event.preventDefault();
-        openModal(resultList.value[focusedIndex.value]);
+        openModal(resultList.value[focusedIndex.value]!);
       }
       break;
   }
@@ -187,8 +187,8 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
   reportTarget.value = {
     target:
       type === 'SEGMENT'
-        ? { type: 'SEGMENT', mediaId: result.media.mediaId, segmentUuid: result.segment.uuid }
-        : { type: 'MEDIA', mediaId: result.media.mediaId },
+        ? { type: 'SEGMENT', mediaId: result.media.id, segmentUuid: result.segment.uuid }
+        : { type: 'MEDIA', mediaId: result.media.id },
     segment: result,
     mediaName: mediaName(result.media),
   };
@@ -198,11 +198,10 @@ const onEditSuccess = (updated: SearchResult) => {
   const list = resultList.value;
   const idx = list.findIndex((r) => r.segment.uuid === updated.segment.uuid);
   if (idx !== -1) {
-    list[idx].segment = { ...updated.segment };
+    list[idx]!.segment = { ...updated.segment };
   }
 };
 
-const apiSearch = useApiSearch();
 const { revertActiveConcatenation, loadNextSegment } = useSegmentConcatenation();
 
 // Filter navigation method
@@ -248,13 +247,13 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
       }">
       <!-- Image -->
       <div class="h-56 shrink-0 w-auto lg:w-[25rem] min-w-[200px] flex justify-center relative overflow-hidden">
-        <img loading="lazy" :src="result.urls.imageUrl"
+        <img loading="lazy" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
-          @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid)) && zoomImage(result.urls.imageUrl)"
+          @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid)) && zoomImage(result.segment.urls.imageUrl)"
           class="inset-0 h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
-          :key="result.urls.imageUrl" />
+          :key="result.segment.urls.imageUrl" />
         <button
           v-if="shouldBlur(result.segment.contentRating)"
           @click="revealedContent.has(result.segment.uuid) ? revealedContent.delete(result.segment.uuid) : revealedContent.add(result.segment.uuid)"
@@ -395,7 +394,7 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
             <!-- Buttons  -->
             <div class="pb-2">
               <SearchSegmentActionsContainer :content="result" @open-context-modal="openModal"
-                @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, apiSearch, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
+                @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
             </div>
             <!-- End Buttons  -->
 
@@ -404,13 +403,13 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
             <div class="justify-left">
               <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
                 <button
-                  @click="filterByMedia(result.media.mediaId)"
+                  @click="filterByMedia(result.media.id)"
                   class="hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ mediaName(result.media) }}
                 </button>
                 &bull;
                 <button
-                  @click="filterByMedia(result.media.mediaId, result.segment.episode)"
+                  @click="filterByMedia(result.media.id, result.segment.episode)"
                   class="hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
                 </button>

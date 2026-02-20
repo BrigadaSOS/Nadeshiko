@@ -5,6 +5,12 @@ import { logger } from '@config/log';
 import { ApiError, ValidationFailedError, NotFoundError, isApiError } from '@app/errors';
 import { routeErrorCodes } from 'generated/errorProfiles';
 
+type PgDriverError = {
+  code?: string;
+  constraint?: string;
+  table?: string;
+};
+
 export function handleErrors(error: Error, req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) {
     return next(error);
@@ -15,10 +21,9 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
 
   // Handle TypeORM QueryFailedError - check for duplicate key violations
   if (error instanceof QueryFailedError) {
-    // PostgreSQL unique violation code is '23505'
-    if (error.driverError?.code === '23505') {
-      const duplicateError = createDuplicateKeyError(error, requestId);
-      return res.status(409).json(duplicateError.toJSON());
+    const mappedError = mapQueryFailedError(error, requestId);
+    if (mappedError) {
+      return res.status(mappedError.status).json(mappedError.toJSON());
     }
     // Other query errors - log as warning (might be expected)
     logger.warn({ err: error, requestId }, 'Database query failed');
@@ -52,7 +57,7 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     // Validate error code against documented codes for this route
     const routeKey = `${req.method}:${req.route?.path ?? req.path}`;
     const validCodes = routeErrorCodes.get(routeKey);
-    if (validCodes && !validCodes.has(error.code)) {
+    if (!isErrorCodeAllowedForRoute(error.code, validCodes)) {
       logger.error(
         { errorCode: error.code, route: routeKey, requestId },
         'Undocumented error code for this endpoint — returning 500',
@@ -67,6 +72,18 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
   logger.error({ err: error, requestId }, 'Unhandled error');
   const internalError = createInternalError(requestId);
   return res.status(500).json(internalError.toJSON());
+}
+
+function isErrorCodeAllowedForRoute(errorCode: string, validCodes: ReadonlySet<string> | undefined): boolean {
+  if (!validCodes) return true;
+  if (validCodes.has(errorCode)) return true;
+
+  // Duplicate-key DB errors are semantically request validation conflicts.
+  if (errorCode === 'DUPLICATE_KEY' && validCodes.has('INVALID_REQUEST')) {
+    return true;
+  }
+
+  return false;
 }
 
 function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: string): ApiError {
@@ -94,9 +111,9 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
       }
       // Handle TypeORM QueryFailedError from handler (duplicate keys, etc.)
       if (cause instanceof QueryFailedError) {
-        if (cause.driverError?.code === '23505') {
-          const duplicateError = createDuplicateKeyError(cause, requestId);
-          return duplicateError;
+        const mappedError = mapQueryFailedError(cause, requestId);
+        if (mappedError) {
+          return mappedError;
         }
         logger.warn({ err: cause, requestId }, 'Database query failed in handler');
         return createInternalError(requestId);
@@ -178,30 +195,92 @@ function entityNameToDetail(entityName: string): string {
   return entityMap[entityName] ?? `${entityName} not found`;
 }
 
-function createDuplicateKeyError(error: QueryFailedError, requestId: string): ApiError {
+function humanizeResourceName(raw: string): string {
+  return raw
+    .replace(/^["']|["']$/g, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function getResourceNameFromUniqueViolation(driverError: PgDriverError): string | null {
+  if (driverError.table) {
+    return humanizeResourceName(driverError.table);
+  }
+
+  const constraint = driverError.constraint;
+  if (!constraint) return null;
+
+  const pkMatch = constraint.match(/^PK_(.+)$/i);
+  if (pkMatch?.[1]) {
+    return humanizeResourceName(pkMatch[1]);
+  }
+
+  const idxMatch = constraint.match(/^IDX_([^_]+)/i);
+  if (idxMatch?.[1]) {
+    return humanizeResourceName(idxMatch[1]);
+  }
+
+  return null;
+}
+
+function getMissingResourceNameFromForeignKeyConstraint(constraint: string | undefined): string | null {
+  if (!constraint) return null;
+
+  const namedFkMatch = constraint.match(/^FK_[^_]+_(.+)$/i);
+  if (namedFkMatch?.[1]) {
+    return humanizeResourceName(namedFkMatch[1]);
+  }
+
+  const parts = constraint.split('_');
+  if (parts.length < 3 || parts[parts.length - 1].toLowerCase() !== 'fkey') {
+    return null;
+  }
+
+  const idTokenOffset = parts[parts.length - 2].toLowerCase() === 'id' ? 3 : 2;
+  const entityToken = parts[parts.length - idTokenOffset];
+  return entityToken ? humanizeResourceName(entityToken) : null;
+}
+
+function createDuplicateKeyError(driverError: PgDriverError, requestId: string): ApiError {
   class DuplicateKeyError extends ApiError {
     readonly code = 'DUPLICATE_KEY' as const;
     readonly title = 'Resource already exists';
     readonly status = 409;
   }
 
-  // Try to extract constraint name and table from error message
-  // Format: "Key (column_name)=(value) already exists" or "duplicate key value violates unique constraint \"constraint_name\""
-  const message = error.message || 'Duplicate key violation';
-  let detail = 'A resource with this unique identifier already exists';
-
-  // Parse constraint name if available
-  const constraintMatch = message.match(/constraint "([^"]+)"/);
-  if (constraintMatch) {
-    const constraint = constraintMatch[1];
-    if (constraint.includes('uuid')) {
-      detail = 'A resource with this UUID already exists';
-    } else if (constraint.includes('email')) {
-      detail = 'A user with this email already exists';
-    }
-  }
+  const resourceName = getResourceNameFromUniqueViolation(driverError);
+  const detail = resourceName ? `${resourceName} already exists` : 'A resource with this unique identifier already exists';
 
   const duplicateError = new DuplicateKeyError(detail);
   duplicateError.instance = requestId;
   return duplicateError;
+}
+
+function createForeignKeyNotFoundError(driverError: PgDriverError, requestId: string): ApiError {
+  const resourceName = getMissingResourceNameFromForeignKeyConstraint(driverError.constraint);
+  const detail = resourceName ? `${resourceName} not found` : 'Related resource not found';
+  const notFoundError = new NotFoundError(detail);
+  notFoundError.instance = requestId;
+  return notFoundError;
+}
+
+function mapQueryFailedError(error: QueryFailedError, requestId: string): ApiError | null {
+  const driverError = error.driverError as PgDriverError | undefined;
+  const code = driverError?.code;
+
+  // PostgreSQL unique violation
+  if (code === '23505') {
+    return createDuplicateKeyError(driverError ?? {}, requestId);
+  }
+
+  // PostgreSQL foreign key violation
+  if (code === '23503') {
+    return createForeignKeyNotFoundError(driverError ?? {}, requestId);
+  }
+
+  return null;
 }

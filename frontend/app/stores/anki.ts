@@ -22,10 +22,10 @@ interface IField {
 export interface AnkiProfile {
   id: string;
   name: string;
-  deck: string | null;
-  model: string | null;
+  deck?: string;
+  model?: string;
   fields: IField[];
-  key: string | null;
+  key?: string;
   serverAddress: string;
 }
 
@@ -78,7 +78,7 @@ type CollectionListResponse = {
   pagination: { hasMore: boolean; cursor: number | null };
 };
 
-import type { SearchResult } from './search';
+import type { SearchResult } from '~/types/search';
 import { defineStore } from 'pinia';
 import { userStore } from '@/stores/auth';
 
@@ -89,10 +89,10 @@ function createDefaultProfile(name = 'Default'): AnkiProfile {
   return {
     id: crypto.randomUUID(),
     name,
-    deck: null,
-    model: null,
+    deck: undefined,
+    model: undefined,
     fields: [],
-    key: null,
+    key: undefined,
     serverAddress: DEFAULT_SERVER_ADDRESS,
   };
 }
@@ -115,15 +115,14 @@ export const ankiStore = defineStore('anki', {
         const found = profiles.find((p: AnkiProfile) => p.id === activeId);
         if (found) return found;
       }
-      return profiles[0];
+      return profiles[0] ?? null;
     },
   },
   actions: {
     async saveProfiles(profiles: AnkiProfile[]) {
       const store = userStore();
-      await $fetch('/v1/user/preferences', {
-        method: 'PATCH',
-        credentials: 'include',
+      const sdk = useNadeshikoSdk();
+      await sdk.updateUserPreferences({
         body: { ankiProfiles: profiles },
       });
       store.preferences = { ...store.preferences, ankiProfiles: profiles };
@@ -149,7 +148,7 @@ export const ankiStore = defineStore('anki', {
       if (import.meta.client) {
         const activeId = localStorage.getItem('anki-active-profile');
         if (activeId === id) {
-          if (updated.length > 0) {
+          if (updated.length > 0 && updated[0]) {
             localStorage.setItem('anki-active-profile', updated[0].id);
           } else {
             localStorage.removeItem('anki-active-profile');
@@ -270,24 +269,22 @@ export const ankiStore = defineStore('anki', {
       if (!import.meta.client) return null;
 
       try {
-        const listResponse = await $fetch<CollectionListResponse>('/api/collections', {
-          query: { limit: 100 },
-        });
+        const sdk = useNadeshikoSdk();
+        const { data: listData } = await sdk.listCollections({ query: { limit: 100 } });
 
-        const existing = listResponse.collections.find(
+        const existing = (listData?.collections ?? []).find(
           (collection) => collection.name === DEFAULT_ANKI_EXPORTS_COLLECTION,
         );
         if (existing) return existing.id;
 
-        const created = await $fetch<CollectionResponse>('/api/collections', {
-          method: 'POST',
+        const { data: created } = await sdk.createCollection({
           body: {
             name: DEFAULT_ANKI_EXPORTS_COLLECTION,
             visibility: 'PRIVATE',
           },
         });
 
-        return created.id;
+        return created?.id ?? null;
       } catch {
         return null;
       }
@@ -301,11 +298,10 @@ export const ankiStore = defineStore('anki', {
         const collectionId = await this.getOrCreateAnkiExportsCollectionId();
         if (!collectionId) return;
 
-        await $fetch(`/api/collections/${collectionId}/segments`, {
-          method: 'POST',
-          body: {
-            segmentUuid: sentence.segment.uuid,
-          },
+        const sdk = useNadeshikoSdk();
+        await sdk.addSegmentToCollection({
+          path: { id: collectionId },
+          body: { segmentUuid: sentence.segment.uuid },
         });
       } catch (error: unknown) {
         const err = error as { statusCode?: number };
@@ -363,12 +359,12 @@ export const ankiStore = defineStore('anki', {
         const infoCard = infoResponse.result;
         const imageRequest = this.executeAction('storeMediaFile', {
           filename: `${sentence.segment.uuid}.webp`,
-          url: sentence.urls.imageUrl,
+          url: sentence.segment.urls.imageUrl,
         });
 
         let audioRequest;
-        if (sentence.urls.blobAudioUrl && sentence.urls.blobAudio) {
-          const blob64 = await blobToBase64(sentence.urls.blobAudio);
+        if (sentence.blobAudioUrl && sentence.blobAudio) {
+          const blob64 = await blobToBase64(sentence.blobAudio);
           const raw = blob64.substring(blob64.indexOf(',') + 1);
 
           audioRequest = this.executeAction('storeMediaFile', {
@@ -378,7 +374,7 @@ export const ankiStore = defineStore('anki', {
         } else {
           audioRequest = this.executeAction('storeMediaFile', {
             filename: `${sentence.segment.uuid}.mp3`,
-            url: sentence.urls.audioUrl,
+            url: sentence.segment.urls.audioUrl,
           });
         }
 
@@ -445,14 +441,20 @@ export const ankiStore = defineStore('anki', {
           }
         });
 
+        const noteInfo = infoCard[0];
+        if (!noteInfo) {
+          useToastError($i18n.t('anki.toast.cardAddError', { error: 'No note info found' }));
+          return;
+        }
+
         await this.executeAction('updateNoteFields', {
           note: {
             fields: fieldsNew,
-            id: infoCard[0].noteId,
+            id: noteInfo.noteId,
           },
         });
 
-        await this.guiBrowse(`nid:${infoCard[0].noteId}`);
+        await this.guiBrowse(`nid:${noteInfo.noteId}`);
         await this.addSegmentToAnkiExportsCollection(sentence);
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
@@ -496,10 +498,10 @@ export const ankiStore = defineStore('anki', {
         const profile: AnkiProfile = {
           id: crypto.randomUUID(),
           name: 'Default',
-          deck: oldPrefs.settings?.current?.deck ?? null,
-          model: oldPrefs.settings?.current?.model ?? null,
+          deck: oldPrefs.settings?.current?.deck ?? undefined,
+          model: oldPrefs.settings?.current?.model ?? undefined,
           fields: oldPrefs.settings?.current?.fields ?? [],
-          key: oldPrefs.settings?.current?.key ?? null,
+          key: oldPrefs.settings?.current?.key ?? undefined,
           serverAddress: oldPrefs.serverAddress ?? DEFAULT_SERVER_ADDRESS,
         };
 

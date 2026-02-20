@@ -18,14 +18,13 @@ type CollectionListResponse = {
 
 const { t, d } = useI18n();
 
+const sdk = useNadeshikoSdk();
+
 const { data: initialData } = await useAsyncData(
   'settings-account-collections',
   async () => {
-    const response = await $fetch<CollectionListResponse>('/api/collections', {
-      query: { limit: 100 },
-    }).catch(() => ({ collections: [] as Collection[], pagination: { hasMore: false, cursor: null } }));
-
-    return response.collections;
+    const { data } = await sdk.listCollections({ query: { limit: 100 } }).catch(() => ({ data: null }));
+    return data?.collections ?? ([] as Collection[]);
   },
   {
     default: () => [] as Collection[],
@@ -81,13 +80,15 @@ const submitRename = async () => {
 
   isRenaming.value = true;
   try {
-    await $fetch(`/api/collections/${renameTarget.value.id}`, {
-      method: 'PATCH',
+    await sdk.updateCollection({
+      path: { id: renameTarget.value.id },
       body: { name: renameValue.value.trim() },
     });
 
-    const idx = collections.value.findIndex((c) => c.id === renameTarget.value!.id);
-    if (idx !== -1) collections.value[idx].name = renameValue.value.trim();
+    const target = renameTarget.value;
+    if (!target) return;
+    const idx = collections.value.findIndex((c) => c.id === target.id);
+    if (idx !== -1) collections.value[idx]!.name = renameValue.value.trim();
 
     useToastSuccess(t('accountSettings.collections.renamed'));
     renameTarget.value = null;
@@ -112,8 +113,8 @@ const submitDelete = async () => {
 
   isDeleting.value = true;
   try {
-    await $fetch(`/api/collections/${deleteTarget.value.id}`, {
-      method: 'DELETE',
+    await sdk.deleteCollection({
+      path: { id: deleteTarget.value.id },
     });
 
     collections.value = collections.value.filter((c) => c.id !== deleteTarget.value!.id);

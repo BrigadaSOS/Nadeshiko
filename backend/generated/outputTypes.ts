@@ -89,77 +89,6 @@ export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminRepor
 // Inline query schemas and their output types
 // ============================================
 
-export const listCollectionsQuerySchema = z.object({
-    visibility: z.enum(['public', 'private']).optional(),
-    cursor: z.coerce.number().min(0).optional(),
-    page: z.coerce.number().min(1).optional().default(1),
-    limit: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
-
-export const getCollectionQuerySchema = z.object({
-    cursor: z.coerce.number().min(0).optional(),
-    page: z.coerce.number().min(1).optional().default(1),
-    limit: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
-
-export const listAdminReportsQuerySchema = z.object({
-    cursor: z.coerce.number().optional(),
-    limit: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
-    source: z.enum(['USER', 'AUTO']).optional(),
-    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
-    'target.mediaId': z.coerce.number().optional(),
-    'target.episodeNumber': z.coerce.number().optional(),
-    'target.segmentUuid': z.string().optional(),
-    reviewCheckRunId: z.coerce.number().optional(),
-  });
-export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
-
-export const runAdminReviewQuerySchema = z.object({
-    category: z.enum(['ANIME', 'JDRAMA']).optional(),
-    checkName: z.string().optional(),
-  });
-export type RunAdminReviewQueryOutput = z.output<typeof runAdminReviewQuerySchema>;
-
-export const listAdminReviewRunsQuerySchema = z.object({
-    checkName: z.string().optional(),
-    cursor: z.coerce.number().optional(),
-    limit: z.coerce.number().max(100).optional().default(20),
-  });
-export type ListAdminReviewRunsQueryOutput = z.output<typeof listAdminReviewRunsQuerySchema>;
-
-export const listAdminReviewAllowlistQuerySchema = z.object({ checkName: z.string().optional() });
-export type ListAdminReviewAllowlistQueryOutput = z.output<typeof listAdminReviewAllowlistQuerySchema>;
-
-export const listUserReportsQuerySchema = z.object({
-    cursor: z.coerce.number().optional(),
-    limit: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
-  });
-export type ListUserReportsQueryOutput = z.output<typeof listUserReportsQuerySchema>;
-
-export const listUserActivityQuerySchema = z.object({
-    cursor: z.coerce.number().optional(),
-    limit: z.coerce.number().max(100).optional().default(20),
-    activityType: schemas.s_ActivityType.optional(),
-    date: z.string().optional(),
-  });
-export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
-
-export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
-export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;
-
-export const getUserActivityHeatmapQuerySchema = z.object({
-    days: z.coerce.number().max(730).optional().default(365),
-    activityType: schemas.s_ActivityType.optional(),
-  });
-export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
-
-export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
-export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
-
 export const listMediaQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.coerce.number().min(0).optional().default(0),
@@ -235,10 +164,79 @@ export const getSeriesQuerySchema = z.object({
   });
 export type GetSeriesQueryOutput = z.output<typeof getSeriesQuerySchema>;
 
-export const getSeiyuuQuerySchema = z.object({
-    include: z
-      .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(z.enum(['character'])))
-      .optional()
-      .default(['character']),
+export const listUserReportsQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    limit: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
   });
-export type GetSeiyuuQueryOutput = z.output<typeof getSeiyuuQuerySchema>;
+export type ListUserReportsQueryOutput = z.output<typeof listUserReportsQuerySchema>;
+
+export const listUserActivityQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    limit: z.coerce.number().max(100).optional().default(20),
+    activityType: schemas.s_ActivityType.optional(),
+    date: z.string().optional(),
+  });
+export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
+
+export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
+export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;
+
+export const getUserActivityHeatmapQuerySchema = z.object({
+    days: z.coerce.number().max(730).optional().default(365),
+    activityType: schemas.s_ActivityType.optional(),
+  });
+export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
+
+export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
+export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
+
+export const listCollectionsQuerySchema = z.object({
+    visibility: z.enum(['public', 'private']).optional(),
+    cursor: z.coerce.number().min(0).optional(),
+    page: z.coerce.number().min(1).optional().default(1),
+    limit: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
+
+export const getCollectionQuerySchema = z.object({
+    cursor: z.coerce.number().min(0).optional(),
+    page: z.coerce.number().min(1).optional().default(1),
+    limit: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
+
+export const searchCollectionSegmentsQuerySchema = z.object({
+    cursor: z.coerce.number().min(0).optional(),
+    limit: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;
+
+export const listAdminReportsQuerySchema = z.object({
+    cursor: z.coerce.number().optional(),
+    limit: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
+    source: z.enum(['USER', 'AUTO']).optional(),
+    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    'target.mediaId': z.coerce.number().optional(),
+    'target.episodeNumber': z.coerce.number().optional(),
+    'target.segmentUuid': z.string().optional(),
+    reviewCheckRunId: z.coerce.number().optional(),
+  });
+export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
+
+export const runAdminReviewQuerySchema = z.object({
+    category: z.enum(['ANIME', 'JDRAMA']).optional(),
+    checkName: z.string().optional(),
+  });
+export type RunAdminReviewQueryOutput = z.output<typeof runAdminReviewQuerySchema>;
+
+export const listAdminReviewRunsQuerySchema = z.object({
+    checkName: z.string().optional(),
+    cursor: z.coerce.number().optional(),
+    limit: z.coerce.number().max(100).optional().default(20),
+  });
+export type ListAdminReviewRunsQueryOutput = z.output<typeof listAdminReviewRunsQuerySchema>;
+
+export const listAdminReviewAllowlistQuerySchema = z.object({ checkName: z.string().optional() });
+export type ListAdminReviewAllowlistQueryOutput = z.output<typeof listAdminReviewAllowlistQuerySchema>;

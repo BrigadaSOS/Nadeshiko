@@ -10,7 +10,7 @@ useSeoMeta({
     'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
 });
 
-const apiSearch = useApiSearch();
+const sdk = useNadeshikoSdk();
 const router = useRouter();
 const route = useRoute();
 const { mediaName, language } = useMediaName();
@@ -92,13 +92,21 @@ const {
   error,
 } = await useAsyncData(
   () => `search-media-${page.value}-${searchQuery.value}-${filterCategory.value}`,
-  () =>
-    apiSearch.getRecentMedia({
-      cursor: (page.value - 1) * pageSize,
-      query: searchQuery.value,
-      limit: pageSize,
-      category: filterCategory.value || undefined,
-    }),
+  async () => {
+    const response = await sdk.listMedia({
+      query: {
+        cursor: (page.value - 1) * pageSize,
+        query: searchQuery.value || undefined,
+        limit: pageSize,
+        category: filterCategory.value || undefined,
+      },
+    });
+    const raw = response.data;
+    return {
+      media: raw?.media ?? [],
+      hasMore: raw?.pagination?.hasMore ?? false,
+    };
+  },
   {
     watch: [page, searchQuery, filterCategory],
     server: true,
