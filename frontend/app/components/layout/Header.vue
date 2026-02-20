@@ -109,11 +109,14 @@ function openLoginModal() {
                                 <NuxtLink v-if="isAuth" to="/user/settings" :prefetch="false">
                                     <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                 </NuxtLink>
+                                <NuxtLink v-if="isAuth" to="/user/sync" :prefetch="false">
+                                    <SearchDropdownItem text="Anki" />
+                                </NuxtLink>
                                 <NuxtLink v-if="isAuth" to="/user/collections" :prefetch="false">
                                     <SearchDropdownItem text="Collections" />
                                 </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/sync" :prefetch="false">
-                                    <SearchDropdownItem text="Anki" />
+                                <NuxtLink v-if="isAuth" to="/user/activity" :prefetch="false">
+                                    <SearchDropdownItem text="Activity" />
                                 </NuxtLink>
                                 <SearchDropdownItem v-if="!isAuth || isAuth == null" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
                             </SearchDropdownContent>

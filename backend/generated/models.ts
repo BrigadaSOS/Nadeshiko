@@ -808,6 +808,10 @@ export type t_GetCollectionQuerySchema = {
   page?: number;
 };
 
+export type t_GetCollectionStatsParamSchema = {
+  id: number;
+};
+
 export type t_GetEpisodeParamSchema = {
   episodeNumber: number;
   mediaId: number;
@@ -852,10 +856,6 @@ export type t_GetSegmentContextQuerySchema = {
 
 export type t_GetSeiyuuParamSchema = {
   id: number;
-};
-
-export type t_GetSeiyuuQuerySchema = {
-  include?: 'character'[];
 };
 
 export type t_GetSeriesParamSchema = {
@@ -992,6 +992,15 @@ export type t_SearchRequestBodySchema = {
   };
 };
 
+export type t_SearchCollectionSegmentsParamSchema = {
+  id: number;
+};
+
+export type t_SearchCollectionSegmentsQuerySchema = {
+  cursor?: number;
+  limit?: number;
+};
+
 export type t_SearchWordsRequestBodySchema = {
   filters?: t_SearchFilters;
   include?: t_IncludeExpansion[];
@@ -1095,6 +1104,37 @@ export type t_UpdateSegmentParamSchema = {
 };
 
 export type t_UpdateSegmentRequestBodySchema = {
+  contentRating?: t_ContentRating;
+  endTimeMs?: number;
+  hashedId?: string;
+  posAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  position?: number;
+  ratingAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  startTimeMs?: number;
+  status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
+  storage?: 'LOCAL' | 'R2';
+  textEn?: {
+    content?: string;
+    isMachineTranslated?: boolean;
+  };
+  textEs?: {
+    content?: string;
+    isMachineTranslated?: boolean;
+  };
+  textJa?: {
+    content?: string;
+  };
+};
+
+export type t_UpdateSegmentByUuidParamSchema = {
+  uuid: string;
+};
+
+export type t_UpdateSegmentByUuidRequestBodySchema = {
   contentRating?: t_ContentRating;
   endTimeMs?: number;
   hashedId?: string;

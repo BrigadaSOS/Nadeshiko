@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SearchResult } from '~/stores/search';
+import type { SearchResult, Segment } from '~/types/search';
 
 const { t } = useI18n();
 
@@ -20,8 +20,8 @@ const form = reactive({
   enMt: false,
   es: '',
   esMt: false,
-  status: 'ACTIVE',
-  contentRating: 'SAFE',
+  status: 'ACTIVE' as Segment['status'],
+  contentRating: 'SAFE' as Segment['contentRating'],
 });
 
 const statusOptions = [
@@ -80,7 +80,7 @@ watch(
       form.es = seg.segment.textEs.content || '';
       form.esMt = seg.segment.textEs.isMachineTranslated;
       form.status = seg.segment.status;
-      form.contentRating = (seg.segment.contentRating || 'SAFE').toUpperCase();
+      form.contentRating = seg.segment.contentRating || 'SAFE';
       errorMessage.value = '';
     }
   },
@@ -97,10 +97,10 @@ const submitEdit = async () => {
   errorMessage.value = '';
 
   try {
-    await $fetch('/api/media/segments/update', {
-      method: 'POST',
+    await $fetch(`/v1/media/segments/${props.segment.segment.uuid}`, {
+      method: 'PATCH',
+      credentials: 'include',
       body: {
-        uuid: props.segment.segment.uuid,
         textJa: form.ja,
         textEn: { content: form.en, isMachineTranslated: form.enMt },
         textEs: { content: form.es, isMachineTranslated: form.esMt },
@@ -218,17 +218,17 @@ const submitEdit = async () => {
             </button>
           </div>
           <!-- Resource URLs -->
-          <div v-if="segment.urls.imageUrl" class="flex items-center gap-2 text-neutral-300">
+          <div v-if="segment.segment.urls.imageUrl" class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.image') }}</span>
-            <a :href="segment.urls.imageUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.urls.imageUrl }}</a>
+            <a :href="segment.segment.urls.imageUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.segment.urls.imageUrl }}</a>
           </div>
-          <div v-if="segment.urls.audioUrl" class="flex items-center gap-2 text-neutral-300">
+          <div v-if="segment.segment.urls.audioUrl" class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.audio') }}</span>
-            <a :href="segment.urls.audioUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.urls.audioUrl }}</a>
+            <a :href="segment.segment.urls.audioUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.segment.urls.audioUrl }}</a>
           </div>
-          <div v-if="segment.urls.videoUrl" class="flex items-center gap-2 text-neutral-300">
+          <div v-if="segment.segment.urls.videoUrl" class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.video') }}</span>
-            <a :href="segment.urls.videoUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.urls.videoUrl }}</a>
+            <a :href="segment.segment.urls.videoUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.segment.urls.videoUrl }}</a>
           </div>
         </div>
 

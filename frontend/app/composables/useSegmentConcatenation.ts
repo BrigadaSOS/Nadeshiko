@@ -1,9 +1,10 @@
-import type { SearchResult, SearchResultSegment } from '~/stores/search';
+import type { SearchResult, Segment } from '~/types/search';
+import { resolveContextResponse } from '~/utils/resolvers';
 
 interface IOriginalContent {
-  textJa: { content: string; highlight?: string };
-  textEn: { content?: string; highlight?: string; isMachineTranslated: boolean };
-  textEs: { content?: string; highlight?: string; isMachineTranslated: boolean };
+  textJa: Segment['textJa'];
+  textEn: Segment['textEn'];
+  textEs: Segment['textEs'];
 }
 
 interface IConcatenation {
@@ -11,8 +12,7 @@ interface IConcatenation {
   originalContent: IOriginalContent | null;
 }
 
-type TextLang = 'textJa' | 'textEn' | 'textEs';
-const TEXT_LANGS: TextLang[] = ['textJa', 'textEn', 'textEs'];
+type TextFieldBase = { content: string; highlight?: string };
 
 /**
  * Concatenate a single text field (content or highlight) between current and adjacent segments.
@@ -39,23 +39,23 @@ function concatTextField(
 /**
  * Build a concatenated text field object for a given language.
  */
-function concatLangField(
-  currentField: SearchResultSegment[TextLang],
-  adjacentField: SearchResultSegment[TextLang] | undefined,
+function concatLangField<T extends TextFieldBase>(
+  currentField: T,
+  adjacentField: T | undefined,
   direction: 'forward' | 'backward',
-): SearchResultSegment[TextLang];
-function concatLangField(
-  currentField: SearchResultSegment[TextLang],
-  adjacentField: SearchResultSegment[TextLang] | undefined,
+): T;
+function concatLangField<T extends TextFieldBase>(
+  currentField: T,
+  adjacentField: T | undefined,
   direction: 'both',
-  beforeField: SearchResultSegment[TextLang] | undefined,
-): SearchResultSegment[TextLang];
-function concatLangField(
-  currentField: SearchResultSegment[TextLang],
-  adjacentField: SearchResultSegment[TextLang] | undefined,
+  beforeField: T | undefined,
+): T;
+function concatLangField<T extends TextFieldBase>(
+  currentField: T,
+  adjacentField: T | undefined,
   direction: 'forward' | 'backward' | 'both',
-  beforeField?: SearchResultSegment[TextLang] | undefined,
-): SearchResultSegment[TextLang] {
+  beforeField?: T | undefined,
+): T {
   const curContent = currentField.content || '';
   const curHighlight = currentField.highlight || curContent;
   const adjContent = adjacentField?.content || '';
@@ -68,14 +68,14 @@ function concatLangField(
       ...currentField,
       content: concatTextField(curContent, adjContent, 'both', befContent),
       highlight: concatTextField(curHighlight, adjHighlight, 'both', befHighlight),
-    };
+    } as T;
   }
 
   return {
     ...currentField,
     content: concatTextField(curContent, adjContent, direction),
     highlight: concatTextField(curHighlight, adjHighlight, direction),
-  };
+  } as T;
 }
 
 export function useSegmentConcatenation() {
@@ -87,12 +87,12 @@ export function useSegmentConcatenation() {
 
   const revertActiveConcatenation = () => {
     if (activeConcatenation.result && activeConcatenation.originalContent) {
-      if (activeConcatenation.result.urls.blobAudioUrl) {
-        window.URL.revokeObjectURL(activeConcatenation.result.urls.blobAudioUrl);
+      if (activeConcatenation.result.blobAudioUrl) {
+        window.URL.revokeObjectURL(activeConcatenation.result.blobAudioUrl);
       }
 
-      activeConcatenation.result.urls.blobAudioUrl = null;
-      activeConcatenation.result.urls.blobAudio = null;
+      activeConcatenation.result.blobAudioUrl = null;
+      activeConcatenation.result.blobAudio = null;
 
       activeConcatenation.result.segment = {
         ...activeConcatenation.result.segment,
@@ -112,7 +112,6 @@ export function useSegmentConcatenation() {
   const loadNextSegment = async (
     result: SearchResult,
     direction: 'forward' | 'backward' | 'both',
-    apiSearch: ReturnType<typeof useApiSearch>,
     isLoading: boolean,
   ) => {
     if (isLoading) return;
@@ -123,14 +122,19 @@ export function useSegmentConcatenation() {
       (e as HTMLButtonElement).disabled = true;
     });
 
-    const audioUrls: string[] = [result.urls.audioUrl];
+    const audioUrls: string[] = [result.segment.urls.audioUrl];
 
     try {
-      const response = await apiSearch.getSegmentContext({
-        uuid: result.segment.uuid,
-        limit: 1,
-        contentRating: contentRating.value,
+      const sdk = useNadeshikoSdk();
+      const raw = await sdk.getSegmentContext({
+        path: { uuid: result.segment.uuid },
+        query: {
+          limit: 1,
+          contentRating: contentRating.value,
+          include: ['media'],
+        },
       });
+      const response = raw.data ? resolveContextResponse(raw.data) : null;
 
       if (response && response.segments.length > 0) {
         const previousSegment = response.segments[0];
@@ -149,50 +153,47 @@ export function useSegmentConcatenation() {
 
         if (direction === 'forward') {
           if (!nextSegment) return;
-          audioUrls.push(nextSegment.urls.audioUrl);
+          audioUrls.push(nextSegment.segment.urls.audioUrl);
           concatenatedAudio = await concatenateAudios(audioUrls);
 
-          const updatedSegment = { ...result.segment };
-          for (const lang of TEXT_LANGS) {
-            updatedSegment[lang] = concatLangField(result.segment[lang], nextSegment.segment[lang], 'forward');
-          }
-          result.segment = updatedSegment;
+          result.segment = {
+            ...result.segment,
+            textJa: concatLangField(result.segment.textJa, nextSegment.segment.textJa, 'forward'),
+            textEn: concatLangField(result.segment.textEn, nextSegment.segment.textEn, 'forward'),
+            textEs: concatLangField(result.segment.textEs, nextSegment.segment.textEs, 'forward'),
+          };
         } else if (direction === 'backward') {
           if (!previousSegment) return;
-          audioUrls.unshift(previousSegment.urls.audioUrl);
+          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
           concatenatedAudio = await concatenateAudios(audioUrls);
 
-          const updatedSegment = { ...result.segment };
-          for (const lang of TEXT_LANGS) {
-            updatedSegment[lang] = concatLangField(result.segment[lang], previousSegment.segment[lang], 'backward');
-          }
-          result.segment = updatedSegment;
+          result.segment = {
+            ...result.segment,
+            textJa: concatLangField(result.segment.textJa, previousSegment.segment.textJa, 'backward'),
+            textEn: concatLangField(result.segment.textEn, previousSegment.segment.textEn, 'backward'),
+            textEs: concatLangField(result.segment.textEs, previousSegment.segment.textEs, 'backward'),
+          };
         } else if (direction === 'both') {
           if (!previousSegment || !nextSegment) return;
-          audioUrls.unshift(previousSegment.urls.audioUrl);
-          audioUrls.push(nextSegment.urls.audioUrl);
+          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
+          audioUrls.push(nextSegment.segment.urls.audioUrl);
           concatenatedAudio = await concatenateAudios(audioUrls);
 
-          const updatedSegment = { ...result.segment };
-          for (const lang of TEXT_LANGS) {
-            updatedSegment[lang] = concatLangField(
-              result.segment[lang],
-              nextSegment.segment[lang],
-              'both',
-              previousSegment.segment[lang],
-            );
-          }
-          result.segment = updatedSegment;
+          result.segment = {
+            ...result.segment,
+            textJa: concatLangField(result.segment.textJa, nextSegment.segment.textJa, 'both', previousSegment.segment.textJa),
+            textEn: concatLangField(result.segment.textEn, nextSegment.segment.textEn, 'both', previousSegment.segment.textEn),
+            textEs: concatLangField(result.segment.textEs, nextSegment.segment.textEs, 'both', previousSegment.segment.textEs),
+          };
         }
 
         if (concatenatedAudio) {
-          result.urls.blobAudioUrl = concatenatedAudio.blob_url;
-          result.urls.blobAudio = concatenatedAudio.blob;
+          result.blobAudioUrl = concatenatedAudio.blob_url;
+          result.blobAudio = concatenatedAudio.blob;
         }
       }
-    } catch (error) {
+    } catch {
       activeConcatenation = { result: null, originalContent: null };
-      console.error('Error fetching context segments:', error);
     } finally {
       document.querySelectorAll('#concatenate-button').forEach((e) => {
         (e as HTMLButtonElement).disabled = false;

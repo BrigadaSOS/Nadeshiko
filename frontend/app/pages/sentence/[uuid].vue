@@ -1,5 +1,6 @@
 <script setup>
 import { buildSentenceMetaTags } from '~/utils/metaTags';
+import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 
 const route = useRoute();
 const { mediaName } = useMediaName();
@@ -9,23 +10,31 @@ const uuid = computed(() => String(route.params.uuid));
 
 const fetchSentenceData = async () => {
   try {
-    const apiSearch = useApiSearch();
-    return await apiSearch.searchSegments({
-      uuid: uuid.value,
-      filters: { contentRating: contentRating.value },
+    const sdk = useNadeshikoSdk();
+    const response = await sdk.search({
+      body: {
+        uuid: uuid.value,
+        filters: { contentRating: contentRating.value },
+        include: ['media'],
+      },
     });
-  } catch (error) {
-    console.error('Error fetching sentence data:', error);
+    return response.data ? resolveSearchResponse(response.data) : null;
+  } catch {
     return null;
   }
 };
 
 const fetchStatsData = async () => {
   try {
-    const apiSearch = useApiSearch();
-    return await apiSearch.getSearchStats({ filters: { contentRating: contentRating.value } });
-  } catch (error) {
-    console.error('Error fetching search stats:', error);
+    const sdk = useNadeshikoSdk();
+    const response = await sdk.getSearchStats({
+      body: {
+        filters: { contentRating: contentRating.value },
+        include: ['media'],
+      },
+    });
+    return response.data ? resolveStatsResponse(response.data) : null;
+  } catch {
     return null;
   }
 };

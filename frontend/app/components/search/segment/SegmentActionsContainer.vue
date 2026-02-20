@@ -24,7 +24,7 @@ import {
 
 import { ankiStore } from '@/stores/anki';
 import { userStore } from '@/stores/auth';
-import type { SearchResult } from '@/stores/search';
+import type { SearchResult } from '~/types/search';
 import { useToastError, useToastSuccess } from '~/utils/toast';
 
 type Props = {
@@ -46,6 +46,7 @@ const LAST_COLLECTION_KEY = 'nd-last-collection';
 const props = defineProps<Props>();
 const anki = ankiStore();
 const user = userStore();
+const sdk = useNadeshikoSdk();
 const { t } = useI18n();
 const router = useRouter();
 const { isMediaHidden, toggleHideMedia } = useHiddenMedia();
@@ -108,14 +109,13 @@ const loadCollections = async () => {
 
   collectionsLoading.value = true;
   try {
-    const response = await $fetch<CollectionListResponse>('/api/collections', {
-      query: { limit: 100 },
-    });
-    collections.value = response.collections;
+    const { data } = await sdk.listCollections({ query: { limit: 100 } });
+    const items = data?.collections ?? [];
+    collections.value = items;
     collectionsLoaded.value = true;
 
-    if (!lastCollection.value && response.collections.length > 0) {
-      lastCollection.value = { id: response.collections[0].id, name: response.collections[0].name };
+    if (!lastCollection.value && items.length > 0) {
+      lastCollection.value = { id: items[0]!.id, name: items[0]!.name };
     }
   } catch (error) {
     console.error('Failed to load collections:', error);
@@ -131,11 +131,9 @@ const addToCollection = async (collection: CollectionOption) => {
 
   addingCollectionId.value = collection.id;
   try {
-    await $fetch(`/api/collections/${collection.id}/segments`, {
-      method: 'POST',
-      body: {
-        segmentUuid: props.content.segment.uuid,
-      },
+    await sdk.addSegmentToCollection({
+      path: { id: collection.id },
+      body: { segmentUuid: props.content.segment.uuid },
     });
     useToastSuccess(t('searchpage.main.labels.collectionAdded', { name: collection.name }));
     saveLastCollection(collection);
@@ -247,17 +245,17 @@ const openCollectionsPage = async () => {
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.download')">
         <SearchDropdownItem
-          @click="downloadAudioOrImage(content.urls.videoUrl, content.urls.videoUrl.split('/').pop()!)"
+          @click="downloadAudioOrImage(content.segment.urls.videoUrl, content.segment.urls.videoUrl.split('/').pop()!)"
           :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
         <SearchDropdownItem
-          @click="downloadAudioOrImage(content.urls.imageUrl, content.urls.imageUrl.split('/').pop()!)"
+          @click="downloadAudioOrImage(content.segment.urls.imageUrl, content.segment.urls.imageUrl.split('/').pop()!)"
           :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
         <SearchDropdownItem
-          @click="downloadAudioOrImage(content.urls.audioUrl, content.urls.audioUrl.split('/').pop()!)"
+          @click="downloadAudioOrImage(content.segment.urls.audioUrl, content.segment.urls.audioUrl.split('/').pop()!)"
           :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
         <SearchDropdownItem
-          v-if="content.urls.blobAudioUrl"
-          @click="downloadAudioOrImage(content.urls.blobAudioUrl, 'expanded_'+content.urls.audioUrl.split('/').pop()!, true)"
+          v-if="content.blobAudioUrl"
+          @click="downloadAudioOrImage(content.blobAudioUrl, 'expanded_'+content.segment.urls.audioUrl.split('/').pop()!, true)"
           :text="$t('searchpage.main.buttons.dl-expanded')" :iconPath="mdiVolumeHigh" />
       </SearchDropdownContent>
     </template>
@@ -272,11 +270,11 @@ const openCollectionsPage = async () => {
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.copyclipboard')">
-        <SearchDropdownItem @click="copyToClipboard(content.urls.videoUrl)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.urls.videoUrl)"
           :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
-        <SearchDropdownItem @click="copyToClipboard(content.urls.imageUrl)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.urls.imageUrl)"
           :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
-        <SearchDropdownItem @click="copyToClipboard(content.urls.audioUrl)"
+        <SearchDropdownItem @click="copyToClipboard(content.segment.urls.audioUrl)"
           :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
         <div
           class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
@@ -313,7 +311,7 @@ const openCollectionsPage = async () => {
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.more')">
-        <SearchDropdownItem v-if="content.urls.blobAudioUrl" :text="$t('segment.revert')" :iconPath="mdiClose"
+        <SearchDropdownItem v-if="content.blobAudioUrl" :text="$t('segment.revert')" :iconPath="mdiClose"
           @click="revertConcat" />
         <SearchDropdownItem :text="$t('searchpage.main.buttons.expandLeft')" :iconPath="mdiTransferLeft"
           @click="concatSentence('backward')" />
@@ -325,8 +323,8 @@ const openCollectionsPage = async () => {
           class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
         </div>
         <SearchDropdownItem
-          :text="isMediaHidden(content.media.mediaId) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia')"
-          :iconPath="isMediaHidden(content.media.mediaId) ? mdiEyeOutline : mdiEyeOffOutline"
+          :text="isMediaHidden(content.media.id) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia')"
+          :iconPath="isMediaHidden(content.media.id) ? mdiEyeOutline : mdiEyeOffOutline"
           @click="toggleHideMedia(content.media)"
         />
         <template v-if="user.isLoggedIn">

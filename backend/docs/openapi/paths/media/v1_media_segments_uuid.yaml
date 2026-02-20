@@ -36,3 +36,48 @@ get:
       $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  operationId: updateSegmentByUuid
+  x-internal: true
+  tags:
+    - Media
+  summary: Update segment by UUID
+  description: |
+    Updates an existing segment identified by its UUID. Performs the UUID→segment lookup internally,
+    then applies the update. Only provided fields will be updated.
+
+    **Permissions:** `UPDATE_MEDIA`
+
+  security:
+    - apiKeyHeader: [UPDATE_MEDIA]
+    - sessionCookie: []
+  parameters:
+    - name: uuid
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Segment UUID
+      example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/segment/SegmentRequests.yaml#/SegmentUpdateRequest"
+  responses:
+    "200":
+      $ref: "../../components/responses/SegmentInternalResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

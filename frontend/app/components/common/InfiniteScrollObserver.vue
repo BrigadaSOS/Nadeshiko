@@ -7,17 +7,6 @@ const observer = ref(null);
 const emit = defineEmits(['intersect']);
 const intersectionObserver = ref(null);
 
-const checkInitialIntersection = () => {
-  if (!observer.value) return;
-
-  const rect = observer.value.getBoundingClientRect();
-  const windowHeight = window.innerHeight;
-
-  if (rect.top < windowHeight) {
-    emit('intersect');
-  }
-};
-
 onMounted(async () => {
   await nextTick();
 
@@ -35,12 +24,6 @@ onMounted(async () => {
 
   if (observer.value) {
     intersectionObserver.value.observe(observer.value);
-
-    setTimeout(() => {
-      checkInitialIntersection();
-    }, 100);
-
-    window.addEventListener('scroll', checkInitialIntersection, { passive: true });
   }
 });
 
@@ -48,6 +31,5 @@ onUnmounted(() => {
   if (intersectionObserver.value) {
     intersectionObserver.value.disconnect();
   }
-  window.removeEventListener('scroll', checkInitialIntersection);
 });
 </script>

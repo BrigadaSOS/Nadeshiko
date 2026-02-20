@@ -8,10 +8,10 @@ export const toSeiyuuWithRolesDTO = (seiyuu: Seiyuu): t_SeiyuuWithRoles => ({
   ...toSeiyuuDTO(seiyuu),
   characters:
     seiyuu.characters?.flatMap((char) =>
-      (char.mediaAppearances ?? []).map((mc: any) => ({
+      (char.mediaAppearances ?? []).map((mediaAppearance) => ({
         ...toCharacterDTO(char),
-        media: toMediaBaseDTO(mc.media),
-        role: mc.role as 'MAIN' | 'SUPPORTING' | 'BACKGROUND',
+        media: toMediaBaseDTO(mediaAppearance.media),
+        role: mediaAppearance.role as 'MAIN' | 'SUPPORTING' | 'BACKGROUND',
       })),
     ) ?? [],
 });

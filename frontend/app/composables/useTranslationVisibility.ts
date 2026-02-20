@@ -1,37 +1,21 @@
-import { authApiRequest } from '~/utils/authApi';
-
-type TranslationPrefKey = 'showEnglish' | 'showSpanish';
-type TranslationModePrefKey = 'englishMode' | 'spanishMode';
 export type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
-export type TranslationVisibilityPreferences = {
-  showEnglish: boolean;
-  showSpanish: boolean;
+type TranslationVisibilityPreferences = {
   englishMode: TranslationVisibilityMode;
   spanishMode: TranslationVisibilityMode;
-  updatedAt: string;
 };
 
-const LOCAL_STORAGE_KEY = 'nadeshiko.translationVisibilityPreferences';
 const USER_PREFS_KEY = 'translationVisibilityPreferences';
+const COOKIE_NAME = 'nd_lang_prefs';
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 const defaultPreferences = (): TranslationVisibilityPreferences => ({
-  showEnglish: true,
-  showSpanish: true,
   englishMode: 'show',
   spanishMode: 'show',
-  updatedAt: '',
 });
 
-function normalizeMode(value: unknown, fallback: TranslationVisibilityMode): TranslationVisibilityMode {
-  if (value === 'show' || value === 'spoiler' || value === 'hidden') {
-    return value;
-  }
-  return fallback;
-}
-
-function modeToShowFlag(mode: TranslationVisibilityMode): boolean {
-  return mode !== 'hidden';
+function isValidMode(value: unknown): value is TranslationVisibilityMode {
+  return value === 'show' || value === 'spoiler' || value === 'hidden';
 }
 
 function nextMode(current: TranslationVisibilityMode): TranslationVisibilityMode {
@@ -40,56 +24,36 @@ function nextMode(current: TranslationVisibilityMode): TranslationVisibilityMode
   return 'show';
 }
 
-function parseTimestamp(value: string): number {
-  const timestamp = Date.parse(value);
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-}
-
 function normalizePreferences(raw: unknown): TranslationVisibilityPreferences {
   const base = defaultPreferences();
   if (!raw || typeof raw !== 'object') {
     return base;
   }
 
-  const source = raw as Partial<TranslationVisibilityPreferences>;
-  const legacyShowEnglish = typeof source.showEnglish === 'boolean' ? source.showEnglish : undefined;
-  const legacyShowSpanish = typeof source.showSpanish === 'boolean' ? source.showSpanish : undefined;
-  const englishMode = normalizeMode(source.englishMode, legacyShowEnglish === false ? 'hidden' : base.englishMode);
-  const spanishMode = normalizeMode(source.spanishMode, legacyShowSpanish === false ? 'hidden' : base.spanishMode);
-
+  const source = raw as Record<string, unknown>;
   return {
-    showEnglish: modeToShowFlag(englishMode),
-    showSpanish: modeToShowFlag(spanishMode),
-    englishMode,
-    spanishMode,
-    updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : base.updatedAt,
+    englishMode: isValidMode(source.englishMode) ? source.englishMode : base.englishMode,
+    spanishMode: isValidMode(source.spanishMode) ? source.spanishMode : base.spanishMode,
   };
 }
 
-function readGuestPreferences(): { exists: boolean; prefs: TranslationVisibilityPreferences } {
-  if (import.meta.server) {
-    return { exists: false, prefs: defaultPreferences() };
-  }
-
-  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (!raw) {
-    return { exists: false, prefs: defaultPreferences() };
-  }
-
-  try {
-    return {
-      exists: true,
-      prefs: normalizePreferences(JSON.parse(raw)),
-    };
-  } catch {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    return { exists: false, prefs: defaultPreferences() };
-  }
+function encodeCookie(prefs: TranslationVisibilityPreferences): string {
+  const parts: string[] = [];
+  if (prefs.englishMode !== 'show') parts.push(`en:${prefs.englishMode}`);
+  if (prefs.spanishMode !== 'show') parts.push(`es:${prefs.spanishMode}`);
+  return parts.join(',');
 }
 
-function writeGuestPreferences(prefs: TranslationVisibilityPreferences): void {
-  if (import.meta.server) return;
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs));
+function decodeCookie(value: string | null | undefined): TranslationVisibilityPreferences {
+  const result = defaultPreferences();
+  if (!value) return result;
+
+  for (const part of value.split(',')) {
+    const [lang, mode] = part.split(':');
+    if (lang === 'en' && isValidMode(mode)) result.englishMode = mode;
+    if (lang === 'es' && isValidMode(mode)) result.spanishMode = mode;
+  }
+  return result;
 }
 
 export function useTranslationVisibility() {
@@ -98,125 +62,63 @@ export function useTranslationVisibility() {
   const prefs = useState<TranslationVisibilityPreferences>('translation-visibility-prefs', defaultPreferences);
   const initialized = useState<boolean>('translation-visibility-initialized', () => false);
   const watchersReady = useState<boolean>('translation-visibility-watchers-ready', () => false);
-  const syncing = useState<boolean>('translation-visibility-syncing', () => false);
+
+  const langCookie = useCookie(COOKIE_NAME, {
+    maxAge: COOKIE_MAX_AGE,
+    path: '/',
+    sameSite: 'lax',
+    encode: String,
+    decode: String,
+  });
+
+  const syncCookie = (p: TranslationVisibilityPreferences) => {
+    const encoded = encodeCookie(p);
+    langCookie.value = encoded || null;
+  };
 
   const getServerPreferences = () => normalizePreferences(user.preferences?.[USER_PREFS_KEY]);
 
-  const setUserStorePreferences = (next: TranslationVisibilityPreferences) => {
-    user.preferences = {
-      ...(user.preferences ?? {}),
-      [USER_PREFS_KEY]: next,
-    };
-  };
-
   const persistToServer = async (next: TranslationVisibilityPreferences): Promise<boolean> => {
-    const response = await authApiRequest('/v1/user/preferences', {
-      method: 'PATCH',
-      body: { [USER_PREFS_KEY]: next },
-    });
-
-    if (!response.ok) {
+    try {
+      const sdk = useNadeshikoSdk();
+      await sdk.updateUserPreferences({
+        body: { [USER_PREFS_KEY]: next } as Record<string, unknown>,
+      });
+      user.preferences = {
+        ...(user.preferences ?? {}),
+        [USER_PREFS_KEY]: next,
+      };
+      return true;
+    } catch {
       return false;
     }
-
-    setUserStorePreferences(next);
-    return true;
   };
 
+  // SSR: always read from cookie (works for both guests and logged-in users)
   if (import.meta.server) {
-    const base = user.isLoggedIn ? getServerPreferences() : defaultPreferences();
-    const route = useRoute();
-    const hideLangs = typeof route.query.hideLangs === 'string'
-      ? route.query.hideLangs.split(',').filter((l: string) => l === 'en' || l === 'es')
-      : [];
-    const blurLangs = typeof route.query.blurLangs === 'string'
-      ? route.query.blurLangs.split(',').filter((l: string) => l === 'en' || l === 'es')
-      : [];
-    if (hideLangs.includes('en')) {
-      base.englishMode = 'hidden';
-      base.showEnglish = false;
-    } else if (blurLangs.includes('en')) {
-      base.englishMode = 'spoiler';
-      base.showEnglish = true;
-    }
-    if (hideLangs.includes('es')) {
-      base.spanishMode = 'hidden';
-      base.showSpanish = false;
-    } else if (blurLangs.includes('es')) {
-      base.spanishMode = 'spoiler';
-      base.showSpanish = true;
-    }
-    prefs.value = base;
+    prefs.value = decodeCookie(langCookie.value);
   } else if (!initialized.value) {
+    // Client init: logged-in users get DB prefs, guests get cookie
     if (user.isLoggedIn) {
-      prefs.value = getServerPreferences();
+      const dbPrefs = getServerPreferences();
+      prefs.value = dbPrefs;
+      syncCookie(dbPrefs);
     } else {
-      prefs.value = readGuestPreferences().prefs;
+      prefs.value = decodeCookie(langCookie.value);
     }
     initialized.value = true;
   }
 
-  const syncOnLogin = async () => {
-    if (import.meta.server || syncing.value || !user.isLoggedIn) return;
-
-    syncing.value = true;
-    try {
-      const guest = readGuestPreferences();
-      const serverPrefs = getServerPreferences();
-
-      if (!guest.exists) {
-        prefs.value = serverPrefs;
-        writeGuestPreferences(serverPrefs);
-        return;
-      }
-
-      const guestTs = parseTimestamp(guest.prefs.updatedAt);
-      const serverTs = parseTimestamp(serverPrefs.updatedAt);
-
-      if (guestTs > serverTs) {
-        prefs.value = guest.prefs;
-        await persistToServer(guest.prefs);
-        return;
-      }
-
-      prefs.value = serverPrefs;
-      writeGuestPreferences(serverPrefs);
-    } finally {
-      syncing.value = false;
-    }
-  };
-
-  const updatePreference = async (key: TranslationPrefKey, value: boolean) => {
-    if (import.meta.server) return;
-
-    const nextModeValue: TranslationVisibilityMode = value ? 'show' : 'hidden';
-    const next: TranslationVisibilityPreferences = {
-      ...prefs.value,
-      [key]: value,
-      ...(key === 'showEnglish' ? { englishMode: nextModeValue } : { spanishMode: nextModeValue }),
-      updatedAt: new Date().toISOString(),
-    };
-
-    prefs.value = next;
-    writeGuestPreferences(next);
-
-    if (user.isLoggedIn) {
-      await persistToServer(next);
-    }
-  };
-
-  const updateModePreference = async (key: TranslationModePrefKey, mode: TranslationVisibilityMode) => {
+  const updateModePreference = async (key: 'englishMode' | 'spanishMode', mode: TranslationVisibilityMode) => {
     if (import.meta.server) return;
 
     const next: TranslationVisibilityPreferences = {
       ...prefs.value,
       [key]: mode,
-      ...(key === 'englishMode' ? { showEnglish: modeToShowFlag(mode) } : { showSpanish: modeToShowFlag(mode) }),
-      updatedAt: new Date().toISOString(),
     };
 
     prefs.value = next;
-    writeGuestPreferences(next);
+    syncCookie(next);
 
     if (user.isLoggedIn) {
       await persistToServer(next);
@@ -226,70 +128,48 @@ export function useTranslationVisibility() {
   if (import.meta.client && !watchersReady.value) {
     watchersReady.value = true;
 
+    // On login: DB prefs always win
     watch(
       () => user.isLoggedIn,
-      async (loggedIn) => {
+      (loggedIn) => {
         if (loggedIn) {
-          await syncOnLogin();
-          return;
+          const dbPrefs = getServerPreferences();
+          prefs.value = dbPrefs;
+          syncCookie(dbPrefs);
         }
-
-        prefs.value = readGuestPreferences().prefs;
       },
       { immediate: true },
     );
 
+    // If server prefs change externally, sync them down
     watch(
       () => user.preferences?.[USER_PREFS_KEY],
       () => {
         if (!user.isLoggedIn) return;
-        const serverPrefs = getServerPreferences();
-        prefs.value = serverPrefs;
-        writeGuestPreferences(serverPrefs);
+        const dbPrefs = getServerPreferences();
+        prefs.value = dbPrefs;
+        syncCookie(dbPrefs);
       },
       { deep: true },
     );
   }
 
-  const showEnglish = computed(() => prefs.value.showEnglish);
-  const showSpanish = computed(() => prefs.value.showSpanish);
   const englishMode = computed(() => prefs.value.englishMode);
   const spanishMode = computed(() => prefs.value.spanishMode);
-  const hasVisibleTranslations = computed(() => englishMode.value !== 'hidden' || spanishMode.value !== 'hidden');
-  const excludedLanguages = computed(() => {
-    const excluded: string[] = [];
+  const excludedLanguages = computed<Array<'en' | 'es'>>(() => {
+    const excluded: Array<'en' | 'es'> = [];
     if (englishMode.value === 'hidden') excluded.push('en');
     if (spanishMode.value === 'hidden') excluded.push('es');
     return excluded;
   });
 
-  const blurredLanguages = computed(() => {
-    const blurred: string[] = [];
-    if (englishMode.value === 'spoiler') blurred.push('en');
-    if (spanishMode.value === 'spoiler') blurred.push('es');
-    return blurred;
-  });
-
-  const setShowEnglish = (value: boolean) => updatePreference('showEnglish', value);
-  const setShowSpanish = (value: boolean) => updatePreference('showSpanish', value);
-  const setEnglishMode = (mode: TranslationVisibilityMode) => updateModePreference('englishMode', mode);
-  const setSpanishMode = (mode: TranslationVisibilityMode) => updateModePreference('spanishMode', mode);
-  const cycleEnglishMode = () => setEnglishMode(nextMode(englishMode.value));
-  const cycleSpanishMode = () => setSpanishMode(nextMode(spanishMode.value));
+  const cycleEnglishMode = () => updateModePreference('englishMode', nextMode(englishMode.value));
+  const cycleSpanishMode = () => updateModePreference('spanishMode', nextMode(spanishMode.value));
 
   return {
-    prefs,
-    showEnglish,
-    showSpanish,
     englishMode,
     spanishMode,
-    hasVisibleTranslations,
     excludedLanguages,
-    blurredLanguages,
-    setShowEnglish,
-    setShowSpanish,
-    setEnglishMode,
-    setSpanishMode,
     cycleEnglishMode,
     cycleSpanishMode,
   };

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { authApiRequest } from '~/utils/authApi';
-import type { SearchResult } from '~/stores/search';
+import type { SearchResult } from '~/types/search';
+import type { CreateReportRequest } from '@brigadasos/nadeshiko-sdk';
 import { mdiTranslate } from '@mdi/js';
 
 const { t } = useI18n();
@@ -97,17 +97,17 @@ const submitReport = async () => {
   errorMessage.value = '';
 
   try {
-    const response = await authApiRequest('/v1/user/reports', {
-      method: 'POST',
+    const sdk = useNadeshikoSdk();
+    const response = await sdk.createUserReport({
       body: {
         target: props.target,
-        reason: form.reason,
+        reason: form.reason as CreateReportRequest['reason'],
         description: form.description || undefined,
       },
     });
 
-    if (!response.ok) {
-      const data = response.data as any;
+    if (response.error) {
+      const data = response.error as any;
       throw new Error(data?.message || t('reports.submitError'));
     }
 

@@ -7,7 +7,7 @@ export type { UserPreferences } from './User';
 export { AccountQuotaUsage } from './AccountQuotaUsage';
 
 // Media domain
-export { Media, CategoryType } from './Media';
+export { Media, CategoryType, MediaInclude } from './Media';
 export { MediaExternalId, ExternalSourceType } from './MediaExternalId';
 export { Segment, SegmentStatus, SegmentStorage, ContentRating } from './Segment';
 export type { RatingAnalysisData } from './Segment';

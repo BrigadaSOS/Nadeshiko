@@ -290,7 +290,7 @@ const getJapaneseContent = (result: any) => {
 
 const getAnimeImage = (result: any) => {
   if (!result) return '';
-  return result.urls.imageUrl;
+  return result.segment.urls.imageUrl;
 };
 </script>
 

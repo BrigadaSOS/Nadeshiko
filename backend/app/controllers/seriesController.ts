@@ -9,11 +9,8 @@ import type {
   RemoveMediaFromSeries,
 } from 'generated/routes/media';
 import { ILike } from 'typeorm';
-import { Series, SeriesMedia } from '@app/models';
-import { toMediaDTO } from './mappers/media.mapper';
-
-const shouldIncludeMediaCharacters = (include: string[] | undefined): boolean =>
-  include?.includes('media.characters') ?? false;
+import { Media, MediaInclude, Series, SeriesMedia } from '@app/models';
+import { toSeriesDTO, toSeriesListDTO, toSeriesWithMediaDTO } from './mappers/series.mapper';
 
 export const listSeries: ListSeries = async ({ query }, respond) => {
   const whereClause = query.query
@@ -24,54 +21,33 @@ export const listSeries: ListSeries = async ({ query }, respond) => {
       ]
     : undefined;
 
-  const [series, count] = await Series.findAndCount({
-    where: whereClause,
-    order: { nameEn: 'ASC', id: 'ASC' },
+  const { items: series, pagination } = await Series.paginate({
+    find: {
+      where: whereClause,
+      order: { nameEn: 'ASC', id: 'ASC' },
+    },
     take: query.limit,
     skip: query.cursor,
   });
 
-  const nextCursor = query.cursor + series.length;
-  const hasMore = count > nextCursor;
-
   return respond.with200().body({
-    series: series.map((s) => ({
-      id: s.id,
-      nameJa: s.nameJa,
-      nameRomaji: s.nameRomaji,
-      nameEn: s.nameEn,
-    })),
-    pagination: {
-      hasMore,
-      cursor: hasMore ? nextCursor : null,
-    },
+    series: toSeriesListDTO(series),
+    pagination,
   });
 };
 
 export const getSeries: GetSeries = async ({ params, query }, respond) => {
-  const includeCharacters = shouldIncludeMediaCharacters(query.include);
-  const mediaRelations = includeCharacters
-    ? { episodes: true, externalIds: true, characters: { character: { seiyuu: true } } }
-    : { episodes: true, externalIds: true };
+  const mediaRelations = Media.buildRelations({
+    includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
+  });
 
   const series = await Series.findOneOrFail({
     where: { id: params.id },
     relations: { mediaEntries: { media: mediaRelations } },
+    order: { mediaEntries: { position: 'ASC' } },
   });
 
-  return respond.with200().body({
-    id: series.id,
-    nameJa: series.nameJa,
-    nameRomaji: series.nameRomaji,
-    nameEn: series.nameEn,
-    media:
-      series.mediaEntries
-        ?.sort((a, b) => a.position - b.position)
-        .map((entry) => ({
-          position: entry.position,
-          media: toMediaDTO(entry.media, { includeCharacters }),
-        })) ?? [],
-  });
+  return respond.with200().body(toSeriesWithMediaDTO(series));
 };
 
 export const createSeries: CreateSeries = async ({ body }, respond) => {
@@ -81,40 +57,25 @@ export const createSeries: CreateSeries = async ({ body }, respond) => {
     nameEn: body.nameEn,
   });
 
-  return respond.with201().body({
-    id: series.id,
-    nameJa: series.nameJa,
-    nameRomaji: series.nameRomaji,
-    nameEn: series.nameEn,
-  });
+  return respond.with201().body(toSeriesDTO(series));
 };
 
 export const updateSeries: UpdateSeries = async ({ params, body }, respond) => {
-  const series = await Series.findOneOrFail({ where: { id: params.id } });
-
-  if (body.nameJa) series.nameJa = body.nameJa;
-  if (body.nameRomaji) series.nameRomaji = body.nameRomaji;
-  if (body.nameEn) series.nameEn = body.nameEn;
-  await series.save();
-
-  return respond.with200().body({
-    id: series.id,
-    nameJa: series.nameJa,
-    nameRomaji: series.nameRomaji,
-    nameEn: series.nameEn,
+  const series = await Series.updateOrFail({
+    where: { id: params.id },
+    patch: body,
   });
+
+  return respond.with200().body(toSeriesDTO(series));
 };
 
 export const deleteSeries: DeleteSeries = async ({ params }, respond) => {
-  await Series.findOneOrFail({ where: { id: params.id } });
-  await Series.delete({ id: params.id });
+  await Series.deleteOrFail({ id: params.id });
 
   return respond.with204();
 };
 
 export const addMediaToSeries: AddMediaToSeries = async ({ params, body }, respond) => {
-  await Series.findOneOrFail({ where: { id: params.id } });
-
   await SeriesMedia.save({
     seriesId: params.id,
     mediaId: body.mediaId,
@@ -136,7 +97,7 @@ export const updateSeriesMedia: UpdateSeriesMedia = async ({ params, body }, res
 };
 
 export const removeMediaFromSeries: RemoveMediaFromSeries = async ({ params }, respond) => {
-  await SeriesMedia.delete({
+  await SeriesMedia.deleteOrFail({
     seriesId: params.id,
     mediaId: params.mediaId,
   });

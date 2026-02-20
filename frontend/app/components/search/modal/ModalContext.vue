@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type { SearchResponse, SearchResult } from '~/stores/search';
+import type { SearchResponse, SearchResult } from '~/types/search';
+import { resolveContextResponse } from '~/utils/resolvers';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const { mediaName } = useMediaName();
 const props = defineProps<{ sentence: SearchResult | null }>();
 
-const apiSearch = useApiSearch();
+const sdk = useNadeshikoSdk();
 const { contentRating } = useContentRating();
 
 const isLoading = ref(false);
@@ -19,11 +20,15 @@ const getContextSentence = async () => {
   contextData.value = null;
 
   try {
-    const response = await apiSearch.getSegmentContext({
-      uuid: sentence.segment.uuid,
-      limit: 15,
-      contentRating: contentRating.value,
+    const { data } = await sdk.getSegmentContext({
+      path: { uuid: sentence.segment.uuid },
+      query: {
+        limit: 15,
+        contentRating: contentRating.value,
+        include: ['media'],
+      },
     });
+    const response = data ? resolveContextResponse(data) : { segments: [] };
     contextData.value = { results: response.segments };
     highlightedPosition.value = sentence.segment.position;
     await nextTick();
@@ -33,7 +38,7 @@ const getContextSentence = async () => {
       scrollToElement(match.segment.uuid);
     }
   } catch (error) {
-    console.error('Error fetching context sentences:', error);
+    // Context fetch failed - UI shows empty state
   } finally {
     isLoading.value = false;
   }

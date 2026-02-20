@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { SearchResult } from './search';
+import type { SearchResult } from '~/types/search';
 
 interface PlayerState {
   playlist: SearchResult[];
@@ -54,7 +54,7 @@ export const usePlayerStore = defineStore('player', {
       }
 
       if (this.currentResult) {
-        const audioUrl = this.currentResult.urls.blobAudioUrl ?? this.currentResult.urls.audioUrl;
+        const audioUrl = this.currentResult.blobAudioUrl ?? this.currentResult.segment.urls.audioUrl;
         this.currentAudio = new Audio(audioUrl);
 
         this.currentAudio
@@ -67,7 +67,7 @@ export const usePlayerStore = defineStore('player', {
               body: {
                 activityType: 'SEGMENT_PLAY',
                 segmentUuid: this.currentResult?.segment.uuid,
-                mediaId: this.currentResult?.media.mediaId,
+                mediaId: this.currentResult?.media.id,
                 animeName: this.currentResult?.media.nameRomaji,
                 japaneseText: this.currentResult?.segment.textJa.content,
               },

@@ -1,5 +1,3 @@
-import { authApiRequest } from '~/utils/authApi';
-
 export function useBlogNotification() {
   const store = userStore();
   const hasNewPost = ref(false);
@@ -8,10 +6,8 @@ export function useBlogNotification() {
     if (import.meta.server || !store.isLoggedIn) return;
 
     const now = new Date().toISOString();
-    await authApiRequest('/v1/user/preferences', {
-      method: 'PATCH',
-      body: { blogLastVisited: now },
-    });
+    const sdk = useNadeshikoSdk();
+    await sdk.updateUserPreferences({ body: { blogLastVisited: now } });
     store.preferences.blogLastVisited = now;
     hasNewPost.value = false;
   };

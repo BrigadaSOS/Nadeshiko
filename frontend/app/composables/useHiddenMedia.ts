@@ -1,5 +1,4 @@
-import { authApiRequest } from '~/utils/authApi';
-import type { MediaFilterItem } from '~/stores/search';
+import type { MediaFilterItem } from '~/types/search';
 
 export type HiddenMediaItem = {
   mediaId: number;
@@ -92,14 +91,16 @@ export function useHiddenMedia() {
   };
 
   const persistToServer = async (next: HiddenMediaPreferences): Promise<boolean> => {
-    const response = await authApiRequest('/v1/user/preferences', {
-      method: 'PATCH',
-      body: { [USER_PREFS_KEY]: next.items },
-    });
-
-    if (!response.ok) return false;
-    setUserStorePreferences(next.items);
-    return true;
+    try {
+      const sdk = useNadeshikoSdk();
+      await sdk.updateUserPreferences({
+        body: { [USER_PREFS_KEY]: next.items },
+      });
+      setUserStorePreferences(next.items);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   if (!initialized.value) {
@@ -178,10 +179,10 @@ export function useHiddenMedia() {
     return prefs.value.items.some((item) => item.mediaId === mediaId);
   };
 
-  const toggleHideMedia = async (media: { mediaId: number; nameEn?: string; nameJa?: string; nameRomaji?: string }) => {
+  const toggleHideMedia = async (media: { id: number; nameEn?: string; nameJa?: string; nameRomaji?: string }) => {
     if (import.meta.server) return;
 
-    const existing = prefs.value.items.findIndex((item) => item.mediaId === media.mediaId);
+    const existing = prefs.value.items.findIndex((item) => item.mediaId === media.id);
     let nextItems: HiddenMediaItem[];
 
     if (existing >= 0) {
@@ -190,7 +191,7 @@ export function useHiddenMedia() {
       nextItems = [
         ...prefs.value.items,
         {
-          mediaId: media.mediaId,
+          mediaId: media.id,
           nameEn: media.nameEn,
           nameJa: media.nameJa,
           nameRomaji: media.nameRomaji,

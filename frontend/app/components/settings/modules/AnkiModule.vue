@@ -144,11 +144,11 @@ watch(selectedModel, async (newValue, oldValue) => {
 });
 
 watch(selectedDeck, (newValue) => {
-  debouncedSave({ deck: newValue || null });
+  debouncedSave({ deck: newValue || undefined });
 });
 
 watch(modelKey, (newValue) => {
-  debouncedSave({ key: newValue });
+  debouncedSave({ key: newValue ?? undefined });
 });
 
 watch(

@@ -1,0 +1,29 @@
+meta {
+  name: Search collection segments
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{baseUrl}}/v1/collections/:id/search
+  body: none
+  auth: none
+}
+
+params:query {
+  id:
+  cursor:
+  limit:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}
