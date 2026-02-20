@@ -1,0 +1,38 @@
+get:
+  tags:
+    - Collections
+  operationId: getCollectionStats
+  summary: Get collection statistics
+  description: |
+    Returns per-media segment counts and per-category counts for all segments in a collection.
+    Pages through all collection segments internally to compute statistics.
+
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Collection ID
+      schema:
+        type: integer
+        example: 123
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/SearchStatsResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -3,31 +3,27 @@ import { Episode, Media } from '@app/models';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episode.mapper';
 
 export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
-  await Media.findOneOrFail({ where: { id: params.mediaId } });
-
-  const [episodes, count] = await Episode.findAndCount({
-    where: { mediaId: params.mediaId },
-    order: { episodeNumber: 'ASC' },
+  const { items: episodes, pagination } = await Episode.paginate({
+    find: {
+      where: { mediaId: params.mediaId },
+      order: { episodeNumber: 'ASC' },
+    },
+    exists: {
+      entity: Media,
+      where: { id: params.mediaId },
+    },
     take: query.limit,
     skip: query.cursor,
   });
 
-  const nextCursor = query.cursor + count;
-  const hasMore = count === query.limit;
-
   return respond.with200().body({
     episodes: toEpisodeListDTO(episodes),
-    pagination: {
-      hasMore,
-      cursor: hasMore ? nextCursor : null,
-    },
+    pagination,
   });
 };
 
 export const createEpisode: CreateEpisode = async ({ params, body }, respond) => {
-  await Media.findOneOrFail({ where: { id: params.mediaId } });
-
-  const episode = Episode.create({
+  const episode = await Episode.save({
     mediaId: params.mediaId,
     episodeNumber: body.episodeNumber,
     titleEn: body.titleEn,
@@ -38,8 +34,6 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
     lengthSeconds: body.lengthSeconds,
     thumbnailUrl: body.thumbnailUrl,
   });
-
-  await episode.save();
 
   return respond.with201().body(toEpisodeDTO(episode));
 };
@@ -56,28 +50,22 @@ export const getEpisode: GetEpisode = async ({ params }, respond) => {
 };
 
 export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) => {
-  const episode = await Episode.findOneOrFail({
+  const episode = await Episode.updateOrFail({
     where: {
       mediaId: params.mediaId,
       episodeNumber: params.episodeNumber,
     },
+    patch: body,
   });
-
-  Episode.merge(episode, body);
-  await episode.save();
 
   return respond.with200().body(toEpisodeDTO(episode));
 };
 
 export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
-  const episode = await Episode.findOneOrFail({
-    where: {
-      mediaId: params.mediaId,
-      episodeNumber: params.episodeNumber,
-    },
+  await Episode.softDeleteOrFail({
+    mediaId: params.mediaId,
+    episodeNumber: params.episodeNumber,
   });
-
-  await episode.softRemove();
 
   return respond.with204();
 };

@@ -1,7 +1,7 @@
 import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { ResponseSchemas, Internal } from '@lib/decorators';
-import type { Episode } from './Episode';
+import { Episode } from './Episode';
 export enum SegmentStatus {
   DELETED = 'DELETED',
   ACTIVE = 'ACTIVE',

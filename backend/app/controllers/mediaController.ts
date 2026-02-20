@@ -1,15 +1,20 @@
 import type { ListMedia, CreateMedia, GetMedia, UpdateMedia, DeleteMedia, AutocompleteMedia } from 'generated/routes/media';
 import type { DeepPartial } from 'typeorm';
 import { ILike } from 'typeorm';
-import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, CharacterRole } from '@app/models';
+import {
+  CategoryType,
+  Media,
+  MediaCharacter,
+  MediaExternalId,
+  ExternalSourceType,
+  CharacterRole,
+  MediaInclude,
+} from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
 import { AppDataSource } from '@config/database';
 import { Cache } from '@lib/cache';
 import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
-
-const shouldIncludeMediaCharacters = (include: string[] | undefined): boolean =>
-  include?.includes('media.characters') ?? false;
 
 function toCharacterData(char: {
   id: number;
@@ -56,16 +61,13 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
     whereClause = categoryFilter;
   }
 
-  const includeCharacters = shouldIncludeMediaCharacters(query.include);
-  const characterRelations = includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
+  const mediaRelations = Media.buildRelations({
+    includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
+  });
 
   const [mediaList] = await Media.findAndCount({
     where: whereClause,
-    relations: {
-      episodes: true,
-      ...characterRelations,
-      externalIds: true,
-    },
+    relations: mediaRelations,
     order: { id: 'ASC' },
     take: query.limit,
     skip: query.cursor,
@@ -75,7 +77,7 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
   const hasMoreResults = mediaList.length === query.limit;
 
   return respond.with200().body({
-    media: toMediaListDTO(mediaList, { includeCharacters }),
+    media: toMediaListDTO(mediaList),
     pagination: {
       hasMore: hasMoreResults,
       cursor: hasMoreResults ? nextCursor : null,
@@ -168,19 +170,16 @@ export const createMedia: CreateMedia = async ({ body }, respond) => {
 };
 
 export const getMedia: GetMedia = async ({ params, query }, respond) => {
-  const includeCharacters = shouldIncludeMediaCharacters(query.include);
-  const characterRelations = includeCharacters ? { characters: { character: { seiyuu: true } } } : {};
+  const mediaRelations = Media.buildRelations({
+    includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
+  });
 
   const media = await Media.findOneOrFail({
     where: { id: params.id },
-    relations: {
-      episodes: true,
-      ...characterRelations,
-      externalIds: true,
-    },
+    relations: mediaRelations,
   });
 
-  return respond.with200().body(toMediaDTO(media, { includeCharacters }));
+  return respond.with200().body(toMediaDTO(media));
 };
 
 export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {

@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
 import { useI18n } from 'vue-i18n';
 
 import type { UserSession } from '@/stores/auth';
-import type { SearchResult } from '~/stores/search';
-import { authApiRequest } from '~/utils/authApi';
+import type { SearchResult } from '~/types/search';
 import { useToastSuccess, useToastError } from '~/utils/toast';
 
 const { t } = useI18n();
 
 const user_store = userStore();
+const sdk = useNadeshikoSdk();
 
 const sessionsActionLoading = ref(false);
 const sessionsError = ref('');
@@ -21,11 +20,7 @@ const savingPreferences = ref(false);
 const updatePreference = async (key: string, value: string) => {
   savingPreferences.value = true;
   try {
-    await $fetch('/v1/user/preferences', {
-      method: 'PATCH',
-      credentials: 'include',
-      body: { [key]: value },
-    });
+    await sdk.updateUserPreferences({ body: { [key]: value } });
     user_store.preferences = { ...user_store.preferences, [key]: value };
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
   } catch (error) {
@@ -53,7 +48,7 @@ const mediaNameExample = computed(() => {
 });
 
 // Content rating preview segment
-const PREVIEW_SEGMENT_UUID = 'TODO_REPLACE_WITH_REAL_UUID';
+const PREVIEW_SEGMENT_UUID = '5590c3ec-00ef-3c2d-8040-de942cb68bf8';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
   $fetch<{ segments: SearchResult[] }>(`/api/search/context/${PREVIEW_SEGMENT_UUID}`, {
     params: { limit: 1 },
@@ -75,11 +70,7 @@ const updateContentRatingPreference = async (category: string, value: string) =>
   try {
     const current = user_store.preferences?.contentRatingPreferences ?? {};
     const updated = { ...current, [category]: value };
-    await $fetch('/v1/user/preferences', {
-      method: 'PATCH',
-      credentials: 'include',
-      body: { contentRatingPreferences: updated },
-    });
+    await sdk.updateUserPreferences({ body: { contentRatingPreferences: updated } });
     user_store.preferences = { ...user_store.preferences, contentRatingPreferences: updated };
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
   } catch (error) {
@@ -112,8 +103,8 @@ const {
   }
 
   // Client-side
-  const response = await authApiRequest<UserSession[]>('/v1/auth/list-sessions', { method: 'GET' });
-  return Array.isArray(response.data) ? response.data : [];
+  const raw = await $fetch<unknown[]>('/v1/auth/list-sessions', { method: 'GET', credentials: 'include' }).catch(() => []);
+  return Array.isArray(raw) ? (raw as UserSession[]) : [];
 });
 
 const sessionRows = computed(() => sessionsData.value ?? []);
@@ -420,7 +411,7 @@ const logoutCurrentUser = async () => {
           <div class="relative h-36 sm:h-auto sm:w-48 shrink-0 overflow-hidden">
             <img
               v-if="suggestiveMode !== 'hide'"
-              :src="previewSegment.urls.imageUrl"
+              :src="previewSegment.segment.urls.imageUrl"
               :alt="`Preview image for content rating sample`"
               class="h-full w-full object-cover object-center transition-all duration-300"
               :class="suggestiveMode === 'blur' ? 'blur-[42px] scale-125' : ''"

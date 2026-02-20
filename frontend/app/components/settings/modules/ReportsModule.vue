@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
-import { authApiRequest } from '~/utils/authApi';
-
 const { t } = useI18n();
+const sdk = useNadeshikoSdk();
 
 type Report = {
   id: number;
@@ -107,109 +105,65 @@ const showCheckConfig = ref(false);
 const editingCheck = ref<ReviewCheck | null>(null);
 const editThreshold = ref<Record<string, number | boolean>>({});
 
-const getServerRequestContext = () => {
-  if (!import.meta.server) return null;
-  const event = useRequestEvent();
-  if (!event) return null;
-
-  const config = useRuntimeConfig();
-  const cookieHeader = getRequestHeader(event, 'cookie');
-  const headers: Record<string, string> = { cookie: cookieHeader || '' };
-  if (config.backendHostHeader) {
-    headers.host = String(config.backendHostHeader);
-  }
-
-  return {
-    baseUrl: String(config.backendInternalUrl || ''),
-    headers,
-  };
-};
-
-const requestWithAuth = async <T>(
-  path: string,
-  fallback: T,
-  options?: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown },
-): Promise<T> => {
-  if (import.meta.server) {
-    const ctx = getServerRequestContext();
-    if (!ctx || !ctx.baseUrl) return fallback;
-    return await $fetch<T>(`${ctx.baseUrl}${path}`, {
-      headers: ctx.headers,
-      method: options?.method,
-      body: options?.body,
-    }).catch(() => fallback);
-  }
-
-  const response = await authApiRequest<T>(path, {
-    method: options?.method,
-    body: options?.body,
-  });
-  return response.ok && response.data ? response.data : fallback;
-};
-
-const buildReportPath = (append = false) => {
-  const params = new URLSearchParams();
-  if (cursor.value && append) params.set('cursor', String(cursor.value));
-  if (statusFilter.value) params.set('status', statusFilter.value);
-  if (sourceFilter.value) params.set('source', sourceFilter.value);
-  params.set('limit', '20');
-  return `/v1/admin/reports?${params.toString()}`;
+const buildReportQuery = (append = false) => {
+  const query: Record<string, string | number> = { limit: 20 };
+  if (cursor.value && append) query.cursor = cursor.value;
+  if (statusFilter.value) query.status = statusFilter.value;
+  if (sourceFilter.value) query.source = sourceFilter.value;
+  return query;
 };
 
 const fetchReports = async (append = false) => {
   isLoading.value = true;
   try {
-    const result = await requestWithAuth<ReportListResponse>(buildReportPath(append), {
-      reports: [],
-      pagination: { hasMore: false, cursor: null },
-    });
+    const { data } = await sdk.listAdminReports({ query: buildReportQuery(append) });
+    const result = data ?? { reports: [], pagination: { hasMore: false, cursor: null } };
 
     if (append) {
-      reports.value.push(...result.reports);
+      reports.value.push(...(result.reports as AdminReport[]));
     } else {
-      reports.value = result.reports;
+      reports.value = (result.reports ?? []) as AdminReport[];
     }
-    hasMore.value = result.pagination.hasMore;
-    cursor.value = result.pagination.cursor;
+    hasMore.value = result.pagination?.hasMore ?? false;
+    cursor.value = result.pagination?.cursor ?? null;
   } finally {
     isLoading.value = false;
   }
 };
 
 const fetchChecks = async () => {
-  checks.value = await requestWithAuth<ReviewCheck[]>('/v1/admin/review/checks', []);
+  const { data } = await sdk.listAdminReviewChecks().catch(() => ({ data: null }));
+  checks.value = (data ?? []) as ReviewCheck[];
 };
 
 const fetchRuns = async () => {
-  const response = await authApiRequest<{ runs: ReviewCheckRun[]; hasMore: boolean }>('/v1/admin/review/runs?limit=50');
-  if (response.ok && response.data) {
-    runs.value = response.data.runs;
-  }
+  try {
+    const { data } = await sdk.listAdminReviewRuns({ query: { limit: 50 } });
+    runs.value = (data?.runs ?? []) as ReviewCheckRun[];
+  } catch {}
 };
 
 const fetchAllowlist = async () => {
-  const response = await authApiRequest<AllowlistEntry[]>('/v1/admin/review/allowlist');
-  if (response.ok && response.data) {
-    allowlist.value = response.data;
-  }
+  try {
+    const { data } = await sdk.listAdminReviewAllowlist();
+    allowlist.value = (data ?? []) as AllowlistEntry[];
+  } catch {}
 };
 
 const { data: initialAdminData } = await useAsyncData(
   'settings-admin-reports-initial',
   async () => {
-    const [initialReports, initialChecks] = await Promise.all([
-      requestWithAuth<ReportListResponse>(buildReportPath(false), {
-        reports: [],
-        pagination: { hasMore: false, cursor: null },
-      }),
-      requestWithAuth<ReviewCheck[]>('/v1/admin/review/checks', []),
+    const [reportsResult, checksResult] = await Promise.all([
+      sdk.listAdminReports({ query: buildReportQuery(false) }).catch(() => ({ data: null })),
+      sdk.listAdminReviewChecks().catch(() => ({ data: null })),
     ]);
 
+    const reportData = reportsResult.data;
     return {
-      reports: initialReports.reports,
-      hasMore: initialReports.pagination.hasMore,
-      cursor: initialReports.pagination.cursor,
-      checks: initialChecks,
+      reports: (reportData?.reports ?? []) as AdminReport[],
+      hasMore: reportData?.pagination?.hasMore ?? false,
+      cursor: reportData?.pagination?.cursor ?? null,
+      checks: (checksResult.data ?? []) as ReviewCheck[],
     };
   },
   {
@@ -238,29 +192,25 @@ watch([sourceFilter, statusFilter], () => {
 const runCheck = async (checkName: string) => {
   runningChecks.value.add(checkName);
   try {
-    const response = await authApiRequest<{ totalReports: number }>(`/v1/admin/review/run?checkName=${checkName}`, {
-      method: 'POST',
-    });
-    if (response.ok && response.data) {
-      useToastSuccess(`${checkName}: ${response.data.totalReports} findings`);
-      await fetchReports();
-      await fetchChecks();
-    }
-  } finally {
+    const { data } = await sdk.runAdminReview({ query: { checkName } });
+    useToastSuccess(`${checkName}: ${data?.totalReports ?? 0} findings`);
+    await fetchReports();
+    await fetchChecks();
+  } catch {} finally {
     runningChecks.value.delete(checkName);
   }
 };
 
-const updateReport = async (reportId: number, status: string, adminNotes?: string) => {
-  const body: Record<string, string> = { status };
-  if (adminNotes !== undefined) body.adminNotes = adminNotes;
+const updateReport = async (reportId: number, status: AdminReport['status'], adminNotes?: string) => {
+  try {
+    await sdk.updateAdminReport({
+      path: { id: reportId },
+      body: {
+        status,
+        ...(adminNotes !== undefined ? { adminNotes } : {}),
+      },
+    });
 
-  const response = await authApiRequest(`/v1/admin/reports/${reportId}`, {
-    method: 'PATCH',
-    body,
-  });
-
-  if (response.ok) {
     const idx = reports.value.findIndex((r) => r.id === reportId);
     if (idx !== -1) {
       const report = reports.value[idx];
@@ -269,7 +219,7 @@ const updateReport = async (reportId: number, status: string, adminNotes?: strin
       if (adminNotes !== undefined) report.adminNotes = adminNotes;
     }
     useToastSuccess(t('reports.admin.updateSuccess'));
-  }
+  } catch {}
 };
 
 const openCheckConfig = (check: ReviewCheck) => {
@@ -281,19 +231,18 @@ const openCheckConfig = (check: ReviewCheck) => {
 const saveCheckConfig = async () => {
   if (!editingCheck.value) return;
 
-  const response = await authApiRequest(`/v1/admin/review/checks/${editingCheck.value.name}`, {
-    method: 'PATCH',
-    body: {
-      threshold: editThreshold.value,
-      enabled: editingCheck.value.enabled,
-    },
-  });
-
-  if (response.ok) {
+  try {
+    await sdk.updateAdminReviewCheck({
+      path: { name: editingCheck.value.name },
+      body: {
+        threshold: editThreshold.value,
+        enabled: editingCheck.value.enabled,
+      },
+    });
     useToastSuccess('Check config updated');
     showCheckConfig.value = false;
     await fetchChecks();
-  }
+  } catch {}
 };
 
 const addToAllowlist = async (report: AdminReport) => {
@@ -302,30 +251,25 @@ const addToAllowlist = async (report: AdminReport) => {
 
   const episodeNumber = 'episodeNumber' in report.target ? report.target.episodeNumber : undefined;
 
-  const response = await authApiRequest('/v1/admin/review/allowlist', {
-    method: 'POST',
-    body: {
-      checkName,
-      mediaId: report.target.mediaId,
-      episodeNumber,
-      reason: 'Allowlisted from admin panel',
-    },
-  });
-
-  if (response.ok) {
+  try {
+    await sdk.createAdminReviewAllowlistEntry({
+      body: {
+        checkName,
+        mediaId: report.target.mediaId,
+        episodeNumber,
+        reason: 'Allowlisted from admin panel',
+      },
+    });
     useToastSuccess('Added to allowlist');
-  }
+  } catch {}
 };
 
 const removeAllowlistEntry = async (id: number) => {
-  const response = await authApiRequest(`/v1/admin/review/allowlist/${id}`, {
-    method: 'DELETE',
-  });
-
-  if (response.ok) {
+  try {
+    await sdk.deleteAdminReviewAllowlistEntry({ path: { id } });
     allowlist.value = allowlist.value.filter((e) => e.id !== id);
     useToastSuccess('Removed from allowlist');
-  }
+  } catch {}
 };
 
 const reasonToCheckName = (reason: string): string | null => {

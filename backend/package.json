@@ -32,7 +32,10 @@
     "db:status": "bun run bin/db.ts status",
     "es:reindex": "bun run bin/es.ts reindex",
     "es:status": "bun run bin/es.ts status",
-    "routes": "bun run bin/routes.ts"
+    "routes": "bun run bin/routes.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "author": "",
   "license": "ISC",
@@ -79,11 +82,16 @@
     "@types/pino": "^7.0.4",
     "@types/recursive-readdir": "^2.2.4",
     "@types/request-ip": "^0.0.41",
+    "@types/supertest": "^6.0.3",
     "@usebruno/cli": "^3.0.2",
     "@usebruno/converters": "^0.16.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "chokidar-cli": "^3.0.0",
     "js-yaml": "^4.1.1",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18",
     "yaml": "^2.8.2"
   }
 }

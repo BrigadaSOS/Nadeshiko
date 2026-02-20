@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { mdiCheckBold, mdiPlus } from '@mdi/js';
 import { useI18n } from 'vue-i18n';
-import type { SearchResult } from '~/stores/search';
+import type { SearchResult } from '~/types/search';
 const { t } = useI18n();
 
 type Props = {

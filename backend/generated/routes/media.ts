@@ -47,7 +47,6 @@ import type {
   t_GetSegmentContextQuerySchema,
   t_GetSegmentParamSchema,
   t_GetSeiyuuParamSchema,
-  t_GetSeiyuuQuerySchema,
   t_GetSeriesParamSchema,
   t_GetSeriesQuerySchema,
   t_ListEpisodesParamSchema,
@@ -71,6 +70,8 @@ import type {
   t_UpdateEpisodeRequestBodySchema,
   t_UpdateMediaParamSchema,
   t_UpdateMediaRequestBodySchema,
+  t_UpdateSegmentByUuidParamSchema,
+  t_UpdateSegmentByUuidRequestBodySchema,
   t_UpdateSegmentParamSchema,
   t_UpdateSegmentRequestBodySchema,
   t_UpdateSeriesMediaParamSchema,
@@ -78,7 +79,7 @@ import type {
   t_UpdateSeriesParamSchema,
   t_UpdateSeriesRequestBodySchema,
 } from '../models.ts';
-import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentContextQueryOutput, GetSeiyuuQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
+import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentContextQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
   s_CharacterWithMedia,
   s_ContentRating,
@@ -421,6 +422,24 @@ export type GetSegmentByUuid = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type UpdateSegmentByUuidResponder = {
+  with200(): ExpressRuntimeResponse<t_SegmentInternal>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UpdateSegmentByUuid = (
+  params: Params<t_UpdateSegmentByUuidParamSchema, void, SegmentUpdateRequestOutput, void>,
+  respond: UpdateSegmentByUuidResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type GetSegmentContextResponder = {
   with200(): ExpressRuntimeResponse<t_SegmentContextResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
@@ -610,7 +629,7 @@ export type GetSeiyuuResponder = {
 } & ExpressRuntimeResponder;
 
 export type GetSeiyuu = (
-  params: Params<t_GetSeiyuuParamSchema, GetSeiyuuQueryOutput, void, void>,
+  params: Params<t_GetSeiyuuParamSchema, void, void, void>,
   respond: GetSeiyuuResponder,
   req: Request,
   res: Response,
@@ -635,6 +654,7 @@ export type MediaImplementation = {
   updateSegment: UpdateSegment;
   deleteSegment: DeleteSegment;
   getSegmentByUuid: GetSegmentByUuid;
+  updateSegmentByUuid: UpdateSegmentByUuid;
   getSegmentContext: GetSegmentContext;
   listSeries: ListSeries;
   createSeries: CreateSeries;
@@ -2008,6 +2028,83 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
+  const updateSegmentByUuidParamSchema = z.object({ uuid: z.string() });
+
+  const updateSegmentByUuidRequestBodySchema = s_SegmentUpdateRequest;
+
+  const updateSegmentByUuidResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SegmentInternal],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // updateSegmentByUuid
+  router.patch(`/v1/media/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(updateSegmentByUuidParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(updateSegmentByUuidRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_SegmentInternal>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.updateSegmentByUuid(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(updateSegmentByUuidResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
   const getSegmentContextParamSchema = z.object({ uuid: z.string() });
 
   const getSegmentContextQuerySchema = z.object({
@@ -2787,13 +2884,6 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
   const getSeiyuuParamSchema = z.object({ id: z.coerce.number() });
 
-  const getSeiyuuQuerySchema = z.object({
-    include: z
-      .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(z.enum(['character'])))
-      .optional()
-      .default(['character']),
-  });
-
   const getSeiyuuResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_SeiyuuWithRoles],
@@ -2812,7 +2902,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     try {
       const input = {
         params: parseRequestInput(getSeiyuuParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(getSeiyuuQuerySchema, req.query, RequestInputType.QueryString),
+        query: undefined,
         body: undefined,
         headers: undefined,
       };

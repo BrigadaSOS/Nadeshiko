@@ -4,7 +4,6 @@ import { mdiPlus, mdiCheckBold, mdiPencilOutline } from '@mdi/js';
 
 import type { ApiKeyListItem } from '@/stores/api';
 import { normalizeApiKey, asObject } from '@/stores/api';
-import { authApiRequest } from '~/utils/authApi';
 
 const api_store = apiStore();
 const isLoading = ref(false);
@@ -50,16 +49,16 @@ const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer
     };
   }
 
-  // Client-side: use authApiRequest
-  const [keysResponse, quotaResponse] = await Promise.all([
-    authApiRequest<unknown[]>('/v1/auth/api-key/list', { method: 'GET' }),
-    authApiRequest<Record<string, unknown>>('/v1/user/quota', { method: 'GET' }),
+  // Client-side: use $fetch
+  const [keysRaw, quotaRaw] = await Promise.all([
+    $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []),
+    $fetch<Record<string, unknown>>('/v1/user/quota', { method: 'GET', credentials: 'include' }).catch(() => ({})),
   ]);
 
-  const keys = (Array.isArray(keysResponse.data) ? keysResponse.data : [])
+  const keys = (Array.isArray(keysRaw) ? keysRaw : [])
     .map(normalizeApiKey)
     .filter((k) => k.isActive);
-  const q = quotaResponse.ok ? asObject(quotaResponse.data) : {};
+  const q = asObject(quotaRaw);
   return {
     keys,
     quota: {

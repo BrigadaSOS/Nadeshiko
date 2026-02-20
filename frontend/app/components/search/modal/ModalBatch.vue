@@ -1,10 +1,12 @@
 <script setup>
 import { mdiTagSearchOutline } from '@mdi/js';
+import { resolveWordsResponse } from '~/utils/resolvers';
+
 const selectedOption = ref('');
 const words = ref('');
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
-const apiSearch = useApiSearch();
+const sdk = useNadeshikoSdk();
 
 const inputText = ref('');
 const wordCount = ref(0);
@@ -15,11 +17,11 @@ const checkExactSearch = ref(false);
 const isLoading = ref(false);
 
 const sortedWordsMatch = computed(() => {
-  // Ordenar las palabras por item.totalMatches de manera descendente,
+  // Ordenar las palabras por item.matchCount de manera descendente,
   // luego por item.isMatch de manera descendente
   const sortedItems = wordsMatch.value.slice().sort((a, b) => {
-    const aTotalMatches = Number(a.totalMatches);
-    const bTotalMatches = Number(b.totalMatches);
+    const aTotalMatches = Number(a.matchCount);
+    const bTotalMatches = Number(b.matchCount);
 
     if (aTotalMatches > bTotalMatches) return -1;
     if (aTotalMatches < bTotalMatches) return 1;
@@ -46,7 +48,13 @@ const getWordMatch = async () => {
 
   // Fetch data from API
   try {
-    const response = await apiSearch.getMultipleSearch(body);
+    const { data } = await sdk.searchMultiple({
+      body: {
+        words: words.value,
+        exactMatch: checkExactSearch.value,
+      },
+    });
+    const response = data ? resolveWordsResponse(data) : { results: [] };
     wordsMatch.value = response.results;
     totalWordsSearched.value = words.value.length;
   } catch (e) {
@@ -57,8 +65,8 @@ const getWordMatch = async () => {
 };
 
 const percentageMatched = computed(() => {
-  const totalMatches = sortedWordsMatch.value.filter((item) => item.isMatch).length;
-  return (totalMatches / totalWordsSearched.value) * 100;
+  const matchCount = sortedWordsMatch.value.filter((item) => item.isMatch).length;
+  return (matchCount / totalWordsSearched.value) * 100;
 });
 
 const wordsFound = computed(() => {
@@ -247,7 +255,7 @@ watch(inputText, (newValue) => {
 
                         <td
                           class="py-4 whitespace-nowrap text-center text-base font-medium text-gray-800 dark:text-gray-200">
-                          {{ item.totalMatches }}
+                          {{ item.matchCount }}
                         </td>
                       </tr>
                     </tbody>

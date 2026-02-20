@@ -1,7 +1,5 @@
 import { useNuxtApp } from '#app';
 import { defineStore } from 'pinia';
-import { authApiRequest } from '~/utils/authApi';
-import { signInSocial, signOut as authSignOut } from '~/utils/authClient';
 
 type UserRole = 'ADMIN' | 'MOD' | 'USER' | 'PATREON';
 
@@ -48,55 +46,50 @@ export const userStore = defineStore('user', {
       this.$patch(defaultAuthState());
     },
 
-    async loginGoogle() {
+    async loginWithProvider(provider: 'google' | 'discord') {
       const { $i18n } = useNuxtApp();
 
       try {
-        const result = await signInSocial({
-          provider: 'google',
-          callbackURL: window.location.href,
-          errorCallbackURL: window.location.href,
+        const response = await $fetch<{ url?: string; error?: { message?: string } }>('/v1/auth/sign-in/social', {
+          method: 'POST',
+          credentials: 'include',
+          body: {
+            provider,
+            callbackURL: window.location.href,
+            errorCallbackURL: window.location.href,
+          },
         });
 
-        if (result?.error) {
+        if (response?.error) {
           useToastError($i18n.t('modalauth.labels.errorlogin400'));
+          return;
+        }
+
+        if (response?.url) {
+          window.location.href = response.url;
         }
       } catch {
         useToastError($i18n.t('modalauth.labels.errorlogin400'));
       }
     },
 
+    async loginGoogle() {
+      await this.loginWithProvider('google');
+    },
+
     async loginDiscord() {
-      const { $i18n } = useNuxtApp();
-
-      try {
-        const result = await signInSocial({
-          provider: 'discord',
-          callbackURL: window.location.href,
-          errorCallbackURL: window.location.href,
-        });
-
-        if (result?.error) {
-          useToastError($i18n.t('modalauth.labels.errorlogin400'));
-        }
-      } catch {
-        useToastError($i18n.t('modalauth.labels.errorlogin400'));
-      }
+      await this.loginWithProvider('discord');
     },
 
     async impersonateDevUser(userId: number) {
       const { $i18n } = useNuxtApp();
 
       try {
-        const response = await authApiRequest('/v1/dev/auth/impersonate', {
+        await $fetch('/v1/dev/auth/impersonate', {
           method: 'POST',
+          credentials: 'include',
           body: { userId },
         });
-
-        if (!response.ok) {
-          useToastError($i18n.t('modalauth.labels.errorlogin400'));
-          return;
-        }
 
         await this.getBasicInfo();
         if (this.isLoggedIn) {
@@ -109,8 +102,9 @@ export const userStore = defineStore('user', {
 
     async clearDevImpersonation() {
       try {
-        await authApiRequest('/v1/dev/auth/impersonate/clear', {
+        await $fetch('/v1/dev/auth/impersonate/clear', {
           method: 'POST',
+          credentials: 'include',
         });
       } finally {
         this.resetAuthState();
@@ -122,7 +116,7 @@ export const userStore = defineStore('user', {
       const { $i18n } = useNuxtApp();
 
       try {
-        await authSignOut();
+        await $fetch('/v1/auth/sign-out', { method: 'POST', credentials: 'include' });
       } catch {
         // no-op: clear local auth state even if sign out request fails
       }
@@ -153,27 +147,22 @@ export const userStore = defineStore('user', {
           userInfo: { role: sessionUser?.role ?? 'USER' },
           preferences: sessionUser?.preferences ?? {},
         });
-      } catch (error) {
-        console.error('[getBasicInfo] Error fetching session:', error);
+      } catch {
         this.resetAuthState();
       }
     },
 
     async listSessions(): Promise<UserSession[]> {
       try {
-        const response = await authApiRequest<UserSession[]>('/v1/auth/list-sessions', {
+        const raw = await $fetch<unknown[]>('/v1/auth/list-sessions', {
           method: 'GET',
+          credentials: 'include',
         });
 
-        if (!response.ok) {
-          throw new Error('Unable to list sessions');
-        }
-
-        const normalized = Array.isArray(response.data) ? response.data : [];
+        const normalized = Array.isArray(raw) ? (raw as UserSession[]) : [];
         this.activeSessions = normalized;
         return normalized;
-      } catch (error) {
-        console.error(error);
+      } catch {
         this.activeSessions = [];
         return [];
       }
@@ -181,75 +170,59 @@ export const userStore = defineStore('user', {
 
     async revokeSession(token: string): Promise<boolean> {
       try {
-        const response = await authApiRequest('/v1/auth/revoke-session', {
+        await $fetch('/v1/auth/revoke-session', {
           method: 'POST',
+          credentials: 'include',
           body: { token },
         });
-
-        if (!response.ok) {
-          return false;
-        }
 
         await this.listSessions();
         await this.getBasicInfo();
         return true;
-      } catch (error) {
-        console.error(error);
+      } catch {
         return false;
       }
     },
 
     async revokeSessions(): Promise<boolean> {
       try {
-        const response = await authApiRequest('/v1/auth/revoke-sessions', {
+        await $fetch('/v1/auth/revoke-sessions', {
           method: 'POST',
+          credentials: 'include',
         });
-
-        if (!response.ok) {
-          return false;
-        }
 
         await this.logout();
         return true;
-      } catch (error) {
-        console.error(error);
+      } catch {
         return false;
       }
     },
 
     async revokeOtherSessions(): Promise<boolean> {
       try {
-        const response = await authApiRequest('/v1/auth/revoke-other-sessions', {
+        await $fetch('/v1/auth/revoke-other-sessions', {
           method: 'POST',
+          credentials: 'include',
         });
-
-        if (!response.ok) {
-          return false;
-        }
 
         await this.listSessions();
         return true;
-      } catch (error) {
-        console.error(error);
+      } catch {
         return false;
       }
     },
 
     async deleteAccount(): Promise<boolean> {
       try {
-        const response = await authApiRequest('/v1/auth/delete-user', {
+        await $fetch('/v1/auth/delete-user', {
           method: 'POST',
+          credentials: 'include',
           body: {},
         });
 
-        if (!response.ok) {
-          return false;
-        }
-
         this.resetAuthState();
         return true;
-      } catch (error) {
-        console.error(error);
+      } catch {
         return false;
       }
     },

@@ -1,45 +1,33 @@
-<script setup>
+<script setup lang="ts">
 import { mdiRefresh } from '@mdi/js';
+import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
 
 import { usePlayerStore } from '~/stores/player';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
+import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
+import type { SearchResponse, SearchStatsResponse, SearchFilters, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
 const { mediaName } = useMediaName();
 const { hiddenMediaExcludeFilter } = useHiddenMedia();
 
-const props = defineProps({
-  initialSentenceData: {
-    type: Object,
-    default: null,
-  },
-  initialStatsData: {
-    type: Object,
-    default: null,
-  },
-  listMediaIds: {
-    type: Array,
-    default: null,
-  },
-  collectionId: {
-    type: Number,
-    default: null,
-  },
-  collectionName: {
-    type: String,
-    default: null,
-  },
-});
+const props = defineProps<{
+  initialSentenceData?: SearchResponse | null;
+  initialStatsData?: SearchStatsResponse | null;
+  listMediaIds?: number[] | null;
+  collectionId?: number | null;
+  collectionName?: string | null;
+}>();
 
 const { t } = useI18n();
-const apiSearch = useApiSearch();
+const sdk = useNadeshikoSdk();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
 const route = useRoute();
 const router = useRouter();
 const playerStore = usePlayerStore();
 
-const sentenceData = ref(props.initialSentenceData);
-const statsData = ref(props.initialStatsData);
+const sentenceData = ref<SearchResponse | null>(props.initialSentenceData ?? null);
+const statsData = ref<SearchStatsResponse | null>(props.initialStatsData ?? null);
 const isLoading = ref(false);
 const endOfResults = ref(false);
 const isSingleSentenceView = computed(() => route.path.startsWith('/sentence/'));
@@ -49,16 +37,17 @@ const initialError = ref(false);
 
 const query = ref('');
 const category = ref('all');
-const cursor = ref(null);
-const media = ref(null);
-const sort = ref(null);
-const uuid = ref(null);
-const episode = ref(null);
+const cursor = ref<number[] | null>(null);
+const media = ref<string | null>(null);
+const sort = ref<string | null>(null);
+const uuid = ref<string | null>(null);
+const episode = ref<number | null>(null);
 
 const categoryApiMapping = CATEGORY_API_MAPPING;
 
-const firstQueryValue = (value) => (Array.isArray(value) ? value[0] : value);
-const getStringQueryValue = (value) => {
+const firstQueryValue = (value: LocationQueryValue | LocationQueryValue[] | undefined): LocationQueryValue | undefined =>
+  Array.isArray(value) ? value[0] : value;
+const getStringQueryValue = (value: LocationQueryValue | LocationQueryValue[] | undefined): string | null => {
   const normalized = firstQueryValue(value);
   if (normalized === undefined || normalized === null || normalized === '') {
     return null;
@@ -67,15 +56,15 @@ const getStringQueryValue = (value) => {
 };
 
 const searchData = computed(() => {
-  const sentencePayload = sentenceData.value || {};
-  const statsPayload = statsData.value || {};
+  const sentencePayload = sentenceData.value;
+  const statsPayload = statsData.value;
 
   return {
-    results: sentencePayload.results || [],
-    cursor: sentencePayload.pagination?.cursor,
-    pagination: sentencePayload.pagination,
-    categories: statsPayload.categories || [],
-    media: statsPayload.media || [],
+    results: sentencePayload?.results || [],
+    cursor: sentencePayload?.pagination?.cursor,
+    pagination: sentencePayload?.pagination,
+    categories: statsPayload?.categories || [] as ResolvedCategoryCount[],
+    media: statsPayload?.media || [] as ResolvedMediaStats[],
   };
 });
 
@@ -105,14 +94,14 @@ const animeTabName = computed(() => {
   return t('searchContainer.categoryAll');
 });
 
-const getSearchQuery = (r) => {
+const getSearchQuery = (r: RouteLocationNormalized): string => {
   if (r.params?.query) {
     return decodeURIComponent(String(r.params.query));
   }
   return typeof r.query?.query === 'string' ? r.query.query : '';
 };
 
-const applyRouteQuery = (r) => {
+const applyRouteQuery = (r: RouteLocationNormalized) => {
   query.value = getSearchQuery(r);
   const queryParams = r.query || {};
   const categoryParam = getStringQueryValue(queryParams.category);
@@ -135,16 +124,14 @@ applyRouteQuery(route);
 const fetchStats = async () => {
   try {
     if (props.collectionId) {
-      statsData.value = await apiSearch.getCollectionStats(props.collectionId);
+      const raw = await $fetch(`/v1/collections/${props.collectionId}/stats`, {
+        credentials: 'include',
+      });
+      statsData.value = resolveStatsResponse(raw);
       return;
     }
 
-    const body = {};
-    const filters = {};
-
-    if (query.value) {
-      body.query = query.value;
-    }
+    const filters: SearchFilters = {};
 
     const mappedCategory = categoryApiMapping[category.value];
     if (mappedCategory) {
@@ -152,7 +139,7 @@ const fetchStats = async () => {
     }
 
     if (props.listMediaIds && props.listMediaIds.length > 0) {
-      filters.media = { include: props.listMediaIds.map((id) => ({ mediaId: id })) };
+      filters.media = { include: props.listMediaIds.map((id: number) => ({ mediaId: id })) };
     }
 
     filters.contentRating = contentRating.value;
@@ -165,10 +152,16 @@ const fetchStats = async () => {
     if (excludedLanguages.value.length > 0) {
       filters.languages = { exclude: excludedLanguages.value };
     }
-    body.filters = filters;
-    statsData.value = await apiSearch.getSearchStats(body);
-  } catch (error) {
-    console.error('Error fetching search stats:', error);
+
+    const { data } = await sdk.getSearchStats({
+      body: {
+        query: query.value ? { search: query.value } : undefined,
+        filters,
+        include: ['media'],
+      },
+    });
+    statsData.value = data ? resolveStatsResponse(data) : { media: [], categories: [] };
+  } catch {
     statsData.value = {
       media: [],
       categories: [],
@@ -192,16 +185,16 @@ const fetchSentences = async () => {
     let response;
 
     if (props.collectionId) {
-      response = await apiSearch.searchCollectionSegments(props.collectionId, cursor.value ?? undefined);
+      const raw = await $fetch(`/v1/collections/${props.collectionId}/search`, {
+        credentials: 'include',
+        params: {
+          ...(cursor.value ? { cursor: cursor.value } : {}),
+          limit: 20,
+        },
+      });
+      response = resolveSearchResponse(raw);
     } else {
-      const body = {
-        limit: 20,
-      };
-      const filters = {};
-
-      if (query.value) {
-        body.query = query.value;
-      }
+      const filters: SearchFilters = {};
 
       const mappedCategory = categoryApiMapping[category.value];
       if (mappedCategory) {
@@ -209,9 +202,9 @@ const fetchSentences = async () => {
       }
 
       // Build media include filter
-      const mediaInclude = [];
+      const mediaInclude: Array<{ mediaId: number; episodes?: number[] }> = [];
       if (media.value) {
-        const mediaEntry = { mediaId: Number(media.value) };
+        const mediaEntry: { mediaId: number; episodes?: number[] } = { mediaId: Number(media.value) };
         if (episode.value !== null) {
           mediaEntry.episodes = [episode.value];
         }
@@ -226,18 +219,6 @@ const fetchSentences = async () => {
         filters.media = { include: mediaInclude };
       }
 
-      if (sort.value && sort.value !== 'NONE') {
-        body.sort = sort.value;
-      }
-
-      if (cursor.value) {
-        body.cursor = cursor.value;
-      }
-
-      if (uuid.value) {
-        body.uuid = uuid.value;
-      }
-
       filters.contentRating = contentRating.value;
       if (hiddenMediaExcludeFilter.value.length > 0) {
         filters.media = {
@@ -248,8 +229,18 @@ const fetchSentences = async () => {
       if (excludedLanguages.value.length > 0) {
         filters.languages = { exclude: excludedLanguages.value };
       }
-      body.filters = filters;
-      response = await apiSearch.searchSegments(body);
+
+      const { data } = await sdk.search({
+        body: {
+          query: query.value ? { search: query.value } : undefined,
+          limit: 30,
+          sort: sort.value && sort.value !== 'NONE' ? { mode: sort.value as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' } : undefined,
+          cursor: cursor.value || undefined,
+          filters,
+          include: ['media'],
+        },
+      });
+      response = data ? resolveSearchResponse(data) : null;
     }
     const incomingResults = response?.results || [];
 
@@ -279,8 +270,7 @@ const fetchSentences = async () => {
     }
 
     initialError.value = false;
-  } catch (error) {
-    console.error('Error fetching sentences:', error);
+  } catch {
     if (!sentenceData.value?.results || sentenceData.value.results.length === 0) {
       initialError.value = true;
     }
@@ -305,7 +295,7 @@ const loadMore = () => {
   fetchSentences();
 };
 
-const getCategoryCount = (categoryKey) => {
+const getCategoryCount = (categoryKey: string): number => {
   if (media.value) {
     return searchData.value?.pagination?.estimatedTotalHits || 0;
   }
@@ -321,7 +311,7 @@ const getCategoryCount = (categoryKey) => {
   return item ? item.count : 0;
 };
 
-const categoryFilter = (categoryKey) => {
+const categoryFilter = (categoryKey: string) => {
   const queryParams = {
     ...route.query,
   };
@@ -349,21 +339,23 @@ const getEpisodeHitsData = () => {
   return selectedMedia?.episodeHits || {};
 };
 
-const handleRemoveFromCollection = async (uuid) => {
+const handleRemoveFromCollection = async (segmentUuid: string) => {
   if (!props.collectionId) return;
   try {
-    await $fetch(`/api/collections/${props.collectionId}/segments/${uuid}`, { method: 'DELETE' });
+    await sdk.removeSegmentFromCollection({
+      path: { id: props.collectionId, uuid: segmentUuid },
+    });
     // Remove from current results
     if (sentenceData.value?.results) {
       sentenceData.value = {
         ...sentenceData.value,
-        results: sentenceData.value.results.filter((r) => r.segment.uuid !== uuid),
+        results: sentenceData.value.results.filter((r) => r.segment.uuid !== segmentUuid),
       };
     }
     // Refresh stats
     fetchStats();
-  } catch (error) {
-    console.error('Error removing segment from collection:', error);
+  } catch {
+    // Collection removal failed — UI keeps segment visible
   }
 };
 
@@ -378,7 +370,7 @@ if (props.initialSentenceData) {
   if (
     !props.initialSentenceData.pagination?.hasMore ||
     !props.initialSentenceData.pagination?.cursor ||
-    initialResults.length < 20
+    initialResults.length < 30
   ) {
     endOfResults.value = true;
     hasMoreResults.value = false;
@@ -404,18 +396,7 @@ watch(forceSearchCounter, () => {
   fetchSentences();
 });
 
-const isOnlyLangPreferenceChange = (to, from) => {
-  if (to.path !== from.path) return false;
-  if (getSearchQuery(to) !== getSearchQuery(from)) return false;
-  const keys = ['category', 'media', 'mediaId', 'episode', 'episodeId', 'sort', 'uuid', 'collectionId'];
-  return keys.every((key) => (to.query[key] ?? '') === (from.query[key] ?? ''));
-};
-
 onBeforeRouteUpdate(async (to, from) => {
-  if (isOnlyLangPreferenceChange(to, from)) {
-    return;
-  }
-
   const toQuery = getSearchQuery(to);
   const fromQuery = getSearchQuery(from);
   const statsScopeChanged = toQuery !== fromQuery || to.query.category !== from.query.category;

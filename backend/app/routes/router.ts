@@ -39,6 +39,8 @@ import {
   addSegmentToCollection,
   updateCollectionSegment,
   removeSegmentFromCollection,
+  searchCollectionSegments,
+  getCollectionStats,
 } from '@app/controllers/collectionController';
 import {
   listSeries,
@@ -65,6 +67,7 @@ import {
   deleteSegment,
   getSegmentByUuid,
   getSegmentContext,
+  updateSegmentByUuid,
 } from '@app/controllers/segmentController';
 import { getUserQuota } from '@app/controllers/userQuotaController';
 import {
@@ -125,6 +128,7 @@ const MediaRoutes = createMediaRouter({
   deleteSegment,
   getSegmentByUuid,
   getSegmentContext,
+  updateSegmentByUuid,
   listSeries,
   createSeries,
   getSeries,
@@ -146,6 +150,8 @@ const CollectionsRoutes = createCollectionsRouter({
   addSegmentToCollection,
   updateCollectionSegment,
   removeSegmentFromCollection,
+  searchCollectionSegments,
+  getCollectionStats,
 });
 
 const AdminRoutes = createAdminRouter({
@@ -329,4 +335,4 @@ router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
 
-export { router };
+export { router, MediaRoutes, SearchRoutes, CollectionsRoutes, AdminRoutes, UserRoutes };

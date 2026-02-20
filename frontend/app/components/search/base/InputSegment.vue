@@ -20,7 +20,7 @@ const isMobile = computed(() => {
 });
 
 const navigateSearchSentence = async () => {
-  const { query: _query, ...restOfQuery } = route.query;
+  const { query: _query, hideLangs: _, blurLangs: __, ...restOfQuery } = route.query;
   const term = query.value?.trim();
   const remaining = Object.keys(restOfQuery).length > 0 ? restOfQuery : undefined;
 
@@ -29,8 +29,7 @@ const navigateSearchSentence = async () => {
     query: remaining,
   };
 
-  // If already at the target URL (e.g. after toggling EN/ES which only changed hideLangs/blurLangs),
-  // skip navigation and signal SearchContainer to re-fetch with current preferences instead.
+  // If already at the target URL, skip navigation and signal SearchContainer to re-fetch.
   if (router.resolve(target).fullPath === route.fullPath) {
     forceSearchCounter.value++;
     return;

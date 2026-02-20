@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not } from 'typeorm';
+import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { ResponseSchemas, Internal } from '@lib/decorators';
-import { Episode } from './Episode';
+import type { Episode } from './Episode';
 import { MediaCharacter } from './MediaCharacter';
 import { MediaExternalId } from './MediaExternalId';
 import { Segment, SegmentStatus } from './Segment';
@@ -17,6 +18,17 @@ const MEDIA_INFO_TTL_MS = 24 * 60 * 60 * 1000;
 export enum CategoryType {
   ANIME = 'ANIME',
   JDRAMA = 'JDRAMA',
+}
+
+export enum MediaInclude {
+  MEDIA = 'media',
+  MEDIA_CHARACTERS = 'media.characters',
+}
+
+interface MediaRelationsOptions {
+  includeCharacters?: boolean;
+  includeEpisodes?: boolean;
+  includeExternalIds?: boolean;
 }
 
 @Entity('Media')
@@ -102,6 +114,18 @@ export class Media extends BaseEntity {
 
   @OneToMany('MediaExternalId', 'media', { cascade: true })
   externalIds!: MediaExternalId[];
+
+  static buildRelations({
+    includeCharacters = false,
+    includeEpisodes = true,
+    includeExternalIds = true,
+  }: MediaRelationsOptions = {}): FindOptionsRelations<Media> {
+    return {
+      ...(includeEpisodes ? { episodes: true } : {}),
+      ...(includeExternalIds ? { externalIds: true } : {}),
+      ...(includeCharacters ? { characters: { character: { seiyuu: true } } } : {}),
+    };
+  }
 
   static async getMediaInfoMap(): Promise<{
     results: Map<number, MediaInfoData>;

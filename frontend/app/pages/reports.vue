@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
-import { authApiRequest } from '~/utils/authApi';
-
 const { t } = useI18n();
+const sdk = useNadeshikoSdk();
 definePageMeta({ middleware: 'auth', robots: false });
 
 type Report = {
@@ -31,72 +29,26 @@ type ReportListResponse = {
   };
 };
 
-const getServerRequestContext = () => {
-  if (!import.meta.server) return null;
-  const event = useRequestEvent();
-  if (!event) return null;
-
-  const config = useRuntimeConfig();
-  const cookieHeader = getRequestHeader(event, 'cookie');
-  const headers: Record<string, string> = { cookie: cookieHeader || '' };
-  if (config.backendHostHeader) {
-    headers.host = String(config.backendHostHeader);
-  }
-
-  return {
-    baseUrl: String(config.backendInternalUrl || ''),
-    headers,
-  };
-};
-
-const requestWithAuth = async <T>(
-  path: string,
-  fallback: T,
-  options?: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown },
-): Promise<T> => {
-  if (import.meta.server) {
-    const ctx = getServerRequestContext();
-    if (!ctx || !ctx.baseUrl) return fallback;
-    return await $fetch<T>(`${ctx.baseUrl}${path}`, {
-      headers: ctx.headers,
-      method: options?.method,
-      body: options?.body,
-    }).catch(() => fallback);
-  }
-
-  const response = await authApiRequest<T>(path, {
-    method: options?.method,
-    body: options?.body,
-  });
-  return response.ok && response.data ? response.data : fallback;
-};
-
-const buildReportPath = (append = false) => {
-  const params = new URLSearchParams();
-  if (cursor.value && append) params.set('cursor', String(cursor.value));
-  if (statusFilter.value) params.set('status', statusFilter.value);
-  params.set('limit', '20');
-  return `/v1/user/reports?${params.toString()}`;
+const buildReportQuery = (append = false) => {
+  const query: Record<string, string | number> = { limit: 20 };
+  if (cursor.value && append) query.cursor = cursor.value;
+  if (statusFilter.value) query.status = statusFilter.value;
+  return query;
 };
 
 const fetchReports = async (append = false) => {
   isLoading.value = true;
   try {
-    const result = await requestWithAuth<ReportListResponse>(buildReportPath(append), {
-      reports: [],
-      pagination: {
-        hasMore: false,
-        cursor: null,
-      },
-    });
+    const { data } = await sdk.listUserReports({ query: buildReportQuery(append) });
+    const result = data ?? { reports: [], pagination: { hasMore: false, cursor: null } };
 
     if (append) {
-      reports.value.push(...result.reports);
+      reports.value.push(...(result.reports as Report[]));
     } else {
-      reports.value = result.reports;
+      reports.value = (result.reports ?? []) as Report[];
     }
-    hasMore.value = result.pagination.hasMore;
-    cursor.value = result.pagination.cursor;
+    hasMore.value = result.pagination?.hasMore ?? false;
+    cursor.value = result.pagination?.cursor ?? null;
   } finally {
     isLoading.value = false;
   }
@@ -105,17 +57,11 @@ const fetchReports = async (append = false) => {
 const { data: initialReportsData } = await useAsyncData(
   'user-reports-initial',
   async () => {
-    const result = await requestWithAuth<ReportListResponse>(buildReportPath(false), {
-      reports: [],
-      pagination: {
-        hasMore: false,
-        cursor: null,
-      },
-    });
+    const { data } = await sdk.listUserReports({ query: buildReportQuery(false) }).catch(() => ({ data: null }));
     return {
-      reports: result.reports,
-      hasMore: result.pagination.hasMore,
-      cursor: result.pagination.cursor,
+      reports: (data?.reports ?? []) as Report[],
+      hasMore: data?.pagination?.hasMore ?? false,
+      cursor: data?.pagination?.cursor ?? null,
     };
   },
   {

@@ -6,6 +6,7 @@ import type {
   DeleteSegment,
   GetSegmentByUuid,
   GetSegmentContext,
+  UpdateSegmentByUuid,
 } from 'generated/routes/media';
 import { v3 as uuidv3 } from 'uuid';
 import { config } from '@config/config';
@@ -14,30 +15,26 @@ import { toSegmentDTO, toSegmentInternalDTO, toSegmentListDTO } from './mappers/
 import { querySurroundingSegments } from '@app/services/elasticsearch';
 
 export const listSegments: ListSegments = async ({ params, query }, respond) => {
-  await Episode.findOneOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
-
-  const [segments, count] = await Segment.findAndCount({
-    where: { mediaId: params.mediaId, episode: params.episodeNumber },
-    order: { id: 'ASC' },
+  const { items: segments, pagination } = await Segment.paginate({
+    find: {
+      where: { mediaId: params.mediaId, episode: params.episodeNumber },
+      order: { id: 'ASC' },
+    },
+    exists: {
+      entity: Episode,
+      where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber },
+    },
     take: query.limit,
     skip: query.cursor,
   });
 
-  const nextCursor = query.cursor + count;
-  const hasMore = count === query.limit;
-
   return respond.with200().body({
     segments: toSegmentListDTO(segments),
-    pagination: {
-      hasMore,
-      cursor: hasMore ? nextCursor : null,
-    },
+    pagination,
   });
 };
 
 export const createSegment: CreateSegment = async ({ params, body }, respond) => {
-  await Episode.findOneOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
-
   const media = await Media.findOneOrFail({ where: { id: params.mediaId } });
 
   const uniqueBaseId = `${params.mediaId}-1-${params.episodeNumber}-${body.position}`;
@@ -45,7 +42,7 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
 
   const jaContent = body.textJa?.content ?? '';
 
-  const segment = Segment.create({
+  const segment = await Segment.save({
     mediaId: params.mediaId,
     storageBasePath: media.storageBasePath,
     uuid,
@@ -65,8 +62,6 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
     hashedId: body.hashedId,
     episode: params.episodeNumber,
   });
-
-  await segment.save();
 
   return respond.with201().body(toSegmentInternalDTO(segment));
 };
@@ -123,6 +118,31 @@ export const deleteSegment: DeleteSegment = async ({ params }, respond) => {
   await segment.softRemove();
 
   return respond.with204();
+};
+
+export const updateSegmentByUuid: UpdateSegmentByUuid = async ({ params, body }, respond) => {
+  const segment = await Segment.findOneOrFail({
+    where: { uuid: params.uuid },
+  });
+
+  if (body.textJa?.content !== undefined) segment.contentJa = body.textJa.content;
+  if (body.textEn?.content !== undefined) segment.contentEn = body.textEn.content;
+  if (body.textEn?.isMachineTranslated !== undefined) segment.contentEnMt = body.textEn.isMachineTranslated;
+  if (body.textEs?.content !== undefined) segment.contentEs = body.textEs.content;
+  if (body.textEs?.isMachineTranslated !== undefined) segment.contentEsMt = body.textEs.isMachineTranslated;
+  if (body.status !== undefined) segment.status = body.status as any;
+  if (body.storage !== undefined) segment.storage = body.storage as any;
+  if (body.startTimeMs !== undefined) segment.startTimeMs = body.startTimeMs;
+  if (body.endTimeMs !== undefined) segment.endTimeMs = body.endTimeMs;
+  if (body.position !== undefined) segment.position = body.position;
+  if (body.contentRating !== undefined) segment.contentRating = body.contentRating as ContentRating;
+  if (body.ratingAnalysis !== undefined) segment.ratingAnalysis = body.ratingAnalysis;
+  if (body.posAnalysis !== undefined) segment.posAnalysis = body.posAnalysis;
+  if (body.hashedId !== undefined) segment.hashedId = body.hashedId;
+
+  await segment.save();
+
+  return respond.with200().body(toSegmentInternalDTO(segment));
 };
 
 export const getSegmentByUuid: GetSegmentByUuid = async ({ params }, respond) => {

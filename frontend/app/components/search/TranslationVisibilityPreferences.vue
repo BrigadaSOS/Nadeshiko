@@ -1,36 +1,10 @@
 <script setup lang="ts">
 const { t } = useI18n();
 const { englishMode, spanishMode, cycleEnglishMode, cycleSpanishMode } = useTranslationVisibility();
-const router = useRouter();
-const route = useRoute();
 
 type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
 const liveMessage = ref('');
-
-watch([englishMode, spanishMode], () => {
-  const query = { ...route.query };
-
-  const hidden: string[] = [];
-  if (englishMode.value === 'hidden') hidden.push('en');
-  if (spanishMode.value === 'hidden') hidden.push('es');
-  if (hidden.length > 0) {
-    query.hideLangs = hidden.join(',');
-  } else {
-    delete query.hideLangs;
-  }
-
-  const blurred: string[] = [];
-  if (englishMode.value === 'spoiler') blurred.push('en');
-  if (spanishMode.value === 'spoiler') blurred.push('es');
-  if (blurred.length > 0) {
-    query.blurLangs = blurred.join(',');
-  } else {
-    delete query.blurLangs;
-  }
-
-  router.replace({ query });
-});
 
 const modeButtonClass = (mode: TranslationVisibilityMode) => {
   if (mode === 'show') {
