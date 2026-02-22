@@ -1,10 +1,11 @@
 import { PgBoss, Job } from 'pg-boss';
 import { sendEmail } from '@app/mailers/email';
 import { logger } from '@config/log';
-import type { EmailJobData } from '@app/workers/pgBoss';
+import type { EmailJobData } from './emailQueue';
+import { EMAIL_SEND_QUEUE } from './queueNames';
 
 export async function registerEmailWorkers(boss: PgBoss): Promise<void> {
-  await boss.work('email-send', async (jobs: Job<EmailJobData>[]) => {
+  await boss.work(EMAIL_SEND_QUEUE, async (jobs: Job<EmailJobData>[]) => {
     for (const job of jobs) {
       await handleEmailJob(job);
     }
@@ -14,10 +15,10 @@ export async function registerEmailWorkers(boss: PgBoss): Promise<void> {
 }
 
 async function handleEmailJob(job: Job<EmailJobData>): Promise<void> {
-  const { to, subject, html, text } = job.data;
+  const { to, subject, html } = job.data;
 
   try {
-    await sendEmail({ to, subject, html, text });
+    await sendEmail({ to, subject, html });
     logger.info(`Successfully sent email to ${to}: ${subject}`);
   } catch (error) {
     logger.error({ err: error, to, subject }, 'Error processing email job');

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors';
 import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
 import { logger } from '@config/log';
-import { ApiError, ValidationFailedError, NotFoundError, isApiError } from '@app/errors';
+import { ApiError, ValidationFailedError, NotFoundError, InternalServerError, isApiError } from '@app/errors';
 import { routeErrorCodes } from 'generated/errorProfiles';
 
 type PgDriverError = {
@@ -157,13 +157,8 @@ function createValidationError(cause: unknown, requestId: string): ValidationFai
   return validationError;
 }
 
-function createInternalError(requestId: string): ApiError {
-  class InternalError extends ApiError {
-    readonly code = 'INTERNAL_SERVER_EXCEPTION' as const;
-    readonly title = 'Internal Server Error';
-    readonly status = 500;
-  }
-  const error = new InternalError('An internal error occurred');
+function createInternalError(requestId: string): InternalServerError {
+  const error = new InternalServerError();
   error.instance = requestId;
   return error;
 }

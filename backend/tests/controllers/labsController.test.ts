@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { describe, it, expect, afterEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'bun:test';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { invalidateExperimentCache } from '@lib/experiments';
@@ -11,6 +11,12 @@ setupTestSuite();
 const app = createTestApp();
 let fixtures: CoreFixtures;
 
+beforeAll(async () => {
+  fixtures = await seedCoreFixtures();
+});
+beforeEach(() => {
+  signInAs(app, fixtures.users.kevin);
+});
 afterEach(() => {
   invalidateExperimentCache();
 });
@@ -21,18 +27,14 @@ async function signInAsKevinWithEnrollments() {
   signInAs(app, user);
 }
 
-// --- GET /v1/user/labs ---
-
 describe('GET /v1/user/labs', () => {
   it('returns empty array when no experiments are defined', async () => {
-    fixtures = await seedCoreFixtures(app);
     const res = await request(app).get('/v1/user/labs');
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
   });
 
   it('returns eligible lab with active: false when not enrolled', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'test-lab',
       name: 'Test Lab',
@@ -53,13 +55,11 @@ describe('GET /v1/user/labs', () => {
         description: 'A test lab',
         active: false,
         userControllable: true,
-        userOptedIn: false,
       },
     ]);
   });
 
   it('hides disabled labs', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'disabled-lab',
       name: 'Disabled',
@@ -75,7 +75,6 @@ describe('GET /v1/user/labs', () => {
   });
 
   it('hides labs when user is not in allowedUserIds and rollout is 0', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'restricted-lab',
       name: 'Restricted',
@@ -91,7 +90,6 @@ describe('GET /v1/user/labs', () => {
   });
 
   it('shows labs when user is in allowedUserIds (even with rollout 0)', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'allowlisted-lab',
       name: 'Allow Listed',
@@ -108,7 +106,6 @@ describe('GET /v1/user/labs', () => {
   });
 
   it('hides labs when user is NOT in allowedUserIds and rollout is 0', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'other-user-lab',
       name: 'Other',
@@ -124,7 +121,6 @@ describe('GET /v1/user/labs', () => {
   });
 
   it('shows labs via rolloutPercentage 100%', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'full-rollout',
       name: 'Full Rollout',
@@ -140,7 +136,6 @@ describe('GET /v1/user/labs', () => {
   });
 
   it('shows enrolled lab as active', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'enrolled-lab',
       name: 'Enrolled Lab',
@@ -163,12 +158,10 @@ describe('GET /v1/user/labs', () => {
       key: 'enrolled-lab',
       active: true,
       userControllable: true,
-      userOptedIn: true,
     });
   });
 
   it('includes active enforced experiments as non-controllable', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'test-flag',
       enforced: true,
@@ -188,7 +181,6 @@ describe('GET /v1/user/labs', () => {
   });
 
   it('excludes enforced experiments user is not in rollout for', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'inactive-flag',
       enforced: true,
@@ -202,7 +194,6 @@ describe('GET /v1/user/labs', () => {
   });
 
   it('excludes disabled enforced experiments', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'disabled-flag',
       enforced: true,
@@ -216,11 +207,8 @@ describe('GET /v1/user/labs', () => {
   });
 });
 
-// --- POST /v1/user/labs/:key ---
-
 describe('POST /v1/user/labs/:key', () => {
   it('enrolls user in an eligible lab', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'enroll-lab',
       name: 'Enroll Lab',
@@ -242,13 +230,11 @@ describe('POST /v1/user/labs/:key', () => {
   });
 
   it('returns 404 for non-existent experiment', async () => {
-    fixtures = await seedCoreFixtures(app);
     const res = await request(app).post('/v1/user/labs/nonexistent');
     expect(res.status).toBe(404);
   });
 
   it('returns 404 for ineligible lab (user not in allowedUserIds and rollout 0)', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'ineligible-lab',
       name: 'Ineligible',
@@ -264,7 +250,6 @@ describe('POST /v1/user/labs/:key', () => {
   });
 
   it('returns 404 when trying to enroll in an enforced experiment', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'a-flag',
       enforced: true,
@@ -278,7 +263,6 @@ describe('POST /v1/user/labs/:key', () => {
   });
 
   it('is idempotent — enrolling twice creates only one record', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'idempotent-lab',
       name: 'Idempotent',
@@ -300,11 +284,8 @@ describe('POST /v1/user/labs/:key', () => {
   });
 });
 
-// --- DELETE /v1/user/labs/:key ---
-
 describe('DELETE /v1/user/labs/:key', () => {
   it('unenrolls user from a lab', async () => {
-    fixtures = await seedCoreFixtures(app);
     await Experiment.save({
       key: 'unenroll-lab',
       name: 'Unenroll Lab',
@@ -331,7 +312,6 @@ describe('DELETE /v1/user/labs/:key', () => {
   });
 
   it('returns 404 when not enrolled', async () => {
-    fixtures = await seedCoreFixtures(app);
     const res = await request(app).delete('/v1/user/labs/nonexistent');
     expect(res.status).toBe(404);
   });

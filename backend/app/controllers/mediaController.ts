@@ -6,65 +6,23 @@ import type {
   DeleteMedia,
   AutocompleteMedia,
 } from 'generated/routes/media';
-import type { t_CharacterInput } from 'generated/models';
-import type { DeepPartial, EntityManager } from 'typeorm';
+import type { t_CharacterInput, t_ExternalId } from 'generated/models';
+import type { EntityManager } from 'typeorm';
 import { ILike } from 'typeorm';
-import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, MediaInclude } from '@app/models';
+import { CategoryType, Media, MediaCharacter, MediaExternalId, MediaInclude } from '@app/models';
 import { Character } from '@app/models/Character';
 import { Seiyuu } from '@app/models/Seiyuu';
 import { CharacterRole } from '@app/models/MediaCharacter';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
-import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
-import { AppDataSource } from '@config/database';
+import {
+  toMediaCreateAttributes,
+  toMediaDTO,
+  toMediaExternalIdAttributes,
+  toMediaListDTO,
+  toMediaUpdatePatch,
+} from './mappers/media.mapper';
 import { Cache } from '@lib/cache';
-import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
-
-async function insertCharactersForMedia(
-  manager: EntityManager,
-  mediaId: number,
-  characters: t_CharacterInput[],
-): Promise<MediaCharacter[]> {
-  return Promise.all(
-    characters.map(async (char) => {
-      let seiyuu = await manager
-        .createQueryBuilder(Seiyuu, 's')
-        .where(`s.external_ids->>'anilist' = :id`, { id: char.seiyuu.externalIds.anilist })
-        .getOne();
-      if (!seiyuu) {
-        seiyuu = manager.create(Seiyuu, {
-          externalIds: char.seiyuu.externalIds,
-          nameJapanese: char.seiyuu.nameJa,
-          nameEnglish: char.seiyuu.nameEn,
-          imageUrl: char.seiyuu.imageUrl,
-        });
-        await manager.save(seiyuu);
-      }
-
-      let character = await manager
-        .createQueryBuilder(Character, 'c')
-        .where(`c.external_ids->>'anilist' = :id`, { id: char.externalIds.anilist })
-        .getOne();
-      if (!character) {
-        character = manager.create(Character, {
-          externalIds: char.externalIds,
-          nameJapanese: char.nameJa,
-          nameEnglish: char.nameEn,
-          imageUrl: char.imageUrl,
-          seiyuu,
-        });
-        await manager.save(character);
-      }
-
-      const mc = manager.create(MediaCharacter, {
-        mediaId,
-        characterId: character.id,
-        role: char.role as CharacterRole,
-      });
-      mc.character = character;
-      return mc;
-    }),
-  );
-}
+import { SegmentDocument } from '@app/models/SegmentDocument';
 
 export const listMedia: ListMedia = async ({ query }, respond) => {
   const base = query.category ? { category: query.category as CategoryType } : {};
@@ -99,92 +57,19 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
   });
 };
 
-const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
-
-export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, respond) => {
-  const normalizedQuery = params.query.trim().toLowerCase();
-  const escaped = escapeLikePattern(normalizedQuery);
-  const containsPattern = `%${escaped}%`;
-  const prefixPattern = `${escaped}%`;
-
-  const qb = Media.createQueryBuilder('media')
-    .leftJoinAndSelect('media.externalIds', 'externalIds')
-    .leftJoinAndSelect('media.episodes', 'episodes')
-    .where(
-      `(LOWER(media.nameEn) LIKE :contains ESCAPE '\\'
-      OR LOWER(media.nameJa) LIKE :contains ESCAPE '\\'
-      OR LOWER(media.nameRomaji) LIKE :contains ESCAPE '\\')`,
-      { contains: containsPattern },
-    )
-    .setParameter('exact', normalizedQuery)
-    .setParameter('prefix', prefixPattern)
-    .orderBy(
-      `CASE
-        WHEN LOWER(media.nameEn) = :exact OR LOWER(media.nameJa) = :exact OR LOWER(media.nameRomaji) = :exact THEN 0
-        WHEN LOWER(media.nameEn) LIKE :prefix ESCAPE '\\' OR LOWER(media.nameJa) LIKE :prefix ESCAPE '\\' OR LOWER(media.nameRomaji) LIKE :prefix ESCAPE '\\' THEN 1
-        ELSE 2
-      END`,
-      'ASC',
-    )
-    .addOrderBy('LENGTH(media.nameEn)', 'ASC')
-    .addOrderBy('media.id', 'ASC')
-    .take(params.take);
-
-  if (params.category) {
-    qb.andWhere('media.category = :category', { category: params.category as CategoryType });
-  }
-
-  const media = await qb.getMany();
-  return respond.with200().body({
-    media: toMediaListDTO(media),
-  });
-};
-
 export const createMedia: CreateMedia = async ({ body }, respond) => {
-  const media = await AppDataSource.transaction(async (manager) => {
-    const externalIds: DeepPartial<MediaExternalId>[] = [];
-    if (body.externalIds) {
-      const sourceMap: Record<string, ExternalSourceType> = {
-        anilist: ExternalSourceType.ANILIST,
-        imdb: ExternalSourceType.IMDB,
-        tvdb: ExternalSourceType.TVDB,
-      };
-      for (const [key, value] of Object.entries(body.externalIds)) {
-        if (value && sourceMap[key]) {
-          externalIds.push({ source: sourceMap[key], externalId: value });
-        }
-      }
-    }
-
-    const media = await manager.save(Media, {
-      nameJa: body.nameJa,
-      nameRomaji: body.nameRomaji,
-      nameEn: body.nameEn,
-      airingFormat: body.airingFormat,
-      airingStatus: body.airingStatus,
-      genres: body.genres,
-      startDate: body.startDate,
-      endDate: body.endDate,
-      category: body.category as CategoryType,
-      version: body.version,
-      hashSalt: body.hashSalt,
-      storageBasePath: body.storageBasePath,
-      studio: body.studio,
-      seasonName: body.seasonName,
-      seasonYear: body.seasonYear,
-      externalIds,
-    });
+  const media = await Media.getRepository().manager.transaction(async (manager) => {
+    const media = await manager.save(Media, toMediaCreateAttributes(body));
 
     if (body.characters?.length) {
-      media.characters = await insertCharactersForMedia(manager, media.id, body.characters);
-      await manager.save(MediaCharacter, media.characters);
+      media.characters = await replaceMediaCharacters(manager, media.id, body.characters);
     }
 
     return media;
   });
 
   Cache.invalidate(MEDIA_INFO_CACHE);
-  Cache.invalidate(SEARCH_STATS_CACHE);
+  Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
   return respond.with201().body(toMediaDTO(media));
 };
@@ -203,36 +88,171 @@ export const getMedia: GetMedia = async ({ params, query }, respond) => {
 };
 
 export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
-  const media = await AppDataSource.transaction(async (manager) => {
+  const media = await Media.getRepository().manager.transaction(async (manager) => {
     const media = await manager.findOneOrFail(Media, { where: { id: params.id } });
+    const patch = toMediaUpdatePatch(body);
 
-    // Extract only the fields we want to update (exclude relations and computed fields)
-    const { characters, segmentCount: _segmentCount, ...updateFields } = body;
+    Media.merge(media, patch);
 
-    Media.merge(media, updateFields as DeepPartial<Media>);
-
-    if (characters?.length) {
-      await manager.delete(MediaCharacter, { mediaId: media.id });
-      media.characters = await insertCharactersForMedia(manager, media.id, characters);
-      await manager.save(MediaCharacter, media.characters);
+    if (body.externalIds !== undefined) {
+      media.externalIds = await replaceMediaExternalIds(manager, media.id, body.externalIds);
     }
 
-    return await manager.save(media);
+    if (body.characters !== undefined) {
+      media.characters = await replaceMediaCharacters(manager, media.id, body.characters);
+    }
+
+    await manager.save(media);
+
+    return manager.findOneOrFail(Media, {
+      where: { id: media.id },
+      relations: Media.buildRelations({
+        includeCharacters: body.characters !== undefined,
+      }),
+    });
   });
 
   Cache.invalidate(MEDIA_INFO_CACHE);
+  Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
   return respond.with200().body(toMediaDTO(media));
 };
 
 export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
-  const media = await Media.findOneOrFail({
-    where: { id: params.id },
-  });
-
-  await media.softRemove();
+  await Media.softDeleteOrFail({ where: { id: params.id } });
   Cache.invalidate(MEDIA_INFO_CACHE);
-  Cache.invalidate(SEARCH_STATS_CACHE);
+  Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
   return respond.with204();
 };
+
+export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, respond) => {
+  const normalizedQuery = params.query.trim().toLowerCase();
+  const escaped = escapeLikePattern(normalizedQuery);
+  const containsPattern = `%${escaped}%`;
+  const prefixPattern = `${escaped}%`;
+  const matchRankExpression = `CASE
+    WHEN LOWER(media.english_name) = :exact OR LOWER(media.japanese_name) = :exact OR LOWER(media.romaji_name) = :exact THEN 0
+    WHEN LOWER(media.english_name) LIKE :prefix ESCAPE '\\' OR LOWER(media.japanese_name) LIKE :prefix ESCAPE '\\' OR LOWER(media.romaji_name) LIKE :prefix ESCAPE '\\' THEN 1
+    ELSE 2
+  END`;
+
+  const qb = Media.createQueryBuilder('media')
+    .leftJoinAndSelect('media.externalIds', 'externalIds')
+    .leftJoinAndSelect('media.episodes', 'episodes')
+    .addSelect(matchRankExpression, 'match_rank')
+    .addSelect('LENGTH(media.english_name)', 'name_length')
+    .where(
+      `(LOWER(media.english_name) LIKE :contains ESCAPE '\\'
+      OR LOWER(media.japanese_name) LIKE :contains ESCAPE '\\'
+      OR LOWER(media.romaji_name) LIKE :contains ESCAPE '\\')`,
+      { contains: containsPattern },
+    )
+    .setParameter('exact', normalizedQuery)
+    .setParameter('prefix', prefixPattern)
+    .orderBy('match_rank', 'ASC')
+    .addOrderBy('name_length', 'ASC')
+    .addOrderBy('media.id', 'ASC')
+    .take(params.take);
+
+  if (params.category) {
+    qb.andWhere('media.category = :category', { category: params.category as CategoryType });
+  }
+
+  const media = await qb.getMany();
+  return respond.with200().body({
+    media: toMediaListDTO(media),
+  });
+};
+
+const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
+
+async function replaceMediaExternalIds(
+  manager: EntityManager,
+  mediaId: number,
+  externalIds: t_ExternalId,
+): Promise<MediaExternalId[]> {
+  await manager.delete(MediaExternalId, { mediaId });
+
+  const rows = toMediaExternalIdAttributes(externalIds).map((externalId) =>
+    manager.create(MediaExternalId, { mediaId, ...externalId }),
+  );
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  return manager.save(MediaExternalId, rows);
+}
+
+async function replaceMediaCharacters(
+  manager: EntityManager,
+  mediaId: number,
+  characters: t_CharacterInput[],
+): Promise<MediaCharacter[]> {
+  await manager.delete(MediaCharacter, { mediaId });
+
+  if (characters.length === 0) {
+    return [];
+  }
+
+  const mediaCharacters = await insertCharactersForMedia(manager, mediaId, characters);
+  return manager.save(MediaCharacter, mediaCharacters);
+}
+
+async function insertCharactersForMedia(
+  manager: EntityManager,
+  mediaId: number,
+  characters: t_CharacterInput[],
+): Promise<MediaCharacter[]> {
+  return Promise.all(
+    characters.map(async (char) => {
+      const seiyuuAnilistId = char.seiyuu.externalIds.anilist;
+      let seiyuu =
+        seiyuuAnilistId === undefined
+          ? null
+          : await manager
+              .createQueryBuilder(Seiyuu, 's')
+              .where(`s.external_ids->>'anilist' = :id`, { id: seiyuuAnilistId })
+              .getOne();
+
+      if (!seiyuu) {
+        seiyuu = manager.create(Seiyuu, {
+          externalIds: char.seiyuu.externalIds,
+          nameJapanese: char.seiyuu.nameJa,
+          nameEnglish: char.seiyuu.nameEn,
+          imageUrl: char.seiyuu.imageUrl,
+        });
+        await manager.save(seiyuu);
+      }
+
+      const characterAnilistId = char.externalIds.anilist;
+      let character =
+        characterAnilistId === undefined
+          ? null
+          : await manager
+              .createQueryBuilder(Character, 'c')
+              .where(`c.external_ids->>'anilist' = :id`, { id: characterAnilistId })
+              .getOne();
+
+      if (!character) {
+        character = manager.create(Character, {
+          externalIds: char.externalIds,
+          nameJapanese: char.nameJa,
+          nameEnglish: char.nameEn,
+          imageUrl: char.imageUrl,
+          seiyuu,
+        });
+        await manager.save(character);
+      }
+
+      const mc = manager.create(MediaCharacter, {
+        mediaId,
+        characterId: character.id,
+        role: char.role as CharacterRole,
+      });
+      mc.character = character;
+      return mc;
+    }),
+  );
+}

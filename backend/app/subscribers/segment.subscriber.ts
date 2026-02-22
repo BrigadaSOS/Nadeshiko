@@ -2,7 +2,7 @@ import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent, R
 import { Segment } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { Cache } from '@lib/cache';
-import { sendEsSyncJob } from '@app/workers/pgBoss';
+import { sendEsSyncJob } from '@app/workers/esSyncQueue';
 
 @EventSubscriber()
 export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {

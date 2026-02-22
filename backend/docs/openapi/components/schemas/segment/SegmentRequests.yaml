@@ -10,7 +10,6 @@ SegmentFields: &segmentFields
     type: string
     description: Segment status
     enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
-    default: "ACTIVE"
     example: "ACTIVE"
   startTimeMs:
     type: integer
@@ -39,7 +38,6 @@ SegmentFields: &segmentFields
       isMachineTranslated:
         type: boolean
         description: Whether the Spanish translation was machine-translated
-        default: false
         example: false
   textEn:
     type: object
@@ -52,7 +50,6 @@ SegmentFields: &segmentFields
       isMachineTranslated:
         type: boolean
         description: Whether the English translation was machine-translated
-        default: false
         example: false
   contentRating:
     $ref: "../ContentRating.yaml"
@@ -71,7 +68,6 @@ SegmentFields: &segmentFields
     enum: [LOCAL, R2]
     description: Storage backend for segment assets
     example: "R2"
-    default: "R2"
   hashedId:
     type: string
     description: Hash identifier for the segment (from segment JSON)
@@ -88,6 +84,44 @@ SegmentCreateRequest:
     - hashedId
   properties:
     <<: *segmentFields
+    status:
+      type: string
+      description: Segment status
+      enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+      default: "ACTIVE"
+      example: "ACTIVE"
+    textEs:
+      type: object
+      properties:
+        content:
+          type: string
+          maxLength: 500
+          description: Spanish translation of the segment content
+          example: "Yo soy yo, y tú eres tú."
+        isMachineTranslated:
+          type: boolean
+          description: Whether the Spanish translation was machine-translated
+          default: false
+          example: false
+    textEn:
+      type: object
+      properties:
+        content:
+          type: string
+          maxLength: 500
+          description: English translation of the segment content
+          example: "I am me, and you are you."
+        isMachineTranslated:
+          type: boolean
+          description: Whether the English translation was machine-translated
+          default: false
+          example: false
+    storage:
+      type: string
+      enum: [LOCAL, R2]
+      description: Storage backend for segment assets
+      example: "R2"
+      default: "R2"
 
 SegmentUpdateRequest:
   type: object

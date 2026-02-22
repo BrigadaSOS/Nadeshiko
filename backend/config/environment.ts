@@ -1,3 +1,6 @@
+import '@config/boot';
+import { config } from '@config/config';
+
 export const APP_ENVIRONMENT = {
   LOCAL: 'local',
   DEV: 'dev',
@@ -6,17 +9,11 @@ export const APP_ENVIRONMENT = {
 
 export type AppEnvironment = (typeof APP_ENVIRONMENT)[keyof typeof APP_ENVIRONMENT];
 
-const LEGACY_ENVIRONMENT_ALIASES: Record<string, AppEnvironment> = {
-  development: APP_ENVIRONMENT.DEV,
-  production: APP_ENVIRONMENT.PROD,
-  testing: APP_ENVIRONMENT.LOCAL,
-};
-
 function normalizeEnvironment(rawValue: string | undefined): string {
   return rawValue?.trim().toLowerCase() || '';
 }
 
-export function getAppEnvironment(rawValue: string | undefined = process.env.ENVIRONMENT): AppEnvironment {
+export function getAppEnvironment(rawValue: string | undefined): AppEnvironment {
   const normalized = normalizeEnvironment(rawValue);
 
   if (
@@ -27,21 +24,17 @@ export function getAppEnvironment(rawValue: string | undefined = process.env.ENV
     return normalized;
   }
 
-  if (normalized in LEGACY_ENVIRONMENT_ALIASES) {
-    return LEGACY_ENVIRONMENT_ALIASES[normalized];
-  }
-
-  return APP_ENVIRONMENT.LOCAL;
+  throw new Error(`Invalid ENVIRONMENT "${rawValue}". Expected one of: local, dev, prod.`);
 }
 
-export function isLocalEnvironment(rawValue?: string): boolean {
+export function isLocalEnvironment(rawValue: string = config.ENVIRONMENT): boolean {
   return getAppEnvironment(rawValue) === APP_ENVIRONMENT.LOCAL;
 }
 
-export function isDevEnvironment(rawValue?: string): boolean {
+export function isDevEnvironment(rawValue: string = config.ENVIRONMENT): boolean {
   return getAppEnvironment(rawValue) === APP_ENVIRONMENT.DEV;
 }
 
-export function isProdEnvironment(rawValue?: string): boolean {
+export function isProdEnvironment(rawValue: string = config.ENVIRONMENT): boolean {
   return getAppEnvironment(rawValue) === APP_ENVIRONMENT.PROD;
 }

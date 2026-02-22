@@ -11,9 +11,6 @@ import type { Seiyuu } from '@app/models/Seiyuu';
 import type { Character } from '@app/models/Character';
 import type { MediaCharacter } from '@app/models/MediaCharacter';
 import type { UserActivity } from '@app/models/UserActivity';
-// ------------------------------------------------------------------
-// Fixture refs — cross-reference between fixtures by path
-// ------------------------------------------------------------------
 
 export interface FixtureRef {
   __fixtureRef: string;
@@ -26,10 +23,6 @@ export function ref(path: string): FixtureRef {
 export function isFixtureRef(value: unknown): value is FixtureRef {
   return typeof value === 'object' && value !== null && '__fixtureRef' in value;
 }
-
-// ------------------------------------------------------------------
-// Catalog types
-// ------------------------------------------------------------------
 
 export type SeedInput<TEntity> = {
   [K in keyof TEntity as TEntity[K] extends (...args: unknown[]) => unknown ? never : K]?: TEntity[K];
@@ -56,10 +49,6 @@ export type FixtureEntityKey = keyof FixtureEntityPayloads;
 export type FixtureCatalog = Partial<{
   [K in FixtureEntityKey]: Record<string, FixtureEntityPayloads[K]>;
 }>;
-
-// ------------------------------------------------------------------
-// Fixture data
-// ------------------------------------------------------------------
 
 const mediaDefaults: FixtureSeed<Media> = {
   nameJa: 'テストアニメ',
@@ -111,6 +100,14 @@ export const FIXTURE_SETS = {
         isVerified: true,
         isActive: true,
         role: UserRoleType.ADMIN,
+        preferences: {},
+      },
+      regular: {
+        username: 'regular',
+        email: 'regular@nadeshiko.test',
+        isVerified: true,
+        isActive: true,
+        role: UserRoleType.USER,
         preferences: {},
       },
     },

@@ -1,11 +1,12 @@
-import 'dotenv/config';
-import { execSync } from 'child_process';
+import '@config/boot';
 import { AppDataSource } from '@config/database';
 import { seed } from '@db/seeds';
 import { bootstrapPostgresWithOptions } from './dbBootstrap';
 import { ensureDestructiveAllowed } from './destructiveGuard';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
+import { config } from '@config/config';
+import { PgBoss } from 'pg-boss';
 
 const command = process.argv[2];
 const commandArgs = process.argv.slice(3);
@@ -61,19 +62,15 @@ async function setupPgBoss(): Promise<void> {
   logger.info('Setting up pg-boss job queue schema...');
   try {
     const postgres = getAppPostgresConfig();
+    const connectionString = toPostgresConnectionString(postgres);
 
-    // pg-boss CLI handles schema creation idempotently
-    execSync('npx pg-boss create --schema pgboss', {
-      stdio: 'pipe',
-      env: {
-        ...process.env,
-        PGBOSS_HOST: postgres.host,
-        PGBOSS_PORT: String(postgres.port),
-        PGBOSS_DATABASE: postgres.database,
-        PGBOSS_USER: postgres.user,
-        PGBOSS_PASSWORD: postgres.password,
-      },
+    // Starting pg-boss runs the schema migration/creation path.
+    const boss = new PgBoss({
+      connectionString,
+      schema: 'pgboss',
     });
+    await boss.start();
+    await boss.stop();
     logger.info('pg-boss schema ready');
   } catch (error) {
     // Check if it's already exists (safe to ignore)
@@ -85,21 +82,36 @@ async function setupPgBoss(): Promise<void> {
   }
 }
 
+function toPostgresConnectionString(postgres: ReturnType<typeof getAppPostgresConfig>): string {
+  return [
+    'postgresql://',
+    encodeURIComponent(postgres.user),
+    ':',
+    encodeURIComponent(postgres.password),
+    '@',
+    postgres.host,
+    ':',
+    String(postgres.port),
+    '/',
+    postgres.database,
+  ].join('');
+}
+
 async function resetElasticsearchIndex(): Promise<void> {
   logger.info('Resetting Elasticsearch index...');
-  const { resetElasticsearchIndex } = await import('@app/services/elasticsearch');
+  const { resetElasticsearchIndex } = await import('@config/elasticsearch');
   await resetElasticsearchIndex();
 }
 
 async function setupElasticsearchUserAndRole(options: { recreateIfExists?: boolean } = {}): Promise<void> {
   logger.info('Setting up Elasticsearch user and role...');
   try {
-    const { setupElasticsearchUser, initializeElasticsearchIndexWithClient } = await import('@app/services/elasticsearch');
+    const { setupElasticsearchUser, initializeElasticsearchIndexWithClient } = await import('@config/elasticsearch');
     const { Client } = await import('@elastic/elasticsearch');
 
     // Create admin client
-    const adminUser = process.env.ELASTICSEARCH_ADMIN_USER || 'elastic';
-    const adminPassword = process.env.ELASTICSEARCH_ADMIN_PASSWORD;
+    const adminUser = config.ELASTICSEARCH_ADMIN_USER || 'elastic';
+    const adminPassword = config.ELASTICSEARCH_ADMIN_PASSWORD;
 
     if (!adminPassword) {
       logger.info('ELASTICSEARCH_ADMIN_PASSWORD not set, skipping user/role creation');
@@ -108,7 +120,7 @@ async function setupElasticsearchUserAndRole(options: { recreateIfExists?: boole
 
     const { HttpConnection } = await import('@elastic/elasticsearch');
     const adminClient = new Client({
-      node: process.env.ELASTICSEARCH_HOST,
+      node: config.ELASTICSEARCH_HOST,
       auth: {
         username: adminUser,
         password: adminPassword,

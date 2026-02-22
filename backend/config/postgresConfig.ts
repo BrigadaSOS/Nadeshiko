@@ -1,4 +1,4 @@
-import { config } from '@config/config';
+import { config, type AppConfig } from '@config/config';
 
 export interface PostgresConnectionConfig {
   host: string;
@@ -8,22 +8,22 @@ export interface PostgresConnectionConfig {
   database: string;
 }
 
-export function getAppPostgresConfig(): PostgresConnectionConfig {
+export function getAppPostgresConfig(configValues: AppConfig = config): PostgresConnectionConfig {
   return {
-    host: config.POSTGRES_HOST,
-    port: config.POSTGRES_PORT,
-    user: config.POSTGRES_USER,
-    password: config.POSTGRES_PASSWORD,
-    database: config.POSTGRES_DB,
+    host: configValues.POSTGRES_HOST,
+    port: configValues.POSTGRES_PORT,
+    user: configValues.POSTGRES_USER,
+    password: configValues.POSTGRES_PASSWORD,
+    database: configValues.POSTGRES_DB,
   };
 }
 
-export function getAdminPostgresConfig(): PostgresConnectionConfig {
+export function getAdminPostgresConfig(configValues: AppConfig = config): PostgresConnectionConfig {
   return {
-    host: config.POSTGRES_ADMIN_HOST || config.POSTGRES_HOST,
-    port: config.POSTGRES_ADMIN_PORT || config.POSTGRES_PORT,
-    user: config.POSTGRES_ADMIN_USER || config.POSTGRES_USER,
-    password: config.POSTGRES_ADMIN_PASSWORD || config.POSTGRES_PASSWORD,
-    database: config.POSTGRES_ADMIN_DB || 'postgres',
+    host: configValues.POSTGRES_ADMIN_HOST || configValues.POSTGRES_HOST,
+    port: configValues.POSTGRES_ADMIN_PORT || configValues.POSTGRES_PORT,
+    user: configValues.POSTGRES_ADMIN_USER || configValues.POSTGRES_USER,
+    password: configValues.POSTGRES_ADMIN_PASSWORD || configValues.POSTGRES_PASSWORD,
+    database: configValues.POSTGRES_ADMIN_DB || 'postgres',
   };
 }

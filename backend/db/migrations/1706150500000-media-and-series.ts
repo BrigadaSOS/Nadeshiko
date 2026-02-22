@@ -4,7 +4,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
   name = 'MediaAndSeries1706150500000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // ===== MEDIA =====
     await queryRunner.query(`
       CREATE TABLE "Media" (
         "id" SERIAL PRIMARY KEY,
@@ -31,7 +30,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       )
     `);
 
-    // ===== EPISODE =====
     await queryRunner.query(`
       CREATE TABLE "Episode" (
         "media_id" integer NOT NULL,
@@ -53,7 +51,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       )
     `);
 
-    // ===== MEDIA EXTERNAL IDS =====
     await queryRunner.query(`
       CREATE TABLE "MediaExternalId" (
         "media_id" integer NOT NULL,
@@ -72,7 +69,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
         ON "MediaExternalId" ("source", "external_id")
     `);
 
-    // ===== SEIYUU =====
     await queryRunner.query(`
       CREATE TABLE "Seiyuu" (
         "id" SERIAL PRIMARY KEY,
@@ -91,7 +87,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       WHERE external_ids->>'anilist' IS NOT NULL
     `);
 
-    // ===== CHARACTER =====
     await queryRunner.query(`
       CREATE TABLE "Character" (
         "id" SERIAL PRIMARY KEY,
@@ -116,7 +111,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       WHERE external_ids->>'anilist' IS NOT NULL
     `);
 
-    // ===== MEDIA CHARACTER =====
     await queryRunner.query(`
       CREATE TABLE "MediaCharacter" (
         "id" SERIAL PRIMARY KEY,
@@ -134,7 +128,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       CREATE UNIQUE INDEX "IDX_MediaCharacter_media_character" ON "MediaCharacter" ("media_id", "character_id")
     `);
 
-    // ===== SERIES =====
     await queryRunner.query(`
       CREATE TABLE "Series" (
         "id" SERIAL PRIMARY KEY,
@@ -146,7 +139,6 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       )
     `);
 
-    // ===== SERIES MEDIA =====
     await queryRunner.query(`
       CREATE TABLE "SeriesMedia" (
         "id" SERIAL PRIMARY KEY,

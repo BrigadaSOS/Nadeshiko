@@ -1,0 +1,20 @@
+meta {
+  name: List all media audits
+  type: http
+  seq: 70
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/media/audits
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

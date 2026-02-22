@@ -3,9 +3,9 @@ import { describe, it, expect, beforeAll, vi } from 'bun:test';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
-import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 import { ApiKeyKind, ApiPermission, AuthType } from '@app/models/ApiPermission';
 import { QuotaExceededError } from '@app/errors';
+import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 
 setupTestSuite();
 
@@ -108,5 +108,39 @@ describe('rateLimitApiQuota', () => {
     await rateLimitApiQuota(req, res, next);
 
     expect(res.on).toHaveBeenCalledWith('finish', expect.any(Function));
+  });
+
+  it('increments quota on successful 2xx response', async () => {
+    const spy = vi.spyOn(AccountQuotaUsage, 'incrementForUser').mockResolvedValue(undefined as any);
+
+    const req = buildReq();
+    const res = buildRes();
+    const next = vi.fn();
+
+    await rateLimitApiQuota(req, res, next);
+
+    res.statusCode = 200;
+    res._listeners['finish']();
+
+    expect(spy).toHaveBeenCalledWith(fixtures.users.kevin.id);
+
+    spy.mockRestore();
+  });
+
+  it('does not increment quota on non-2xx response', async () => {
+    const spy = vi.spyOn(AccountQuotaUsage, 'incrementForUser').mockResolvedValue(undefined as any);
+
+    const req = buildReq();
+    const res = buildRes();
+    const next = vi.fn();
+
+    await rateLimitApiQuota(req, res, next);
+
+    res.statusCode = 404;
+    res._listeners['finish']();
+
+    expect(spy).not.toHaveBeenCalled();
+
+    spy.mockRestore();
   });
 });

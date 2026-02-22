@@ -4,7 +4,6 @@ export class BetterAuth1706150800000 implements MigrationInterface {
   name = 'BetterAuth1706150800000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // ===== SESSION =====
     await queryRunner.query(`
       CREATE TABLE "session" (
         "id" SERIAL PRIMARY KEY,
@@ -22,7 +21,6 @@ export class BetterAuth1706150800000 implements MigrationInterface {
     await queryRunner.query(`CREATE INDEX "IDX_session_user_id" ON "session" ("user_id")`);
     await queryRunner.query(`CREATE INDEX "IDX_session_expires_at" ON "session" ("expires_at")`);
 
-    // ===== ACCOUNT =====
     await queryRunner.query(`
       CREATE TABLE "account" (
         "id" SERIAL PRIMARY KEY,
@@ -45,7 +43,6 @@ export class BetterAuth1706150800000 implements MigrationInterface {
 
     await queryRunner.query(`CREATE INDEX "IDX_account_user_id" ON "account" ("user_id")`);
 
-    // ===== VERIFICATION =====
     await queryRunner.query(`
       CREATE TABLE "verification" (
         "id" SERIAL PRIMARY KEY,
@@ -59,7 +56,6 @@ export class BetterAuth1706150800000 implements MigrationInterface {
 
     await queryRunner.query(`CREATE INDEX "IDX_verification_identifier" ON "verification" ("identifier")`);
 
-    // ===== APIKEY =====
     await queryRunner.query(`
       CREATE TABLE "apikey" (
         "id" SERIAL PRIMARY KEY,

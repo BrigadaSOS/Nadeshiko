@@ -56,6 +56,49 @@ get:
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
 
+post:
+  tags:
+    - User
+  x-internal: true
+  operationId: trackUserActivity
+  summary: Track user activity
+  description: |
+    Records a user activity event (e.g. segment play). Fire-and-forget — always returns 204.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - activityType
+          properties:
+            activityType:
+              type: string
+              enum:
+                - SEGMENT_PLAY
+            segmentUuid:
+              type: string
+            mediaId:
+              type: integer
+            animeName:
+              type: string
+            japaneseText:
+              type: string
+  responses:
+    "204":
+      description: Activity tracked
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
 delete:
   tags:
     - User

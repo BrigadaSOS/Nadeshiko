@@ -1,8 +1,9 @@
 import { PgBoss, Job } from 'pg-boss';
-import { createSegmentInES, updateSegmentInES, deleteSegmentFromES } from '@app/services/elasticsearchSync';
+import { SegmentDocument } from '@app/models/SegmentDocument';
 import { Segment } from '@app/models';
 import { logger } from '@config/log';
-import type { EsSyncJobData } from '@app/workers/pgBoss';
+import type { EsSyncJobData } from './esSyncQueue';
+import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from './queueNames';
 
 export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
   const workerOptions = {
@@ -12,21 +13,21 @@ export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
   };
 
   // Handler for CREATE operations
-  await boss.work('es-sync-create', workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
+  await boss.work(ES_SYNC_CREATE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
     for (const job of jobs) {
       await handleCreateJob(job);
     }
   });
 
   // Handler for UPDATE operations
-  await boss.work('es-sync-update', workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
+  await boss.work(ES_SYNC_UPDATE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
     for (const job of jobs) {
       await handleUpdateJob(job);
     }
   });
 
   // Handler for DELETE operations
-  await boss.work('es-sync-delete', workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
+  await boss.work(ES_SYNC_DELETE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
     for (const job of jobs) {
       await handleDeleteJob(job);
     }
@@ -45,7 +46,7 @@ async function handleCreateJob(job: Job<EsSyncJobData>): Promise<void> {
       return;
     }
 
-    const success = await createSegmentInES(segment);
+    const success = await SegmentDocument.index(segment);
 
     if (!success) {
       throw new Error(`Failed to create segment ${segmentId} in ES`);
@@ -69,7 +70,7 @@ async function handleUpdateJob(job: Job<EsSyncJobData>): Promise<void> {
       return;
     }
 
-    const success = await updateSegmentInES(segment);
+    const success = await SegmentDocument.index(segment);
 
     if (!success) {
       throw new Error(`Failed to update segment ${segmentId} in ES`);
@@ -86,7 +87,7 @@ async function handleDeleteJob(job: Job<EsSyncJobData>): Promise<void> {
   const { segmentId } = job.data;
 
   try {
-    const success = await deleteSegmentFromES(segmentId);
+    const success = await SegmentDocument.delete(segmentId);
 
     if (!success) {
       throw new Error(`Failed to delete segment ${segmentId} from ES`);

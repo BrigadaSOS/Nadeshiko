@@ -1,9 +1,8 @@
 import { trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { Request, Response, NextFunction } from 'express';
 
-const tracer = trace.getTracer('nadeshiko-backend');
-
 export function tracingMiddleware(req: Request, res: Response, next: NextFunction) {
+  const tracer = trace.getTracer('nadeshiko-backend');
   tracer.startActiveSpan(`${req.method} ${req.path}`, { kind: SpanKind.SERVER }, (span) => {
     span.setAttributes({
       'http.method': req.method,

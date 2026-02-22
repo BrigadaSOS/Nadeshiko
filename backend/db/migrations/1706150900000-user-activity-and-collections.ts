@@ -4,7 +4,6 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
   name = 'UserActivityAndCollections1706150900000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // ===== USER ACTIVITY =====
     await queryRunner.query(`
       CREATE TABLE "UserActivity" (
         "id" SERIAL PRIMARY KEY,
@@ -30,7 +29,6 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
       CREATE INDEX "IDX_UserActivity_userId_activityType" ON "UserActivity" ("user_id", "activity_type")
     `);
 
-    // ===== COLLECTION =====
     await queryRunner.query(`
       CREATE TABLE "Collection" (
         "id" SERIAL PRIMARY KEY,
@@ -47,7 +45,6 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
       CREATE INDEX "IDX_Collection_user_id" ON "Collection" ("user_id")
     `);
 
-    // ===== COLLECTION SEGMENT =====
     await queryRunner.query(`
       CREATE TABLE "CollectionSegment" (
         "id" SERIAL PRIMARY KEY,

@@ -56,11 +56,11 @@ get:
       schema:
         type: string
       description: Filter by target segment UUID
-    - name: reviewCheckRunId
+    - name: auditRunId
       in: query
       schema:
         type: integer
-      description: Filter by review check run ID
+      description: Filter by audit run ID
   responses:
     "200":
       description: OK

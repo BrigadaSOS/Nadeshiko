@@ -1,0 +1,26 @@
+meta {
+  name: List past audit runs
+  type: http
+  seq: 73
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/media/audits/runs?take=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  auditName:
+  cursor:
+  take: 20
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

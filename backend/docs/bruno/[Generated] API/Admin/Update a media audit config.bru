@@ -1,0 +1,31 @@
+meta {
+  name: Update a media audit config
+  type: http
+  seq: 71
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/media/audits/:name
+  body: json
+  auth: bearer
+}
+
+params:query {
+  name:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "threshold": {},
+    "enabled": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

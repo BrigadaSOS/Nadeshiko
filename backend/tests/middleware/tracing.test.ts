@@ -1,8 +1,6 @@
-import { describe, it, expect, vi, beforeEach, mock } from 'bun:test';
-
-// ---------------------------------------------------------------------------
-// Mock OpenTelemetry tracer — define mocks before mock.module
-// ---------------------------------------------------------------------------
+import { describe, it, expect, vi, beforeEach, afterEach, spyOn } from 'bun:test';
+import { trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { tracingMiddleware } from '@app/middleware/tracing';
 
 const mockSpan = {
   setAttributes: vi.fn(),
@@ -17,21 +15,16 @@ const mockTracer = {
   }),
 };
 
-mock.module('@opentelemetry/api', () => ({
-  SpanKind: { INTERNAL: 0, SERVER: 1, CLIENT: 2, PRODUCER: 3, CONSUMER: 4 },
-  SpanStatusCode: { UNSET: 0, OK: 1, ERROR: 2 },
-  trace: {
-    getTracer: () => mockTracer,
-  },
-}));
+let getTracerSpy: ReturnType<typeof spyOn>;
 
-// Dynamic import so the mock is active when the module loads
-const { tracingMiddleware } = await import('@app/middleware/tracing');
-const { SpanKind, SpanStatusCode } = await import('@opentelemetry/api');
+beforeEach(() => {
+  vi.clearAllMocks();
+  getTracerSpy = spyOn(trace, 'getTracer').mockReturnValue(mockTracer as any);
+});
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+afterEach(() => {
+  getTracerSpy.mockRestore();
+});
 
 function buildReq(overrides: Record<string, unknown> = {}) {
   return {
@@ -53,14 +46,6 @@ function buildRes() {
     _trigger: (event: string) => listeners[event]?.(),
   } as any;
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
 
 describe('tracingMiddleware', () => {
   it('starts a span with the correct name and SERVER kind', () => {

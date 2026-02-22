@@ -33,7 +33,9 @@
     "es:reindex": "bun run bin/es.ts reindex",
     "es:status": "bun run bin/es.ts status",
     "routes": "bun run bin/routes.ts",
-    "test:setup": "bun --env-file=.env.test run db:setup"
+    "test": "bun test",
+    "test:setup": "bun --env-file=.env.test run db:setup",
+    "cloc": "echo '=== Application Code ===' && cloc --exclude-dir=node_modules,dist,generated,.nuxt,.output,prod,docs,tests . && echo '=== Test Code ===' && cloc --exclude-dir=node_modules,dist,generated,.nuxt,.output,prod,docs ./tests"
   },
   "author": "",
   "license": "ISC",
@@ -84,6 +86,7 @@
     "@usebruno/cli": "^3.0.2",
     "@usebruno/converters": "^0.16.0",
     "chokidar-cli": "^3.0.0",
+    "cloc": "^2.6.0-cloc",
     "js-yaml": "^4.1.1",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",

@@ -1,6 +1,10 @@
 import type { t_Segment, t_SegmentInternal } from 'generated/models';
+import type { SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from 'generated/outputTypes';
 import type { Segment } from '@app/models';
+import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
+import { config } from '@config/config';
+import { v3 as uuidv3 } from 'uuid';
 
 const toJsonObjectOrNull = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
@@ -53,3 +57,57 @@ export const toSegmentListDTO = (segments: Segment[]): t_Segment[] => segments.m
 
 export const toSegmentInternalListDTO = (segments: Segment[]): t_SegmentInternal[] =>
   segments.map(toSegmentInternalDTO);
+
+type SegmentCreateAttributesInput = {
+  mediaId: number;
+  episodeNumber: number;
+  storageBasePath: string;
+  body: SegmentCreateRequestOutput;
+};
+
+export function toSegmentCreateAttributes(input: SegmentCreateAttributesInput): Partial<Segment> {
+  const { mediaId, episodeNumber, storageBasePath, body } = input;
+  const uniqueBaseId = `${mediaId}-1-${episodeNumber}-${body.position}`;
+
+  return {
+    mediaId,
+    storageBasePath,
+    uuid: uuidv3(uniqueBaseId, config.UUID_NAMESPACE),
+    position: body.position,
+    status: body.status as SegmentStatus,
+    startTimeMs: body.startTimeMs,
+    endTimeMs: body.endTimeMs,
+    contentJa: body.textJa?.content ?? '',
+    contentEs: body.textEs?.content ?? '',
+    contentEsMt: body.textEs?.isMachineTranslated ?? false,
+    contentEn: body.textEn?.content ?? '',
+    contentEnMt: body.textEn?.isMachineTranslated ?? false,
+    contentRating: (body.contentRating ?? ContentRating.SAFE) as ContentRating,
+    ratingAnalysis: body.ratingAnalysis,
+    posAnalysis: body.posAnalysis,
+    storage: body.storage as SegmentStorage,
+    hashedId: body.hashedId,
+    episode: episodeNumber,
+  };
+}
+
+export function toSegmentUpdatePatch(body: SegmentUpdateRequestOutput): Partial<Segment> {
+  const mappedPatch: Partial<Record<keyof Segment, unknown>> = {
+    contentJa: body.textJa?.content,
+    contentEn: body.textEn?.content,
+    contentEnMt: body.textEn?.isMachineTranslated,
+    contentEs: body.textEs?.content,
+    contentEsMt: body.textEs?.isMachineTranslated,
+    status: body.status as SegmentStatus | undefined,
+    storage: body.storage as SegmentStorage | undefined,
+    startTimeMs: body.startTimeMs,
+    endTimeMs: body.endTimeMs,
+    position: body.position,
+    contentRating: body.contentRating as ContentRating | undefined,
+    ratingAnalysis: body.ratingAnalysis,
+    posAnalysis: body.posAnalysis,
+    hashedId: body.hashedId,
+  };
+
+  return Object.fromEntries(Object.entries(mappedPatch).filter(([, value]) => value !== undefined)) as Partial<Segment>;
+}

@@ -1,0 +1,36 @@
+delete:
+  tags:
+    - User
+  x-internal: true
+  operationId: deleteUserActivityByDate
+  summary: Delete all activity for a specific date
+  description: |
+    Deletes all activity records for the authenticated user on the given date.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: date
+      in: path
+      required: true
+      schema:
+        type: string
+        format: date
+      description: Date in YYYY-MM-DD format
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - deletedCount
+            properties:
+              deletedCount:
+                type: integer
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -1,131 +1,88 @@
-import dotenv from 'dotenv';
-dotenv.config({ quiet: true });
-
+import type { Server } from 'node:http';
+import { buildApplication } from '@config/application';
 import { config } from '@config/config';
-import { initTelemetry, shutdownTelemetry } from '@config/telemetry';
-initTelemetry();
-
-import '@app/services/elasticsearch'; // Initialize client
-import '@app/subscribers'; // Import TypeORM subscribers
-import { initPgBoss, stopPgBoss } from '@app/workers/pgBoss';
-import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
-import { registerEmailWorkers } from '@app/workers/emailWorker';
-import { registerActivityRetentionWorker } from '@app/workers/activityRetentionWorker';
-import { seedCheckConfigs } from '@app/services/mediaReview/runner';
-import { router } from '@app/routes/router';
-import express, { Application, ErrorRequestHandler } from 'express';
-import { initializeDatabase } from '@config/database';
-import { handleErrors } from '@app/middleware/errorHandler';
-import { requestIdMiddleware } from '@app/middleware/requestId';
-import { logger, httpLogger } from '@config/log';
-import { NotFoundError } from '@app/errors';
-import { handleJsonParseErrors } from '@app/middleware/requestParsing';
-import { tracingMiddleware } from '@app/middleware/tracing';
-import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
-import { rawBodySaver } from '@app/middleware/rawBodySaver';
-import { auth } from '@config/auth';
-import { toNodeHandler } from 'better-auth/node';
 import { getAppEnvironment } from '@config/environment';
+import { runInitializers, runShutdownInitializers } from '@config/initializers';
+import type { RuntimeContext } from '@config/initializers/types';
+import { logger } from '@config/log';
 
-const PORT = config.PORT;
-const app: Application = express();
+async function closeServer(server: Server): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
 
-// Trust X-Forwarded-* headers from reverse proxy (nginx, Cloudflare, etc.)
-// Required for rate limiting and accurate client IP detection
-app.set('trust proxy', 1);
+async function startServer(context: RuntimeContext, port: number): Promise<Server> {
+  return await new Promise<Server>((resolve, reject) => {
+    const server = context.app.listen(port, () => resolve(server));
+    server.on('error', reject);
+  });
+}
 
-// These handlers catch errors OUTSIDE of Express request handling
-// (for startup failures, event handlers, and other non-request errors)
-process.on('uncaughtException', (error) => {
-  logger.fatal(error, 'Uncaught Exception');
-});
+async function startRuntime(): Promise<void> {
+  const app = buildApplication();
+  const context: RuntimeContext = {
+    app,
+    server: null,
+  };
 
-process.on('unhandledRejection', (reason, _promise) => {
-  logger.fatal(
-    {
-      reason: reason,
-      reasonType: typeof reason,
-      reasonString: String(reason),
-      stack: reason instanceof Error ? reason.stack : new Error('Unhandled Rejection').stack,
-    },
-    'Unhandled Rejection',
-  );
-});
+  let shuttingDown = false;
 
-// Graceful shutdown
-async function shutdown(signal: string) {
-  logger.info(`Received ${signal}, shutting down gracefully...`);
+  const shutdown = async (signal: string): Promise<void> => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+
+    logger.info({ signal }, 'Received shutdown signal, shutting down gracefully');
+
+    try {
+      if (context.server) {
+        await closeServer(context.server);
+      }
+      await runShutdownInitializers(context);
+      logger.info('Shutdown complete');
+      process.exit(0);
+    } catch (error) {
+      logger.error(error, 'Error during shutdown');
+      process.exit(1);
+    }
+  };
 
   try {
-    await shutdownTelemetry();
-    await stopPgBoss();
-    logger.info('PgBoss stopped');
-    process.exit(0);
+    await runInitializers(context);
+
+    const environment = getAppEnvironment(config.ENVIRONMENT);
+
+    logger.info('===================================');
+    logger.info(`Current environment: [${environment}]`);
+
+    context.server = await startServer(context, config.PORT);
+    logger.info(`API listening on port ${config.PORT}`);
+
+    process.on('SIGTERM', () => {
+      void shutdown('SIGTERM');
+    });
+    process.on('SIGINT', () => {
+      void shutdown('SIGINT');
+    });
   } catch (error) {
-    logger.error(error, 'Error during shutdown');
+    logger.error(error, 'Unable to start application runtime');
+
+    try {
+      await runShutdownInitializers(context);
+    } catch (shutdownError) {
+      logger.error(shutdownError, 'Error while rolling back failed startup');
+    }
+
     process.exit(1);
   }
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-
-app.use(requestIdMiddleware);
-
-// Capture response bodies BEFORE logging (must be before httpLogger)
-app.use(responseBodyLogger);
-
-// Parse incoming request bodies BEFORE httpLogger so req.rawBody is available for logging
-// The verify callback in both captures the raw body to req.rawBody for logging
-app.use(express.json({ limit: '10mb', verify: rawBodySaver as any }));
-app.use(handleJsonParseErrors);
-
-app.use(httpLogger);
-app.use(tracingMiddleware);
-// Route endpoints
-app.get('/up', (_req, res) => res.status(200).send('OK'));
-const noCache = (_req: any, res: any, next: any) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('CDN-Cache-Control', 'no-store');
-  next();
-};
-app.all('/v1/auth', noCache, toNodeHandler(auth));
-app.all('/v1/auth/*splat', noCache, toNodeHandler(auth));
-app.use('/', router);
-
-// Catch-all 404 handler
-app.use((req, res) => {
-  const error = new NotFoundError(`Cannot ${req.method} ${req.originalUrl}`);
-  error.instance = req.requestId;
-  res.status(error.status).json(error.toJSON());
-});
-
-// Error handling middleware
-app.use(handleErrors as ErrorRequestHandler);
-
-app.listen(PORT, async () => {
-  const environment = getAppEnvironment();
-
-  logger.info('===================================');
-  logger.info(`Current environment: [${environment}]`);
-  logger.info('API is now available. Waiting for database...');
-
-  try {
-    // Initialize database connection
-    await initializeDatabase();
-
-    // Initialize pg-boss and register workers
-    const boss = await initPgBoss();
-    await registerEsSyncWorkers(boss);
-    await registerEmailWorkers(boss);
-    await registerActivityRetentionWorker(boss);
-
-    // Seed review check configs (idempotent)
-    await seedCheckConfigs();
-
-    logger.info('Database available. You can freely use this application');
-  } catch (error) {
-    logger.error(error, 'Unable to connect to the database');
-    process.exit(1);
-  }
-});
+void startRuntime();

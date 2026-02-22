@@ -15,39 +15,35 @@ import { type NextFunction, type Request, type Response, Router } from 'express'
 import { z } from 'zod/v3';
 import type {
   t_AdminReportListResponse,
-  t_CreateAdminReviewAllowlistEntryRequestBodySchema,
-  t_DeleteAdminReviewAllowlistEntryParamSchema,
   t_Error400,
   t_Error401,
   t_Error403,
   t_Error404,
-  t_Error409,
   t_Error429,
   t_Error500,
+  t_GetAdminMediaAuditRunParamSchema,
   t_GetAdminQueueParamSchema,
-  t_GetAdminReviewRunParamSchema,
   t_ImpersonateAdminUserRequestBodySchema,
+  t_ListAdminMediaAuditRunsQuerySchema,
   t_ListAdminQueueFailedParamSchema,
   t_ListAdminReportsQuerySchema,
-  t_ListAdminReviewAllowlistQuerySchema,
-  t_ListAdminReviewRunsQuerySchema,
+  t_MediaAudit,
+  t_MediaAuditRun,
   t_OpaqueCursorPagination,
   t_PurgeAdminQueueFailedParamSchema,
   t_ReindexResponse,
   t_Report,
   t_RetryAdminQueueFailedParamSchema,
-  t_ReviewAllowlist,
-  t_ReviewCheck,
-  t_ReviewCheckRun,
-  t_RunAdminReviewQuerySchema,
-  t_RunReviewResponse,
+  t_RunAdminMediaAuditParamSchema,
+  t_RunAdminMediaAuditQuerySchema,
+  t_RunAuditResponse,
   t_TriggerReindexRequestBodySchema,
+  t_UpdateAdminMediaAuditParamSchema,
+  t_UpdateAdminMediaAuditRequestBodySchema,
   t_UpdateAdminReportParamSchema,
   t_UpdateAdminReportRequestBodySchema,
-  t_UpdateAdminReviewCheckParamSchema,
-  t_UpdateAdminReviewCheckRequestBodySchema,
 } from '../models.ts';
-import type { ListAdminReportsQueryOutput, ListAdminReviewAllowlistQueryOutput, ListAdminReviewRunsQueryOutput, RunAdminReviewQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
@@ -55,17 +51,15 @@ import {
   s_Error401,
   s_Error403,
   s_Error404,
-  s_Error409,
   s_Error429,
   s_Error500,
+  s_MediaAudit,
+  s_MediaAuditRun,
   s_OpaqueCursorPagination,
   s_ReindexRequest,
   s_ReindexResponse,
   s_Report,
-  s_ReviewAllowlist,
-  s_ReviewCheck,
-  s_ReviewCheckRun,
-  s_RunReviewResponse,
+  s_RunAuditResponse,
   s_UpdateReportRequest,
 } from '../schemas.ts';
 
@@ -395,40 +389,24 @@ export type UpdateAdminReport = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type RunAdminReviewResponder = {
-  with200(): ExpressRuntimeResponse<t_RunReviewResponse>;
+export type ListAdminMediaAuditsResponder = {
+  with200(): ExpressRuntimeResponse<t_MediaAudit[]>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
   with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type RunAdminReview = (
-  params: Params<void, RunAdminReviewQueryOutput, void, void>,
-  respond: RunAdminReviewResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListAdminReviewChecksResponder = {
-  with200(): ExpressRuntimeResponse<t_ReviewCheck[]>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListAdminReviewChecks = (
+export type ListAdminMediaAudits = (
   params: Params<void, void, void, void>,
-  respond: ListAdminReviewChecksResponder,
+  respond: ListAdminMediaAuditsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type UpdateAdminReviewCheckResponder = {
-  with200(): ExpressRuntimeResponse<t_ReviewCheck>;
+export type UpdateAdminMediaAuditResponder = {
+  with200(): ExpressRuntimeResponse<t_MediaAudit>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -437,18 +415,35 @@ export type UpdateAdminReviewCheckResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type UpdateAdminReviewCheck = (
-  params: Params<t_UpdateAdminReviewCheckParamSchema, void, t_UpdateAdminReviewCheckRequestBodySchema, void>,
-  respond: UpdateAdminReviewCheckResponder,
+export type UpdateAdminMediaAudit = (
+  params: Params<t_UpdateAdminMediaAuditParamSchema, void, t_UpdateAdminMediaAuditRequestBodySchema, void>,
+  respond: UpdateAdminMediaAuditResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type ListAdminReviewRunsResponder = {
+export type RunAdminMediaAuditResponder = {
+  with200(): ExpressRuntimeResponse<t_RunAuditResponse>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type RunAdminMediaAudit = (
+  params: Params<t_RunAdminMediaAuditParamSchema, RunAdminMediaAuditQueryOutput, void, void>,
+  respond: RunAdminMediaAuditResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListAdminMediaAuditRunsResponder = {
   with200(): ExpressRuntimeResponse<{
     pagination: t_OpaqueCursorPagination;
-    runs: t_ReviewCheckRun[];
+    runs: t_MediaAuditRun[];
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -456,18 +451,18 @@ export type ListAdminReviewRunsResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type ListAdminReviewRuns = (
-  params: Params<void, ListAdminReviewRunsQueryOutput, void, void>,
-  respond: ListAdminReviewRunsResponder,
+export type ListAdminMediaAuditRuns = (
+  params: Params<void, ListAdminMediaAuditRunsQueryOutput, void, void>,
+  respond: ListAdminMediaAuditRunsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetAdminReviewRunResponder = {
+export type GetAdminMediaAuditRunResponder = {
   with200(): ExpressRuntimeResponse<{
     reports: t_Report[];
-    run: t_ReviewCheckRun;
+    run: t_MediaAuditRun;
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -476,60 +471,9 @@ export type GetAdminReviewRunResponder = {
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetAdminReviewRun = (
-  params: Params<t_GetAdminReviewRunParamSchema, void, void, void>,
-  respond: GetAdminReviewRunResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListAdminReviewAllowlistResponder = {
-  with200(): ExpressRuntimeResponse<t_ReviewAllowlist[]>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListAdminReviewAllowlist = (
-  params: Params<void, ListAdminReviewAllowlistQueryOutput, void, void>,
-  respond: ListAdminReviewAllowlistResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type CreateAdminReviewAllowlistEntryResponder = {
-  with201(): ExpressRuntimeResponse<t_ReviewAllowlist>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with409(): ExpressRuntimeResponse<t_Error409>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type CreateAdminReviewAllowlistEntry = (
-  params: Params<void, void, t_CreateAdminReviewAllowlistEntryRequestBodySchema, void>,
-  respond: CreateAdminReviewAllowlistEntryResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type DeleteAdminReviewAllowlistEntryResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type DeleteAdminReviewAllowlistEntry = (
-  params: Params<t_DeleteAdminReviewAllowlistEntryParamSchema, void, void, void>,
-  respond: DeleteAdminReviewAllowlistEntryResponder,
+export type GetAdminMediaAuditRun = (
+  params: Params<t_GetAdminMediaAuditRunParamSchema, void, void, void>,
+  respond: GetAdminMediaAuditRunResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -548,14 +492,11 @@ export type AdminImplementation = {
   clearAdminImpersonation: ClearAdminImpersonation;
   listAdminReports: ListAdminReports;
   updateAdminReport: UpdateAdminReport;
-  runAdminReview: RunAdminReview;
-  listAdminReviewChecks: ListAdminReviewChecks;
-  updateAdminReviewCheck: UpdateAdminReviewCheck;
-  listAdminReviewRuns: ListAdminReviewRuns;
-  getAdminReviewRun: GetAdminReviewRun;
-  listAdminReviewAllowlist: ListAdminReviewAllowlist;
-  createAdminReviewAllowlistEntry: CreateAdminReviewAllowlistEntry;
-  deleteAdminReviewAllowlistEntry: DeleteAdminReviewAllowlistEntry;
+  listAdminMediaAudits: ListAdminMediaAudits;
+  updateAdminMediaAudit: UpdateAdminMediaAudit;
+  runAdminMediaAudit: RunAdminMediaAudit;
+  listAdminMediaAuditRuns: ListAdminMediaAuditRuns;
+  getAdminMediaAuditRun: GetAdminMediaAuditRun;
 };
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
@@ -1528,7 +1469,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     'target.mediaId': z.coerce.number().optional(),
     'target.episodeNumber': z.coerce.number().optional(),
     'target.segmentUuid': z.string().optional(),
-    reviewCheckRunId: z.coerce.number().optional(),
+    auditRunId: z.coerce.number().optional(),
   });
 
   const listAdminReportsResponseBodyValidator = responseValidationFactory(
@@ -1673,14 +1614,9 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const runAdminReviewQuerySchema = z.object({
-    category: z.enum(['ANIME', 'JDRAMA']).optional(),
-    checkName: z.string().optional(),
-  });
-
-  const runAdminReviewResponseBodyValidator = responseValidationFactory(
+  const listAdminMediaAuditsResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_RunReviewResponse],
+      ['200', z.array(s_MediaAudit)],
       ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
@@ -1689,73 +1625,8 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     undefined,
   );
 
-  // runAdminReview
-  router.post(`/v1/admin/review/run`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(runAdminReviewQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_RunReviewResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.runAdminReview(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(runAdminReviewResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const listAdminReviewChecksResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.array(s_ReviewCheck)],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listAdminReviewChecks
-  router.get(`/v1/admin/review/checks`, async (req: Request, res: Response, next: NextFunction) => {
+  // listAdminMediaAudits
+  router.get(`/v1/admin/media/audits`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
@@ -1766,7 +1637,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_ReviewCheck[]>(200);
+          return new ExpressRuntimeResponse<t_MediaAudit[]>(200);
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
@@ -1785,7 +1656,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.listAdminReviewChecks(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.listAdminMediaAudits(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1799,7 +1670,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(listAdminReviewChecksResponseBodyValidator(status, body));
+        res.json(listAdminMediaAuditsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1808,16 +1679,16 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const updateAdminReviewCheckParamSchema = z.object({ name: z.string() });
+  const updateAdminMediaAuditParamSchema = z.object({ name: z.string() });
 
-  const updateAdminReviewCheckRequestBodySchema = z.object({
+  const updateAdminMediaAuditRequestBodySchema = z.object({
     threshold: z.record(z.unknown()).optional(),
     enabled: PermissiveBoolean.optional(),
   });
 
-  const updateAdminReviewCheckResponseBodyValidator = responseValidationFactory(
+  const updateAdminMediaAuditResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_ReviewCheck],
+      ['200', s_MediaAudit],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -1828,19 +1699,19 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     undefined,
   );
 
-  // updateAdminReviewCheck
-  router.patch(`/v1/admin/review/checks/:name`, async (req: Request, res: Response, next: NextFunction) => {
+  // updateAdminMediaAudit
+  router.patch(`/v1/admin/media/audits/:name`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(updateAdminReviewCheckParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(updateAdminMediaAuditParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateAdminReviewCheckRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(updateAdminMediaAuditRequestBodySchema, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_ReviewCheck>(200);
+          return new ExpressRuntimeResponse<t_MediaAudit>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);
@@ -1865,7 +1736,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.updateAdminReviewCheck(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.updateAdminMediaAudit(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1879,7 +1750,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(updateAdminReviewCheckResponseBodyValidator(status, body));
+        res.json(updateAdminMediaAuditResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1888,15 +1759,88 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const listAdminReviewRunsQuerySchema = z.object({
-    checkName: z.string().optional(),
+  const runAdminMediaAuditParamSchema = z.object({ name: z.string() });
+
+  const runAdminMediaAuditQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
+
+  const runAdminMediaAuditResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_RunAuditResponse],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // runAdminMediaAudit
+  router.post(`/v1/admin/media/audits/:name/run`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(runAdminMediaAuditParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(runAdminMediaAuditQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_RunAuditResponse>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.runAdminMediaAudit(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(runAdminMediaAuditResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listAdminMediaAuditRunsQuerySchema = z.object({
+    auditName: z.string().optional(),
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),
   });
 
-  const listAdminReviewRunsResponseBodyValidator = responseValidationFactory(
+  const listAdminMediaAuditRunsResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ runs: z.array(s_ReviewCheckRun), pagination: s_OpaqueCursorPagination })],
+      ['200', z.object({ runs: z.array(s_MediaAuditRun), pagination: s_OpaqueCursorPagination })],
       ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
@@ -1905,12 +1849,12 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     undefined,
   );
 
-  // listAdminReviewRuns
-  router.get(`/v1/admin/review/runs`, async (req: Request, res: Response, next: NextFunction) => {
+  // listAdminMediaAuditRuns
+  router.get(`/v1/admin/media/audits/runs`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: parseRequestInput(listAdminReviewRunsQuerySchema, req.query, RequestInputType.QueryString),
+        query: parseRequestInput(listAdminMediaAuditRunsQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
@@ -1919,7 +1863,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         with200() {
           return new ExpressRuntimeResponse<{
             pagination: t_OpaqueCursorPagination;
-            runs: t_ReviewCheckRun[];
+            runs: t_MediaAuditRun[];
           }>(200);
         },
         with401() {
@@ -1939,7 +1883,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.listAdminReviewRuns(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.listAdminMediaAuditRuns(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -1953,7 +1897,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(listAdminReviewRunsResponseBodyValidator(status, body));
+        res.json(listAdminMediaAuditRunsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -1962,11 +1906,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getAdminReviewRunParamSchema = z.object({ id: z.coerce.number() });
+  const getAdminMediaAuditRunParamSchema = z.object({ id: z.coerce.number() });
 
-  const getAdminReviewRunResponseBodyValidator = responseValidationFactory(
+  const getAdminMediaAuditRunResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ run: s_ReviewCheckRun, reports: z.array(s_Report) })],
+      ['200', z.object({ run: s_MediaAuditRun, reports: z.array(s_Report) })],
       ['401', s_Error401],
       ['403', s_Error403],
       ['404', s_Error404],
@@ -1976,11 +1920,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     undefined,
   );
 
-  // getAdminReviewRun
-  router.get(`/v1/admin/review/runs/:id`, async (req: Request, res: Response, next: NextFunction) => {
+  // getAdminMediaAuditRun
+  router.get(`/v1/admin/media/audits/runs/:id`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
-        params: parseRequestInput(getAdminReviewRunParamSchema, req.params, RequestInputType.RouteParam),
+        params: parseRequestInput(getAdminMediaAuditRunParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
         body: undefined,
         headers: undefined,
@@ -1990,7 +1934,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         with200() {
           return new ExpressRuntimeResponse<{
             reports: t_Report[];
-            run: t_ReviewCheckRun;
+            run: t_MediaAuditRun;
           }>(200);
         },
         with401() {
@@ -2013,7 +1957,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.getAdminReviewRun(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getAdminMediaAuditRun(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -2027,233 +1971,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getAdminReviewRunResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const listAdminReviewAllowlistQuerySchema = z.object({ checkName: z.string().optional() });
-
-  const listAdminReviewAllowlistResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.array(s_ReviewAllowlist)],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listAdminReviewAllowlist
-  router.get(`/v1/admin/review/allowlist`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(listAdminReviewAllowlistQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_ReviewAllowlist[]>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.listAdminReviewAllowlist(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listAdminReviewAllowlistResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const createAdminReviewAllowlistEntryRequestBodySchema = z.object({
-    checkName: z.string(),
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number().optional(),
-    reason: z.string().optional(),
-  });
-
-  const createAdminReviewAllowlistEntryResponseBodyValidator = responseValidationFactory(
-    [
-      ['201', s_ReviewAllowlist],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['409', s_Error409],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // createAdminReviewAllowlistEntry
-  router.post(`/v1/admin/review/allowlist`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(
-          createAdminReviewAllowlistEntryRequestBodySchema,
-          req.body,
-          RequestInputType.RequestBody,
-        ),
-        headers: undefined,
-      };
-
-      const responder = {
-        with201() {
-          return new ExpressRuntimeResponse<t_ReviewAllowlist>(201);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with409() {
-          return new ExpressRuntimeResponse<t_Error409>(409);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation
-        .createAdminReviewAllowlistEntry(input, responder, req, res, next)
-        .catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(createAdminReviewAllowlistEntryResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const deleteAdminReviewAllowlistEntryParamSchema = z.object({ id: z.coerce.number() });
-
-  const deleteAdminReviewAllowlistEntryResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // deleteAdminReviewAllowlistEntry
-  router.delete(`/v1/admin/review/allowlist/:id`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(deleteAdminReviewAllowlistEntryParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with204() {
-          return new ExpressRuntimeResponse<void>(204);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation
-        .deleteAdminReviewAllowlistEntry(input, responder, req, res, next)
-        .catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteAdminReviewAllowlistEntryResponseBodyValidator(status, body));
+        res.json(getAdminMediaAuditRunResponseBodyValidator(status, body));
       } else {
         res.end();
       }

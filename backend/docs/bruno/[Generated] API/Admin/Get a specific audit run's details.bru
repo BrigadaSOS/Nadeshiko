@@ -1,0 +1,24 @@
+meta {
+  name: Get a specific audit run's details
+  type: http
+  seq: 74
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/media/audits/runs/:id
+  body: none
+  auth: bearer
+}
+
+params:query {
+  id:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

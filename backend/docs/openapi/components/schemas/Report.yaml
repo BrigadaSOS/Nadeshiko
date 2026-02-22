@@ -18,10 +18,10 @@ properties:
     example: "USER"
   target:
     $ref: "./ReportTarget.yaml"
-  reviewCheckRunId:
+  auditRunId:
     type: integer
     nullable: true
-    description: ID of the auto-check run that created this report (AUTO only)
+    description: ID of the audit run that created this report (AUTO only)
   reason:
     type: string
     enum:

@@ -1,0 +1,28 @@
+get:
+  tags:
+    - Admin
+  operationId: listAdminMediaAudits
+  summary: List all media audits
+  description: |
+    Returns all audit definitions with current config, threshold schema, and latest run info.
+
+    **Permissions:** `ADD_MEDIA`
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../components/schemas/MediaAudit.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
