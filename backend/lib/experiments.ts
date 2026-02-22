@@ -2,15 +2,11 @@ import type { User } from '@app/models/User';
 import { Experiment } from '@app/models/Experiment';
 import crypto from 'crypto';
 
-// --- Cache ---
-
 const EXPERIMENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 let experimentCacheMap: Map<string, Experiment> | null = null;
 let experimentCacheExpiresAt = 0;
 let experimentCacheLoading: Promise<Map<string, Experiment>> | null = null;
-// Incremented on invalidation so any in-flight load discards its result rather
-// than overwriting the cache after it was intentionally cleared.
 let experimentCacheGeneration = 0;
 
 async function getExperimentMap(): Promise<Map<string, Experiment>> {
@@ -42,15 +38,12 @@ async function getExperimentMap(): Promise<Map<string, Experiment>> {
   return experimentCacheLoading;
 }
 
-/** Invalidate the experiment cache — call in tests after inserting rows. */
 export function invalidateExperimentCache(): void {
   experimentCacheGeneration++;
   experimentCacheMap = null;
   experimentCacheExpiresAt = 0;
   experimentCacheLoading = null;
 }
-
-// --- Rollout ---
 
 function isInRollout(userId: number, key: string, percentage: number): boolean {
   const hash = crypto.createHash('md5').update(`${userId}:${key}`).digest();
@@ -63,14 +56,6 @@ function _isEligible(user: User, experiment: Experiment): boolean {
   );
 }
 
-// --- Public API ---
-
-/**
- * Is this experiment currently active for the user?
- *
- * For enforced experiments (flags): active if enabled AND (in rollout OR in allowedUserIds).
- * For non-enforced experiments (labs): active only if user explicitly enrolled.
- */
 export async function isExperimentActive(user: User, key: string): Promise<boolean> {
   const map = await getExperimentMap();
   const experiment = map.get(key);
@@ -83,10 +68,6 @@ export async function isExperimentActive(user: User, key: string): Promise<boole
   return user.experimentEnrollments?.some((e) => e.experimentKey === key) ?? false;
 }
 
-/**
- * Can this user see and enroll in this lab?
- * Returns false for enforced experiments — those are never user-controllable.
- */
 export async function isUserEligibleForExperiment(user: User, key: string): Promise<boolean> {
   const map = await getExperimentMap();
   const experiment = map.get(key);
@@ -95,11 +76,6 @@ export async function isUserEligibleForExperiment(user: User, key: string): Prom
   return _isEligible(user, experiment);
 }
 
-/**
- * Returns all experiments the user can see (eligible labs) or that are
- * active for them (enforced flags), paired with their active state.
- * Used by the listUserLabs controller to build the API response.
- */
 export async function getExperimentsForUser(user: User): Promise<Array<{ experiment: Experiment; active: boolean }>> {
   const map = await getExperimentMap();
   const results: Array<{ experiment: Experiment; active: boolean }> = [];

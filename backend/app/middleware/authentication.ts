@@ -71,6 +71,8 @@ export function invalidateApiKeyCacheForUser(userId: number): void {
 }
 
 export const requireSessionAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+  if (req.auth) return next();
+
   try {
     const sessionData = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
@@ -96,6 +98,8 @@ export const requireSessionAuth = async (req: Request, _res: Response, next: Nex
 };
 
 export const requireApiKeyAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+  if (req.auth) return next();
+
   const apiKey = extractBearerToken(req);
 
   if (!apiKey) {

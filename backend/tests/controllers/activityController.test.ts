@@ -82,6 +82,90 @@ describe('GET /v1/user/activity/heatmap', () => {
   });
 });
 
+describe('POST /v1/user/activity', () => {
+  it('tracks a SEGMENT_PLAY and returns 204', async () => {
+    await assertDifference(
+      () => UserActivity.countBy({ userId: fixtures.users.kevin.id, activityType: 'SEGMENT_PLAY' }),
+      1,
+      async () => {
+        const res = await request(app).post('/v1/user/activity').send({
+          activityType: 'SEGMENT_PLAY',
+          segmentUuid: 'test-uuid',
+          mediaId: 1,
+          animeName: 'Test Anime',
+          japaneseText: 'テスト',
+        });
+        expect(res.status).toBe(204);
+        // Wait for fire-and-forget to complete
+        await new Promise((r) => setTimeout(r, 50));
+      },
+    );
+  });
+
+  it('rejects non-SEGMENT_PLAY activity types with 400', async () => {
+    const res = await request(app).post('/v1/user/activity').send({
+      activityType: 'SEARCH',
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('DELETE /v1/user/activity/date/:date', () => {
+  it('deletes all activity for a specific date and returns deletedCount', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+
+    await assertDifference(
+      () => UserActivity.countBy({ userId: fixtures.users.kevin.id }),
+      -5,
+      async () => {
+        const res = await request(app).delete(`/v1/user/activity/date/${today}`);
+        expect(res.status).toBe(200);
+        expect(res.body.deletedCount).toBe(5);
+      },
+    );
+  });
+
+  it('returns deletedCount 0 when no activity exists for the date', async () => {
+    const res = await request(app).delete('/v1/user/activity/date/2000-01-01');
+    expect(res.status).toBe(200);
+    expect(res.body.deletedCount).toBe(0);
+  });
+
+  it('does not delete other users activity', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    await request(app).delete(`/v1/user/activity/date/${today}`);
+
+    const davidCount = await UserActivity.countBy({ userId: fixtures.users.david.id });
+    expect(davidCount).toBe(1);
+  });
+});
+
+describe('DELETE /v1/user/activity/:id', () => {
+  it('deletes a single activity record and returns 204', async () => {
+    const activity = await UserActivity.findOneByOrFail({ userId: fixtures.users.kevin.id });
+
+    await assertDifference(
+      () => UserActivity.countBy({ userId: fixtures.users.kevin.id }),
+      -1,
+      async () => {
+        const res = await request(app).delete(`/v1/user/activity/${activity.id}`);
+        expect(res.status).toBe(204);
+      },
+    );
+  });
+
+  it('returns 404 for non-existent activity', async () => {
+    const res = await request(app).delete('/v1/user/activity/999999');
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when trying to delete another users activity', async () => {
+    const davidActivity = await UserActivity.findOneByOrFail({ userId: fixtures.users.david.id });
+    const res = await request(app).delete(`/v1/user/activity/${davidActivity.id}`);
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('DELETE /v1/user/activity', () => {
   it('clears only requested activity type for current user', async () => {
     await assertDifference(

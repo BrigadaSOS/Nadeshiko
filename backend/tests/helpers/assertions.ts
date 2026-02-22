@@ -1,5 +1,5 @@
 import { expect } from 'bun:test';
-import { getTestQueryRunner } from './setup';
+import { TestDataSource } from './setup';
 
 let _savepointCounter = 0;
 
@@ -7,29 +7,19 @@ let _savepointCounter = 0;
  * Run `block` inside a savepoint so that if a DB operation inside the block
  * aborts the PostgreSQL transaction (e.g. FK violation caught by the error
  * handler), we can automatically recover the transaction back to a valid state.
- *
- * If the transaction is healthy after the block, the savepoint is released
- * (no changes reverted). If the transaction is aborted, we ROLLBACK TO the
- * savepoint, which restores the connection to a usable state.
  */
 async function withSavepointRecovery(block: () => Promise<void>): Promise<void> {
-  const runner = getTestQueryRunner();
-  if (!runner) {
-    await block();
-    return;
-  }
+  // During a test, createQueryRunner() returns the current test's runner
+  const runner = TestDataSource.createQueryRunner();
 
   const sp = `sp_assert_${++_savepointCounter}`;
   await runner.query(`SAVEPOINT "${sp}"`);
   await block();
 
   try {
-    // Probe: if the transaction is aborted this query will throw.
     await runner.query('SELECT 1');
     await runner.query(`RELEASE SAVEPOINT "${sp}"`);
   } catch {
-    // Transaction is aborted — ROLLBACK TO SAVEPOINT is the only command
-    // PostgreSQL accepts in this state and it restores a clean transaction.
     await runner.query(`ROLLBACK TO SAVEPOINT "${sp}"`);
   }
 }

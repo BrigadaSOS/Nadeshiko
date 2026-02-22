@@ -14,7 +14,3 @@ export class ValidationFailedError extends ApiError {
     }
   }
 }
-
-export function isValidationError(error: unknown): error is ValidationFailedError {
-  return error instanceof ValidationFailedError;
-}

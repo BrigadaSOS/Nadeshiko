@@ -1,0 +1,35 @@
+delete:
+  tags:
+    - User
+  x-internal: true
+  operationId: deleteUserActivityById
+  summary: Delete a single activity record
+  description: |
+    Deletes a single activity record by ID for the authenticated user.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Activity record ID
+  responses:
+    "204":
+      description: Activity deleted
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "404":
+      description: Activity not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

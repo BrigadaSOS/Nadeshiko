@@ -30,10 +30,9 @@ export { ApiAuthPermission } from './ApiAuthPermission';
 // Reports
 export { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason } from './Report';
 
-// Review system
-export { ReviewCheck, ReviewCheckTargetType } from './ReviewCheck';
-export { ReviewCheckRun } from './ReviewCheckRun';
-export { ReviewAllowlist } from './ReviewAllowlist';
+// Media audit system
+export { MediaAudit, MediaAuditTargetType } from './mediaAudit/MediaAudit';
+export { MediaAuditRun } from './mediaAudit/MediaAuditRun';
 
 // Activity tracking
 export { UserActivity, ActivityType } from './UserActivity';

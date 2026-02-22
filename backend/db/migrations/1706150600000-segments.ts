@@ -4,7 +4,6 @@ export class Segments1706150600000 implements MigrationInterface {
   name = 'Segments1706150600000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // ===== SEGMENT TABLE =====
     await queryRunner.query(`
       CREATE TABLE "Segment" (
         "id" SERIAL PRIMARY KEY,
@@ -38,7 +37,6 @@ export class Segments1706150600000 implements MigrationInterface {
       CREATE INDEX "IDX_Segment_media_episode" ON "Segment" ("media_id", "episode")
     `);
 
-    // ===== TRIGGER FUNCTION =====
     await queryRunner.query(`
       CREATE OR REPLACE FUNCTION update_segment_counts() RETURNS trigger AS $$
       DECLARE
@@ -72,7 +70,6 @@ export class Segments1706150600000 implements MigrationInterface {
       $$ LANGUAGE plpgsql
     `);
 
-    // ===== TRIGGERS =====
     await queryRunner.query(`
       CREATE TRIGGER trg_segment_count_insert
         AFTER INSERT ON "Segment"

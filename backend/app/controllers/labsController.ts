@@ -1,10 +1,11 @@
 import type { ListUserLabs, EnrollUserLab, UnenrollUserLab } from 'generated/routes/user';
+import { assertUser } from '@app/middleware/authentication';
 import { getExperimentsForUser, isUserEligibleForExperiment } from '@lib/experiments';
 import { ExperimentEnrollment } from '@app/models/ExperimentEnrollment';
 import { NotFoundError } from '@app/errors';
 
 export const listUserLabs: ListUserLabs = async (_params, respond, req) => {
-  const user = req.user!;
+  const user = assertUser(req);
   const experiments = await getExperimentsForUser(user);
 
   const response = experiments.map(({ experiment, active }) => ({
@@ -16,7 +17,6 @@ export const listUserLabs: ListUserLabs = async (_params, respond, req) => {
       : {
           name: experiment.name,
           description: experiment.description,
-          userOptedIn: active,
         }),
   }));
 
@@ -24,7 +24,7 @@ export const listUserLabs: ListUserLabs = async (_params, respond, req) => {
 };
 
 export const enrollUserLab: EnrollUserLab = async ({ params }, respond, req) => {
-  const user = req.user!;
+  const user = assertUser(req);
 
   if (!(await isUserEligibleForExperiment(user, params.key))) {
     throw new NotFoundError('Lab feature not found');
@@ -36,7 +36,7 @@ export const enrollUserLab: EnrollUserLab = async ({ params }, respond, req) => 
 };
 
 export const unenrollUserLab: UnenrollUserLab = async ({ params }, respond, req) => {
-  const user = req.user!;
+  const user = assertUser(req);
 
   const result = await ExperimentEnrollment.delete({
     userId: user.id,

@@ -680,16 +680,16 @@
       "status": {
         "type": "keyword"
       },
-      "startSeconds": {
+      "startTimeMs": {
         "type": "integer"
       },
-      "endSeconds": {
+      "endTimeMs": {
         "type": "integer"
       },
-      "durationSeconds": {
+      "durationMs": {
         "type": "integer"
       },
-      "contentJa": {
+      "textJa": {
         "type": "text",
         "search_analyzer": "ja_surface_search_analyzer",
         "analyzer": "ja_surface_index_analyzer",
@@ -715,7 +715,7 @@
           }
         }
       },
-      "contentEs": {
+      "textEs": {
         "type": "text",
         "analyzer": "spanish_custom",
         "term_vector": "with_positions_offsets",
@@ -727,10 +727,10 @@
           }
         }
       },
-      "contentEsMt": {
+      "textEsMt": {
         "type": "boolean"
       },
-      "contentEn": {
+      "textEn": {
         "type": "text",
         "analyzer": "english_custom",
         "term_vector": "with_positions_offsets",
@@ -742,7 +742,7 @@
           }
         }
       },
-      "contentEnMt": {
+      "textEnMt": {
         "type": "boolean"
       },
       "characterCount": {

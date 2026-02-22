@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
-import { client as esClient } from '@app/services/elasticsearch';
+import { client as esClient, INDEX_NAME } from '@config/elasticsearch';
 import { TestDataSource } from './setup';
 
 export { createTestApp, signInAs } from './setup';
@@ -82,10 +82,9 @@ export function setupSearchSuite() {
  * Faster than recreating the index — mappings and settings are preserved.
  */
 async function clearEsIndex(): Promise<void> {
-  const indexName = process.env.ELASTICSEARCH_SYNC_INDEX || process.env.ELASTICSEARCH_INDEX || 'nadedb';
   try {
     await esClient.deleteByQuery({
-      index: indexName,
+      index: INDEX_NAME,
       body: { query: { match_all: {} } },
       refresh: true,
     });

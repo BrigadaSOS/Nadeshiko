@@ -1,18 +1,31 @@
 import type { GetAdminHealth, GetAdminDashboard, TriggerReindex } from 'generated/routes/admin';
-import { checkElasticsearch, checkDatabase } from '@app/services/systemHealth';
-import { getStuckJobs } from '@app/workers/pgBoss';
-import { reindexSegments, ReindexMediaItem } from '@app/services/elasticsearchSync';
+import type { t_TriggerReindexRequestBodySchema } from 'generated/models';
+import { getStuckJobs } from '@app/workers/queueAdmin';
 import { Cache } from '@lib/cache';
-import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
+import { client as esClient, INDEX_NAME } from '@config/elasticsearch';
+import { SegmentDocument, type ReindexMediaItem } from '@app/models/SegmentDocument';
 import { AppDataSource } from '@config/database';
 import { UserActivity } from '@app/models/UserActivity';
 
 const API_VERSION = '1.4.0';
 
+type ElasticsearchHealth = {
+  status: 'connected' | 'disconnected';
+  version: string | null;
+  clusterName: string | null;
+  clusterStatus: string | null;
+  indexName: string | null;
+  documentCount: number | null;
+};
+
+type DatabaseHealth = {
+  status: 'connected' | 'disconnected';
+  version: string | null;
+};
+
 export const getAdminHealth: GetAdminHealth = async (_params, respond) => {
   const [esHealth, dbHealth] = await Promise.all([checkElasticsearch(), checkDatabase()]);
-
-  const status = esHealth.status === 'connected' && dbHealth.status === 'connected' ? 'healthy' : 'degraded';
+  const status = resolveSystemStatus(esHealth, dbHealth);
 
   return respond.with200().body({
     status,
@@ -32,14 +45,12 @@ export const getAdminDashboard: GetAdminDashboard = async (_params, respond) => 
     getStuckJobs(),
   ]);
 
-  const status = esHealth.status === 'connected' && dbHealth.status === 'connected' ? 'healthy' : 'degraded';
-
   return respond.with200().body({
     media,
     users,
     activity,
     system: {
-      status,
+      status: resolveSystemStatus(esHealth, dbHealth),
       app: { version: API_VERSION },
       elasticsearch: esHealth,
       database: dbHealth,
@@ -49,50 +60,112 @@ export const getAdminDashboard: GetAdminDashboard = async (_params, respond) => 
 };
 
 export const triggerReindex: TriggerReindex = async ({ body }, respond) => {
-  const media = body?.media?.map(
-    (item: { mediaId: number; episodes?: number[] }) =>
-      ({
-        mediaId: item.mediaId,
-        episodes: item.episodes,
-      }) as ReindexMediaItem,
-  );
-
-  const result = await reindexSegments(media);
-  Cache.invalidate(SEARCH_STATS_CACHE);
+  const result = await SegmentDocument.reindex(toReindexMediaItems(body));
+  Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
   return respond.with200().body(result);
 };
 
+function resolveSystemStatus(esHealth: ElasticsearchHealth, dbHealth: DatabaseHealth): 'healthy' | 'degraded' {
+  return esHealth.status === 'connected' && dbHealth.status === 'connected' ? 'healthy' : 'degraded';
+}
+
+function toReindexMediaItems(body: t_TriggerReindexRequestBodySchema | undefined): ReindexMediaItem[] | undefined {
+  return body?.media?.map((item) => ({
+    mediaId: item.mediaId,
+    episodes: item.episodes,
+  }));
+}
+
+async function checkElasticsearch(): Promise<ElasticsearchHealth> {
+  try {
+    const [info, health, count] = await Promise.all([
+      esClient.info(),
+      esClient.cluster.health(),
+      esClient.count({ index: INDEX_NAME }),
+    ]);
+
+    return {
+      status: 'connected',
+      version: info.version.number,
+      clusterName: health.cluster_name,
+      clusterStatus: health.status,
+      indexName: INDEX_NAME,
+      documentCount: count.count,
+    };
+  } catch {
+    return {
+      status: 'disconnected',
+      version: null,
+      clusterName: null,
+      clusterStatus: null,
+      indexName: null,
+      documentCount: null,
+    };
+  }
+}
+
+async function checkDatabase(): Promise<DatabaseHealth> {
+  try {
+    const result = await AppDataSource.query('SELECT version()');
+
+    return {
+      status: 'connected',
+      version: extractDatabaseVersion(result[0]?.version),
+    };
+  } catch {
+    return {
+      status: 'disconnected',
+      version: null,
+    };
+  }
+}
+
+function extractDatabaseVersion(fullVersion: unknown): string | null {
+  if (typeof fullVersion !== 'string' || fullVersion.trim().length === 0) {
+    return null;
+  }
+
+  const version = fullVersion.split(' ').slice(0, 2).join(' ');
+  return version.length > 0 ? version : null;
+}
+
 async function getMediaStats() {
   const [mediaCount, episodeCount, segmentTotal, characterCount, seiyuuCount] = await Promise.all([
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "Media"'),
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "Episode"'),
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "Segment"'),
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "Character"'),
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "Seiyuu"'),
+    queryCount('SELECT COUNT(*)::int AS count FROM "Media"'),
+    queryCount('SELECT COUNT(*)::int AS count FROM "Episode"'),
+    queryCount('SELECT COUNT(*)::int AS count FROM "Segment"'),
+    queryCount('SELECT COUNT(*)::int AS count FROM "Character"'),
+    queryCount('SELECT COUNT(*)::int AS count FROM "Seiyuu"'),
   ]);
 
   return {
-    totalMedia: mediaCount[0].count,
-    totalEpisodes: episodeCount[0].count,
-    totalSegments: segmentTotal[0].count,
-    totalCharacters: characterCount[0].count,
-    totalSeiyuu: seiyuuCount[0].count,
+    totalMedia: mediaCount,
+    totalEpisodes: episodeCount,
+    totalSegments: segmentTotal,
+    totalCharacters: characterCount,
+    totalSeiyuu: seiyuuCount,
   };
 }
 
 async function getUserStats() {
   const [totalUsers, recentlyRegistered, recentlyActive] = await Promise.all([
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "User"'),
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "User" WHERE created_at > NOW() - INTERVAL \'30 days\''),
-    AppDataSource.query('SELECT COUNT(*)::int AS count FROM "User" WHERE last_login > NOW() - INTERVAL \'30 days\''),
+    queryCount('SELECT COUNT(*)::int AS count FROM "User"'),
+    queryCount('SELECT COUNT(*)::int AS count FROM "User" WHERE created_at > NOW() - INTERVAL \'30 days\''),
+    queryCount('SELECT COUNT(*)::int AS count FROM "User" WHERE last_login > NOW() - INTERVAL \'30 days\''),
   ]);
 
   return {
-    totalUsers: totalUsers[0].count,
-    recentlyRegisteredCount: recentlyRegistered[0].count,
-    recentlyActiveCount: recentlyActive[0].count,
+    totalUsers,
+    recentlyRegisteredCount: recentlyRegistered,
+    recentlyActiveCount: recentlyActive,
   };
+}
+
+async function queryCount(sql: string): Promise<number> {
+  const result = await AppDataSource.query(sql);
+  const count = Number(result[0]?.count ?? 0);
+  return Number.isFinite(count) ? count : 0;
 }
 
 async function getActivityStats() {
@@ -130,12 +203,12 @@ async function getActivityStats() {
     .getRawMany();
 
   return {
-    totalSearches: countMap.SEARCH || 0,
-    totalExports: countMap.ANKI_EXPORT || 0,
-    totalPlays: countMap.SEGMENT_PLAY || 0,
-    totalCollectionAdds: countMap.LIST_ADD_SEGMENT || 0,
-    activeSearchers7d: Number(activeSearchers?.count || 0),
-    topQueries7d: topQueries.map((r) => ({ query: r.query as string, count: Number(r.count) })),
-    dailyActivity30d: dailyActivity.map((r) => ({ date: r.date as string, count: Number(r.count) })),
+    totalSearches: countMap.SEARCH ?? 0,
+    totalExports: countMap.ANKI_EXPORT ?? 0,
+    totalPlays: countMap.SEGMENT_PLAY ?? 0,
+    totalCollectionAdds: countMap.LIST_ADD_SEGMENT ?? 0,
+    activeSearchers7d: Number(activeSearchers?.count ?? 0),
+    topQueries7d: topQueries.map((row) => ({ query: row.query as string, count: Number(row.count) })),
+    dailyActivity30d: dailyActivity.map((row) => ({ date: row.date as string, count: Number(row.count) })),
   };
 }

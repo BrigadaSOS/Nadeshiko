@@ -66,7 +66,7 @@ export class Enums1706150400000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      CREATE TYPE "review_check_target_type" AS ENUM ('MEDIA', 'EPISODE')
+      CREATE TYPE "media_audit_target_type" AS ENUM ('MEDIA', 'EPISODE')
     `);
 
     await queryRunner.query(`
@@ -76,7 +76,7 @@ export class Enums1706150400000 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP TYPE "external_source_type"`);
-    await queryRunner.query(`DROP TYPE "review_check_target_type"`);
+    await queryRunner.query(`DROP TYPE "media_audit_target_type"`);
     await queryRunner.query(`DROP TYPE "report_target_type"`);
     await queryRunner.query(`DROP TYPE "report_source"`);
     await queryRunner.query(`DROP TYPE "report_reason"`);

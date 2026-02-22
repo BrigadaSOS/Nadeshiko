@@ -12,44 +12,18 @@ import type {
 } from 'generated/routes/collections';
 import { Collection, CollectionSegment, CollectionVisibility, Segment, UserRoleType } from '@app/models';
 import { toCollectionDTO } from './mappers/collection.mapper';
-import { querySegmentsByUuids } from '@app/services/elasticsearch';
+import { SegmentDocument } from '@app/models/SegmentDocument';
 import { AccessDeniedError } from '@app/errors';
-import { trackActivity } from '@app/services/activityService';
-import { ActivityType } from '@app/models/UserActivity';
+import { assertUser } from '@app/middleware/authentication';
+import { UserActivity, ActivityType } from '@app/models/UserActivity';
 import type { Request } from 'express';
 
-const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
-
-const isAdmin = (req: Request): boolean => req.user?.role === UserRoleType.ADMIN;
-
-const assertCollectionOwnership = (collection: Collection, req: Request): void => {
-  if (collection.userId !== req.user?.id && !isAdmin(req)) {
-    throw new AccessDeniedError('You do not have permission to modify this collection.');
-  }
-};
-
-const ensureDefaultAnkiExportsCollection = async (userId: number): Promise<void> => {
-  const existing = await Collection.findOne({
-    where: { userId, name: DEFAULT_ANKI_EXPORTS_COLLECTION },
-  });
-  if (existing) return;
-
-  await Collection.save({
-    name: DEFAULT_ANKI_EXPORTS_COLLECTION,
-    userId,
-    visibility: CollectionVisibility.PRIVATE,
-  });
-};
-
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
-  const userId = req.user?.id;
-  if (!userId) {
-    throw new AccessDeniedError('Authentication required to view collections.');
-  }
+  const user = assertUser(req);
 
-  await ensureDefaultAnkiExportsCollection(userId);
+  await ensureDefaultAnkiExportsCollection(user.id);
 
-  const whereClause: any = { userId };
+  const whereClause: any = { userId: user.id };
 
   if (query.visibility === 'public') {
     whereClause.visibility = CollectionVisibility.PUBLIC;
@@ -58,7 +32,7 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
   }
 
   const { items: collections, pagination } = await Collection.paginateWithOffset({
-    take: Math.min(query.take || 20, 100),
+    take: query.take,
     cursor: query.cursor,
     find: {
       where: whereClause,
@@ -89,6 +63,18 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
   });
 };
 
+export const createCollection: CreateCollection = async ({ body }, respond, req) => {
+  const user = assertUser(req);
+
+  const collection = await Collection.save({
+    name: body.name,
+    userId: user.id,
+    visibility: (body.visibility as CollectionVisibility) || CollectionVisibility.PRIVATE,
+  });
+
+  return respond.with201().body(toCollectionDTO(collection));
+};
+
 export const getCollection: GetCollection = async ({ params, query }, respond) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
 
@@ -97,7 +83,7 @@ export const getCollection: GetCollection = async ({ params, query }, respond) =
     totalCount,
     pagination,
   } = await CollectionSegment.paginateWithOffset({
-    take: Math.min(query.take || 20, 100),
+    take: query.take,
     cursor: query.cursor,
     findAndCount: {
       where: { collectionId: collection.id },
@@ -115,7 +101,7 @@ export const getCollection: GetCollection = async ({ params, query }, respond) =
   }
 
   const uuids = segmentItems.map((item) => item.segmentUuid);
-  const { segments: searchResults, includes } = await querySegmentsByUuids(uuids);
+  const { segments: searchResults, includes } = await SegmentDocument.findByUuids(uuids);
 
   const resultByUuid = new Map(searchResults.map((r) => [r.uuid, r]));
 
@@ -140,38 +126,24 @@ export const getCollection: GetCollection = async ({ params, query }, respond) =
   });
 };
 
-export const createCollection: CreateCollection = async ({ body }, respond, req) => {
-  const userId = req.user?.id;
-  if (!userId) {
-    throw new AccessDeniedError('Authentication required to create collections.');
-  }
-
-  const collection = await Collection.save({
-    name: body.name,
-    userId,
-    visibility: (body.visibility as CollectionVisibility) || CollectionVisibility.PRIVATE,
-  });
-
-  return respond.with201().body(toCollectionDTO(collection));
-};
-
 export const updateCollection: UpdateCollection = async ({ params, body }, respond, req) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 
-  if (body.name) collection.name = body.name;
-  if (body.visibility) collection.visibility = body.visibility as CollectionVisibility;
+  const patch: Partial<Pick<Collection, 'name' | 'visibility'>> = {};
+  if (body.name) patch.name = body.name;
+  if (body.visibility) patch.visibility = body.visibility as CollectionVisibility;
 
-  await collection.save();
+  const updated = await Collection.findAndUpdateOrFail({ where: { id: params.id }, patch });
 
-  return respond.with200().body(toCollectionDTO(collection));
+  return respond.with200().body(toCollectionDTO(updated));
 };
 
 export const deleteCollection: DeleteCollection = async ({ params }, respond, req) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 
-  await Collection.delete({ id: params.id });
+  await Collection.deleteOrFail({ where: { id: params.id } });
 
   return respond.with204();
 };
@@ -205,7 +177,7 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
   });
 
   if (req.user) {
-    trackActivity(req.user, ActivityType.LIST_ADD_SEGMENT, {
+    UserActivity.trackForUser(req.user, ActivityType.LIST_ADD_SEGMENT, {
       segmentUuid: body.segmentUuid,
       mediaId: segment.mediaId,
     }).catch(() => {});
@@ -234,9 +206,8 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, req);
 
-  await CollectionSegment.delete({
-    collectionId: params.id,
-    segmentUuid: params.uuid,
+  await CollectionSegment.deleteOrFail({
+    where: { collectionId: params.id, segmentUuid: params.uuid },
   });
 
   return respond.with204();
@@ -250,7 +221,7 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
     totalCount,
     pagination,
   } = await CollectionSegment.paginateWithOffset({
-    take: Math.min(query.take || 20, 100),
+    take: query.take,
     cursor: query.cursor,
     findAndCount: {
       where: { collectionId: collection.id },
@@ -271,7 +242,7 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
   }
 
   const uuids = segmentItems.map((item) => item.segmentUuid);
-  const { segments: searchResults, includes } = await querySegmentsByUuids(uuids);
+  const { segments: searchResults, includes } = await SegmentDocument.findByUuids(uuids);
 
   // Preserve collection ordering
   const resultByUuid = new Map(searchResults.map((r) => [r.uuid, r]));
@@ -305,7 +276,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
 
   // Get full segment data from ES to access media info
   const uuids = allSegmentItems.map((item) => item.segmentUuid);
-  const { segments: searchResults, includes } = await querySegmentsByUuids(uuids);
+  const { segments: searchResults, includes } = await SegmentDocument.findByUuids(uuids);
 
   const mediaIncludes = includes.media;
 
@@ -340,4 +311,27 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   }));
 
   return respond.with200().body({ media, categories, includes });
+};
+
+const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
+
+const isAdmin = (req: Request): boolean => req.user?.role === UserRoleType.ADMIN;
+
+const assertCollectionOwnership = (collection: Collection, req: Request): void => {
+  if (collection.userId !== req.user?.id && !isAdmin(req)) {
+    throw new AccessDeniedError('You do not have permission to modify this collection.');
+  }
+};
+
+const ensureDefaultAnkiExportsCollection = async (userId: number): Promise<void> => {
+  const existing = await Collection.findOne({
+    where: { userId, name: DEFAULT_ANKI_EXPORTS_COLLECTION },
+  });
+  if (existing) return;
+
+  await Collection.save({
+    name: DEFAULT_ANKI_EXPORTS_COLLECTION,
+    userId,
+    visibility: CollectionVisibility.PRIVATE,
+  });
 };

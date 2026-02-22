@@ -13,8 +13,8 @@ export function initTelemetry() {
 
   const resource = resourceFromAttributes({
     'service.name': config.OTEL_SERVICE_NAME || 'nadeshiko-backend',
-    'service.version': process.env.npm_package_version || '0.0.0',
-    'deployment.environment': config.ENVIRONMENT || 'development',
+    'service.version': config.APP_VERSION,
+    'deployment.environment': config.ENVIRONMENT,
   });
 
   sdk = new NodeSDK({

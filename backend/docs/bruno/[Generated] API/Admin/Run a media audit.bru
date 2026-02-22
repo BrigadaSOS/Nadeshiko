@@ -1,0 +1,25 @@
+meta {
+  name: Run a media audit
+  type: http
+  seq: 72
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/media/audits/:name/run
+  body: none
+  auth: bearer
+}
+
+params:query {
+  name:
+  category:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

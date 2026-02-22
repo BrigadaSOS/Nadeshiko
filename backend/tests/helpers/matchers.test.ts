@@ -1,28 +1,26 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 
-describe('custom asymmetric matchers', () => {
-  it('arrayContainingExactly matches same items regardless of order and no extras', () => {
-    expect([{ id: 1 }, { id: 2 }]).toEqual(
-      expect.arrayContainingExactly([expect.objectContaining({ id: 2 }), expect.objectContaining({ id: 1 })]),
-    );
+describe('toEqualUnordered', () => {
+  it('matches same items regardless of order', () => {
+    expect([{ id: 1 }, { id: 2 }]).toEqualUnordered([{ id: 2 }, { id: 1 }]);
   });
 
-  it('objectContainingExactly matches same keys only', () => {
-    expect({ id: 1, name: 'Yor' }).toEqual(
-      expect.objectContainingExactly({
-        id: 1,
-        name: 'Yor',
-      }),
-    );
+  it('works with nested asymmetric matchers', () => {
+    expect([{ id: 1, name: 'Yor' }, { id: 2, name: 'Loid' }]).toEqualUnordered([
+      expect.objectContaining({ id: 2 }),
+      expect.objectContaining({ id: 1 }),
+    ]);
   });
 
-  it('objectContainingExactly fails when extra keys are present', () => {
-    expect({ id: 1, name: 'Yor', extra: true }).not.toEqual(
-      expect.objectContainingExactly({
-        id: 1,
-        name: 'Yor',
-      }),
-    );
+  it('fails when arrays have different lengths', () => {
+    expect([{ id: 1 }, { id: 2 }, { id: 3 }]).not.toEqualUnordered([{ id: 1 }, { id: 2 }]);
+  });
+
+  it('fails when items do not match', () => {
+    expect([{ id: 1 }, { id: 2 }]).not.toEqualUnordered([{ id: 1 }, { id: 3 }]);
+  });
+
+  it('fails for non-array input', () => {
+    expect('not an array').not.toEqualUnordered([1, 2]);
   });
 });
-
