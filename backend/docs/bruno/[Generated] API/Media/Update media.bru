@@ -1,7 +1,7 @@
 meta {
   name: Update media
   type: http
-  seq: 8
+  seq: 21
 }
 
 patch {
@@ -43,15 +43,17 @@ body:json {
     "storageBasePath": "",
     "characters": [
       {
-        "id": 0,
+        "externalIds": {},
         "nameJa": "",
         "nameEn": "",
         "imageUrl": "",
         "role": "",
-        "seiyuuId": 0,
-        "seiyuuNameJa": "",
-        "seiyuuNameEn": "",
-        "seiyuuImageUrl": ""
+        "seiyuu": {
+          "externalIds": {},
+          "nameJa": "",
+          "nameEn": "",
+          "imageUrl": ""
+        }
       }
     ],
     "segmentCount": 0

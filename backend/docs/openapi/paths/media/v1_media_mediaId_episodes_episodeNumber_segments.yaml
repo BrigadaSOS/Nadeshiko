@@ -26,7 +26,7 @@ get:
         type: integer
       description: Episode number
       example: 1
-    - name: limit
+    - name: take
       in: query
       required: false
       schema:
@@ -40,9 +40,8 @@ get:
       in: query
       required: false
       schema:
-        type: integer
-        default: 0
-      description: Segment ID to start from (for pagination)
+        type: string
+      description: Opaque pagination cursor token
       example: 1000
   responses:
     "200":

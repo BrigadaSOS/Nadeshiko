@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { toEpisodeDTO, toEpisodeListDTO } from '@app/controllers/mappers/episode.mapper';
 
 let seq = 0;
@@ -26,18 +26,20 @@ beforeEach(() => {
 
 describe('toEpisodeDTO', () => {
   it('maps all fields correctly', () => {
-    const dto = toEpisodeDTO(buildEpisode({
-      mediaId: 5,
-      episodeNumber: 3,
-      titleEn: 'The Storm',
-      titleRomaji: 'Arashi',
-      titleJa: '嵐',
-      description: 'A big storm',
-      airedAt: new Date('2024-06-01T00:00:00Z'),
-      lengthSeconds: 1320,
-      thumbnailUrl: 'https://example.com/thumb.jpg',
-      segmentCount: 42,
-    }) as any);
+    const dto = toEpisodeDTO(
+      buildEpisode({
+        mediaId: 5,
+        episodeNumber: 3,
+        titleEn: 'The Storm',
+        titleRomaji: 'Arashi',
+        titleJa: '嵐',
+        description: 'A big storm',
+        airedAt: new Date('2024-06-01T00:00:00Z'),
+        lengthSeconds: 1320,
+        thumbnailUrl: 'https://example.com/thumb.jpg',
+        segmentCount: 42,
+      }) as any,
+    );
 
     expect(dto).toEqual({
       mediaId: 5,
@@ -59,15 +61,17 @@ describe('toEpisodeDTO', () => {
   });
 
   it('handles undefined optional fields', () => {
-    const dto = toEpisodeDTO(buildEpisode({
-      titleEn: undefined,
-      titleRomaji: undefined,
-      titleJa: undefined,
-      description: undefined,
-      airedAt: undefined,
-      lengthSeconds: undefined,
-      thumbnailUrl: undefined,
-    }) as any);
+    const dto = toEpisodeDTO(
+      buildEpisode({
+        titleEn: undefined,
+        titleRomaji: undefined,
+        titleJa: undefined,
+        description: undefined,
+        airedAt: undefined,
+        lengthSeconds: undefined,
+        thumbnailUrl: undefined,
+      }) as any,
+    );
 
     expect(dto.titleEn).toBeUndefined();
     expect(dto.airedAt).toBeUndefined();

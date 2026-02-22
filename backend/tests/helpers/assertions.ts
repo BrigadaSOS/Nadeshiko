@@ -1,0 +1,102 @@
+import { expect } from 'bun:test';
+import { getTestQueryRunner } from './setup';
+
+let _savepointCounter = 0;
+
+/**
+ * Run `block` inside a savepoint so that if a DB operation inside the block
+ * aborts the PostgreSQL transaction (e.g. FK violation caught by the error
+ * handler), we can automatically recover the transaction back to a valid state.
+ *
+ * If the transaction is healthy after the block, the savepoint is released
+ * (no changes reverted). If the transaction is aborted, we ROLLBACK TO the
+ * savepoint, which restores the connection to a usable state.
+ */
+async function withSavepointRecovery(block: () => Promise<void>): Promise<void> {
+  const runner = getTestQueryRunner();
+  if (!runner) {
+    await block();
+    return;
+  }
+
+  const sp = `sp_assert_${++_savepointCounter}`;
+  await runner.query(`SAVEPOINT "${sp}"`);
+  await block();
+
+  try {
+    // Probe: if the transaction is aborted this query will throw.
+    await runner.query('SELECT 1');
+    await runner.query(`RELEASE SAVEPOINT "${sp}"`);
+  } catch {
+    // Transaction is aborted — ROLLBACK TO SAVEPOINT is the only command
+    // PostgreSQL accepts in this state and it restores a clean transaction.
+    await runner.query(`ROLLBACK TO SAVEPOINT "${sp}"`);
+  }
+}
+
+/**
+ * Assert that a count changes by the expected delta after executing the block.
+ * Mirrors Rails' assert_difference.
+ *
+ * @example
+ * await assertDifference(() => Episode.count(), +1, async () => {
+ *   await request(app).post(`/v1/media/${media.id}/episodes`).send({ episodeNumber: 1 });
+ * });
+ *
+ * // Multiple counters — call in parallel before the block, check after:
+ * await assertDifference(() => Series.count(), +1, async () => {
+ *   await assertDifference(() => SeriesMedia.count(), 0, async () => {
+ *     await request(app).post('/v1/media/series').send({ nameEn: 'My Series' });
+ *   });
+ * });
+ */
+export async function assertDifference(
+  counter: () => Promise<number>,
+  delta: number,
+  block: () => Promise<void>,
+): Promise<void> {
+  const before = await counter();
+  await withSavepointRecovery(block);
+  const after = await counter();
+  expect(after - before, `Expected count to change by ${delta > 0 ? '+' : ''}${delta}`).toBe(delta);
+}
+
+/**
+ * Assert that a count does not change after executing the block.
+ * Mirrors Rails' assert_no_difference.
+ *
+ * @example
+ * await assertNoDifference(() => Episode.count(), async () => {
+ *   await request(app).post('/v1/media/999/episodes').send({ episodeNumber: 1 });
+ * });
+ */
+export async function assertNoDifference(counter: () => Promise<number>, block: () => Promise<void>): Promise<void> {
+  return assertDifference(counter, 0, block);
+}
+
+/**
+ * Assert that a value changes from one value to another after executing the block.
+ * Mirrors Rails' assert_changes. `from` is optional — omit it to only check the final state.
+ *
+ * @example
+ * await assertChanges(
+ *   async () => (await Episode.findOneByOrFail({ id: pilot.id })).titleEn,
+ *   { from: 'Pilot', to: 'New Title' },
+ *   async () => {
+ *     await request(app).patch(`/v1/media/${media.id}/episodes/1`).send({ titleEn: 'New Title' });
+ *   },
+ * );
+ */
+export async function assertChanges<T>(
+  getter: () => Promise<T>,
+  options: { from?: T; to: T },
+  block: () => Promise<void>,
+): Promise<void> {
+  const before = await getter();
+  if (options.from !== undefined) {
+    expect(before, 'assertChanges: initial value did not match `from`').toEqual(options.from);
+  }
+  await block();
+  const after = await getter();
+  expect(after, 'assertChanges: value did not change to expected `to`').toEqual(options.to);
+}

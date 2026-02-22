@@ -6,7 +6,7 @@ get:
   summary: Get user activity statistics
   description: |
     Returns aggregate statistics about the authenticated user's activity:
-    total searches, exports, plays, and study streak.
+    total searches, exports, plays, and top media.
 
     **Permissions:** Session authentication (cookie-based).
   security:
@@ -30,7 +30,6 @@ get:
               - totalExports
               - totalPlays
               - totalListAdds
-              - streakDays
               - topMedia
             properties:
               totalSearches:
@@ -41,9 +40,6 @@ get:
                 type: integer
               totalListAdds:
                 type: integer
-              streakDays:
-                type: integer
-                description: Consecutive days with at least one activity
               topMedia:
                 type: array
                 items:

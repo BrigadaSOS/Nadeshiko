@@ -3,17 +3,17 @@ import { Episode, Media } from '@app/models';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episode.mapper';
 
 export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
-  const { items: episodes, pagination } = await Episode.paginate({
-    find: {
-      where: { mediaId: params.mediaId },
-      order: { episodeNumber: 'ASC' },
-    },
+  const { items: episodes, pagination } = await Episode.paginateWithOffset({
+    take: query.take,
+    cursor: query.cursor,
     exists: {
       entity: Media,
       where: { id: params.mediaId },
     },
-    take: query.limit,
-    skip: query.cursor,
+    find: {
+      where: { mediaId: params.mediaId },
+      order: { episodeNumber: 'ASC' },
+    },
   });
 
   return respond.with200().body({
@@ -50,11 +50,8 @@ export const getEpisode: GetEpisode = async ({ params }, respond) => {
 };
 
 export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) => {
-  const episode = await Episode.updateOrFail({
-    where: {
-      mediaId: params.mediaId,
-      episodeNumber: params.episodeNumber,
-    },
+  const episode = await Episode.findAndUpdateOrFail({
+    where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber },
     patch: body,
   });
 
@@ -62,10 +59,7 @@ export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) =>
 };
 
 export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
-  await Episode.softDeleteOrFail({
-    mediaId: params.mediaId,
-    episodeNumber: params.episodeNumber,
-  });
+  await Episode.softDeleteOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
 
   return respond.with204();
 };

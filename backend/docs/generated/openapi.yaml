@@ -227,7 +227,7 @@ paths:
         - apiKeyHeader:
             - READ_MEDIA
       parameters:
-        - name: limit
+        - name: take
           in: query
           description: Number of results per page
           schema:
@@ -237,11 +237,9 @@ paths:
             maximum: 40
         - name: cursor
           in: query
-          description: Pagination cursor offset
+          description: Opaque pagination cursor token
           schema:
-            type: integer
-            default: 0
-            minimum: 0
+            type: string
         - name: category
           in: query
           description: Filter by media category
@@ -346,7 +344,7 @@ paths:
             type: string
             minLength: 1
             example: steins
-        - name: limit
+        - name: take
           in: query
           description: Maximum number of results to return
           schema:
@@ -376,639 +374,6 @@ paths:
           $ref: '#/components/responses/UnauthorizedApiKey'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/{id}:
-    get:
-      tags:
-        - Media
-      operationId: getMedia
-      summary: Get single media
-      description: |
-        Returns a single media entry by its ID with full metadata.
-
-        **Permissions:** `READ_MEDIA`
-      security:
-        - apiKeyHeader:
-            - READ_MEDIA
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Media ID
-          schema:
-            type: integer
-            example: 7674
-        - name: include
-          in: query
-          description: Resources to expand in the media response (`media.characters` implies `media`)
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/MediaIncludeExpansion'
-            default:
-              - media
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Media'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    patch:
-      tags:
-        - Media
-      operationId: updateMedia
-      x-internal: true
-      summary: Update media
-      description: |
-        Updates an existing media entry. Only provided fields will be updated.
-
-        **Permissions:** `UPDATE_MEDIA`
-      security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Media ID
-          schema:
-            type: integer
-            example: 7674
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MediaUpdateRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Media'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      tags:
-        - Media
-      operationId: deleteMedia
-      x-internal: true
-      summary: Delete media (soft delete)
-      description: |
-        Soft-deletes a media entry by setting the `deletedAt` timestamp. The media remains in the database but is excluded from query results.
-
-        **Permissions:** `REMOVE_MEDIA`
-      security:
-        - apiKeyHeader:
-            - REMOVE_MEDIA
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Media ID
-          schema:
-            type: integer
-            example: 7674
-      responses:
-        '204':
-          description: No Content
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/{mediaId}/episodes:
-    get:
-      operationId: listEpisodes
-      tags:
-        - Media
-      summary: List episodes for a media
-      description: |
-        Returns a paginated list of episodes for a specific media.
-
-        **Permissions:** `READ_MEDIA`
-      security:
-        - apiKeyHeader:
-            - READ_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 50
-            minimum: 1
-            maximum: 100
-          description: Maximum number of episodes to return
-          example: 50
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 0
-          description: Episode number to start from (for pagination)
-          example: 10
-      responses:
-        '200':
-          $ref: '#/components/responses/EpisodeListResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    post:
-      operationId: createEpisode
-      x-internal: true
-      tags:
-        - Media
-      summary: Create new episode
-      description: |
-        Creates a new episode for a specific media.
-
-        **Permissions:** `ADD_MEDIA`
-      security:
-        - apiKeyHeader:
-            - ADD_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EpisodeCreateRequest'
-      responses:
-        '201':
-          $ref: '#/components/responses/EpisodeResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/{mediaId}/episodes/{episodeNumber}:
-    get:
-      operationId: getEpisode
-      tags:
-        - Media
-      summary: Get single episode
-      description: |
-        Returns a specific episode by media ID and episode number.
-
-        **Permissions:** `READ_MEDIA`
-      security:
-        - apiKeyHeader:
-            - READ_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-      responses:
-        '200':
-          $ref: '#/components/responses/EpisodeResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    patch:
-      tags:
-        - Media
-      operationId: updateEpisode
-      x-internal: true
-      summary: Update episode
-      description: |
-        Updates an existing episode. Only provided fields will be updated.
-
-        **Permissions:** `UPDATE_MEDIA`
-      security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EpisodeUpdateRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/EpisodeResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      tags:
-        - Media
-      operationId: deleteEpisode
-      x-internal: true
-      summary: Delete an episode
-      description: |
-        Soft-deletes an episode. Segments are not cascade deleted — this only hides the episode from results.
-
-        **Permissions:** `REMOVE_MEDIA`
-      security:
-        - apiKeyHeader:
-            - REMOVE_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-      responses:
-        '204':
-          description: Episode successfully deleted
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/{mediaId}/episodes/{episodeNumber}/segments:
-    get:
-      tags:
-        - Media
-      operationId: listSegments
-      x-internal: true
-      summary: List segments for an episode
-      description: |
-        Returns a paginated list of segments for a specific episode.
-
-        **Permissions:** `READ_MEDIA`
-      security:
-        - apiKeyHeader:
-            - READ_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 50
-            minimum: 1
-            maximum: 100
-          description: Maximum number of segments to return
-          example: 50
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 0
-          description: Segment ID to start from (for pagination)
-          example: 1000
-      responses:
-        '200':
-          $ref: '#/components/responses/SegmentListResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    post:
-      tags:
-        - Media
-      operationId: createSegment
-      x-internal: true
-      summary: Create new segment
-      description: |
-        Creates a new segment for a specific episode.
-
-        **Permissions:** `UPDATE_MEDIA`
-      security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SegmentCreateRequest'
-      responses:
-        '201':
-          $ref: '#/components/responses/SegmentInternalResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
-    get:
-      operationId: getSegment
-      tags:
-        - Media
-      summary: Get single segment
-      description: |
-        Returns a specific segment by its ID within the media/episode hierarchy.
-
-        **Permissions:** `READ_MEDIA`
-      security:
-        - apiKeyHeader:
-            - READ_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Segment ID
-          example: 12345
-      responses:
-        '200':
-          $ref: '#/components/responses/SegmentResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    patch:
-      operationId: updateSegment
-      x-internal: true
-      tags:
-        - Media
-      summary: Update segment
-      description: |
-        Updates an existing segment. Only provided fields will be updated.
-
-        **Permissions:** `UPDATE_MEDIA`
-      security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Segment ID
-          example: 12345
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SegmentUpdateRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/SegmentInternalResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      tags:
-        - Media
-      operationId: deleteSegment
-      x-internal: true
-      summary: Delete segment
-      description: |
-        Soft-deletes a segment by setting its status to DELETED.
-
-        **Permissions:** `REMOVE_MEDIA`
-      security:
-        - apiKeyHeader:
-            - REMOVE_MEDIA
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the media
-          example: 7674
-        - name: episodeNumber
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Episode number
-          example: 1
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Segment ID
-          example: 12345
-      responses:
-        '204':
-          description: Segment successfully deleted
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1118,7 +483,7 @@ paths:
             type: string
           description: Segment UUID
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
-        - name: limit
+        - name: take
           in: query
           schema:
             type: integer
@@ -1189,7 +554,7 @@ paths:
         - apiKeyHeader: []
         - sessionCookie: []
       parameters:
-        - name: limit
+        - name: take
           in: query
           description: Number of results per page
           schema:
@@ -1199,11 +564,9 @@ paths:
             maximum: 100
         - name: cursor
           in: query
-          description: Pagination cursor offset
+          description: Opaque pagination cursor token
           schema:
-            type: integer
-            default: 0
-            minimum: 0
+            type: string
         - name: query
           in: query
           description: Case-insensitive search across English, Japanese, and Romaji names
@@ -1576,10 +939,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: AniList character ID
+          description: Internal character ID
           schema:
             type: integer
-            example: 14545
+            example: 1
       responses:
         '200':
           description: OK
@@ -1616,10 +979,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: AniList staff ID
+          description: Internal seiyuu ID
           schema:
             type: integer
-            example: 95991
+            example: 1
       responses:
         '200':
           description: OK
@@ -1627,6 +990,637 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SeiyuuWithRoles'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/{id}:
+    get:
+      tags:
+        - Media
+      operationId: getMedia
+      summary: Get single media
+      description: |
+        Returns a single media entry by its ID with full metadata.
+
+        **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+        - name: include
+          in: query
+          description: Resources to expand in the media response (`media.characters` implies `media`)
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/MediaIncludeExpansion'
+            default:
+              - media
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Media
+      operationId: updateMedia
+      x-internal: true
+      summary: Update media
+      description: |
+        Updates an existing media entry. Only provided fields will be updated.
+
+        **Permissions:** `UPDATE_MEDIA`
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Media
+      operationId: deleteMedia
+      x-internal: true
+      summary: Delete media (soft delete)
+      description: |
+        Soft-deletes a media entry by setting the `deletedAt` timestamp. The media remains in the database but is excluded from query results.
+
+        **Permissions:** `REMOVE_MEDIA`
+      security:
+        - apiKeyHeader:
+            - REMOVE_MEDIA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Media ID
+          schema:
+            type: integer
+            example: 7674
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaId}/episodes:
+    get:
+      operationId: listEpisodes
+      tags:
+        - Media
+      summary: List episodes for a media
+      description: |
+        Returns a paginated list of episodes for a specific media.
+
+        **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: take
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of episodes to return
+          example: 50
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Opaque pagination cursor token
+          example: 10
+      responses:
+        '200':
+          $ref: '#/components/responses/EpisodeListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createEpisode
+      x-internal: true
+      tags:
+        - Media
+      summary: Create new episode
+      description: |
+        Creates a new episode for a specific media.
+
+        **Permissions:** `ADD_MEDIA`
+      security:
+        - apiKeyHeader:
+            - ADD_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EpisodeCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/EpisodeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaId}/episodes/{episodeNumber}:
+    get:
+      operationId: getEpisode
+      tags:
+        - Media
+      summary: Get single episode
+      description: |
+        Returns a specific episode by media ID and episode number.
+
+        **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      responses:
+        '200':
+          $ref: '#/components/responses/EpisodeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Media
+      operationId: updateEpisode
+      x-internal: true
+      summary: Update episode
+      description: |
+        Updates an existing episode. Only provided fields will be updated.
+
+        **Permissions:** `UPDATE_MEDIA`
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EpisodeUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/EpisodeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Media
+      operationId: deleteEpisode
+      x-internal: true
+      summary: Delete an episode
+      description: |
+        Soft-deletes an episode. Segments are not cascade deleted — this only hides the episode from results.
+
+        **Permissions:** `REMOVE_MEDIA`
+      security:
+        - apiKeyHeader:
+            - REMOVE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      responses:
+        '204':
+          description: Episode successfully deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaId}/episodes/{episodeNumber}/segments:
+    get:
+      tags:
+        - Media
+      operationId: listSegments
+      x-internal: true
+      summary: List segments for an episode
+      description: |
+        Returns a paginated list of segments for a specific episode.
+
+        **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: take
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of segments to return
+          example: 50
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Opaque pagination cursor token
+          example: 1000
+      responses:
+        '200':
+          $ref: '#/components/responses/SegmentListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Media
+      operationId: createSegment
+      x-internal: true
+      summary: Create new segment
+      description: |
+        Creates a new segment for a specific episode.
+
+        **Permissions:** `UPDATE_MEDIA`
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SegmentCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/SegmentInternalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
+    get:
+      operationId: getSegment
+      tags:
+        - Media
+      summary: Get single segment
+      description: |
+        Returns a specific segment by its ID within the media/episode hierarchy.
+
+        **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Segment ID
+          example: 12345
+      responses:
+        '200':
+          $ref: '#/components/responses/SegmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      operationId: updateSegment
+      x-internal: true
+      tags:
+        - Media
+      summary: Update segment
+      description: |
+        Updates an existing segment. Only provided fields will be updated.
+
+        **Permissions:** `UPDATE_MEDIA`
+      security:
+        - apiKeyHeader:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Segment ID
+          example: 12345
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SegmentUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SegmentInternalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Media
+      operationId: deleteSegment
+      x-internal: true
+      summary: Delete segment
+      description: |
+        Soft-deletes a segment by setting its status to DELETED.
+
+        **Permissions:** `REMOVE_MEDIA`
+      security:
+        - apiKeyHeader:
+            - REMOVE_MEDIA
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Segment ID
+          example: 12345
+      responses:
+        '204':
+          description: Segment successfully deleted
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1717,9 +1711,9 @@ paths:
         - name: cursor
           in: query
           schema:
-            type: integer
-          description: Cursor for pagination (report ID to start after)
-        - name: limit
+            type: string
+          description: Opaque pagination cursor token
+        - name: take
           in: query
           schema:
             type: integer
@@ -1820,9 +1814,9 @@ paths:
         - name: cursor
           in: query
           schema:
-            type: integer
-          description: Cursor for pagination (activity ID to start after)
-        - name: limit
+            type: string
+          description: Opaque cursor token for keyset pagination
+        - name: take
           in: query
           schema:
             type: integer
@@ -1856,7 +1850,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/UserActivity'
                   pagination:
-                    $ref: '#/components/schemas/CursorPagination'
+                    $ref: '#/components/schemas/OpaqueCursorPagination'
         '401':
           $ref: '#/components/responses/UnauthorizedApiKey'
         '500':
@@ -1887,11 +1881,8 @@ paths:
               schema:
                 type: object
                 required:
-                  - message
                   - deletedCount
                 properties:
-                  message:
-                    type: string
                   deletedCount:
                     type: integer
         '401':
@@ -1906,7 +1897,7 @@ paths:
       operationId: getUserActivityHeatmap
       summary: Get activity heatmap data
       description: |
-        Returns daily activity counts for the authenticated user, grouped by date.
+        Returns daily activity activityByDay for the authenticated user, grouped by date.
         Designed for rendering a GitHub-style contribution heatmap.
 
         **Permissions:** Session authentication (cookie-based).
@@ -1933,13 +1924,13 @@ paths:
               schema:
                 type: object
                 required:
-                  - counts
+                  - activityByDay
                 properties:
-                  counts:
+                  activityByDay:
                     type: object
                     additionalProperties:
                       type: integer
-                    description: Map of YYYY-MM-DD date strings to activity counts
+                    description: Map of YYYY-MM-DD date strings to activity activityByDay
         '401':
           $ref: '#/components/responses/UnauthorizedApiKey'
         '500':
@@ -1953,7 +1944,7 @@ paths:
       summary: Get user activity statistics
       description: |
         Returns aggregate statistics about the authenticated user's activity:
-        total searches, exports, plays, and study streak.
+        total searches, exports, plays, and top media.
 
         **Permissions:** Session authentication (cookie-based).
       security:
@@ -1977,7 +1968,6 @@ paths:
                   - totalExports
                   - totalPlays
                   - totalListAdds
-                  - streakDays
                   - topMedia
                 properties:
                   totalSearches:
@@ -1988,9 +1978,6 @@ paths:
                     type: integer
                   totalListAdds:
                     type: integer
-                  streakDays:
-                    type: integer
-                    description: Consecutive days with at least one activity
                   topMedia:
                     type: array
                     items:
@@ -2060,6 +2047,64 @@ paths:
           $ref: '#/components/responses/UnauthorizedApiKey'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/user/labs/{key}:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: enrollUserLab
+      summary: Enroll in a lab feature
+      description: |
+        Opts the authenticated user into a lab feature. The user must be eligible
+        for the lab (correct role, in allowlist or rollout percentage).
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Lab feature key
+      responses:
+        '204':
+          description: Enrolled successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: unenrollUserLab
+      summary: Unenroll from a lab feature
+      description: |
+        Opts the authenticated user out of a lab feature.
+
+        **Permissions:** Session authentication (cookie-based).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Lab feature key
+      responses:
+        '204':
+          description: Unenrolled successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/collections:
     get:
       tags:
@@ -2082,10 +2127,9 @@ paths:
             example: private
         - name: cursor
           in: query
-          description: Cursor offset for pagination
+          description: Opaque pagination cursor token
           schema:
-            type: integer
-            minimum: 0
+            type: string
             example: 0
         - name: page
           in: query
@@ -2096,7 +2140,7 @@ paths:
             default: 1
             minimum: 1
             example: 1
-        - name: limit
+        - name: take
           in: query
           description: Items per page
           schema:
@@ -2174,10 +2218,9 @@ paths:
             example: 123
         - name: cursor
           in: query
-          description: Cursor offset for paginated segments
+          description: Opaque pagination cursor token for paginated segments
           schema:
-            type: integer
-            minimum: 0
+            type: string
             example: 0
         - name: page
           in: query
@@ -2188,7 +2231,7 @@ paths:
             default: 1
             minimum: 1
             example: 1
-        - name: limit
+        - name: take
           in: query
           description: Items per page
           schema:
@@ -2466,12 +2509,11 @@ paths:
             example: 123
         - name: cursor
           in: query
-          description: Cursor offset for pagination
+          description: Opaque cursor token for pagination
           schema:
-            type: integer
-            minimum: 0
-            example: 0
-        - name: limit
+            type: string
+            example: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9
+        - name: take
           in: query
           description: Items per page
           schema:
@@ -3229,6 +3271,101 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/impersonation:
+    post:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: impersonateAdminUser
+      summary: Start admin impersonation
+      description: |
+        Creates an impersonation session for the target user.
+        This endpoint is restricted to admin sessions and only available in local environment.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: integer
+                  minimum: 1
+                  description: User ID to impersonate
+      responses:
+        '200':
+          description: Impersonation session created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - user
+                properties:
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - username
+                      - email
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: clearAdminImpersonation
+      summary: Clear admin impersonation
+      description: |
+        Clears the current impersonation session and related cookies.
+        This endpoint is restricted to admin sessions and only available in local environment.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Impersonation session cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/admin/reports:
     get:
       tags:
@@ -3247,9 +3384,9 @@ paths:
         - name: cursor
           in: query
           schema:
-            type: integer
-          description: Cursor for pagination (report ID to start after)
-        - name: limit
+            type: string
+          description: Opaque pagination cursor token
+        - name: take
           in: query
           schema:
             type: integer
@@ -3513,9 +3650,9 @@ paths:
         - name: cursor
           in: query
           schema:
-            type: integer
-          description: Cursor for pagination
-        - name: limit
+            type: string
+          description: Opaque pagination cursor token
+        - name: take
           in: query
           schema:
             type: integer
@@ -3538,7 +3675,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/ReviewCheckRun'
                   pagination:
-                    $ref: '#/components/schemas/CursorPagination'
+                    $ref: '#/components/schemas/OpaqueCursorPagination'
         '401':
           $ref: '#/components/responses/UnauthorizedApiKey'
         '403':
@@ -3869,18 +4006,14 @@ components:
               type: boolean
               description: Whether to use exact phrase matching
               default: false
-        limit:
+        take:
           type: integer
           description: Max amount of entries by response
           default: 10
         cursor:
-          type: array
-          description: Current page of search
-          items:
-            type: number
-          example:
-            - 23.31727
-            - 7
+          type: string
+          description: Opaque cursor token returned from the previous search page
+          example: eyJraW5kIjoia2V5c2V0IiwiY3Vyc29yIjpbMjMuMzE3MjcsN119
         sort:
           type: object
           description: Sort configuration
@@ -4059,14 +4192,17 @@ components:
       description: Japanese voice actor (seiyuu)
       required:
         - id
+        - externalIds
         - nameJa
         - nameEn
         - imageUrl
       properties:
         id:
           type: integer
-          description: AniList staff ID
-          example: 95991
+          description: Internal seiyuu ID
+          example: 1
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
         nameJa:
           type: string
           description: Japanese name of the voice actor
@@ -4244,10 +4380,9 @@ components:
             - LOWER_BOUND
           example: LOWER_BOUND
         cursor:
-          type: array
-          description: Cursor for fetching the next page (undefined when hasMore is false)
-          items:
-            type: number
+          type: string
+          nullable: true
+          description: Opaque cursor token for fetching the next page (`null` when hasMore is false)
     SearchResponse:
       type: object
       properties:
@@ -4622,9 +4757,9 @@ components:
       enum:
         - media
         - media.characters
-    CursorPagination:
+    OpaqueCursorPagination:
       type: object
-      description: Cursor pagination metadata
+      description: Opaque cursor pagination metadata
       required:
         - hasMore
         - cursor
@@ -4634,10 +4769,10 @@ components:
           description: Whether more results are available
           example: true
         cursor:
-          type: integer
+          type: string
           nullable: true
-          description: Cursor for the next page (`null` when `hasMore` is `false`)
-          example: 42
+          description: Opaque token for the next page (`null` when `hasMore` is `false`)
+          example: eyJraW5kIjoia2V5c2V0IiwiY3Vyc29yIjo4NDIxfQ
     MediaListResponse:
       type: object
       required:
@@ -4649,25 +4784,20 @@ components:
           items:
             $ref: '#/components/schemas/Media'
         pagination:
-          $ref: '#/components/schemas/CursorPagination'
+          $ref: '#/components/schemas/OpaqueCursorPagination'
     CharacterInput:
       type: object
       description: Character data for creating/updating media
       required:
-        - id
+        - externalIds
         - nameJa
         - nameEn
         - imageUrl
         - role
-        - seiyuuId
-        - seiyuuNameJa
-        - seiyuuNameEn
-        - seiyuuImageUrl
+        - seiyuu
       properties:
-        id:
-          type: integer
-          description: AniList character ID
-          example: 14545
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
         nameJa:
           type: string
           description: Japanese name of the character
@@ -4689,23 +4819,29 @@ components:
             - BACKGROUND
           description: Character's role in the media
           example: MAIN
-        seiyuuId:
-          type: integer
-          description: AniList staff ID for the Japanese voice actor
-          example: 95991
-        seiyuuNameJa:
-          type: string
-          description: Japanese name of the voice actor
-          example: 阿部敦
-        seiyuuNameEn:
-          type: string
-          description: English name of the voice actor
-          example: Atsushi Abe
-        seiyuuImageUrl:
-          type: string
-          format: uri
-          description: Voice actor profile image URL
-          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
+        seiyuu:
+          type: object
+          required:
+            - externalIds
+            - nameJa
+            - nameEn
+            - imageUrl
+          properties:
+            externalIds:
+              $ref: '#/components/schemas/ExternalId'
+            nameJa:
+              type: string
+              description: Japanese name of the voice actor
+              example: 阿部敦
+            nameEn:
+              type: string
+              description: English name of the voice actor
+              example: Atsushi Abe
+            imageUrl:
+              type: string
+              format: uri
+              description: Voice actor profile image URL
+              example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
     MediaCreateRequest:
       type: object
       description: Request body for creating a new media entry
@@ -4896,6 +5032,319 @@ components:
           additionalProperties:
             type: string
           description: Optional map of field names to their error messages (for validation errors)
+    SegmentUpdateRequest:
+      type: object
+      description: All fields are optional for partial updates
+      properties:
+        position:
+          type: integer
+          description: Position of the segment within the episode
+          example: 1133
+        status:
+          type: string
+          description: Segment status
+          enum:
+            - DELETED
+            - ACTIVE
+            - SUSPENDED
+            - VERIFIED
+            - INVALID
+            - TOO_LONG
+          default: ACTIVE
+          example: ACTIVE
+        startTimeMs:
+          type: integer
+          description: Start time of the segment in milliseconds from the beginning of the episode
+          example: 2007255
+        endTimeMs:
+          type: integer
+          description: End time of the segment in milliseconds from the beginning of the episode
+          example: 2008464
+        textJa:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: Original Japanese content of the segment
+              example: 僕は僕で、君は君だ。
+        textEs:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: Spanish translation of the segment content
+              example: Yo soy yo, y tú eres tú.
+            isMachineTranslated:
+              type: boolean
+              description: Whether the Spanish translation was machine-translated
+              default: false
+              example: false
+        textEn:
+          type: object
+          properties:
+            content:
+              type: string
+              maxLength: 500
+              description: English translation of the segment content
+              example: I am me, and you are you.
+            isMachineTranslated:
+              type: boolean
+              description: Whether the English translation was machine-translated
+              default: false
+              example: false
+        contentRating:
+          $ref: '#/components/schemas/ContentRating'
+        ratingAnalysis:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Raw WD Tagger v3 classifier output used to derive content rating
+        posAnalysis:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: POS tokenization results keyed by engine (sudachi, unidic)
+        storage:
+          type: string
+          enum:
+            - LOCAL
+            - R2
+          description: Storage backend for segment assets
+          example: R2
+          default: R2
+        hashedId:
+          type: string
+          description: Hash identifier for the segment (from segment JSON)
+          example: 0d39e46b14
+    SegmentInternal:
+      description: Segment with internal fields (for internal API responses)
+      allOf:
+        - $ref: '#/components/schemas/Segment'
+        - type: object
+          properties:
+            storage:
+              type: string
+              enum:
+                - LOCAL
+                - R2
+              description: Storage backend for segment assets
+              example: R2
+            hashedId:
+              type: string
+              description: Hash identifier for the segment
+              example: 0d39e46b14
+            storageBasePath:
+              type: string
+              description: Base path in the storage backend
+              example: anime/steins-gate
+            ratingAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: Raw WD Tagger v3 classifier output used to derive content rating
+            posAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: POS tokenization results keyed by engine (sudachi, unidic)
+    SegmentContextResponse:
+      type: object
+      required:
+        - segments
+      properties:
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Segment'
+        includes:
+          type: object
+          properties:
+            media:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/Media'
+              description: Media objects keyed by mediaId
+    Series:
+      type: object
+      description: Ordered media series grouping
+      required:
+        - id
+        - nameJa
+        - nameRomaji
+        - nameEn
+      properties:
+        id:
+          type: integer
+          description: Series ID
+          example: 1
+        nameJa:
+          type: string
+          description: Japanese name of the series
+          example: バクマン。シリーズ
+        nameRomaji:
+          type: string
+          description: Romaji name of the series
+          example: Bakuman. Series
+        nameEn:
+          type: string
+          description: English name of the series
+          example: Bakuman Series
+    SeriesListResponse:
+      type: object
+      required:
+        - series
+        - pagination
+      properties:
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/Series'
+        pagination:
+          $ref: '#/components/schemas/OpaqueCursorPagination'
+    SeriesWithMedia:
+      type: object
+      description: Series with ordered media entries
+      required:
+        - id
+        - nameJa
+        - nameRomaji
+        - nameEn
+        - media
+      properties:
+        id:
+          type: integer
+          description: Series ID
+          example: 1
+        nameJa:
+          type: string
+          description: Japanese name of the series
+          example: バクマン。シリーズ
+        nameRomaji:
+          type: string
+          description: Romaji name of the series
+          example: Bakuman. Series
+        nameEn:
+          type: string
+          description: English name of the series
+          example: Bakuman Series
+        media:
+          type: array
+          description: All media in the series, sorted by position
+          items:
+            type: object
+            properties:
+              position:
+                type: integer
+                description: Position in the series (1-indexed)
+                example: 1
+              media:
+                $ref: '#/components/schemas/Media'
+    Character:
+      type: object
+      description: Anime character
+      required:
+        - id
+        - externalIds
+        - nameJa
+        - nameEn
+        - imageUrl
+      properties:
+        id:
+          type: integer
+          description: Internal character ID
+          example: 1
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
+        nameJa:
+          type: string
+          description: Japanese name of the character
+          example: 真城最高
+        nameEn:
+          type: string
+          description: English name of the character
+          example: Moritaka Mashiro
+        imageUrl:
+          type: string
+          format: uri
+          description: Character image URL
+          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
+    CharacterWithMedia:
+      description: Character with voice actor and all media appearances
+      allOf:
+        - $ref: '#/components/schemas/Character'
+        - type: object
+          required:
+            - seiyuu
+            - mediaAppearances
+          properties:
+            seiyuu:
+              $ref: '#/components/schemas/Seiyuu'
+            mediaAppearances:
+              type: array
+              description: All media this character appears in
+              items:
+                type: object
+                properties:
+                  media:
+                    $ref: '#/components/schemas/Media'
+                  role:
+                    type: string
+                    enum:
+                      - MAIN
+                      - SUPPORTING
+                      - BACKGROUND
+                    description: Character role in this media
+                    example: MAIN
+    SeiyuuWithRoles:
+      type: object
+      description: Seiyuu details with optional character appearances
+      required:
+        - id
+        - nameJa
+        - nameEn
+        - imageUrl
+        - characters
+      properties:
+        id:
+          type: integer
+          description: AniList staff ID
+          example: 95991
+        nameJa:
+          type: string
+          description: Japanese name of the voice actor
+          example: 阿部敦
+        nameEn:
+          type: string
+          description: English name of the voice actor
+          example: Atsushi Abe
+        imageUrl:
+          type: string
+          format: uri
+          description: Profile image URL
+          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
+        characters:
+          type: array
+          description: Characters voiced by this seiyuu with their media appearances
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Character'
+              - type: object
+                required:
+                  - media
+                  - role
+                properties:
+                  media:
+                    $ref: '#/components/schemas/Media'
+                  role:
+                    type: string
+                    enum:
+                      - MAIN
+                      - SUPPORTING
+                      - BACKGROUND
+                    description: Character role in this media
+                    example: MAIN
     MediaUpdateRequest:
       type: object
       description: Request body for updating an existing media entry (all fields optional)
@@ -5058,7 +5507,7 @@ components:
             $ref: '#/components/schemas/Episode'
           description: Array of episode objects
         pagination:
-          $ref: '#/components/schemas/CursorPagination'
+          $ref: '#/components/schemas/OpaqueCursorPagination'
     EpisodeCreateRequest:
       type: object
       required:
@@ -5222,316 +5671,6 @@ components:
           type: string
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
-    SegmentInternal:
-      description: Segment with internal fields (for internal API responses)
-      allOf:
-        - $ref: '#/components/schemas/Segment'
-        - type: object
-          properties:
-            storage:
-              type: string
-              enum:
-                - LOCAL
-                - R2
-              description: Storage backend for segment assets
-              example: R2
-            hashedId:
-              type: string
-              description: Hash identifier for the segment
-              example: 0d39e46b14
-            storageBasePath:
-              type: string
-              description: Base path in the storage backend
-              example: anime/steins-gate
-            ratingAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: Raw WD Tagger v3 classifier output used to derive content rating
-            posAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: POS tokenization results keyed by engine (sudachi, unidic)
-    SegmentUpdateRequest:
-      type: object
-      description: All fields are optional for partial updates
-      properties:
-        position:
-          type: integer
-          description: Position of the segment within the episode
-          example: 1133
-        status:
-          type: string
-          description: Segment status
-          enum:
-            - DELETED
-            - ACTIVE
-            - SUSPENDED
-            - VERIFIED
-            - INVALID
-            - TOO_LONG
-          default: ACTIVE
-          example: ACTIVE
-        startTimeMs:
-          type: integer
-          description: Start time of the segment in milliseconds from the beginning of the episode
-          example: 2007255
-        endTimeMs:
-          type: integer
-          description: End time of the segment in milliseconds from the beginning of the episode
-          example: 2008464
-        textJa:
-          type: object
-          properties:
-            content:
-              type: string
-              maxLength: 500
-              description: Original Japanese content of the segment
-              example: 僕は僕で、君は君だ。
-        textEs:
-          type: object
-          properties:
-            content:
-              type: string
-              maxLength: 500
-              description: Spanish translation of the segment content
-              example: Yo soy yo, y tú eres tú.
-            isMachineTranslated:
-              type: boolean
-              description: Whether the Spanish translation was machine-translated
-              default: false
-              example: false
-        textEn:
-          type: object
-          properties:
-            content:
-              type: string
-              maxLength: 500
-              description: English translation of the segment content
-              example: I am me, and you are you.
-            isMachineTranslated:
-              type: boolean
-              description: Whether the English translation was machine-translated
-              default: false
-              example: false
-        contentRating:
-          $ref: '#/components/schemas/ContentRating'
-        ratingAnalysis:
-          type: object
-          additionalProperties: true
-          nullable: true
-          description: Raw WD Tagger v3 classifier output used to derive content rating
-        posAnalysis:
-          type: object
-          additionalProperties: true
-          nullable: true
-          description: POS tokenization results keyed by engine (sudachi, unidic)
-        storage:
-          type: string
-          enum:
-            - LOCAL
-            - R2
-          description: Storage backend for segment assets
-          example: R2
-          default: R2
-        hashedId:
-          type: string
-          description: Hash identifier for the segment (from segment JSON)
-          example: 0d39e46b14
-    SegmentContextResponse:
-      type: object
-      required:
-        - segments
-      properties:
-        segments:
-          type: array
-          items:
-            $ref: '#/components/schemas/Segment'
-        includes:
-          type: object
-          properties:
-            media:
-              type: object
-              additionalProperties:
-                $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
-    Series:
-      type: object
-      description: Ordered media series grouping
-      required:
-        - id
-        - nameJa
-        - nameRomaji
-        - nameEn
-      properties:
-        id:
-          type: integer
-          description: Series ID
-          example: 1
-        nameJa:
-          type: string
-          description: Japanese name of the series
-          example: バクマン。シリーズ
-        nameRomaji:
-          type: string
-          description: Romaji name of the series
-          example: Bakuman. Series
-        nameEn:
-          type: string
-          description: English name of the series
-          example: Bakuman Series
-    SeriesListResponse:
-      type: object
-      required:
-        - series
-        - pagination
-      properties:
-        series:
-          type: array
-          items:
-            $ref: '#/components/schemas/Series'
-        pagination:
-          $ref: '#/components/schemas/CursorPagination'
-    SeriesWithMedia:
-      type: object
-      description: Series with ordered media entries
-      required:
-        - id
-        - nameJa
-        - nameRomaji
-        - nameEn
-        - media
-      properties:
-        id:
-          type: integer
-          description: Series ID
-          example: 1
-        nameJa:
-          type: string
-          description: Japanese name of the series
-          example: バクマン。シリーズ
-        nameRomaji:
-          type: string
-          description: Romaji name of the series
-          example: Bakuman. Series
-        nameEn:
-          type: string
-          description: English name of the series
-          example: Bakuman Series
-        media:
-          type: array
-          description: All media in the series, sorted by position
-          items:
-            type: object
-            properties:
-              position:
-                type: integer
-                description: Position in the series (1-indexed)
-                example: 1
-              media:
-                $ref: '#/components/schemas/Media'
-    Character:
-      type: object
-      description: Anime character
-      required:
-        - id
-        - nameJa
-        - nameEn
-        - imageUrl
-      properties:
-        id:
-          type: integer
-          description: AniList character ID
-          example: 14545
-        nameJa:
-          type: string
-          description: Japanese name of the character
-          example: 真城最高
-        nameEn:
-          type: string
-          description: English name of the character
-          example: Moritaka Mashiro
-        imageUrl:
-          type: string
-          format: uri
-          description: Character image URL
-          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
-    CharacterWithMedia:
-      description: Character with voice actor and all media appearances
-      allOf:
-        - $ref: '#/components/schemas/Character'
-        - type: object
-          required:
-            - seiyuu
-            - mediaAppearances
-          properties:
-            seiyuu:
-              $ref: '#/components/schemas/Seiyuu'
-            mediaAppearances:
-              type: array
-              description: All media this character appears in
-              items:
-                type: object
-                properties:
-                  media:
-                    $ref: '#/components/schemas/Media'
-                  role:
-                    type: string
-                    enum:
-                      - MAIN
-                      - SUPPORTING
-                      - BACKGROUND
-                    description: Character role in this media
-                    example: MAIN
-    SeiyuuWithRoles:
-      type: object
-      description: Seiyuu details with optional character appearances
-      required:
-        - id
-        - nameJa
-        - nameEn
-        - imageUrl
-        - characters
-      properties:
-        id:
-          type: integer
-          description: AniList staff ID
-          example: 95991
-        nameJa:
-          type: string
-          description: Japanese name of the voice actor
-          example: 阿部敦
-        nameEn:
-          type: string
-          description: English name of the voice actor
-          example: Atsushi Abe
-        imageUrl:
-          type: string
-          format: uri
-          description: Profile image URL
-          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
-        characters:
-          type: array
-          description: Characters voiced by this seiyuu with their media appearances
-          items:
-            allOf:
-              - $ref: '#/components/schemas/Character'
-              - type: object
-                required:
-                  - media
-                  - role
-                properties:
-                  media:
-                    $ref: '#/components/schemas/Media'
-                  role:
-                    type: string
-                    enum:
-                      - MAIN
-                      - SUPPORTING
-                      - BACKGROUND
-                    description: Character role in this media
-                    example: MAIN
     UserQuotaResponse:
       type: object
       required:
@@ -5741,7 +5880,7 @@ components:
           items:
             $ref: '#/components/schemas/Report'
         pagination:
-          $ref: '#/components/schemas/CursorPagination'
+          $ref: '#/components/schemas/OpaqueCursorPagination'
     UserReportTarget:
       oneOf:
         - $ref: '#/components/schemas/ReportTargetMedia'
@@ -5782,11 +5921,6 @@ components:
     UserPreferences:
       type: object
       properties:
-        labs:
-          type: object
-          additionalProperties:
-            type: boolean
-          description: Lab feature opt-in flags keyed by feature key
         mediaNameLanguage:
           type: string
           enum:
@@ -5872,7 +6006,6 @@ components:
                 type: string
               nameRomaji:
                 type: string
-          default: []
     ActivityType:
       type: string
       enum:
@@ -6008,26 +6141,27 @@ components:
       type: object
       required:
         - key
-        - name
-        - description
-        - enabled
-        - userEnabled
+        - active
+        - userControllable
       properties:
         key:
           type: string
-          description: Unique identifier for the lab feature
+          description: Unique identifier for the feature
         name:
           type: string
-          description: Human-readable feature name
+          description: Human-readable feature name (only present for labs)
         description:
           type: string
-          description: Description of what the feature does
-        enabled:
+          description: Description of what the feature does (only present for labs)
+        active:
           type: boolean
-          description: Whether the feature is globally available
-        userEnabled:
+          description: Whether this feature is currently active for the user
+        userControllable:
           type: boolean
-          description: Whether the user has opted in to this feature
+          description: Whether the user can toggle this feature (lab=true, flag=false)
+        userOptedIn:
+          type: boolean
+          description: Whether the user has opted in (only present for labs)
     CollectionListResponse:
       type: object
       description: Paginated collection list response
@@ -6040,7 +6174,7 @@ components:
           items:
             $ref: '#/components/schemas/Collection'
         pagination:
-          $ref: '#/components/schemas/CursorPagination'
+          $ref: '#/components/schemas/OpaqueCursorPagination'
     CollectionRequests:
       type: object
       description: Request body for creating a new collection
@@ -6118,7 +6252,7 @@ components:
           description: Total number of segments in the collection
           example: 42
         pagination:
-          $ref: '#/components/schemas/CursorPagination'
+          $ref: '#/components/schemas/OpaqueCursorPagination'
     ReindexRequest:
       type: object
       description: Request to reindex segments from the database into Elasticsearch
@@ -6220,7 +6354,7 @@ components:
           items:
             $ref: '#/components/schemas/AdminReport'
         pagination:
-          $ref: '#/components/schemas/CursorPagination'
+          $ref: '#/components/schemas/OpaqueCursorPagination'
     UpdateReportRequest:
       type: object
       properties:
@@ -6607,6 +6741,12 @@ components:
           examples:
             NotFound:
               $ref: '#/components/examples/NotFound'
+    SegmentInternalResponse:
+      description: Single segment response with internal fields
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SegmentInternal'
     EpisodeListResponse:
       description: Paginated list of episodes
       content:
@@ -6635,13 +6775,7 @@ components:
                   $ref: '#/components/schemas/Segment'
                 description: Array of segment objects
               pagination:
-                $ref: '#/components/schemas/CursorPagination'
-    SegmentInternalResponse:
-      description: Single segment response with internal fields
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/SegmentInternal'
+                $ref: '#/components/schemas/OpaqueCursorPagination'
     SegmentResponse:
       description: Single segment response
       content:

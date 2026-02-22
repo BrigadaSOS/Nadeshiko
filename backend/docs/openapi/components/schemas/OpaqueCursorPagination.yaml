@@ -1,0 +1,15 @@
+type: object
+description: Opaque cursor pagination metadata
+required:
+  - hasMore
+  - cursor
+properties:
+  hasMore:
+    type: boolean
+    description: Whether more results are available
+    example: true
+  cursor:
+    type: string
+    nullable: true
+    description: Opaque token for the next page (`null` when `hasMore` is `false`)
+    example: eyJraW5kIjoia2V5c2V0IiwiY3Vyc29yIjo4NDIxfQ

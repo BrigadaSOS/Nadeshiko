@@ -15,7 +15,6 @@ properties:
     enum: [EXACT, LOWER_BOUND]
     example: LOWER_BOUND
   cursor:
-    type: array
-    description: Cursor for fetching the next page (undefined when hasMore is false)
-    items:
-      type: number
+    type: string
+    nullable: true
+    description: Opaque cursor token for fetching the next page (`null` when hasMore is false)

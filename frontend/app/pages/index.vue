@@ -32,12 +32,16 @@ const {
   pending: isLoading,
   error,
   refresh,
-} = await useAsyncData('recentMedia', async () => {
-  const { data } = await sdk.listMedia({ query: { limit: 10, sort: 'RECENT' } });
-  return data?.media ?? null;
-}, {
-  default: () => null,
-});
+} = await useAsyncData(
+  'recentMedia',
+  async () => {
+    const { data } = await sdk.listMedia({ query: { limit: 10, sort: 'RECENT' } });
+    return data?.media ?? null;
+  },
+  {
+    default: () => null,
+  },
+);
 </script>
 
 <template>

@@ -55,4 +55,4 @@ properties:
     description: Total number of segments in the collection
     example: 42
   pagination:
-    $ref: "../CursorPagination.yaml"
+    $ref: "../OpaqueCursorPagination.yaml"

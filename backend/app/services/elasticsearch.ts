@@ -13,6 +13,7 @@ import { QuerySearchStatsRequest } from '@app/types/querySearchStatsRequest';
 import { QuerySurroundingSegmentsRequest } from '@app/types/querySurroundingSegmentsRequest';
 import { InvalidRequestError } from '@app/errors';
 import { Cache, createCacheNamespace } from '@lib/cache';
+import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 import type {
   PaginationInfoOutput,
@@ -555,7 +556,13 @@ const buildSearchMustQueries = (
       must.push({ match_all: {} });
     }
   } else if (searchTerm) {
-    const textQuery = buildTextSearchQuery(searchTerm, Boolean(q?.exactMatch), hasLengthConstraints, parserMode, excludeLanguages);
+    const textQuery = buildTextSearchQuery(
+      searchTerm,
+      Boolean(q?.exactMatch),
+      hasLengthConstraints,
+      parserMode,
+      excludeLanguages,
+    );
     must.push(textQuery);
   }
 
@@ -575,19 +582,24 @@ export const querySegments = async (
     throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
   }
 
-  const { must, isMatchAll, hasQuery } = buildSearchMustQueries(request, parserMode, request.filters.languages?.exclude);
+  const { must, isMatchAll, hasQuery } = buildSearchMustQueries(
+    request,
+    parserMode,
+    request.filters.languages?.exclude,
+  );
 
   const { filter, must_not } = buildCommonFilters(request.filters);
 
   const { sort, randomScoreQuery } = buildSortAndRandomScore(request, isMatchAll);
+  const searchAfter = decodeKeysetCursor<estypes.FieldValue[]>(request.cursor);
 
   // Validate cursor length matches expected sort field count
-  if (request.cursor && request.cursor.length > 0) {
+  if (searchAfter && searchAfter.length > 0) {
     const sortArray = Array.isArray(sort) ? sort : [sort];
     const expectedCursorLength = sortArray.length;
-    if (request.cursor.length !== expectedCursorLength) {
+    if (searchAfter.length !== expectedCursorLength) {
       throw new InvalidRequestError(
-        `Cursor length mismatch: expected ${expectedCursorLength} values but got ${request.cursor.length}. ` +
+        `Cursor length mismatch: expected ${expectedCursorLength} values but got ${searchAfter.length}. ` +
           `The cursor must match the current sort configuration.`,
       );
     }
@@ -635,7 +647,7 @@ export const querySegments = async (
         must_not,
       },
     },
-    search_after: request.cursor,
+    search_after: searchAfter,
   });
 
   const mediaInfo = Media.getMediaInfoMap();
@@ -817,11 +829,11 @@ const buildSearchResponse = (
 ): SearchResponseOutput => {
   const { segments, mediaMap } = buildSearchResultSegments(esResponse, mediaInfoResponse);
 
-  let cursor: number[] | undefined;
+  let cursor: string | undefined;
   if (esResponse.hits.hits.length >= 1) {
     const sortValue = esResponse.hits.hits[esResponse.hits.hits.length - 1]['sort'];
     if (sortValue) {
-      cursor = sortValue as number[];
+      cursor = encodeKeysetCursor(sortValue as estypes.FieldValue[]);
     }
   }
 
@@ -834,7 +846,7 @@ const buildSearchResponse = (
   } as SearchResponseOutput;
 };
 
-const buildPaginationInfo = (esResponse: estypes.SearchResponse, cursor?: number[]): PaginationInfoOutput => {
+const buildPaginationInfo = (esResponse: estypes.SearchResponse, cursor?: string): PaginationInfoOutput => {
   const totalHits = esResponse.hits.total;
   let estimatedTotalHits = 0;
   let estimatedTotalHitsRelation: 'EXACT' | 'LOWER_BOUND' = 'EXACT';
@@ -852,7 +864,7 @@ const buildPaginationInfo = (esResponse: estypes.SearchResponse, cursor?: number
     hasMore,
     estimatedTotalHits,
     estimatedTotalHitsRelation,
-    cursor: hasMore ? cursor : undefined,
+    cursor: hasMore ? cursor : null,
   };
 };
 

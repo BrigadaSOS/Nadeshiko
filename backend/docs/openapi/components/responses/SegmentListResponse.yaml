@@ -13,4 +13,4 @@ content:
             $ref: "../schemas/segment/Segment.yaml"
           description: Array of segment objects
         pagination:
-          $ref: "../schemas/CursorPagination.yaml"
+          $ref: "../schemas/OpaqueCursorPagination.yaml"

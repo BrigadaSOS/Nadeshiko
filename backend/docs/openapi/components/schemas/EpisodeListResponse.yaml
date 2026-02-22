@@ -9,4 +9,4 @@ properties:
       $ref: "./Episode.yaml"
     description: Array of episode objects
   pagination:
-    $ref: "./CursorPagination.yaml"
+    $ref: "./OpaqueCursorPagination.yaml"

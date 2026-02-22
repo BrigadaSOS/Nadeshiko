@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/autocomplete?query=steins&limit=10&category=ANIME
+  url: {{baseUrl}}/v1/media/autocomplete?query=steins&take=10&category=ANIME
   body: none
   auth: bearer
 }
 
 params:query {
   query: steins
-  limit: 10
+  take: 10
   category: ANIME
 }
 

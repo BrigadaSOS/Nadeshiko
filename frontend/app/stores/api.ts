@@ -75,7 +75,9 @@ export const apiStore = defineStore('api', {
       try {
         const [keysRaw, quotaRaw] = await Promise.all([
           $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []),
-          $fetch<Record<string, unknown>>('/v1/user/quota', { method: 'GET', credentials: 'include' }).catch(() => ({})),
+          $fetch<Record<string, unknown>>('/v1/user/quota', { method: 'GET', credentials: 'include' }).catch(
+            () => ({}),
+          ),
         ]);
 
         const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey);

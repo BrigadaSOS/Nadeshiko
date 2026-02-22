@@ -8,18 +8,15 @@ import { InsufficientPermissionsError } from '@app/errors';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { trackActivity } from '@app/services/activityService';
 import { ActivityType, UserActivity } from '@app/models/UserActivity';
-import { getAdminHealth } from '@app/controllers/adminHealthController';
-import { getAdminDashboard } from '@app/controllers/adminDashboardController';
+import { getAdminHealth, getAdminDashboard, triggerReindex } from '@app/controllers/adminController';
 import {
-  triggerReindex,
   listAdminQueueStats,
   getAdminQueue,
   retryAdminQueueFailed,
   listAdminQueueFailed,
   purgeAdminQueueFailed,
-} from '@app/controllers/adminController';
-import { impersonateUserForDevelopment, clearDevelopmentImpersonation } from '@app/controllers/devAuthController';
-import { isLocalEnvironment } from '@config/environment';
+} from '@app/controllers/queueController';
+import { impersonateAdminUser, clearAdminImpersonation } from '@app/controllers/devAuthController';
 import {
   listMedia,
   createMedia,
@@ -77,7 +74,7 @@ import {
   updateAdminReport,
 } from '@app/controllers/reportController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
-import { listUserLabs } from '@app/controllers/labsController';
+import { listUserLabs, enrollUserLab, unenrollUserLab } from '@app/controllers/labsController';
 import {
   listUserActivity,
   getUserActivityHeatmap,
@@ -173,6 +170,8 @@ const AdminRoutes = createAdminRouter({
   listAdminReviewAllowlist,
   createAdminReviewAllowlistEntry,
   deleteAdminReviewAllowlistEntry,
+  impersonateAdminUser,
+  clearAdminImpersonation,
 });
 
 const UserRoutes = createUserRouter({
@@ -187,6 +186,8 @@ const UserRoutes = createUserRouter({
   getUserActivityStats,
   exportUserData,
   listUserLabs,
+  enrollUserLab,
+  unenrollUserLab,
 });
 
 const apiKeyOnly = [requireApiKeyAuth, rateLimitApiQuota] as const;
@@ -206,10 +207,6 @@ const requireApiKeyOrSession = async (req: any, res: any, next: any) => {
   return requireSessionAuth(req, res, next);
 };
 
-if (isLocalEnvironment()) {
-  router.post('/v1/dev/auth/impersonate', impersonateUserForDevelopment);
-  router.post('/v1/dev/auth/impersonate/clear', clearDevelopmentImpersonation);
-}
 // /v1/user/quota supports both API key and session auth
 router.use('/v1/user/quota', requireApiKeyOrSession);
 router.use('/v1/user/quota', (req: any, _res: any, next: any) => {
@@ -224,6 +221,7 @@ router.use('/v1/user/quota', (req: any, _res: any, next: any) => {
 router.use('/v1/user', requireSessionAuth);
 
 router.use('/v1/search', ...searchAccess);
+router.use('/v1/admin/impersonation', requireSessionAuth);
 router.use('/v1/admin', async (req: any, res: any, next: any) => {
   const hasBearer = req.headers.authorization?.startsWith('Bearer ');
   if (hasBearer) {
@@ -252,7 +250,6 @@ router.get('/v1/media/*path', ...mediaReadPermission);
 router.post('/v1/media/*path', ...mediaAddPermission);
 router.patch('/v1/media/*path', ...mediaUpdatePermission);
 router.delete('/v1/media/*path', ...mediaRemovePermission);
-
 
 // Track activity (segment plays) — manual route outside OpenAPI-generated router
 router.post('/v1/user/activity', async (req: any, res: any, next: any) => {

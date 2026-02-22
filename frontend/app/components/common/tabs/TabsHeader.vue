@@ -8,10 +8,10 @@
   </template>
 
   <script setup>
-  defineProps({
-    showBorder: {
-      type: Boolean,
-      default: true,
-    },
-  });
-  </script>
+defineProps({
+  showBorder: {
+    type: Boolean,
+    default: true,
+  },
+});
+</script>

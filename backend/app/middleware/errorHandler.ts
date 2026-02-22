@@ -253,7 +253,9 @@ function createDuplicateKeyError(driverError: PgDriverError, requestId: string):
   }
 
   const resourceName = getResourceNameFromUniqueViolation(driverError);
-  const detail = resourceName ? `${resourceName} already exists` : 'A resource with this unique identifier already exists';
+  const detail = resourceName
+    ? `${resourceName} already exists`
+    : 'A resource with this unique identifier already exists';
 
   const duplicateError = new DuplicateKeyError(detail);
   duplicateError.instance = requestId;

@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media?limit=20&category=ANIME&query=steins&include=media
+  url: {{baseUrl}}/v1/media?take=20&category=ANIME&query=steins&include=media
   body: none
   auth: bearer
 }
 
 params:query {
-  limit: 20
+  take: 20
   cursor:
   category: ANIME
   query: steins

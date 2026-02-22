@@ -5,7 +5,13 @@ import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
 import { usePlayerStore } from '~/stores/player';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
-import type { SearchResponse, SearchStatsResponse, SearchFilters, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
+import type {
+  SearchResponse,
+  SearchStatsResponse,
+  SearchFilters,
+  ResolvedMediaStats,
+  ResolvedCategoryCount,
+} from '~/types/search';
 
 const { mediaName } = useMediaName();
 const { hiddenMediaExcludeFilter } = useHiddenMedia();
@@ -45,8 +51,9 @@ const episode = ref<number | null>(null);
 
 const categoryApiMapping = CATEGORY_API_MAPPING;
 
-const firstQueryValue = (value: LocationQueryValue | LocationQueryValue[] | undefined): LocationQueryValue | undefined =>
-  Array.isArray(value) ? value[0] : value;
+const firstQueryValue = (
+  value: LocationQueryValue | LocationQueryValue[] | undefined,
+): LocationQueryValue | undefined => (Array.isArray(value) ? value[0] : value);
 const getStringQueryValue = (value: LocationQueryValue | LocationQueryValue[] | undefined): string | null => {
   const normalized = firstQueryValue(value);
   if (normalized === undefined || normalized === null || normalized === '') {
@@ -63,8 +70,8 @@ const searchData = computed(() => {
     results: sentencePayload?.results || [],
     cursor: sentencePayload?.pagination?.cursor,
     pagination: sentencePayload?.pagination,
-    categories: statsPayload?.categories || [] as ResolvedCategoryCount[],
-    media: statsPayload?.media || [] as ResolvedMediaStats[],
+    categories: statsPayload?.categories || ([] as ResolvedCategoryCount[]),
+    media: statsPayload?.media || ([] as ResolvedMediaStats[]),
   };
 });
 
@@ -234,7 +241,10 @@ const fetchSentences = async () => {
         body: {
           query: query.value ? { search: query.value } : undefined,
           limit: 30,
-          sort: sort.value && sort.value !== 'NONE' ? { mode: sort.value as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' } : undefined,
+          sort:
+            sort.value && sort.value !== 'NONE'
+              ? { mode: sort.value as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
+              : undefined,
           cursor: cursor.value || undefined,
           filters,
           include: ['media'],

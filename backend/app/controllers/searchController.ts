@@ -25,7 +25,7 @@ export const search: Search = async ({ body }, respond, req) => {
           seed: body.sort.seed,
         }
       : undefined,
-    limit: body.limit,
+    limit: body.take,
     cursor: body.cursor,
     filters: {
       media: f?.media,

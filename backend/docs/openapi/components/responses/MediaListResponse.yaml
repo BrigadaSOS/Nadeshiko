@@ -8,4 +8,4 @@ properties:
     items:
       $ref: "../schemas/Media.yaml"
   pagination:
-    $ref: "../schemas/CursorPagination.yaml"
+    $ref: "../schemas/OpaqueCursorPagination.yaml"

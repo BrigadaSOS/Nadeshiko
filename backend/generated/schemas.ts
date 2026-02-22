@@ -17,25 +17,6 @@ export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', '
 
 export const s_Category = z.enum(['ANIME', 'JDRAMA']);
 
-export const s_Character = z.object({
-  id: z.coerce.number(),
-  nameJa: z.string(),
-  nameEn: z.string(),
-  imageUrl: z.string(),
-});
-
-export const s_CharacterInput = z.object({
-  id: z.coerce.number(),
-  nameJa: z.string(),
-  nameEn: z.string(),
-  imageUrl: z.string(),
-  role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']),
-  seiyuuId: z.coerce.number(),
-  seiyuuNameJa: z.string(),
-  seiyuuNameEn: z.string(),
-  seiyuuImageUrl: z.string(),
-});
-
 export const s_Collection = z.object({
   id: z.coerce.number(),
   name: z.string(),
@@ -52,8 +33,6 @@ export const s_CollectionRequests = z.object({
 });
 
 export const s_ContentRating = z.enum(['SAFE', 'SUGGESTIVE', 'QUESTIONABLE', 'EXPLICIT']);
-
-export const s_CursorPagination = z.object({ hasMore: PermissiveBoolean, cursor: z.coerce.number().nullable() });
 
 export const s_Episode = z.object({
   mediaId: z.coerce.number(),
@@ -185,11 +164,13 @@ export const s_MediaSearchStats = z.object({
   episodeHits: z.record(z.coerce.number()),
 });
 
+export const s_OpaqueCursorPagination = z.object({ hasMore: PermissiveBoolean, cursor: z.string().nullable() });
+
 export const s_PaginationInfo = z.object({
   hasMore: PermissiveBoolean.optional(),
   estimatedTotalHits: z.coerce.number().optional(),
   estimatedTotalHitsRelation: z.enum(['EXACT', 'LOWER_BOUND']).optional(),
-  cursor: z.array(z.coerce.number()).optional(),
+  cursor: z.string().nullable().optional(),
 });
 
 export const s_ReindexRequest = z.object({
@@ -283,13 +264,6 @@ export const s_RunReviewResponse = z.object({
   totalReports: z.coerce.number(),
 });
 
-export const s_Seiyuu = z.object({
-  id: z.coerce.number(),
-  nameJa: z.string(),
-  nameEn: z.string(),
-  imageUrl: z.string(),
-});
-
 export const s_Series = z.object({
   id: z.coerce.number(),
   nameJa: z.string(),
@@ -304,14 +278,14 @@ export const s_UpdateReportRequest = z.object({
 
 export const s_UserLabFeature = z.object({
   key: z.string(),
-  name: z.string(),
-  description: z.string(),
-  enabled: PermissiveBoolean,
-  userEnabled: PermissiveBoolean,
+  name: z.string().optional(),
+  description: z.string().optional(),
+  active: PermissiveBoolean,
+  userControllable: PermissiveBoolean,
+  userOptedIn: PermissiveBoolean.optional(),
 });
 
 export const s_UserPreferences = z.object({
-  labs: z.record(PermissiveBoolean).optional(),
   mediaNameLanguage: z.enum(['english', 'japanese', 'romaji']).optional(),
   contentRatingPreferences: z
     .object({
@@ -343,8 +317,7 @@ export const s_UserPreferences = z.object({
         nameRomaji: z.string().optional(),
       }),
     )
-    .optional()
-    .default([]),
+    .optional(),
 });
 
 export const s_UserQuotaResponse = z.object({
@@ -360,64 +333,29 @@ export const s_WordMatchMedia = z.object({ mediaId: z.coerce.number(), matchCoun
 
 export const s_CategoryCount = z.object({ category: s_Category.optional(), count: z.coerce.number().optional() });
 
-export const s_CollectionListResponse = z.object({
-  collections: z.array(s_Collection),
-  pagination: s_CursorPagination,
-});
-
-export const s_EpisodeListResponse = z.object({ episodes: z.array(s_Episode), pagination: s_CursorPagination });
-
-export const s_MediaCharacter = z.object({
+export const s_Character = z.object({
   id: z.coerce.number(),
+  externalIds: s_ExternalId,
   nameJa: z.string(),
   nameEn: z.string(),
   imageUrl: z.string(),
-  seiyuu: s_Seiyuu,
-  role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']),
 });
 
-export const s_MediaCreateRequest = z.object({
-  externalIds: s_ExternalId.optional(),
+export const s_CharacterInput = z.object({
+  externalIds: s_ExternalId,
   nameJa: z.string(),
-  nameRomaji: z.string(),
   nameEn: z.string(),
-  airingFormat: z.string(),
-  airingStatus: z.string(),
-  genres: z.array(z.string()),
-  storage: z.enum(['LOCAL', 'R2']).default('R2'),
-  startDate: z.string(),
-  endDate: z.string().optional(),
-  category: z.enum(['ANIME', 'JDRAMA']),
-  version: z.string(),
-  hashSalt: z.string(),
-  studio: z.string(),
-  seasonName: z.string(),
-  seasonYear: z.coerce.number(),
-  storageBasePath: z.string().optional(),
-  characters: z.array(s_CharacterInput).optional().default([]),
+  imageUrl: z.string(),
+  role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']),
+  seiyuu: z.object({ externalIds: s_ExternalId, nameJa: z.string(), nameEn: z.string(), imageUrl: z.string() }),
 });
 
-export const s_MediaUpdateRequest = z.object({
-  externalIds: s_ExternalId.optional(),
-  nameJa: z.string().optional(),
-  nameRomaji: z.string().optional(),
-  nameEn: z.string().optional(),
-  airingFormat: z.string().optional(),
-  airingStatus: z.string().optional(),
-  genres: z.array(z.string()).optional(),
-  storage: z.enum(['LOCAL', 'R2']).optional().default('R2'),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  category: z.enum(['ANIME', 'JDRAMA']).optional(),
-  version: z.string().optional(),
-  hashSalt: z.string().optional(),
-  studio: z.string().optional(),
-  seasonName: z.string().optional(),
-  seasonYear: z.coerce.number().optional(),
-  storageBasePath: z.string().optional(),
-  characters: z.array(s_CharacterInput).optional().default([]),
-  segmentCount: z.coerce.number().optional(),
+export const s_CollectionListResponse = z.object({
+  collections: z.array(s_Collection),
+  pagination: s_OpaqueCursorPagination,
 });
+
+export const s_EpisodeListResponse = z.object({ episodes: z.array(s_Episode), pagination: s_OpaqueCursorPagination });
 
 export const s_ReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetEpisode, s_ReportTargetSegment]);
 
@@ -510,7 +448,15 @@ export const s_SegmentUpdateRequest = z.object({
   hashedId: z.string().optional(),
 });
 
-export const s_SeriesListResponse = z.object({ series: z.array(s_Series), pagination: s_CursorPagination });
+export const s_Seiyuu = z.object({
+  id: z.coerce.number(),
+  externalIds: s_ExternalId,
+  nameJa: z.string(),
+  nameEn: z.string(),
+  imageUrl: z.string(),
+});
+
+export const s_SeriesListResponse = z.object({ series: z.array(s_Series), pagination: s_OpaqueCursorPagination });
 
 export const s_UserActivity = z.object({
   id: z.coerce.number(),
@@ -551,26 +497,56 @@ export const s_CreateReportRequest = z.object({
   description: z.string().max(1000).optional(),
 });
 
-export const s_Media = z.object({
+export const s_MediaCharacter = z.object({
   id: z.coerce.number(),
-  externalIds: s_ExternalId,
+  nameJa: z.string(),
+  nameEn: z.string(),
+  imageUrl: z.string(),
+  seiyuu: s_Seiyuu,
+  role: z.enum(['MAIN', 'SUPPORTING', 'BACKGROUND']),
+});
+
+export const s_MediaCreateRequest = z.object({
+  externalIds: s_ExternalId.optional(),
   nameJa: z.string(),
   nameRomaji: z.string(),
   nameEn: z.string(),
   airingFormat: z.string(),
   airingStatus: z.string(),
   genres: z.array(z.string()),
-  coverUrl: z.string(),
-  bannerUrl: z.string(),
+  storage: z.enum(['LOCAL', 'R2']).default('R2'),
   startDate: z.string(),
-  endDate: z.string().nullable().optional(),
-  category: s_Category,
-  segmentCount: z.coerce.number(),
-  episodeCount: z.coerce.number(),
+  endDate: z.string().optional(),
+  category: z.enum(['ANIME', 'JDRAMA']),
+  version: z.string(),
+  hashSalt: z.string(),
   studio: z.string(),
   seasonName: z.string(),
   seasonYear: z.coerce.number(),
-  characters: z.array(s_MediaCharacter).optional(),
+  storageBasePath: z.string().optional(),
+  characters: z.array(s_CharacterInput).optional().default([]),
+});
+
+export const s_MediaUpdateRequest = z.object({
+  externalIds: s_ExternalId.optional(),
+  nameJa: z.string().optional(),
+  nameRomaji: z.string().optional(),
+  nameEn: z.string().optional(),
+  airingFormat: z.string().optional(),
+  airingStatus: z.string().optional(),
+  genres: z.array(z.string()).optional(),
+  storage: z.enum(['LOCAL', 'R2']).optional().default('R2'),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  category: z.enum(['ANIME', 'JDRAMA']).optional(),
+  version: z.string().optional(),
+  hashSalt: z.string().optional(),
+  studio: z.string().optional(),
+  seasonName: z.string().optional(),
+  seasonYear: z.coerce.number().optional(),
+  storageBasePath: z.string().optional(),
+  characters: z.array(s_CharacterInput).optional().default([]),
+  segmentCount: z.coerce.number().optional(),
 });
 
 export const s_Report = z.object({
@@ -617,8 +593,8 @@ export const s_SearchRequest = z.object({
   query: z
     .object({ search: z.string().optional(), exactMatch: PermissiveBoolean.optional().default(false) })
     .optional(),
-  limit: z.coerce.number().optional().default(10),
-  cursor: z.array(z.coerce.number()).optional(),
+  take: z.coerce.number().optional().default(10),
+  cursor: z.string().optional(),
   sort: z
     .object({
       mode: z.enum(['ASC', 'DESC', 'NONE', 'TIME_ASC', 'TIME_DESC', 'RANDOM']).optional().default('NONE'),
@@ -649,6 +625,48 @@ export const s_SegmentInternal = s_Segment.merge(
 
 export const s_AdminReport = s_Report.merge(z.object({ reportCount: z.coerce.number(), reporterName: z.string() }));
 
+export const s_Media = z.object({
+  id: z.coerce.number(),
+  externalIds: s_ExternalId,
+  nameJa: z.string(),
+  nameRomaji: z.string(),
+  nameEn: z.string(),
+  airingFormat: z.string(),
+  airingStatus: z.string(),
+  genres: z.array(z.string()),
+  coverUrl: z.string(),
+  bannerUrl: z.string(),
+  startDate: z.string(),
+  endDate: z.string().nullable().optional(),
+  category: s_Category,
+  segmentCount: z.coerce.number(),
+  episodeCount: z.coerce.number(),
+  studio: z.string(),
+  seasonName: z.string(),
+  seasonYear: z.coerce.number(),
+  characters: z.array(s_MediaCharacter).optional(),
+});
+
+export const s_ReportListResponse = z.object({ reports: z.array(s_Report), pagination: s_OpaqueCursorPagination });
+
+export const s_UserExportResponse = z.object({
+  profile: z.object({
+    id: z.coerce.number(),
+    username: z.string(),
+    email: z.string(),
+    createdAt: z.string().datetime({ offset: true }),
+  }),
+  preferences: s_UserPreferences,
+  activity: z.array(s_UserActivity),
+  collections: z.array(s_UserExportCollection),
+  reports: z.array(s_Report),
+});
+
+export const s_AdminReportListResponse = z.object({
+  reports: z.array(s_AdminReport),
+  pagination: s_OpaqueCursorPagination,
+});
+
 export const s_CharacterWithMedia = s_Character.merge(
   z.object({
     seiyuu: s_Seiyuu,
@@ -672,14 +690,12 @@ export const s_CollectionWithSegments = z.object({
   ),
   includes: z.object({ media: z.record(s_Media).optional() }).optional(),
   totalCount: z.coerce.number(),
-  pagination: s_CursorPagination,
+  pagination: s_OpaqueCursorPagination,
 });
 
 export const s_MediaAutocompleteResponse = z.object({ media: z.array(s_Media) });
 
-export const s_MediaListResponse = z.object({ media: z.array(s_Media), pagination: s_CursorPagination });
-
-export const s_ReportListResponse = z.object({ reports: z.array(s_Report), pagination: s_CursorPagination });
+export const s_MediaListResponse = z.object({ media: z.array(s_Media), pagination: s_OpaqueCursorPagination });
 
 export const s_SearchMultipleResponse = z.object({
   results: z.array(s_WordMatch).optional(),
@@ -720,18 +736,3 @@ export const s_SeriesWithMedia = z.object({
   nameEn: z.string(),
   media: z.array(z.object({ position: z.coerce.number().optional(), media: s_Media.optional() })),
 });
-
-export const s_UserExportResponse = z.object({
-  profile: z.object({
-    id: z.coerce.number(),
-    username: z.string(),
-    email: z.string(),
-    createdAt: z.string().datetime({ offset: true }),
-  }),
-  preferences: s_UserPreferences,
-  activity: z.array(s_UserActivity),
-  collections: z.array(s_UserExportCollection),
-  reports: z.array(s_Report),
-});
-
-export const s_AdminReportListResponse = z.object({ reports: z.array(s_AdminReport), pagination: s_CursorPagination });

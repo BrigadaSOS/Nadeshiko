@@ -181,9 +181,24 @@ export function useSegmentConcatenation() {
 
           result.segment = {
             ...result.segment,
-            textJa: concatLangField(result.segment.textJa, nextSegment.segment.textJa, 'both', previousSegment.segment.textJa),
-            textEn: concatLangField(result.segment.textEn, nextSegment.segment.textEn, 'both', previousSegment.segment.textEn),
-            textEs: concatLangField(result.segment.textEs, nextSegment.segment.textEs, 'both', previousSegment.segment.textEs),
+            textJa: concatLangField(
+              result.segment.textJa,
+              nextSegment.segment.textJa,
+              'both',
+              previousSegment.segment.textJa,
+            ),
+            textEn: concatLangField(
+              result.segment.textEn,
+              nextSegment.segment.textEn,
+              'both',
+              previousSegment.segment.textEn,
+            ),
+            textEs: concatLangField(
+              result.segment.textEs,
+              nextSegment.segment.textEs,
+              'both',
+              previousSegment.segment.textEs,
+            ),
           };
         }
 

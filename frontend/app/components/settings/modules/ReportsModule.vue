@@ -196,7 +196,8 @@ const runCheck = async (checkName: string) => {
     useToastSuccess(`${checkName}: ${data?.totalReports ?? 0} findings`);
     await fetchReports();
     await fetchChecks();
-  } catch {} finally {
+  } catch {
+  } finally {
     runningChecks.value.delete(checkName);
   }
 };

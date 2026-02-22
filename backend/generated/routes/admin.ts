@@ -16,7 +16,6 @@ import { z } from 'zod/v3';
 import type {
   t_AdminReportListResponse,
   t_CreateAdminReviewAllowlistEntryRequestBodySchema,
-  t_CursorPagination,
   t_DeleteAdminReviewAllowlistEntryParamSchema,
   t_Error400,
   t_Error401,
@@ -27,10 +26,12 @@ import type {
   t_Error500,
   t_GetAdminQueueParamSchema,
   t_GetAdminReviewRunParamSchema,
+  t_ImpersonateAdminUserRequestBodySchema,
   t_ListAdminQueueFailedParamSchema,
   t_ListAdminReportsQuerySchema,
   t_ListAdminReviewAllowlistQuerySchema,
   t_ListAdminReviewRunsQuerySchema,
+  t_OpaqueCursorPagination,
   t_PurgeAdminQueueFailedParamSchema,
   t_ReindexResponse,
   t_Report,
@@ -50,7 +51,6 @@ import type { ListAdminReportsQueryOutput, ListAdminReviewAllowlistQueryOutput, 
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
-  s_CursorPagination,
   s_Error400,
   s_Error401,
   s_Error403,
@@ -58,6 +58,7 @@ import {
   s_Error409,
   s_Error429,
   s_Error500,
+  s_OpaqueCursorPagination,
   s_ReindexRequest,
   s_ReindexResponse,
   s_Report,
@@ -317,6 +318,49 @@ export type PurgeAdminQueueFailed = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type ImpersonateAdminUserResponder = {
+  with200(): ExpressRuntimeResponse<{
+    message: string;
+    user: {
+      email: string;
+      id: number;
+      username: string;
+    };
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ImpersonateAdminUser = (
+  params: Params<void, void, t_ImpersonateAdminUserRequestBodySchema, void>,
+  respond: ImpersonateAdminUserResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ClearAdminImpersonationResponder = {
+  with200(): ExpressRuntimeResponse<{
+    message: string;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ClearAdminImpersonation = (
+  params: Params<void, void, void, void>,
+  respond: ClearAdminImpersonationResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type ListAdminReportsResponder = {
   with200(): ExpressRuntimeResponse<t_AdminReportListResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -403,7 +447,7 @@ export type UpdateAdminReviewCheck = (
 
 export type ListAdminReviewRunsResponder = {
   with200(): ExpressRuntimeResponse<{
-    pagination: t_CursorPagination;
+    pagination: t_OpaqueCursorPagination;
     runs: t_ReviewCheckRun[];
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -500,6 +544,8 @@ export type AdminImplementation = {
   listAdminQueueFailed: ListAdminQueueFailed;
   retryAdminQueueFailed: RetryAdminQueueFailed;
   purgeAdminQueueFailed: PurgeAdminQueueFailed;
+  impersonateAdminUser: ImpersonateAdminUser;
+  clearAdminImpersonation: ClearAdminImpersonation;
   listAdminReports: ListAdminReports;
   updateAdminReport: UpdateAdminReport;
   runAdminReview: RunAdminReview;
@@ -1318,9 +1364,164 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
+  const impersonateAdminUserRequestBodySchema = z.object({ userId: z.coerce.number().min(1) });
+
+  const impersonateAdminUserResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          message: z.string(),
+          user: z.object({ id: z.coerce.number(), username: z.string(), email: z.string().email() }),
+        }),
+      ],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // impersonateAdminUser
+  router.post(`/v1/admin/impersonation`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(impersonateAdminUserRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            message: string;
+            user: {
+              email: string;
+              id: number;
+              username: string;
+            };
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.impersonateAdminUser(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(impersonateAdminUserResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const clearAdminImpersonationResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ message: z.string() })],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // clearAdminImpersonation
+  router.delete(`/v1/admin/impersonation`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            message: string;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.clearAdminImpersonation(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(clearAdminImpersonationResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
   const listAdminReportsQuerySchema = z.object({
-    cursor: z.coerce.number().optional(),
-    limit: z.coerce.number().max(100).optional().default(20),
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
     status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
     source: z.enum(['USER', 'AUTO']).optional(),
     'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
@@ -1689,13 +1890,13 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const listAdminReviewRunsQuerySchema = z.object({
     checkName: z.string().optional(),
-    cursor: z.coerce.number().optional(),
-    limit: z.coerce.number().max(100).optional().default(20),
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
   });
 
   const listAdminReviewRunsResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ runs: z.array(s_ReviewCheckRun), pagination: s_CursorPagination })],
+      ['200', z.object({ runs: z.array(s_ReviewCheckRun), pagination: s_OpaqueCursorPagination })],
       ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
@@ -1717,7 +1918,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            pagination: t_CursorPagination;
+            pagination: t_OpaqueCursorPagination;
             runs: t_ReviewCheckRun[];
           }>(200);
         },

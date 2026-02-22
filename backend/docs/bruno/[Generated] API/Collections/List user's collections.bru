@@ -1,11 +1,11 @@
 meta {
   name: List user's collections
   type: http
-  seq: 44
+  seq: 46
 }
 
 get {
-  url: {{baseUrl}}/v1/collections?visibility=private&page=1&limit=20
+  url: {{baseUrl}}/v1/collections?visibility=private&page=1&take=20
   body: none
   auth: none
 }
@@ -14,7 +14,7 @@ params:query {
   visibility: private
   cursor:
   page: 1
-  limit: 20
+  take: 20
 }
 
 settings {

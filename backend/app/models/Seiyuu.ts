@@ -1,11 +1,14 @@
-import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { Character } from './Character';
 
 @Entity('Seiyuu')
 export class Seiyuu extends BaseEntity {
-  @PrimaryColumn({ type: 'int' })
+  @PrimaryGeneratedColumn()
   id!: number;
+
+  @Column({ name: 'external_ids', type: 'jsonb', default: {} })
+  externalIds!: Record<string, string>;
 
   @Column({ name: 'name_japanese', type: 'varchar' })
   nameJapanese!: string;

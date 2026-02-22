@@ -1,0 +1,29 @@
+meta {
+  name: Start admin impersonation
+  type: http
+  seq: 64
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/impersonation
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "userId": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}
