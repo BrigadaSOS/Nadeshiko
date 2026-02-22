@@ -9,4 +9,4 @@ properties:
     items:
       $ref: "./Media.yaml"
   pagination:
-    $ref: "./CursorPagination.yaml"
+    $ref: "./OpaqueCursorPagination.yaml"

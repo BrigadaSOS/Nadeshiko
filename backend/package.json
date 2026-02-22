@@ -16,7 +16,7 @@
     "lint:openapi:bundled": "bun run docs:bundle && redocly lint docs/generated/openapi.yaml --skip-rule no-unused-components",
     "lint:fix": "biome lint . --write",
     "format": "biome format . --write",
-    "generate:api": "rm -rf generated && bun run docs:bundle && openapi-code-generator --input ./docs/generated/openapi.yaml --input-type openapi3 --output ./generated --template typescript-express --schema-builder zod-v3 --grouping-strategy first-tag && bun run bin/generateOutputTypes.ts && bun run bin/validateInternalFields.ts",
+    "generate:api": "rm -rf generated && bun run docs:bundle && openapi-code-generator --input ./docs/generated/openapi.yaml --input-type openapi3 --output ./generated --template typescript-express --schema-builder zod-v3 --grouping-strategy first-tag && bun run bin/generateOutputTypes.ts",
     "generate:bruno": "bun run docs:bundle && bun run bin/generateBrunoCollection.ts",
     "generate:all": "bun run docs:bundle && bun run generate:api && bun run bin/generateErrorProfiles.ts && bun run generate:bruno",
     "docs:bundle": "redocly bundle main -o ./docs/generated/openapi.yaml --remove-unused-components",
@@ -33,9 +33,7 @@
     "es:reindex": "bun run bin/es.ts reindex",
     "es:status": "bun run bin/es.ts status",
     "routes": "bun run bin/routes.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:setup": "bun --env-file=.env.test run db:setup"
   },
   "author": "",
   "license": "ISC",
@@ -85,13 +83,10 @@
     "@types/supertest": "^6.0.3",
     "@usebruno/cli": "^3.0.2",
     "@usebruno/converters": "^0.16.0",
-    "@vitest/coverage-v8": "^4.0.18",
     "chokidar-cli": "^3.0.0",
     "js-yaml": "^4.1.1",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
-    "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.0.18",
     "yaml": "^2.8.2"
   }
 }

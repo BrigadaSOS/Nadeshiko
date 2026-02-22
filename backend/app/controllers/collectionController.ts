@@ -57,19 +57,14 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
     whereClause.visibility = CollectionVisibility.PRIVATE;
   }
 
-  const limit = Math.min(query.limit || 20, 100);
-  const page = query.page || 1;
-  const offset = query.cursor ?? (page - 1) * limit;
-
-  const [collections, totalCount] = await Collection.findAndCount({
-    where: whereClause,
-    order: { createdAt: 'DESC' },
-    skip: offset,
-    take: limit,
+  const { items: collections, pagination } = await Collection.paginateWithOffset({
+    take: Math.min(query.take || 20, 100),
+    cursor: query.cursor,
+    find: {
+      where: whereClause,
+      order: { createdAt: 'DESC' },
+    },
   });
-
-  const hasMore = offset + collections.length < totalCount;
-  const nextCursor = hasMore ? offset + collections.length : null;
 
   // Get segment counts for all fetched collections in a single query
   const collectionIds = collections.map((c) => c.id);
@@ -90,39 +85,32 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
 
   return respond.with200().body({
     collections: collections.map((c) => toCollectionDTO(c, countMap.get(c.id) ?? 0)),
-    pagination: {
-      hasMore,
-      cursor: nextCursor,
-    },
+    pagination,
   });
 };
 
 export const getCollection: GetCollection = async ({ params, query }, respond) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
 
-  const limit = Math.min(query.limit || 20, 100);
-  const page = query.page || 1;
-  const offset = query.cursor ?? (page - 1) * limit;
-
-  const [segmentItems, totalCount] = await CollectionSegment.findAndCount({
-    where: { collectionId: collection.id },
-    order: { position: 'ASC' },
-    skip: offset,
-    take: limit,
+  const {
+    items: segmentItems,
+    totalCount,
+    pagination,
+  } = await CollectionSegment.paginateWithOffset({
+    take: Math.min(query.take || 20, 100),
+    cursor: query.cursor,
+    findAndCount: {
+      where: { collectionId: collection.id },
+      order: { position: 'ASC' },
+    },
   });
-
-  const hasMore = offset + segmentItems.length < totalCount;
-  const nextCursor = hasMore ? offset + segmentItems.length : null;
 
   if (segmentItems.length === 0) {
     return respond.with200().body({
       ...toCollectionDTO(collection),
       segments: [],
       totalCount,
-      pagination: {
-        hasMore,
-        cursor: nextCursor,
-      },
+      pagination,
     });
   }
 
@@ -148,10 +136,7 @@ export const getCollection: GetCollection = async ({ params, query }, respond) =
     segments,
     includes,
     totalCount,
-    pagination: {
-      hasMore,
-      cursor: nextCursor,
-    },
+    pagination,
   });
 };
 
@@ -260,26 +245,25 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
 export const searchCollectionSegments: SearchCollectionSegments = async ({ params, query }, respond) => {
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
 
-  const limit = Math.min(query.limit || 20, 100);
-  const offset = query.cursor ?? 0;
-
-  const [segmentItems, totalCount] = await CollectionSegment.findAndCount({
-    where: { collectionId: collection.id },
-    order: { position: 'ASC' },
-    skip: offset,
-    take: limit,
+  const {
+    items: segmentItems,
+    totalCount,
+    pagination,
+  } = await CollectionSegment.paginateWithOffset({
+    take: Math.min(query.take || 20, 100),
+    cursor: query.cursor,
+    findAndCount: {
+      where: { collectionId: collection.id },
+      order: { position: 'ASC' },
+    },
   });
-
-  const hasMore = offset + segmentItems.length < totalCount;
-  const nextCursor = hasMore ? offset + segmentItems.length : null;
 
   if (segmentItems.length === 0) {
     return respond.with200().body({
       segments: [],
       includes: { media: {} },
       pagination: {
-        hasMore,
-        cursor: nextCursor != null ? [nextCursor] : undefined,
+        ...pagination,
         estimatedTotalHits: totalCount,
         estimatedTotalHitsRelation: 'EXACT' as const,
       },
@@ -299,8 +283,7 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
     segments,
     includes,
     pagination: {
-      hasMore,
-      cursor: nextCursor != null ? [nextCursor] : undefined,
+      ...pagination,
       estimatedTotalHits: totalCount,
       estimatedTotalHitsRelation: 'EXACT' as const,
     },

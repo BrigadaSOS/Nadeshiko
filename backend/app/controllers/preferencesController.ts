@@ -1,46 +1,22 @@
 import type { GetUserPreferences, UpdateUserPreferences } from 'generated/routes/user';
+import { assertUser } from '@app/middleware/authentication';
 import { User } from '@app/models/User';
-import { AuthCredentialsInvalidError } from '@app/errors';
+import { deepMerge } from '@lib/utils/deepMerge';
 
 export const getUserPreferences: GetUserPreferences = async (_params, respond, req) => {
-  const user = req.user;
-  if (!user) {
-    throw new AuthCredentialsInvalidError('Invalid session user.');
-  }
+  const user = assertUser(req);
 
-  return respond.with200().body(user.preferences || {});
+  return respond.with200().body(user.preferences);
 };
 
 export const updateUserPreferences: UpdateUserPreferences = async ({ body }, respond, req) => {
-  const user = req.user;
-  if (!user) {
-    throw new AuthCredentialsInvalidError('Invalid session user.');
-  }
+  const user = assertUser(req);
 
-  const existing = user.preferences || {};
-  const updated = deepMerge(existing, body);
+  const existing = user.preferences as Record<string, unknown>;
+  const updated = deepMerge(existing, body as Record<string, unknown>);
 
   await User.update({ id: user.id }, { preferences: updated });
-  user.preferences = updated;
+  user.preferences = updated as typeof user.preferences;
 
   return respond.with200().body(updated);
 };
-
-function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  const result = { ...target };
-  for (const key of Object.keys(source)) {
-    if (
-      source[key] !== null &&
-      typeof source[key] === 'object' &&
-      !Array.isArray(source[key]) &&
-      typeof result[key] === 'object' &&
-      result[key] !== null &&
-      !Array.isArray(result[key])
-    ) {
-      result[key] = deepMerge(result[key], source[key]);
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
-}

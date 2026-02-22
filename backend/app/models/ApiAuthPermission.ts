@@ -1,4 +1,5 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, BaseEntity } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { BaseEntity } from './base.entity';
 import { ApiPermission } from './ApiPermission';
 import type { ApiAuth } from './ApiAuth';
 

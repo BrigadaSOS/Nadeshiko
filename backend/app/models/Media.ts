@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { ResponseSchemas, Internal } from '@lib/decorators';
 import type { Episode } from './Episode';
 import { MediaCharacter } from './MediaCharacter';
 import { MediaExternalId } from './MediaExternalId';
@@ -32,7 +31,6 @@ interface MediaRelationsOptions {
 }
 
 @Entity('Media')
-@ResponseSchemas('Media')
 export class Media extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id!: number;
@@ -55,7 +53,6 @@ export class Media extends BaseEntity {
   @Column({ type: 'text', array: true })
   genres!: string[];
 
-  @Internal()
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;
 
@@ -85,15 +82,12 @@ export class Media extends BaseEntity {
   @Column({ name: 'num_segments', type: 'int', default: 0 })
   segmentCount!: number;
 
-  @Internal()
   @Column({ type: 'varchar' })
   version!: string;
 
-  @Internal()
   @Column({ name: 'hash_salt', type: 'varchar', nullable: true })
   hashSalt?: string;
 
-  @Internal()
   @Column({ name: 'storage_base_path', type: 'varchar' })
   storageBasePath!: string;
 

@@ -13,6 +13,7 @@ declare module 'express-serve-static-core' {
         permissions: ApiPermission[];
       };
     };
+    // Set by rateLimitApiQuota middleware after auth
     accountQuota?: {
       periodYyyymm: number;
       quotaLimit: number;

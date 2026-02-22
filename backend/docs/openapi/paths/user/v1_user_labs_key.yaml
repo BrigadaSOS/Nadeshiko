@@ -1,0 +1,58 @@
+post:
+  tags:
+    - User
+  x-internal: true
+  operationId: enrollUserLab
+  summary: Enroll in a lab feature
+  description: |
+    Opts the authenticated user into a lab feature. The user must be eligible
+    for the lab (correct role, in allowlist or rollout percentage).
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: key
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Lab feature key
+  responses:
+    "204":
+      description: Enrolled successfully
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - User
+  x-internal: true
+  operationId: unenrollUserLab
+  summary: Unenroll from a lab feature
+  description: |
+    Opts the authenticated user out of a lab feature.
+
+    **Permissions:** Session authentication (cookie-based).
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: key
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Lab feature key
+  responses:
+    "204":
+      description: Unenrolled successfully
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

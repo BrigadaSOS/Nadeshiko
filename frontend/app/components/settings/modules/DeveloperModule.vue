@@ -55,9 +55,7 @@ const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer
     $fetch<Record<string, unknown>>('/v1/user/quota', { method: 'GET', credentials: 'include' }).catch(() => ({})),
   ]);
 
-  const keys = (Array.isArray(keysRaw) ? keysRaw : [])
-    .map(normalizeApiKey)
-    .filter((k) => k.isActive);
+  const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey).filter((k) => k.isActive);
   const q = asObject(quotaRaw);
   return {
     keys,

@@ -12,7 +12,7 @@ get:
   security:
     - apiKeyHeader: [READ_MEDIA]
   parameters:
-    - name: limit
+    - name: take
       in: query
       description: Number of results per page
       schema:
@@ -22,11 +22,9 @@ get:
         maximum: 40
     - name: cursor
       in: query
-      description: Pagination cursor offset
+      description: Opaque pagination cursor token
       schema:
-        type: integer
-        default: 0
-        minimum: 0
+        type: string
     - name: category
       in: query
       description: Filter by media category

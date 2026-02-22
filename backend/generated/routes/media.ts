@@ -24,7 +24,6 @@ import type {
   t_CreateSegmentParamSchema,
   t_CreateSegmentRequestBodySchema,
   t_CreateSeriesRequestBodySchema,
-  t_CursorPagination,
   t_DeleteEpisodeParamSchema,
   t_DeleteMediaParamSchema,
   t_DeleteSegmentParamSchema,
@@ -58,6 +57,7 @@ import type {
   t_Media,
   t_MediaAutocompleteResponse,
   t_MediaListResponse,
+  t_OpaqueCursorPagination,
   t_RemoveMediaFromSeriesParamSchema,
   t_Segment,
   t_SegmentContextResponse,
@@ -83,7 +83,6 @@ import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeU
 import {
   s_CharacterWithMedia,
   s_ContentRating,
-  s_CursorPagination,
   s_Episode,
   s_EpisodeCreateRequest,
   s_EpisodeListResponse,
@@ -102,6 +101,7 @@ import {
   s_MediaIncludeExpansion,
   s_MediaListResponse,
   s_MediaUpdateRequest,
+  s_OpaqueCursorPagination,
   s_Segment,
   s_SegmentContextResponse,
   s_SegmentCreateRequest,
@@ -160,245 +160,6 @@ export type AutocompleteMediaResponder = {
 export type AutocompleteMedia = (
   params: Params<void, AutocompleteMediaQueryOutput, void, void>,
   respond: AutocompleteMediaResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetMediaResponder = {
-  with200(): ExpressRuntimeResponse<t_Media>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetMedia = (
-  params: Params<t_GetMediaParamSchema, GetMediaQueryOutput, void, void>,
-  respond: GetMediaResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type UpdateMediaResponder = {
-  with200(): ExpressRuntimeResponse<t_Media>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type UpdateMedia = (
-  params: Params<t_UpdateMediaParamSchema, void, MediaUpdateRequestOutput, void>,
-  respond: UpdateMediaResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type DeleteMediaResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type DeleteMedia = (
-  params: Params<t_DeleteMediaParamSchema, void, void, void>,
-  respond: DeleteMediaResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListEpisodesResponder = {
-  with200(): ExpressRuntimeResponse<t_EpisodeListResponse>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListEpisodes = (
-  params: Params<t_ListEpisodesParamSchema, ListEpisodesQueryOutput, void, void>,
-  respond: ListEpisodesResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type CreateEpisodeResponder = {
-  with201(): ExpressRuntimeResponse<t_Episode>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with409(): ExpressRuntimeResponse<t_Error409>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type CreateEpisode = (
-  params: Params<t_CreateEpisodeParamSchema, void, EpisodeCreateRequestOutput, void>,
-  respond: CreateEpisodeResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetEpisodeResponder = {
-  with200(): ExpressRuntimeResponse<t_Episode>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetEpisode = (
-  params: Params<t_GetEpisodeParamSchema, void, void, void>,
-  respond: GetEpisodeResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type UpdateEpisodeResponder = {
-  with200(): ExpressRuntimeResponse<t_Episode>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type UpdateEpisode = (
-  params: Params<t_UpdateEpisodeParamSchema, void, EpisodeUpdateRequestOutput, void>,
-  respond: UpdateEpisodeResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type DeleteEpisodeResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type DeleteEpisode = (
-  params: Params<t_DeleteEpisodeParamSchema, void, void, void>,
-  respond: DeleteEpisodeResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListSegmentsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    pagination: t_CursorPagination;
-    segments: t_Segment[];
-  }>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListSegments = (
-  params: Params<t_ListSegmentsParamSchema, ListSegmentsQueryOutput, void, void>,
-  respond: ListSegmentsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type CreateSegmentResponder = {
-  with201(): ExpressRuntimeResponse<t_SegmentInternal>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with409(): ExpressRuntimeResponse<t_Error409>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type CreateSegment = (
-  params: Params<t_CreateSegmentParamSchema, void, SegmentCreateRequestOutput, void>,
-  respond: CreateSegmentResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetSegmentResponder = {
-  with200(): ExpressRuntimeResponse<t_Segment>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetSegment = (
-  params: Params<t_GetSegmentParamSchema, void, void, void>,
-  respond: GetSegmentResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type UpdateSegmentResponder = {
-  with200(): ExpressRuntimeResponse<t_SegmentInternal>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type UpdateSegment = (
-  params: Params<t_UpdateSegmentParamSchema, void, SegmentUpdateRequestOutput, void>,
-  respond: UpdateSegmentResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type DeleteSegmentResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type DeleteSegment = (
-  params: Params<t_DeleteSegmentParamSchema, void, void, void>,
-  respond: DeleteSegmentResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -636,23 +397,249 @@ export type GetSeiyuu = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type GetMediaResponder = {
+  with200(): ExpressRuntimeResponse<t_Media>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetMedia = (
+  params: Params<t_GetMediaParamSchema, GetMediaQueryOutput, void, void>,
+  respond: GetMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateMediaResponder = {
+  with200(): ExpressRuntimeResponse<t_Media>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UpdateMedia = (
+  params: Params<t_UpdateMediaParamSchema, void, MediaUpdateRequestOutput, void>,
+  respond: UpdateMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type DeleteMediaResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type DeleteMedia = (
+  params: Params<t_DeleteMediaParamSchema, void, void, void>,
+  respond: DeleteMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListEpisodesResponder = {
+  with200(): ExpressRuntimeResponse<t_EpisodeListResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListEpisodes = (
+  params: Params<t_ListEpisodesParamSchema, ListEpisodesQueryOutput, void, void>,
+  respond: ListEpisodesResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type CreateEpisodeResponder = {
+  with201(): ExpressRuntimeResponse<t_Episode>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type CreateEpisode = (
+  params: Params<t_CreateEpisodeParamSchema, void, EpisodeCreateRequestOutput, void>,
+  respond: CreateEpisodeResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetEpisodeResponder = {
+  with200(): ExpressRuntimeResponse<t_Episode>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetEpisode = (
+  params: Params<t_GetEpisodeParamSchema, void, void, void>,
+  respond: GetEpisodeResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateEpisodeResponder = {
+  with200(): ExpressRuntimeResponse<t_Episode>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UpdateEpisode = (
+  params: Params<t_UpdateEpisodeParamSchema, void, EpisodeUpdateRequestOutput, void>,
+  respond: UpdateEpisodeResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type DeleteEpisodeResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type DeleteEpisode = (
+  params: Params<t_DeleteEpisodeParamSchema, void, void, void>,
+  respond: DeleteEpisodeResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListSegmentsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    pagination: t_OpaqueCursorPagination;
+    segments: t_Segment[];
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListSegments = (
+  params: Params<t_ListSegmentsParamSchema, ListSegmentsQueryOutput, void, void>,
+  respond: ListSegmentsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type CreateSegmentResponder = {
+  with201(): ExpressRuntimeResponse<t_SegmentInternal>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with409(): ExpressRuntimeResponse<t_Error409>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type CreateSegment = (
+  params: Params<t_CreateSegmentParamSchema, void, SegmentCreateRequestOutput, void>,
+  respond: CreateSegmentResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetSegmentResponder = {
+  with200(): ExpressRuntimeResponse<t_Segment>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetSegment = (
+  params: Params<t_GetSegmentParamSchema, void, void, void>,
+  respond: GetSegmentResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateSegmentResponder = {
+  with200(): ExpressRuntimeResponse<t_SegmentInternal>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UpdateSegment = (
+  params: Params<t_UpdateSegmentParamSchema, void, SegmentUpdateRequestOutput, void>,
+  respond: UpdateSegmentResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type DeleteSegmentResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type DeleteSegment = (
+  params: Params<t_DeleteSegmentParamSchema, void, void, void>,
+  respond: DeleteSegmentResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type MediaImplementation = {
   listMedia: ListMedia;
   createMedia: CreateMedia;
   autocompleteMedia: AutocompleteMedia;
-  getMedia: GetMedia;
-  updateMedia: UpdateMedia;
-  deleteMedia: DeleteMedia;
-  listEpisodes: ListEpisodes;
-  createEpisode: CreateEpisode;
-  getEpisode: GetEpisode;
-  updateEpisode: UpdateEpisode;
-  deleteEpisode: DeleteEpisode;
-  listSegments: ListSegments;
-  createSegment: CreateSegment;
-  getSegment: GetSegment;
-  updateSegment: UpdateSegment;
-  deleteSegment: DeleteSegment;
   getSegmentByUuid: GetSegmentByUuid;
   updateSegmentByUuid: UpdateSegmentByUuid;
   getSegmentContext: GetSegmentContext;
@@ -666,14 +653,27 @@ export type MediaImplementation = {
   removeMediaFromSeries: RemoveMediaFromSeries;
   getCharacter: GetCharacter;
   getSeiyuu: GetSeiyuu;
+  getMedia: GetMedia;
+  updateMedia: UpdateMedia;
+  deleteMedia: DeleteMedia;
+  listEpisodes: ListEpisodes;
+  createEpisode: CreateEpisode;
+  getEpisode: GetEpisode;
+  updateEpisode: UpdateEpisode;
+  deleteEpisode: DeleteEpisode;
+  listSegments: ListSegments;
+  createSegment: CreateSegment;
+  getSegment: GetSegment;
+  updateSegment: UpdateSegment;
+  deleteSegment: DeleteSegment;
 };
 
 export function createMediaRouter(implementation: MediaImplementation): Router {
   const router = Router();
 
   const listMediaQuerySchema = z.object({
-    limit: z.coerce.number().min(1).max(40).optional().default(20),
-    cursor: z.coerce.number().min(0).optional().default(0),
+    take: z.coerce.number().min(1).max(40).optional().default(20),
+    cursor: z.string().optional(),
     category: z.enum(['ANIME', 'JDRAMA']).optional(),
     query: z.string().optional(),
     include: z
@@ -831,7 +831,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
   const autocompleteMediaQuerySchema = z.object({
     query: z.string().min(1),
-    limit: z.coerce.number().min(1).max(25).optional().default(10),
+    take: z.coerce.number().min(1).max(25).optional().default(10),
     category: z.enum(['ANIME', 'JDRAMA']).optional(),
   });
 
@@ -903,1055 +903,6 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       next(error);
     }
   });
-
-  const getMediaParamSchema = z.object({ id: z.coerce.number() });
-
-  const getMediaQuerySchema = z.object({
-    include: z
-      .preprocess(
-        (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
-        z.array(s_MediaIncludeExpansion),
-      )
-      .optional()
-      .default(['media']),
-  });
-
-  const getMediaResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_Media],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getMedia
-  router.get(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(getMediaParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(getMediaQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_Media>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const updateMediaParamSchema = z.object({ id: z.coerce.number() });
-
-  const updateMediaRequestBodySchema = s_MediaUpdateRequest;
-
-  const updateMediaResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_Media],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // updateMedia
-  router.patch(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(updateMediaParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: parseRequestInput(updateMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_Media>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.updateMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const deleteMediaParamSchema = z.object({ id: z.coerce.number() });
-
-  const deleteMediaResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // deleteMedia
-  router.delete(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(deleteMediaParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with204() {
-          return new ExpressRuntimeResponse<void>(204);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.deleteMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const listEpisodesParamSchema = z.object({ mediaId: z.coerce.number() });
-
-  const listEpisodesQuerySchema = z.object({
-    limit: z.coerce.number().min(1).max(100).optional().default(50),
-    cursor: z.coerce.number().optional().default(0),
-  });
-
-  const listEpisodesResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_EpisodeListResponse],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listEpisodes
-  router.get(`/v1/media/:mediaId/episodes`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(listEpisodesParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(listEpisodesQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_EpisodeListResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.listEpisodes(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listEpisodesResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const createEpisodeParamSchema = z.object({ mediaId: z.coerce.number() });
-
-  const createEpisodeRequestBodySchema = s_EpisodeCreateRequest;
-
-  const createEpisodeResponseBodyValidator = responseValidationFactory(
-    [
-      ['201', s_Episode],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['409', s_Error409],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // createEpisode
-  router.post(`/v1/media/:mediaId/episodes`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(createEpisodeParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: parseRequestInput(createEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
-
-      const responder = {
-        with201() {
-          return new ExpressRuntimeResponse<t_Episode>(201);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with409() {
-          return new ExpressRuntimeResponse<t_Error409>(409);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.createEpisode(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(createEpisodeResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
-
-  const getEpisodeResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_Episode],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getEpisode
-  router.get(`/v1/media/:mediaId/episodes/:episodeNumber`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(getEpisodeParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_Episode>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getEpisode(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getEpisodeResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const updateEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
-
-  const updateEpisodeRequestBodySchema = s_EpisodeUpdateRequest;
-
-  const updateEpisodeResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_Episode],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // updateEpisode
-  router.patch(
-    `/v1/media/:mediaId/episodes/:episodeNumber`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(updateEpisodeParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: parseRequestInput(updateEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
-          headers: undefined,
-        };
-
-        const responder = {
-          with200() {
-            return new ExpressRuntimeResponse<t_Episode>(200);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
-
-        const response = await implementation.updateEpisode(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(updateEpisodeResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  const deleteEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
-
-  const deleteEpisodeResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // deleteEpisode
-  router.delete(
-    `/v1/media/:mediaId/episodes/:episodeNumber`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(deleteEpisodeParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: undefined,
-          headers: undefined,
-        };
-
-        const responder = {
-          with204() {
-            return new ExpressRuntimeResponse<void>(204);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
-
-        const response = await implementation.deleteEpisode(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(deleteEpisodeResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  const listSegmentsParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
-
-  const listSegmentsQuerySchema = z.object({
-    limit: z.coerce.number().min(1).max(100).optional().default(50),
-    cursor: z.coerce.number().optional().default(0),
-  });
-
-  const listSegmentsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ segments: z.array(s_Segment), pagination: s_CursorPagination })],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listSegments
-  router.get(
-    `/v1/media/:mediaId/episodes/:episodeNumber/segments`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(listSegmentsParamSchema, req.params, RequestInputType.RouteParam),
-          query: parseRequestInput(listSegmentsQuerySchema, req.query, RequestInputType.QueryString),
-          body: undefined,
-          headers: undefined,
-        };
-
-        const responder = {
-          with200() {
-            return new ExpressRuntimeResponse<{
-              pagination: t_CursorPagination;
-              segments: t_Segment[];
-            }>(200);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
-
-        const response = await implementation.listSegments(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(listSegmentsResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  const createSegmentParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
-
-  const createSegmentRequestBodySchema = s_SegmentCreateRequest;
-
-  const createSegmentResponseBodyValidator = responseValidationFactory(
-    [
-      ['201', s_SegmentInternal],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['409', s_Error409],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // createSegment
-  router.post(
-    `/v1/media/:mediaId/episodes/:episodeNumber/segments`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(createSegmentParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: parseRequestInput(createSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
-          headers: undefined,
-        };
-
-        const responder = {
-          with201() {
-            return new ExpressRuntimeResponse<t_SegmentInternal>(201);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with409() {
-            return new ExpressRuntimeResponse<t_Error409>(409);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
-
-        const response = await implementation.createSegment(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(createSegmentResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  const getSegmentParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-    id: z.coerce.number(),
-  });
-
-  const getSegmentResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_Segment],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getSegment
-  router.get(
-    `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(getSegmentParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: undefined,
-          headers: undefined,
-        };
-
-        const responder = {
-          with200() {
-            return new ExpressRuntimeResponse<t_Segment>(200);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
-
-        const response = await implementation.getSegment(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(getSegmentResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  const updateSegmentParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-    id: z.coerce.number(),
-  });
-
-  const updateSegmentRequestBodySchema = s_SegmentUpdateRequest;
-
-  const updateSegmentResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_SegmentInternal],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // updateSegment
-  router.patch(
-    `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(updateSegmentParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: parseRequestInput(updateSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
-          headers: undefined,
-        };
-
-        const responder = {
-          with200() {
-            return new ExpressRuntimeResponse<t_SegmentInternal>(200);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
-
-        const response = await implementation.updateSegment(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(updateSegmentResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  const deleteSegmentParamSchema = z.object({
-    mediaId: z.coerce.number(),
-    episodeNumber: z.coerce.number(),
-    id: z.coerce.number(),
-  });
-
-  const deleteSegmentResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // deleteSegment
-  router.delete(
-    `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(deleteSegmentParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: undefined,
-          headers: undefined,
-        };
-
-        const responder = {
-          with204() {
-            return new ExpressRuntimeResponse<void>(204);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
-
-        const response = await implementation.deleteSegment(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(deleteSegmentResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
 
   const getSegmentByUuidParamSchema = z.object({ uuid: z.string() });
 
@@ -2108,7 +1059,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   const getSegmentContextParamSchema = z.object({ uuid: z.string() });
 
   const getSegmentContextQuerySchema = z.object({
-    limit: z.coerce.number().min(1).max(30).optional().default(3),
+    take: z.coerce.number().min(1).max(30).optional().default(3),
     contentRating: z
       .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(s_ContentRating))
       .optional(),
@@ -2192,8 +1143,8 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   });
 
   const listSeriesQuerySchema = z.object({
-    limit: z.coerce.number().min(1).max(100).optional().default(20),
-    cursor: z.coerce.number().min(0).optional().default(0),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+    cursor: z.string().optional(),
     query: z.string().optional(),
   });
 
@@ -2956,6 +1907,1055 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       next(error);
     }
   });
+
+  const getMediaParamSchema = z.object({ id: z.coerce.number() });
+
+  const getMediaQuerySchema = z.object({
+    include: z
+      .preprocess(
+        (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
+        z.array(s_MediaIncludeExpansion),
+      )
+      .optional()
+      .default(['media']),
+  });
+
+  const getMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_Media],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getMedia
+  router.get(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(getMediaParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(getMediaQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_Media>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const updateMediaParamSchema = z.object({ id: z.coerce.number() });
+
+  const updateMediaRequestBodySchema = s_MediaUpdateRequest;
+
+  const updateMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_Media],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // updateMedia
+  router.patch(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(updateMediaParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(updateMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_Media>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.updateMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(updateMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const deleteMediaParamSchema = z.object({ id: z.coerce.number() });
+
+  const deleteMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // deleteMedia
+  router.delete(`/v1/media/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(deleteMediaParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.deleteMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(deleteMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listEpisodesParamSchema = z.object({ mediaId: z.coerce.number() });
+
+  const listEpisodesQuerySchema = z.object({
+    take: z.coerce.number().min(1).max(100).optional().default(50),
+    cursor: z.string().optional(),
+  });
+
+  const listEpisodesResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_EpisodeListResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // listEpisodes
+  router.get(`/v1/media/:mediaId/episodes`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(listEpisodesParamSchema, req.params, RequestInputType.RouteParam),
+        query: parseRequestInput(listEpisodesQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_EpisodeListResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.listEpisodes(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(listEpisodesResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const createEpisodeParamSchema = z.object({ mediaId: z.coerce.number() });
+
+  const createEpisodeRequestBodySchema = s_EpisodeCreateRequest;
+
+  const createEpisodeResponseBodyValidator = responseValidationFactory(
+    [
+      ['201', s_Episode],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // createEpisode
+  router.post(`/v1/media/:mediaId/episodes`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(createEpisodeParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(createEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with201() {
+          return new ExpressRuntimeResponse<t_Episode>(201);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with409() {
+          return new ExpressRuntimeResponse<t_Error409>(409);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.createEpisode(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(createEpisodeResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+
+  const getEpisodeResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_Episode],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getEpisode
+  router.get(`/v1/media/:mediaId/episodes/:episodeNumber`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(getEpisodeParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_Episode>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getEpisode(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getEpisodeResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const updateEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+
+  const updateEpisodeRequestBodySchema = s_EpisodeUpdateRequest;
+
+  const updateEpisodeResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_Episode],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // updateEpisode
+  router.patch(
+    `/v1/media/:mediaId/episodes/:episodeNumber`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(updateEpisodeParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: parseRequestInput(updateEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
+          headers: undefined,
+        };
+
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_Episode>(200);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.updateEpisode(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(updateEpisodeResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const deleteEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+
+  const deleteEpisodeResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // deleteEpisode
+  router.delete(
+    `/v1/media/:mediaId/episodes/:episodeNumber`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(deleteEpisodeParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: undefined,
+          headers: undefined,
+        };
+
+        const responder = {
+          with204() {
+            return new ExpressRuntimeResponse<void>(204);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.deleteEpisode(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(deleteEpisodeResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const listSegmentsParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+
+  const listSegmentsQuerySchema = z.object({
+    take: z.coerce.number().min(1).max(100).optional().default(50),
+    cursor: z.string().optional(),
+  });
+
+  const listSegmentsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ segments: z.array(s_Segment), pagination: s_OpaqueCursorPagination })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // listSegments
+  router.get(
+    `/v1/media/:mediaId/episodes/:episodeNumber/segments`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(listSegmentsParamSchema, req.params, RequestInputType.RouteParam),
+          query: parseRequestInput(listSegmentsQuerySchema, req.query, RequestInputType.QueryString),
+          body: undefined,
+          headers: undefined,
+        };
+
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<{
+              pagination: t_OpaqueCursorPagination;
+              segments: t_Segment[];
+            }>(200);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.listSegments(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(listSegmentsResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const createSegmentParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+
+  const createSegmentRequestBodySchema = s_SegmentCreateRequest;
+
+  const createSegmentResponseBodyValidator = responseValidationFactory(
+    [
+      ['201', s_SegmentInternal],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['409', s_Error409],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // createSegment
+  router.post(
+    `/v1/media/:mediaId/episodes/:episodeNumber/segments`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(createSegmentParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: parseRequestInput(createSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+          headers: undefined,
+        };
+
+        const responder = {
+          with201() {
+            return new ExpressRuntimeResponse<t_SegmentInternal>(201);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with409() {
+            return new ExpressRuntimeResponse<t_Error409>(409);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.createSegment(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(createSegmentResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const getSegmentParamSchema = z.object({
+    mediaId: z.coerce.number(),
+    episodeNumber: z.coerce.number(),
+    id: z.coerce.number(),
+  });
+
+  const getSegmentResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_Segment],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getSegment
+  router.get(
+    `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(getSegmentParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: undefined,
+          headers: undefined,
+        };
+
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_Segment>(200);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.getSegment(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(getSegmentResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const updateSegmentParamSchema = z.object({
+    mediaId: z.coerce.number(),
+    episodeNumber: z.coerce.number(),
+    id: z.coerce.number(),
+  });
+
+  const updateSegmentRequestBodySchema = s_SegmentUpdateRequest;
+
+  const updateSegmentResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SegmentInternal],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // updateSegment
+  router.patch(
+    `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(updateSegmentParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: parseRequestInput(updateSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+          headers: undefined,
+        };
+
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_SegmentInternal>(200);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.updateSegment(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(updateSegmentResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const deleteSegmentParamSchema = z.object({
+    mediaId: z.coerce.number(),
+    episodeNumber: z.coerce.number(),
+    id: z.coerce.number(),
+  });
+
+  const deleteSegmentResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // deleteSegment
+  router.delete(
+    `/v1/media/:mediaId/episodes/:episodeNumber/segments/:id`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(deleteSegmentParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: undefined,
+          headers: undefined,
+        };
+
+        const responder = {
+          with204() {
+            return new ExpressRuntimeResponse<void>(204);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.deleteSegment(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(deleteSegmentResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   return router;
 }

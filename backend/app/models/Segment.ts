@@ -1,6 +1,5 @@
 import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { ResponseSchemas, Internal } from '@lib/decorators';
 import { Episode } from './Episode';
 export enum SegmentStatus {
   DELETED = 'DELETED',
@@ -30,7 +29,6 @@ export enum SegmentStorage {
 
 @Entity('Segment')
 @Index(['uuid'], { unique: true })
-@ResponseSchemas('Segment')
 export class Segment extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
   id!: number;
@@ -72,19 +70,15 @@ export class Segment extends BaseEntity {
   @Column({ name: 'content_rating', type: 'enum', enum: ContentRating, default: ContentRating.SAFE })
   contentRating!: ContentRating;
 
-  @Internal()
   @Column({ name: 'rating_analysis', type: 'jsonb', nullable: true })
   ratingAnalysis?: RatingAnalysisData | null;
 
-  @Internal()
   @Column({ name: 'pos_analysis', type: 'jsonb', nullable: true })
   posAnalysis?: Record<string, unknown> | null;
 
-  @Internal()
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;
 
-  @Internal()
   @Column({ name: 'hashed_id', type: 'varchar' })
   hashedId!: string;
 
@@ -94,7 +88,6 @@ export class Segment extends BaseEntity {
   @Column({ name: 'media_id', type: 'int' })
   mediaId!: number;
 
-  @Internal()
   @Column({ name: 'storage_base_path', type: 'varchar' })
   storageBasePath!: string;
 

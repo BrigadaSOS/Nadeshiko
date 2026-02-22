@@ -1,8 +1,9 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, Index, BaseEntity as TypeOrmBaseEntity } from 'typeorm';
+import { Entity, PrimaryColumn, Column, Index } from 'typeorm';
+import { BaseEntity } from './base.entity';
 
 @Entity('ReviewAllowlist')
 @Index(['checkName', 'mediaId', 'episodeNumber'], { unique: true })
-export class ReviewAllowlist extends TypeOrmBaseEntity {
+export class ReviewAllowlist extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
   id!: number;
 
@@ -17,7 +18,4 @@ export class ReviewAllowlist extends TypeOrmBaseEntity {
 
   @Column({ type: 'varchar', nullable: true })
   reason?: string | null;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
 }

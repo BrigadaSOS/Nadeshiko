@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/user/reports?limit=20
+  url: {{baseUrl}}/v1/user/reports?take=20
   body: none
   auth: none
 }
 
 params:query {
   cursor:
-  limit: 20
+  take: 20
   status:
 }
 

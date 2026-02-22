@@ -18,9 +18,9 @@ get:
     - name: cursor
       in: query
       schema:
-        type: integer
-      description: Cursor for pagination
-    - name: limit
+        type: string
+      description: Opaque pagination cursor token
+    - name: take
       in: query
       schema:
         type: integer
@@ -43,7 +43,7 @@ get:
                 items:
                   $ref: "../../components/schemas/ReviewCheckRun.yaml"
               pagination:
-                $ref: "../../components/schemas/CursorPagination.yaml"
+                $ref: "../../components/schemas/OpaqueCursorPagination.yaml"
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
     "403":

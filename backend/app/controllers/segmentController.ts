@@ -15,17 +15,17 @@ import { toSegmentDTO, toSegmentInternalDTO, toSegmentListDTO } from './mappers/
 import { querySurroundingSegments } from '@app/services/elasticsearch';
 
 export const listSegments: ListSegments = async ({ params, query }, respond) => {
-  const { items: segments, pagination } = await Segment.paginate({
-    find: {
-      where: { mediaId: params.mediaId, episode: params.episodeNumber },
-      order: { id: 'ASC' },
-    },
+  const { items: segments, pagination } = await Segment.paginateWithOffset({
+    take: query.take,
+    cursor: query.cursor,
     exists: {
       entity: Episode,
       where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber },
     },
-    take: query.limit,
-    skip: query.cursor,
+    find: {
+      where: { mediaId: params.mediaId, episode: params.episodeNumber },
+      order: { id: 'ASC' },
+    },
   });
 
   return respond.with200().body({
@@ -162,7 +162,7 @@ export const getSegmentContext: GetSegmentContext = async ({ params, query }, re
     mediaId: segment.mediaId,
     episodeNumber: segment.episode,
     segmentPosition: segment.position,
-    limit: query.limit || 3,
+    limit: query.take || 3,
     contentRating: query.contentRating,
   });
 

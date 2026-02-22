@@ -1,7 +1,8 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, BaseEntity as TypeOrmBaseEntity } from 'typeorm';
+import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { BaseEntity } from './base.entity';
 
 @Entity('ReviewCheckRun')
-export class ReviewCheckRun extends TypeOrmBaseEntity {
+export class ReviewCheckRun extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
   id!: number;
 
@@ -16,7 +17,4 @@ export class ReviewCheckRun extends TypeOrmBaseEntity {
 
   @Column({ name: 'threshold_used', type: 'jsonb' })
   thresholdUsed!: Record<string, number | boolean>;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
 }

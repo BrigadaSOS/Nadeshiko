@@ -1,4 +1,5 @@
-import { Entity, Column, ManyToOne, JoinColumn, PrimaryColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
+import { BaseEntity } from './base.entity';
 import type { Media } from './Media';
 
 export enum ExternalSourceType {
@@ -8,7 +9,7 @@ export enum ExternalSourceType {
 }
 
 @Entity('MediaExternalId')
-export class MediaExternalId {
+export class MediaExternalId extends BaseEntity {
   @PrimaryColumn({ name: 'media_id', type: 'int' })
   mediaId!: number;
 
@@ -17,9 +18,6 @@ export class MediaExternalId {
 
   @Column({ name: 'external_id', type: 'varchar' })
   externalId!: string;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
 
   @ManyToOne('Media', 'externalIds', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'media_id' })

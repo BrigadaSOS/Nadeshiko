@@ -268,7 +268,7 @@ async function attachAuthPayloadToRequest(
 ): Promise<void> {
   let user = getCachedUser(userId);
   if (!user) {
-    user = await User.findOne({ where: { id: userId } });
+    user = await User.findOne({ where: { id: userId }, relations: ['experimentEnrollments'] });
     if (!user || !user.isActive) {
       throw new AuthCredentialsInvalidError('User is invalid or inactive.');
     }
@@ -425,4 +425,11 @@ async function migrateLegacyKeyToBetterAuth(plaintextKey: string, legacyRecord: 
   await legacyRecord.save();
 
   logger.info({ apiAuthId: legacyRecord.id, userId: legacyRecord.userId }, 'Legacy API key migrated to Better Auth');
+}
+
+export function assertUser(req: Request): User {
+  if (!req.user) {
+    throw new Error('assertUser: req.user is not set — auth middleware may not have run');
+  }
+  return req.user;
 }

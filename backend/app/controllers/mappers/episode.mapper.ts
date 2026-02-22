@@ -8,9 +8,7 @@ export const toEpisodeDTO = (episode: Episode): t_Episode => ({
   titleRomaji: episode.titleRomaji,
   titleJa: episode.titleJa,
   description: episode.description,
-  airedAt: episode.airedAt instanceof Date
-    ? episode.airedAt.toISOString()
-    : episode.airedAt ?? undefined,
+  airedAt: episode.airedAt instanceof Date ? episode.airedAt.toISOString() : (episode.airedAt ?? undefined),
   lengthSeconds: episode.lengthSeconds,
   thumbnailUrl: episode.thumbnailUrl,
   segmentCount: episode.segmentCount,

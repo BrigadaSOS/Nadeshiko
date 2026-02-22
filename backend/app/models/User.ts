@@ -1,6 +1,8 @@
-import { Entity, PrimaryColumn, Column, OneToOne, OneToMany, Index, CreateDateColumn, BaseEntity } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToOne, OneToMany, Index } from 'typeorm';
+import { BaseEntity } from './base.entity';
 import type { ApiAuth } from './ApiAuth';
 import type { AccountQuotaUsage } from './AccountQuotaUsage';
+import type { ExperimentEnrollment } from './ExperimentEnrollment';
 
 export enum UserRoleType {
   ADMIN = 'ADMIN',
@@ -27,7 +29,6 @@ export interface HiddenMediaItem {
 }
 
 export interface UserPreferences {
-  labs?: Record<string, boolean>;
   searchHistory?: { enabled: boolean };
   blogLastVisited?: string;
   ankiProfiles?: AnkiProfile[];
@@ -49,9 +50,6 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', nullable: true })
   image?: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
-
   @Column({ name: 'modified_at', type: 'timestamp', nullable: true })
   modifiedAt?: Date;
 
@@ -67,8 +65,8 @@ export class User extends BaseEntity {
   @Column({ name: 'role', type: 'enum', enum: UserRoleType, default: UserRoleType.USER })
   role!: UserRoleType;
 
-  @Column({ name: 'monthly_quota_limit', type: 'bigint', default: 2500 })
-  monthlyQuotaLimit!: string;
+  @Column({ name: 'monthly_quota_limit', type: 'int', default: 2500 })
+  monthlyQuotaLimit!: number;
 
   @Column({ type: 'jsonb', default: '{}' })
   preferences!: UserPreferences;
@@ -79,4 +77,7 @@ export class User extends BaseEntity {
 
   @OneToMany('AccountQuotaUsage', 'user')
   accountQuotaUsages?: AccountQuotaUsage[];
+
+  @OneToMany('ExperimentEnrollment', 'user')
+  experimentEnrollments?: ExperimentEnrollment[];
 }

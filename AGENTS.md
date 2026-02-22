@@ -53,6 +53,34 @@ This file captures project conventions for code agents working in this repositor
 - Keep include tokens as exported enums (for example `MediaInclude`).
 - Keep relation-building logic near the model (`Media.buildRelations(...)`), not repeated in controllers.
 
+### 7. Auth in controllers
+
+- Do not check `if (!req.user) throw AuthCredentialsInvalidError(...)` in controllers.
+  - Auth middleware guarantees `req.user` is set before any controller runs.
+  - These checks are unreachable at runtime — they are dead code.
+- Use `assertUser(req)` from `@app/middleware/authentication` to narrow `req.user` from `User | undefined` to `User`.
+  - It throws a plain `Error` (programming assertion, not an auth error) if somehow called without auth running.
+  - Usage: `const user = assertUser(req);`
+- Do **not** use `req.user!` — `assertUser` is the correct way to narrow the type.
+- Do **not** test 401 unauthenticated behavior in controller tests — those belong in auth/middleware tests (see Testing Conventions).
+
+### 8. Service objects
+
+- Avoid introducing Rails-style "service object" layers for controller-specific flows.
+- Keep logic in:
+  - model methods (ActiveRecord style),
+  - controller-local/private helpers,
+  - mapper files for response shaping.
+- Only keep standalone service modules when behavior is truly cross-cutting and reused in multiple domains.
+
+### 9. Controller file layout
+
+- Put controller endpoint handlers at the top of the file (entrypoints first).
+- Define helper/private functions below the handlers.
+- Order helpers by call flow:
+  - a parent function appears before the helpers it calls,
+  - callee helpers appear later in the file.
+
 ## Error Handling Conventions
 
 - Centralize DB error mapping in `backend/app/middleware/errorHandler.ts`.
@@ -72,9 +100,29 @@ This file captures project conventions for code agents working in this repositor
   - FK-driven `404`
   - unique-driven `409` (`DUPLICATE_KEY`)
   - pagination behavior
+- Prefer response assertions with composed objects:
+  - `expect(res.body).toMatchObject({...})`
+  - keep targeted checks like `toHaveLength(...)` when needed.
 - Example references:
   - `backend/tests/controllers/episodeController.test.ts`
   - `backend/tests/controllers/seriesController.test.ts`
+
+### Fixtures (`backend/tests/fixtures/*`)
+
+- Prefer declarative prelinked fixture sets for reusable graphs:
+  - define in `backend/tests/fixtures/catalog/index.ts`
+  - load with `loadFixtures(['setName'])`
+  - link foreign keys via `ref('entity.namedFixture.id')`
+- Prefer named fixture sets for multi-record setup:
+  - `seedMediaFixtures({ spyXFamily: {...}, anotherShow: {...} })`
+  - `seedEpisodeFixtures(media.id, { first: {...}, second: {...} })`
+  - `seedSeriesFixtures({ aSeries: {...}, bSeries: {...} })`
+  - `seedSeiyuuFixtures({ saori: {...} })`
+  - `seedCharacterFixtures(seiyuu, { yor: {...} })`
+- Keep single-record helpers too (`seedMedia`, `seedSeries`, `seedSeiyuu`) for focused one-off setup.
+- Derive seed input types from entities instead of hand-written pick-lists:
+  - `type XSeedInput = Partial<EntityType>`
+- Keep scenario semantics in test names/fixture keys (`spyXFamily`, `yor`, `mainSeries`) instead of generic `a`/`b` where possible.
 
 ### Auth/permission tests (separate suite)
 

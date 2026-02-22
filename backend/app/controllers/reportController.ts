@@ -1,15 +1,12 @@
 import type { CreateUserReport, ListUserReports } from 'generated/routes/user';
 import type { ListAdminReports, UpdateAdminReport } from 'generated/routes/admin';
 import { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason, Segment, Media } from '@app/models';
-import { AuthCredentialsInvalidError, NotFoundError, InvalidRequestError } from '@app/errors';
+import { NotFoundError, InvalidRequestError } from '@app/errors';
+import { assertUser } from '@app/middleware/authentication';
 import { toReportDTO, toAdminReportDTO } from '@app/controllers/mappers/report.mapper';
-import { type FindOptionsWhere, LessThan } from 'typeorm';
 
 export const createUserReport: CreateUserReport = async ({ body }, respond, req) => {
-  const user = req.user;
-  if (!user) {
-    throw new AuthCredentialsInvalidError('Invalid session user.');
-  }
+  const user = assertUser(req);
 
   const { target, reason, description } = body;
 
@@ -46,86 +43,71 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
 };
 
 export const listUserReports: ListUserReports = async ({ query }, respond, req) => {
-  const user = req.user;
-  if (!user) {
-    throw new AuthCredentialsInvalidError('Invalid session user.');
-  }
+  const user = assertUser(req);
 
-  const { cursor, limit, status } = query;
+  const { items: reports, pagination } = await Report.paginateWithKeyset({
+    take: query.take,
+    cursor: query.cursor,
+    query: () => {
+      const qb = Report.createQueryBuilder('report')
+        .where('report.user_id = :userId', { userId: Number(user.id) })
+        .andWhere('report.source = :source', { source: ReportSource.USER });
 
-  const where: FindOptionsWhere<Report> = { userId: Number(user.id), source: ReportSource.USER };
-  if (status) {
-    where.status = status as ReportStatus;
-  }
-  if (cursor) {
-    where.id = LessThan(cursor);
-  }
+      if (query.status) {
+        qb.andWhere('report.status = :status', { status: query.status });
+      }
 
-  const reports = await Report.find({
-    where,
-    order: { id: 'DESC' },
-    take: limit + 1,
+      return qb;
+    },
   });
 
-  const hasMore = reports.length > limit;
-  const data = hasMore ? reports.slice(0, limit) : reports;
-  const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
-
   return respond.with200().body({
-    reports: data.map(toReportDTO),
-    pagination: {
-      hasMore,
-      cursor: nextCursor,
-    },
+    reports: reports.map(toReportDTO),
+    pagination,
   });
 };
 
 export const listAdminReports: ListAdminReports = async ({ query }, respond) => {
-  const { cursor, limit = 20, status, source, reviewCheckRunId } = query;
-  const targetType = (query as Record<string, unknown>)['target.type'] as ReportTargetType | undefined;
-  const targetMediaId = (query as Record<string, unknown>)['target.mediaId'] as number | undefined;
-  const targetEpisodeNumber = (query as Record<string, unknown>)['target.episodeNumber'] as number | undefined;
-  const targetSegmentUuid = (query as Record<string, unknown>)['target.segmentUuid'] as string | undefined;
+  const { status, source, reviewCheckRunId } = query;
+  const targetType = query['target.type'];
+  const targetMediaId = query['target.mediaId'];
+  const targetEpisodeNumber = query['target.episodeNumber'];
+  const targetSegmentUuid = query['target.segmentUuid'];
 
-  const where: FindOptionsWhere<Report> = {};
-  if (status) {
-    where.status = status as ReportStatus;
-  }
-  if (source) {
-    where.source = source as ReportSource;
-  }
-  if (targetType) {
-    where.targetType = targetType as ReportTargetType;
-  }
-  if (targetMediaId !== undefined) {
-    where.targetMediaId = targetMediaId;
-  }
-  if (targetEpisodeNumber !== undefined) {
-    where.targetEpisodeNumber = targetEpisodeNumber;
-  }
-  if (targetSegmentUuid !== undefined) {
-    where.targetSegmentUuid = targetSegmentUuid;
-  }
-  if (reviewCheckRunId) {
-    where.reviewCheckRunId = reviewCheckRunId;
-  }
-  if (cursor) {
-    where.id = LessThan(cursor);
-  }
+  const { items: reports, pagination } = await Report.paginateWithKeyset({
+    take: query.take,
+    cursor: query.cursor,
+    query: () => {
+      const qb = Report.createQueryBuilder('report').leftJoinAndSelect('report.user', 'user');
 
-  const reports = await Report.find({
-    where,
-    relations: ['user'],
-    order: { id: 'DESC' },
-    take: limit + 1,
+      if (status) {
+        qb.andWhere('report.status = :status', { status });
+      }
+      if (source) {
+        qb.andWhere('report.source = :source', { source });
+      }
+      if (targetType) {
+        qb.andWhere('report.target_type = :targetType', { targetType });
+      }
+      if (targetMediaId !== undefined) {
+        qb.andWhere('report.target_media_id = :targetMediaId', { targetMediaId });
+      }
+      if (targetEpisodeNumber !== undefined) {
+        qb.andWhere('report.target_episode_number = :targetEpisodeNumber', { targetEpisodeNumber });
+      }
+      if (targetSegmentUuid !== undefined) {
+        qb.andWhere('report.target_segment_uuid = :targetSegmentUuid', { targetSegmentUuid });
+      }
+      if (reviewCheckRunId) {
+        qb.andWhere('report.review_check_run_id = :reviewCheckRunId', { reviewCheckRunId });
+      }
+
+      return qb;
+    },
   });
 
-  const hasMore = reports.length > limit;
-  const data = hasMore ? reports.slice(0, limit) : reports;
-  const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
-
   // Compute report counts per (targetType, targetMediaId) for the returned reports
-  const targets = [...new Set(data.map((r) => `${r.targetType}:${r.targetMediaId}`))];
+  const targets = [...new Set(reports.map((r) => `${r.targetType}:${r.targetMediaId}`))];
   const countMap = new Map<string, number>();
 
   if (targets.length > 0) {
@@ -155,13 +137,10 @@ export const listAdminReports: ListAdminReports = async ({ query }, respond) => 
   }
 
   return respond.with200().body({
-    reports: data.map((report) =>
+    reports: reports.map((report) =>
       toAdminReportDTO(report, countMap.get(`${report.targetType}:${report.targetMediaId}`) ?? 1),
     ),
-    pagination: {
-      hasMore,
-      cursor: nextCursor,
-    },
+    pagination,
   });
 };
 
