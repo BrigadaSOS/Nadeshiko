@@ -18,7 +18,7 @@ get:
         type: integer
       description: ID of the media
       example: 7674
-    - name: limit
+    - name: take
       in: query
       required: false
       schema:
@@ -32,9 +32,8 @@ get:
       in: query
       required: false
       schema:
-        type: integer
-        default: 0
-      description: Episode number to start from (for pagination)
+        type: string
+      description: Opaque pagination cursor token
       example: 10
   responses:
     "200":

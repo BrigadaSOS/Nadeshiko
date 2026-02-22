@@ -19,7 +19,7 @@ export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunct
     throw new AuthCredentialsInvalidError('Invalid API key owner.');
   }
 
-  const quota = await AccountQuotaUsage.getForUser(user.id, Number(user.monthlyQuotaLimit));
+  const quota = await AccountQuotaUsage.getForUser(user.id, user.monthlyQuotaLimit);
   req.accountQuota = quota;
 
   if (quota.quotaUsed >= quota.quotaLimit) {

@@ -18,10 +18,9 @@ get:
         example: 123
     - name: cursor
       in: query
-      description: Cursor offset for paginated segments
+      description: Opaque pagination cursor token for paginated segments
       schema:
-        type: integer
-        minimum: 0
+        type: string
         example: 0
     - name: page
       in: query
@@ -32,7 +31,7 @@ get:
         default: 1
         minimum: 1
         example: 1
-    - name: limit
+    - name: take
       in: query
       description: Items per page
       schema:

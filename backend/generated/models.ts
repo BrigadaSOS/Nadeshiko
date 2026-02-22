@@ -10,7 +10,7 @@ export type t_AdminReport = t_Report & {
 };
 
 export type t_AdminReportListResponse = {
-  pagination: t_CursorPagination;
+  pagination: t_OpaqueCursorPagination;
   reports: t_AdminReport[];
 };
 
@@ -22,6 +22,7 @@ export type t_CategoryCount = {
 };
 
 export type t_Character = {
+  externalIds: t_ExternalId;
   id: number;
   imageUrl: string;
   nameEn: string;
@@ -29,15 +30,17 @@ export type t_Character = {
 };
 
 export type t_CharacterInput = {
-  id: number;
+  externalIds: t_ExternalId;
   imageUrl: string;
   nameEn: string;
   nameJa: string;
   role: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
-  seiyuuId: number;
-  seiyuuImageUrl: string;
-  seiyuuNameEn: string;
-  seiyuuNameJa: string;
+  seiyuu: {
+    externalIds: t_ExternalId;
+    imageUrl: string;
+    nameEn: string;
+    nameJa: string;
+  };
 };
 
 export type t_CharacterWithMedia = t_Character & {
@@ -60,7 +63,7 @@ export type t_Collection = {
 
 export type t_CollectionListResponse = {
   collections: t_Collection[];
-  pagination: t_CursorPagination;
+  pagination: t_OpaqueCursorPagination;
 };
 
 export type t_CollectionWithSegments = {
@@ -71,7 +74,7 @@ export type t_CollectionWithSegments = {
     };
   };
   name: string;
-  pagination: t_CursorPagination;
+  pagination: t_OpaqueCursorPagination;
   segments: {
     note?: string | null;
     position?: number;
@@ -83,11 +86,6 @@ export type t_CollectionWithSegments = {
 };
 
 export type t_ContentRating = 'SAFE' | 'SUGGESTIVE' | 'QUESTIONABLE' | 'EXPLICIT';
-
-export type t_CursorPagination = {
-  cursor: number | null;
-  hasMore: boolean;
-};
 
 export type t_Episode = {
   airedAt?: string | null;
@@ -104,7 +102,7 @@ export type t_Episode = {
 
 export type t_EpisodeListResponse = {
   episodes: t_Episode[];
-  pagination: t_CursorPagination;
+  pagination: t_OpaqueCursorPagination;
 };
 
 export type t_Error400 = {
@@ -243,7 +241,7 @@ export type t_MediaIncludeExpansion = 'media' | 'media.characters';
 
 export type t_MediaListResponse = {
   media: t_Media[];
-  pagination: t_CursorPagination;
+  pagination: t_OpaqueCursorPagination;
 };
 
 export type t_MediaSearchStats = {
@@ -254,8 +252,13 @@ export type t_MediaSearchStats = {
   mediaId: number;
 };
 
+export type t_OpaqueCursorPagination = {
+  cursor: string | null;
+  hasMore: boolean;
+};
+
 export type t_PaginationInfo = {
-  cursor?: number[];
+  cursor?: string | null;
   estimatedTotalHits?: number;
   estimatedTotalHitsRelation?: 'EXACT' | 'LOWER_BOUND';
   hasMore?: boolean;
@@ -312,7 +315,7 @@ export type t_Report = {
 };
 
 export type t_ReportListResponse = {
-  pagination: t_CursorPagination;
+  pagination: t_OpaqueCursorPagination;
   reports: t_Report[];
 };
 
@@ -497,6 +500,7 @@ export type t_SegmentInternal = t_Segment & {
 };
 
 export type t_Seiyuu = {
+  externalIds: t_ExternalId;
   id: number;
   imageUrl: string;
   nameEn: string;
@@ -522,7 +526,7 @@ export type t_Series = {
 };
 
 export type t_SeriesListResponse = {
-  pagination: t_CursorPagination;
+  pagination: t_OpaqueCursorPagination;
   series: t_Series[];
 };
 
@@ -566,11 +570,12 @@ export type t_UserExportResponse = {
 };
 
 export type t_UserLabFeature = {
-  description: string;
-  enabled: boolean;
+  active: boolean;
+  description?: string;
   key: string;
-  name: string;
-  userEnabled: boolean;
+  name?: string;
+  userControllable: boolean;
+  userOptedIn?: boolean;
 };
 
 export type t_UserPreferences = {
@@ -597,9 +602,6 @@ export type t_UserPreferences = {
     nameJa?: string;
     nameRomaji?: string;
   }[];
-  labs?: {
-    [key: string]: boolean | undefined;
-  };
   mediaNameLanguage?: 'english' | 'japanese' | 'romaji';
   searchHistory?: {
     enabled?: boolean;
@@ -649,8 +651,8 @@ export type t_AddSegmentToCollectionRequestBodySchema = {
 
 export type t_AutocompleteMediaQuerySchema = {
   category?: 'ANIME' | 'JDRAMA';
-  limit?: number;
   query: string;
+  take?: number;
 };
 
 export type t_CreateAdminReviewAllowlistEntryRequestBodySchema = {
@@ -786,6 +788,10 @@ export type t_DeleteUserActivityQuerySchema = {
   activityType?: t_ActivityType;
 };
 
+export type t_EnrollUserLabParamSchema = {
+  key: string;
+};
+
 export type t_GetAdminQueueParamSchema = {
   queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
 };
@@ -803,9 +809,9 @@ export type t_GetCollectionParamSchema = {
 };
 
 export type t_GetCollectionQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
   page?: number;
+  take?: number;
 };
 
 export type t_GetCollectionStatsParamSchema = {
@@ -851,7 +857,7 @@ export type t_GetSegmentContextParamSchema = {
 export type t_GetSegmentContextQuerySchema = {
   contentRating?: t_ContentRating[];
   include?: t_IncludeExpansion[];
-  limit?: number;
+  take?: number;
 };
 
 export type t_GetSeiyuuParamSchema = {
@@ -875,16 +881,20 @@ export type t_GetUserActivityStatsQuerySchema = {
   since?: string;
 };
 
+export type t_ImpersonateAdminUserRequestBodySchema = {
+  userId: number;
+};
+
 export type t_ListAdminQueueFailedParamSchema = {
   queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
 };
 
 export type t_ListAdminReportsQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
   reviewCheckRunId?: number;
   source?: 'USER' | 'AUTO';
   status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  take?: number;
   'target.episodeNumber'?: number;
   'target.mediaId'?: number;
   'target.segmentUuid'?: string;
@@ -897,14 +907,14 @@ export type t_ListAdminReviewAllowlistQuerySchema = {
 
 export type t_ListAdminReviewRunsQuerySchema = {
   checkName?: string;
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
+  take?: number;
 };
 
 export type t_ListCollectionsQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
   page?: number;
+  take?: number;
   visibility?: 'public' | 'private';
 };
 
@@ -913,16 +923,16 @@ export type t_ListEpisodesParamSchema = {
 };
 
 export type t_ListEpisodesQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
+  take?: number;
 };
 
 export type t_ListMediaQuerySchema = {
   category?: 'ANIME' | 'JDRAMA';
-  cursor?: number;
+  cursor?: string;
   include?: t_MediaIncludeExpansion[];
-  limit?: number;
   query?: string;
+  take?: number;
 };
 
 export type t_ListSegmentsParamSchema = {
@@ -931,27 +941,27 @@ export type t_ListSegmentsParamSchema = {
 };
 
 export type t_ListSegmentsQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
+  take?: number;
 };
 
 export type t_ListSeriesQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
   query?: string;
+  take?: number;
 };
 
 export type t_ListUserActivityQuerySchema = {
   activityType?: t_ActivityType;
-  cursor?: number;
+  cursor?: string;
   date?: string;
-  limit?: number;
+  take?: number;
 };
 
 export type t_ListUserReportsQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
   status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  take?: number;
 };
 
 export type t_PurgeAdminQueueFailedParamSchema = {
@@ -978,10 +988,9 @@ export type t_RunAdminReviewQuerySchema = {
 };
 
 export type t_SearchRequestBodySchema = {
-  cursor?: number[];
+  cursor?: string;
   filters?: t_SearchFilters;
   include?: t_IncludeExpansion[];
-  limit?: number;
   query?: {
     exactMatch?: boolean;
     search?: string;
@@ -990,6 +999,7 @@ export type t_SearchRequestBodySchema = {
     mode?: 'ASC' | 'DESC' | 'NONE' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM';
     seed?: number;
   };
+  take?: number;
 };
 
 export type t_SearchCollectionSegmentsParamSchema = {
@@ -997,8 +1007,8 @@ export type t_SearchCollectionSegmentsParamSchema = {
 };
 
 export type t_SearchCollectionSegmentsQuerySchema = {
-  cursor?: number;
-  limit?: number;
+  cursor?: string;
+  take?: number;
 };
 
 export type t_SearchWordsRequestBodySchema = {
@@ -1015,6 +1025,10 @@ export type t_TriggerReindexRequestBodySchema = {
     episodes?: number[];
     mediaId: number;
   }[];
+};
+
+export type t_UnenrollUserLabParamSchema = {
+  key: string;
 };
 
 export type t_UpdateAdminReportParamSchema = {
@@ -1204,9 +1218,6 @@ export type t_UpdateUserPreferencesRequestBodySchema = {
     nameJa?: string;
     nameRomaji?: string;
   }[];
-  labs?: {
-    [key: string]: boolean | undefined;
-  };
   mediaNameLanguage?: 'english' | 'japanese' | 'romaji';
   searchHistory?: {
     enabled?: boolean;

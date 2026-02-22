@@ -11,8 +11,7 @@ const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
 
-const firstQueryValue = (value: string | string[] | undefined | null) =>
-  Array.isArray(value) ? value[0] : value;
+const firstQueryValue = (value: string | string[] | undefined | null) => (Array.isArray(value) ? value[0] : value);
 const getStringQueryValue = (value: string | string[] | undefined | null) => {
   const normalized = firstQueryValue(value);
   if (normalized === undefined || normalized === null || normalized === '') {
@@ -110,7 +109,10 @@ const fetchSentenceData = async () => {
     }
 
     const sortParam = route.query.sort;
-    const sort = sortParam && sortParam !== 'NONE' ? { mode: String(sortParam) as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' } : undefined;
+    const sort =
+      sortParam && sortParam !== 'NONE'
+        ? { mode: String(sortParam) as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
+        : undefined;
 
     const { data } = await sdk.search({
       body: {

@@ -103,7 +103,9 @@ const {
   }
 
   // Client-side
-  const raw = await $fetch<unknown[]>('/v1/auth/list-sessions', { method: 'GET', credentials: 'include' }).catch(() => []);
+  const raw = await $fetch<unknown[]>('/v1/auth/list-sessions', { method: 'GET', credentials: 'include' }).catch(
+    () => [],
+  );
   return Array.isArray(raw) ? (raw as UserSession[]) : [];
 });
 

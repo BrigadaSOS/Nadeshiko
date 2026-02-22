@@ -12,7 +12,6 @@ import { ReviewCheck, ReviewCheckRun, ReviewAllowlist, Report } from '@app/model
 import { NotFoundError } from '@app/errors';
 import { runAllChecks } from '@app/services/mediaReview/runner';
 import { checkRegistry } from '@app/services/mediaReview/registry';
-import { type FindOptionsWhere, LessThan } from 'typeorm';
 import { toReportDTO } from '@app/controllers/mappers/report.mapper';
 
 export const runAdminReview: RunAdminReview = async ({ query }, respond) => {
@@ -101,28 +100,22 @@ export const updateAdminReviewCheck: UpdateAdminReviewCheck = async ({ params, b
 };
 
 export const listAdminReviewRuns: ListAdminReviewRuns = async ({ query }, respond) => {
-  const { checkName, cursor, limit = 20 } = query;
+  const { items: runs, pagination } = await ReviewCheckRun.paginateWithKeyset({
+    take: query.take ?? 20,
+    cursor: query.cursor,
+    query: () => {
+      const qb = ReviewCheckRun.createQueryBuilder('run');
 
-  const where: FindOptionsWhere<ReviewCheckRun> = {};
-  if (checkName) {
-    where.checkName = checkName;
-  }
-  if (cursor) {
-    where.id = LessThan(cursor);
-  }
+      if (query.checkName) {
+        qb.andWhere('run.check_name = :checkName', { checkName: query.checkName });
+      }
 
-  const runs = await ReviewCheckRun.find({
-    where,
-    order: { id: 'DESC' },
-    take: limit + 1,
+      return qb;
+    },
   });
 
-  const hasMore = runs.length > limit;
-  const data = hasMore ? runs.slice(0, limit) : runs;
-  const nextCursor = hasMore ? (data[data.length - 1]?.id ?? null) : null;
-
   return respond.with200().body({
-    runs: data.map((run) => ({
+    runs: runs.map((run) => ({
       id: run.id,
       checkName: run.checkName,
       category: run.category ?? null,
@@ -130,10 +123,7 @@ export const listAdminReviewRuns: ListAdminReviewRuns = async ({ query }, respon
       thresholdUsed: run.thresholdUsed,
       createdAt: run.createdAt.toISOString(),
     })),
-    pagination: {
-      hasMore,
-      cursor: nextCursor,
-    },
+    pagination,
   });
 };
 

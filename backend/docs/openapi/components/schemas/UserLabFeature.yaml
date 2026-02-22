@@ -1,23 +1,24 @@
 type: object
 required:
   - key
-  - name
-  - description
-  - enabled
-  - userEnabled
+  - active
+  - userControllable
 properties:
   key:
     type: string
-    description: Unique identifier for the lab feature
+    description: Unique identifier for the feature
   name:
     type: string
-    description: Human-readable feature name
+    description: Human-readable feature name (only present for labs)
   description:
     type: string
-    description: Description of what the feature does
-  enabled:
+    description: Description of what the feature does (only present for labs)
+  active:
     type: boolean
-    description: Whether the feature is globally available
-  userEnabled:
+    description: Whether this feature is currently active for the user
+  userControllable:
     type: boolean
-    description: Whether the user has opted in to this feature
+    description: Whether the user can toggle this feature (lab=true, flag=false)
+  userOptedIn:
+    type: boolean
+    description: Whether the user has opted in (only present for labs)

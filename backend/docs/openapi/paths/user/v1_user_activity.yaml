@@ -14,9 +14,9 @@ get:
     - name: cursor
       in: query
       schema:
-        type: integer
-      description: Cursor for pagination (activity ID to start after)
-    - name: limit
+        type: string
+      description: Opaque cursor token for keyset pagination
+    - name: take
       in: query
       schema:
         type: integer
@@ -50,7 +50,7 @@ get:
                 items:
                   $ref: "../../components/schemas/UserActivity.yaml"
               pagination:
-                $ref: "../../components/schemas/CursorPagination.yaml"
+                $ref: "../../components/schemas/OpaqueCursorPagination.yaml"
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
     "500":
@@ -82,11 +82,8 @@ delete:
           schema:
             type: object
             required:
-              - message
               - deletedCount
             properties:
-              message:
-                type: string
               deletedCount:
                 type: integer
     "401":

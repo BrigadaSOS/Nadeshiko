@@ -1,5 +1,4 @@
 import type { estypes } from '@elastic/elasticsearch';
-type FieldValue = estypes.FieldValue;
 
 export interface QuerySegmentsRequest {
   readonly query?: {
@@ -11,7 +10,7 @@ export interface QuerySegmentsRequest {
     readonly seed?: number;
   };
   readonly limit: number;
-  readonly cursor?: FieldValue[];
+  readonly cursor?: string;
   readonly filters: QueryFilters;
 }
 

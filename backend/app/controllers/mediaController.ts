@@ -1,87 +1,101 @@
-import type { ListMedia, CreateMedia, GetMedia, UpdateMedia, DeleteMedia, AutocompleteMedia } from 'generated/routes/media';
-import type { DeepPartial } from 'typeorm';
+import type {
+  ListMedia,
+  CreateMedia,
+  GetMedia,
+  UpdateMedia,
+  DeleteMedia,
+  AutocompleteMedia,
+} from 'generated/routes/media';
+import type { t_CharacterInput } from 'generated/models';
+import type { DeepPartial, EntityManager } from 'typeorm';
 import { ILike } from 'typeorm';
-import {
-  CategoryType,
-  Media,
-  MediaCharacter,
-  MediaExternalId,
-  ExternalSourceType,
-  CharacterRole,
-  MediaInclude,
-} from '@app/models';
+import { CategoryType, Media, MediaCharacter, MediaExternalId, ExternalSourceType, MediaInclude } from '@app/models';
+import { Character } from '@app/models/Character';
+import { Seiyuu } from '@app/models/Seiyuu';
+import { CharacterRole } from '@app/models/MediaCharacter';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { toMediaDTO, toMediaListDTO } from './mappers/media.mapper';
 import { AppDataSource } from '@config/database';
 import { Cache } from '@lib/cache';
 import { SEARCH_STATS_CACHE } from '@app/services/elasticsearch';
 
-function toCharacterData(char: {
-  id: number;
-  nameJa?: string;
-  nameEn?: string;
-  imageUrl?: string;
-  role: string;
-  seiyuuId?: number;
-  seiyuuNameJa?: string;
-  seiyuuNameEn?: string;
-  seiyuuImageUrl?: string;
-}) {
-  return {
-    role: char.role as CharacterRole,
-    character: {
-      id: char.id,
-      nameJapanese: char.nameJa,
-      nameEnglish: char.nameEn,
-      imageUrl: char.imageUrl,
-      seiyuu: {
-        id: char.seiyuuId,
-        nameJapanese: char.seiyuuNameJa,
-        nameEnglish: char.seiyuuNameEn,
-        imageUrl: char.seiyuuImageUrl,
-      },
-    },
-  };
+async function insertCharactersForMedia(
+  manager: EntityManager,
+  mediaId: number,
+  characters: t_CharacterInput[],
+): Promise<MediaCharacter[]> {
+  return Promise.all(
+    characters.map(async (char) => {
+      let seiyuu = await manager
+        .createQueryBuilder(Seiyuu, 's')
+        .where(`s.external_ids->>'anilist' = :id`, { id: char.seiyuu.externalIds.anilist })
+        .getOne();
+      if (!seiyuu) {
+        seiyuu = manager.create(Seiyuu, {
+          externalIds: char.seiyuu.externalIds,
+          nameJapanese: char.seiyuu.nameJa,
+          nameEnglish: char.seiyuu.nameEn,
+          imageUrl: char.seiyuu.imageUrl,
+        });
+        await manager.save(seiyuu);
+      }
+
+      let character = await manager
+        .createQueryBuilder(Character, 'c')
+        .where(`c.external_ids->>'anilist' = :id`, { id: char.externalIds.anilist })
+        .getOne();
+      if (!character) {
+        character = manager.create(Character, {
+          externalIds: char.externalIds,
+          nameJapanese: char.nameJa,
+          nameEnglish: char.nameEn,
+          imageUrl: char.imageUrl,
+          seiyuu,
+        });
+        await manager.save(character);
+      }
+
+      const mc = manager.create(MediaCharacter, {
+        mediaId,
+        characterId: character.id,
+        role: char.role as CharacterRole,
+      });
+      mc.character = character;
+      return mc;
+    }),
+  );
 }
 
 export const listMedia: ListMedia = async ({ query }, respond) => {
-  const categoryFilter: Record<string, unknown> = {};
-  if (query.category) {
-    categoryFilter.category = query.category as CategoryType;
-  }
+  const base = query.category ? { category: query.category as CategoryType } : {};
 
-  let whereClause: Record<string, unknown> | Record<string, unknown>[] | undefined;
-  if (query.query) {
-    whereClause = [
-      { ...categoryFilter, nameEn: ILike(`%${query.query}%`) },
-      { ...categoryFilter, nameJa: ILike(`%${query.query}%`) },
-      { ...categoryFilter, nameRomaji: ILike(`%${query.query}%`) },
-    ];
-  } else if (Object.keys(categoryFilter).length > 0) {
-    whereClause = categoryFilter;
-  }
+  const where = query.query
+    ? [
+        { ...base, nameEn: ILike(`%${query.query}%`) },
+        { ...base, nameJa: ILike(`%${query.query}%`) },
+        { ...base, nameRomaji: ILike(`%${query.query}%`) },
+      ]
+    : query.category
+      ? base
+      : undefined;
 
   const mediaRelations = Media.buildRelations({
     includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
   });
 
-  const [mediaList] = await Media.findAndCount({
-    where: whereClause,
-    relations: mediaRelations,
-    order: { id: 'ASC' },
-    take: query.limit,
-    skip: query.cursor,
+  const { items: mediaList, pagination } = await Media.paginateWithOffset({
+    find: {
+      where,
+      relations: mediaRelations,
+      order: { id: 'ASC' },
+    },
+    take: query.take,
+    cursor: query.cursor,
   });
-
-  const nextCursor = query.cursor + mediaList.length;
-  const hasMoreResults = mediaList.length === query.limit;
 
   return respond.with200().body({
     media: toMediaListDTO(mediaList),
-    pagination: {
-      hasMore: hasMoreResults,
-      cursor: hasMoreResults ? nextCursor : null,
-    },
+    pagination,
   });
 };
 
@@ -114,7 +128,7 @@ export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, re
     )
     .addOrderBy('LENGTH(media.nameEn)', 'ASC')
     .addOrderBy('media.id', 'ASC')
-    .take(params.limit);
+    .take(params.take);
 
   if (params.category) {
     qb.andWhere('media.category = :category', { category: params.category as CategoryType });
@@ -142,7 +156,7 @@ export const createMedia: CreateMedia = async ({ body }, respond) => {
       }
     }
 
-    return await manager.save(Media, {
+    const media = await manager.save(Media, {
       nameJa: body.nameJa,
       nameRomaji: body.nameRomaji,
       nameEn: body.nameEn,
@@ -158,9 +172,15 @@ export const createMedia: CreateMedia = async ({ body }, respond) => {
       studio: body.studio,
       seasonName: body.seasonName,
       seasonYear: body.seasonYear,
-      characters: body.characters?.map(toCharacterData),
       externalIds,
     });
+
+    if (body.characters?.length) {
+      media.characters = await insertCharactersForMedia(manager, media.id, body.characters);
+      await manager.save(MediaCharacter, media.characters);
+    }
+
+    return media;
   });
 
   Cache.invalidate(MEDIA_INFO_CACHE);
@@ -193,13 +213,8 @@ export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
 
     if (characters?.length) {
       await manager.delete(MediaCharacter, { mediaId: media.id });
-      media.characters = characters.map((char) =>
-        manager.create(MediaCharacter, {
-          mediaId: media.id,
-          characterId: char.id,
-          ...toCharacterData(char),
-        }),
-      );
+      media.characters = await insertCharactersForMedia(manager, media.id, characters);
+      await manager.save(MediaCharacter, media.characters);
     }
 
     return await manager.save(media);

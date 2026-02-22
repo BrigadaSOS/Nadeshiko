@@ -12,16 +12,14 @@ properties:
         type: boolean
         description: Whether to use exact phrase matching
         default: false
-  limit:
+  take:
     type: integer
     description: Max amount of entries by response
     default: 10
   cursor:
-    type: array
-    description: Current page of search
-    items:
-      type: number
-    example: [23.31727, 7]
+    type: string
+    description: Opaque cursor token returned from the previous search page
+    example: eyJraW5kIjoia2V5c2V0IiwiY3Vyc29yIjpbMjMuMzE3MjcsN119
   sort:
     type: object
     description: Sort configuration

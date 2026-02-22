@@ -10,7 +10,7 @@ get:
     - apiKeyHeader: []
     - sessionCookie: []
   parameters:
-    - name: limit
+    - name: take
       in: query
       description: Number of results per page
       schema:
@@ -20,11 +20,9 @@ get:
         maximum: 100
     - name: cursor
       in: query
-      description: Pagination cursor offset
+      description: Opaque pagination cursor token
       schema:
-        type: integer
-        default: 0
-        minimum: 0
+        type: string
     - name: query
       in: query
       description: Case-insensitive search across English, Japanese, and Romaji names

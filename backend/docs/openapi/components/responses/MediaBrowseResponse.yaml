@@ -11,4 +11,4 @@ properties:
     items:
       $ref: "../schemas/MediaSummary.yaml"
   pagination:
-    $ref: "../schemas/CursorPagination.yaml"
+    $ref: "../schemas/OpaqueCursorPagination.yaml"

@@ -74,6 +74,32 @@ paths:
     $ref: "./paths/media/v1_media.yaml"
   "/v1/media/autocomplete":
     $ref: "./paths/media/v1_media_autocomplete.yaml"
+
+  # Segment standalone UUID query (static prefix before {id})
+  "/v1/media/segments/{uuid}":
+    $ref: "./paths/media/v1_media_segments_uuid.yaml"
+  "/v1/media/segments/{uuid}/context":
+    $ref: "./paths/media/v1_media_segments_uuid_context.yaml"
+
+  # Series endpoints (static prefix before {id})
+  "/v1/media/series":
+    $ref: "./paths/media/v1_media_series.yaml"
+  "/v1/media/series/{id}":
+    $ref: "./paths/media/v1_media_series_id.yaml"
+  "/v1/media/series/{id}/media":
+    $ref: "./paths/media/v1_media_series_id_media.yaml"
+  "/v1/media/series/{id}/media/{mediaId}":
+    $ref: "./paths/media/v1_media_series_id_media_mediaId.yaml"
+
+  # Character endpoints (static prefix before {id})
+  "/v1/media/characters/{id}":
+    $ref: "./paths/media/v1_media_characters_id.yaml"
+
+  # Seiyuu endpoints (static prefix before {id})
+  "/v1/media/seiyuu/{id}":
+    $ref: "./paths/media/v1_media_seiyuu_id.yaml"
+
+  # Parameterized media route — MUST come after all static /v1/media/* routes
   "/v1/media/{id}":
     $ref: "./paths/media/v1_media_id.yaml"
 
@@ -88,30 +114,6 @@ paths:
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments.yaml"
   "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}":
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_id.yaml"
-
-  # Segment standalone UUID query
-  "/v1/media/segments/{uuid}":
-    $ref: "./paths/media/v1_media_segments_uuid.yaml"
-  "/v1/media/segments/{uuid}/context":
-    $ref: "./paths/media/v1_media_segments_uuid_context.yaml"
-
-  # Series endpoints (media groupings)
-  "/v1/media/series":
-    $ref: "./paths/media/v1_media_series.yaml"
-  "/v1/media/series/{id}":
-    $ref: "./paths/media/v1_media_series_id.yaml"
-  "/v1/media/series/{id}/media":
-    $ref: "./paths/media/v1_media_series_id_media.yaml"
-  "/v1/media/series/{id}/media/{mediaId}":
-    $ref: "./paths/media/v1_media_series_id_media_mediaId.yaml"
-
-  # Character endpoints (nested under media)
-  "/v1/media/characters/{id}":
-    $ref: "./paths/media/v1_media_characters_id.yaml"
-
-  # Seiyuu endpoints (nested under media)
-  "/v1/media/seiyuu/{id}":
-    $ref: "./paths/media/v1_media_seiyuu_id.yaml"
 
   # User endpoints
   "/v1/user/quota":
@@ -130,6 +132,8 @@ paths:
     $ref: "./paths/user/v1_user_export.yaml"
   "/v1/user/labs":
     $ref: "./paths/user/v1_user_labs.yaml"
+  "/v1/user/labs/{key}":
+    $ref: "./paths/user/v1_user_labs_key.yaml"
 
   # Collection endpoints
   "/v1/collections":
@@ -162,6 +166,8 @@ paths:
     $ref: "./paths/admin/v1_admin_queues__queueName__retry.yaml"
   "/v1/admin/queues/{queueName}/purge":
     $ref: "./paths/admin/v1_admin_queues__queueName__purge.yaml"
+  "/v1/admin/impersonation":
+    $ref: "./paths/admin/v1_admin_impersonation.yaml"
   "/v1/admin/reports":
     $ref: "./paths/admin/v1_admin_reports.yaml"
   "/v1/admin/reports/{id}":
@@ -194,7 +200,6 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
-
 
 
 

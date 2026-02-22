@@ -14,10 +14,10 @@ get:
     - name: id
       in: path
       required: true
-      description: AniList staff ID
+      description: Internal seiyuu ID
       schema:
         type: integer
-        example: 95991
+        example: 1
   responses:
     "200":
       description: OK

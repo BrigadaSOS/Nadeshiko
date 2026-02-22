@@ -253,9 +253,9 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
 
   const listCollectionsQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
-    cursor: z.coerce.number().min(0).optional(),
+    cursor: z.string().optional(),
     page: z.coerce.number().min(1).optional().default(1),
-    limit: z.coerce.number().min(1).max(100).optional().default(20),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 
   const listCollectionsResponseBodyValidator = responseValidationFactory(
@@ -401,9 +401,9 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   const getCollectionParamSchema = z.object({ id: z.coerce.number() });
 
   const getCollectionQuerySchema = z.object({
-    cursor: z.coerce.number().min(0).optional(),
+    cursor: z.string().optional(),
     page: z.coerce.number().min(1).optional().default(1),
-    limit: z.coerce.number().min(1).max(100).optional().default(20),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 
   const getCollectionResponseBodyValidator = responseValidationFactory(
@@ -874,8 +874,8 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   const searchCollectionSegmentsParamSchema = z.object({ id: z.coerce.number() });
 
   const searchCollectionSegmentsQuerySchema = z.object({
-    cursor: z.coerce.number().min(0).optional(),
-    limit: z.coerce.number().min(1).max(100).optional().default(20),
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 
   const searchCollectionSegmentsResponseBodyValidator = responseValidationFactory(

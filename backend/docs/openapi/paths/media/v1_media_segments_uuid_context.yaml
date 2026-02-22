@@ -19,7 +19,7 @@ get:
         type: string
       description: Segment UUID
       example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
-    - name: limit
+    - name: take
       in: query
       schema:
         type: integer

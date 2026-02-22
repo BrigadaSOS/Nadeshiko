@@ -1,23 +1,25 @@
 import { defineStore } from 'pinia';
 
-interface UserLabFeature {
+interface UserFeature {
   key: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  userEnabled: boolean;
+  name?: string;
+  description?: string;
+  active: boolean;
+  userControllable: boolean;
+  userOptedIn?: boolean;
 }
 
 export const useLabsStore = defineStore('labs', {
   state: () => ({
-    features: [] as UserLabFeature[],
+    features: [] as UserFeature[],
     loaded: false,
   }),
   getters: {
     isFeatureEnabled: (state) => (key: string) => {
       const feature = state.features.find((f) => f.key === key);
-      return feature ? feature.enabled && feature.userEnabled : false;
+      return feature?.active ?? false;
     },
+    labFeatures: (state) => state.features.filter((f) => f.userControllable),
   },
   persist: import.meta.client
     ? {
@@ -29,7 +31,7 @@ export const useLabsStore = defineStore('labs', {
   actions: {
     async fetchFeatures() {
       try {
-        const features = await $fetch<UserLabFeature[]>('/v1/user/labs', {
+        const features = await $fetch<UserFeature[]>('/v1/user/labs', {
           credentials: 'include',
         });
         this.features = features;
@@ -38,10 +40,14 @@ export const useLabsStore = defineStore('labs', {
         console.error('[Labs] Failed to fetch features:', error);
       }
     },
-    updateUserOptIn(key: string, enabled: boolean) {
+    async toggleLab(key: string, enable: boolean) {
+      const method = enable ? 'POST' : 'DELETE';
+      await $fetch(`/v1/user/labs/${key}`, { method, credentials: 'include' });
+
       const feature = this.features.find((f) => f.key === key);
       if (feature) {
-        feature.userEnabled = enabled;
+        feature.active = enable;
+        feature.userOptedIn = enable;
       }
     },
   },

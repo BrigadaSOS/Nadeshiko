@@ -22,7 +22,7 @@ get:
         type: string
         minLength: 1
         example: steins
-    - name: limit
+    - name: take
       in: query
       description: Maximum number of results to return
       schema:

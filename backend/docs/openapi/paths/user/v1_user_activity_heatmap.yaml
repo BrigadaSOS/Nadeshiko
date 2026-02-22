@@ -5,7 +5,7 @@ get:
   operationId: getUserActivityHeatmap
   summary: Get activity heatmap data
   description: |
-    Returns daily activity counts for the authenticated user, grouped by date.
+    Returns daily activity activityByDay for the authenticated user, grouped by date.
     Designed for rendering a GitHub-style contribution heatmap.
 
     **Permissions:** Session authentication (cookie-based).
@@ -32,13 +32,13 @@ get:
           schema:
             type: object
             required:
-              - counts
+              - activityByDay
             properties:
-              counts:
+              activityByDay:
                 type: object
                 additionalProperties:
                   type: integer
-                description: Map of YYYY-MM-DD date strings to activity counts
+                description: Map of YYYY-MM-DD date strings to activity activityByDay
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
     "500":

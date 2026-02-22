@@ -48,7 +48,7 @@ const tabsGeneral = computed(() => [
   { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/user/sync', requiresAuth: true },
   { name: 'Collections', icon: mdiFormatListBulletedSquare, route: '/user/collections', requiresAuth: true },
   { name: 'Activity', icon: mdiHistory, route: '/user/activity', requiresAuth: true },
-  { name: 'Hide Media', icon: mdiEyeOffOutline, route: '/user/hide-media', requiresAuth: true  },
+  { name: 'Hide Media', icon: mdiEyeOffOutline, route: '/user/hide-media', requiresAuth: true },
 ]);
 
 const tabsAdvanced = computed(() => [

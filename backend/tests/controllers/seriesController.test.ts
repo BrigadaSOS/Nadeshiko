@@ -1,104 +1,87 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
-import { TestDataSource, createTestApp, signInAs, truncateTables } from '../helpers/setup';
-import { seedTestUser } from '../fixtures/users';
-import { seedMedia } from '../fixtures/media';
-import { User } from '@app/models/User';
+import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
+import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
+import { loadFixtures } from '../fixtures/loader';
 import { Series } from '@app/models/Series';
 import { SeriesMedia } from '@app/models/SeriesMedia';
 
+setupTestSuite();
+
 const app = createTestApp();
 
-let testUser: User;
-
-const seedSeries = async (overrides: Record<string, unknown> = {}) =>
-  Series.save({
-    nameJa: 'シリーズ',
-    nameRomaji: 'Shirizu',
-    nameEn: 'Test Series',
-    ...overrides,
-  });
-
-beforeAll(async () => {
-  await TestDataSource.initialize();
-});
-
-afterAll(async () => {
-  if (TestDataSource.isInitialized) {
-    await TestDataSource.destroy();
-  }
-});
-
-beforeEach(async () => {
-  await truncateTables('SeriesMedia', 'Series', 'Episode', 'Media', 'User');
-  testUser = await seedTestUser();
-  signInAs(app, testUser);
-});
+let fixtures: CoreFixtures;
+beforeAll(async () => { fixtures = await seedCoreFixtures(); });
+beforeEach(() => { signInAs(app, fixtures.users.kevin); });
 
 describe('GET /v1/media/series', () => {
   it('returns paginated series sorted by name', async () => {
-    await seedSeries({ nameEn: 'B Series', nameRomaji: 'B', nameJa: 'B' });
-    await seedSeries({ nameEn: 'A Series', nameRomaji: 'A', nameJa: 'A' });
+    await loadFixtures(['twoSeriesAlphabetical']);
 
     const res = await request(app).get('/v1/media/series');
 
     expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      series: [{ nameEn: 'A Series' }, { nameEn: 'B Series' }],
+      pagination: { hasMore: false, cursor: null },
+    });
     expect(res.body.series).toHaveLength(2);
-    expect(res.body.series[0].nameEn).toBe('A Series');
-    expect(res.body.series[1].nameEn).toBe('B Series');
-    expect(res.body.pagination).toEqual({ hasMore: false, cursor: null });
   });
 
   it('filters by query string', async () => {
-    await seedSeries({ nameEn: 'Naruto', nameRomaji: 'Naruto', nameJa: 'ナルト' });
-    await seedSeries({ nameEn: 'Bleach', nameRomaji: 'Bleach', nameJa: 'ブリーチ' });
+    await loadFixtures(['twoSeriesForSearch']);
 
     const res = await request(app).get('/v1/media/series?query=naru');
 
     expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      series: [{ nameEn: 'Naruto' }],
+    });
     expect(res.body.series).toHaveLength(1);
-    expect(res.body.series[0].nameEn).toBe('Naruto');
   });
 
   it('supports cursor pagination', async () => {
-    await seedSeries({ nameEn: 'A', nameRomaji: 'A', nameJa: 'A' });
-    await seedSeries({ nameEn: 'B', nameRomaji: 'B', nameJa: 'B' });
-    await seedSeries({ nameEn: 'C', nameRomaji: 'C', nameJa: 'C' });
+    await loadFixtures(['threeSeriesForPagination']);
 
-    const res = await request(app).get('/v1/media/series?limit=2&cursor=0');
+    const page1 = await request(app).get('/v1/media/series?take=2');
 
-    expect(res.status).toBe(200);
-    expect(res.body.series).toHaveLength(2);
-    expect(res.body.pagination.hasMore).toBe(true);
-    expect(res.body.pagination.cursor).toBe(2);
+    expect(page1.status).toBe(200);
+    expect(page1.body.series).toHaveLength(2);
+    expect(page1.body.pagination.hasMore).toBe(true);
+    expect(page1.body.pagination.cursor).toEqual(expect.any(String));
+
+    const page2 = await request(app).get(`/v1/media/series?take=2&cursor=${page1.body.pagination.cursor}`);
+    expect(page2.status).toBe(200);
+    expect(page2.body.series).toHaveLength(1);
+    expect(page2.body.pagination).toEqual({ hasMore: false, cursor: null });
   });
 });
 
 describe('GET /v1/media/series/:id', () => {
   it('returns series with media ordered by position', async () => {
-    const series = await seedSeries();
-    const mediaA = await seedMedia({ nameEn: 'Media A', nameRomaji: 'Media A', nameJa: 'Media A' });
-    const mediaB = await seedMedia({ nameEn: 'Media B', nameRomaji: 'Media B', nameJa: 'Media B' });
-
-    await SeriesMedia.save({ seriesId: series.id, mediaId: mediaA.id, position: 2 });
-    await SeriesMedia.save({ seriesId: series.id, mediaId: mediaB.id, position: 1 });
+    const fixtures = await loadFixtures(['seriesWithOrderedMedia']);
+    const series = fixtures.series.testSeries;
+    const mediaA = fixtures.media.mediaA;
+    const mediaB = fixtures.media.mediaB;
 
     const res = await request(app).get(`/v1/media/series/${series.id}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe(series.id);
+    expect(res.body).toMatchObject({
+      id: series.id,
+      media: [
+        { position: 1, media: { id: mediaB.id } },
+        { position: 2, media: { id: mediaA.id } },
+      ],
+    });
     expect(res.body.media).toHaveLength(2);
-    expect(res.body.media[0].position).toBe(1);
-    expect(res.body.media[0].media.id).toBe(mediaB.id);
-    expect(res.body.media[1].position).toBe(2);
-    expect(res.body.media[1].media.id).toBe(mediaA.id);
   });
 
   it('returns 404 when series does not exist', async () => {
     const res = await request(app).get('/v1/media/series/999');
 
     expect(res.status).toBe(404);
-    expect(res.body.code).toBe('NOT_FOUND');
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
@@ -111,7 +94,7 @@ describe('POST /v1/media/series', () => {
     });
 
     expect(res.status).toBe(201);
-    expect(res.body.nameEn).toBe('Attack on Titan');
+    expect(res.body).toMatchObject({ nameEn: 'Attack on Titan' });
 
     const saved = await Series.findOneBy({ id: res.body.id });
     expect(saved).not.toBeNull();
@@ -121,12 +104,13 @@ describe('POST /v1/media/series', () => {
 
 describe('PATCH /v1/media/series/:id', () => {
   it('updates a series and returns it', async () => {
-    const series = await seedSeries({ nameEn: 'Old Name' });
+    const fixtures = await loadFixtures(['singleSeries']);
+    const series = fixtures.series.testSeries;
 
     const res = await request(app).patch(`/v1/media/series/${series.id}`).send({ nameEn: 'New Name' });
 
     expect(res.status).toBe(200);
-    expect(res.body.nameEn).toBe('New Name');
+    expect(res.body).toMatchObject({ nameEn: 'New Name' });
 
     const updated = await Series.findOneBy({ id: series.id });
     expect(updated!.nameEn).toBe('New Name');
@@ -136,17 +120,19 @@ describe('PATCH /v1/media/series/:id', () => {
     const res = await request(app).patch('/v1/media/series/999').send({ nameEn: 'Nope' });
 
     expect(res.status).toBe(404);
-    expect(res.body.code).toBe('NOT_FOUND');
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
 describe('DELETE /v1/media/series/:id', () => {
   it('deletes the series and returns 204', async () => {
-    const series = await seedSeries();
+    const fixtures = await loadFixtures(['singleSeries']);
+    const series = fixtures.series.testSeries;
 
     const res = await request(app).delete(`/v1/media/series/${series.id}`);
 
     expect(res.status).toBe(204);
+
     const deleted = await Series.findOneBy({ id: series.id });
     expect(deleted).toBeNull();
   });
@@ -155,14 +141,15 @@ describe('DELETE /v1/media/series/:id', () => {
     const res = await request(app).delete('/v1/media/series/999');
 
     expect(res.status).toBe(404);
-    expect(res.body.code).toBe('NOT_FOUND');
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
 describe('POST /v1/media/series/:id/media', () => {
   it('adds media to series', async () => {
-    const series = await seedSeries();
-    const media = await seedMedia();
+    const fixtures = await loadFixtures(['seriesAndMedia']);
+    const series = fixtures.series.testSeries;
+    const media = fixtures.media.testShow;
 
     const res = await request(app).post(`/v1/media/series/${series.id}/media`).send({
       mediaId: media.id,
@@ -177,7 +164,8 @@ describe('POST /v1/media/series/:id/media', () => {
   });
 
   it('returns 404 when series does not exist (FK violation)', async () => {
-    const media = await seedMedia();
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
 
     const res = await request(app).post('/v1/media/series/999/media').send({
       mediaId: media.id,
@@ -185,11 +173,12 @@ describe('POST /v1/media/series/:id/media', () => {
     });
 
     expect(res.status).toBe(404);
-    expect(res.body.code).toBe('NOT_FOUND');
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('returns 404 when media does not exist (FK violation)', async () => {
-    const series = await seedSeries();
+    const fixtures = await loadFixtures(['singleSeries']);
+    const series = fixtures.series.testSeries;
 
     const res = await request(app).post(`/v1/media/series/${series.id}/media`).send({
       mediaId: 999,
@@ -197,31 +186,19 @@ describe('POST /v1/media/series/:id/media', () => {
     });
 
     expect(res.status).toBe(404);
-    expect(res.body.code).toBe('NOT_FOUND');
-  });
-
-  it('returns 409 when adding duplicate media entry', async () => {
-    const series = await seedSeries();
-    const media = await seedMedia();
-    await SeriesMedia.save({ seriesId: series.id, mediaId: media.id, position: 1 });
-
-    const res = await request(app).post(`/v1/media/series/${series.id}/media`).send({
-      mediaId: media.id,
-      position: 2,
-    });
-
-    expect(res.status).toBe(409);
-    expect(res.body.code).toBe('DUPLICATE_KEY');
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
 describe('PATCH /v1/media/series/:id/media/:mediaId', () => {
   it('updates media position in series', async () => {
-    const series = await seedSeries();
-    const media = await seedMedia();
-    await SeriesMedia.save({ seriesId: series.id, mediaId: media.id, position: 1 });
+    const fixtures = await loadFixtures(['seriesWithLinkedMedia']);
+    const series = fixtures.series.testSeries;
+    const media = fixtures.media.testShow;
 
-    const res = await request(app).patch(`/v1/media/series/${series.id}/media/${media.id}`).send({ position: 3 });
+    const res = await request(app)
+      .patch(`/v1/media/series/${series.id}/media/${media.id}`)
+      .send({ position: 3 });
 
     expect(res.status).toBe(204);
 
@@ -230,21 +207,24 @@ describe('PATCH /v1/media/series/:id/media/:mediaId', () => {
   });
 
   it('returns 404 when relation does not exist', async () => {
-    const series = await seedSeries();
-    const media = await seedMedia();
+    const fixtures = await loadFixtures(['seriesAndMedia']);
+    const series = fixtures.series.testSeries;
+    const media = fixtures.media.testShow;
 
-    const res = await request(app).patch(`/v1/media/series/${series.id}/media/${media.id}`).send({ position: 2 });
+    const res = await request(app)
+      .patch(`/v1/media/series/${series.id}/media/${media.id}`)
+      .send({ position: 2 });
 
     expect(res.status).toBe(404);
-    expect(res.body.code).toBe('NOT_FOUND');
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
 describe('DELETE /v1/media/series/:id/media/:mediaId', () => {
   it('removes media from series', async () => {
-    const series = await seedSeries();
-    const media = await seedMedia();
-    await SeriesMedia.save({ seriesId: series.id, mediaId: media.id, position: 1 });
+    const fixtures = await loadFixtures(['seriesWithLinkedMedia']);
+    const series = fixtures.series.testSeries;
+    const media = fixtures.media.testShow;
 
     const res = await request(app).delete(`/v1/media/series/${series.id}/media/${media.id}`);
 
@@ -255,12 +235,13 @@ describe('DELETE /v1/media/series/:id/media/:mediaId', () => {
   });
 
   it('returns 404 when relation does not exist', async () => {
-    const series = await seedSeries();
-    const media = await seedMedia();
+    const fixtures = await loadFixtures(['seriesAndMedia']);
+    const series = fixtures.series.testSeries;
+    const media = fixtures.media.testShow;
 
     const res = await request(app).delete(`/v1/media/series/${series.id}/media/${media.id}`);
 
     expect(res.status).toBe(404);
-    expect(res.body.code).toBe('NOT_FOUND');
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 });

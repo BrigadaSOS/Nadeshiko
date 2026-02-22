@@ -14,10 +14,10 @@ get:
     - name: id
       in: path
       required: true
-      description: AniList character ID
+      description: Internal character ID
       schema:
         type: integer
-        example: 14545
+        example: 1
   responses:
     "200":
       description: OK

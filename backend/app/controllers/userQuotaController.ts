@@ -1,22 +1,12 @@
 import type { GetUserQuota } from 'generated/routes/user';
-import { AuthCredentialsInvalidError } from '@app/errors';
+import { assertUser } from '@app/middleware/authentication';
 import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
+import { toUserQuotaDTO } from './mappers/userQuota.mapper';
 
 export const getUserQuota: GetUserQuota = async (_params, respond, req) => {
-  const user = req.user;
-  if (!user) {
-    throw new AuthCredentialsInvalidError('Invalid session user.');
-  }
+  const user = assertUser(req);
 
-  const quota = await AccountQuotaUsage.getForUser(user.id, Number(user.monthlyQuotaLimit));
-  const window = AccountQuotaUsage.getQuotaWindow(quota.periodYyyymm);
+  const snapshot = await AccountQuotaUsage.getForUser(user.id, user.monthlyQuotaLimit);
 
-  return respond.with200().body({
-    quotaUsed: quota.quotaUsed,
-    quotaLimit: quota.quotaLimit,
-    quotaRemaining: quota.quotaRemaining,
-    periodYyyymm: quota.periodYyyymm,
-    periodStart: window.periodStart,
-    periodEnd: window.periodEnd,
-  });
+  return respond.with200().body(toUserQuotaDTO(snapshot));
 };

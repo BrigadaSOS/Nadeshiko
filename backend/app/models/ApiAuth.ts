@@ -1,4 +1,5 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, CreateDateColumn, BaseEntity } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { BaseEntity } from './base.entity';
 import type { User } from './User';
 import type { ApiAuthPermission } from './ApiAuthPermission';
 
@@ -15,9 +16,6 @@ export class ApiAuth extends BaseEntity {
 
   @Column({ type: 'varchar' })
   token!: string;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive!: boolean;

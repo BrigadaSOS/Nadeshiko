@@ -14,9 +14,9 @@ get:
     - name: cursor
       in: query
       schema:
-        type: integer
-      description: Cursor for pagination (report ID to start after)
-    - name: limit
+        type: string
+      description: Opaque pagination cursor token
+    - name: take
       in: query
       schema:
         type: integer

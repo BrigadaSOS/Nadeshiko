@@ -21,6 +21,8 @@ import {
   ReviewCheckRun,
   ReviewAllowlist,
   UserActivity,
+  Experiment,
+  ExperimentEnrollment,
 } from '@app/models';
 import { SegmentSubscriber } from '@app/subscribers';
 import { getAppPostgresConfig } from '@config/postgresConfig';
@@ -56,6 +58,8 @@ export const AppDataSource = new DataSource({
     ReviewCheckRun,
     ReviewAllowlist,
     UserActivity,
+    Experiment,
+    ExperimentEnrollment,
   ],
   subscribers: [SegmentSubscriber],
   migrations: ['./db/migrations/**/*.ts'],
