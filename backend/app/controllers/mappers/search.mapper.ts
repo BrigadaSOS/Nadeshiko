@@ -1,4 +1,4 @@
-import type { t_Media, t_Category, t_ExternalId } from 'generated/models';
+import type { t_Media, t_Category, t_ExternalId, t_IncludeExpansion } from 'generated/models';
 import type { MediaExternalId } from '@app/models/MediaExternalId';
 import { Media } from '@app/models';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
@@ -36,5 +36,29 @@ export const toMediaSummary = (media: Media): t_Media => {
     seasonYear: media.seasonYear,
     studio: media.studio,
     characters: [],
+  };
+};
+
+export const SearchInclude = {
+  MEDIA: 'media',
+} as const;
+
+type SearchIncludesResponse = {
+  includes?: {
+    media?: Record<string, unknown>;
+  };
+};
+
+export const shouldIncludeSearchMedia = (include?: t_IncludeExpansion[]): boolean =>
+  include?.includes(SearchInclude.MEDIA) ?? false;
+
+export const toSearchResponseDTO = <T extends SearchIncludesResponse>(result: T, include?: t_IncludeExpansion[]): T => {
+  if (shouldIncludeSearchMedia(include)) {
+    return result;
+  }
+
+  return {
+    ...result,
+    includes: { media: {} },
   };
 };

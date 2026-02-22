@@ -15,20 +15,22 @@ import { type NextFunction, type Request, type Response, Router } from 'express'
 import { z } from 'zod/v3';
 import type {
   t_CreateUserReportRequestBodySchema,
+  t_DeleteUserActivityByDateParamSchema,
+  t_DeleteUserActivityByIdParamSchema,
   t_DeleteUserActivityQuerySchema,
   t_EnrollUserLabParamSchema,
   t_Error400,
   t_Error401,
+  t_Error403,
   t_Error404,
   t_Error429,
   t_Error500,
   t_GetUserActivityHeatmapQuerySchema,
   t_GetUserActivityStatsQuerySchema,
   t_ListUserActivityQuerySchema,
-  t_ListUserReportsQuerySchema,
   t_OpaqueCursorPagination,
   t_Report,
-  t_ReportListResponse,
+  t_TrackUserActivityRequestBodySchema,
   t_UnenrollUserLabParamSchema,
   t_UpdateUserPreferencesRequestBodySchema,
   t_UserActivity,
@@ -37,18 +39,18 @@ import type {
   t_UserPreferences,
   t_UserQuotaResponse,
 } from '../models.ts';
-import type { CreateReportRequestOutput, DeleteUserActivityQueryOutput, GetUserActivityHeatmapQueryOutput, GetUserActivityStatsQueryOutput, ListUserActivityQueryOutput, ListUserReportsQueryOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { CreateReportRequestOutput, DeleteUserActivityQueryOutput, GetUserActivityHeatmapQueryOutput, GetUserActivityStatsQueryOutput, ListUserActivityQueryOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
   s_CreateReportRequest,
   s_Error400,
   s_Error401,
+  s_Error403,
   s_Error404,
   s_Error429,
   s_Error500,
   s_OpaqueCursorPagination,
   s_Report,
-  s_ReportListResponse,
   s_UserActivity,
   s_UserExportResponse,
   s_UserLabFeature,
@@ -59,6 +61,7 @@ import {
 export type GetUserQuotaResponder = {
   with200(): ExpressRuntimeResponse<t_UserQuotaResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
   with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
@@ -82,20 +85,6 @@ export type CreateUserReportResponder = {
 export type CreateUserReport = (
   params: Params<void, void, CreateReportRequestOutput, void>,
   respond: CreateUserReportResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListUserReportsResponder = {
-  with200(): ExpressRuntimeResponse<t_ReportListResponse>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListUserReports = (
-  params: Params<void, ListUserReportsQueryOutput, void, void>,
-  respond: ListUserReportsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -141,6 +130,21 @@ export type ListUserActivityResponder = {
 export type ListUserActivity = (
   params: Params<void, ListUserActivityQueryOutput, void, void>,
   respond: ListUserActivityResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type TrackUserActivityResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type TrackUserActivity = (
+  params: Params<void, void, t_TrackUserActivityRequestBodySchema, void>,
+  respond: TrackUserActivityResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -198,6 +202,39 @@ export type GetUserActivityStatsResponder = {
 export type GetUserActivityStats = (
   params: Params<void, GetUserActivityStatsQueryOutput, void, void>,
   respond: GetUserActivityStatsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type DeleteUserActivityByDateResponder = {
+  with200(): ExpressRuntimeResponse<{
+    deletedCount: number;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type DeleteUserActivityByDate = (
+  params: Params<t_DeleteUserActivityByDateParamSchema, void, void, void>,
+  respond: DeleteUserActivityByDateResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type DeleteUserActivityByIdResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with404(): ExpressRuntimeResponse<{
+    message?: string;
+  }>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type DeleteUserActivityById = (
+  params: Params<t_DeleteUserActivityByIdParamSchema, void, void, void>,
+  respond: DeleteUserActivityByIdResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -264,13 +301,15 @@ export type UnenrollUserLab = (
 export type UserImplementation = {
   getUserQuota: GetUserQuota;
   createUserReport: CreateUserReport;
-  listUserReports: ListUserReports;
   getUserPreferences: GetUserPreferences;
   updateUserPreferences: UpdateUserPreferences;
   listUserActivity: ListUserActivity;
+  trackUserActivity: TrackUserActivity;
   deleteUserActivity: DeleteUserActivity;
   getUserActivityHeatmap: GetUserActivityHeatmap;
   getUserActivityStats: GetUserActivityStats;
+  deleteUserActivityByDate: DeleteUserActivityByDate;
+  deleteUserActivityById: DeleteUserActivityById;
   exportUserData: ExportUserData;
   listUserLabs: ListUserLabs;
   enrollUserLab: EnrollUserLab;
@@ -284,6 +323,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['200', s_UserQuotaResponse],
       ['401', s_Error401],
+      ['403', s_Error403],
       ['429', s_Error429],
       ['500', s_Error500],
     ],
@@ -306,6 +346,9 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
         },
         with429() {
           return new ExpressRuntimeResponse<t_Error429>(429);
@@ -400,69 +443,6 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       if (body !== undefined) {
         res.json(createUserReportResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const listUserReportsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
-  });
-
-  const listUserReportsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_ReportListResponse],
-      ['401', s_Error401],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listUserReports
-  router.get(`/v1/user/reports`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(listUserReportsQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_ReportListResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.listUserReports(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listUserReportsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -646,6 +626,75 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       if (body !== undefined) {
         res.json(listUserActivityResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const trackUserActivityRequestBodySchema = z.object({
+    activityType: z.enum(['SEGMENT_PLAY']),
+    segmentUuid: z.string().optional(),
+    mediaId: z.coerce.number().optional(),
+    animeName: z.string().optional(),
+    japaneseText: z.string().optional(),
+  });
+
+  const trackUserActivityResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // trackUserActivity
+  router.post(`/v1/user/activity`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(trackUserActivityRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.trackUserActivity(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(trackUserActivityResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -850,6 +899,132 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       if (body !== undefined) {
         res.json(getUserActivityStatsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const deleteUserActivityByDateParamSchema = z.object({ date: z.string() });
+
+  const deleteUserActivityByDateResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ deletedCount: z.coerce.number() })],
+      ['401', s_Error401],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // deleteUserActivityByDate
+  router.delete(`/v1/user/activity/date/:date`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(deleteUserActivityByDateParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            deletedCount: number;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.deleteUserActivityByDate(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(deleteUserActivityByDateResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const deleteUserActivityByIdParamSchema = z.object({ id: z.coerce.number() });
+
+  const deleteUserActivityByIdResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['401', s_Error401],
+      ['404', z.object({ message: z.string().optional() })],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // deleteUserActivityById
+  router.delete(`/v1/user/activity/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(deleteUserActivityByIdParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<{
+            message?: string;
+          }>(404);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.deleteUserActivityById(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(deleteUserActivityByIdResponseBodyValidator(status, body));
       } else {
         res.end();
       }

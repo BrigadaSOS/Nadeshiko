@@ -4,7 +4,6 @@ export class Experiments1706151100000 implements MigrationInterface {
   name = 'Experiments1706151100000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // ===== EXPERIMENT =====
     await queryRunner.query(`
       CREATE TABLE "Experiment" (
         "id" SERIAL PRIMARY KEY,
@@ -21,7 +20,6 @@ export class Experiments1706151100000 implements MigrationInterface {
       )
     `);
 
-    // ===== EXPERIMENT ENROLLMENT =====
     await queryRunner.query(`
       CREATE TABLE "ExperimentEnrollment" (
         "id" SERIAL PRIMARY KEY,

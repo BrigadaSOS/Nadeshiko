@@ -1,14 +1,9 @@
-import 'dotenv/config';
+import '@config/boot';
 import { execFileSync } from 'child_process';
 import { existsSync } from 'fs';
 import { isLocalEnvironment } from '@config/environment';
 import { logger } from '@config/log';
-
-interface EnvConfig {
-  EMAIL_API_NADEDB: string;
-  API_KEY_MASTER: string;
-  PORT: string;
-}
+import { config } from '@config/config';
 
 function printHeader() {
   console.log('');
@@ -66,8 +61,6 @@ function runDbSetup(): void {
 }
 
 function printFinalSummary(): void {
-  const env = process.env as NodeJS.ProcessEnv & EnvConfig;
-
   console.log('');
   console.log('====================================');
   console.log('  Setup Complete! 🎉');
@@ -77,10 +70,10 @@ function printFinalSummary(): void {
   console.log('  bun run dev');
   console.log('');
   console.log('Admin credentials:');
-  console.log(`  Email:    ${env.EMAIL_API_NADEDB}`);
-  console.log(`  API Key:  ${env.API_KEY_MASTER}`);
+  console.log(`  Email:    ${config.EMAIL_API_NADEDB}`);
+  console.log(`  API Key:  ${config.API_KEY_MASTER}`);
   console.log('');
-  console.log(`API will be available at: http://localhost:${env.PORT}`);
+  console.log(`API will be available at: http://localhost:${config.PORT}`);
   console.log('');
 }
 

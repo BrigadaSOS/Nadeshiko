@@ -6,7 +6,6 @@ import { MediaCharacter } from './MediaCharacter';
 import { MediaExternalId } from './MediaExternalId';
 import { Segment, SegmentStatus } from './Segment';
 import type { SeriesMedia } from './SeriesMedia';
-import type { MediaInfoData } from '@app/types/queryMediaInfoResponse';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 import { SegmentStorage } from './Segment';
 import { Cache, createCacheNamespace } from '@lib/cache';
@@ -122,7 +121,7 @@ export class Media extends BaseEntity {
   }
 
   static async getMediaInfoMap(): Promise<{
-    results: Map<number, MediaInfoData>;
+    results: Map<number, ReturnType<typeof Media.toMediaInfoData>>;
     stats: {
       totalAnimes: number;
       totalSegments: number;
@@ -136,7 +135,7 @@ export class Media extends BaseEntity {
         order: { createdAt: 'DESC' },
       });
 
-      const mediaMap = new Map<number, MediaInfoData>();
+      const mediaMap = new Map<number, ReturnType<typeof Media.toMediaInfoData>>();
       let totalSegments = 0;
 
       for (const media of allMedia) {
@@ -162,7 +161,7 @@ export class Media extends BaseEntity {
     page: number,
     pageSize: number,
   ): Promise<{
-    results: { [key: number]: MediaInfoData };
+    results: Record<number, ReturnType<typeof Media.toMediaInfoData>>;
     stats: {
       totalAnimes: number;
       totalSegments: number;
@@ -179,7 +178,7 @@ export class Media extends BaseEntity {
       skip: offset,
     });
 
-    const results: { [key: number]: MediaInfoData } = {};
+    const results: Record<number, ReturnType<typeof Media.toMediaInfoData>> = {};
     let totalSegments = 0;
 
     for (const m of media) {
@@ -217,7 +216,7 @@ export class Media extends BaseEntity {
     };
   }
 
-  private static toMediaInfoData(media: Media): MediaInfoData {
+  private static toMediaInfoData(media: Media){
     const externalIds: Record<string, string> = {};
     for (const ext of media.externalIds ?? []) {
       externalIds[ext.source.toLowerCase()] = ext.externalId;

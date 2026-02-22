@@ -2,7 +2,7 @@ import 'dotenv/config';
 import request from 'supertest';
 import express, { type Request, type Response, type ErrorRequestHandler } from 'express';
 import crypto from 'crypto';
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'bun:test';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { requestIdMiddleware } from '@app/middleware/requestId';
@@ -11,29 +11,24 @@ import {
   requireSessionAuth,
   assertUser,
   invalidateUserCache,
+  invalidateApiKeyCacheForUser,
 } from '@app/middleware/authentication';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { ApiAuth, User } from '@app/models';
+import { auth } from '@config/auth';
 
-// ---------------------------------------------------------------------------
-// Mock better-auth — module loads eagerly, so vi.mock must run before import
-// ---------------------------------------------------------------------------
+let mockGetSession: Mock<typeof auth.api.getSession>;
+let mockVerifyApiKey: Mock<typeof auth.api.verifyApiKey>;
 
-const mockGetSession = vi.fn();
-const mockVerifyApiKey = vi.fn();
+beforeAll(() => {
+  mockGetSession = vi.spyOn(auth.api, 'getSession') as any;
+  mockVerifyApiKey = vi.spyOn(auth.api, 'verifyApiKey') as any;
+});
 
-vi.mock('@config/auth', () => ({
-  auth: {
-    api: {
-      getSession: (...args: unknown[]) => mockGetSession(...args),
-      verifyApiKey: (...args: unknown[]) => mockVerifyApiKey(...args),
-    },
-  },
-}));
-
-// ---------------------------------------------------------------------------
-// DB setup (transaction-wrapped isolation like controller tests)
-// ---------------------------------------------------------------------------
+afterAll(() => {
+  mockGetSession.mockRestore();
+  mockVerifyApiKey.mockRestore();
+});
 
 setupTestSuite();
 
@@ -48,10 +43,6 @@ beforeEach(() => {
   invalidateUserCache(fixtures.users.kevin.id);
   invalidateUserCache(fixtures.users.david.id);
 });
-
-// ---------------------------------------------------------------------------
-// App factories — use real auth middleware instead of testAuthMiddleware
-// ---------------------------------------------------------------------------
 
 function createApiKeyApp() {
   const app = express();
@@ -83,10 +74,6 @@ function createSessionApp() {
   app.use(handleErrors as ErrorRequestHandler);
   return app;
 }
-
-// ---------------------------------------------------------------------------
-// Legacy API key auth
-// ---------------------------------------------------------------------------
 
 describe('requireApiKeyAuth — legacy keys', () => {
   it('authenticates with a valid legacy API key', async () => {
@@ -151,9 +138,7 @@ describe('requireApiKeyAuth — legacy keys', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Better Auth API key
-// ---------------------------------------------------------------------------
 
 describe('requireApiKeyAuth — better-auth keys', () => {
   it('authenticates with a valid better-auth API key', async () => {
@@ -234,11 +219,141 @@ describe('requireApiKeyAuth — better-auth keys', () => {
     expect(res.status).toBe(200);
     expect(res.body.authType).toBe('api-key');
   });
+
+  it('returns 429 QUOTA_EXCEEDED when better-auth reports usage exceeded', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: false,
+      error: { code: 'USAGE_EXCEEDED' },
+    });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_usageexceeded');
+
+    expect(res.status).toBe(429);
+    expect(res.body).toMatchObject({ code: 'QUOTA_EXCEEDED' });
+  });
+
+  it('returns 401 AUTH_CREDENTIALS_EXPIRED when better-auth reports key disabled', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: false,
+      error: { code: 'KEY_DISABLED' },
+    });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_disabled');
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_EXPIRED' });
+  });
+
+  it('returns 401 AUTH_CREDENTIALS_INVALID when better-auth reports key not found', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: false,
+      error: { code: 'KEY_NOT_FOUND' },
+    });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_notfound');
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });
+  });
+
+  it('returns mapped error when verifyApiKey throws a rate-limit error', async () => {
+    mockVerifyApiKey.mockRejectedValue({ statusCode: 429, body: { code: 'RATE_LIMITED' } });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_throwratelimit');
+
+    expect(res.status).toBe(429);
+    expect(res.body).toMatchObject({ code: 'RATE_LIMIT_EXCEEDED' });
+  });
+
+  it('returns 500 when verifyApiKey throws an unmapped error', async () => {
+    mockVerifyApiKey.mockRejectedValue(new Error('network down'));
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_networkerror');
+
+    expect(res.status).toBe(500);
+  });
+
+  it('returns 401 when verification is invalid with no error code', async () => {
+    mockVerifyApiKey.mockResolvedValue({ valid: false });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_noerrorcode');
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });
+  });
+
+  it('maps 429 statusCode to RateLimitExceededError', async () => {
+    mockVerifyApiKey.mockRejectedValue({ statusCode: 429, body: {} });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_429nobodycode');
+
+    expect(res.status).toBe(429);
+    expect(res.body).toMatchObject({ code: 'RATE_LIMIT_EXCEEDED' });
+  });
+
+  it('maps 429 with usage exceeded message to QuotaExceededError', async () => {
+    mockVerifyApiKey.mockRejectedValue({ statusCode: 429, message: 'usage exceeded', body: {} });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_429usageexceeded');
+
+    expect(res.status).toBe(429);
+    expect(res.body).toMatchObject({ code: 'QUOTA_EXCEEDED' });
+  });
+
+  it('maps 401 with invalid api key message', async () => {
+    mockVerifyApiKey.mockRejectedValue({ statusCode: 401, message: 'invalid api key', body: {} });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_401invalidkey');
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });
+  });
+
+  it('parses stringified JSON metadata', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-str-meta',
+        userId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: '{"keyType":"service"}',
+      },
+    });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_strmeta');
+
+    expect(res.status).toBe(200);
+  });
+
+  it('identifies service keys from isService metadata flag', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-isservice',
+        userId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: { isService: true },
+      },
+    });
+
+    const app = createApiKeyApp();
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_isservice');
+
+    expect(res.status).toBe(200);
+  });
 });
 
-// ---------------------------------------------------------------------------
 // Session auth
-// ---------------------------------------------------------------------------
 
 describe('requireSessionAuth', () => {
   it('authenticates with a valid session', async () => {
@@ -287,9 +402,57 @@ describe('requireSessionAuth', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
+// Idempotent guard — skip auth when req.auth is already set
+
+describe('idempotent guard', () => {
+  it('requireSessionAuth skips when req.auth is already set', async () => {
+    const app = express();
+    app.use(requestIdMiddleware);
+    app.use(express.json());
+    // Pre-set auth as if API key middleware already ran
+    app.use((req: Request, _res: Response, next) => {
+      req.user = fixtures.users.kevin;
+      req.auth = { type: 'api-key' as any, apiKey: { kind: 'user' as any, permissions: [] } };
+      next();
+    });
+    app.use(requireSessionAuth);
+    app.get('/test', (req: Request, res: Response) => {
+      res.status(200).json({ authType: req.auth?.type });
+    });
+    app.use(handleErrors as ErrorRequestHandler);
+
+    // No session mock — would 401 if the guard didn't skip
+    mockGetSession.mockResolvedValue(null);
+
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(200);
+    expect(res.body.authType).toBe('api-key');
+  });
+
+  it('requireApiKeyAuth skips when req.auth is already set', async () => {
+    const app = express();
+    app.use(requestIdMiddleware);
+    app.use(express.json());
+    // Pre-set auth as if session middleware already ran
+    app.use((req: Request, _res: Response, next) => {
+      req.user = fixtures.users.kevin;
+      req.auth = { type: 'session' as any };
+      next();
+    });
+    app.use(requireApiKeyAuth);
+    app.get('/test', (req: Request, res: Response) => {
+      res.status(200).json({ authType: req.auth?.type });
+    });
+    app.use(handleErrors as ErrorRequestHandler);
+
+    // No bearer token — would 401 if the guard didn't skip
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(200);
+    expect(res.body.authType).toBe('session');
+  });
+});
+
 // User cache behavior
-// ---------------------------------------------------------------------------
 
 describe('user cache', () => {
   it('returns 401 for an inactive user', async () => {
@@ -318,9 +481,98 @@ describe('user cache', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// assertUser
-// ---------------------------------------------------------------------------
+describe('user cache — expiry', () => {
+  it('evicts expired user cache entries', async () => {
+    invalidateUserCache(fixtures.users.kevin.id);
+    invalidateApiKeyCacheForUser(fixtures.users.kevin.id);
+
+    const originalDateNow = Date.now;
+    let currentTime = originalDateNow();
+    vi.spyOn(Date, 'now').mockImplementation(() => currentTime);
+
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-cache-ttl-1',
+        userId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
+    });
+
+    const app = createApiKeyApp();
+    const firstRes = await request(app).get('/test').set('Authorization', 'Bearer nade_cachettl1');
+    expect(firstRes.status).toBe(200);
+
+    const findOneSpy = vi.spyOn(User, 'findOne');
+
+    currentTime += 6 * 60 * 1000;
+
+    invalidateApiKeyCacheForUser(fixtures.users.kevin.id);
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-cache-ttl-2',
+        userId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
+    });
+
+    const secondRes = await request(app).get('/test').set('Authorization', 'Bearer nade_cachettl2');
+    expect(secondRes.status).toBe(200);
+
+    expect(findOneSpy).toHaveBeenCalled();
+
+    findOneSpy.mockRestore();
+    vi.spyOn(Date, 'now').mockRestore();
+  });
+
+  it('evicts expired API key cache entries', async () => {
+    invalidateUserCache(fixtures.users.kevin.id);
+    invalidateApiKeyCacheForUser(fixtures.users.kevin.id);
+
+    const originalDateNow = Date.now;
+    let currentTime = originalDateNow();
+    vi.spyOn(Date, 'now').mockImplementation(() => currentTime);
+
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-apicache-ttl-1',
+        userId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
+    });
+
+    const app = createApiKeyApp();
+    const firstRes = await request(app).get('/test').set('Authorization', 'Bearer nade_apikey_ttltest');
+    expect(firstRes.status).toBe(200);
+    expect(mockVerifyApiKey).toHaveBeenCalledTimes(1);
+
+    mockVerifyApiKey.mockClear();
+
+    currentTime += 6 * 60 * 1000;
+
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-apicache-ttl-1',
+        userId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
+    });
+
+    const secondRes = await request(app).get('/test').set('Authorization', 'Bearer nade_apikey_ttltest');
+    expect(secondRes.status).toBe(200);
+
+    expect(mockVerifyApiKey).toHaveBeenCalledTimes(1);
+
+    vi.spyOn(Date, 'now').mockRestore();
+  });
+});
 
 describe('assertUser', () => {
   it('returns req.user when set', () => {

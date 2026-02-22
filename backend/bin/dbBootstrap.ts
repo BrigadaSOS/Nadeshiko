@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '@config/boot';
 import { Client } from 'pg';
 import { getAdminPostgresConfig, getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
@@ -19,12 +19,21 @@ function quoteLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
+interface AdminConnectionConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+}
+
 interface BootstrapPostgresOptions {
   recreateRoleAndDatabase?: boolean;
 }
 
 async function dropRoleAndDatabase(
   adminClient: Client,
+  adminConfig: AdminConnectionConfig,
   appUser: string,
   appDatabase: string,
   adminUser: string,
@@ -32,6 +41,29 @@ async function dropRoleAndDatabase(
   const quotedUser = quoteIdentifier(appUser);
   const quotedDatabase = quoteIdentifier(appDatabase);
   const quotedAdminUser = quoteIdentifier(adminUser);
+
+  const roleExists = await adminClient.query('SELECT 1 FROM pg_roles WHERE rolname = $1', [appUser]);
+
+  if (roleExists.rowCount !== 0) {
+    // REASSIGN/DROP OWNED BY only affects the current database.
+    // The role may own objects in multiple databases (e.g. app DB + test DB),
+    // so we must connect to each one and revoke there.
+    const allDatabases = await adminClient.query<{ datname: string }>(
+      'SELECT datname FROM pg_database WHERE datistemplate = false',
+    );
+
+    for (const { datname } of allDatabases.rows) {
+      const dbClient = new Client({ ...adminConfig, database: datname });
+      await dbClient.connect();
+      try {
+        logger.info(`Revoking objects owned by '${appUser}' in '${datname}'`);
+        await dbClient.query(`REASSIGN OWNED BY ${quotedUser} TO ${quotedAdminUser}`);
+        await dbClient.query(`DROP OWNED BY ${quotedUser}`);
+      } finally {
+        await dbClient.end();
+      }
+    }
+  }
 
   const databaseExists = await adminClient.query('SELECT 1 FROM pg_database WHERE datname = $1', [appDatabase]);
   if (databaseExists.rowCount !== 0) {
@@ -47,11 +79,8 @@ async function dropRoleAndDatabase(
     await adminClient.query(`DROP DATABASE ${quotedDatabase}`);
   }
 
-  const roleExists = await adminClient.query('SELECT 1 FROM pg_roles WHERE rolname = $1', [appUser]);
   if (roleExists.rowCount !== 0) {
     logger.info(`Dropping PostgreSQL role '${appUser}'`);
-    await adminClient.query(`REASSIGN OWNED BY ${quotedUser} TO ${quotedAdminUser}`);
-    await adminClient.query(`DROP OWNED BY ${quotedUser}`);
     await adminClient.query(`DROP ROLE ${quotedUser}`);
   }
 }
@@ -161,18 +190,20 @@ export async function bootstrapPostgresWithOptions(options: BootstrapPostgresOpt
     `Bootstrapping PostgreSQL role '${appUser}' and database '${appDatabase}'${recreateRoleAndDatabase ? ' (destructive recreate)' : ''}`,
   );
 
-  const adminClient = new Client({
+  const adminConnectionConfig: AdminConnectionConfig = {
     host: adminHost,
     port: adminPostgres.port,
     user: adminUser,
     password: adminPassword,
     database: adminPostgres.database,
-  });
+  };
+
+  const adminClient = new Client(adminConnectionConfig);
 
   await adminClient.connect();
   try {
     if (recreateRoleAndDatabase) {
-      await dropRoleAndDatabase(adminClient, appUser, appDatabase, adminUser);
+      await dropRoleAndDatabase(adminClient, adminConnectionConfig, appUser, appDatabase, adminUser);
     }
     await ensureRoleAndDatabase(adminClient, appUser, appPassword, appDatabase);
   } finally {

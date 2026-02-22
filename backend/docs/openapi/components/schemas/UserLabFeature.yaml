@@ -19,6 +19,3 @@ properties:
   userControllable:
     type: boolean
     description: Whether the user can toggle this feature (lab=true, flag=false)
-  userOptedIn:
-    type: boolean
-    description: Whether the user has opted in (only present for labs)

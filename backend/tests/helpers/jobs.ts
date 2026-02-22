@@ -1,9 +1,11 @@
 import { vi } from 'bun:test';
-import * as pgBossModule from '@app/workers/pgBoss';
-import { createSegmentInES, updateSegmentInES, deleteSegmentFromES } from '@app/services/elasticsearchSync';
+import * as emailQueueModule from '@app/workers/emailQueue';
+import * as esSyncQueueModule from '@app/workers/esSyncQueue';
+import { SegmentDocument } from '@app/models/SegmentDocument';
 import { sendEmail } from '@app/mailers/email';
 import { Segment } from '@app/models';
-import type { EsSyncJobData, EmailJobData } from '@app/workers/pgBoss';
+import type { EmailJobData } from '@app/workers/emailQueue';
+import type { EsSyncJobData } from '@app/workers/esSyncQueue';
 
 /**
  * Job test helpers — Nadeshiko's equivalent of Rails' perform_enqueued_jobs.
@@ -33,12 +35,12 @@ export async function performEnqueuedJobs(block: () => Promise<void>): Promise<v
   const esSyncJobs: EsSyncJobData[] = [];
   const emailJobs: EmailJobData[] = [];
 
-  const esSpy = vi.spyOn(pgBossModule, 'sendEsSyncJob').mockImplementation(async (data) => {
+  const esSpy = vi.spyOn(esSyncQueueModule, 'sendEsSyncJob').mockImplementation(async (data) => {
     esSyncJobs.push(data);
     return 'mock-job-id';
   });
 
-  const emailSpy = vi.spyOn(pgBossModule, 'sendEmailJob').mockImplementation(async (data, _dedupeKey) => {
+  const emailSpy = vi.spyOn(emailQueueModule, 'sendEmailJob').mockImplementation(async (data, _dedupeKey) => {
     emailJobs.push(data);
     return 'mock-job-id';
   });
@@ -53,12 +55,12 @@ export async function performEnqueuedJobs(block: () => Promise<void>): Promise<v
   for (const job of esSyncJobs) {
     if (job.operation === 'CREATE') {
       const segment = await Segment.findOne({ where: { id: job.segmentId } });
-      if (segment) await createSegmentInES(segment);
+      if (segment) await SegmentDocument.index(segment);
     } else if (job.operation === 'UPDATE') {
       const segment = await Segment.findOne({ where: { id: job.segmentId } });
-      if (segment) await updateSegmentInES(segment);
+      if (segment) await SegmentDocument.index(segment);
     } else if (job.operation === 'DELETE') {
-      await deleteSegmentFromES(job.segmentId);
+      await SegmentDocument.delete(job.segmentId);
     }
   }
 

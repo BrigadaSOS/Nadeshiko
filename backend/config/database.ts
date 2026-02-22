@@ -1,30 +1,6 @@
-import 'dotenv/config';
+import '@config/boot';
 import { DataSource } from 'typeorm';
-import {
-  User,
-  AccountQuotaUsage,
-  Media,
-  MediaExternalId,
-  Segment,
-  Episode,
-  ApiAuth,
-  ApiAuthPermission,
-  Character,
-  Seiyuu,
-  MediaCharacter,
-  Collection,
-  CollectionSegment,
-  Series,
-  SeriesMedia,
-  Report,
-  ReviewCheck,
-  ReviewCheckRun,
-  ReviewAllowlist,
-  UserActivity,
-  Experiment,
-  ExperimentEnrollment,
-} from '@app/models';
-import { SegmentSubscriber } from '@app/subscribers';
+import { APP_ENTITIES, APP_SUBSCRIBERS, getDbLogging } from '@config/schema';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
 
@@ -37,34 +13,11 @@ export const AppDataSource = new DataSource({
   username: postgres.user,
   password: postgres.password,
   database: postgres.database,
-  entities: [
-    User,
-    AccountQuotaUsage,
-    Media,
-    MediaExternalId,
-    Segment,
-    Episode,
-    ApiAuth,
-    ApiAuthPermission,
-    Character,
-    Seiyuu,
-    MediaCharacter,
-    Collection,
-    CollectionSegment,
-    Series,
-    SeriesMedia,
-    Report,
-    ReviewCheck,
-    ReviewCheckRun,
-    ReviewAllowlist,
-    UserActivity,
-    Experiment,
-    ExperimentEnrollment,
-  ],
-  subscribers: [SegmentSubscriber],
+  entities: APP_ENTITIES,
+  subscribers: APP_SUBSCRIBERS,
   migrations: ['./db/migrations/**/*.ts'],
   synchronize: false, // Use migrations instead!
-  logging: false,
+  logging: getDbLogging(),
   extra: {
     max: 20,
     min: 5,

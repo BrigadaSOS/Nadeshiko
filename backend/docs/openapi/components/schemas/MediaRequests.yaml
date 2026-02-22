@@ -35,7 +35,6 @@ MediaFields: &mediaFields
     enum: [LOCAL, R2]
     description: Storage backend for media assets
     example: "R2"
-    default: "R2"
   startDate:
     type: string
     format: date
@@ -80,7 +79,6 @@ MediaFields: &mediaFields
     items:
       $ref: "./CharacterInput.yaml"
     description: List of characters appearing in the media with their voice actors
-    default: []
 
 # Update-only field (segmentCount)
 SegmentCountField: &segmentCountField
@@ -109,6 +107,18 @@ MediaCreateRequest:
     - seasonYear
   properties:
     <<: *mediaFields
+    storage:
+      type: string
+      enum: [LOCAL, R2]
+      description: Storage backend for media assets
+      example: "R2"
+      default: "R2"
+    characters:
+      type: array
+      items:
+        $ref: "./CharacterInput.yaml"
+      description: List of characters appearing in the media with their voice actors
+      default: []
 
 MediaUpdateRequest:
   type: object

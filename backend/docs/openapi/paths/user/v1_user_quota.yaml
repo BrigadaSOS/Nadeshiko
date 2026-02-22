@@ -20,6 +20,8 @@ get:
             $ref: "../../components/responses/UserQuotaResponse.yaml"
     "401":
       $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
     "429":
       $ref: "../../components/responses/TooManyRequests.yaml"
     "500":

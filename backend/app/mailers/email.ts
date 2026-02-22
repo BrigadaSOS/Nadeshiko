@@ -3,7 +3,7 @@ import { SES } from '@aws-sdk/client-ses';
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import { buildWelcomeEmail, buildAnnouncementEmail } from './emailTemplates';
-import { sendEmailJob } from '@app/workers/pgBoss';
+import { sendEmailJob } from '@app/workers/emailQueue';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
 let transporter: nodemailer.Transporter | null = null;
@@ -16,7 +16,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
     return transporter;
   }
 
-  const environment = getAppEnvironment();
+  const environment = getAppEnvironment(config.ENVIRONMENT);
   const isAutomatedTest = config.NODE_ENV === 'test';
 
   // In automated test runs, keep transport fully local and deterministic.
@@ -101,14 +101,13 @@ export interface EmailOptions {
   to: string;
   subject: string;
   html: string;
-  text: string;
 }
 
 /**
  * Sends an email directly (synchronous, for use by workers).
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const environment = getAppEnvironment();
+  const environment = getAppEnvironment(config.ENVIRONMENT);
   const isAutomatedTest = config.NODE_ENV === 'test';
   const fromEmail = config.SES_FROM_EMAIL;
   const fromName = config.SES_FROM_NAME;
@@ -119,7 +118,6 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
         environment,
         to: options.to,
         subject: options.subject,
-        text: options.text,
       },
       'Email sent (test mode - logged only)',
     );
@@ -134,7 +132,6 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       to: options.to,
       subject: options.subject,
       html: options.html,
-      text: options.text,
     });
 
     // Log preview URL when Ethereal transport is used.
@@ -170,14 +167,13 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
  * @param email - Email address of the new user
  */
 export async function sendWelcomeEmail(userId: number, username: string, email: string): Promise<void> {
-  const { subject, html, text } = await buildWelcomeEmail(username);
+  const { subject, html } = await buildWelcomeEmail(username);
 
   await sendEmailJob(
     {
       to: email,
       subject,
       html,
-      text,
     },
     `welcome-${userId}`, // Dedupe key to prevent duplicate welcome emails
   );
@@ -200,14 +196,13 @@ export async function sendAnnouncementEmail(
   subject: string,
   message: string,
 ): Promise<void> {
-  const { subject: emailSubject, html, text } = await buildAnnouncementEmail(username, subject, message);
+  const { subject: emailSubject, html } = await buildAnnouncementEmail(username, subject, message);
 
   await sendEmailJob(
     {
       to: email,
       subject: emailSubject,
       html,
-      text,
     },
     `announcement-${userId}-${subject.replace(/\s+/g, '-').toLowerCase()}`, // Dedupe key per user and announcement
   );

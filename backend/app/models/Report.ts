@@ -50,7 +50,7 @@ export enum ReportReason {
 @Entity('Report')
 @Index(['source'])
 @Index(['targetType', 'targetMediaId'])
-@Index(['reviewCheckRunId'])
+@Index(['auditRunId'])
 @Index(['status'])
 @Index(['userId'])
 export class Report extends BaseEntity {
@@ -72,8 +72,8 @@ export class Report extends BaseEntity {
   @Column({ name: 'target_segment_uuid', type: 'varchar', nullable: true })
   targetSegmentUuid?: string | null;
 
-  @Column({ name: 'review_check_run_id', type: 'int', nullable: true })
-  reviewCheckRunId?: number | null;
+  @Column({ name: 'audit_run_id', type: 'int', nullable: true })
+  auditRunId?: number | null;
 
   @Column({ type: 'enum', enum: ReportReason })
   reason!: ReportReason;
@@ -97,7 +97,7 @@ export class Report extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user?: User | null;
 
-  @ManyToOne('ReviewCheckRun')
-  @JoinColumn({ name: 'review_check_run_id' })
-  reviewCheckRun?: unknown;
+  @ManyToOne('MediaAuditRun')
+  @JoinColumn({ name: 'audit_run_id' })
+  auditRun?: unknown;
 }

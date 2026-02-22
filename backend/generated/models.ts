@@ -219,6 +219,44 @@ export type t_Media = {
   studio: string;
 };
 
+export type t_MediaAudit = {
+  createdAt?: string;
+  description: string;
+  enabled: boolean;
+  id: number;
+  label: string;
+  latestRun?: {
+    createdAt?: string;
+    id?: number;
+    resultCount?: number;
+  } | null;
+  name: string;
+  targetType: 'MEDIA' | 'EPISODE';
+  threshold: {
+    [key: string]: unknown | undefined;
+  };
+  thresholdSchema?: {
+    default?: number | boolean;
+    key?: string;
+    label?: string;
+    max?: number;
+    min?: number;
+    type?: 'number' | 'boolean';
+  }[];
+  updatedAt?: string | null;
+};
+
+export type t_MediaAuditRun = {
+  auditName: string;
+  category?: string | null;
+  createdAt: string;
+  id: number;
+  resultCount: number;
+  thresholdUsed: {
+    [key: string]: unknown | undefined;
+  };
+};
+
 export type t_MediaAutocompleteResponse = {
   media: t_Media[];
 };
@@ -281,6 +319,7 @@ export type t_ReindexResponse = {
 
 export type t_Report = {
   adminNotes?: string | null;
+  auditRunId?: number | null;
   createdAt: string;
   data?: {
     [key: string]: unknown | undefined;
@@ -306,17 +345,11 @@ export type t_Report = {
     | 'MISSING_TRANSLATIONS'
     | 'DB_ES_SYNC_ISSUES'
     | 'HIGH_REPORT_DENSITY';
-  reviewCheckRunId?: number | null;
   source: 'USER' | 'AUTO';
   status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
   target: t_ReportTarget;
   updatedAt?: string | null;
   userId?: number | null;
-};
-
-export type t_ReportListResponse = {
-  pagination: t_OpaqueCursorPagination;
-  reports: t_Report[];
 };
 
 export type t_ReportTarget = t_ReportTargetMedia | t_ReportTargetEpisode | t_ReportTargetSegment;
@@ -339,57 +372,10 @@ export type t_ReportTargetSegment = {
   type: 'SEGMENT';
 };
 
-export type t_ReviewAllowlist = {
-  checkName: string;
-  createdAt: string;
-  episodeNumber?: number | null;
-  id: number;
-  mediaId: number;
-  reason?: string | null;
-};
-
-export type t_ReviewCheck = {
-  createdAt?: string;
-  description: string;
-  enabled: boolean;
-  id: number;
-  label: string;
-  latestRun?: {
-    createdAt?: string;
-    id?: number;
-    resultCount?: number;
-  } | null;
-  name: string;
-  targetType: 'MEDIA' | 'EPISODE';
-  threshold: {
-    [key: string]: unknown | undefined;
-  };
-  thresholdSchema?: {
-    default?: number | boolean;
-    key?: string;
-    label?: string;
-    max?: number;
-    min?: number;
-    type?: 'number' | 'boolean';
-  }[];
-  updatedAt?: string | null;
-};
-
-export type t_ReviewCheckRun = {
-  category?: string | null;
-  checkName: string;
-  createdAt: string;
-  id: number;
-  resultCount: number;
-  thresholdUsed: {
-    [key: string]: unknown | undefined;
-  };
-};
-
-export type t_RunReviewResponse = {
+export type t_RunAuditResponse = {
   category: string | null;
   checksRun: {
-    checkName: string;
+    auditName: string;
     label: string;
     resultCount: number;
     runId: number;
@@ -575,7 +561,6 @@ export type t_UserLabFeature = {
   key: string;
   name?: string;
   userControllable: boolean;
-  userOptedIn?: boolean;
 };
 
 export type t_UserPreferences = {
@@ -653,13 +638,6 @@ export type t_AutocompleteMediaQuerySchema = {
   category?: 'ANIME' | 'JDRAMA';
   query: string;
   take?: number;
-};
-
-export type t_CreateAdminReviewAllowlistEntryRequestBodySchema = {
-  checkName: string;
-  episodeNumber?: number;
-  mediaId: number;
-  reason?: string;
 };
 
 export type t_CreateCollectionRequestBodySchema = {
@@ -757,10 +735,6 @@ export type t_CreateUserReportRequestBodySchema = {
   target: t_UserReportTarget;
 };
 
-export type t_DeleteAdminReviewAllowlistEntryParamSchema = {
-  id: number;
-};
-
 export type t_DeleteCollectionParamSchema = {
   id: number;
 };
@@ -788,16 +762,24 @@ export type t_DeleteUserActivityQuerySchema = {
   activityType?: t_ActivityType;
 };
 
+export type t_DeleteUserActivityByDateParamSchema = {
+  date: string;
+};
+
+export type t_DeleteUserActivityByIdParamSchema = {
+  id: number;
+};
+
 export type t_EnrollUserLabParamSchema = {
   key: string;
 };
 
-export type t_GetAdminQueueParamSchema = {
-  queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
+export type t_GetAdminMediaAuditRunParamSchema = {
+  id: number;
 };
 
-export type t_GetAdminReviewRunParamSchema = {
-  id: number;
+export type t_GetAdminQueueParamSchema = {
+  queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
 };
 
 export type t_GetCharacterParamSchema = {
@@ -885,13 +867,19 @@ export type t_ImpersonateAdminUserRequestBodySchema = {
   userId: number;
 };
 
+export type t_ListAdminMediaAuditRunsQuerySchema = {
+  auditName?: string;
+  cursor?: string;
+  take?: number;
+};
+
 export type t_ListAdminQueueFailedParamSchema = {
   queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
 };
 
 export type t_ListAdminReportsQuerySchema = {
+  auditRunId?: number;
   cursor?: string;
-  reviewCheckRunId?: number;
   source?: 'USER' | 'AUTO';
   status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
   take?: number;
@@ -899,16 +887,6 @@ export type t_ListAdminReportsQuerySchema = {
   'target.mediaId'?: number;
   'target.segmentUuid'?: string;
   'target.type'?: 'SEGMENT' | 'EPISODE' | 'MEDIA';
-};
-
-export type t_ListAdminReviewAllowlistQuerySchema = {
-  checkName?: string;
-};
-
-export type t_ListAdminReviewRunsQuerySchema = {
-  checkName?: string;
-  cursor?: string;
-  take?: number;
 };
 
 export type t_ListCollectionsQuerySchema = {
@@ -958,12 +936,6 @@ export type t_ListUserActivityQuerySchema = {
   take?: number;
 };
 
-export type t_ListUserReportsQuerySchema = {
-  cursor?: string;
-  status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
-  take?: number;
-};
-
 export type t_PurgeAdminQueueFailedParamSchema = {
   queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
 };
@@ -982,9 +954,12 @@ export type t_RetryAdminQueueFailedParamSchema = {
   queueName: 'es-sync-create' | 'es-sync-update' | 'es-sync-delete';
 };
 
-export type t_RunAdminReviewQuerySchema = {
+export type t_RunAdminMediaAuditParamSchema = {
+  name: string;
+};
+
+export type t_RunAdminMediaAuditQuerySchema = {
   category?: 'ANIME' | 'JDRAMA';
-  checkName?: string;
 };
 
 export type t_SearchRequestBodySchema = {
@@ -1020,6 +995,14 @@ export type t_SearchWordsRequestBodySchema = {
   };
 };
 
+export type t_TrackUserActivityRequestBodySchema = {
+  activityType: 'SEGMENT_PLAY';
+  animeName?: string;
+  japaneseText?: string;
+  mediaId?: number;
+  segmentUuid?: string;
+};
+
 export type t_TriggerReindexRequestBodySchema = {
   media?: {
     episodes?: number[];
@@ -1031,6 +1014,17 @@ export type t_UnenrollUserLabParamSchema = {
   key: string;
 };
 
+export type t_UpdateAdminMediaAuditParamSchema = {
+  name: string;
+};
+
+export type t_UpdateAdminMediaAuditRequestBodySchema = {
+  enabled?: boolean;
+  threshold?: {
+    [key: string]: unknown | undefined;
+  };
+};
+
 export type t_UpdateAdminReportParamSchema = {
   id: number;
 };
@@ -1038,17 +1032,6 @@ export type t_UpdateAdminReportParamSchema = {
 export type t_UpdateAdminReportRequestBodySchema = {
   adminNotes?: string;
   status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
-};
-
-export type t_UpdateAdminReviewCheckParamSchema = {
-  name: string;
-};
-
-export type t_UpdateAdminReviewCheckRequestBodySchema = {
-  enabled?: boolean;
-  threshold?: {
-    [key: string]: unknown | undefined;
-  };
 };
 
 export type t_UpdateCollectionParamSchema = {

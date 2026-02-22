@@ -1,5 +1,6 @@
 import { User, ApiPermission, UserRoleType } from '@app/models';
 import { AppDataSource } from '@config/database';
+import { config } from '@config/config';
 import { getAppEnvironment } from '@config/environment';
 import { logger } from '@config/log';
 import { defaultKeyHasher } from 'better-auth/plugins';
@@ -23,19 +24,12 @@ function inferApiKeyPrefix(apiKey: string): string | null {
  * Idempotent: updates existing records when needed.
  */
 export async function seed() {
-  const environment = getAppEnvironment();
+  const environment = getAppEnvironment(config.ENVIRONMENT);
   logger.info({ environment }, 'Running seeds for environment');
 
-  // Get credentials from environment variables
-  const email = process.env.EMAIL_API_NADEDB;
-  const username = process.env.USERNAME_API_NADEDB;
-  const apiKey = process.env.API_KEY_MASTER;
-
-  if (!email || !username || !apiKey) {
-    logger.error('Missing required environment variables for seeding');
-    logger.error('Required: EMAIL_API_NADEDB, USERNAME_API_NADEDB, API_KEY_MASTER');
-    return;
-  }
+  const email = config.EMAIL_API_NADEDB;
+  const username = config.USERNAME_API_NADEDB;
+  const apiKey = config.API_KEY_MASTER;
 
   // Ensure admin user exists
   const existingUser = await User.findOne({

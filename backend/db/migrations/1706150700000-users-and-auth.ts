@@ -4,7 +4,6 @@ export class UsersAndAuth1706150700000 implements MigrationInterface {
   name = 'UsersAndAuth1706150700000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // ===== USER =====
     await queryRunner.query(`
       CREATE TABLE "User" (
         "id" SERIAL PRIMARY KEY,
@@ -23,7 +22,6 @@ export class UsersAndAuth1706150700000 implements MigrationInterface {
       )
     `);
 
-    // ===== API AUTH =====
     await queryRunner.query(`
       CREATE TABLE "ApiAuth" (
         "id" SERIAL PRIMARY KEY,
@@ -38,7 +36,6 @@ export class UsersAndAuth1706150700000 implements MigrationInterface {
       )
     `);
 
-    // ===== API AUTH PERMISSION =====
     await queryRunner.query(`
       CREATE TABLE "ApiAuthPermission" (
         "id" SERIAL PRIMARY KEY,
@@ -50,7 +47,6 @@ export class UsersAndAuth1706150700000 implements MigrationInterface {
       )
     `);
 
-    // ===== ACCOUNT QUOTA USAGE =====
     await queryRunner.query(`
       CREATE TABLE "AccountQuotaUsage" (
         "id" SERIAL PRIMARY KEY,

@@ -1,22 +1,20 @@
-import 'dotenv/config';
-import { client } from '@app/services/elasticsearch';
+import '@config/boot';
+import { client, resetElasticsearchIndex } from '@config/elasticsearch';
 import { logger } from '@config/log';
-import { reindexSegments } from '@app/services/elasticsearchSync';
+import { SegmentDocument } from '@app/models/SegmentDocument';
 import { Segment } from '@app/models';
 import { AppDataSource } from '@config/database';
 import { ensureDestructiveAllowed } from './destructiveGuard';
-import elasticsearchSchema from 'config/elasticsearch-schema.json';
+import { INDEX_NAME } from '@config/elasticsearch';
 
-const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
 const commandArgs = process.argv.slice(3);
 
 async function reindex(): Promise<void> {
   logger.info(`Reindexing Elasticsearch index '${INDEX_NAME}'...`);
 
-  const { resetElasticsearchIndex } = await import('@app/services/elasticsearch');
   await resetElasticsearchIndex();
 
-  const result = await reindexSegments();
+  const result = await SegmentDocument.reindex();
   if (!result.success) {
     throw new Error(result.message);
   }

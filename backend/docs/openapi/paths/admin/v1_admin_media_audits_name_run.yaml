@@ -1,0 +1,41 @@
+post:
+  tags:
+    - Admin
+  operationId: runAdminMediaAudit
+  summary: Run a media audit
+  description: |
+    Triggers all enabled audits (or a specific one). Creates MediaAuditRun records and AUTO reports for any findings.
+
+    **Permissions:** `ADD_MEDIA`
+  security:
+    - apiKeyHeader: [ADD_MEDIA]
+  parameters:
+    - name: name
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Audit name to run, or "all" to run all enabled audits
+    - name: category
+      in: query
+      schema:
+        type: string
+        enum: [ANIME, JDRAMA]
+      description: Optional category filter
+  responses:
+    "200":
+      description: Audit run completed
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/RunAuditResponse.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

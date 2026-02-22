@@ -128,6 +128,10 @@ paths:
     $ref: "./paths/user/v1_user_activity_heatmap.yaml"
   "/v1/user/activity/stats":
     $ref: "./paths/user/v1_user_activity_stats.yaml"
+  "/v1/user/activity/date/{date}":
+    $ref: "./paths/user/v1_user_activity_date_date.yaml"
+  "/v1/user/activity/{id}":
+    $ref: "./paths/user/v1_user_activity_id.yaml"
   "/v1/user/export":
     $ref: "./paths/user/v1_user_export.yaml"
   "/v1/user/labs":
@@ -172,20 +176,16 @@ paths:
     $ref: "./paths/admin/v1_admin_reports.yaml"
   "/v1/admin/reports/{id}":
     $ref: "./paths/admin/v1_admin_reports_id.yaml"
-  "/v1/admin/review/run":
-    $ref: "./paths/admin/v1_admin_review_run.yaml"
-  "/v1/admin/review/checks":
-    $ref: "./paths/admin/v1_admin_review_checks.yaml"
-  "/v1/admin/review/checks/{name}":
-    $ref: "./paths/admin/v1_admin_review_checks_name.yaml"
-  "/v1/admin/review/runs":
-    $ref: "./paths/admin/v1_admin_review_runs.yaml"
-  "/v1/admin/review/runs/{id}":
-    $ref: "./paths/admin/v1_admin_review_runs_id.yaml"
-  "/v1/admin/review/allowlist":
-    $ref: "./paths/admin/v1_admin_review_allowlist.yaml"
-  "/v1/admin/review/allowlist/{id}":
-    $ref: "./paths/admin/v1_admin_review_allowlist_id.yaml"
+  "/v1/admin/media/audits":
+    $ref: "./paths/admin/v1_admin_media_audits.yaml"
+  "/v1/admin/media/audits/{name}":
+    $ref: "./paths/admin/v1_admin_media_audits_name.yaml"
+  "/v1/admin/media/audits/{name}/run":
+    $ref: "./paths/admin/v1_admin_media_audits_name_run.yaml"
+  "/v1/admin/media/audits/runs":
+    $ref: "./paths/admin/v1_admin_media_audits_runs.yaml"
+  "/v1/admin/media/audits/runs/{id}":
+    $ref: "./paths/admin/v1_admin_media_audits_runs_id.yaml"
 
 components:
   securitySchemes:

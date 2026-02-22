@@ -1,2 +1,10 @@
 [test]
-preload = ["./tests/helpers/matchers.ts"]
+preload = ["./tests/helpers/preflight.ts", "./tests/helpers/matchers.ts"]
+bail = 1
+coverageThreshold = 0.9
+coveragePathIgnorePatterns = [
+  "db/migrations/**",
+  "generated/**",
+  "tests/fixtures/**",
+  "tests/helpers/**",
+]
