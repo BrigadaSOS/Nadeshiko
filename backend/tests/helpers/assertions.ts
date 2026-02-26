@@ -79,14 +79,14 @@ export async function assertNoDifference(counter: () => Promise<number>, block: 
  */
 export async function assertChanges<T>(
   getter: () => Promise<T>,
-  options: { from?: T; to: T },
+  options: { from?: Awaited<T>; to: Awaited<T> },
   block: () => Promise<void>,
 ): Promise<void> {
-  const before = await getter();
+  const before = (await getter()) as Awaited<T>;
   if (options.from !== undefined) {
-    expect(before, 'assertChanges: initial value did not match `from`').toEqual(options.from);
+    expect(before, 'assertChanges: initial value did not match `from`').toEqual(options.from as Awaited<T>);
   }
   await block();
-  const after = await getter();
+  const after = (await getter()) as Awaited<T>;
   expect(after, 'assertChanges: value did not change to expected `to`').toEqual(options.to);
 }

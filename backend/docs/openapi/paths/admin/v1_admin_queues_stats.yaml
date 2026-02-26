@@ -1,6 +1,7 @@
 get:
   tags:
     - Admin
+  x-internal: true
   operationId: listAdminQueueStats
   summary: Get queue statistics
   description: |
@@ -23,6 +24,10 @@ get:
             type: array
             items:
               type: object
+              required:
+                - queue
+                - stuckCount
+                - failedCount
               properties:
                 queue:
                   type: string

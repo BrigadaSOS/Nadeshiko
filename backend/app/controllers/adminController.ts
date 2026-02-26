@@ -6,8 +6,10 @@ import { client as esClient, INDEX_NAME } from '@config/elasticsearch';
 import { SegmentDocument, type ReindexMediaItem } from '@app/models/SegmentDocument';
 import { AppDataSource } from '@config/database';
 import { UserActivity } from '@app/models/UserActivity';
+import { config } from '@config/config';
+import packageJson from '../../package.json';
 
-const API_VERSION = '1.4.0';
+const API_VERSION = config.APP_VERSION === '0.0.0' ? packageJson.version : config.APP_VERSION;
 
 type ElasticsearchHealth = {
   status: 'connected' | 'disconnected';

@@ -1,9 +1,11 @@
 import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, spyOn, vi } from 'bun:test';
+import * as schemas from 'generated/schemas';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures, type LoadedFixtures } from '../fixtures/loader';
 import { assertDifference, assertNoDifference } from '../helpers/assertions';
+import { assertMatchesSchema } from '../helpers/openapiContract';
 import { Collection, CollectionSegment, CollectionVisibility, Segment } from '@app/models';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { SegmentDocument } from '@app/models/SegmentDocument';
@@ -27,7 +29,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function createTestCollection(overrides: Partial<{ name: string; userId: number; visibility: CollectionVisibility }> = {}) {
+async function createTestCollection(
+  overrides: Partial<{ name: string; userId: number; visibility: CollectionVisibility }> = {},
+) {
   return Collection.save({
     name: overrides.name ?? 'Test Collection',
     userId: overrides.userId ?? core.users.kevin.id,
@@ -89,20 +93,7 @@ describe('GET /v1/collections', () => {
 
     const page2 = await request(app).get(`/v1/collections?take=10&cursor=${res.body.pagination.cursor}`);
     expect(page2.status).toBe(200);
-    // Col A + Col B + auto-created "Anki Exports" = 3 total, page1 had 1, so 2 remaining
-    expect(page2.body.collections.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('auto-creates "Anki Exports" collection on first call', async () => {
-    await assertDifference(
-      () => Collection.countBy({ userId: core.users.kevin.id }),
-      1,
-      async () => {
-        const res = await request(app).get('/v1/collections');
-        expect(res.status).toBe(200);
-        expect(res.body.collections.some((c: { name: string }) => c.name === 'Anki Exports')).toBe(true);
-      },
-    );
+    expect(page2.body.collections).toHaveLength(1);
   });
 
   it('filters by visibility query param', async () => {
@@ -118,13 +109,13 @@ describe('GET /v1/collections', () => {
     expect(priv.body.collections.every((c: { visibility: string }) => c.visibility === 'PRIVATE')).toBe(true);
   });
 
-  it('does not return other users\' collections', async () => {
+  it("does not return other users' collections", async () => {
     await createTestCollection({ name: 'David Col', userId: core.users.david.id });
     await createTestCollection({ name: 'Kevin Col', userId: core.users.kevin.id });
 
     const res = await request(app).get('/v1/collections');
     expect(res.status).toBe(200);
-    expect(res.body.collections.every((c: { userId: number }) => c.userId === core.users.kevin.id)).toBe(true);
+    expect(res.body.collections.every((c: { name: string }) => c.name !== 'David Col')).toBe(true);
   });
 
   it('returns segmentCount aggregated from collection items', async () => {
@@ -173,7 +164,6 @@ describe('POST /v1/collections', () => {
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
       name: 'DTO Check',
-      userId: core.users.kevin.id,
       visibility: 'PRIVATE',
       segmentCount: 0,
     });
@@ -193,11 +183,38 @@ describe('GET /v1/collections/:id', () => {
       name: 'Test Collection',
       segments: [],
     });
+    assertMatchesSchema(schemas.s_CollectionWithSegments, res.body, 'GET /v1/collections/:id 200');
   });
 
   it('returns 404 for non-existent collection id', async () => {
     const res = await request(app).get('/v1/collections/999999');
     expect(res.status).toBe(404);
+  });
+
+  it('returns 403 for private collections owned by another user', async () => {
+    const collection = await createTestCollection({
+      userId: core.users.david.id,
+      visibility: CollectionVisibility.PRIVATE,
+    });
+    signInAs(app, core.users.regular);
+
+    const res = await request(app).get(`/v1/collections/${collection.id}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('allows reading public collections owned by another user', async () => {
+    const collection = await createTestCollection({
+      userId: core.users.david.id,
+      visibility: CollectionVisibility.PUBLIC,
+    });
+    signInAs(app, core.users.regular);
+
+    const res = await request(app).get(`/v1/collections/${collection.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      id: collection.id,
+      visibility: 'PUBLIC',
+    });
   });
 
   it('returns ordered segments with includes when collection has indexed segment results', async () => {
@@ -258,12 +275,12 @@ describe('PATCH /v1/collections/:id', () => {
     expect(res.body.visibility).toBe('PUBLIC');
   });
 
-  it('returns 401 when non-owner non-admin tries to update', async () => {
+  it('returns 403 when non-owner non-admin tries to update', async () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     signInAs(app, core.users.regular);
 
     const res = await request(app).patch(`/v1/collections/${collection.id}`).send({ name: 'Hacked' });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it('returns 404 for non-existent collection', async () => {
@@ -286,12 +303,12 @@ describe('DELETE /v1/collections/:id', () => {
     );
   });
 
-  it('returns 401 when non-owner tries to delete', async () => {
+  it('returns 403 when non-owner tries to delete', async () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     signInAs(app, core.users.regular);
 
     const res = await request(app).delete(`/v1/collections/${collection.id}`);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it('returns 404 for non-existent collection', async () => {
@@ -321,9 +338,7 @@ describe('POST /v1/collections/:id/segments', () => {
     const collection = await createTestCollection();
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-idem-1');
 
-    await request(app)
-      .post(`/v1/collections/${collection.id}/segments`)
-      .send({ segmentUuid: segment.uuid });
+    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentUuid: segment.uuid });
 
     await assertNoDifference(
       () => CollectionSegment.countBy({ collectionId: collection.id }),
@@ -341,12 +356,8 @@ describe('POST /v1/collections/:id/segments', () => {
     const seg1 = await createTestSegment(fixtures.media.testShow.id, 'seg-pos-1');
     const seg2 = await createTestSegment(fixtures.media.testShow.id, 'seg-pos-2');
 
-    await request(app)
-      .post(`/v1/collections/${collection.id}/segments`)
-      .send({ segmentUuid: seg1.uuid });
-    await request(app)
-      .post(`/v1/collections/${collection.id}/segments`)
-      .send({ segmentUuid: seg2.uuid });
+    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentUuid: seg1.uuid });
+    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentUuid: seg2.uuid });
 
     const items = await CollectionSegment.find({
       where: { collectionId: collection.id },
@@ -358,7 +369,7 @@ describe('POST /v1/collections/:id/segments', () => {
     expect(items[1].position).toBe(2);
   });
 
-  it('returns 401 when non-owner tries to add', async () => {
+  it('returns 403 when non-owner tries to add', async () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-deny-1');
     signInAs(app, core.users.regular);
@@ -366,7 +377,7 @@ describe('POST /v1/collections/:id/segments', () => {
     const res = await request(app)
       .post(`/v1/collections/${collection.id}/segments`)
       .send({ segmentUuid: segment.uuid });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 });
 
@@ -374,9 +385,7 @@ describe('PATCH /v1/collections/:id/segments/:uuid', () => {
   it('updates position', async () => {
     const collection = await createTestCollection();
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-upd-1');
-    await request(app)
-      .post(`/v1/collections/${collection.id}/segments`)
-      .send({ segmentUuid: segment.uuid });
+    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentUuid: segment.uuid });
 
     const res = await request(app)
       .patch(`/v1/collections/${collection.id}/segments/${segment.uuid}`)
@@ -395,21 +404,17 @@ describe('PATCH /v1/collections/:id/segments/:uuid', () => {
       .send({ segmentUuid: segment.uuid, note: 'initial' });
 
     // Set note
-    await request(app)
-      .patch(`/v1/collections/${collection.id}/segments/${segment.uuid}`)
-      .send({ note: 'updated' });
+    await request(app).patch(`/v1/collections/${collection.id}/segments/${segment.uuid}`).send({ note: 'updated' });
     let item = await CollectionSegment.findOneByOrFail({ collectionId: collection.id, segmentUuid: segment.uuid });
     expect(item.note).toBe('updated');
 
     // Clear note
-    await request(app)
-      .patch(`/v1/collections/${collection.id}/segments/${segment.uuid}`)
-      .send({ note: null });
+    await request(app).patch(`/v1/collections/${collection.id}/segments/${segment.uuid}`).send({ note: null });
     item = await CollectionSegment.findOneByOrFail({ collectionId: collection.id, segmentUuid: segment.uuid });
     expect(item.note).toBeNull();
   });
 
-  it('returns 401 when non-owner tries to update', async () => {
+  it('returns 403 when non-owner tries to update', async () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-upd-deny');
     await CollectionSegment.save({
@@ -424,7 +429,7 @@ describe('PATCH /v1/collections/:id/segments/:uuid', () => {
     const res = await request(app)
       .patch(`/v1/collections/${collection.id}/segments/${segment.uuid}`)
       .send({ position: 99 });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 });
 
@@ -432,9 +437,7 @@ describe('DELETE /v1/collections/:id/segments/:uuid', () => {
   it('removes segment and returns 204', async () => {
     const collection = await createTestCollection();
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-rm-1');
-    await request(app)
-      .post(`/v1/collections/${collection.id}/segments`)
-      .send({ segmentUuid: segment.uuid });
+    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentUuid: segment.uuid });
 
     await assertDifference(
       () => CollectionSegment.countBy({ collectionId: collection.id }),
@@ -453,7 +456,7 @@ describe('DELETE /v1/collections/:id/segments/:uuid', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns 401 when non-owner tries to remove', async () => {
+  it('returns 403 when non-owner tries to remove', async () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-rm-deny');
     await CollectionSegment.save({
@@ -466,7 +469,7 @@ describe('DELETE /v1/collections/:id/segments/:uuid', () => {
     signInAs(app, core.users.regular);
 
     const res = await request(app).delete(`/v1/collections/${collection.id}/segments/${segment.uuid}`);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 });
 
@@ -513,6 +516,29 @@ describe('GET /v1/collections/:id/search', () => {
     expect(res.body.includes).toEqual({ media: {} });
     expect(res.body.pagination.estimatedTotalHits).toBe(2);
     expect(res.body.pagination.estimatedTotalHitsRelation).toBe('EXACT');
+  });
+
+  it('returns 403 for private collections owned by another user', async () => {
+    const collection = await createTestCollection({
+      userId: core.users.david.id,
+      visibility: CollectionVisibility.PRIVATE,
+    });
+    signInAs(app, core.users.regular);
+
+    const res = await request(app).get(`/v1/collections/${collection.id}/search`);
+    expect(res.status).toBe(403);
+  });
+
+  it('allows searching public collections owned by another user', async () => {
+    const collection = await createTestCollection({
+      userId: core.users.david.id,
+      visibility: CollectionVisibility.PUBLIC,
+    });
+    signInAs(app, core.users.regular);
+
+    const res = await request(app).get(`/v1/collections/${collection.id}/search`);
+    expect(res.status).toBe(200);
+    expect(res.body.segments).toEqual([]);
   });
 });
 
@@ -565,5 +591,31 @@ describe('GET /v1/collections/:id/stats', () => {
       ]),
     );
     expect(res.body.categories).toEqual([{ category: 'ANIME', count: 3 }]);
+  });
+
+  it('returns 403 for private collections owned by another user', async () => {
+    const collection = await createTestCollection({
+      userId: core.users.david.id,
+      visibility: CollectionVisibility.PRIVATE,
+    });
+    signInAs(app, core.users.regular);
+
+    const res = await request(app).get(`/v1/collections/${collection.id}/stats`);
+    expect(res.status).toBe(403);
+  });
+
+  it('allows stats for public collections owned by another user', async () => {
+    const collection = await createTestCollection({
+      userId: core.users.david.id,
+      visibility: CollectionVisibility.PUBLIC,
+    });
+    signInAs(app, core.users.regular);
+
+    const res = await request(app).get(`/v1/collections/${collection.id}/stats`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      media: [],
+      categories: [],
+    });
   });
 });

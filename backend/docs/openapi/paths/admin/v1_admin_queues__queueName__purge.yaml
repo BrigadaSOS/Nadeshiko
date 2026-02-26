@@ -1,6 +1,7 @@
 delete:
   tags:
     - Admin
+  x-internal: true
   operationId: purgeAdminQueueFailed
   summary: Purge failed jobs from a queue
   description: |
@@ -30,6 +31,10 @@ delete:
         application/json:
           schema:
             type: object
+            required:
+              - success
+              - purgedCount
+              - message
             properties:
               success:
                 type: boolean

@@ -128,10 +128,7 @@ export async function resolveDefaultApiPermissions(
   };
 }
 
-export async function enrichSessionUser(
-  user: BetterAuthSessionUser,
-  findUserById: FindUserById = defaultFindUserById,
-) {
+export async function enrichSessionUser(user: BetterAuthSessionUser, findUserById: FindUserById = defaultFindUserById) {
   const dbUser = await findUserById(Number(user.id));
   return {
     ...user,
@@ -271,11 +268,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
             };
           },
           after: async (user) =>
-            sendWelcomeEmailAfterUserCreate(
-              user as BetterAuthCreatedUser,
-              sendWelcomeEmailFn,
-              onWelcomeEmailError,
-            ),
+            sendWelcomeEmailAfterUserCreate(user as BetterAuthCreatedUser, sendWelcomeEmailFn, onWelcomeEmailError),
         },
       },
     },

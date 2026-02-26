@@ -18,7 +18,7 @@ get:
           schema:
             $ref: "../../components/schemas/UserPreferences.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
 
@@ -49,6 +49,6 @@ patch:
           schema:
             $ref: "../../components/schemas/UserPreferences.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

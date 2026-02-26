@@ -58,13 +58,16 @@ export interface ReindexMediaItem {
 }
 
 type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categories' | 'includes'>;
-
+type SearchRequestInput = Omit<SearchRequestOutput, 'include'> & { include?: SearchRequestOutput['include'] };
+type SearchStatsRequestInput = Omit<SearchStatsRequestOutput, 'include'> & {
+  include?: SearchStatsRequestOutput['include'];
+};
 
 export class SegmentDocument {
   static readonly SEARCH_STATS_CACHE = createCacheNamespace('searchStats');
 
   static async search(
-    request: SearchRequestOutput,
+    request: SearchRequestInput,
     parserMode: QueryParserMode = 'strict',
   ): Promise<SearchResponseOutput> {
     const filters: SearchFiltersOutput = request.filters ?? { status: ['ACTIVE'], category: ['ANIME', 'JDRAMA'] };
@@ -142,7 +145,7 @@ export class SegmentDocument {
   }
 
   static async searchStats(
-    request: SearchStatsRequestOutput,
+    request: SearchStatsRequestInput,
     parserMode: QueryParserMode = 'strict',
   ): Promise<SearchStatsResponseOutput> {
     const filters: SearchFiltersOutput = request.filters ?? { status: ['ACTIVE'], category: ['ANIME', 'JDRAMA'] };
@@ -151,7 +154,11 @@ export class SegmentDocument {
       throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
     }
 
-    const { must, hasQuery } = SegmentQuery.buildSearchMust({ query: request.query, filters }, parserMode, filters.languages?.exclude);
+    const { must, hasQuery } = SegmentQuery.buildSearchMust(
+      { query: request.query, filters },
+      parserMode,
+      filters.languages?.exclude,
+    );
     const mediaInfo = Media.getMediaInfoMap();
 
     return withSafeQueryFallback(
@@ -203,25 +210,33 @@ export class SegmentDocument {
     );
   }
 
-  static async surroundingSegments(
-    request: QuerySurroundingSegmentsRequest,
-  ): Promise<SegmentContextResponseOutput> {
+  static async surroundingSegments(request: QuerySurroundingSegmentsRequest): Promise<SegmentContextResponseOutput> {
     const contextSearches: estypes.MsearchRequestItem[] = [
       {},
       {
         sort: [{ position: { order: 'asc' } }],
         size: request.limit ? request.limit + 1 : 16,
-        query: SegmentQuery.buildUuidContext(request.mediaId, request.episodeNumber, {
-          range: { position: { gte: request.segmentPosition } },
-        }, request.contentRating),
+        query: SegmentQuery.buildUuidContext(
+          request.mediaId,
+          request.episodeNumber,
+          {
+            range: { position: { gte: request.segmentPosition } },
+          },
+          request.contentRating,
+        ),
       },
       {},
       {
         sort: [{ position: { order: 'desc' } }],
         size: request.limit || 14,
-        query: SegmentQuery.buildUuidContext(request.mediaId, request.episodeNumber, {
-          range: { position: { lt: request.segmentPosition } },
-        }, request.contentRating),
+        query: SegmentQuery.buildUuidContext(
+          request.mediaId,
+          request.episodeNumber,
+          {
+            range: { position: { lt: request.segmentPosition } },
+          },
+          request.contentRating,
+        ),
       },
     ];
 
@@ -233,13 +248,19 @@ export class SegmentDocument {
     let nextSegments: SegmentOutput[] = [];
 
     if (esResponse.responses[0].status) {
-      const result = SegmentResponse.buildSearchResultSegments(esResponse.responses[0] as estypes.SearchResponseBody, mediaMapData);
+      const result = SegmentResponse.buildSearchResultSegments(
+        esResponse.responses[0] as estypes.SearchResponseBody,
+        mediaMapData,
+      );
       previousSegments = result.segments;
       Object.assign(mergedMediaMap, result.mediaMap);
     }
 
     if (esResponse.responses[1].status) {
-      const result = SegmentResponse.buildSearchResultSegments(esResponse.responses[1] as estypes.SearchResponseBody, mediaMapData);
+      const result = SegmentResponse.buildSearchResultSegments(
+        esResponse.responses[1] as estypes.SearchResponseBody,
+        mediaMapData,
+      );
       nextSegments = result.segments;
       Object.assign(mergedMediaMap, result.mediaMap);
     }
@@ -278,9 +299,8 @@ export class SegmentDocument {
   }
 }
 
-
 async function querySearchStatisticsWithMustQueries(
-  request: { query?: SearchStatsRequestOutput['query']; filters: SearchFiltersOutput },
+  request: { query?: SearchStatsRequestInput['query']; filters: SearchFiltersOutput },
   mustQueries: estypes.QueryDslQueryContainer[],
   mediaInfoPromise: Promise<Awaited<ReturnType<typeof Media.getMediaInfoMap>>>,
   parserMode: QueryParserMode,
@@ -295,7 +315,9 @@ async function querySearchStatisticsWithMustQueries(
     const esMediaStatsResponse = client.search({
       size: 0,
       index: INDEX_NAME,
-      query: { bool: { filter: filterForMediaStatistics, must: [...mustQueries], must_not: must_notForMediaStatistics } },
+      query: {
+        bool: { filter: filterForMediaStatistics, must: [...mustQueries], must_not: must_notForMediaStatistics },
+      },
       aggs: {
         group_by_media_id: {
           terms: { field: 'mediaId', size: 10000 },

@@ -48,9 +48,7 @@ function createMedia(overrides: Partial<Media> = {}) {
 
 describe('enrichResults', () => {
   it('returns enriched entries with keys and data', () => {
-    const results: CheckResult[] = [
-      { targetType: 'MEDIA', mediaId: 1, data: { foo: 'bar' }, description: 'test' },
-    ];
+    const results: CheckResult[] = [{ targetType: 'MEDIA', mediaId: 1, data: { foo: 'bar' }, description: 'test' }];
 
     const enriched = enrichResults(results);
 
@@ -60,9 +58,7 @@ describe('enrichResults', () => {
   });
 
   it('adds previousData when key matches', () => {
-    const results: CheckResult[] = [
-      { targetType: 'MEDIA', mediaId: 1, data: { count: 5 }, description: 'test' },
-    ];
+    const results: CheckResult[] = [{ targetType: 'MEDIA', mediaId: 1, data: { count: 5 }, description: 'test' }];
     const previousReports = new Map([['1:', { count: 3 }]]);
 
     const enriched = enrichResults(results, previousReports);
@@ -71,9 +67,7 @@ describe('enrichResults', () => {
   });
 
   it('does not add previousData when key does not match', () => {
-    const results: CheckResult[] = [
-      { targetType: 'MEDIA', mediaId: 1, data: { count: 5 }, description: 'test' },
-    ];
+    const results: CheckResult[] = [{ targetType: 'MEDIA', mediaId: 1, data: { count: 5 }, description: 'test' }];
     const previousReports = new Map([['2:', { count: 3 }]]);
 
     const enriched = enrichResults(results, previousReports);
@@ -82,9 +76,7 @@ describe('enrichResults', () => {
   });
 
   it('adds userReportCount when > 0', () => {
-    const results: CheckResult[] = [
-      { targetType: 'MEDIA', mediaId: 1, data: {}, description: 'test' },
-    ];
+    const results: CheckResult[] = [{ targetType: 'MEDIA', mediaId: 1, data: {}, description: 'test' }];
     const userReportCounts = new Map([['1:', 7]]);
 
     const enriched = enrichResults(results, undefined, userReportCounts);
@@ -93,9 +85,7 @@ describe('enrichResults', () => {
   });
 
   it('omits userReportCount when 0', () => {
-    const results: CheckResult[] = [
-      { targetType: 'MEDIA', mediaId: 1, data: {}, description: 'test' },
-    ];
+    const results: CheckResult[] = [{ targetType: 'MEDIA', mediaId: 1, data: {}, description: 'test' }];
     const userReportCounts = new Map([['1:', 0]]);
 
     const enriched = enrichResults(results, undefined, userReportCounts);
@@ -155,9 +145,7 @@ describe('buildReports', () => {
   });
 
   it('falls back to OTHER for unknown audit names', () => {
-    const enriched = [
-      { data: {}, result: { targetType: 'MEDIA' as const, mediaId: 1, data: {}, description: 'x' } },
-    ];
+    const enriched = [{ data: {}, result: { targetType: 'MEDIA' as const, mediaId: 1, data: {}, description: 'x' } }];
 
     const reports = buildReports(enriched, 1, 'unknownCheck');
 
@@ -166,9 +154,7 @@ describe('buildReports', () => {
 
   it('maps all known audit names to reasons', () => {
     for (const [auditName, reason] of Object.entries(AUDIT_NAME_TO_REASON)) {
-      const enriched = [
-        { data: {}, result: { targetType: 'MEDIA' as const, mediaId: 1, data: {}, description: '' } },
-      ];
+      const enriched = [{ data: {}, result: { targetType: 'MEDIA' as const, mediaId: 1, data: {}, description: '' } }];
       const reports = buildReports(enriched, 1, auditName);
       expect(reports[0].reason).toBe(reason);
     }
@@ -207,7 +193,7 @@ describe('getPreviousRunData', () => {
     const result = await getPreviousRunData('emptyEpisodes');
 
     expect(result).toBeDefined();
-    expect(result!.get(`${media.id}:3`)).toEqual({ segmentCount: 2 });
+    expect(result?.get(`${media.id}:3`)).toEqual({ segmentCount: 2 });
   });
 
   it('filters by category when provided', async () => {
@@ -230,7 +216,7 @@ describe('getPreviousRunData', () => {
     const result = await getPreviousRunData('emptyEpisodes', 'JDRAMA');
 
     expect(result).toBeDefined();
-    expect(result!.size).toBe(0);
+    expect(result?.size).toBe(0);
   });
 });
 
@@ -251,11 +237,7 @@ describe('runAllAuditsWithDeps', () => {
     await media.save();
     await Episode.create({ mediaId: media.id, episodeNumber: 1, segmentCount: 2 }).save();
 
-    const result = await runAllAuditsWithDeps(
-      { dataSource: TestDataSource },
-      undefined,
-      'emptyEpisodes',
-    );
+    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'emptyEpisodes');
 
     expect(result.checksRun).toHaveLength(1);
     expect(result.checksRun[0].auditName).toBe('emptyEpisodes');
@@ -264,10 +246,10 @@ describe('runAllAuditsWithDeps', () => {
 
     const run = await MediaAuditRun.findOne({ where: { id: result.checksRun[0].runId } });
     expect(run).toBeDefined();
-    expect(run!.auditName).toBe('emptyEpisodes');
-    expect(run!.resultCount).toBe(1);
+    expect(run?.auditName).toBe('emptyEpisodes');
+    expect(run?.resultCount).toBe(1);
 
-    const reports = await Report.find({ where: { auditRunId: run!.id } });
+    const reports = await Report.find({ where: { auditRunId: run?.id } });
     expect(reports).toHaveLength(1);
     expect(reports[0]).toMatchObject({
       source: ReportSource.AUTO,
@@ -288,11 +270,7 @@ describe('runAllAuditsWithDeps', () => {
     await drama.save();
     await Episode.create({ mediaId: drama.id, episodeNumber: 1, segmentCount: 2 }).save();
 
-    const result = await runAllAuditsWithDeps(
-      { dataSource: TestDataSource },
-      CategoryType.JDRAMA,
-      'emptyEpisodes',
-    );
+    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, CategoryType.JDRAMA, 'emptyEpisodes');
 
     expect(result.category).toBe(CategoryType.JDRAMA);
     expect(result.checksRun[0].resultCount).toBe(1);
@@ -302,11 +280,7 @@ describe('runAllAuditsWithDeps', () => {
   });
 
   it('returns empty checksRun when no audits match the name', async () => {
-    const result = await runAllAuditsWithDeps(
-      { dataSource: TestDataSource },
-      undefined,
-      'nonexistentAudit',
-    );
+    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'nonexistentAudit');
 
     expect(result.checksRun).toHaveLength(0);
     expect(result.totalReports).toBe(0);
@@ -317,15 +291,11 @@ describe('runAllAuditsWithDeps', () => {
     await media.save();
     await Episode.create({ mediaId: media.id, episodeNumber: 1, segmentCount: 100 }).save();
 
-    const result = await runAllAuditsWithDeps(
-      { dataSource: TestDataSource },
-      undefined,
-      'emptyEpisodes',
-    );
+    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'emptyEpisodes');
 
     expect(result.checksRun[0].resultCount).toBe(0);
     const run = await MediaAuditRun.findOne({ where: { id: result.checksRun[0].runId } });
-    const reports = await Report.find({ where: { auditRunId: run!.id } });
+    const reports = await Report.find({ where: { auditRunId: run?.id } });
     expect(reports).toHaveLength(0);
   });
 });

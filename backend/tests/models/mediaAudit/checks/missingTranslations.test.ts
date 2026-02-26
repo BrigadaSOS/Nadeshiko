@@ -1,14 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
-import {
-  Media,
-  Episode,
-  Segment,
-  CategoryType,
-  SegmentStorage,
-  SegmentStatus,
-  ContentRating,
-} from '@app/models';
+import { Media, Episode, Segment, CategoryType, SegmentStorage, SegmentStatus, ContentRating } from '@app/models';
 import { missingTranslations } from '@app/models/mediaAudit/checks/missingTranslations';
 
 setupTestSuite();
@@ -36,11 +28,7 @@ function createMedia(overrides: Partial<Media> = {}) {
 
 let segIdx = 0;
 
-function createSegment(
-  mediaId: number,
-  episode: number,
-  overrides: Partial<Segment> = {},
-) {
+function createSegment(mediaId: number, episode: number, overrides: Partial<Segment> = {}) {
   segIdx++;
   return Segment.create({
     uuid: `test-trans-${segIdx}`,

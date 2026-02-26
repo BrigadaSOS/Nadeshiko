@@ -1,6 +1,7 @@
 get:
   tags:
     - Admin
+  x-internal: true
   operationId: getAdminQueue
   summary: Get detailed queue information
   description: |

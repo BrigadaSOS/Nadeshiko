@@ -4,7 +4,6 @@ import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 
-
 setupTestSuite();
 
 const app = createTestApp();

@@ -8,8 +8,9 @@ import type {
   DeleteUserActivityById,
 } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
-import { UserActivity, ActivityType } from '@app/models/UserActivity';
+import { ActivityType, UserActivity } from '@app/models/UserActivity';
 import { toUserActivityListDTO } from '@app/controllers/mappers/activity.mapper';
+import { NotFoundError } from '@app/errors';
 
 export const listUserActivity: ListUserActivity = async ({ query }, respond, req) => {
   const user = assertUser(req);
@@ -58,10 +59,10 @@ export const deleteUserActivity: DeleteUserActivity = async ({ query }, respond,
 export const trackUserActivity: TrackUserActivity = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
-  UserActivity.trackForUser(user, ActivityType.SEGMENT_PLAY, {
+  UserActivity.trackForUser(user, body.activityType as ActivityType, {
     segmentUuid: body.segmentUuid,
     mediaId: body.mediaId,
-    animeName: body.animeName,
+    mediaName: body.mediaName,
     japaneseText: body.japaneseText,
   }).catch(() => {});
 
@@ -85,7 +86,7 @@ export const deleteUserActivityById: DeleteUserActivityById = async ({ params },
 
   const result = await UserActivity.delete({ id: params.id, userId: user.id });
   if (!result.affected) {
-    return respond.with404().body({ message: 'Activity not found.' });
+    throw new NotFoundError('Activity not found.');
   }
 
   return respond.with204().body(undefined);

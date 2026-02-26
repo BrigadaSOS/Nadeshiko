@@ -50,7 +50,7 @@ export function toMediaAuditDTO(
   registryAudit?: MediaAuditCheck,
   latestRun?: MediaAuditRun | null,
 ): t_MediaAudit {
-  const dto: t_MediaAudit = {
+  return {
     id: audit.id,
     name: audit.name,
     label: registryAudit?.label ?? audit.label,
@@ -59,15 +59,10 @@ export function toMediaAuditDTO(
     threshold: audit.threshold,
     enabled: audit.enabled,
     thresholdSchema: registryAudit?.thresholdSchema ?? [],
+    latestRun: latestRun ? toMediaAuditLatestRunDTO(latestRun) : null,
     createdAt: audit.createdAt.toISOString(),
     updatedAt: audit.updatedAt?.toISOString() ?? null,
   };
-
-  if (latestRun !== undefined) {
-    dto.latestRun = latestRun ? toMediaAuditLatestRunDTO(latestRun) : null;
-  }
-
-  return dto;
 }
 
 export function toAdminMediaAuditListDTO(
@@ -93,7 +88,7 @@ export function toAdminMediaAuditListDTO(
       enabled: true,
       thresholdSchema: registryAudit.thresholdSchema,
       latestRun: latestRun ? toMediaAuditLatestRunDTO(latestRun) : null,
-      createdAt: undefined,
+      createdAt: null,
       updatedAt: null,
     };
   });

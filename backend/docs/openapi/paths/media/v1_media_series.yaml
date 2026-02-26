@@ -6,9 +6,10 @@ get:
   description: |
     Returns a paginated list of media series groupings.
 
+    **Permissions:** `READ_MEDIA`
+
   security:
-    - apiKeyHeader: []
-    - sessionCookie: []
+    - apiKeyHeader: [READ_MEDIA]
   parameters:
     - name: take
       in: query
@@ -56,8 +57,10 @@ post:
   description: |
     Creates a new media series grouping.
 
+    **Permissions:** `ADD_MEDIA`
+
   security:
-    - apiKeyHeader: []
+    - apiKeyHeader: [ADD_MEDIA]
   requestBody:
     required: true
     content:

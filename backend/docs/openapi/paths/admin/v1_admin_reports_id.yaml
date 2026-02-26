@@ -1,6 +1,7 @@
 patch:
   tags:
     - Admin
+  x-internal: true
   operationId: updateAdminReport
   summary: Update a report
   description: |

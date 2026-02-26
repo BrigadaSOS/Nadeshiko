@@ -8,7 +8,7 @@ import type {
   GetSegmentContext,
   UpdateSegmentByUuid,
 } from 'generated/routes/media';
-import { Segment, Episode, Media } from '@app/models';
+import { Segment, Episode, Media, SegmentStatus } from '@app/models';
 import {
   toSegmentCreateAttributes,
   toSegmentDTO,
@@ -41,14 +41,15 @@ export const listSegments: ListSegments = async ({ params, query }, respond) => 
 export const createSegment: CreateSegment = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { id: params.mediaId } });
 
-  const segment = await Segment.save(
+  const segment = Segment.create(
     toSegmentCreateAttributes({
       mediaId: params.mediaId,
       episodeNumber: params.episodeNumber,
       storageBasePath: media.storageBasePath,
       body,
     }),
-  );
+  ) as Segment;
+  await segment.save();
 
   return respond.with201().body(toSegmentInternalDTO(segment));
 };
@@ -67,7 +68,11 @@ export const getSegment: GetSegment = async ({ params }, respond) => {
 
 export const updateSegment: UpdateSegment = async ({ params, body }, respond) => {
   const segment = await Segment.findAndUpdateOrFail({
-    where: { id: params.id },
+    where: {
+      id: params.id,
+      mediaId: params.mediaId,
+      episode: params.episodeNumber,
+    },
     patch: toSegmentUpdatePatch(body),
   });
 
@@ -75,15 +80,16 @@ export const updateSegment: UpdateSegment = async ({ params, body }, respond) =>
 };
 
 export const deleteSegment: DeleteSegment = async ({ params }, respond) => {
-  const segment = await Segment.findOneOrFail({
+  await Segment.findAndUpdateOrFail({
     where: {
       id: params.id,
       mediaId: params.mediaId,
       episode: params.episodeNumber,
     },
+    patch: {
+      status: SegmentStatus.DELETED,
+    },
   });
-
-  await segment.remove();
 
   return respond.with204();
 };

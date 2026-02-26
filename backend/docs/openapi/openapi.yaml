@@ -9,6 +9,11 @@ info:
     Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
 
     If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
+    Internal user/admin endpoints use session cookie authentication.
+    401 response components are scoped by auth mode:
+    - `UnauthorizedApiKey` for API key-only endpoints
+    - `UnauthorizedSession` for session-only endpoints
+    - `Unauthorized` for endpoints that accept either auth mode
 
     ### Quotas and Limits
     The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message:
@@ -23,20 +28,20 @@ info:
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
 
-  version: 1.4.3
+  version: 1.5.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
+  license:
+    name: ISC
+  x-logo:
+    url: https://nadeshiko.co/logo.webp
+    altText: Nadeshiko
+    href: https://nadeshiko.co
 
 servers:
-  - description: Local server
-    url: http://localhost:5000
   - description: Production server
     url: https://api.nadeshiko.co
-
-security:
-  - apiKeyHeader: []
-  - sessionCookie: []
 
 tags:
   - name: Search
@@ -50,7 +55,7 @@ tags:
 
   - name: Media
     description: |
-      Media CRUD endpoints for managing anime, J-Drama, and audiobook entries, episodes, segments, characters, and seiyuu.
+      Media CRUD endpoints for managing anime and J-Drama entries, episodes, segments, characters, and seiyuu.
 
   - name: User
     x-internal: true
@@ -58,6 +63,7 @@ tags:
       User endpoints for account data including quota, preferences, activity history, reports, and data export.
 
   - name: Collections
+    x-internal: true
     description: |
       Collection endpoints for managing saved segment collections.
 
@@ -200,6 +206,4 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
-
-
 

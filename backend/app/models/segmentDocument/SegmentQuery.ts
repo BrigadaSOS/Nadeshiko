@@ -46,10 +46,7 @@
  */
 
 import type { estypes } from '@elastic/elasticsearch';
-import type {
-  SearchRequestOutput,
-  SearchFiltersOutput,
-} from 'generated/outputTypes';
+import type { SearchRequestOutput, SearchFiltersOutput } from 'generated/outputTypes';
 
 export enum InputScript {
   KANJI = 'kanji',
@@ -95,15 +92,24 @@ export class SegmentQuery {
         must.push({ match_all: {} });
       }
     } else if (searchTerm) {
-      must.push(SegmentQuery.buildTextSearch(searchTerm, Boolean(request.query?.exactMatch), hasLengthConstraints, parserMode, excludeLanguages));
+      must.push(
+        SegmentQuery.buildTextSearch(
+          searchTerm,
+          Boolean(request.query?.exactMatch),
+          hasLengthConstraints,
+          parserMode,
+          excludeLanguages,
+        ),
+      );
     }
 
     return { must, isMatchAll, hasQuery };
   }
 
-  static buildCommonFilters(
-    filters: SearchFiltersOutput,
-  ): { filter: estypes.QueryDslQueryContainer[]; must_not: estypes.QueryDslQueryContainer[] } {
+  static buildCommonFilters(filters: SearchFiltersOutput): {
+    filter: estypes.QueryDslQueryContainer[];
+    must_not: estypes.QueryDslQueryContainer[];
+  } {
     const filter: estypes.QueryDslQueryContainer[] = [];
     const must_not: estypes.QueryDslQueryContainer[] = [];
 
@@ -143,7 +149,7 @@ export class SegmentQuery {
   }
 
   static buildSortAndRandomScore(
-    request: SearchRequestOutput,
+    request: Pick<SearchRequestOutput, 'sort'>,
     filters: SearchFiltersOutput,
     isMatchAll: boolean,
   ): { sort: estypes.Sort; randomScoreQuery: estypes.QueryDslQueryContainer | null } {
@@ -165,7 +171,10 @@ export class SegmentQuery {
     } else if (sortMode === 'time_asc') {
       sort = [{ episode: { order: 'asc' as estypes.SortOrder } }, { position: { order: 'asc' as estypes.SortOrder } }];
     } else if (sortMode === 'time_desc') {
-      sort = [{ episode: { order: 'desc' as estypes.SortOrder } }, { position: { order: 'desc' as estypes.SortOrder } }];
+      sort = [
+        { episode: { order: 'desc' as estypes.SortOrder } },
+        { position: { order: 'desc' as estypes.SortOrder } },
+      ];
     } else if (!sortMode || sortMode === 'none') {
       if (isMatchAll && useLengthScoring) {
         sort = [{ _score: { order: 'desc' } }, { characterCount: { order: 'asc', unmapped_type: 'short' } }];
@@ -218,7 +227,11 @@ export class SegmentQuery {
       query: queryText,
       parserMode,
       analyzeWildcard: true,
-      fields: [`textJa^${boosts.japanese}`, `textJa.baseform^${boosts.japaneseBaseform}`, `textJa.normalized^${boosts.japaneseNormalized}`],
+      fields: [
+        `textJa^${boosts.japanese}`,
+        `textJa.baseform^${boosts.japaneseBaseform}`,
+        `textJa.normalized^${boosts.japaneseNormalized}`,
+      ],
       quoteAnalyzer: 'ja_surface_search_analyzer',
       defaultOperator: 'AND',
     });
@@ -314,9 +327,30 @@ export class SegmentQuery {
 
   private static getScriptBoosts(detectedScript: InputScript): ScriptBoostConfig {
     const boostConfigs: Record<InputScript, ScriptBoostConfig> = {
-      [InputScript.KANJI]: { japanese: 10, japaneseBaseform: 5, japaneseNormalized: 4, japaneseKana: 0, english: 1, spanish: 1 },
-      [InputScript.KANA]: { japanese: 10, japaneseBaseform: 5, japaneseNormalized: 4, japaneseKana: 3, english: 1, spanish: 1 },
-      [InputScript.ROMAJI]: { japanese: 2, japaneseBaseform: 1, japaneseNormalized: 2, japaneseKana: 3, english: 10, spanish: 10 },
+      [InputScript.KANJI]: {
+        japanese: 10,
+        japaneseBaseform: 5,
+        japaneseNormalized: 4,
+        japaneseKana: 0,
+        english: 1,
+        spanish: 1,
+      },
+      [InputScript.KANA]: {
+        japanese: 10,
+        japaneseBaseform: 5,
+        japaneseNormalized: 4,
+        japaneseKana: 3,
+        english: 1,
+        spanish: 1,
+      },
+      [InputScript.ROMAJI]: {
+        japanese: 2,
+        japaneseBaseform: 1,
+        japaneseNormalized: 2,
+        japaneseKana: 3,
+        english: 10,
+        spanish: 10,
+      },
     };
     return boostConfigs[detectedScript];
   }
@@ -332,7 +366,9 @@ export class SegmentQuery {
 
   private static withStableSortTieBreakers(sort: estypes.Sort): estypes.Sort {
     const sortArray = (Array.isArray(sort) ? [...sort] : [sort]) as Record<string, any>[];
-    const existingSortFields = new Set(sortArray.flatMap((item) => (item && typeof item === 'object' ? Object.keys(item) : [])));
+    const existingSortFields = new Set(
+      sortArray.flatMap((item) => (item && typeof item === 'object' ? Object.keys(item) : [])),
+    );
 
     const appendIfMissing = (field: string, spec: Record<string, unknown>) => {
       if (!existingSortFields.has(field)) {
@@ -400,13 +436,17 @@ export class SegmentQuery {
     };
   }
 
-  private static buildMediaFilter(include: Array<{ mediaId: number; episodes?: number[] }>): estypes.QueryDslQueryContainer {
+  private static buildMediaFilter(
+    include: Array<{ mediaId: number; episodes?: number[] }>,
+  ): estypes.QueryDslQueryContainer {
     const mediaQueries: estypes.QueryDslQueryContainer[] = include.flatMap((mediaFilter) => {
       if (!mediaFilter.episodes || mediaFilter.episodes.length === 0) {
         return { bool: { must: [{ term: { mediaId: { value: mediaFilter.mediaId } } }] } };
       }
       return mediaFilter.episodes.map((episode) => ({
-        bool: { must: [{ term: { mediaId: { value: mediaFilter.mediaId } } }, { term: { episode: { value: episode } } }] },
+        bool: {
+          must: [{ term: { mediaId: { value: mediaFilter.mediaId } } }, { term: { episode: { value: episode } } }],
+        },
       }));
     });
     return { bool: { should: mediaQueries } };

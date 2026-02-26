@@ -22,7 +22,7 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
       body,
       userId: Number(user.id),
     }),
-  );
+  ) as Report;
   await report.save();
 
   return respond.with201().body(toReportDTO(report));
@@ -55,7 +55,9 @@ export const listAdminReports: ListAdminReports = async ({ query }, respond) => 
         });
       }
       if (filters.targetSegmentUuid !== undefined) {
-        qb.andWhere('report.target_segment_uuid = :targetSegmentUuid', { targetSegmentUuid: filters.targetSegmentUuid });
+        qb.andWhere('report.target_segment_uuid = :targetSegmentUuid', {
+          targetSegmentUuid: filters.targetSegmentUuid,
+        });
       }
       if (filters.auditRunId !== undefined) {
         qb.andWhere('report.audit_run_id = :auditRunId', { auditRunId: filters.auditRunId });
@@ -92,6 +94,9 @@ async function assertUserReportTargetExists(target: CreateReportRequestOutput['t
     if (segment.mediaId !== target.mediaId) {
       throw new InvalidRequestError('SEGMENT target mediaId does not match segment mediaId');
     }
+    if (target.episodeNumber !== undefined && segment.episode !== target.episodeNumber) {
+      throw new InvalidRequestError('SEGMENT target episodeNumber does not match segment episode');
+    }
     return;
   }
 
@@ -125,7 +130,9 @@ async function countReportsByTarget(reports: Report[]): Promise<Map<string, numb
     }),
   );
 
-  const where = targets.map((_, index) => `(r.target_type = :tt${index} AND r.target_media_id = :mid${index})`).join(' OR ');
+  const where = targets
+    .map((_, index) => `(r.target_type = :tt${index} AND r.target_media_id = :mid${index})`)
+    .join(' OR ');
 
   const rows = await Report.createQueryBuilder('r')
     .select('r.target_type', 'targetType')

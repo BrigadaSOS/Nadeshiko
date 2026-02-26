@@ -13,3 +13,4 @@ logs
 *.njsproj
 *.sln
 *.sw?
+docs/generated/index.html

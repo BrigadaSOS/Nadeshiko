@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 import { setBossInstance } from '@app/workers/pgBossClient';
-import { fetchQueueDetails, getFailedJobs, getStuckJobs, purgeFailedJobs, retryFailedJobs } from '@app/workers/queueAdmin';
+import {
+  fetchQueueDetails,
+  getFailedJobs,
+  getStuckJobs,
+  purgeFailedJobs,
+  retryFailedJobs,
+} from '@app/workers/queueAdmin';
 import { ES_SYNC_QUEUES } from '@app/workers/queueNames';
 
 describe('queueAdmin', () => {
@@ -76,7 +82,9 @@ describe('queueAdmin', () => {
     const rows = await getFailedJobs('es-sync-update');
 
     expect(executeSql).toHaveBeenCalledTimes(1);
-    expect(rows).toEqual([{ id: 'job-1', segmentId: 42, error: 'boom', createdOn: new Date('2026-02-02T03:04:05.000Z') }]);
+    expect(rows).toEqual([
+      { id: 'job-1', segmentId: 42, error: 'boom', createdOn: new Date('2026-02-02T03:04:05.000Z') },
+    ]);
   });
 
   it('returns the number of purged failed jobs', async () => {

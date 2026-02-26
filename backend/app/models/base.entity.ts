@@ -4,12 +4,14 @@ import type { t_OpaqueCursorPagination } from 'generated/models';
 import { NotFoundError } from '@app/errors';
 import { decodeKeysetCursor, decodeOffsetCursor, encodeKeysetCursor, encodeOffsetCursor } from '@lib/cursor';
 
+type ConcreteEntity = (new () => BaseEntity) & typeof BaseEntity;
+
 type ExistsEntity = {
   existsBy(where: unknown): Promise<boolean>;
   name: string;
 };
 
-type OffsetFindOptions<TThis extends typeof BaseEntity> = Omit<FindManyOptions<InstanceType<TThis>>, 'take' | 'skip'>;
+type OffsetFindOptions<TThis extends ConcreteEntity> = Omit<FindManyOptions<InstanceType<TThis>>, 'take' | 'skip'>;
 
 type OffsetBaseParams = {
   take: number;
@@ -20,14 +22,9 @@ type OffsetBaseParams = {
   };
 };
 
-type OffsetResult<TThis extends typeof BaseEntity> = {
+type OffsetResult<TThis extends ConcreteEntity> = {
   items: InstanceType<TThis>[];
   pagination: t_OpaqueCursorPagination;
-};
-
-type FindAndCountEntity<TThis extends typeof BaseEntity> = {
-  find(options: FindManyOptions<InstanceType<TThis>>): Promise<InstanceType<TThis>[]>;
-  findAndCount(options: FindManyOptions<InstanceType<TThis>>): Promise<[InstanceType<TThis>[], number]>;
 };
 
 export abstract class BaseEntity extends TypeOrmBaseEntity {
@@ -37,18 +34,18 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   @UpdateDateColumn({ name: 'updated_at', nullable: true })
   updatedAt?: Date;
 
-  static paginateWithOffset<TThis extends typeof BaseEntity>(
-    this: TThis & FindAndCountEntity<TThis>,
+  static paginateWithOffset<TThis extends ConcreteEntity>(
+    this: TThis,
     params: OffsetBaseParams & { findAndCount: OffsetFindOptions<TThis> },
   ): Promise<OffsetResult<TThis> & { totalCount: number }>;
 
-  static paginateWithOffset<TThis extends typeof BaseEntity>(
-    this: TThis & FindAndCountEntity<TThis>,
+  static paginateWithOffset<TThis extends ConcreteEntity>(
+    this: TThis,
     params: OffsetBaseParams & { find?: OffsetFindOptions<TThis> },
   ): Promise<OffsetResult<TThis>>;
 
-  static async paginateWithOffset<TThis extends typeof BaseEntity>(
-    this: TThis & FindAndCountEntity<TThis>,
+  static async paginateWithOffset<TThis extends ConcreteEntity>(
+    this: TThis,
     params: OffsetBaseParams & ({ find?: OffsetFindOptions<TThis> } | { findAndCount: OffsetFindOptions<TThis> }),
   ): Promise<OffsetResult<TThis> & { totalCount?: number }> {
     const skip = decodeOffsetCursor(params.cursor);
@@ -58,13 +55,21 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
     let totalCount: number | undefined;
 
     if ('findAndCount' in params && params.findAndCount) {
-      const [rows, count] = await this.findAndCount({ ...params.findAndCount, take: params.take, skip });
+      const [rows, count] = (await this.findAndCount({
+        ...params.findAndCount,
+        take: params.take,
+        skip,
+      } as FindManyOptions)) as [InstanceType<TThis>[], number];
       items = rows;
       totalCount = count;
       hasMore = skip + rows.length < count;
     } else {
       const options = 'find' in params ? params.find : undefined;
-      const rows = await this.find({ ...options, take: params.take + 1, skip });
+      const rows = (await this.find({
+        ...options,
+        take: params.take + 1,
+        skip,
+      } as FindManyOptions)) as InstanceType<TThis>[];
       hasMore = rows.length > params.take;
       items = hasMore ? rows.slice(0, params.take) : rows;
     }
@@ -86,7 +91,7 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
     };
   }
 
-  static async paginateWithKeyset<TThis extends typeof BaseEntity>(
+  static async paginateWithKeyset<TThis extends ConcreteEntity>(
     this: TThis,
     params: {
       take: number;
@@ -124,15 +129,8 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
     };
   }
 
-  static async softDeleteOrFail<TThis extends typeof BaseEntity>(
-    this: TThis & {
-      createQueryBuilder(alias?: string): {
-        softDelete(): {
-          where(criteria: unknown): { execute(): Promise<{ affected?: number | null }> };
-        };
-      };
-      name: string;
-    },
+  static async softDeleteOrFail<TThis extends ConcreteEntity>(
+    this: TThis,
     params: {
       where: FindOptionsWhere<InstanceType<TThis>> | FindOptionsWhere<InstanceType<TThis>>[];
       detail?: string;
@@ -145,15 +143,8 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
     }
   }
 
-  static async deleteOrFail<TThis extends typeof BaseEntity>(
-    this: TThis & {
-      createQueryBuilder(alias?: string): {
-        delete(): {
-          where(criteria: unknown): { execute(): Promise<{ affected?: number | null }> };
-        };
-      };
-      name: string;
-    },
+  static async deleteOrFail<TThis extends ConcreteEntity>(
+    this: TThis,
     params: {
       where: FindOptionsWhere<InstanceType<TThis>> | FindOptionsWhere<InstanceType<TThis>>[];
       detail?: string;
@@ -166,41 +157,32 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
     }
   }
 
-  static async updateOrFail<TThis extends typeof BaseEntity>(
-    this: TThis & {
-      update(
-        criteria: FindOptionsWhere<InstanceType<TThis>> | FindOptionsWhere<InstanceType<TThis>>[],
-        partialEntity: object,
-      ): Promise<{ affected?: number | null }>;
-      name: string;
-    },
+  static async updateOrFail<TThis extends ConcreteEntity>(
+    this: TThis,
     params: {
       where: FindOptionsWhere<InstanceType<TThis>> | FindOptionsWhere<InstanceType<TThis>>[];
       patch: object;
       detail?: string;
     },
   ): Promise<void> {
-    const result = await this.update(params.where, params.patch);
+    const result = await this.update(params.where as FindOptionsWhere<BaseEntity>, params.patch);
 
     if (!result.affected) {
       throw new NotFoundError(params.detail ?? `${this.name} not found`);
     }
   }
 
-  static async findAndUpdateOrFail<TThis extends typeof BaseEntity>(
-    this: TThis & {
-      findOne(options: {
-        where: FindOptionsWhere<InstanceType<TThis>> | FindOptionsWhere<InstanceType<TThis>>[];
-      }): Promise<InstanceType<TThis> | null>;
-      name: string;
-    },
+  static async findAndUpdateOrFail<TThis extends ConcreteEntity>(
+    this: TThis,
     params: {
       where: FindOptionsWhere<InstanceType<TThis>> | FindOptionsWhere<InstanceType<TThis>>[];
       patch: object;
       detail?: string;
     },
   ): Promise<InstanceType<TThis>> {
-    const entity = await this.findOne({ where: params.where });
+    const entity = (await this.findOne({
+      where: params.where as FindOptionsWhere<BaseEntity>,
+    })) as InstanceType<TThis> | null;
 
     if (!entity) {
       throw new NotFoundError(params.detail ?? `${this.name} not found`);

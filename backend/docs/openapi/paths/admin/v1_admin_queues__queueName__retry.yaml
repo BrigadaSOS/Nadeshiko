@@ -1,6 +1,7 @@
 post:
   tags:
     - Admin
+  x-internal: true
   operationId: retryAdminQueueFailed
   summary: Retry failed jobs from a queue
   description: |
@@ -29,6 +30,10 @@ post:
         application/json:
           schema:
             type: object
+            required:
+              - success
+              - retriedCount
+              - message
             properties:
               success:
                 type: boolean

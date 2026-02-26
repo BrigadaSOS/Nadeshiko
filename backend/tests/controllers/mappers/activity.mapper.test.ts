@@ -9,7 +9,7 @@ function buildActivity(overrides: Record<string, unknown> = {}) {
     segmentUuid: null,
     mediaId: 42,
     searchQuery: 'query',
-    animeName: 'Show',
+    mediaName: 'Show',
     japaneseText: 'text',
     createdAt: new Date('2025-01-02T03:04:05.000Z'),
     ...overrides,
@@ -25,7 +25,7 @@ describe('activity.mapper', () => {
       segmentUuid: null,
       mediaId: 42,
       searchQuery: 'query',
-      animeName: 'Show',
+      mediaName: 'Show',
       japaneseText: 'text',
       createdAt: '2025-01-02T03:04:05.000Z',
     });

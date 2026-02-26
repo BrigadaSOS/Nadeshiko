@@ -1,5 +1,10 @@
 type: object
 description: Word matching result with occurrences across media
+required:
+  - word
+  - isMatch
+  - matchCount
+  - media
 properties:
   word:
     type: string

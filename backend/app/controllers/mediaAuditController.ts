@@ -118,10 +118,7 @@ async function getLatestRunsByAuditName(): Promise<Map<string, MediaAuditRun>> {
   return latestRuns;
 }
 
-function mergeAuditUpdate(
-  audit: MediaAudit,
-  body: Parameters<UpdateAdminMediaAudit>[0]['body'],
-): void {
+function mergeAuditUpdate(audit: MediaAudit, body: Parameters<UpdateAdminMediaAudit>[0]['body']): void {
   if (body.threshold !== undefined) {
     audit.threshold = { ...audit.threshold, ...(body.threshold as Record<string, number | boolean>) };
   }
