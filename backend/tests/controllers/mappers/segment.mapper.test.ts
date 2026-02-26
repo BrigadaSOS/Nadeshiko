@@ -44,12 +44,18 @@ describe('segment.mapper', () => {
     expect(dto.urls.videoUrl).toContain('/media/path/3/hash1.mp4');
   });
 
-  it('returns empty urls when hashedId is missing', () => {
-    const dto = toSegmentDTO(buildSegment({ hashedId: '' }) as any);
+  it('maps segment urls for LOCAL storage', () => {
+    const dto = toSegmentDTO(
+      buildSegment({
+        storage: SegmentStorage.LOCAL,
+        storageBasePath: 'local/path',
+        hashedId: 'local-hash',
+      }) as any,
+    );
     expect(dto.urls).toEqual({
-      imageUrl: '',
-      audioUrl: '',
-      videoUrl: '',
+      imageUrl: '/media/local/path/3/local-hash.webp',
+      audioUrl: '/media/local/path/3/local-hash.mp3',
+      videoUrl: '/media/local/path/3/local-hash.mp4',
     });
   });
 

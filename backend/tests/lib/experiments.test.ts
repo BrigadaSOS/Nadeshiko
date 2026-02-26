@@ -45,7 +45,9 @@ describe('getExperimentMap cache behaviour', () => {
 
   it('deduplicates concurrent calls — only one DB query fires (line 17)', async () => {
     let resolveFind!: (experiments: Experiment[]) => void;
-    const deferred = new Promise<Experiment[]>((r) => { resolveFind = r; });
+    const deferred = new Promise<Experiment[]>((r) => {
+      resolveFind = r;
+    });
 
     findSpy = spyOn(Experiment, 'find').mockReturnValue(deferred as any);
 
@@ -60,7 +62,9 @@ describe('getExperimentMap cache behaviour', () => {
 
   it('discards superseded load when invalidated mid-flight, then re-fetches (lines 28, 30-31)', async () => {
     let resolveFirst!: (experiments: Experiment[]) => void;
-    const firstLoad = new Promise<Experiment[]>((r) => { resolveFirst = r; });
+    const firstLoad = new Promise<Experiment[]>((r) => {
+      resolveFirst = r;
+    });
 
     findSpy = spyOn(Experiment, 'find')
       .mockReturnValueOnce(firstLoad as any)
@@ -80,9 +84,7 @@ describe('getExperimentMap cache behaviour', () => {
   });
 
   it('resets loading sentinel after error so the next call can retry (lines 33-35)', async () => {
-    findSpy = spyOn(Experiment, 'find')
-      .mockRejectedValueOnce(new Error('DB down'))
-      .mockResolvedValueOnce([]);
+    findSpy = spyOn(Experiment, 'find').mockRejectedValueOnce(new Error('DB down')).mockResolvedValueOnce([]);
 
     await expect(isExperimentActive(makeUser(), 'exp')).rejects.toThrow('DB down');
 

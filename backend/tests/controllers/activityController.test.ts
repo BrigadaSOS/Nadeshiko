@@ -1,16 +1,23 @@
 import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { z } from 'zod/v3';
+import * as schemas from 'generated/schemas';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures, type LoadedFixtures } from '../fixtures/loader';
-import { UserActivity } from '@app/models/UserActivity';
+import { ActivityType, UserActivity } from '@app/models/UserActivity';
 import { assertDifference, assertNoDifference } from '../helpers/assertions';
+import { assertMatchesSchema } from '../helpers/openapiContract';
 
 setupTestSuite();
 
 const app = createTestApp();
 let core: CoreFixtures;
 let fixtures: LoadedFixtures;
+const userActivityListResponseSchema = z.object({
+  activities: z.array(schemas.s_UserActivity),
+  pagination: schemas.s_OpaqueCursorPagination,
+});
 
 beforeAll(async () => {
   core = await seedCoreFixtures();
@@ -24,12 +31,14 @@ describe('GET /v1/user/activity', () => {
   it('returns keyset-paginated activity and excludes other users', async () => {
     const page1 = await request(app).get('/v1/user/activity?take=3');
     expect(page1.status).toBe(200);
+    assertMatchesSchema(userActivityListResponseSchema, page1.body, 'GET /v1/user/activity 200 (page 1)');
     expect(page1.body.activities).toHaveLength(3);
     expect(page1.body.pagination.hasMore).toBe(true);
     expect(page1.body.activities.every((a: { searchQuery?: string }) => a.searchQuery !== 'other-user')).toBe(true);
 
     const page2 = await request(app).get(`/v1/user/activity?take=3&cursor=${page1.body.pagination.cursor}`);
     expect(page2.status).toBe(200);
+    assertMatchesSchema(userActivityListResponseSchema, page2.body, 'GET /v1/user/activity 200 (page 2)');
     expect(page2.body.activities).toHaveLength(2);
     expect(page2.body.pagination).toEqual({ hasMore: false, cursor: null });
   });
@@ -85,14 +94,14 @@ describe('GET /v1/user/activity/heatmap', () => {
 describe('POST /v1/user/activity', () => {
   it('tracks a SEGMENT_PLAY and returns 204', async () => {
     await assertDifference(
-      () => UserActivity.countBy({ userId: fixtures.users.kevin.id, activityType: 'SEGMENT_PLAY' }),
+      () => UserActivity.countBy({ userId: fixtures.users.kevin.id, activityType: ActivityType.SEGMENT_PLAY }),
       1,
       async () => {
         const res = await request(app).post('/v1/user/activity').send({
           activityType: 'SEGMENT_PLAY',
           segmentUuid: 'test-uuid',
           mediaId: 1,
-          animeName: 'Test Anime',
+          mediaName: 'Test Anime',
           japaneseText: 'テスト',
         });
         expect(res.status).toBe(204);
@@ -157,6 +166,7 @@ describe('DELETE /v1/user/activity/:id', () => {
   it('returns 404 for non-existent activity', async () => {
     const res = await request(app).delete('/v1/user/activity/999999');
     expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('returns 404 when trying to delete another users activity', async () => {
@@ -196,4 +206,3 @@ describe('DELETE /v1/user/activity', () => {
     );
   });
 });
-

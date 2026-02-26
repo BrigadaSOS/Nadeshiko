@@ -38,11 +38,7 @@ afterEach(() => {
   }
 });
 
-async function seedSegment(
-  mediaId: number,
-  episodeNumber: number,
-  overrides: Partial<Segment> = {},
-): Promise<Segment> {
+async function seedSegment(mediaId: number, episodeNumber: number, overrides: Partial<Segment> = {}): Promise<Segment> {
   segmentSeedCounter += 1;
 
   return Segment.save({
@@ -154,13 +150,15 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
   });
 
   it('returns 404 when media does not exist', async () => {
-    const res = await request(app).post('/v1/media/999999/episodes/1/segments').send({
-      position: 1,
-      startTimeMs: 0,
-      endTimeMs: 1000,
-      textJa: { content: 'ja' },
-      hashedId: 'missing-media',
-    });
+    const res = await request(app)
+      .post('/v1/media/999999/episodes/1/segments')
+      .send({
+        position: 1,
+        startTimeMs: 0,
+        endTimeMs: 1000,
+        textJa: { content: 'ja' },
+        hashedId: 'missing-media',
+      });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
@@ -170,13 +168,15 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).post(`/v1/media/${media.id}/episodes/999/segments`).send({
-      position: 1,
-      startTimeMs: 0,
-      endTimeMs: 1000,
-      textJa: { content: 'ja' },
-      hashedId: 'missing-episode',
-    });
+    const res = await request(app)
+      .post(`/v1/media/${media.id}/episodes/999/segments`)
+      .send({
+        position: 1,
+        startTimeMs: 0,
+        endTimeMs: 1000,
+        textJa: { content: 'ja' },
+        hashedId: 'missing-episode',
+      });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
@@ -190,7 +190,9 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => {
     const episode = fixtures.episodes.pilot;
     const segment = await seedSegment(media.id, episode.episodeNumber, { position: 5 });
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`);
+    const res = await request(app).get(
+      `/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
+    );
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -224,20 +226,22 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
       contentRating: ContentRating.SAFE,
     });
 
-    const res = await request(app).patch(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`).send({
-      textJa: { content: '' },
-      textEn: { content: 'updated-en', isMachineTranslated: false },
-      textEs: { content: 'updated-es', isMachineTranslated: false },
-      contentRating: 'QUESTIONABLE',
-      status: 'VERIFIED',
-      startTimeMs: 222,
-      endTimeMs: 333,
-      position: 9,
-      storage: 'LOCAL',
-      ratingAnalysis: null,
-      posAnalysis: null,
-      hashedId: 'updated-hash',
-    });
+    const res = await request(app)
+      .patch(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`)
+      .send({
+        textJa: { content: '' },
+        textEn: { content: 'updated-en', isMachineTranslated: false },
+        textEs: { content: 'updated-es', isMachineTranslated: false },
+        contentRating: 'QUESTIONABLE',
+        status: 'VERIFIED',
+        startTimeMs: 222,
+        endTimeMs: 333,
+        position: 9,
+        storage: 'LOCAL',
+        ratingAnalysis: null,
+        posAnalysis: null,
+        hashedId: 'updated-hash',
+      });
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -267,17 +271,38 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
 
-    const res = await request(app).patch(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/999999`).send({
-      textJa: { content: 'nope' },
-    });
+    const res = await request(app)
+      .patch(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/999999`)
+      .send({
+        textJa: { content: 'nope' },
+      });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
+
+  it('returns 404 when segment id exists but under a different media/episode path', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const media = fixtures.media.testShow;
+    const episode = fixtures.episodes.pilot;
+    const segment = await seedSegment(media.id, episode.episodeNumber, { contentJa: 'original' });
+
+    const res = await request(app)
+      .patch(`/v1/media/${media.id + 999}/episodes/${episode.episodeNumber + 999}/segments/${segment.id}`)
+      .send({
+        textJa: { content: 'should-not-update' },
+      });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
+
+    const unchanged = await Segment.findOneByOrFail({ id: segment.id });
+    expect(unchanged.contentJa).toBe('original');
+  });
 });
 
 describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => {
-  it('deletes a segment and returns 204', async () => {
+  it('soft-deletes a segment (status=DELETED) and returns 204', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
@@ -285,7 +310,7 @@ describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () =>
 
     await assertDifference(
       () => Segment.count(),
-      -1,
+      0,
       async () => {
         const res = await request(app).delete(
           `/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
@@ -294,8 +319,8 @@ describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () =>
       },
     );
 
-    const deleted = await Segment.findOneBy({ id: segment.id });
-    expect(deleted).toBeNull();
+    const deleted = await Segment.findOneByOrFail({ id: segment.id });
+    expect(deleted.status).toBe(SegmentStatus.DELETED);
   });
 
   it('returns 404 when segment does not exist', async () => {
@@ -338,11 +363,13 @@ describe('PATCH /v1/media/segments/:uuid', () => {
     const episode = fixtures.episodes.pilot;
     const segment = await seedSegment(media.id, episode.episodeNumber, { uuid: 'segment-to-update' });
 
-    const res = await request(app).patch(`/v1/media/segments/${segment.uuid}`).send({
-      textJa: { content: 'changed' },
-      status: 'INVALID',
-      contentRating: 'EXPLICIT',
-    });
+    const res = await request(app)
+      .patch(`/v1/media/segments/${segment.uuid}`)
+      .send({
+        textJa: { content: 'changed' },
+        status: 'INVALID',
+        contentRating: 'EXPLICIT',
+      });
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -359,9 +386,11 @@ describe('PATCH /v1/media/segments/:uuid', () => {
   });
 
   it('returns 404 when uuid does not exist', async () => {
-    const res = await request(app).patch('/v1/media/segments/missing-uuid').send({
-      textJa: { content: 'nope' },
-    });
+    const res = await request(app)
+      .patch('/v1/media/segments/missing-uuid')
+      .send({
+        textJa: { content: 'nope' },
+      });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });

@@ -1,6 +1,7 @@
 type: object
 required:
   - segments
+  - includes
 properties:
   segments:
     type: array

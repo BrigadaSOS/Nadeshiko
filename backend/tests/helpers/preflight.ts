@@ -83,7 +83,7 @@ async function assertTestDatabaseReachable(): Promise<void> {
     }
     console.error('[Test preflight] Start dependencies first:');
     console.error('  cd backend && docker compose up -d postgres');
-    console.error('[Test preflight] Then prepare schema:');
+    console.error('[Test preflight] After Postgres is up, also run test DB setup:');
     console.error('  bun run test:setup');
     console.error('[Test preflight] To bypass this check for DB-free tests:');
     console.error('  SKIP_DB_PREFLIGHT=1 bun test <path>');

@@ -28,6 +28,9 @@ properties:
     description: All media in the series, sorted by position
     items:
       type: object
+      required:
+        - position
+        - media
       properties:
         position:
           type: integer

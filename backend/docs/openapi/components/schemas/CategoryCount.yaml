@@ -1,5 +1,8 @@
 type: object
 description: Count of entries grouped by media category
+required:
+  - category
+  - count
 properties:
   category:
     $ref: "./Category.yaml"

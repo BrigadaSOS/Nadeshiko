@@ -2,6 +2,7 @@ type: object
 description: Seiyuu details with optional character appearances
 required:
   - id
+  - externalIds
   - nameJa
   - nameEn
   - imageUrl
@@ -11,6 +12,8 @@ properties:
     type: integer
     description: AniList staff ID
     example: 95991
+  externalIds:
+    $ref: "./ExternalId.yaml"
   nameJa:
     type: string
     description: Japanese name of the voice actor

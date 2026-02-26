@@ -94,7 +94,6 @@ import {
   s_Error409,
   s_Error429,
   s_Error500,
-  s_IncludeExpansion,
   s_Media,
   s_MediaAutocompleteResponse,
   s_MediaCreateRequest,
@@ -682,7 +681,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         z.array(s_MediaIncludeExpansion),
       )
       .optional()
-      .default(['media']),
+      .default([]),
   });
 
   const listMediaResponseBodyValidator = responseValidationFactory(
@@ -1063,10 +1062,6 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     contentRating: z
       .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(s_ContentRating))
       .optional(),
-    include: z
-      .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(s_IncludeExpansion))
-      .optional()
-      .default(['media']),
   });
 
   const getSegmentContextResponseBodyValidator = responseValidationFactory(
@@ -1297,7 +1292,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         z.array(s_MediaIncludeExpansion),
       )
       .optional()
-      .default(['media']),
+      .default([]),
   });
 
   const getSeriesResponseBodyValidator = responseValidationFactory(
@@ -1917,7 +1912,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         z.array(s_MediaIncludeExpansion),
       )
       .optional()
-      .default(['media']),
+      .default([]),
   });
 
   const getMediaResponseBodyValidator = responseValidationFactory(

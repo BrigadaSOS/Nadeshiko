@@ -34,14 +34,6 @@ get:
         items:
           $ref: "../../components/schemas/ContentRating.yaml"
       description: Content ratings to include (omit for all ratings)
-    - name: include
-      in: query
-      schema:
-        type: array
-        items:
-          $ref: "../../components/schemas/IncludeExpansion.yaml"
-        default: [media]
-      description: Resources to expand in the response includes block
   responses:
     "200":
       description: OK

@@ -17,12 +17,12 @@ import { handleErrors } from '@app/middleware/errorHandler';
 import { ApiAuth, User } from '@app/models';
 import { auth } from '@config/auth';
 
-let mockGetSession: Mock<typeof auth.api.getSession>;
-let mockVerifyApiKey: Mock<typeof auth.api.verifyApiKey>;
+let mockGetSession: Mock<any>;
+let mockVerifyApiKey: Mock<any>;
 
 beforeAll(() => {
   mockGetSession = vi.spyOn(auth.api, 'getSession') as any;
-  mockVerifyApiKey = vi.spyOn(auth.api, 'verifyApiKey') as any;
+  mockVerifyApiKey = vi.spyOn(auth.api as any, 'verifyApiKey') as any;
 });
 
 afterAll(() => {

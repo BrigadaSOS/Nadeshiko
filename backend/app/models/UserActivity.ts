@@ -14,7 +14,7 @@ export interface UserActivityTrackData {
   segmentUuid?: string;
   mediaId?: number;
   searchQuery?: string;
-  animeName?: string;
+  mediaName?: string;
   japaneseText?: string;
 }
 
@@ -41,7 +41,7 @@ export class UserActivity extends BaseEntity {
   searchQuery?: string | null;
 
   @Column({ name: 'anime_name', type: 'varchar', nullable: true })
-  animeName?: string | null;
+  mediaName?: string | null;
 
   @Column({ name: 'japanese_text', type: 'varchar', nullable: true })
   japaneseText?: string | null;
@@ -65,7 +65,7 @@ export class UserActivity extends BaseEntity {
       segmentUuid: data.segmentUuid ?? null,
       mediaId: data.mediaId ?? null,
       searchQuery: data.searchQuery ?? null,
-      animeName: data.animeName ?? null,
+      mediaName: data.mediaName ?? null,
       japaneseText: data.japaneseText ?? null,
     });
   }

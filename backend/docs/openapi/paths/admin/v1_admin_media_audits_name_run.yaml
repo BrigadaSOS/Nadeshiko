@@ -1,6 +1,7 @@
 post:
   tags:
     - Admin
+  x-internal: true
   operationId: runAdminMediaAudit
   summary: Run a media audit
   description: |

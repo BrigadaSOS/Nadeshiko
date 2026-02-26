@@ -10,10 +10,9 @@ const toJsonObjectOrNull = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 
 export const toSegmentDTO = (segment: Segment): t_Segment => {
-  const hasUrls = !!segment.hashedId;
-  const imageUrl = hasUrls ? getSegmentImageUrl(segment) : '';
-  const audioUrl = hasUrls ? getSegmentAudioUrl(segment) : '';
-  const videoUrl = hasUrls ? getSegmentVideoUrl(segment) : '';
+  const imageUrl = getSegmentImageUrl(segment);
+  const audioUrl = getSegmentAudioUrl(segment);
+  const videoUrl = getSegmentVideoUrl(segment);
 
   return {
     id: segment.id,

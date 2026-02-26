@@ -1,7 +1,18 @@
 import type { t_Report, t_AdminReport } from 'generated/models';
-import type { CreateReportRequestOutput, ListAdminReportsQueryOutput, UpdateReportRequestOutput } from 'generated/outputTypes';
+import type {
+  CreateReportRequestOutput,
+  ListAdminReportsQueryOutput,
+  UpdateReportRequestOutput,
+} from 'generated/outputTypes';
 import type { Report } from '@app/models';
 import { ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models';
+
+const requireReportField = <T>(report: Report, field: string, value: T | null | undefined): T => {
+  if (value == null) {
+    throw new Error(`Report ${report.id} has targetType=${report.targetType} but missing ${field}`);
+  }
+  return value;
+};
 
 const toReportTargetDTO = (report: Report): t_Report['target'] => {
   switch (report.targetType) {
@@ -9,14 +20,14 @@ const toReportTargetDTO = (report: Report): t_Report['target'] => {
       return {
         type: 'SEGMENT',
         mediaId: report.targetMediaId,
-        segmentUuid: report.targetSegmentUuid ?? '',
+        segmentUuid: requireReportField(report, 'targetSegmentUuid', report.targetSegmentUuid),
         ...(report.targetEpisodeNumber != null ? { episodeNumber: report.targetEpisodeNumber } : {}),
       };
     case 'EPISODE':
       return {
         type: 'EPISODE',
         mediaId: report.targetMediaId,
-        episodeNumber: report.targetEpisodeNumber ?? 0,
+        episodeNumber: requireReportField(report, 'targetEpisodeNumber', report.targetEpisodeNumber),
       };
     default:
       return {

@@ -33,9 +33,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function setMockAuthContext(options?: {
-  deleteSessionImpl?: (token: string) => Promise<void>;
-}) {
+function setMockAuthContext(options?: { deleteSessionImpl?: (token: string) => Promise<void> }) {
   const createSession = vi.fn(async () => ({ token: 'raw-session-token' }));
   const deleteSession = vi.fn(options?.deleteSessionImpl ?? (async () => {}));
 
@@ -101,7 +99,10 @@ describe('POST /v1/admin/impersonation', () => {
     const res = await request(app).post('/v1/admin/impersonation').send({ userId: core.users.regular.id });
     expect(res.status).toBe(200);
 
-    const sessionMeta = (createSession as any).mock.calls[0]?.[2] as { ipAddress: string | null; userAgent: string | null };
+    const sessionMeta = (createSession as any).mock.calls[0]?.[2] as {
+      ipAddress: string | null;
+      userAgent: string | null;
+    };
     expect(sessionMeta.ipAddress).toBeString();
   });
 
@@ -113,12 +114,12 @@ describe('POST /v1/admin/impersonation', () => {
     expect(res.body.code).toBe('NOT_FOUND');
   });
 
-  it('returns 401 when local development impersonation is disabled', async () => {
+  it('returns 403 when local development impersonation is disabled', async () => {
     setMockAuthContext();
     isLocalEnvironmentSpy.mockReturnValue(false);
 
     const res = await request(app).post('/v1/admin/impersonation').send({ userId: core.users.regular.id });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
     expect(res.body.code).toBe('ACCESS_DENIED');
   });
 });

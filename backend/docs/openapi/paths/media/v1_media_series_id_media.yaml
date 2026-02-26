@@ -7,8 +7,10 @@ post:
   description: |
     Adds a media entry to a series at a specific position.
 
+    **Permissions:** `UPDATE_MEDIA`
+
   security:
-    - apiKeyHeader: []
+    - apiKeyHeader: [UPDATE_MEDIA]
   parameters:
     - name: id
       in: path

@@ -108,7 +108,7 @@ export function setupTestSuite() {
   });
 
   beforeEach(async () => {
-    const runner = _originalCreateQueryRunner!();
+    const runner = _originalCreateQueryRunner?.();
     await runner.connect();
     await runner.startTransaction();
 

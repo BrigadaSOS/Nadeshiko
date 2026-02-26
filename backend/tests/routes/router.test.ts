@@ -8,12 +8,12 @@ import { auth } from '@config/auth';
 import { buildApplication } from '@config/application';
 import { router } from '@app/routes/router';
 
-let mockGetSession: Mock<typeof auth.api.getSession>;
-let mockVerifyApiKey: Mock<typeof auth.api.verifyApiKey>;
+let mockGetSession: Mock<any>;
+let mockVerifyApiKey: Mock<any>;
 
 beforeAll(() => {
   mockGetSession = vi.spyOn(auth.api, 'getSession') as any;
-  mockVerifyApiKey = vi.spyOn(auth.api, 'verifyApiKey') as any;
+  mockVerifyApiKey = vi.spyOn(auth.api as any, 'verifyApiKey') as any;
 });
 
 afterAll(() => {
@@ -49,19 +49,13 @@ describe('route auth wiring', () => {
 
     it('rejects API key without READ_MEDIA', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['ADD_MEDIA']);
-      const res = await request(app)
-        .get('/v1/search')
-        .query({ q: 'test' })
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/v1/search').query({ q: 'test' }).set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(403);
     });
 
     it('accepts API key with READ_MEDIA', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-      const res = await request(app)
-        .get('/v1/search')
-        .query({ q: 'test' })
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/v1/search').query({ q: 'test' }).set('Authorization', `Bearer ${token}`);
       expect(res.status).not.toBe(401);
       expect(res.status).not.toBe(403);
     });
@@ -88,27 +82,19 @@ describe('route auth wiring', () => {
 
     it('rejects API key without ADD_MEDIA on POST /v1/media/:mediaId/episodes', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-      const res = await request(app)
-        .post('/v1/media/1/episodes')
-        .set('Authorization', `Bearer ${token}`)
-        .send({});
+      const res = await request(app).post('/v1/media/1/episodes').set('Authorization', `Bearer ${token}`).send({});
       expect(res.status).toBe(403);
     });
 
     it('rejects API key without UPDATE_MEDIA on PATCH', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-      const res = await request(app)
-        .patch('/v1/media/1')
-        .set('Authorization', `Bearer ${token}`)
-        .send({});
+      const res = await request(app).patch('/v1/media/1').set('Authorization', `Bearer ${token}`).send({});
       expect(res.status).toBe(403);
     });
 
     it('rejects API key without REMOVE_MEDIA on DELETE', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-      const res = await request(app)
-        .delete('/v1/media/1')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).delete('/v1/media/1').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(403);
     });
   });
@@ -122,9 +108,7 @@ describe('route auth wiring', () => {
 
     it('rejects API key auth', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-      const res = await request(app)
-        .get('/v1/user/preferences')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/v1/user/preferences').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(401);
     });
 
@@ -136,28 +120,23 @@ describe('route auth wiring', () => {
     });
   });
 
-  describe('/v1/user/quota (dual auth)', () => {
+  describe('/v1/user/quota (session-only)', () => {
     it('rejects unauthenticated requests', async () => {
       mockGetSession.mockResolvedValue(null);
       const res = await request(app).get('/v1/user/quota');
       expect(res.status).toBe(401);
     });
 
-    it('accepts API key with READ_MEDIA (not blocked by /v1/user session middleware)', async () => {
+    it('rejects API key with READ_MEDIA', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-      const res = await request(app)
-        .get('/v1/user/quota')
-        .set('Authorization', `Bearer ${token}`);
-      expect(res.status).not.toBe(401);
-      expect(res.status).not.toBe(403);
+      const res = await request(app).get('/v1/user/quota').set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(401);
     });
 
     it('rejects API key without READ_MEDIA', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['ADD_MEDIA']);
-      const res = await request(app)
-        .get('/v1/user/quota')
-        .set('Authorization', `Bearer ${token}`);
-      expect(res.status).toBe(403);
+      const res = await request(app).get('/v1/user/quota').set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(401);
     });
 
     it('accepts session auth', async () => {
@@ -190,18 +169,14 @@ describe('route auth wiring', () => {
 
     it('accepts API key with ADD_MEDIA', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['ADD_MEDIA']);
-      const res = await request(app)
-        .get('/v1/admin/dashboard')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/v1/admin/dashboard').set('Authorization', `Bearer ${token}`);
       expect(res.status).not.toBe(401);
       expect(res.status).not.toBe(403);
     });
 
     it('rejects API key without ADD_MEDIA', async () => {
       const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-      const res = await request(app)
-        .get('/v1/admin/dashboard')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/v1/admin/dashboard').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(403);
     });
   });

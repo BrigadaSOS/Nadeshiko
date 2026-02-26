@@ -17,8 +17,8 @@ export type t_AdminReportListResponse = {
 export type t_Category = 'ANIME' | 'JDRAMA';
 
 export type t_CategoryCount = {
-  category?: t_Category;
-  count?: number;
+  category: t_Category;
+  count: number;
 };
 
 export type t_Character = {
@@ -45,19 +45,18 @@ export type t_CharacterInput = {
 
 export type t_CharacterWithMedia = t_Character & {
   mediaAppearances: {
-    media?: t_Media;
-    role?: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
+    media: t_Media;
+    role: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
   }[];
   seiyuu: t_Seiyuu;
 };
 
 export type t_Collection = {
-  createdAt?: string;
+  createdAt: string;
   id: number;
   name: string;
-  segmentCount?: number;
-  updatedAt?: string;
-  userId: number;
+  segmentCount: number;
+  updatedAt: string | null;
   visibility: 'PUBLIC' | 'PRIVATE';
 };
 
@@ -67,21 +66,23 @@ export type t_CollectionListResponse = {
 };
 
 export type t_CollectionWithSegments = {
+  createdAt: string;
   id: number;
-  includes?: {
-    media?: {
+  includes: {
+    media: {
       [key: string]: t_Media | undefined;
     };
   };
   name: string;
   pagination: t_OpaqueCursorPagination;
+  segmentCount: number;
   segments: {
-    note?: string | null;
-    position?: number;
-    result?: t_Segment;
+    note: string | null;
+    position: number;
+    result: t_Segment;
   }[];
   totalCount: number;
-  userId: number;
+  updatedAt: string | null;
   visibility: 'PUBLIC' | 'PRIVATE';
 };
 
@@ -220,30 +221,30 @@ export type t_Media = {
 };
 
 export type t_MediaAudit = {
-  createdAt?: string;
+  createdAt: string | null;
   description: string;
   enabled: boolean;
   id: number;
   label: string;
-  latestRun?: {
-    createdAt?: string;
-    id?: number;
-    resultCount?: number;
+  latestRun: {
+    createdAt: string;
+    id: number;
+    resultCount: number;
   } | null;
   name: string;
   targetType: 'MEDIA' | 'EPISODE';
   threshold: {
     [key: string]: unknown | undefined;
   };
-  thresholdSchema?: {
-    default?: number | boolean;
-    key?: string;
-    label?: string;
+  thresholdSchema: {
+    default: number | boolean;
+    key: string;
+    label: string;
     max?: number;
     min?: number;
-    type?: 'number' | 'boolean';
+    type: 'number' | 'boolean';
   }[];
-  updatedAt?: string | null;
+  updatedAt: string | null;
 };
 
 export type t_MediaAuditRun = {
@@ -275,7 +276,7 @@ export type t_MediaFilterItem = {
   mediaId: number;
 };
 
-export type t_MediaIncludeExpansion = 'media' | 'media.characters';
+export type t_MediaIncludeExpansion = 'media.characters';
 
 export type t_MediaListResponse = {
   media: t_Media[];
@@ -296,35 +297,35 @@ export type t_OpaqueCursorPagination = {
 };
 
 export type t_PaginationInfo = {
-  cursor?: string | null;
-  estimatedTotalHits?: number;
-  estimatedTotalHitsRelation?: 'EXACT' | 'LOWER_BOUND';
-  hasMore?: boolean;
+  cursor: string | null;
+  estimatedTotalHits: number;
+  estimatedTotalHitsRelation: 'EXACT' | 'LOWER_BOUND';
+  hasMore: boolean;
 };
 
 export type t_ReindexResponse = {
-  errors?: {
-    error?: string;
-    segmentId?: number;
+  errors: {
+    error: string;
+    segmentId: number;
   }[];
-  message?: string;
-  stats?: {
-    failedIndexes?: number;
-    mediaProcessed?: number;
-    successfulIndexes?: number;
-    totalSegments?: number;
+  message: string;
+  stats: {
+    failedIndexes: number;
+    mediaProcessed: number;
+    successfulIndexes: number;
+    totalSegments: number;
   };
-  success?: boolean;
+  success: boolean;
 };
 
 export type t_Report = {
-  adminNotes?: string | null;
-  auditRunId?: number | null;
+  adminNotes: string | null;
+  auditRunId: number | null;
   createdAt: string;
-  data?: {
+  data: {
     [key: string]: unknown | undefined;
   } | null;
-  description?: string | null;
+  description: string | null;
   id: number;
   reason:
     | 'WRONG_TRANSLATION'
@@ -348,8 +349,8 @@ export type t_Report = {
   source: 'USER' | 'AUTO';
   status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
   target: t_ReportTarget;
-  updatedAt?: string | null;
-  userId?: number | null;
+  updatedAt: string | null;
+  userId: number | null;
 };
 
 export type t_ReportTarget = t_ReportTargetMedia | t_ReportTargetEpisode | t_ReportTargetSegment;
@@ -405,32 +406,32 @@ export type t_SearchFilters = {
 };
 
 export type t_SearchMultipleResponse = {
-  includes?: {
-    media?: {
+  includes: {
+    media: {
       [key: string]: t_Media | undefined;
     };
   };
-  results?: t_WordMatch[];
+  results: t_WordMatch[];
 };
 
 export type t_SearchResponse = {
-  includes?: {
-    media?: {
+  includes: {
+    media: {
       [key: string]: t_Media | undefined;
     };
   };
-  pagination?: t_PaginationInfo;
-  segments?: t_Segment[];
+  pagination: t_PaginationInfo;
+  segments: t_Segment[];
 };
 
 export type t_SearchStatsResponse = {
-  categories?: t_CategoryCount[];
-  includes?: {
-    media?: {
+  categories: t_CategoryCount[];
+  includes: {
+    media: {
       [key: string]: t_Media | undefined;
     };
   };
-  media?: t_MediaSearchStats[];
+  media: t_MediaSearchStats[];
 };
 
 export type t_Segment = {
@@ -465,7 +466,7 @@ export type t_Segment = {
 };
 
 export type t_SegmentContextResponse = {
-  includes?: {
+  includes: {
     media?: {
       [key: string]: t_Media | undefined;
     };
@@ -474,15 +475,15 @@ export type t_SegmentContextResponse = {
 };
 
 export type t_SegmentInternal = t_Segment & {
-  hashedId?: string;
-  posAnalysis?: {
+  hashedId: string;
+  posAnalysis: {
     [key: string]: unknown | undefined;
   } | null;
-  ratingAnalysis?: {
+  ratingAnalysis: {
     [key: string]: unknown | undefined;
   } | null;
-  storage?: 'LOCAL' | 'R2';
-  storageBasePath?: string;
+  storage: 'LOCAL' | 'R2';
+  storageBasePath: string;
 };
 
 export type t_Seiyuu = {
@@ -498,6 +499,7 @@ export type t_SeiyuuWithRoles = {
     media: t_Media;
     role: 'MAIN' | 'SUPPORTING' | 'BACKGROUND';
   })[];
+  externalIds: t_ExternalId;
   id: number;
   imageUrl: string;
   nameEn: string;
@@ -519,8 +521,8 @@ export type t_SeriesListResponse = {
 export type t_SeriesWithMedia = {
   id: number;
   media: {
-    media?: t_Media;
-    position?: number;
+    media: t_Media;
+    position: number;
   }[];
   nameEn: string;
   nameJa: string;
@@ -529,13 +531,13 @@ export type t_SeriesWithMedia = {
 
 export type t_UserActivity = {
   activityType: t_ActivityType;
-  animeName?: string | null;
   createdAt: string;
   id: number;
-  japaneseText?: string | null;
-  mediaId?: number | null;
-  searchQuery?: string | null;
-  segmentUuid?: string | null;
+  japaneseText: string | null;
+  mediaId: number | null;
+  mediaName: string | null;
+  searchQuery: string | null;
+  segmentUuid: string | null;
 };
 
 export type t_UserExportCollection = t_Collection & {
@@ -605,10 +607,10 @@ export type t_UserQuotaResponse = {
 export type t_UserReportTarget = t_ReportTargetMedia | t_ReportTargetSegment;
 
 export type t_WordMatch = {
-  isMatch?: boolean;
-  matchCount?: number;
-  media?: t_WordMatchMedia[];
-  word?: string;
+  isMatch: boolean;
+  matchCount: number;
+  media: t_WordMatchMedia[];
+  word: string;
 };
 
 export type t_WordMatchMedia = {
@@ -792,7 +794,6 @@ export type t_GetCollectionParamSchema = {
 
 export type t_GetCollectionQuerySchema = {
   cursor?: string;
-  page?: number;
   take?: number;
 };
 
@@ -838,7 +839,6 @@ export type t_GetSegmentContextParamSchema = {
 
 export type t_GetSegmentContextQuerySchema = {
   contentRating?: t_ContentRating[];
-  include?: t_IncludeExpansion[];
   take?: number;
 };
 
@@ -891,7 +891,6 @@ export type t_ListAdminReportsQuerySchema = {
 
 export type t_ListCollectionsQuerySchema = {
   cursor?: string;
-  page?: number;
   take?: number;
   visibility?: 'public' | 'private';
 };
@@ -997,9 +996,9 @@ export type t_SearchWordsRequestBodySchema = {
 
 export type t_TrackUserActivityRequestBodySchema = {
   activityType: 'SEGMENT_PLAY';
-  animeName?: string;
   japaneseText?: string;
   mediaId?: number;
+  mediaName?: string;
   segmentUuid?: string;
 };
 

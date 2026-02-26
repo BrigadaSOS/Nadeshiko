@@ -40,12 +40,12 @@ get:
         example: steins
     - name: include
       in: query
-      description: Resources to expand in the media response (`media.characters` implies `media`)
+      description: Resources to expand in the media response
       schema:
         type: array
         items:
           $ref: "../../components/schemas/MediaIncludeExpansion.yaml"
-        default: [media]
+        default: []
   responses:
     "200":
       description: OK

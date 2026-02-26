@@ -278,10 +278,7 @@ describe('POST /v1/admin/reindex', () => {
     activeSpies.push(reindexSpy, invalidateSpy);
 
     const payload = {
-      media: [
-        { mediaId: 99999, episodes: [1] },
-        { mediaId: 42 },
-      ],
+      media: [{ mediaId: 99999, episodes: [1] }, { mediaId: 42 }],
     };
 
     const res = await request(app).post('/v1/admin/reindex').send(payload);

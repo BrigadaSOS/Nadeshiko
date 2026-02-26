@@ -2,6 +2,11 @@ type: object
 required:
   - id
   - activityType
+  - segmentUuid
+  - mediaId
+  - searchQuery
+  - mediaName
+  - japaneseText
   - createdAt
 properties:
   id:
@@ -17,7 +22,7 @@ properties:
   searchQuery:
     type: string
     nullable: true
-  animeName:
+  mediaName:
     type: string
     nullable: true
   japaneseText:

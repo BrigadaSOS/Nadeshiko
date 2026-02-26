@@ -30,7 +30,14 @@ export const missingTranslations: MediaAuditCheck = {
 
     const results: CheckResult[] = [];
 
-    for (const row of rows as { mediaId: number; episodeNumber: number; romajiName: string; missingEnCount: string; missingEsCount: string; totalCount: string }[]) {
+    for (const row of rows as {
+      mediaId: number;
+      episodeNumber: number;
+      romajiName: string;
+      missingEnCount: string;
+      missingEsCount: string;
+      totalCount: string;
+    }[]) {
       const missingEnCount = Number(row.missingEnCount);
       if (missingEnCount >= minMissingCount) {
         results.push({

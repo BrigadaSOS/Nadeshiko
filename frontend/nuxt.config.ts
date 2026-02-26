@@ -202,9 +202,6 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'bun',
-    externals: {
-      external: ['@scalar/api-reference', '@scalar/themes', '@scalar/components'],
-    },
     rollupConfig: {
       onwarn(warning, defaultHandler) {
         if (warning.code === 'THIS_IS_UNDEFINED' || warning.code === 'CIRCULAR_DEPENDENCY') return;

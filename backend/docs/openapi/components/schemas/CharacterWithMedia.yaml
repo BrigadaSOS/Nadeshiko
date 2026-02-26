@@ -13,6 +13,9 @@ allOf:
         description: All media this character appears in
         items:
           type: object
+          required:
+            - media
+            - role
           properties:
             media:
               $ref: "./Media.yaml"

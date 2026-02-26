@@ -6,6 +6,7 @@ export interface CoreFixtures {
 }
 
 export interface UserFixtures {
+  [key: string]: User;
   kevin: User;
   david: User;
   jz: User;

@@ -64,7 +64,9 @@ describe('GET /v1/media/:mediaId/episodes', () => {
     expect(page1.body.pagination.hasMore).toBe(true);
     expect(page1.body.pagination.cursor).toEqual(expect.any(String));
 
-    const page2 = await request(app).get(`/v1/media/${media.id}/episodes?take=2&cursor=${page1.body.pagination.cursor}`);
+    const page2 = await request(app).get(
+      `/v1/media/${media.id}/episodes?take=2&cursor=${page1.body.pagination.cursor}`,
+    );
     expect(page2.status).toBe(200);
     expect(page2.body.episodes).toHaveLength(1);
     expect(page2.body.pagination).toEqual({ hasMore: false, cursor: null });
@@ -111,11 +113,11 @@ describe('POST /v1/media/:mediaId/episodes', () => {
     expect(res.status).toBe(201);
 
     const saved = await Episode.findOneBy({ mediaId: media.id, episodeNumber: 5 });
-    expect(saved!.titleRomaji).toBe('Arashi');
-    expect(saved!.titleJa).toBe('嵐');
-    expect(saved!.description).toBe('A big storm approaches');
-    expect(saved!.lengthSeconds).toBe(1320);
-    expect(saved!.thumbnailUrl).toBe('https://example.com/thumb.jpg');
+    expect(saved?.titleRomaji).toBe('Arashi');
+    expect(saved?.titleJa).toBe('嵐');
+    expect(saved?.description).toBe('A big storm approaches');
+    expect(saved?.lengthSeconds).toBe(1320);
+    expect(saved?.thumbnailUrl).toBe('https://example.com/thumb.jpg');
   });
 
   it('returns 404 when media does not exist (FK violation)', async () => {
@@ -223,7 +225,7 @@ describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber', () => {
       withDeleted: true,
     });
     expect(withDeleted).not.toBeNull();
-    expect(withDeleted!.deletedAt).not.toBeNull();
+    expect(withDeleted?.deletedAt).not.toBeNull();
   });
 
   it('returns 404 when episode does not exist', async () => {

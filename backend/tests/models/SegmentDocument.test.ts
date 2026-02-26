@@ -12,7 +12,15 @@ import { isEsAvailable, seedSegmentsIntoEs } from '../helpers/esFixtures';
 
 vi.mock('@config/log', () => {
   const noop = () => {};
-  const mockLogger = { trace: noop, debug: noop, info: noop, warn: noop, error: noop, fatal: noop, child: () => mockLogger };
+  const mockLogger = {
+    trace: noop,
+    debug: noop,
+    info: noop,
+    warn: noop,
+    error: noop,
+    fatal: noop,
+    child: () => mockLogger,
+  };
   return { logger: mockLogger, createLogger: () => mockLogger, default: mockLogger };
 });
 
@@ -30,7 +38,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       await seedSegmentsIntoEs({}, [{ contentJa: 'こんにちは世界' }]);
 
       const result = await SegmentDocument.search({
-        query: { search: 'こんにちは' },
+        query: { search: 'こんにちは', exactMatch: false },
         take: 25,
       });
 
@@ -44,7 +52,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       await seedSegmentsIntoEs({}, [{ contentJa: '昨日ラーメンを食べました' }]);
 
       const result = await SegmentDocument.search({
-        query: { search: '食べる' },
+        query: { search: '食べる', exactMatch: false },
         take: 25,
       });
 
@@ -56,12 +64,12 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       await seedSegmentsIntoEs({}, [{ contentJa: 'テスト', contentEn: 'Hello world' }]);
 
       const result = await SegmentDocument.search({
-        query: { search: 'Hello' },
+        query: { search: 'Hello', exactMatch: false },
         take: 25,
       });
 
       expect(result.segments).toHaveLength(1);
-      expect(result.segments[0].textEn!.content).toBe('Hello world');
+      expect(result.segments[0].textEn?.content).toBe('Hello world');
     });
 
     it('filters by category', async () => {
@@ -69,7 +77,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       await seedSegmentsIntoEs({ category: CategoryType.JDRAMA }, [{ contentJa: 'ドラマセグメント' }]);
 
       const animeResult = await SegmentDocument.search({
-        query: { search: 'セグメント' },
+        query: { search: 'セグメント', exactMatch: false },
         take: 25,
         filters: { status: ['ACTIVE'], category: ['ANIME'] },
       });
@@ -78,7 +86,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(animeResult.segments[0].textJa.content).toBe('アニメセグメント');
 
       const jdramaResult = await SegmentDocument.search({
-        query: { search: 'セグメント' },
+        query: { search: 'セグメント', exactMatch: false },
         take: 25,
         filters: { status: ['ACTIVE'], category: ['JDRAMA'] },
       });
@@ -92,7 +100,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       await seedSegmentsIntoEs({}, [{ contentJa: '除外特別文章' }]);
 
       const result = await SegmentDocument.search({
-        query: { search: '特別' },
+        query: { search: '特別', exactMatch: false },
         take: 25,
         filters: { status: ['ACTIVE'], category: ['ANIME'], media: { include: [{ mediaId: media1.id }] } },
       });
@@ -109,7 +117,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       ]);
 
       const page1 = await SegmentDocument.search({
-        query: { search: '猫' },
+        query: { search: '猫', exactMatch: false },
         take: 1,
       });
 
@@ -118,9 +126,9 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(page1.pagination.cursor).toBeTruthy();
 
       const page2 = await SegmentDocument.search({
-        query: { search: '猫' },
+        query: { search: '猫', exactMatch: false },
         take: 1,
-        cursor: page1.pagination.cursor!,
+        cursor: page1.pagination.cursor as string,
       });
 
       expect(page2.segments).toHaveLength(1);
@@ -134,7 +142,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       ]);
 
       const result = await SegmentDocument.search({
-        query: {},
+        query: { exactMatch: false },
         take: 25,
         filters: { status: ['ACTIVE'], category: ['ANIME'], segmentLengthChars: { min: 10 } },
       });
@@ -145,7 +153,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
 
     it('returns empty results for no hits', async () => {
       const result = await SegmentDocument.search({
-        query: { search: '存在しない検索語' },
+        query: { search: '存在しない検索語', exactMatch: false },
         take: 25,
       });
 
@@ -160,12 +168,10 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
         { contentJa: '統計テスト', position: 1 },
         { contentJa: '統計テスト二', position: 2 },
       ]);
-      await seedSegmentsIntoEs({ category: CategoryType.JDRAMA }, [
-        { contentJa: '統計テストドラマ' },
-      ]);
+      await seedSegmentsIntoEs({ category: CategoryType.JDRAMA }, [{ contentJa: '統計テストドラマ' }]);
 
       const result = await SegmentDocument.searchStats({
-        query: { search: '統計' },
+        query: { search: '統計', exactMatch: false },
       });
 
       expect(result.media.length).toBeGreaterThanOrEqual(1);
@@ -174,9 +180,9 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       const animeCategory = result.categories.find((c) => c.category === 'ANIME');
       const jdramaCategory = result.categories.find((c) => c.category === 'JDRAMA');
       expect(animeCategory).toBeDefined();
-      expect(animeCategory!.count).toBe(2);
+      expect(animeCategory?.count).toBe(2);
       expect(jdramaCategory).toBeDefined();
-      expect(jdramaCategory!.count).toBe(1);
+      expect(jdramaCategory?.count).toBe(1);
     });
   });
 
@@ -192,16 +198,16 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(result.results).toHaveLength(3);
 
       const catResult = result.results.find((r) => r.word === '猫');
-      expect(catResult!.isMatch).toBe(true);
-      expect(catResult!.matchCount).toBeGreaterThanOrEqual(1);
+      expect(catResult?.isMatch).toBe(true);
+      expect(catResult?.matchCount).toBeGreaterThanOrEqual(1);
 
       const dogResult = result.results.find((r) => r.word === '犬');
-      expect(dogResult!.isMatch).toBe(true);
-      expect(dogResult!.matchCount).toBeGreaterThanOrEqual(1);
+      expect(dogResult?.isMatch).toBe(true);
+      expect(dogResult?.matchCount).toBeGreaterThanOrEqual(1);
 
       const noMatch = result.results.find((r) => r.word === 'xyz不存在');
-      expect(noMatch!.isMatch).toBe(false);
-      expect(noMatch!.matchCount).toBe(0);
+      expect(noMatch?.isMatch).toBe(false);
+      expect(noMatch?.matchCount).toBe(0);
     });
   });
 
@@ -262,17 +268,15 @@ describe('SegmentDocument (mocked)', () => {
       parseError.meta = {
         body: { error: { type: 'parse_exception', reason: 'failed to parse query' } },
       };
-      searchSpy
-        .mockRejectedValueOnce(parseError)
-        .mockResolvedValueOnce({
-          took: 5,
-          timed_out: false,
-          _shards: { total: 1, successful: 1, skipped: 0, failed: 0 },
-          hits: { total: { value: 0, relation: 'eq' }, max_score: null, hits: [] },
-        } as any);
+      searchSpy.mockRejectedValueOnce(parseError).mockResolvedValueOnce({
+        took: 5,
+        timed_out: false,
+        _shards: { total: 1, successful: 1, skipped: 0, failed: 0 },
+        hits: { total: { value: 0, relation: 'eq' }, max_score: null, hits: [] },
+      } as any);
 
       const result = await SegmentDocument.search({
-        query: { search: 'bad(query' },
+        query: { search: 'bad(query', exactMatch: false },
         take: 25,
       });
 
@@ -288,7 +292,7 @@ describe('SegmentDocument (mocked)', () => {
 
       await expect(
         SegmentDocument.search({
-          query: { search: 'test' },
+          query: { search: 'test', exactMatch: false },
           take: 25,
           cursor: badCursor,
         }),
@@ -298,7 +302,7 @@ describe('SegmentDocument (mocked)', () => {
     it('throws InvalidRequestError when segmentLengthChars.min > max', async () => {
       await expect(
         SegmentDocument.search({
-          query: { search: 'test' },
+          query: { search: 'test', exactMatch: false },
           take: 25,
           filters: {
             status: ['ACTIVE'],
@@ -333,7 +337,12 @@ describe('SegmentDocument (mocked)', () => {
     });
 
     it('delegates reindex() to SegmentIndexer', async () => {
-      const reindexResult = { success: true, message: 'done', stats: { totalSegments: 0, successfulIndexes: 0, failedIndexes: 0, mediaProcessed: 0 }, errors: [] };
+      const reindexResult = {
+        success: true,
+        message: 'done',
+        stats: { totalSegments: 0, successfulIndexes: 0, failedIndexes: 0, mediaProcessed: 0 },
+        errors: [],
+      };
       const spy = vi.spyOn(SegmentIndexer, 'reindex').mockResolvedValue(reindexResult);
 
       const result = await SegmentDocument.reindex();

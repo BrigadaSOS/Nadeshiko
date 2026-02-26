@@ -1,4 +1,5 @@
 get:
+  x-internal: true
   tags:
     - Collections
   operationId: getCollection
@@ -21,16 +22,7 @@ get:
       description: Opaque pagination cursor token for paginated segments
       schema:
         type: string
-        example: 0
-    - name: page
-      in: query
-      description: Page number (1-indexed)
-      deprecated: true
-      schema:
-        type: integer
-        default: 1
-        minimum: 1
-        example: 1
+        example: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9
     - name: take
       in: query
       description: Items per page
@@ -50,7 +42,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -61,6 +53,7 @@ get:
       $ref: "../../components/responses/InternalServerError.yaml"
 
 patch:
+  x-internal: true
   tags:
     - Collections
   operationId: updateCollection
@@ -102,7 +95,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -113,6 +106,7 @@ patch:
       $ref: "../../components/responses/InternalServerError.yaml"
 
 delete:
+  x-internal: true
   tags:
     - Collections
   operationId: deleteCollection
@@ -136,7 +130,7 @@ delete:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

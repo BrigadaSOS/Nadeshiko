@@ -6,7 +6,11 @@ import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
 import { InsufficientPermissionsError } from '@app/errors';
 
 export const apiKeyOnly = [requireApiKeyAuth, rateLimitApiQuota] as const;
-export const searchAccess = [requireApiKeyAuth, requirePermissions(ApiPermission.READ_MEDIA), rateLimitApiQuota] as const;
+export const searchAccess = [
+  requireApiKeyAuth,
+  requirePermissions(ApiPermission.READ_MEDIA),
+  rateLimitApiQuota,
+] as const;
 
 export const mediaReadPermission = [requirePermissions(ApiPermission.READ_MEDIA)] as const;
 export const mediaAddPermission = [requirePermissions(ApiPermission.ADD_MEDIA)] as const;

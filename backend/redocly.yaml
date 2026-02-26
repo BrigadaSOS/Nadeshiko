@@ -1,6 +1,10 @@
 apis:
   main:
     root: docs/openapi/openapi.yaml
+  public:
+    root: docs/openapi/openapi.yaml
+    decorators:
+      remove-x-internal: on
 
 rules:
   no-unresolved-refs: error

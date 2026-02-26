@@ -67,7 +67,7 @@ describe('resolveDefaultApiPermissions', () => {
   });
 
   it('returns full permissions for admin users', async () => {
-    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN } as any));
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN }) as any);
     const result = await resolveDefaultApiPermissions('42', findUserById as any);
 
     expect(findUserById).toHaveBeenCalledWith(42);
@@ -75,7 +75,7 @@ describe('resolveDefaultApiPermissions', () => {
   });
 
   it('returns readonly permissions for non-admin users', async () => {
-    const findUserById = vi.fn(async () => ({ role: UserRoleType.USER } as any));
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.USER }) as any);
     const result = await resolveDefaultApiPermissions('42', findUserById as any);
 
     expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).toEqual([ApiPermission.READ_MEDIA]);
@@ -84,7 +84,7 @@ describe('resolveDefaultApiPermissions', () => {
 
 describe('enrichSessionUser', () => {
   it('adds role and preferences from database user', async () => {
-    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN, preferences: { locale: 'ja' } } as any));
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN, preferences: { locale: 'ja' } }) as any);
     const user = await enrichSessionUser({ id: '9', email: 'u@test.local' }, findUserById as any);
 
     expect(findUserById).toHaveBeenCalledWith(9);

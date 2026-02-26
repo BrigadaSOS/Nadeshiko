@@ -11,19 +11,18 @@ import type {
   GetCollectionStats,
 } from 'generated/routes/collections';
 import { Collection, CollectionSegment, CollectionVisibility, Segment, UserRoleType } from '@app/models';
+import type { CategoryOutput } from 'generated/outputTypes';
+import type { User } from '@app/models/User';
 import { toCollectionDTO } from './mappers/collection.mapper';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { AccessDeniedError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
 import { UserActivity, ActivityType } from '@app/models/UserActivity';
-import type { Request } from 'express';
 
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
   const user = assertUser(req);
 
-  await ensureDefaultAnkiExportsCollection(user.id);
-
-  const whereClause: any = { userId: user.id };
+  const whereClause: Partial<Pick<Collection, 'userId' | 'visibility'>> = { userId: user.id };
 
   if (query.visibility === 'public') {
     whereClause.visibility = CollectionVisibility.PUBLIC;
@@ -69,14 +68,16 @@ export const createCollection: CreateCollection = async ({ body }, respond, req)
   const collection = await Collection.save({
     name: body.name,
     userId: user.id,
-    visibility: (body.visibility as CollectionVisibility) || CollectionVisibility.PRIVATE,
+    visibility: body.visibility === undefined ? CollectionVisibility.PRIVATE : toCollectionVisibility(body.visibility),
   });
 
   return respond.with201().body(toCollectionDTO(collection));
 };
 
-export const getCollection: GetCollection = async ({ params, query }, respond) => {
+export const getCollection: GetCollection = async ({ params, query }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  assertCollectionReadable(collection, user);
 
   const {
     items: segmentItems,
@@ -93,8 +94,9 @@ export const getCollection: GetCollection = async ({ params, query }, respond) =
 
   if (segmentItems.length === 0) {
     return respond.with200().body({
-      ...toCollectionDTO(collection),
+      ...toCollectionDTO(collection, totalCount),
       segments: [],
+      includes: { media: {} },
       totalCount,
       pagination,
     });
@@ -118,7 +120,7 @@ export const getCollection: GetCollection = async ({ params, query }, respond) =
     .filter((s): s is NonNullable<typeof s> => s !== null);
 
   return respond.with200().body({
-    ...toCollectionDTO(collection),
+    ...toCollectionDTO(collection, totalCount),
     segments,
     includes,
     totalCount,
@@ -127,12 +129,13 @@ export const getCollection: GetCollection = async ({ params, query }, respond) =
 };
 
 export const updateCollection: UpdateCollection = async ({ params, body }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
-  assertCollectionOwnership(collection, req);
+  assertCollectionOwnership(collection, user);
 
   const patch: Partial<Pick<Collection, 'name' | 'visibility'>> = {};
-  if (body.name) patch.name = body.name;
-  if (body.visibility) patch.visibility = body.visibility as CollectionVisibility;
+  if (body.name !== undefined) patch.name = body.name;
+  if (body.visibility !== undefined) patch.visibility = toCollectionVisibility(body.visibility);
 
   const updated = await Collection.findAndUpdateOrFail({ where: { id: params.id }, patch });
 
@@ -140,8 +143,9 @@ export const updateCollection: UpdateCollection = async ({ params, body }, respo
 };
 
 export const deleteCollection: DeleteCollection = async ({ params }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
-  assertCollectionOwnership(collection, req);
+  assertCollectionOwnership(collection, user);
 
   await Collection.deleteOrFail({ where: { id: params.id } });
 
@@ -149,8 +153,9 @@ export const deleteCollection: DeleteCollection = async ({ params }, respond, re
 };
 
 export const addSegmentToCollection: AddSegmentToCollection = async ({ params, body }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
-  assertCollectionOwnership(collection, req);
+  assertCollectionOwnership(collection, user);
 
   const segment = await Segment.findOneOrFail({ where: { uuid: body.segmentUuid } });
 
@@ -173,22 +178,21 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
     segmentUuid: body.segmentUuid,
     mediaId: segment.mediaId,
     position: nextPosition,
-    note: body.note || null,
+    note: body.note ?? null,
   });
 
-  if (req.user) {
-    UserActivity.trackForUser(req.user, ActivityType.LIST_ADD_SEGMENT, {
-      segmentUuid: body.segmentUuid,
-      mediaId: segment.mediaId,
-    }).catch(() => {});
-  }
+  UserActivity.trackForUser(user, ActivityType.LIST_ADD_SEGMENT, {
+    segmentUuid: body.segmentUuid,
+    mediaId: segment.mediaId,
+  }).catch(() => {});
 
   return respond.with204();
 };
 
 export const updateCollectionSegment: UpdateCollectionSegment = async ({ params, body }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
-  assertCollectionOwnership(collection, req);
+  assertCollectionOwnership(collection, user);
 
   const item = await CollectionSegment.findOneOrFail({
     where: { collectionId: params.id, segmentUuid: params.uuid },
@@ -203,8 +207,9 @@ export const updateCollectionSegment: UpdateCollectionSegment = async ({ params,
 };
 
 export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({ params }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
-  assertCollectionOwnership(collection, req);
+  assertCollectionOwnership(collection, user);
 
   await CollectionSegment.deleteOrFail({
     where: { collectionId: params.id, segmentUuid: params.uuid },
@@ -213,8 +218,10 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
   return respond.with204();
 };
 
-export const searchCollectionSegments: SearchCollectionSegments = async ({ params, query }, respond) => {
+export const searchCollectionSegments: SearchCollectionSegments = async ({ params, query }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  assertCollectionReadable(collection, user);
 
   const {
     items: segmentItems,
@@ -261,8 +268,10 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
   });
 };
 
-export const getCollectionStats: GetCollectionStats = async ({ params }, respond) => {
+export const getCollectionStats: GetCollectionStats = async ({ params }, respond, req) => {
+  const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  assertCollectionReadable(collection, user);
 
   // Fetch all segment items from the collection
   const allSegmentItems = await CollectionSegment.find({
@@ -271,7 +280,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   });
 
   if (allSegmentItems.length === 0) {
-    return respond.with200().body({ media: [], categories: [] });
+    return respond.with200().body({ media: [], categories: [], includes: { media: {} } });
   }
 
   // Get full segment data from ES to access media info
@@ -282,7 +291,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
 
   // Compute per-media stats
   const mediaMap = new Map<number, { matchCount: number; episodeHits: Record<string, number> }>();
-  const categoryCountMap = new Map<string, number>();
+  const categoryCountMap = new Map<CategoryOutput, number>();
 
   for (const seg of searchResults) {
     let entry = mediaMap.get(seg.mediaId);
@@ -295,7 +304,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
     entry.episodeHits[epKey] = (entry.episodeHits[epKey] ?? 0) + 1;
 
     const mediaInfo = mediaIncludes[String(seg.mediaId)];
-    const category = (mediaInfo as any)?.category ?? 'ANIME';
+    const category = toCategory(mediaInfo?.category);
     categoryCountMap.set(category, (categoryCountMap.get(category) ?? 0) + 1);
   }
 
@@ -306,32 +315,34 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   }));
 
   const categories = Array.from(categoryCountMap.entries()).map(([category, count]) => ({
-    category: category as any,
+    category,
     count,
   }));
 
   return respond.with200().body({ media, categories, includes });
 };
 
-const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
+const isAdmin = (user: Pick<User, 'role'>): boolean => user.role === UserRoleType.ADMIN;
 
-const isAdmin = (req: Request): boolean => req.user?.role === UserRoleType.ADMIN;
-
-const assertCollectionOwnership = (collection: Collection, req: Request): void => {
-  if (collection.userId !== req.user?.id && !isAdmin(req)) {
+const assertCollectionOwnership = (collection: Collection, user: Pick<User, 'id' | 'role'>): void => {
+  if (collection.userId !== user.id && !isAdmin(user)) {
     throw new AccessDeniedError('You do not have permission to modify this collection.');
   }
 };
 
-const ensureDefaultAnkiExportsCollection = async (userId: number): Promise<void> => {
-  const existing = await Collection.findOne({
-    where: { userId, name: DEFAULT_ANKI_EXPORTS_COLLECTION },
-  });
-  if (existing) return;
+const assertCollectionReadable = (collection: Collection, user: Pick<User, 'id' | 'role'>): void => {
+  if (collection.visibility === CollectionVisibility.PUBLIC) {
+    return;
+  }
 
-  await Collection.save({
-    name: DEFAULT_ANKI_EXPORTS_COLLECTION,
-    userId,
-    visibility: CollectionVisibility.PRIVATE,
-  });
+  if (collection.userId === user.id || isAdmin(user)) {
+    return;
+  }
+
+  throw new AccessDeniedError('You do not have permission to view this collection.');
 };
+
+const toCategory = (value: string | undefined): CategoryOutput => (value === 'JDRAMA' ? 'JDRAMA' : 'ANIME');
+
+const toCollectionVisibility = (value: string): CollectionVisibility =>
+  value === 'PUBLIC' ? CollectionVisibility.PUBLIC : CollectionVisibility.PRIVATE;

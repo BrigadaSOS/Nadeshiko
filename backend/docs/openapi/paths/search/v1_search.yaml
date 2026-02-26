@@ -4,14 +4,14 @@ post:
   operationId: search
   summary: Search segments by query
   description: |
-    The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama, audiobooks).
+    The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama).
 
     This endpoint uses Elasticsearch with advanced Japanese text analysis supporting multiple input types (romaji, kanji, kana) and providing intelligent field-based boosting.
 
     **Query Features**
     - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
     - **Boolean Operators:** `AND`, `OR`, `NOT` supported (e.g., `(cat OR dog) AND bird`)
-    - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`), or pass `exact_match: true` to the request body
+    - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`), or pass `exactMatch: true` to the request body
     - **Wildcards:** `te*t` format (leading wildcards not supported)
     - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
 
@@ -24,6 +24,9 @@ post:
     | **English/Spanish** | Direct translation search |
 
     **Permissions:** `READ_MEDIA`
+
+  security:
+    - apiKeyHeader: [READ_MEDIA]
 
   requestBody:
     content:

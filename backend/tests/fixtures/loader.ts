@@ -49,7 +49,17 @@ const ENTITY_CLASSES: Record<FixtureEntityKey, new () => { save(): Promise<unkno
 };
 
 function emptyLoadedFixtures(): LoadedFixtures {
-  return { users: {}, media: {}, episodes: {}, series: {}, seriesMedia: {}, seiyuu: {}, characters: {}, mediaCharacters: {}, activities: {} };
+  return {
+    users: {},
+    media: {},
+    episodes: {},
+    series: {},
+    seriesMedia: {},
+    seiyuu: {},
+    characters: {},
+    mediaCharacters: {},
+    activities: {},
+  };
 }
 
 function mergeFixtureSets(setNames: readonly FixtureSetName[]): FixtureCatalog {
@@ -63,7 +73,8 @@ function mergeFixtureSets(setNames: readonly FixtureSetName[]): FixtureCatalog {
       const incoming = set[entityKey];
       if (!incoming) continue;
 
-      const target = (merged[entityKey] ??= {});
+      if (!merged[entityKey]) merged[entityKey] = {};
+      const target = merged[entityKey];
       for (const [name, payload] of Object.entries(incoming)) {
         if (name in target) throw new Error(`Duplicate fixture key '${entityKey}.${name}' in set '${setName}'`);
         (target as Record<string, unknown>)[name] = payload;

@@ -1,6 +1,10 @@
 service: nadeshiko-backend-dev
 image: brigadasos/nadeshiko-backend-dev
 
+servers:
+  web:
+    cmd: sh -c 'bun run db:prepare && bun run start'
+
 proxy:
   ssl: true
   host: api-dev.nadeshiko.co

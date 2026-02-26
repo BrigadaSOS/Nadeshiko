@@ -24,7 +24,6 @@ describe('collection.mapper', () => {
     expect(dto).toEqual({
       id: 7,
       name: 'Deck',
-      userId: 22,
       visibility: 'PUBLIC',
       segmentCount: 3,
       createdAt: '2025-01-01T00:00:00.000Z',

@@ -2,13 +2,7 @@ import { AppDataSource } from '@config/database';
 import { client as esClient } from '@config/elasticsearch';
 import type { DataSource } from 'typeorm';
 import type { Client } from '@elastic/elasticsearch';
-import {
-  Report,
-  ReportSource,
-  ReportTargetType,
-  ReportStatus,
-  ReportReason,
-} from '@app/models';
+import { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason } from '@app/models';
 import { MediaAudit } from './MediaAudit';
 import { MediaAuditRun } from './MediaAuditRun';
 import { MediaAuditTargetType } from './MediaAudit';
@@ -48,11 +42,7 @@ export async function runAllAudits(category?: string, auditName?: string): Promi
   return runAllAuditsWithDeps({ dataSource: AppDataSource, esClient }, category, auditName);
 }
 
-export async function runAllAuditsWithDeps(
-  deps: AuditDeps,
-  category?: string,
-  auditName?: string,
-): Promise<RunResult> {
+export async function runAllAuditsWithDeps(deps: AuditDeps, category?: string, auditName?: string): Promise<RunResult> {
   const enabledAudits = await getEnabledAudits();
   const auditsToRun = auditName ? enabledAudits.filter((c) => c.name === auditName) : enabledAudits;
 
@@ -94,9 +84,7 @@ export async function getPreviousRunData(
     where: { auditRunId: previousRun.id },
   });
 
-  return new Map(
-    prevReports.map((r) => [`${r.targetMediaId}:${r.targetEpisodeNumber ?? ''}`, r.data ?? {}]),
-  );
+  return new Map(prevReports.map((r) => [`${r.targetMediaId}:${r.targetEpisodeNumber ?? ''}`, r.data ?? {}]));
 }
 
 export function enrichResults(
@@ -143,11 +131,7 @@ export function buildReports(
   });
 }
 
-async function runSingleAudit(
-  audit: MediaAuditCheck,
-  deps: AuditDeps,
-  category?: string,
-): Promise<RunAuditSummary> {
+async function runSingleAudit(audit: MediaAuditCheck, deps: AuditDeps, category?: string): Promise<RunAuditSummary> {
   const dbAudit = await MediaAudit.findOne({ where: { name: audit.name } });
   if (!dbAudit) {
     throw new Error(`Audit config not found in DB: ${audit.name}`);

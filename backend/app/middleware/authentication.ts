@@ -48,6 +48,7 @@ interface ApiKeyCacheEntry {
   expiresAt: number;
 }
 const apiKeyCache = new Map<string, ApiKeyCacheEntry>();
+type VerifyApiKey = (args: { body: { key: string } }) => Promise<unknown>;
 
 function getCachedApiKey(key: string): ApiKeyCacheEntry | null {
   const entry = apiKeyCache.get(key);
@@ -315,7 +316,11 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
   };
 
   try {
-    verification = (await auth.api.verifyApiKey({
+    const verifyApiKey = (auth.api as { verifyApiKey?: VerifyApiKey }).verifyApiKey;
+    if (typeof verifyApiKey !== 'function') {
+      throw new AuthCredentialsInvalidError('API key verification is not configured.');
+    }
+    verification = (await verifyApiKey({
       body: {
         key: apiKey,
       },

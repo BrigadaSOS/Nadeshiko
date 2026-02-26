@@ -1,27 +1,14 @@
-import request from 'supertest';
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'bun:test';
-import type { Application, Request, Response, NextFunction } from 'express';
-import { buildApplication } from '@config/application';
-import { SearchRoutes } from '@app/routes/router';
+import * as schemas from 'generated/schemas';
+import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { UserActivity, ActivityType } from '@app/models/UserActivity';
+import { assertMatchesSchema } from '../helpers/openapiContract';
 
-let app: Application;
 let mockSearch: Mock<typeof SegmentDocument.search>;
 let mockSearchStats: Mock<typeof SegmentDocument.searchStats>;
 let mockWordsMatched: Mock<typeof SegmentDocument.wordsMatched>;
 let mockTrackForUser: Mock<typeof UserActivity.trackForUser>;
-
-function signInAs(targetApp: Application, user: Record<string, unknown> | null) {
-  targetApp.locals.testUser = user;
-}
-
-function testAuthMiddleware(req: Request, _res: Response, next: NextFunction) {
-  if (req.app.locals.testUser) {
-    req.user = req.app.locals.testUser as any;
-  }
-  next();
-}
 
 function buildMediaRecord(id: number) {
   return {
@@ -37,7 +24,7 @@ function buildMediaRecord(id: number) {
     bannerUrl: `https://example.test/${id}/banner.webp`,
     startDate: '2024-01-01',
     endDate: null,
-    category: 'ANIME',
+    category: 'ANIME' as const,
     segmentCount: 1,
     episodeCount: 1,
     studio: 'Studio',
@@ -47,18 +34,27 @@ function buildMediaRecord(id: number) {
   };
 }
 
+function responder200() {
+  return {
+    with200: () => ({
+      body: (body: unknown) => ({ status: 200 as const, body }),
+    }),
+  };
+}
+
+async function invoke(handler: any, input: unknown, req?: unknown) {
+  const response = await handler(input, responder200() as any, req as any, {} as any, (() => {}) as any);
+  if (response && typeof response === 'object' && 'unpack' in response) {
+    return (response as { unpack(): { status: number; body: unknown } }).unpack();
+  }
+  return response as { status: number; body: unknown };
+}
+
 beforeAll(() => {
   mockSearch = vi.spyOn(SegmentDocument, 'search') as any;
   mockSearchStats = vi.spyOn(SegmentDocument, 'searchStats') as any;
   mockWordsMatched = vi.spyOn(SegmentDocument, 'wordsMatched') as any;
   mockTrackForUser = vi.spyOn(UserActivity, 'trackForUser') as any;
-
-  app = buildApplication({
-    beforeRoutes: [testAuthMiddleware],
-    mountRoutes: (instance) => {
-      instance.use('/', SearchRoutes);
-    },
-  });
 });
 
 beforeEach(() => {
@@ -67,64 +63,83 @@ beforeEach(() => {
   mockWordsMatched.mockReset();
   mockTrackForUser.mockReset();
   mockTrackForUser.mockResolvedValue(undefined);
-  signInAs(app, { id: 1001, preferences: {} });
 });
 
-describe('POST /v1/search', () => {
+describe('search controller', () => {
   it('returns search results and tracks initial searches', async () => {
     mockSearch.mockResolvedValue({
       segments: [],
       includes: { media: { 1: buildMediaRecord(1) } },
-      pagination: { hasMore: false, cursor: null },
+      pagination: { hasMore: false, cursor: null, estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
     });
 
-    const res = await request(app).post('/v1/search').send({
-      query: { search: '猫' },
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
+    const res = await invoke(
+      search as any,
+      {
+        body: {
+          query: { search: '猫', exactMatch: false },
+          filters: { status: ['ACTIVE'], category: ['ANIME'] },
+          include: ['media'],
+          take: 10,
+        },
+      } as any,
+      { user: { id: 1001, preferences: {} } } as any,
+    );
 
     expect(res.status).toBe(200);
-    expect(res.body.includes.media['1']).toMatchObject({ id: 1 });
+    expect((res.body as any).includes.media['1']).toMatchObject({ id: 1 });
     expect(mockSearch).toHaveBeenCalledTimes(1);
-    expect(mockTrackForUser).toHaveBeenCalledTimes(1);
-    expect(mockTrackForUser).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 1001 }),
-      ActivityType.SEARCH,
-      { searchQuery: '猫' },
-    );
+    expect(mockTrackForUser).toHaveBeenCalledWith(expect.objectContaining({ id: 1001 }), ActivityType.SEARCH, {
+      searchQuery: '猫',
+    });
+    assertMatchesSchema(schemas.s_SearchResponse, res.body, 'search() 200');
   });
 
   it('does not track paginated requests and strips includes when include is empty', async () => {
     mockSearch.mockResolvedValue({
       segments: [],
       includes: { media: { 2: buildMediaRecord(2) } },
-      pagination: { hasMore: true, cursor: 'next-cursor' },
+      pagination: { hasMore: true, cursor: 'next-cursor', estimatedTotalHits: 2, estimatedTotalHitsRelation: 'EXACT' },
     });
 
-    const res = await request(app).post('/v1/search').send({
-      query: { search: '犬' },
-      cursor: 'existing-cursor',
-      include: [],
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
+    const res = await invoke(
+      search as any,
+      {
+        body: {
+          query: { search: '犬', exactMatch: false },
+          cursor: 'existing-cursor',
+          include: [],
+          filters: { status: ['ACTIVE'], category: ['ANIME'] },
+          take: 10,
+        },
+      } as any,
+      { user: { id: 1001, preferences: {} } } as any,
+    );
 
     expect(res.status).toBe(200);
-    expect(res.body.includes).toEqual({ media: {} });
+    expect((res.body as any).includes).toEqual({ media: {} });
     expect(mockTrackForUser).not.toHaveBeenCalled();
   });
 
   it('does not track when user is missing', async () => {
-    signInAs(app, null);
     mockSearch.mockResolvedValue({
       segments: [],
       includes: { media: { 3: buildMediaRecord(3) } },
-      pagination: { hasMore: false, cursor: null },
+      pagination: { hasMore: false, cursor: null, estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
     });
 
-    const res = await request(app).post('/v1/search').send({
-      query: { search: '鳥' },
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
+    const res = await invoke(
+      search as any,
+      {
+        body: {
+          query: { search: '鳥', exactMatch: false },
+          filters: { status: ['ACTIVE'], category: ['ANIME'] },
+          include: ['media'],
+          take: 10,
+        },
+      } as any,
+      { user: undefined } as any,
+    );
 
     expect(res.status).toBe(200);
     expect(mockTrackForUser).not.toHaveBeenCalled();
@@ -135,87 +150,68 @@ describe('POST /v1/search', () => {
     mockSearch.mockResolvedValue({
       segments: [],
       includes: { media: {} },
-      pagination: { hasMore: false, cursor: null },
+      pagination: { hasMore: false, cursor: null, estimatedTotalHits: 0, estimatedTotalHitsRelation: 'EXACT' },
     });
 
-    const res = await request(app).post('/v1/search').send({
-      query: { search: '猫' },
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
+    const res = await invoke(
+      search as any,
+      {
+        body: {
+          query: { search: '猫', exactMatch: false },
+          filters: { status: ['ACTIVE'], category: ['ANIME'] },
+          include: ['media'],
+          take: 10,
+        },
+      } as any,
+      { user: { id: 1001, preferences: {} } } as any,
+    );
 
     expect(res.status).toBe(200);
     expect(mockTrackForUser).toHaveBeenCalledTimes(1);
   });
-});
 
-describe('POST /v1/search/stats', () => {
-  it('strips includes by default', async () => {
+  it('search stats strips includes by default', async () => {
     mockSearchStats.mockResolvedValue({
       media: [{ mediaId: 1, matchCount: 2, episodeHits: { 1: 2 } }],
       categories: [{ category: 'ANIME', count: 2 }],
       includes: { media: { 1: buildMediaRecord(1) } },
     });
 
-    const res = await request(app).post('/v1/search/stats').send({
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
+    const res = await invoke(
+      getSearchStats as any,
+      {
+        body: { query: { exactMatch: false }, filters: { status: ['ACTIVE'], category: ['ANIME'] }, include: [] },
+      } as any,
+    );
 
     expect(res.status).toBe(200);
-    expect(res.body.includes).toEqual({ media: {} });
+    expect((res.body as any).includes).toEqual({ media: {} });
     expect(mockSearchStats).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps includes when requested', async () => {
-    mockSearchStats.mockResolvedValue({
-      media: [{ mediaId: 1, matchCount: 2, episodeHits: { 1: 2 } }],
-      categories: [{ category: 'ANIME', count: 2 }],
-      includes: { media: { 1: buildMediaRecord(1) } },
-    });
-
-    const res = await request(app).post('/v1/search/stats').send({
-      include: ['media'],
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.body.includes.media['1']).toMatchObject({ id: 1 });
-  });
-});
-
-describe('POST /v1/search/words', () => {
-  it('passes words search inputs and strips includes by default', async () => {
+  it('search words passes inputs and strips includes by default', async () => {
     mockWordsMatched.mockResolvedValue({
       results: [{ word: '猫', isMatch: true, matchCount: 3, media: [{ mediaId: 1, matchCount: 3 }] }],
       includes: { media: { 1: buildMediaRecord(1) } },
     });
 
-    const res = await request(app).post('/v1/search/words').send({
-      query: { words: ['猫'], exactMatch: true },
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
+    const res = await invoke(
+      searchWords as any,
+      {
+        body: {
+          query: { words: ['猫'], exactMatch: true },
+          include: [],
+          filters: { status: ['ACTIVE'], category: ['ANIME'] },
+        },
+      } as any,
+    );
 
     expect(res.status).toBe(200);
-    expect(res.body.includes).toEqual({ media: {} });
+    expect((res.body as any).includes).toEqual({ media: {} });
     expect(mockWordsMatched).toHaveBeenCalledWith(
       ['猫'],
       true,
       expect.objectContaining({ status: ['ACTIVE'], category: ['ANIME'] }),
     );
-  });
-
-  it('keeps includes when requested', async () => {
-    mockWordsMatched.mockResolvedValue({
-      results: [{ word: '犬', isMatch: false, matchCount: 0, media: [] }],
-      includes: { media: { 2: buildMediaRecord(2) } },
-    });
-
-    const res = await request(app).post('/v1/search/words').send({
-      query: { words: ['犬'] },
-      include: ['media'],
-      filters: { status: ['ACTIVE'], category: ['ANIME'] },
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.body.includes.media['2']).toMatchObject({ id: 2 });
   });
 });

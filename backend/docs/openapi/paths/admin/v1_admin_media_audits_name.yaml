@@ -1,6 +1,7 @@
 patch:
   tags:
     - Admin
+  x-internal: true
   operationId: updateAdminMediaAudit
   summary: Update a media audit config
   description: |

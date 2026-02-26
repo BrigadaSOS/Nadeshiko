@@ -1,5 +1,10 @@
 type: object
 description: Pagination metadata for search results
+required:
+  - hasMore
+  - estimatedTotalHits
+  - estimatedTotalHitsRelation
+  - cursor
 properties:
   hasMore:
     type: boolean

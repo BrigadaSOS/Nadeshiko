@@ -46,7 +46,7 @@ describe('GET /v1/user/export', () => {
       userId: fixtures.users.kevin.id,
       activityType: ActivityType.SEARCH,
       searchQuery: '猫',
-      animeName: 'Test Anime',
+      mediaName: 'Test Anime',
     });
     await UserActivity.save({
       userId: fixtures.users.kevin.id,

@@ -216,7 +216,7 @@ export class Media extends BaseEntity {
     };
   }
 
-  private static toMediaInfoData(media: Media){
+  private static toMediaInfoData(media: Media) {
     const externalIds: Record<string, string> = {};
     for (const ext of media.externalIds ?? []) {
       externalIds[ext.source.toLowerCase()] = ext.externalId;

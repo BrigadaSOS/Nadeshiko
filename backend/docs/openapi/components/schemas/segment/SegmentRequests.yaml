@@ -70,6 +70,7 @@ SegmentFields: &segmentFields
     example: "R2"
   hashedId:
     type: string
+    minLength: 1
     description: Hash identifier for the segment (from segment JSON)
     example: "0d39e46b14"
 

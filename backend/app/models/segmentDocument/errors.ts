@@ -4,7 +4,16 @@ import type { QueryParserMode } from './SegmentQuery';
 export function isQuerySyntaxError(error: unknown): boolean {
   const elasticError = error as {
     message?: string;
-    meta?: { body?: { error?: { type?: string; reason?: string; root_cause?: Array<{ type?: string; reason?: string }>; failed_shards?: Array<{ reason?: { type?: string; reason?: string } }> } } };
+    meta?: {
+      body?: {
+        error?: {
+          type?: string;
+          reason?: string;
+          root_cause?: Array<{ type?: string; reason?: string }>;
+          failed_shards?: Array<{ reason?: { type?: string; reason?: string } }>;
+        };
+      };
+    };
   };
 
   const errorMeta = elasticError.meta?.body?.error;

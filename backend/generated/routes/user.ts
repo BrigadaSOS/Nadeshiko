@@ -226,9 +226,7 @@ export type DeleteUserActivityByDate = (
 export type DeleteUserActivityByIdResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with401(): ExpressRuntimeResponse<t_Error401>;
-  with404(): ExpressRuntimeResponse<{
-    message?: string;
-  }>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -638,7 +636,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
     activityType: z.enum(['SEGMENT_PLAY']),
     segmentUuid: z.string().optional(),
     mediaId: z.coerce.number().optional(),
-    animeName: z.string().optional(),
+    mediaName: z.string().optional(),
     japaneseText: z.string().optional(),
   });
 
@@ -974,7 +972,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['204', z.undefined()],
       ['401', s_Error401],
-      ['404', z.object({ message: z.string().optional() })],
+      ['404', s_Error404],
       ['500', s_Error500],
     ],
     undefined,
@@ -998,9 +996,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
           return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with404() {
-          return new ExpressRuntimeResponse<{
-            message?: string;
-          }>(404);
+          return new ExpressRuntimeResponse<t_Error404>(404);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);

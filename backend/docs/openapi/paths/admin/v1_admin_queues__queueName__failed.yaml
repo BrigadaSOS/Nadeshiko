@@ -1,6 +1,7 @@
 get:
   tags:
     - Admin
+  x-internal: true
   operationId: listAdminQueueFailed
   summary: Get failed jobs from a queue
   description: |
@@ -32,6 +33,11 @@ get:
             type: array
             items:
               type: object
+              required:
+                - id
+                - segmentId
+                - error
+                - createdOn
               properties:
                 id:
                   type: string

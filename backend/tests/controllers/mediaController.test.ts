@@ -1,9 +1,11 @@
 import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import * as schemas from 'generated/schemas';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 import { assertDifference } from '../helpers/assertions';
+import { assertMatchesSchema } from '../helpers/openapiContract';
 import { CategoryType, Media } from '@app/models/Media';
 import { CharacterRole, MediaCharacter } from '@app/models/MediaCharacter';
 import { MediaExternalId, ExternalSourceType } from '@app/models/MediaExternalId';
@@ -133,14 +135,16 @@ describe('POST /v1/media', () => {
       () => Media.count(),
       +1,
       async () => {
-        const res = await request(app).post('/v1/media').send(
-          buildCreateMediaBody({
-            externalIds: {
-              anilist: '12345',
-              imdb: 'tt12345',
-            },
-          }),
-        );
+        const res = await request(app)
+          .post('/v1/media')
+          .send(
+            buildCreateMediaBody({
+              externalIds: {
+                anilist: '12345',
+                imdb: 'tt12345',
+              },
+            }),
+          );
 
         expect(res.status).toBe(201);
         expect(res.body).toMatchObject({
@@ -154,32 +158,34 @@ describe('POST /v1/media', () => {
       },
     );
 
-    const rows = await MediaExternalId.findBy({ mediaId: createdId! });
+    const rows = await MediaExternalId.findBy({ mediaId: createdId as number });
     expect(rows).toHaveLength(2);
   });
 
   it('creates media with nested character and seiyuu payload', async () => {
-    const res = await request(app).post('/v1/media').send(
-      buildCreateMediaBody({
-        nameEn: 'Media With Characters',
-        storageBasePath: 'media/with-characters',
-        characters: [
-          {
-            externalIds: { anilist: 'c-100' },
-            nameJa: 'キャラ',
-            nameEn: 'Character',
-            imageUrl: 'https://example.com/char.jpg',
-            role: 'MAIN',
-            seiyuu: {
-              externalIds: { anilist: 's-100' },
-              nameJa: '声優',
-              nameEn: 'Seiyuu',
-              imageUrl: 'https://example.com/seiyuu.jpg',
+    const res = await request(app)
+      .post('/v1/media')
+      .send(
+        buildCreateMediaBody({
+          nameEn: 'Media With Characters',
+          storageBasePath: 'media/with-characters',
+          characters: [
+            {
+              externalIds: { anilist: 'c-100' },
+              nameJa: 'キャラ',
+              nameEn: 'Character',
+              imageUrl: 'https://example.com/char.jpg',
+              role: 'MAIN',
+              seiyuu: {
+                externalIds: { anilist: 's-100' },
+                nameJa: '声優',
+                nameEn: 'Seiyuu',
+                imageUrl: 'https://example.com/seiyuu.jpg',
+              },
             },
-          },
-        ],
-      }),
-    );
+          ],
+        }),
+      );
 
     expect(res.status).toBe(201);
     expect(res.body.characters).toHaveLength(1);
@@ -208,6 +214,7 @@ describe('GET /v1/media/:id', () => {
       nameEn: 'Spy x Family',
     });
     expect(res.body.characters).toHaveLength(1);
+    assertMatchesSchema(schemas.s_Media, res.body, 'GET /v1/media/:id 200');
   });
 
   it('returns 404 when media does not exist', async () => {
@@ -244,11 +251,13 @@ describe('PATCH /v1/media/:id', () => {
       { mediaId: media.id, source: ExternalSourceType.IMDB, externalId: 'old-imdb' },
     ]);
 
-    const res = await request(app).patch(`/v1/media/${media.id}`).send({
-      externalIds: {
-        tvdb: 'new-tvdb',
-      },
-    });
+    const res = await request(app)
+      .patch(`/v1/media/${media.id}`)
+      .send({
+        externalIds: {
+          tvdb: 'new-tvdb',
+        },
+      });
 
     expect(res.status).toBe(200);
     expect(res.body.externalIds).toEqual({ tvdb: 'new-tvdb' });
@@ -262,27 +271,29 @@ describe('PATCH /v1/media/:id', () => {
   });
 
   it('clears media characters when an empty list is provided', async () => {
-    const createRes = await request(app).post('/v1/media').send(
-      buildCreateMediaBody({
-        nameEn: 'To Clear Characters',
-        storageBasePath: 'media/to-clear',
-        characters: [
-          {
-            externalIds: { anilist: 'c-clear' },
-            nameJa: 'クリア',
-            nameEn: 'Clear',
-            imageUrl: 'https://example.com/clear-char.jpg',
-            role: 'SUPPORTING',
-            seiyuu: {
-              externalIds: { anilist: 's-clear' },
-              nameJa: 'クリア声優',
-              nameEn: 'Clear Seiyuu',
-              imageUrl: 'https://example.com/clear-seiyuu.jpg',
+    const createRes = await request(app)
+      .post('/v1/media')
+      .send(
+        buildCreateMediaBody({
+          nameEn: 'To Clear Characters',
+          storageBasePath: 'media/to-clear',
+          characters: [
+            {
+              externalIds: { anilist: 'c-clear' },
+              nameJa: 'クリア',
+              nameEn: 'Clear',
+              imageUrl: 'https://example.com/clear-char.jpg',
+              role: 'SUPPORTING',
+              seiyuu: {
+                externalIds: { anilist: 's-clear' },
+                nameJa: 'クリア声優',
+                nameEn: 'Clear Seiyuu',
+                imageUrl: 'https://example.com/clear-seiyuu.jpg',
+              },
             },
-          },
-        ],
-      }),
-    );
+          ],
+        }),
+      );
     expect(createRes.status).toBe(201);
     const mediaId = createRes.body.id as number;
     expect(await MediaCharacter.countBy({ mediaId })).toBe(1);
@@ -322,7 +333,7 @@ describe('DELETE /v1/media/:id', () => {
       withDeleted: true,
     });
     expect(withDeleted).not.toBeNull();
-    expect(withDeleted!.deletedAt).not.toBeNull();
+    expect(withDeleted?.deletedAt).not.toBeNull();
   });
 
   it('returns 404 when media does not exist', async () => {

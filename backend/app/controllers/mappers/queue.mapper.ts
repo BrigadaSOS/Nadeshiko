@@ -6,8 +6,6 @@ type QueueDetails = NonNullable<Awaited<ReturnType<typeof fetchQueueDetails>>>;
 type QueueFailedJobsList = Awaited<ReturnType<typeof getFailedJobs>>;
 type QueueFailedJob = QueueFailedJobsList[number];
 
-type QueueAction = 'retry' | 'purge';
-
 export function toAdminQueueStatsDTO(stats: QueueStatsList): QueueStatsList {
   return stats.map((entry: QueueStatsItem) => ({
     queue: entry.queue,
@@ -58,18 +56,18 @@ export function toAdminQueueFailedJobsDTO(jobs: QueueFailedJobsList) {
   return jobs.map(toAdminQueueFailedJobDTO);
 }
 
-export function toAdminQueueActionResultDTO(action: QueueAction, queueName: string, count: number) {
-  if (action === 'retry') {
-    return {
-      success: true,
-      retriedCount: count,
-      message: `Retried ${count} failed jobs from ${queueName}`,
-    };
-  }
-
+export function toAdminQueueRetryResultDTO(queueName: string, retriedCount: number) {
   return {
     success: true,
-    purgedCount: count,
-    message: `Purged ${count} failed jobs from ${queueName}`,
+    retriedCount,
+    message: `Retried ${retriedCount} failed jobs from ${queueName}`,
+  };
+}
+
+export function toAdminQueuePurgeResultDTO(queueName: string, purgedCount: number) {
+  return {
+    success: true,
+    purgedCount,
+    message: `Purged ${purgedCount} failed jobs from ${queueName}`,
   };
 }

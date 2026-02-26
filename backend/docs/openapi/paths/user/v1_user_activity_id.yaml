@@ -21,15 +21,8 @@ delete:
     "204":
       description: Activity deleted
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "404":
-      description: Activity not found
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              message:
-                type: string
+      $ref: "../../components/responses/NotFound.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

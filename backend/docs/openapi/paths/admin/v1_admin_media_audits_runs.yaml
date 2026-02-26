@@ -1,6 +1,7 @@
 get:
   tags:
     - Admin
+  x-internal: true
   operationId: listAdminMediaAuditRuns
   summary: List past audit runs
   description: |

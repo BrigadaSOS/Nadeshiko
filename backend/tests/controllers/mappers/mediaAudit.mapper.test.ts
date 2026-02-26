@@ -134,9 +134,9 @@ describe('mediaAudit.mapper', () => {
       targetType: 'EPISODE',
       threshold: { minCount: 2 },
       latestRun: { id: 11, resultCount: 1, createdAt: '2026-02-04T00:00:00.000Z' },
+      createdAt: null,
       updatedAt: null,
     });
-    expect(list[1].createdAt).toBeUndefined();
   });
 
   it('maps media audit runs', () => {

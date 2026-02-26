@@ -1,4 +1,4 @@
-description: Unauthorized
+description: Unauthorized (API key)
 content:
   application/json:
     schema:

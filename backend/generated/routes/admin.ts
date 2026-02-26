@@ -183,9 +183,9 @@ export type TriggerReindex = (
 export type ListAdminQueueStatsResponder = {
   with200(): ExpressRuntimeResponse<
     {
-      failedCount?: number;
-      queue?: string;
-      stuckCount?: number;
+      failedCount: number;
+      queue: string;
+      stuckCount: number;
     }[]
   >;
   with400(): ExpressRuntimeResponse<t_Error400>;
@@ -249,10 +249,10 @@ export type GetAdminQueue = (
 export type ListAdminQueueFailedResponder = {
   with200(): ExpressRuntimeResponse<
     {
-      createdOn?: string;
-      error?: string | null;
-      id?: string;
-      segmentId?: number;
+      createdOn: string;
+      error: string | null;
+      id: string;
+      segmentId: number;
     }[]
   >;
   with400(): ExpressRuntimeResponse<t_Error400>;
@@ -272,9 +272,9 @@ export type ListAdminQueueFailed = (
 
 export type RetryAdminQueueFailedResponder = {
   with200(): ExpressRuntimeResponse<{
-    message?: string;
-    retriedCount?: number;
-    success?: boolean;
+    message: string;
+    retriedCount: number;
+    success: boolean;
   }>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -293,9 +293,9 @@ export type RetryAdminQueueFailed = (
 
 export type PurgeAdminQueueFailedResponder = {
   with200(): ExpressRuntimeResponse<{
-    message?: string;
-    purgedCount?: number;
-    success?: boolean;
+    message: string;
+    purgedCount: number;
+    success: boolean;
   }>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -835,16 +835,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const listAdminQueueStatsResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.array(
-          z.object({
-            queue: z.string().optional(),
-            stuckCount: z.coerce.number().optional(),
-            failedCount: z.coerce.number().optional(),
-          }),
-        ),
-      ],
+      ['200', z.array(z.object({ queue: z.string(), stuckCount: z.coerce.number(), failedCount: z.coerce.number() }))],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -868,9 +859,9 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         with200() {
           return new ExpressRuntimeResponse<
             {
-              failedCount?: number;
-              queue?: string;
-              stuckCount?: number;
+              failedCount: number;
+              queue: string;
+              stuckCount: number;
             }[]
           >(200);
         },
@@ -1057,10 +1048,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         '200',
         z.array(
           z.object({
-            id: z.string().optional(),
-            segmentId: z.coerce.number().optional(),
-            error: z.string().nullable().optional(),
-            createdOn: z.string().datetime({ offset: true }).optional(),
+            id: z.string(),
+            segmentId: z.coerce.number(),
+            error: z.string().nullable(),
+            createdOn: z.string().datetime({ offset: true }),
           }),
         ),
       ],
@@ -1087,10 +1078,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         with200() {
           return new ExpressRuntimeResponse<
             {
-              createdOn?: string;
-              error?: string | null;
-              id?: string;
-              segmentId?: number;
+              createdOn: string;
+              error: string | null;
+              id: string;
+              segmentId: number;
             }[]
           >(200);
         },
@@ -1143,14 +1134,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const retryAdminQueueFailedResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          success: PermissiveBoolean.optional(),
-          retriedCount: z.coerce.number().optional(),
-          message: z.string().optional(),
-        }),
-      ],
+      ['200', z.object({ success: PermissiveBoolean, retriedCount: z.coerce.number(), message: z.string() })],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -1173,9 +1157,9 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            message?: string;
-            retriedCount?: number;
-            success?: boolean;
+            message: string;
+            retriedCount: number;
+            success: boolean;
           }>(200);
         },
         with400() {
@@ -1227,14 +1211,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const purgeAdminQueueFailedResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          success: PermissiveBoolean.optional(),
-          purgedCount: z.coerce.number().optional(),
-          message: z.string().optional(),
-        }),
-      ],
+      ['200', z.object({ success: PermissiveBoolean, purgedCount: z.coerce.number(), message: z.string() })],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -1257,9 +1234,9 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            message?: string;
-            purgedCount?: number;
-            success?: boolean;
+            message: string;
+            purgedCount: number;
+            success: boolean;
           }>(200);
         },
         with400() {

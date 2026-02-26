@@ -19,6 +19,6 @@ get:
           schema:
             $ref: "../../components/schemas/UserExportResponse.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

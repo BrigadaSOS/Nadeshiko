@@ -6,10 +6,10 @@ describe('toEqualUnordered', () => {
   });
 
   it('works with nested asymmetric matchers', () => {
-    expect([{ id: 1, name: 'Yor' }, { id: 2, name: 'Loid' }]).toEqualUnordered([
-      expect.objectContaining({ id: 2 }),
-      expect.objectContaining({ id: 1 }),
-    ]);
+    expect([
+      { id: 1, name: 'Yor' },
+      { id: 2, name: 'Loid' },
+    ]).toEqualUnordered([expect.objectContaining({ id: 2 }), expect.objectContaining({ id: 1 })]);
   });
 
   it('fails when arrays have different lengths', () => {
