@@ -41,17 +41,13 @@ const getWordMatch = async () => {
   isLoading.value = true;
   window.NDOverlay?.open(document.querySelector('#nd-vertically-centered-scrollable-batch2'));
 
-  const body = {
-    words: words.value,
-    exactMatch: checkExactSearch.value,
-  };
-
-  // Fetch data from API
   try {
-    const { data } = await sdk.searchMultiple({
+    const { data } = await sdk.searchWords({
       body: {
-        words: words.value,
-        exactMatch: checkExactSearch.value,
+        query: {
+          words: words.value,
+          exactMatch: checkExactSearch.value,
+        },
       },
     });
     const response = data ? resolveWordsResponse(data) : { results: [] };

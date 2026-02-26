@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import type { UserSession } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
 import { useToastSuccess, useToastError } from '~/utils/toast';
+import { resolveContextResponse } from '~/utils/resolvers';
 
 const { t } = useI18n();
 
@@ -50,13 +51,13 @@ const mediaNameExample = computed(() => {
 // Content rating preview segment
 const PREVIEW_SEGMENT_UUID = '5590c3ec-00ef-3c2d-8040-de942cb68bf8';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
-  $fetch<{ segments: SearchResult[] }>(`/api/search/context/${PREVIEW_SEGMENT_UUID}`, {
-    params: { limit: 1 },
-  }).catch(() => null),
+  sdk.getSegmentContext({ path: { uuid: PREVIEW_SEGMENT_UUID }, query: { take: 1 } })
+    .then((r) => (r.data ? resolveContextResponse(r.data) : null))
+    .catch(() => null),
 );
 const previewSegment = computed(() => previewData.value?.segments?.[0] ?? null);
 
-const suggestiveMode = computed(() => user_store.preferences?.contentRatingPreferences?.suggestive || 'blur');
+const questionableMode = computed(() => user_store.preferences?.contentRatingPreferences?.questionable || 'blur');
 
 const contentRatingDescription = (category: string) => {
   const value = user_store.preferences?.contentRatingPreferences?.[category] || 'blur';
@@ -222,7 +223,7 @@ const exportData = async () => {
   if (exportingData.value) return;
   exportingData.value = true;
   try {
-    const data = await $fetch('/v1/user/export', { credentials: 'include' });
+    const { data } = await sdk.exportUserData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -392,12 +393,12 @@ const logoutCurrentUser = async () => {
       </div>
       <div class="flex justify-between items-center mt-4">
         <div>
-          <p class="text-white">{{ $t('accountSettings.account.suggestiveContent') }}</p>
-          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.suggestiveContentDesc') }}. {{ contentRatingDescription('suggestive') }}</p>
+          <p class="text-white">{{ $t('accountSettings.account.questionableContent') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.questionableContentDesc') }}. {{ contentRatingDescription('questionable') }}</p>
         </div>
         <select
-          :value="user_store.preferences?.contentRatingPreferences?.suggestive || 'blur'"
-          @change="updateContentRatingPreference('suggestive', ($event.target as HTMLSelectElement).value)"
+          :value="user_store.preferences?.contentRatingPreferences?.questionable || 'blur'"
+          @change="updateContentRatingPreference('questionable', ($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
           class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
         >
@@ -412,11 +413,11 @@ const logoutCurrentUser = async () => {
           <!-- Image preview -->
           <div class="relative h-36 sm:h-auto sm:w-48 shrink-0 overflow-hidden">
             <img
-              v-if="suggestiveMode !== 'hide'"
+              v-if="questionableMode !== 'hide'"
               :src="previewSegment.segment.urls.imageUrl"
               :alt="`Preview image for content rating sample`"
               class="h-full w-full object-cover object-center transition-all duration-300"
-              :class="suggestiveMode === 'blur' ? 'blur-[42px] scale-125' : ''"
+              :class="questionableMode === 'blur' ? 'blur-[42px] scale-125' : ''"
             />
             <div
               v-else
@@ -432,22 +433,6 @@ const logoutCurrentUser = async () => {
             <p class="text-gray-500 text-xs mt-1">{{ $t('accountSettings.account.contentRatingPreview') }}</p>
           </div>
         </div>
-      </div>
-      <div class="flex justify-between items-center mt-4">
-        <div>
-          <p class="text-white">{{ $t('accountSettings.account.explicitContent') }}</p>
-          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.explicitContentDesc') }}. {{ contentRatingDescription('explicit') }}</p>
-        </div>
-        <select
-          :value="user_store.preferences?.contentRatingPreferences?.explicit || 'blur'"
-          @change="updateContentRatingPreference('explicit', ($event.target as HTMLSelectElement).value)"
-          :disabled="savingPreferences"
-          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
-        >
-          <option value="show">{{ $t('accountSettings.account.contentRatingShow') }}</option>
-          <option value="blur">{{ $t('accountSettings.account.contentRatingBlur') }}</option>
-          <option value="hide">{{ $t('accountSettings.account.contentRatingHide') }}</option>
-        </select>
       </div>
       <div class="flex justify-between items-center mt-4">
         <div>

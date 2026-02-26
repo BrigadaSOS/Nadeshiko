@@ -6,9 +6,10 @@ import type {
   GetAdminMediaAuditRun,
 } from 'generated/routes/admin';
 import { MediaAudit, MediaAuditRun, Report } from '@app/models';
-import { NotFoundError } from '@app/errors';
+import { InvalidRequestError, NotFoundError } from '@app/errors';
 import { runAllAudits } from '@app/models/mediaAudit/runner';
 import { auditRegistry } from '@app/models/mediaAudit/checks';
+import type { MediaAuditCheck, ThresholdField } from '@app/models/mediaAudit/checks';
 import { toReportDTO } from '@app/controllers/mappers/report.mapper';
 import {
   toAdminMediaAuditListDTO,
@@ -106,24 +107,70 @@ async function getMediaAuditRunOrFail(id: number): Promise<MediaAuditRun> {
 }
 
 async function getLatestRunsByAuditName(): Promise<Map<string, MediaAuditRun>> {
-  const runs = await MediaAuditRun.find({ order: { createdAt: 'DESC', id: 'DESC' } });
-  const latestRuns = new Map<string, MediaAuditRun>();
+  const runs = await MediaAuditRun.createQueryBuilder('run')
+    .distinctOn(['run.auditName'])
+    .orderBy('run.auditName', 'ASC')
+    .addOrderBy('run.createdAt', 'DESC')
+    .addOrderBy('run.id', 'DESC')
+    .getMany();
 
-  for (const run of runs) {
-    if (!latestRuns.has(run.auditName)) {
-      latestRuns.set(run.auditName, run);
-    }
-  }
-
-  return latestRuns;
+  return new Map(runs.map((run) => [run.auditName, run]));
 }
 
 function mergeAuditUpdate(audit: MediaAudit, body: Parameters<UpdateAdminMediaAudit>[0]['body']): void {
   if (body.threshold !== undefined) {
-    audit.threshold = { ...audit.threshold, ...(body.threshold as Record<string, number | boolean>) };
+    const registryAudit = getRegistryAudit(audit.name);
+    if (!registryAudit) {
+      throw new InvalidRequestError(`Audit "${audit.name}" does not have a registered threshold schema`);
+    }
+
+    const thresholdPatch = validateThresholdPatch(registryAudit, body.threshold as Record<string, unknown>);
+    audit.threshold = { ...audit.threshold, ...thresholdPatch };
   }
 
   if (body.enabled !== undefined) {
     audit.enabled = body.enabled;
   }
+}
+
+function validateThresholdPatch(
+  audit: MediaAuditCheck,
+  patch: Record<string, unknown>,
+): Record<string, number | boolean> {
+  const fieldsByKey = new Map(audit.thresholdSchema.map((field) => [field.key, field]));
+  const validated: Record<string, number | boolean> = {};
+
+  for (const [key, rawValue] of Object.entries(patch)) {
+    const field = fieldsByKey.get(key);
+    if (!field) {
+      throw new InvalidRequestError(`Unknown threshold key "${key}" for audit "${audit.name}"`);
+    }
+
+    validated[key] = validateThresholdValue(field, rawValue);
+  }
+
+  return validated;
+}
+
+function validateThresholdValue(field: ThresholdField, value: unknown): number | boolean {
+  if (field.type === 'boolean') {
+    if (typeof value !== 'boolean') {
+      throw new InvalidRequestError(`Threshold "${field.key}" must be a boolean`);
+    }
+    return value;
+  }
+
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new InvalidRequestError(`Threshold "${field.key}" must be a finite number`);
+  }
+
+  if (field.min !== undefined && value < field.min) {
+    throw new InvalidRequestError(`Threshold "${field.key}" must be >= ${field.min}`);
+  }
+
+  if (field.max !== undefined && value > field.max) {
+    throw new InvalidRequestError(`Threshold "${field.key}" must be <= ${field.max}`);
+  }
+
+  return value;
 }

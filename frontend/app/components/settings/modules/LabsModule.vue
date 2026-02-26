@@ -1,52 +1,14 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
 import { useLabsStore } from '@/stores/labs';
 
 const labsStore = useLabsStore();
 const togglingKey = ref<string | null>(null);
+const sdk = useNadeshikoSdk();
 
-type UserFeature = {
-  key: string;
-  name?: string;
-  description?: string;
-  active: boolean;
-  userControllable: boolean;
-  userOptedIn?: boolean;
-};
-
-const getServerRequestContext = () => {
-  if (!import.meta.server) return null;
-  const event = useRequestEvent();
-  if (!event) return null;
-
-  const config = useRuntimeConfig();
-  const cookieHeader = getRequestHeader(event, 'cookie');
-  const headers: Record<string, string> = { cookie: cookieHeader || '' };
-  if (config.backendHostHeader) {
-    headers.host = String(config.backendHostHeader);
-  }
-
-  return {
-    baseUrl: String(config.backendInternalUrl || ''),
-    headers,
-  };
-};
-
-const fetchLabsFeatures = async (): Promise<UserFeature[]> => {
-  if (import.meta.server) {
-    const ctx = getServerRequestContext();
-    if (!ctx || !ctx.baseUrl) return [];
-    return await $fetch<UserFeature[]>(`${ctx.baseUrl}/v1/user/labs`, {
-      headers: ctx.headers,
-    }).catch(() => []);
-  }
-
-  return await $fetch<UserFeature[]>('/v1/user/labs', {
-    credentials: 'include',
-  }).catch(() => []);
-};
-
-const { data: featuresData } = await useAsyncData('settings-labs-features', fetchLabsFeatures, {
+const { data: featuresData } = await useAsyncData('settings-labs-features', async () => {
+  const { data } = await sdk.listUserLabs().catch(() => ({ data: null }));
+  return (data ?? []) as typeof labsStore.features;
+}, {
   default: () => [],
 });
 

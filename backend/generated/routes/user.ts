@@ -27,6 +27,7 @@ import type {
   t_Error500,
   t_GetUserActivityHeatmapQuerySchema,
   t_GetUserActivityStatsQuerySchema,
+  t_HeatmapDayCounts,
   t_ListUserActivityQuerySchema,
   t_OpaqueCursorPagination,
   t_Report,
@@ -49,6 +50,7 @@ import {
   s_Error404,
   s_Error429,
   s_Error500,
+  s_HeatmapDayCounts,
   s_OpaqueCursorPagination,
   s_Report,
   s_UserActivity,
@@ -169,7 +171,7 @@ export type DeleteUserActivity = (
 export type GetUserActivityHeatmapResponder = {
   with200(): ExpressRuntimeResponse<{
     activityByDay: {
-      [key: string]: number | undefined;
+      [key: string]: t_HeatmapDayCounts | undefined;
     };
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -194,6 +196,7 @@ export type GetUserActivityStatsResponder = {
     totalListAdds: number;
     totalPlays: number;
     totalSearches: number;
+    totalShares: number;
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with500(): ExpressRuntimeResponse<t_Error500>;
@@ -633,7 +636,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
   });
 
   const trackUserActivityRequestBodySchema = z.object({
-    activityType: z.enum(['SEGMENT_PLAY']),
+    activityType: z.enum(['SEGMENT_PLAY', 'SHARE']),
     segmentUuid: z.string().optional(),
     mediaId: z.coerce.number().optional(),
     mediaName: z.string().optional(),
@@ -762,14 +765,11 @@ export function createUserRouter(implementation: UserImplementation): Router {
     }
   });
 
-  const getUserActivityHeatmapQuerySchema = z.object({
-    days: z.coerce.number().max(730).optional().default(365),
-    activityType: s_ActivityType.optional(),
-  });
+  const getUserActivityHeatmapQuerySchema = z.object({ days: z.coerce.number().max(730).optional().default(365) });
 
   const getUserActivityHeatmapResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ activityByDay: z.record(z.coerce.number()) })],
+      ['200', z.object({ activityByDay: z.record(s_HeatmapDayCounts) })],
       ['401', s_Error401],
       ['500', s_Error500],
     ],
@@ -790,7 +790,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
         with200() {
           return new ExpressRuntimeResponse<{
             activityByDay: {
-              [key: string]: number | undefined;
+              [key: string]: t_HeatmapDayCounts | undefined;
             };
           }>(200);
         },
@@ -839,6 +839,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
           totalExports: z.coerce.number(),
           totalPlays: z.coerce.number(),
           totalListAdds: z.coerce.number(),
+          totalShares: z.coerce.number(),
           topMedia: z.array(z.object({ mediaId: z.coerce.number(), count: z.coerce.number() })),
         }),
       ],
@@ -869,6 +870,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
             totalListAdds: number;
             totalPlays: number;
             totalSearches: number;
+            totalShares: number;
           }>(200);
         },
         with401() {

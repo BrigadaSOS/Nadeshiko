@@ -125,6 +125,11 @@ describe('GET /v1/media/autocomplete', () => {
       category: 'JDRAMA',
     });
   });
+
+  it('returns 400 when query is only whitespace', async () => {
+    const res = await request(app).get('/v1/media/autocomplete?query=%20%20%20');
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('POST /v1/media', () => {

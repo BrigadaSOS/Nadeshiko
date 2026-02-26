@@ -1,30 +1,35 @@
 import type { User } from '@app/models/User';
 import { Experiment } from '@app/models/Experiment';
 import crypto from 'crypto';
+import { Cache, createCacheNamespace } from '@lib/cache';
 
 const EXPERIMENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const EXPERIMENT_CACHE = createCacheNamespace('experiments');
+const EXPERIMENT_CACHE_KEY = 'all';
 
-let experimentCacheMap: Map<string, Experiment> | null = null;
-let experimentCacheExpiresAt = 0;
 let experimentCacheLoading: Promise<Map<string, Experiment>> | null = null;
 let experimentCacheGeneration = 0;
 
 async function getExperimentMap(): Promise<Map<string, Experiment>> {
-  if (experimentCacheMap && Date.now() < experimentCacheExpiresAt) {
-    return experimentCacheMap;
+  const cached = Cache.get<Map<string, Experiment>>(EXPERIMENT_CACHE, EXPERIMENT_CACHE_KEY);
+  if (cached) {
+    return cached;
   }
+
   if (experimentCacheLoading) {
     return experimentCacheLoading;
   }
+
   const generation = experimentCacheGeneration;
   experimentCacheLoading = Experiment.find()
     .then((experiments) => {
+      const map = new Map(experiments.map((e) => [e.key, e]));
+
       // Discard result if the cache was invalidated while the load was in flight.
       if (experimentCacheGeneration === generation) {
-        experimentCacheMap = new Map(experiments.map((e) => [e.key, e]));
-        experimentCacheExpiresAt = Date.now() + EXPERIMENT_CACHE_TTL_MS;
+        Cache.set(EXPERIMENT_CACHE, EXPERIMENT_CACHE_KEY, map, EXPERIMENT_CACHE_TTL_MS);
         experimentCacheLoading = null;
-        return experimentCacheMap;
+        return map;
       }
       // Superseded — clear the loading sentinel so the next caller re-fetches.
       experimentCacheLoading = null;
@@ -40,9 +45,8 @@ async function getExperimentMap(): Promise<Map<string, Experiment>> {
 
 export function invalidateExperimentCache(): void {
   experimentCacheGeneration++;
-  experimentCacheMap = null;
-  experimentCacheExpiresAt = 0;
   experimentCacheLoading = null;
+  Cache.invalidate(EXPERIMENT_CACHE);
 }
 
 function isInRollout(userId: number, key: string, percentage: number): boolean {

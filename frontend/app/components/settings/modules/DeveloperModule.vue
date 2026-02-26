@@ -3,9 +3,10 @@ import { getRequestHeader } from 'h3';
 import { mdiPlus, mdiCheckBold, mdiPencilOutline } from '@mdi/js';
 
 import type { ApiKeyListItem } from '@/stores/api';
-import { normalizeApiKey, asObject } from '@/stores/api';
+import { normalizeApiKey } from '@/stores/api';
 
 const api_store = apiStore();
+const sdk = useNadeshikoSdk();
 const isLoading = ref(false);
 const isError = ref(false);
 const isSuccess = ref(false);
@@ -19,44 +20,29 @@ const modalKeyName = ref('');
 const renameKeyId = ref<string | null>(null);
 const renameKeyName = ref('');
 
-// SSR-compatible API key + quota fetch
-const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
+const fetchApiKeyList = async (): Promise<unknown[]> => {
   if (import.meta.server) {
     const event = useRequestEvent();
-    if (!event) return { keys: [], quota: { quotaUsed: 0, quotaLimit: 2500, quotaRemaining: 0 } };
+    if (!event) return [];
     const config = useRuntimeConfig();
     const cookieHeader = getRequestHeader(event, 'cookie');
     const headers: Record<string, string> = { cookie: cookieHeader || '' };
     if (config.backendHostHeader) {
       headers.host = String(config.backendHostHeader);
     }
-    const baseUrl = config.backendInternalUrl;
-
-    const [keysRaw, quotaRaw] = await Promise.all([
-      $fetch<unknown[]>(`${baseUrl}/v1/auth/api-key/list`, { headers }).catch(() => []),
-      $fetch<Record<string, unknown>>(`${baseUrl}/v1/user/quota`, { headers }).catch(() => ({})),
-    ]);
-
-    const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey).filter((k) => k.isActive);
-    const q = asObject(quotaRaw);
-    return {
-      keys,
-      quota: {
-        quotaUsed: Number(q.quotaUsed ?? 0),
-        quotaLimit: Number(q.quotaLimit ?? 2500),
-        quotaRemaining: Number(q.quotaRemaining ?? 0),
-      },
-    };
+    return await $fetch<unknown[]>(`${config.backendInternalUrl}/v1/auth/api-key/list`, { headers }).catch(() => []);
   }
+  return await $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []);
+};
 
-  // Client-side: use $fetch
-  const [keysRaw, quotaRaw] = await Promise.all([
-    $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []),
-    $fetch<Record<string, unknown>>('/v1/user/quota', { method: 'GET', credentials: 'include' }).catch(() => ({})),
+const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
+  const [keysRaw, quotaRes] = await Promise.all([
+    fetchApiKeyList(),
+    sdk.getUserQuota().catch(() => ({ data: null })),
   ]);
 
   const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey).filter((k) => k.isActive);
-  const q = asObject(quotaRaw);
+  const q = (quotaRes.data ?? {}) as Record<string, unknown>;
   return {
     keys,
     quota: {

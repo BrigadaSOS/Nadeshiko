@@ -8,7 +8,7 @@ const emptyToUndefined = z
 const requiredString = z.string().trim().min(1);
 
 const envSchema = z.object({
-  ENVIRONMENT: z.string().default('local'),
+  ENVIRONMENT: z.enum(['local', 'dev', 'prod']),
   APP_VERSION: z.string().default('0.0.0'),
   PORT: z.coerce.number().int().positive().default(5000),
   UUID_NAMESPACE: z.string().uuid(),

@@ -4,16 +4,10 @@ import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline } from '@mdi/js';
 type Collection = {
   id: number;
   name: string;
-  userId: number;
   visibility: 'PUBLIC' | 'PRIVATE';
-  segmentCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type CollectionListResponse = {
-  collections: Collection[];
-  pagination: { hasMore: boolean; cursor: number | null };
+  segmentCount: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 const { t, d } = useI18n();
@@ -23,7 +17,7 @@ const sdk = useNadeshikoSdk();
 const { data: initialData } = await useAsyncData(
   'settings-account-collections',
   async () => {
-    const { data } = await sdk.listCollections({ query: { limit: 100 } }).catch(() => ({ data: null }));
+    const { data } = await sdk.listCollections({ query: { take: 100 } }).catch(() => ({ data: null }));
     return data?.collections ?? ([] as Collection[]);
   },
   {

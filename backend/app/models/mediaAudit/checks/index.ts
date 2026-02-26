@@ -39,7 +39,6 @@ import { emptyEpisodes } from './emptyEpisodes';
 import { missingEpisodes } from './missingEpisodes';
 import { badSegmentRatio } from './badSegmentRatio';
 import { mediaWithNoEpisodes } from './mediaWithNoEpisodes';
-import { missingTranslations } from './missingTranslations';
 import { dbEsSyncIssues } from './dbEsSyncIssues';
 import { highReportDensity } from './highReportDensity';
 
@@ -49,7 +48,6 @@ export const auditRegistry: MediaAuditCheck[] = [
   missingEpisodes,
   badSegmentRatio,
   mediaWithNoEpisodes,
-  missingTranslations,
   dbEsSyncIssues,
   highReportDensity,
 ];

@@ -12,28 +12,71 @@ interface CacheEntry {
 class AppCache {
   private store = new Map<CacheNamespace, Map<string, CacheEntry>>();
 
-  async fetch<T>(namespace: CacheNamespace, key: string, ttlMs: number, compute: () => Promise<T>): Promise<T> {
+  get<T>(namespace: CacheNamespace, key: string): T | null {
     const nsStore = this.store.get(namespace);
-    if (nsStore) {
-      const entry = nsStore.get(key);
-      if (entry && entry.expiresAt > Date.now()) {
-        return entry.value as T;
-      }
-      if (entry) {
-        nsStore.delete(key);
-      }
+    if (!nsStore) {
+      return null;
     }
 
-    const value = await compute();
+    const entry = nsStore.get(key);
+    if (!entry) {
+      return null;
+    }
 
+    if (entry.expiresAt <= Date.now()) {
+      nsStore.delete(key);
+      if (nsStore.size === 0) {
+        this.store.delete(namespace);
+      }
+      return null;
+    }
+
+    return entry.value as T;
+  }
+
+  set<T>(namespace: CacheNamespace, key: string, value: T, ttlMs: number): void {
+    const expiresAt = Date.now() + ttlMs;
     let targetStore = this.store.get(namespace);
     if (!targetStore) {
       targetStore = new Map();
       this.store.set(namespace, targetStore);
     }
-    targetStore.set(key, { expiresAt: Date.now() + ttlMs, value });
 
-    return value;
+    targetStore.set(key, { expiresAt, value });
+  }
+
+  delete(namespace: CacheNamespace, key: string): void {
+    const nsStore = this.store.get(namespace);
+    if (!nsStore) {
+      return;
+    }
+
+    nsStore.delete(key);
+    if (nsStore.size === 0) {
+      this.store.delete(namespace);
+    }
+  }
+
+  deleteWhere<T>(namespace: CacheNamespace, predicate: (key: string, value: T) => boolean): void {
+    const nsStore = this.store.get(namespace);
+    if (!nsStore) {
+      return;
+    }
+
+    for (const [key, entry] of nsStore) {
+      if (entry.expiresAt <= Date.now()) {
+        nsStore.delete(key);
+        continue;
+      }
+
+      if (predicate(key, entry.value as T)) {
+        nsStore.delete(key);
+      }
+    }
+
+    if (nsStore.size === 0) {
+      this.store.delete(namespace);
+    }
   }
 
   invalidate(namespace: CacheNamespace): void {

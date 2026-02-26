@@ -172,6 +172,16 @@
     "close": "Close",
     "saveSuccess": "Segment updated successfully",
     "saveError": "Failed to update segment",
+    "timing": "Position & Timing",
+    "position": "Position",
+    "startTimeMs": "Start (ms)",
+    "endTimeMs": "End (ms)",
+    "ratingAnalysis": "Rating Analysis",
+    "ratingAnalysisDesc": "WD Tagger v3 classifier output (scores/tags) used to derive content rating",
+    "posAnalysis": "POS Analysis",
+    "posAnalysisDesc": "Part-of-speech tokenization results keyed by engine (sudachi, unidic)",
+    "invalidJson": "Invalid JSON",
+    "loading": "Loading...",
     "metadata": {
       "media": "Media",
       "episode": "Ep.",
@@ -351,6 +361,8 @@
       "suggestiveContentDesc": "Heavy fanservice, revealing clothing",
       "explicitContent": "Explicit Content",
       "explicitContentDesc": "Questionable or explicit content",
+      "questionableContent": "Sensitive Content",
+      "questionableContentDesc": "Questionable or explicit content",
       "contentRatingShow": "Show",
       "contentRatingBlur": "Blur (default)",
       "contentRatingHide": "Hide",
@@ -446,7 +458,8 @@
     "contentRatingDescription": {
       "SUGGESTIVE": "Sensitive content (Suggestive)",
       "QUESTIONABLE": "Questionable content",
-      "EXPLICIT": "Explicit adult content"
+      "EXPLICIT": "Explicit adult content",
+      "SENSITIVE": "Sensitive Content (Questionable)"
     },
     "expandLeft": "Expand left",
     "expandBoth": "Expand both sides",

@@ -322,7 +322,6 @@ export type ImpersonateAdminUserResponder = {
     };
   }>;
   with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
   with404(): ExpressRuntimeResponse<t_Error404>;
   with429(): ExpressRuntimeResponse<t_Error429>;
@@ -341,7 +340,6 @@ export type ClearAdminImpersonationResponder = {
   with200(): ExpressRuntimeResponse<{
     message: string;
   }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
   with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
@@ -1294,7 +1292,6 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         }),
       ],
       ['400', s_Error400],
-      ['401', s_Error401],
       ['403', s_Error403],
       ['404', s_Error404],
       ['429', s_Error429],
@@ -1326,9 +1323,6 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
           return new ExpressRuntimeResponse<t_Error403>(403);
@@ -1373,7 +1367,6 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   const clearAdminImpersonationResponseBodyValidator = responseValidationFactory(
     [
       ['200', z.object({ message: z.string() })],
-      ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
       ['500', s_Error500],
@@ -1396,9 +1389,6 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
           return new ExpressRuntimeResponse<{
             message: string;
           }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
         },
         with403() {
           return new ExpressRuntimeResponse<t_Error403>(403);

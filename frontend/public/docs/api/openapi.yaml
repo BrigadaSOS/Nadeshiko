@@ -293,10 +293,13 @@ paths:
       description: |
         Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
-        **Permissions:** `READ_MEDIA`
+        Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
+
+        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - apiKeyHeader:
-            - READ_MEDIA
+            - UPDATE_MEDIA
+        - sessionCookie: []
       parameters:
         - name: uuid
           in: path
@@ -305,17 +308,29 @@ paths:
             type: string
           description: Segment UUID
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - ratingAnalysis
+                - posAnalysis
+                - hashedId
+                - storageBasePath
+                - storage
+          style: form
+          explode: true
+          description: Additional internal fields to include in the response
       responses:
         '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Segment'
+          $ref: '#/components/responses/SegmentInternalResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -334,10 +349,11 @@ paths:
         Retrieves segments surrounding a specific segment within an episode.
         Returns segments both before and after the target, providing dialogue context for how a sentence is used.
 
-        **Permissions:** `READ_MEDIA`
+        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - apiKeyHeader:
-            - READ_MEDIA
+            - UPDATE_MEDIA
+        - sessionCookie: []
       parameters:
         - name: uuid
           in: path
@@ -380,7 +396,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1729,6 +1745,42 @@ components:
             $ref: '#/components/schemas/Media'
         pagination:
           $ref: '#/components/schemas/OpaqueCursorPagination'
+    SegmentInternal:
+      description: |
+        Segment with internal fields. For write operations (create, update) all fields are always populated.
+        For GET, optional fields are only populated when requested via include[].
+      allOf:
+        - $ref: '#/components/schemas/Segment'
+        - type: object
+          properties:
+            storage:
+              type: string
+              enum:
+                - LOCAL
+                - R2
+              nullable: true
+              description: Storage backend for segment assets
+              example: R2
+            hashedId:
+              type: string
+              nullable: true
+              description: Hash identifier for the segment
+              example: 0d39e46b14
+            storageBasePath:
+              type: string
+              nullable: true
+              description: Base path in the storage backend
+              example: anime/steins-gate
+            ratingAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: Raw WD Tagger v3 classifier output used to derive content rating
+            posAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: POS tokenization results keyed by engine (sudachi, unidic)
     Error404:
       type: object
       description: Not Found error response
@@ -2189,6 +2241,25 @@ components:
               $ref: '#/components/examples/ValidationFailed'
             InvalidJson:
               $ref: '#/components/examples/InvalidJson'
+    SegmentInternalResponse:
+      description: Single segment response with internal fields
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SegmentInternal'
+    Unauthorized:
+      description: Unauthorized (API key or session)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error401'
+          examples:
+            AuthCredentialsRequired:
+              $ref: '#/components/examples/AuthCredentialsRequired'
+            AuthCredentialsInvalid:
+              $ref: '#/components/examples/AuthCredentialsInvalid'
+            AuthCredentialsExpired:
+              $ref: '#/components/examples/AuthCredentialsExpired'
     NotFound:
       description: Not Found
       content:

@@ -164,17 +164,11 @@ function createInternalError(requestId: string): InternalServerError {
 }
 
 function parseEntityNotFoundError(error: EntityNotFoundError): NotFoundError {
-  // TypeORM error message format: "Could not find any entity of type "User" matching: ..."
-  const message = error.message;
-  const match = message.match(/type "(\w+)" matching/);
-
-  if (match) {
-    const entityName = match[1];
-    const detail = entityNameToDetail(entityName);
-    return new NotFoundError(detail);
+  const entityName = getEntityTargetName(error.entityClass);
+  if (entityName) {
+    return new NotFoundError(entityNameToDetail(entityName));
   }
 
-  // Fallback to generic message if parsing fails
   return new NotFoundError();
 }
 
@@ -188,6 +182,33 @@ function entityNameToDetail(entityName: string): string {
   };
 
   return entityMap[entityName] ?? `${entityName} not found`;
+}
+
+function getEntityTargetName(entityTarget: unknown): string | null {
+  if (typeof entityTarget === 'string') {
+    const trimmed = entityTarget.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  if (typeof entityTarget === 'function') {
+    return entityTarget.name || null;
+  }
+
+  if (!entityTarget || typeof entityTarget !== 'object') {
+    return null;
+  }
+
+  const maybeNamed = entityTarget as { name?: unknown; options?: { name?: unknown } };
+
+  if (typeof maybeNamed.name === 'string' && maybeNamed.name.trim()) {
+    return maybeNamed.name;
+  }
+
+  if (typeof maybeNamed.options?.name === 'string' && maybeNamed.options.name.trim()) {
+    return maybeNamed.options.name;
+  }
+
+  return null;
 }
 
 function humanizeResourceName(raw: string): string {

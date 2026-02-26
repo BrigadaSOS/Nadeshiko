@@ -103,12 +103,12 @@ export const updateSegmentByUuid: UpdateSegmentByUuid = async ({ params, body },
   return respond.with200().body(toSegmentInternalDTO(segment));
 };
 
-export const getSegmentByUuid: GetSegmentByUuid = async ({ params }, respond) => {
+export const getSegmentByUuid: GetSegmentByUuid = async ({ params, query }, respond) => {
   const segment = await Segment.findOneOrFail({
     where: { uuid: params.uuid },
   });
 
-  return respond.with200().body(toSegmentDTO(segment));
+  return respond.with200().body(toSegmentInternalDTO(segment, query.include ?? []));
 };
 
 export const getSegmentContext: GetSegmentContext = async ({ params, query }, respond) => {

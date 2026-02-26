@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type t_ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'LIST_ADD_SEGMENT';
+export type t_ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'LIST_ADD_SEGMENT' | 'SHARE';
 
 export type t_AdminReport = t_Report & {
   reportCount: number;
@@ -194,6 +194,14 @@ export type t_ExternalId = {
   anilist?: string;
   imdb?: string;
   tvdb?: string;
+};
+
+export type t_HeatmapDayCounts = {
+  ANKI_EXPORT?: number;
+  LIST_ADD_SEGMENT?: number;
+  SEARCH?: number;
+  SEGMENT_PLAY?: number;
+  SHARE?: number;
 };
 
 export type t_IncludeExpansion = 'media';
@@ -475,15 +483,15 @@ export type t_SegmentContextResponse = {
 };
 
 export type t_SegmentInternal = t_Segment & {
-  hashedId: string;
-  posAnalysis: {
+  hashedId?: string | null;
+  posAnalysis?: {
     [key: string]: unknown | undefined;
   } | null;
-  ratingAnalysis: {
+  ratingAnalysis?: {
     [key: string]: unknown | undefined;
   } | null;
-  storage: 'LOCAL' | 'R2';
-  storageBasePath: string;
+  storage?: 'LOCAL' | 'R2' | null;
+  storageBasePath?: string | null;
 };
 
 export type t_Seiyuu = {
@@ -833,6 +841,10 @@ export type t_GetSegmentByUuidParamSchema = {
   uuid: string;
 };
 
+export type t_GetSegmentByUuidQuerySchema = {
+  include?: ('ratingAnalysis' | 'posAnalysis' | 'hashedId' | 'storageBasePath' | 'storage')[];
+};
+
 export type t_GetSegmentContextParamSchema = {
   uuid: string;
 };
@@ -855,7 +867,6 @@ export type t_GetSeriesQuerySchema = {
 };
 
 export type t_GetUserActivityHeatmapQuerySchema = {
-  activityType?: t_ActivityType;
   days?: number;
 };
 
@@ -995,7 +1006,7 @@ export type t_SearchWordsRequestBodySchema = {
 };
 
 export type t_TrackUserActivityRequestBodySchema = {
-  activityType: 'SEGMENT_PLAY';
+  activityType: 'SEGMENT_PLAY' | 'SHARE';
   japaneseText?: string;
   mediaId?: number;
   mediaName?: string;

@@ -26,23 +26,15 @@ export const requireApiKeyOrSession: RequestHandler = async (req, res, next) => 
   await requireSessionAuth(req, res, next);
 };
 
-export const enforceUserQuotaAccess: RequestHandler = (req, res, next) => {
-  if (req.auth?.type === AuthType.SESSION) {
-    next();
-    return;
+export const enforceAdminAccess: RequestHandler = (req, _res, next) => {
+  if (req.user?.role !== 'ADMIN') {
+    throw new InsufficientPermissionsError('Admin access required.');
   }
 
-  const permissionsMiddleware = requirePermissions(ApiPermission.READ_MEDIA);
-  permissionsMiddleware(req, res, (error?: unknown) => {
-    if (error) {
-      next(error);
-      return;
-    }
-    void rateLimitApiQuota(req, res, next);
-  });
+  next();
 };
 
-export const enforceAdminAccess: RequestHandler = (req, res, next) => {
+export const enforceAdminOrMediaUpdateAccess: RequestHandler = (req, res, next) => {
   if (req.auth?.type === AuthType.SESSION) {
     if (req.user?.role !== 'ADMIN') {
       throw new InsufficientPermissionsError('Admin access required.');
@@ -51,12 +43,12 @@ export const enforceAdminAccess: RequestHandler = (req, res, next) => {
     return;
   }
 
-  const permissionsMiddleware = requirePermissions(ApiPermission.ADD_MEDIA);
+  const permissionsMiddleware = requirePermissions(ApiPermission.UPDATE_MEDIA);
   permissionsMiddleware(req, res, (error?: unknown) => {
     if (error) {
       next(error);
       return;
     }
-    void rateLimitApiQuota(req, res, next);
+    next();
   });
 };

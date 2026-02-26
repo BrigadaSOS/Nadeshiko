@@ -42,6 +42,7 @@ import type {
   t_GetMediaParamSchema,
   t_GetMediaQuerySchema,
   t_GetSegmentByUuidParamSchema,
+  t_GetSegmentByUuidQuerySchema,
   t_GetSegmentContextParamSchema,
   t_GetSegmentContextQuerySchema,
   t_GetSegmentParamSchema,
@@ -79,7 +80,7 @@ import type {
   t_UpdateSeriesParamSchema,
   t_UpdateSeriesRequestBodySchema,
 } from '../models.ts';
-import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentContextQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
+import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentByUuidQueryOutput, GetSegmentContextQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
   s_CharacterWithMedia,
   s_ContentRating,
@@ -165,7 +166,7 @@ export type AutocompleteMedia = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetSegmentByUuidResponder = {
-  with200(): ExpressRuntimeResponse<t_Segment>;
+  with200(): ExpressRuntimeResponse<t_SegmentInternal>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -175,7 +176,7 @@ export type GetSegmentByUuidResponder = {
 } & ExpressRuntimeResponder;
 
 export type GetSegmentByUuid = (
-  params: Params<t_GetSegmentByUuidParamSchema, void, void, void>,
+  params: Params<t_GetSegmentByUuidParamSchema, GetSegmentByUuidQueryOutput, void, void>,
   respond: GetSegmentByUuidResponder,
   req: Request,
   res: Response,
@@ -829,7 +830,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   });
 
   const autocompleteMediaQuerySchema = z.object({
-    query: z.string().min(1),
+    query: z.string().min(1).regex(new RegExp('.*\\S.*')),
     take: z.coerce.number().min(1).max(25).optional().default(10),
     category: z.enum(['ANIME', 'JDRAMA']).optional(),
   });
@@ -905,9 +906,18 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
   const getSegmentByUuidParamSchema = z.object({ uuid: z.string() });
 
+  const getSegmentByUuidQuerySchema = z.object({
+    include: z
+      .preprocess(
+        (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
+        z.array(z.enum(['ratingAnalysis', 'posAnalysis', 'hashedId', 'storageBasePath', 'storage'])),
+      )
+      .optional(),
+  });
+
   const getSegmentByUuidResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_Segment],
+      ['200', s_SegmentInternal],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -923,14 +933,14 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     try {
       const input = {
         params: parseRequestInput(getSegmentByUuidParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
+        query: parseRequestInput(getSegmentByUuidQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_Segment>(200);
+          return new ExpressRuntimeResponse<t_SegmentInternal>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);

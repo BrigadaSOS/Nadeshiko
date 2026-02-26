@@ -7,8 +7,8 @@ export class UsersAndAuth1706150700000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "User" (
         "id" SERIAL PRIMARY KEY,
-        "username" varchar NOT NULL,
-        "email" varchar NOT NULL UNIQUE,
+        "username" varchar NOT NULL CHECK ("username" <> ''),
+        "email" varchar NOT NULL UNIQUE CHECK ("email" <> ''),
         "image" varchar,
         "modified_at" TIMESTAMPTZ,
         "last_login" TIMESTAMPTZ,
@@ -27,7 +27,7 @@ export class UsersAndAuth1706150700000 implements MigrationInterface {
         "id" SERIAL PRIMARY KEY,
         "name" varchar,
         "hint" varchar,
-        "token" varchar NOT NULL,
+        "token" varchar NOT NULL CHECK ("token" <> ''),
         "is_active" boolean NOT NULL DEFAULT true,
         "user_id" integer,
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),

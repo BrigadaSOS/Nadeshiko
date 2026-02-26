@@ -2,23 +2,20 @@ import type { ContentRating } from '@brigadasos/nadeshiko-sdk';
 export type ContentRatingMode = 'show' | 'blur' | 'hide';
 
 export interface ContentRatingPreferences {
-  suggestive: ContentRatingMode;
-  explicit: ContentRatingMode;
+  questionable: ContentRatingMode;
 }
 
 const DEFAULT_PREFERENCES: ContentRatingPreferences = {
-  suggestive: 'blur',
-  explicit: 'blur',
+  questionable: 'blur',
 };
 
 const ALL_RATINGS: ContentRating[] = ['SAFE', 'SUGGESTIVE', 'QUESTIONABLE', 'EXPLICIT'];
 
 const toPreferenceKey = (rating: string): keyof ContentRatingPreferences | null => {
   const normalized = rating.toUpperCase();
-  if (normalized === 'SUGGESTIVE') return 'suggestive';
-  if (normalized === 'QUESTIONABLE') return 'suggestive';
-  if (normalized === 'EXPLICIT') return 'explicit';
-  return null;
+  if (normalized === 'QUESTIONABLE') return 'questionable';
+  if (normalized === 'EXPLICIT') return 'questionable';
+  return null; // SAFE and SUGGESTIVE → never restricted
 };
 
 export function useContentRating() {

@@ -129,32 +129,46 @@ export class Media extends BaseEntity {
       fullTotalSegments: number;
     };
   }> {
-    return Cache.fetch(MEDIA_INFO_CACHE, 'all', MEDIA_INFO_TTL_MS, async () => {
-      const allMedia = await Media.find({
-        relations: ['episodes', 'externalIds'],
-        order: { createdAt: 'DESC' },
-      });
-
-      const mediaMap = new Map<number, ReturnType<typeof Media.toMediaInfoData>>();
-      let totalSegments = 0;
-
-      for (const media of allMedia) {
-        const info = Media.toMediaInfoData(media);
-        mediaMap.set(media.id, info);
-        totalSegments += info.segmentCount ?? 0;
-      }
-
-      const stats = await Media.getGlobalStats();
-
-      return {
-        results: mediaMap,
-        stats: {
-          totalAnimes: mediaMap.size,
-          totalSegments,
-          ...stats,
-        },
+    const cached = Cache.get<{
+      results: Map<number, ReturnType<typeof Media.toMediaInfoData>>;
+      stats: {
+        totalAnimes: number;
+        totalSegments: number;
+        fullTotalAnimes: number;
+        fullTotalSegments: number;
       };
+    }>(MEDIA_INFO_CACHE, 'all');
+    if (cached) {
+      return cached;
+    }
+
+    const allMedia = await Media.find({
+      relations: ['episodes', 'externalIds'],
+      order: { createdAt: 'DESC' },
     });
+
+    const mediaMap = new Map<number, ReturnType<typeof Media.toMediaInfoData>>();
+    let totalSegments = 0;
+
+    for (const media of allMedia) {
+      const info = Media.toMediaInfoData(media);
+      mediaMap.set(media.id, info);
+      totalSegments += info.segmentCount ?? 0;
+    }
+
+    const stats = await Media.getGlobalStats();
+
+    const result = {
+      results: mediaMap,
+      stats: {
+        totalAnimes: mediaMap.size,
+        totalSegments,
+        ...stats,
+      },
+    };
+
+    Cache.set(MEDIA_INFO_CACHE, 'all', result, MEDIA_INFO_TTL_MS);
+    return result;
   }
 
   static async getPaginatedMediaInfo(
@@ -238,7 +252,6 @@ export class Media extends BaseEntity {
       banner: getMediaBannerUrl(media),
       startDate: media.startDate as string, // YYYY-MM-DD format
       endDate: media.endDate as string | undefined, // YYYY-MM-DD format
-      folderMediaName: media.nameRomaji.replace(/[^a-zA-Z0-9]/g, '_'),
       version: media.version,
       segmentCount: media.segmentCount,
       episodeCount: media.episodes?.length ?? 0,

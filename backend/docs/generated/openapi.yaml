@@ -358,6 +358,7 @@ paths:
           schema:
             type: string
             minLength: 1
+            pattern: .*\S.*
             example: steins
         - name: take
           in: query
@@ -402,10 +403,13 @@ paths:
       description: |
         Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
-        **Permissions:** `READ_MEDIA`
+        Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
+
+        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - apiKeyHeader:
-            - READ_MEDIA
+            - UPDATE_MEDIA
+        - sessionCookie: []
       parameters:
         - name: uuid
           in: path
@@ -414,17 +418,29 @@ paths:
             type: string
           description: Segment UUID
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - ratingAnalysis
+                - posAnalysis
+                - hashedId
+                - storageBasePath
+                - storage
+          style: form
+          explode: true
+          description: Additional internal fields to include in the response
       responses:
         '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Segment'
+          $ref: '#/components/responses/SegmentInternalResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -487,10 +503,11 @@ paths:
         Retrieves segments surrounding a specific segment within an episode.
         Returns segments both before and after the target, providing dialogue context for how a sentence is used.
 
-        **Permissions:** `READ_MEDIA`
+        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - apiKeyHeader:
-            - READ_MEDIA
+            - UPDATE_MEDIA
+        - sessionCookie: []
       parameters:
         - name: uuid
           in: path
@@ -533,7 +550,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1859,6 +1876,7 @@ paths:
                   type: string
                   enum:
                     - SEGMENT_PLAY
+                    - SHARE
                 segmentUuid:
                   type: string
                 mediaId:
@@ -1918,8 +1936,8 @@ paths:
       operationId: getUserActivityHeatmap
       summary: Get activity heatmap data
       description: |
-        Returns daily activity activityByDay for the authenticated user, grouped by date.
-        Designed for rendering a GitHub-style contribution heatmap.
+        Returns daily activity counts for the authenticated user, grouped by date and activity type.
+        Each day contains per-type counts that can be summed or filtered client-side.
 
         **Permissions:** Session authentication (cookie-based).
       security:
@@ -1932,11 +1950,6 @@ paths:
             default: 365
             maximum: 730
           description: Number of days to include in the heatmap
-        - name: activityType
-          in: query
-          schema:
-            $ref: '#/components/schemas/ActivityType'
-          description: Filter by activity type
       responses:
         '200':
           description: OK
@@ -1950,8 +1963,8 @@ paths:
                   activityByDay:
                     type: object
                     additionalProperties:
-                      type: integer
-                    description: Map of YYYY-MM-DD date strings to activity activityByDay
+                      $ref: '#/components/schemas/HeatmapDayCounts'
+                    description: Map of YYYY-MM-DD date strings to per-type activity counts
         '401':
           $ref: '#/components/responses/UnauthorizedSession'
         '500':
@@ -1989,6 +2002,7 @@ paths:
                   - totalExports
                   - totalPlays
                   - totalListAdds
+                  - totalShares
                   - topMedia
                 properties:
                   totalSearches:
@@ -1998,6 +2012,8 @@ paths:
                   totalPlays:
                     type: integer
                   totalListAdds:
+                    type: integer
+                  totalShares:
                     type: integer
                   topMedia:
                     type: array
@@ -2671,8 +2687,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       responses:
         '200':
           description: OK
@@ -2841,7 +2856,7 @@ paths:
                             failedCount:
                               type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2861,8 +2876,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       responses:
         '200':
           description: OK
@@ -2930,7 +2944,7 @@ paths:
                         type: string
                         nullable: true
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2955,8 +2969,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       requestBody:
         required: false
         content:
@@ -2973,7 +2986,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2997,8 +3010,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       responses:
         '200':
           description: Queue statistics retrieved successfully
@@ -3027,7 +3039,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3051,8 +3063,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: queueName
           in: path
@@ -3169,7 +3180,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3195,8 +3206,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: queueName
           in: path
@@ -3241,7 +3251,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3264,8 +3274,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: queueName
           in: path
@@ -3303,7 +3312,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3327,8 +3336,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: queueName
           in: path
@@ -3366,7 +3374,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3382,9 +3390,7 @@ paths:
       summary: Start admin impersonation
       description: |
         Creates an impersonation session for the target user.
-        This endpoint is restricted to admin sessions and only available in local environment.
-      security:
-        - sessionCookie: []
+        This endpoint is only available in local environment.
       requestBody:
         required: true
         content:
@@ -3427,8 +3433,6 @@ paths:
                         format: email
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3445,9 +3449,7 @@ paths:
       summary: Clear admin impersonation
       description: |
         Clears the current impersonation session and related cookies.
-        This endpoint is restricted to admin sessions and only available in local environment.
-      security:
-        - sessionCookie: []
+        This endpoint is only available in local environment.
       responses:
         '200':
           description: Impersonation session cleared
@@ -3460,8 +3462,6 @@ paths:
                 properties:
                   message:
                     type: string
-        '401':
-          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3481,8 +3481,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: cursor
           in: query
@@ -3553,7 +3552,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminReportListResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3573,8 +3572,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: id
           in: path
@@ -3598,7 +3596,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3619,8 +3617,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       responses:
         '200':
           description: OK
@@ -3631,7 +3628,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/MediaAudit'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3650,8 +3647,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: name
           in: path
@@ -3683,7 +3679,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3704,8 +3700,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: name
           in: path
@@ -3729,7 +3724,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RunAuditResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3750,8 +3745,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: auditName
           in: query
@@ -3788,7 +3782,7 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/OpaqueCursorPagination'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3807,8 +3801,7 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - sessionCookie: []
       parameters:
         - name: id
           in: path
@@ -3834,7 +3827,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/Report'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -5014,6 +5007,42 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Media'
+    SegmentInternal:
+      description: |
+        Segment with internal fields. For write operations (create, update) all fields are always populated.
+        For GET, optional fields are only populated when requested via include[].
+      allOf:
+        - $ref: '#/components/schemas/Segment'
+        - type: object
+          properties:
+            storage:
+              type: string
+              enum:
+                - LOCAL
+                - R2
+              nullable: true
+              description: Storage backend for segment assets
+              example: R2
+            hashedId:
+              type: string
+              nullable: true
+              description: Hash identifier for the segment
+              example: 0d39e46b14
+            storageBasePath:
+              type: string
+              nullable: true
+              description: Base path in the storage backend
+              example: anime/steins-gate
+            ratingAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: Raw WD Tagger v3 classifier output used to derive content rating
+            posAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: POS tokenization results keyed by engine (sudachi, unidic)
     Error404:
       type: object
       description: Not Found error response
@@ -5134,43 +5163,6 @@ components:
           minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
-    SegmentInternal:
-      description: Segment with internal fields (for internal API responses)
-      allOf:
-        - $ref: '#/components/schemas/Segment'
-        - type: object
-          required:
-            - storage
-            - hashedId
-            - storageBasePath
-            - ratingAnalysis
-            - posAnalysis
-          properties:
-            storage:
-              type: string
-              enum:
-                - LOCAL
-                - R2
-              description: Storage backend for segment assets
-              example: R2
-            hashedId:
-              type: string
-              description: Hash identifier for the segment
-              example: 0d39e46b14
-            storageBasePath:
-              type: string
-              description: Base path in the storage backend
-              example: anime/steins-gate
-            ratingAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: Raw WD Tagger v3 classifier output used to derive content rating
-            posAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: POS tokenization results keyed by engine (sudachi, unidic)
     SegmentContextResponse:
       type: object
       required:
@@ -6038,6 +6030,7 @@ components:
         - ANKI_EXPORT
         - SEGMENT_PLAY
         - LIST_ADD_SEGMENT
+        - SHARE
       description: Type of user activity
     UserActivity:
       type: object
@@ -6073,6 +6066,20 @@ components:
         createdAt:
           type: string
           format: date-time
+    HeatmapDayCounts:
+      type: object
+      description: Activity counts for a single day, broken down by type. Only types with at least 1 event are present.
+      properties:
+        SEARCH:
+          type: integer
+        SEGMENT_PLAY:
+          type: integer
+        ANKI_EXPORT:
+          type: integer
+        LIST_ADD_SEGMENT:
+          type: integer
+        SHARE:
+          type: integer
     Collection:
       type: object
       description: User segment collection
@@ -6771,15 +6778,6 @@ components:
               $ref: '#/components/examples/AccountConflict'
             DuplicateKey:
               $ref: '#/components/examples/DuplicateKey'
-    NotFound:
-      description: Not Found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error404'
-          examples:
-            NotFound:
-              $ref: '#/components/examples/NotFound'
     SegmentInternalResponse:
       description: Single segment response with internal fields
       content:
@@ -6799,6 +6797,15 @@ components:
               $ref: '#/components/examples/AuthCredentialsInvalid'
             AuthCredentialsExpired:
               $ref: '#/components/examples/AuthCredentialsExpired'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error404'
+          examples:
+            NotFound:
+              $ref: '#/components/examples/NotFound'
     EpisodeListResponse:
       description: Paginated list of episodes
       content:

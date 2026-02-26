@@ -47,7 +47,7 @@ async function status(): Promise<void> {
 }
 
 async function setup(): Promise<void> {
-  logger.info('Running destructive setup: recreating database + Elasticsearch index...');
+  logger.info('Running destructive setup for target database + Elasticsearch index...');
 
   await drop();
   await migrate();
@@ -166,7 +166,7 @@ Commands:
   migrate   Run pending migrations
   rollback  Revert the last migration (destructive)
   seed      Load seed data (roles, permissions, admin user, media)
-  setup     Recreate app role/database + ES role/user/index + migrate + seed (destructive)
+  setup     Reset target database tables + ES role/user/index + migrate + seed (destructive)
   reset     Alias for setup (destructive)
   prepare   Non-destructive deploy task: migrate if needed + infrastructure checks
   drop      Drop all tables (destructive!)
@@ -199,13 +199,13 @@ async function main(): Promise<void> {
         break;
       case 'setup':
         ensureDestructiveAllowed('db:setup', commandArgs);
-        await bootstrapPostgresWithOptions({ recreateRoleAndDatabase: true });
+        await bootstrapPostgresWithOptions();
         await AppDataSource.initialize();
         await setup();
         break;
       case 'reset':
         ensureDestructiveAllowed('db:reset', commandArgs);
-        await bootstrapPostgresWithOptions({ recreateRoleAndDatabase: true });
+        await bootstrapPostgresWithOptions();
         await AppDataSource.initialize();
         await reset();
         break;

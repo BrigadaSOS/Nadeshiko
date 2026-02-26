@@ -16,15 +16,39 @@ import type {
 } from 'generated/outputTypes';
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>;
+type MediaInfo = MediaInfoMap['results'] extends Map<number, infer T> ? T : never;
 type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categories' | 'includes'>;
+type SegmentSourceDocument = {
+  id?: number | string;
+  status?: string;
+  uuid?: string;
+  position?: number;
+  startTimeMs?: number;
+  endTimeMs?: number;
+  episode?: number;
+  mediaId?: number | string;
+  textJa?: unknown;
+  textEn?: unknown;
+  textEs?: unknown;
+  textEnMt?: boolean;
+  textEsMt?: boolean;
+  contentRating?: string;
+  storage?: string;
+  hashedId?: string;
+};
+type SegmentSearchHit = estypes.SearchHit<SegmentSourceDocument>;
+type HighlightMap = Record<string, string[]>;
+type TermsBucket = { key?: string | number; doc_count?: number } & Record<string, unknown>;
+type TermsAggregation = { buckets?: TermsBucket[] };
 
 export class SegmentResponse {
   static buildSearch(esResponse: estypes.SearchResponse, mediaInfoResponse: MediaInfoMap): SearchResponseOutput {
     const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse);
 
     let cursor: string | undefined;
-    if (esResponse.hits.hits.length >= 1) {
-      const sortValue = esResponse.hits.hits[esResponse.hits.hits.length - 1]['sort'];
+    const hits = esResponse.hits.hits as SegmentSearchHit[];
+    if (hits.length >= 1) {
+      const sortValue = hits[hits.length - 1].sort;
       if (sortValue) cursor = encodeKeysetCursor(sortValue as estypes.FieldValue[]);
     }
 
@@ -40,21 +64,26 @@ export class SegmentResponse {
     mediaInfoResponse: MediaInfoMap,
   ): { segments: SegmentOutput[]; mediaMap: Record<string, MediaOutput> } {
     const mediaMap: Record<string, MediaOutput> = {};
+    const hits = esResponse.hits.hits as SegmentSearchHit[];
 
-    const segments = esResponse.hits.hits
-      .map((hit: any) => {
-        const data: any = hit['_source'];
-        const highlight: any = hit['highlight'] || {};
-        const segmentId = Number(hit['_id'] ?? data['id']);
-        const mediaId = Number(data['mediaId']);
+    const segments = hits
+      .map((hit) => {
+        const data = hit._source;
+        if (!data) {
+          return null;
+        }
+
+        const highlight = (hit.highlight ?? {}) as HighlightMap;
+        const segmentId = Number(hit._id ?? data.id);
+        const mediaId = Number(data.mediaId);
         const mediaInfo = mediaInfoResponse.results.get(mediaId);
 
         if (!mediaInfo) {
-          logger.error({ mediaId: data['mediaId'] }, 'Media Info not found');
+          logger.error({ mediaId: data.mediaId }, 'Media Info not found');
           return null;
         }
         if (!Number.isFinite(segmentId)) {
-          logger.error({ uuid: data['uuid'], id: hit['_id'] }, 'Segment id missing in Elasticsearch hit');
+          logger.error({ uuid: data.uuid, id: hit._id }, 'Segment id missing in Elasticsearch hit');
           return null;
         }
 
@@ -62,13 +91,19 @@ export class SegmentResponse {
           mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
         }
 
-        const hashedId = data['hashedId'];
+        const hashedId = typeof data.hashedId === 'string' ? data.hashedId : undefined;
         const storageBasePath = mediaInfo.storageBasePath;
+        const episodeNumber = SegmentResponse.toFiniteNumber(data.episode);
 
-        const storage: Storage = (data['storage'] || 'R2').toUpperCase() as Storage;
+        if (!hashedId || episodeNumber === null) {
+          logger.error({ uuid: data.uuid, mediaId, episode: data.episode }, 'Segment is missing required URL fields');
+          return null;
+        }
+
+        const storage: Storage = String(data.storage ?? 'R2').toUpperCase() as Storage;
         const segmentForUrls = {
-          mediaId: data['mediaId'],
-          episode: data['episode'],
+          mediaId: mediaId,
+          episode: episodeNumber,
           storage,
           hashedId,
           storageBasePath,
@@ -78,34 +113,43 @@ export class SegmentResponse {
         const audioUrl = getSegmentAudioUrl(segmentForUrls);
         const videoUrl = getSegmentVideoUrl(segmentForUrls);
 
-        const normalizedRating = String(data['contentRating'] ?? 'SAFE').toUpperCase();
+        const normalizedRating = String(data.contentRating ?? 'SAFE').toUpperCase();
         const contentRating: SegmentOutput['contentRating'] =
           normalizedRating === 'SUGGESTIVE' || normalizedRating === 'QUESTIONABLE' || normalizedRating === 'EXPLICIT'
             ? normalizedRating
             : 'SAFE';
 
+        const textJaHighlight = highlight.textJa?.[0];
+        const textEnHighlight = highlight.textEn?.[0];
+        const textEsHighlight = highlight.textEs?.[0];
+        const uuid = SegmentResponse.toNonEmptyString(data.uuid);
+        if (!uuid) {
+          logger.error({ id: segmentId }, 'Segment uuid missing in Elasticsearch hit');
+          return null;
+        }
+
         return {
           id: segmentId,
-          status: data['status'],
-          uuid: data['uuid'],
-          position: data['position'],
-          startTimeMs: data['startTimeMs'],
-          endTimeMs: data['endTimeMs'],
-          episode: data['episode'],
+          status: SegmentResponse.toSegmentStatus(data.status),
+          uuid,
+          position: SegmentResponse.toFiniteNumber(data.position) ?? 0,
+          startTimeMs: SegmentResponse.toFiniteNumber(data.startTimeMs) ?? 0,
+          endTimeMs: SegmentResponse.toFiniteNumber(data.endTimeMs) ?? 0,
+          episode: episodeNumber,
           mediaId,
           textJa: {
-            content: SegmentResponse.toTextContent(data['textJa']),
-            ...('textJa' in highlight ? { highlight: highlight['textJa'][0] } : {}),
+            content: SegmentResponse.toTextContent(data.textJa),
+            ...(textJaHighlight ? { highlight: textJaHighlight } : {}),
           },
           textEn: {
-            content: SegmentResponse.toTextContent(data['textEn']),
-            ...('textEn' in highlight ? { highlight: highlight['textEn'][0] } : {}),
-            isMachineTranslated: data['textEnMt'] ?? false,
+            content: SegmentResponse.toTextContent(data.textEn),
+            ...(textEnHighlight ? { highlight: textEnHighlight } : {}),
+            isMachineTranslated: data.textEnMt ?? false,
           },
           textEs: {
-            content: SegmentResponse.toTextContent(data['textEs']),
-            ...('textEs' in highlight ? { highlight: highlight['textEs'][0] } : {}),
-            isMachineTranslated: data['textEsMt'] ?? false,
+            content: SegmentResponse.toTextContent(data.textEs),
+            ...(textEsHighlight ? { highlight: textEsHighlight } : {}),
+            isMachineTranslated: data.textEsMt ?? false,
           },
           contentRating,
           urls: { imageUrl, audioUrl, videoUrl },
@@ -116,7 +160,7 @@ export class SegmentResponse {
     return { segments, mediaMap };
   }
 
-  static buildMedia(mediaId: number, mediaInfo: any): MediaOutput {
+  static buildMedia(mediaId: number, mediaInfo: MediaInfo): MediaOutput {
     return {
       id: mediaId,
       externalIds: mediaInfo.externalIds,
@@ -177,11 +221,13 @@ export class SegmentResponse {
 
       let media: WordMatchMediaOutput[] = [];
       if (response.aggregations && 'group_by_media_id' in response.aggregations) {
-        const mediaBuckets =
-          (response.aggregations as Record<string, { buckets?: unknown[] }>).group_by_media_id?.buckets ?? [];
+        const mediaBuckets = ((response.aggregations as Record<string, TermsAggregation>).group_by_media_id?.buckets ??
+          []) as TermsBucket[];
         media = mediaBuckets
-          .map((bucket: any): WordMatchMediaOutput | null => {
-            const mediaId = Number(bucket['key']);
+          .map((bucket): WordMatchMediaOutput | null => {
+            const mediaId = Number(bucket.key);
+            if (!Number.isFinite(mediaId)) return null;
+
             const mediaInfo = mediaInfoResponse.results.get(mediaId);
             if (!mediaInfo) return null;
 
@@ -189,7 +235,7 @@ export class SegmentResponse {
               mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
             }
 
-            return { mediaId, matchCount: bucket['doc_count'] };
+            return { mediaId, matchCount: Number(bucket.doc_count ?? 0) };
           })
           .filter((item): item is WordMatchMediaOutput => item !== null);
       }
@@ -210,23 +256,26 @@ export class SegmentResponse {
       return { stats: [], mediaMap };
     }
 
-    const mediaAgg = aggResponse.aggregations[
-      'group_by_media_id'
-    ] as estypes.AggregationsTermsAggregateBase<estypes.AggregationsTermsBucketBase>;
-    const mediaBuckets = (mediaAgg.buckets ?? []) as Array<Record<string, any>>;
+    const mediaAgg = (aggResponse.aggregations as Record<string, TermsAggregation>).group_by_media_id;
+    const mediaBuckets = (mediaAgg?.buckets ?? []) as TermsBucket[];
 
     const stats = mediaBuckets
       .map((mediaBucket) => {
-        const mediaId = Number(mediaBucket['key']);
+        const mediaId = Number(mediaBucket.key);
+        if (!Number.isFinite(mediaId)) {
+          return undefined;
+        }
+
         const mediaInfo = mediaInfoResponse.results.get(mediaId);
         if (!mediaInfo || !Object.keys(mediaInfo).length) return undefined;
 
-        const episodeAgg = mediaBucket[
-          'group_by_episode'
-        ] as estypes.AggregationsTermsAggregateBase<estypes.AggregationsTermsBucketBase>;
-        const episodeBuckets = (episodeAgg.buckets ?? []) as Array<Record<string, any>>;
+        const episodeAgg = mediaBucket.group_by_episode as TermsAggregation | undefined;
+        const episodeBuckets = (episodeAgg?.buckets ?? []) as TermsBucket[];
         const episodesWithResults = episodeBuckets.reduce((acc: Record<string, number>, bucket) => {
-          acc[bucket['key']] = bucket['doc_count'];
+          const key = bucket.key;
+          if (key !== undefined) {
+            acc[String(key)] = Number(bucket.doc_count ?? 0);
+          }
           return acc;
         }, {});
 
@@ -234,7 +283,7 @@ export class SegmentResponse {
           mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
         }
 
-        return { mediaId, matchCount: Number(mediaBucket['doc_count']), episodeHits: episodesWithResults };
+        return { mediaId, matchCount: Number(mediaBucket.doc_count ?? 0), episodeHits: episodesWithResults };
       })
       .filter(SegmentResponse.notEmpty);
 
@@ -244,11 +293,17 @@ export class SegmentResponse {
   static buildCategoryStatistics(aggResponse: estypes.SearchResponse): SearchStatisticsOutput['categories'] {
     if (!aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) return [];
 
-    const categoryAgg = aggResponse.aggregations[
-      'group_by_category'
-    ] as estypes.AggregationsTermsAggregateBase<estypes.AggregationsTermsBucketBase>;
-    const categoryBuckets = (categoryAgg.buckets ?? []) as Array<Record<string, any>>;
-    return categoryBuckets.map((bucket) => ({ category: bucket['key'], count: bucket['doc_count'] }));
+    const categoryAgg = (aggResponse.aggregations as Record<string, TermsAggregation>).group_by_category;
+    const categoryBuckets = (categoryAgg?.buckets ?? []) as TermsBucket[];
+    return categoryBuckets
+      .map((bucket) => {
+        const category = bucket.key;
+        if (!SegmentResponse.isCategory(category) || bucket.doc_count === undefined) {
+          return null;
+        }
+        return { category, count: Number(bucket.doc_count) };
+      })
+      .filter(SegmentResponse.notEmpty);
   }
 
   private static notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
@@ -257,5 +312,35 @@ export class SegmentResponse {
 
   private static toTextContent(value: unknown): string {
     return typeof value === 'string' ? value : '';
+  }
+
+  private static toNonEmptyString(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    return value.trim() ? value : null;
+  }
+
+  private static toFiniteNumber(value: unknown): number | null {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return null;
+    }
+    return value;
+  }
+
+  private static toSegmentStatus(value: unknown): SegmentOutput['status'] {
+    switch (value) {
+      case 'DELETED':
+      case 'ACTIVE':
+      case 'SUSPENDED':
+      case 'VERIFIED':
+      case 'INVALID':
+      case 'TOO_LONG':
+        return value;
+      default:
+        return 'ACTIVE';
+    }
+  }
+
+  private static isCategory(value: unknown): value is 'ANIME' | 'JDRAMA' {
+    return value === 'ANIME' || value === 'JDRAMA';
   }
 }
