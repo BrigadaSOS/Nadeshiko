@@ -67,6 +67,7 @@ describe('GET /v1/user/activity/stats', () => {
       totalExports: 1,
       totalPlays: 2,
       totalListAdds: 1,
+      totalShares: 0,
     });
     expect(res.body.topMedia).toEqual(
       expect.arrayContaining([
@@ -78,16 +79,18 @@ describe('GET /v1/user/activity/stats', () => {
 });
 
 describe('GET /v1/user/activity/heatmap', () => {
-  it('returns daily activity and supports activityType filter', async () => {
+  it('returns daily activity broken down by type', async () => {
     const today = new Date().toISOString().slice(0, 10);
 
-    const all = await request(app).get('/v1/user/activity/heatmap?days=7');
-    expect(all.status).toBe(200);
-    expect(all.body.activityByDay[today]).toBe(5);
+    const res = await request(app).get('/v1/user/activity/heatmap?days=7');
+    expect(res.status).toBe(200);
 
-    const filtered = await request(app).get('/v1/user/activity/heatmap?days=7&activityType=SEARCH');
-    expect(filtered.status).toBe(200);
-    expect(filtered.body.activityByDay[today]).toBe(1);
+    const dayData = res.body.activityByDay[today];
+    expect(dayData).toBeDefined();
+    expect(dayData.SEARCH).toBe(1);
+    expect(dayData.ANKI_EXPORT).toBe(1);
+    expect(dayData.SEGMENT_PLAY).toBe(2);
+    expect(dayData.LIST_ADD_SEGMENT).toBe(1);
   });
 });
 
@@ -106,12 +109,30 @@ describe('POST /v1/user/activity', () => {
         });
         expect(res.status).toBe(204);
         // Wait for fire-and-forget to complete
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 500));
       },
     );
   });
 
-  it('rejects non-SEGMENT_PLAY activity types with 400', async () => {
+  it('tracks a SHARE and returns 204', async () => {
+    await assertDifference(
+      () => UserActivity.countBy({ userId: fixtures.users.kevin.id, activityType: ActivityType.SHARE }),
+      1,
+      async () => {
+        const res = await request(app).post('/v1/user/activity').send({
+          activityType: 'SHARE',
+          segmentUuid: 'shared-uuid',
+          mediaId: 1,
+          mediaName: 'Test Anime',
+          japaneseText: 'テスト',
+        });
+        expect(res.status).toBe(204);
+        await new Promise((r) => setTimeout(r, 500));
+      },
+    );
+  });
+
+  it('rejects activity types not in the allowed enum with 400', async () => {
     const res = await request(app).post('/v1/user/activity').send({
       activityType: 'SEARCH',
     });

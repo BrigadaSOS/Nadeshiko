@@ -43,7 +43,7 @@ const initialError = ref(false);
 
 const query = ref('');
 const category = ref('all');
-const cursor = ref<number[] | null>(null);
+const cursor = ref<string | null>(null);
 const media = ref<string | null>(null);
 const sort = ref<string | null>(null);
 const uuid = ref<string | null>(null);
@@ -131,10 +131,8 @@ applyRouteQuery(route);
 const fetchStats = async () => {
   try {
     if (props.collectionId) {
-      const raw = await $fetch(`/v1/collections/${props.collectionId}/stats`, {
-        credentials: 'include',
-      });
-      statsData.value = resolveStatsResponse(raw);
+      const { data } = await sdk.getCollectionStats({ path: { id: props.collectionId } });
+      statsData.value = data ? resolveStatsResponse(data) : { media: [], categories: [] };
       return;
     }
 
@@ -192,14 +190,14 @@ const fetchSentences = async () => {
     let response;
 
     if (props.collectionId) {
-      const raw = await $fetch(`/v1/collections/${props.collectionId}/search`, {
-        credentials: 'include',
-        params: {
+      const { data } = await sdk.searchCollectionSegments({
+        path: { id: props.collectionId },
+        query: {
           ...(cursor.value ? { cursor: cursor.value } : {}),
-          limit: 20,
+          take: 20,
         },
       });
-      response = resolveSearchResponse(raw);
+      response = data ? resolveSearchResponse(data) : null;
     } else {
       const filters: SearchFilters = {};
 
@@ -240,7 +238,7 @@ const fetchSentences = async () => {
       const { data } = await sdk.search({
         body: {
           query: query.value ? { search: query.value } : undefined,
-          limit: 30,
+          take: 30,
           sort:
             sort.value && sort.value !== 'NONE'
               ? { mode: sort.value as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
@@ -388,12 +386,12 @@ if (props.initialSentenceData) {
 }
 
 onMounted(async () => {
-  if (!props.initialSentenceData) {
+  if (props.initialSentenceData === undefined) {
     resetSentencePagination();
     await fetchSentences();
   }
 
-  if (!props.initialStatsData) {
+  if (props.initialStatsData === undefined) {
     fetchStats();
   }
 });

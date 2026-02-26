@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
-
-type ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'LIST_ADD_SEGMENT';
-
 type ActivityItem = {
   id: number;
-  activityType: ActivityType;
+  activityType: string;
   segmentUuid?: string | null;
   mediaId?: number | null;
   searchQuery?: string | null;
@@ -19,18 +15,14 @@ type ActivityStats = {
   totalExports: number;
   totalPlays: number;
   totalListAdds: number;
+  totalShares: number;
   streakDays?: number;
   topMedia: { mediaId: number; count: number }[];
 };
 
-type ActivityResponse = {
-  activities: ActivityItem[];
-  pagination?: { hasMore: boolean; cursor?: number | null };
-  hasMore?: boolean;
-  cursor?: number | null;
-};
-
 type StatsRange = '7d' | '30d' | '90d' | 'all';
+
+type HeatmapRawData = Record<string, Record<string, number>>;
 
 const HEATMAP_DAYS = 365;
 const ACTIVITY_PAGE_SIZE = 20;
@@ -38,39 +30,9 @@ const ACTIVITY_PAGE_SIZE = 20;
 const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''] as const;
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
-const getServerRequestContext = () => {
-  if (!import.meta.server) return null;
-  const event = useRequestEvent();
-  if (!event) return null;
+const ACTIVITY_TYPES = ['SEARCH', 'SEGMENT_PLAY', 'ANKI_EXPORT', 'LIST_ADD_SEGMENT', 'SHARE'] as const;
 
-  const config = useRuntimeConfig();
-  const cookieHeader = getRequestHeader(event, 'cookie');
-  const headers: Record<string, string> = { cookie: cookieHeader || '' };
-  if (config.backendHostHeader) {
-    headers.host = String(config.backendHostHeader);
-  }
-
-  return {
-    baseUrl: String(config.backendInternalUrl || ''),
-    headers,
-  };
-};
-
-const fetchAuthed = async <T>(path: string, fallback: T, params?: Record<string, any>): Promise<T> => {
-  if (import.meta.server) {
-    const ctx = getServerRequestContext();
-    if (!ctx || !ctx.baseUrl) return fallback;
-    return await $fetch<T>(`${ctx.baseUrl}${path}`, {
-      headers: ctx.headers,
-      params,
-    }).catch(() => fallback);
-  }
-
-  return await $fetch<T>(path, {
-    credentials: 'include',
-    params,
-  }).catch(() => fallback);
-};
+const sdk = useNadeshikoSdk();
 
 const toDayKey = (date: Date): string => {
   const year = date.getFullYear();
@@ -85,12 +47,6 @@ const startOfDay = (date: Date): Date => {
   return d;
 };
 
-const extractPagination = (payload: ActivityResponse): { hasMore: boolean; cursor: number | null } => {
-  const hasMore = payload.pagination?.hasMore ?? payload.hasMore ?? false;
-  const cursor = payload.pagination?.cursor ?? payload.cursor ?? null;
-  return { hasMore, cursor };
-};
-
 const sinceForRange = (range: StatsRange): string | undefined => {
   if (range === 'all') return undefined;
   const d = new Date();
@@ -103,35 +59,23 @@ const { data: initialData } = await useAsyncData(
   'settings-activity-initial',
   async () => {
     const since7d = sinceForRange('7d');
-    const [statsRaw, activityRaw, prefsRaw, heatmapRaw] = await Promise.all([
-      fetchAuthed<ActivityStats | null>('/v1/user/activity/stats', null, since7d ? { since: since7d } : undefined),
-      fetchAuthed<ActivityResponse>(
-        '/v1/user/activity',
-        { activities: [], pagination: { hasMore: false, cursor: null } },
-        {
-          limit: ACTIVITY_PAGE_SIZE,
-        },
-      ),
-      fetchAuthed<{ searchHistory?: { enabled: boolean } }>('/v1/user/preferences', {}),
-      fetchAuthed<{ counts: Record<string, number> }>(
-        '/v1/user/activity/heatmap',
-        { counts: {} },
-        {
-          days: HEATMAP_DAYS,
-          activityType: 'SEARCH',
-        },
-      ),
+    const [statsRes, activityRes, prefsRes, heatmapRes] = await Promise.all([
+      sdk.getUserActivityStats({ query: since7d ? { since: since7d } : undefined }).catch(() => ({ data: null })),
+      sdk.listUserActivity({ query: { take: ACTIVITY_PAGE_SIZE } }).catch(() => ({ data: null })),
+      sdk.getUserPreferences().catch(() => ({ data: null })),
+      sdk.getUserActivityHeatmap({ query: { days: HEATMAP_DAYS } }).catch(() => ({ data: null })),
     ]);
 
-    const pagination = extractPagination(activityRaw);
+    const activityData = activityRes.data;
+    const prefsData = prefsRes.data as Record<string, any> | null;
 
     return {
-      stats: statsRaw,
-      activities: activityRaw.activities ?? [],
-      hasMore: pagination.hasMore,
-      cursor: pagination.cursor,
-      trackingEnabled: prefsRaw?.searchHistory?.enabled !== false,
-      heatmapCounts: heatmapRaw.counts,
+      stats: (statsRes.data ?? null) as ActivityStats | null,
+      activities: (activityData?.activities ?? []) as ActivityItem[],
+      hasMore: activityData?.pagination?.hasMore ?? false,
+      cursor: activityData?.pagination?.cursor ?? null,
+      trackingEnabled: prefsData?.searchHistory?.enabled !== false,
+      heatmapRaw: (heatmapRes.data?.activityByDay ?? {}) as HeatmapRawData,
     };
   },
   {
@@ -139,9 +83,9 @@ const { data: initialData } = await useAsyncData(
       stats: null as ActivityStats | null,
       activities: [] as ActivityItem[],
       hasMore: false,
-      cursor: null as number | null,
+      cursor: null as string | null,
       trackingEnabled: true,
-      heatmapCounts: {} as Record<string, number>,
+      heatmapRaw: {} as HeatmapRawData,
     }),
   },
 );
@@ -151,45 +95,66 @@ const statsRange = ref<StatsRange>('7d');
 
 const activities = ref<ActivityItem[]>(initialData.value.activities);
 const hasMore = ref(initialData.value.hasMore);
-const activityCursor = ref<number | null>(initialData.value.cursor);
+const activityCursor = ref<string | null>(initialData.value.cursor);
 const loadingMore = ref(false);
 const loadingActivities = ref(false);
 const trackingEnabled = ref(initialData.value.trackingEnabled);
 const togglingTracking = ref(false);
 const clearingHistory = ref(false);
 const heatmapLoading = ref(false);
-const searchCountsByDay = ref<Record<string, number>>(initialData.value.heatmapCounts);
+const heatmapFilter = ref<string | null>(null);
+const heatmapRaw = ref<HeatmapRawData>(initialData.value.heatmapRaw);
 const selectedDay = ref<string | null>(null);
+const activityTypeFilter = ref<string | null>(null);
+
+const heatmapCountsByDay = computed<Record<string, number>>(() => {
+  const result: Record<string, number> = {};
+  for (const [day, types] of Object.entries(heatmapRaw.value)) {
+    if (heatmapFilter.value) {
+      result[day] = types[heatmapFilter.value] ?? 0;
+    } else {
+      let total = 0;
+      for (const count of Object.values(types)) total += count;
+      result[day] = total;
+    }
+  }
+  return result;
+});
 
 const fetchTrackingState = async () => {
-  const prefs = await fetchAuthed<{ searchHistory?: { enabled: boolean } }>('/v1/user/preferences', {});
+  const { data } = await sdk.getUserPreferences().catch(() => ({ data: null }));
+  const prefs = data as Record<string, any> | null;
   trackingEnabled.value = prefs?.searchHistory?.enabled !== false;
 };
 
 const fetchStats = async () => {
   const since = sinceForRange(statsRange.value);
-  stats.value = await fetchAuthed<ActivityStats | null>('/v1/user/activity/stats', null, since ? { since } : undefined);
+  const { data } = await sdk.getUserActivityStats({ query: since ? { since } : undefined }).catch(() => ({ data: null }));
+  stats.value = (data ?? null) as ActivityStats | null;
 };
 
 const fetchActivity = async (append = false) => {
-  const params: Record<string, any> = { limit: ACTIVITY_PAGE_SIZE };
-  if (append && activityCursor.value) params.cursor = activityCursor.value;
-  if (selectedDay.value) params.date = selectedDay.value;
+  const query: Record<string, any> = { take: ACTIVITY_PAGE_SIZE };
+  if (append && activityCursor.value) query.cursor = activityCursor.value;
+  if (selectedDay.value) query.date = selectedDay.value;
+  if (activityTypeFilter.value) query.activityType = activityTypeFilter.value;
 
-  const result = await fetchAuthed<ActivityResponse>(
-    '/v1/user/activity',
-    { activities: [], pagination: { hasMore: false, cursor: null } },
-    params,
-  );
-  const pagination = extractPagination(result);
+  const { data } = await sdk.listUserActivity({ query }).catch(() => ({ data: null }));
 
   if (append) {
-    activities.value.push(...(result.activities ?? []));
+    activities.value.push(...((data?.activities ?? []) as ActivityItem[]));
   } else {
-    activities.value = result.activities ?? [];
+    activities.value = (data?.activities ?? []) as ActivityItem[];
   }
-  hasMore.value = pagination.hasMore;
-  activityCursor.value = pagination.cursor;
+  hasMore.value = data?.pagination?.hasMore ?? false;
+  activityCursor.value = data?.pagination?.cursor ?? null;
+};
+
+const refetchActivity = async () => {
+  loadingActivities.value = true;
+  activityCursor.value = null;
+  await fetchActivity();
+  loadingActivities.value = false;
 };
 
 const loadMore = async () => {
@@ -202,18 +167,12 @@ const loadMore = async () => {
 const selectDay = async (dayKey: string) => {
   if (selectedDay.value === dayKey) return;
   selectedDay.value = dayKey;
-  loadingActivities.value = true;
-  activityCursor.value = null;
-  await fetchActivity();
-  loadingActivities.value = false;
+  await refetchActivity();
 };
 
 const clearDayFilter = async () => {
   selectedDay.value = null;
-  loadingActivities.value = true;
-  activityCursor.value = null;
-  await fetchActivity();
-  loadingActivities.value = false;
+  await refetchActivity();
 };
 
 const toggleTracking = async () => {
@@ -221,11 +180,7 @@ const toggleTracking = async () => {
   togglingTracking.value = true;
   const newValue = !trackingEnabled.value;
   try {
-    await $fetch('/v1/user/preferences', {
-      method: 'PATCH',
-      credentials: 'include',
-      body: { searchHistory: { enabled: newValue } },
-    });
+    await sdk.updateUserPreferences({ body: { searchHistory: { enabled: newValue } } });
     trackingEnabled.value = newValue;
   } catch (error) {
     console.error('[Activity] Failed to toggle tracking:', error);
@@ -239,15 +194,12 @@ const clearHistory = async () => {
   if (!confirm('Are you sure you want to clear all activity history? This cannot be undone.')) return;
   clearingHistory.value = true;
   try {
-    await $fetch('/v1/user/activity', {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    await sdk.deleteUserActivity();
     activities.value = [];
     hasMore.value = false;
     activityCursor.value = null;
     selectedDay.value = null;
-    searchCountsByDay.value = {};
+    heatmapRaw.value = {};
     await fetchStats();
     await loadHeatmap();
   } catch (error) {
@@ -263,10 +215,7 @@ const deleteActivity = async (id: number) => {
   if (deletingIds.value.has(id)) return;
   deletingIds.value.add(id);
   try {
-    await $fetch(`/v1/user/activity/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    await sdk.deleteUserActivityById({ path: { id } });
     activities.value = activities.value.filter((a) => a.id !== id);
   } catch (error) {
     console.error('[Activity] Failed to delete activity:', error);
@@ -283,17 +232,13 @@ const clearDayActivity = async () => {
 
   clearingDay.value = true;
   try {
-    await $fetch(`/v1/user/activity/date/${selectedDay.value}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    await sdk.deleteUserActivityByDate({ path: { date: selectedDay.value } });
     activities.value = [];
     hasMore.value = false;
     activityCursor.value = null;
-    // Remove the day from heatmap
-    const updated = { ...searchCountsByDay.value };
+    const updated = { ...heatmapRaw.value };
     delete updated[selectedDay.value];
-    searchCountsByDay.value = updated;
+    heatmapRaw.value = updated;
     await fetchStats();
   } catch (error) {
     console.error('[Activity] Failed to clear day activity:', error);
@@ -305,9 +250,10 @@ const clearDayActivity = async () => {
 const activityTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
     SEARCH: 'Search',
-    ANKI_EXPORT: 'Anki Export',
     SEGMENT_PLAY: 'Audio Play',
+    ANKI_EXPORT: 'Anki Export',
     LIST_ADD_SEGMENT: 'Collection Add',
+    SHARE: 'Share',
   };
   return labels[type] || type;
 };
@@ -315,11 +261,36 @@ const activityTypeLabel = (type: string) => {
 const activityTypeClass = (type: string) => {
   const classes: Record<string, string> = {
     SEARCH: 'border-red-400/40 bg-red-500/10 text-red-300',
-    ANKI_EXPORT: 'border-blue-400/40 bg-blue-500/10 text-blue-300',
     SEGMENT_PLAY: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300',
+    ANKI_EXPORT: 'border-blue-400/40 bg-blue-500/10 text-blue-300',
     LIST_ADD_SEGMENT: 'border-amber-400/40 bg-amber-500/10 text-amber-300',
+    SHARE: 'border-purple-400/40 bg-purple-500/10 text-purple-300',
   };
   return classes[type] || 'border-white/20 bg-white/5 text-white/80';
+};
+
+const activityTypeMutedClass = (type: string) => {
+  const classes: Record<string, string> = {
+    SEARCH: 'border-red-400/20 bg-red-500/5 text-red-300/60 hover:text-red-200 hover:bg-red-500/10',
+    SEGMENT_PLAY: 'border-emerald-400/20 bg-emerald-500/5 text-emerald-300/60 hover:text-emerald-200 hover:bg-emerald-500/10',
+    ANKI_EXPORT: 'border-blue-400/20 bg-blue-500/5 text-blue-300/60 hover:text-blue-200 hover:bg-blue-500/10',
+    LIST_ADD_SEGMENT: 'border-amber-400/20 bg-amber-500/5 text-amber-300/60 hover:text-amber-200 hover:bg-amber-500/10',
+    SHARE: 'border-purple-400/20 bg-purple-500/5 text-purple-300/60 hover:text-purple-200 hover:bg-purple-500/10',
+  };
+  return classes[type] || 'border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10';
+};
+
+const heatmapTooltipUnit = (count: number): string => {
+  if (!heatmapFilter.value) return `${count} record${count === 1 ? '' : 's'}`;
+  const units: Record<string, [string, string]> = {
+    SEARCH: ['search', 'searches'],
+    SEGMENT_PLAY: ['play', 'plays'],
+    ANKI_EXPORT: ['export', 'exports'],
+    LIST_ADD_SEGMENT: ['addition', 'additions'],
+    SHARE: ['share', 'shares'],
+  };
+  const [singular, plural] = units[heatmapFilter.value] ?? ['action', 'actions'];
+  return `${count} ${count === 1 ? singular : plural}`;
 };
 
 const formatDate = (dateStr: string) => {
@@ -333,19 +304,80 @@ const formatDayLabel = (dayKey: string) => {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-const heatCellClass = (count: number): string => {
-  const classes = [
+type GroupedActivity = ActivityItem & { count: number; ids: number[] };
+
+const groupedActivities = computed<GroupedActivity[]>(() => {
+  const groups: GroupedActivity[] = [];
+  for (const item of activities.value) {
+    const prev = groups[groups.length - 1];
+    if (
+      prev &&
+      prev.activityType === item.activityType &&
+      prev.segmentUuid === item.segmentUuid &&
+      prev.searchQuery === item.searchQuery
+    ) {
+      prev.count++;
+      prev.ids.push(item.id);
+    } else {
+      groups.push({ ...item, count: 1, ids: [item.id] });
+    }
+  }
+  return groups;
+});
+
+const HEATMAP_PALETTES: Record<string, readonly string[]> = {
+  default: [
     'bg-white/5 border-white/10',
     'bg-red-900/50 border-red-800/60',
     'bg-red-700/60 border-red-600/70',
     'bg-red-500/70 border-red-400/80',
     'bg-red-300/80 border-red-200/80',
-  ] as const;
-  const level = count <= 0 ? 0 : count <= 1 ? 1 : count <= 3 ? 2 : count <= 6 ? 3 : 4;
-  return classes[level] ?? classes[0];
+  ],
+  SEARCH: [
+    'bg-white/5 border-white/10',
+    'bg-red-900/50 border-red-800/60',
+    'bg-red-700/60 border-red-600/70',
+    'bg-red-500/70 border-red-400/80',
+    'bg-red-300/80 border-red-200/80',
+  ],
+  SEGMENT_PLAY: [
+    'bg-white/5 border-white/10',
+    'bg-emerald-900/50 border-emerald-800/60',
+    'bg-emerald-700/60 border-emerald-600/70',
+    'bg-emerald-500/70 border-emerald-400/80',
+    'bg-emerald-300/80 border-emerald-200/80',
+  ],
+  ANKI_EXPORT: [
+    'bg-white/5 border-white/10',
+    'bg-blue-900/50 border-blue-800/60',
+    'bg-blue-700/60 border-blue-600/70',
+    'bg-blue-500/70 border-blue-400/80',
+    'bg-blue-300/80 border-blue-200/80',
+  ],
+  LIST_ADD_SEGMENT: [
+    'bg-white/5 border-white/10',
+    'bg-amber-900/50 border-amber-800/60',
+    'bg-amber-700/60 border-amber-600/70',
+    'bg-amber-500/70 border-amber-400/80',
+    'bg-amber-300/80 border-amber-200/80',
+  ],
+  SHARE: [
+    'bg-white/5 border-white/10',
+    'bg-purple-900/50 border-purple-800/60',
+    'bg-purple-700/60 border-purple-600/70',
+    'bg-purple-500/70 border-purple-400/80',
+    'bg-purple-300/80 border-purple-200/80',
+  ],
 };
 
-// Heatmap: group days by month with gaps between months
+const activePalette = computed(() => HEATMAP_PALETTES[heatmapFilter.value ?? 'default'] ?? HEATMAP_PALETTES.default!);
+
+const heatCellClass = (count: number): string => {
+  const palette = activePalette.value;
+  const level = count <= 0 ? 0 : count <= 1 ? 1 : count <= 3 ? 2 : count <= 6 ? 3 : 4;
+  return palette[level] ?? palette[0]!;
+};
+
 type HeatmapDay = {
   key: string;
   count: number;
@@ -360,7 +392,6 @@ type MonthGroup = {
 
 const heatmapMonthGroups = computed<MonthGroup[]>(() => {
   const end = startOfDay(new Date());
-  // Start from (HEATMAP_DAYS-1) days ago, aligned to previous Sunday
   const rawStart = new Date(end);
   rawStart.setDate(rawStart.getDate() - (HEATMAP_DAYS - 1));
   const start = new Date(rawStart);
@@ -382,7 +413,7 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
     const key = toDayKey(cursor);
     currentGroup?.days.push({
       key,
-      count: searchCountsByDay.value[key] ?? 0,
+      count: heatmapCountsByDay.value[key] ?? 0,
       label: cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
       dayOfWeek: cursor.getDay(),
     });
@@ -394,17 +425,17 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
 
 const loadHeatmap = async () => {
   heatmapLoading.value = true;
-  const result = await fetchAuthed<{ counts: Record<string, number> }>(
-    '/v1/user/activity/heatmap',
-    { counts: {} },
-    { days: HEATMAP_DAYS, activityType: 'SEARCH' },
-  );
-  searchCountsByDay.value = result.counts;
+  const { data } = await sdk.getUserActivityHeatmap({ query: { days: HEATMAP_DAYS } }).catch(() => ({ data: null }));
+  heatmapRaw.value = (data?.activityByDay ?? {}) as HeatmapRawData;
   heatmapLoading.value = false;
 };
 
 watch(statsRange, () => {
   fetchStats();
+});
+
+watch(activityTypeFilter, () => {
+  refetchActivity();
 });
 
 onMounted(async () => {
@@ -437,31 +468,66 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="mt-5 grid grid-cols-3 gap-3">
-      <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-        <p class="text-xs uppercase tracking-wide text-gray-400">Sentences Searched</p>
-        <p class="mt-2 text-2xl font-semibold text-white">{{ stats?.totalSearches ?? 0 }}</p>
+    <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="rounded-lg border border-red-400/20 bg-red-500/5 p-4">
+        <p class="text-xs uppercase tracking-wide text-red-300/70">Sentences Searched</p>
+        <p class="mt-2 text-2xl font-semibold text-red-200">{{ stats?.totalSearches ?? 0 }}</p>
       </div>
-      <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-        <p class="text-xs uppercase tracking-wide text-gray-400">Audios Played</p>
-        <p class="mt-2 text-2xl font-semibold text-white">{{ stats?.totalPlays ?? 0 }}</p>
+      <div class="rounded-lg border border-emerald-400/20 bg-emerald-500/5 p-4">
+        <p class="text-xs uppercase tracking-wide text-emerald-300/70">Audios Played</p>
+        <p class="mt-2 text-2xl font-semibold text-emerald-200">{{ stats?.totalPlays ?? 0 }}</p>
       </div>
-      <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-        <p class="text-xs uppercase tracking-wide text-gray-400">Anki Exports</p>
-        <p class="mt-2 text-2xl font-semibold text-white">{{ stats?.totalExports ?? 0 }}</p>
+      <div class="rounded-lg border border-blue-400/20 bg-blue-500/5 p-4">
+        <p class="text-xs uppercase tracking-wide text-blue-300/70">Anki Exports</p>
+        <p class="mt-2 text-2xl font-semibold text-blue-200">{{ stats?.totalExports ?? 0 }}</p>
+      </div>
+      <div class="rounded-lg border border-purple-400/20 bg-purple-500/5 p-4">
+        <p class="text-xs uppercase tracking-wide text-purple-300/70">Links Shared</p>
+        <p class="mt-2 text-2xl font-semibold text-purple-200">{{ stats?.totalShares ?? 0 }}</p>
       </div>
     </div>
   </div>
 
-  <!-- Search Heatmap -->
+  <!-- Activity Heatmap -->
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md border border-white/10">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Search Heatmap</h3>
-    <p class="text-sm text-gray-400 mt-1">Search activity over the last {{ HEATMAP_DAYS }} days. Click a day to filter activity.</p>
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div>
+        <h3 class="text-lg text-white/90 tracking-wide font-semibold">Activity Heatmap</h3>
+        <p class="text-sm text-gray-400 mt-1">Activity over the last {{ HEATMAP_DAYS }} days. Click a day to filter history.</p>
+      </div>
+    </div>
+
+    <div class="mt-3 flex flex-wrap gap-1.5">
+      <button
+        :class="[
+          'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors',
+          heatmapFilter === null
+            ? 'border-white/30 bg-white/15 text-white'
+            : 'border-white/15 bg-white/5 text-gray-300/60 hover:text-white hover:bg-white/10',
+        ]"
+        @click="heatmapFilter = null"
+      >
+        All
+      </button>
+      <button
+        v-for="type in ACTIVITY_TYPES"
+        :key="type"
+        :class="[
+          'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors',
+          heatmapFilter === type
+            ? activityTypeClass(type)
+            : activityTypeMutedClass(type),
+        ]"
+        @click="heatmapFilter = heatmapFilter === type ? null : type"
+      >
+        {{ activityTypeLabel(type) }}
+      </button>
+    </div>
 
     <div v-if="heatmapLoading" class="mt-4 text-gray-400">Loading heatmap...</div>
     <div
       v-else
-      class="heatmap mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black/20 p-3"
+      class="heatmap mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black/20 p-4 sm:p-5"
     >
       <div class="flex w-full">
         <!-- Day of week labels -->
@@ -486,7 +552,7 @@ onMounted(async () => {
               <div
                 v-for="day in group.days"
                 :key="day.key"
-                :title="`${day.label}: ${day.count} search${day.count === 1 ? '' : 'es'}`"
+                :title="`${day.label}: ${heatmapTooltipUnit(day.count)}`"
                 :class="[
                   'heatmap-cell rounded-sm border transition-colors cursor-pointer',
                   heatCellClass(day.count),
@@ -501,11 +567,11 @@ onMounted(async () => {
 
       <div class="mt-3 flex items-center gap-2 text-xs text-gray-400">
         <span>Less</span>
-        <span class="heatmap-legend-cell rounded-sm border border-white/10 bg-white/5" />
-        <span class="heatmap-legend-cell rounded-sm border border-red-800/60 bg-red-900/50" />
-        <span class="heatmap-legend-cell rounded-sm border border-red-600/70 bg-red-700/60" />
-        <span class="heatmap-legend-cell rounded-sm border border-red-400/80 bg-red-500/70" />
-        <span class="heatmap-legend-cell rounded-sm border border-red-200/80 bg-red-300/80" />
+        <span :class="['heatmap-legend-cell rounded-sm border', activePalette[0]]" />
+        <span :class="['heatmap-legend-cell rounded-sm border', activePalette[1]]" />
+        <span :class="['heatmap-legend-cell rounded-sm border', activePalette[2]]" />
+        <span :class="['heatmap-legend-cell rounded-sm border', activePalette[3]]" />
+        <span :class="['heatmap-legend-cell rounded-sm border', activePalette[4]]" />
         <span>More</span>
       </div>
     </div>
@@ -543,8 +609,35 @@ onMounted(async () => {
       </div>
     </div>
 
+    <div class="mt-4 flex flex-wrap gap-1.5">
+      <button
+        :class="[
+          'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors',
+          activityTypeFilter === null
+            ? 'border-white/30 bg-white/15 text-white'
+            : 'border-white/15 bg-white/5 text-gray-300/60 hover:text-white hover:bg-white/10',
+        ]"
+        @click="activityTypeFilter = null"
+      >
+        All
+      </button>
+      <button
+        v-for="type in ACTIVITY_TYPES"
+        :key="type"
+        :class="[
+          'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors',
+          activityTypeFilter === type
+            ? activityTypeClass(type)
+            : activityTypeMutedClass(type),
+        ]"
+        @click="activityTypeFilter = activityTypeFilter === type ? null : type"
+      >
+        {{ activityTypeLabel(type) }}
+      </button>
+    </div>
+
     <div v-if="loadingActivities" class="mt-4 text-gray-400">Loading...</div>
-    <div v-else-if="activities.length === 0" class="mt-4 text-gray-400">No activity recorded{{ selectedDay ? ' for this day' : ' yet' }}.</div>
+    <div v-else-if="groupedActivities.length === 0" class="mt-4 text-gray-400">No activity recorded{{ selectedDay ? ' for this day' : activityTypeFilter ? ' for this type' : ' yet' }}.</div>
     <div v-else class="mt-4">
       <table class="w-full text-sm">
         <thead>
@@ -557,24 +650,31 @@ onMounted(async () => {
         </thead>
         <tbody class="divide-y divide-white/5">
           <tr
-            v-for="activity in activities"
+            v-for="activity in groupedActivities"
             :key="activity.id"
             class="group"
           >
             <td class="py-2.5 pr-4 whitespace-nowrap">
               <span
                 :class="[
-                  'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium',
+                  'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium',
                   activityTypeClass(activity.activityType),
                 ]"
               >
                 {{ activityTypeLabel(activity.activityType) }}
+                <span v-if="activity.count > 1" class="opacity-70">&times;{{ activity.count }}</span>
               </span>
             </td>
             <td class="py-2.5 pr-4 max-w-md truncate">
-              <span v-if="activity.searchQuery" class="text-gray-200">{{ activity.searchQuery }}</span>
               <a
-                v-else-if="activity.activityType === 'SEGMENT_PLAY' && activity.segmentUuid && (activity.animeName || activity.japaneseText)"
+                v-if="activity.searchQuery"
+                :href="`/search/${encodeURIComponent(activity.searchQuery)}`"
+                class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
+              >
+                {{ activity.searchQuery }}
+              </a>
+              <a
+                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE') && activity.segmentUuid && (activity.animeName || activity.japaneseText)"
                 :href="`/search?uuid=${activity.segmentUuid}`"
                 class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
               >
@@ -591,8 +691,8 @@ onMounted(async () => {
               <button
                 class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all disabled:opacity-30"
                 title="Remove"
-                :disabled="deletingIds.has(activity.id)"
-                @click="deleteActivity(activity.id)"
+                :disabled="activity.ids.some(id => deletingIds.has(id))"
+                @click="activity.ids.forEach(id => deleteActivity(id))"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />

@@ -51,10 +51,6 @@ properties:
     nullable: true
     description: End date of the media (null if unknown) (YYYY-MM-DD)
     example: "2011-09-14"
-  folderMediaName:
-    type: string
-    description: Folder name used for storing media files
-    example: "steins-gate"
   genres:
     type: array
     items:

@@ -7,7 +7,7 @@ meta {
 get {
   url: {{baseUrl}}/v1/admin/reports?take=20
   body: none
-  auth: bearer
+  auth: none
 }
 
 params:query {
@@ -22,11 +22,14 @@ params:query {
   auditRunId:
 }
 
-auth:bearer {
-  token: {{apiKey}}
-}
-
 settings {
   encodeUrl: true
   timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
 }

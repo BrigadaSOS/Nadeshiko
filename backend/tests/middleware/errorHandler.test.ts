@@ -279,10 +279,23 @@ describe('handleErrors', () => {
       expect(res.body.detail).toContain('Widget not found');
     });
 
-    it('returns generic not found when entity message is unparseable', async () => {
+    it('uses entity metadata even when error message is unparseable', async () => {
+      const app = createErrorApp(() => {
+        const err = new EntityNotFoundError('User', {});
+        (err as any).message = 'totally broken message';
+        throw err;
+      });
+
+      const res = await request(app).get('/test');
+
+      expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({ code: 'NOT_FOUND', detail: 'User not found' });
+    });
+
+    it('returns generic not found when entity metadata is unavailable', async () => {
       const app = createErrorApp(() => {
         const err = new EntityNotFoundError('X', {});
-        (err as any).message = 'totally broken message';
+        (err as any).entityClass = null;
         throw err;
       });
 

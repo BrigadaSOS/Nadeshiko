@@ -14,7 +14,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "1.4.3-dev.824dc71",
+    "@brigadasos/nadeshiko-sdk": "1.5.0-dev.996fd6f",
     "@mdi/js": "^7.4.47",
     "@nuxt/content": "^3.11.0",
     "@nuxtjs/i18n": "^10.2.1",

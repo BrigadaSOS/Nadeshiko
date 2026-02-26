@@ -306,50 +306,55 @@ async function querySearchStatisticsWithMustQueries(
   parserMode: QueryParserMode,
 ): Promise<SearchStatisticsOutput> {
   const cacheKey = SegmentQuery.buildSearchStatsCacheKey(request, parserMode);
+  const cached = Cache.get<SearchStatisticsOutput>(SegmentDocument.SEARCH_STATS_CACHE, cacheKey);
+  if (cached) {
+    return cached;
+  }
 
-  return Cache.fetch(SegmentDocument.SEARCH_STATS_CACHE, cacheKey, 24 * 60 * 60 * 1000, async () => {
-    const { filter: filterForMediaStatistics, must_not: must_notForMediaStatistics } = SegmentQuery.buildCommonFilters(
-      request.filters,
-    );
+  const { filter: filterForMediaStatistics, must_not: must_notForMediaStatistics } = SegmentQuery.buildCommonFilters(
+    request.filters,
+  );
 
-    const esMediaStatsResponse = client.search({
-      size: 0,
-      index: INDEX_NAME,
-      query: {
-        bool: { filter: filterForMediaStatistics, must: [...mustQueries], must_not: must_notForMediaStatistics },
+  const esMediaStatsResponse = client.search({
+    size: 0,
+    index: INDEX_NAME,
+    query: {
+      bool: { filter: filterForMediaStatistics, must: [...mustQueries], must_not: must_notForMediaStatistics },
+    },
+    aggs: {
+      group_by_media_id: {
+        terms: { field: 'mediaId', size: 10000 },
+        aggs: { group_by_episode: { terms: { field: 'episode', size: 10000 } } },
       },
-      aggs: {
-        group_by_media_id: {
-          terms: { field: 'mediaId', size: 10000 },
-          aggs: { group_by_episode: { terms: { field: 'episode', size: 10000 } } },
-        },
-      },
-    });
-
-    const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = SegmentQuery.buildCommonFilters({
-      ...request.filters,
-      category: [],
-    });
-
-    const esCategoryStatsResponse = client.search({
-      size: 0,
-      index: INDEX_NAME,
-      query: { bool: { filter: filterForCategoryStats, must: [...mustQueries], must_not: must_notForCategoryStats } },
-      aggs: { group_by_category: { terms: { field: 'category', size: 10 } } },
-    });
-
-    const [esMediaStatsResult, esCategoryResult, mediaInfoResponse] = await Promise.all([
-      esMediaStatsResponse,
-      esCategoryStatsResponse,
-      mediaInfoPromise,
-    ]);
-
-    const { stats, mediaMap } = SegmentResponse.buildStatistics(esMediaStatsResult, mediaInfoResponse);
-
-    return {
-      media: stats,
-      categories: SegmentResponse.buildCategoryStatistics(esCategoryResult),
-      includes: { media: mediaMap },
-    };
+    },
   });
+
+  const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = SegmentQuery.buildCommonFilters({
+    ...request.filters,
+    category: [],
+  });
+
+  const esCategoryStatsResponse = client.search({
+    size: 0,
+    index: INDEX_NAME,
+    query: { bool: { filter: filterForCategoryStats, must: [...mustQueries], must_not: must_notForCategoryStats } },
+    aggs: { group_by_category: { terms: { field: 'category', size: 10 } } },
+  });
+
+  const [esMediaStatsResult, esCategoryResult, mediaInfoResponse] = await Promise.all([
+    esMediaStatsResponse,
+    esCategoryStatsResponse,
+    mediaInfoPromise,
+  ]);
+
+  const { stats, mediaMap } = SegmentResponse.buildStatistics(esMediaStatsResult, mediaInfoResponse);
+
+  const result = {
+    media: stats,
+    categories: SegmentResponse.buildCategoryStatistics(esCategoryResult),
+    includes: { media: mediaMap },
+  };
+  Cache.set(SegmentDocument.SEARCH_STATS_CACHE, cacheKey, result, 24 * 60 * 60 * 1000);
+
+  return result;
 }

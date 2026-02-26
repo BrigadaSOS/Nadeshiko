@@ -11,6 +11,7 @@ import { assertUser } from '@app/middleware/authentication';
 import { ActivityType, UserActivity } from '@app/models/UserActivity';
 import { toUserActivityListDTO } from '@app/controllers/mappers/activity.mapper';
 import { NotFoundError } from '@app/errors';
+import { logger } from '@config/log';
 
 export const listUserActivity: ListUserActivity = async ({ query }, respond, req) => {
   const user = assertUser(req);
@@ -32,7 +33,7 @@ export const listUserActivity: ListUserActivity = async ({ query }, respond, req
 export const getUserActivityHeatmap: GetUserActivityHeatmap = async ({ query }, respond, req) => {
   const user = assertUser(req);
 
-  const activityByDay = await UserActivity.getHeatmapForUser(user.id, query.days, query.activityType);
+  const activityByDay = await UserActivity.getHeatmapForUser(user.id, query.days);
 
   return respond.with200().body({ activityByDay });
 };
@@ -64,7 +65,9 @@ export const trackUserActivity: TrackUserActivity = async ({ body }, respond, re
     mediaId: body.mediaId,
     mediaName: body.mediaName,
     japaneseText: body.japaneseText,
-  }).catch(() => {});
+  }).catch((err: unknown) => {
+    logger.warn({ err, userId: user.id, activityType: body.activityType }, 'Failed to track user activity');
+  });
 
   return respond.with204().body(undefined);
 };

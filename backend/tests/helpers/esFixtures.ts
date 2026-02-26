@@ -60,6 +60,8 @@ export async function seedSegmentsIntoEs(
       contentEs: 'prueba',
       contentEsMt: true,
       contentRating: ContentRating.SAFE,
+      ratingAnalysis: { scores: {}, tags: {} },
+      posAnalysis: { nouns: 0 },
       storage: SegmentStorage.R2,
       hashedId: `hash-${media.id}-${i}`,
       episode: episodeNumber,

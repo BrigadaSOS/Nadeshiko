@@ -10,9 +10,8 @@ import {
   requireApiKeyAuth,
   requireSessionAuth,
   assertUser,
-  invalidateUserCache,
-  invalidateApiKeyCacheForUser,
 } from '@app/middleware/authentication';
+import { invalidateUserCache, invalidateApiKeyCacheForUser } from '@app/middleware/authCacheStore';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { ApiAuth, User } from '@app/models';
 import { auth } from '@config/auth';

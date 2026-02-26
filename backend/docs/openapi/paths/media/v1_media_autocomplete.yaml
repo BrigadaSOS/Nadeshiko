@@ -21,6 +21,7 @@ get:
       schema:
         type: string
         minLength: 1
+        pattern: '.*\S.*'
         example: steins
     - name: take
       in: query

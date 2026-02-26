@@ -6,9 +6,7 @@ post:
   summary: Start admin impersonation
   description: |
     Creates an impersonation session for the target user.
-    This endpoint is restricted to admin sessions and only available in local environment.
-  security:
-    - sessionCookie: []
+    This endpoint is only available in local environment.
   requestBody:
     required: true
     content:
@@ -51,8 +49,6 @@ post:
                     format: email
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
-    "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -70,9 +66,7 @@ delete:
   summary: Clear admin impersonation
   description: |
     Clears the current impersonation session and related cookies.
-    This endpoint is restricted to admin sessions and only available in local environment.
-  security:
-    - sessionCookie: []
+    This endpoint is only available in local environment.
   responses:
     "200":
       description: Impersonation session cleared
@@ -85,8 +79,6 @@ delete:
             properties:
               message:
                 type: string
-    "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

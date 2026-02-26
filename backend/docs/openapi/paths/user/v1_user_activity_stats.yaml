@@ -30,6 +30,7 @@ get:
               - totalExports
               - totalPlays
               - totalListAdds
+              - totalShares
               - topMedia
             properties:
               totalSearches:
@@ -39,6 +40,8 @@ get:
               totalPlays:
                 type: integer
               totalListAdds:
+                type: integer
+              totalShares:
                 type: integer
               topMedia:
                 type: array

@@ -98,7 +98,7 @@ const submitReport = async () => {
 
   try {
     const sdk = useNadeshikoSdk();
-    const response = await sdk.createUserReport({
+    const { error } = await sdk.createUserReport({
       body: {
         target: props.target,
         reason: form.reason as CreateReportRequest['reason'],
@@ -106,15 +106,15 @@ const submitReport = async () => {
       },
     });
 
-    if (response.error) {
-      const data = response.error as any;
-      throw new Error(data?.message || t('reports.submitError'));
+    if (error) {
+      errorMessage.value = error.detail || t('reports.submitError');
+      return;
     }
 
     useToastSuccess(t('reports.submitSuccess'));
     closeModal();
-  } catch (err: any) {
-    errorMessage.value = err?.message || t('reports.submitError');
+  } catch {
+    errorMessage.value = t('reports.submitError');
   } finally {
     isSubmitting.value = false;
   }

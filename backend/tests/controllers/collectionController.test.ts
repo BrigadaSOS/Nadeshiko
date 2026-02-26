@@ -50,6 +50,8 @@ async function createTestSegment(mediaId: number, uuid: string): Promise<Segment
     contentEs: 'prueba',
     contentEn: 'test',
     contentRating: ContentRating.SAFE,
+    ratingAnalysis: { scores: {}, tags: {} },
+    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-${uuid}`,
     episode: 1,
@@ -552,7 +554,7 @@ describe('GET /v1/collections/:id/stats', () => {
     expect(res.body.categories).toEqual([]);
   });
 
-  it('returns aggregated media and category stats for indexed collection segments', async () => {
+  it('returns aggregated stats only for the collection segment uuids', async () => {
     const collection = await createTestCollection();
     const seg1 = await createTestSegment(fixtures.media.testShow.id, 'seg-stats-1');
     const seg2 = await createTestSegment(fixtures.media.testShow.id, 'seg-stats-2');
@@ -584,13 +586,8 @@ describe('GET /v1/collections/:id/stats', () => {
     const res = await request(app).get(`/v1/collections/${collection.id}/stats`);
     expect(res.status).toBe(200);
     expect(res.body.includes).toEqual({ media: {} });
-    expect(res.body.media).toEqual(
-      expect.arrayContaining([
-        { mediaId: 101, matchCount: 2, episodeHits: { '1': 1, '2': 1 } },
-        { mediaId: 202, matchCount: 1, episodeHits: { '1': 1 } },
-      ]),
-    );
-    expect(res.body.categories).toEqual([{ category: 'ANIME', count: 3 }]);
+    expect(res.body.media).toEqual([{ mediaId: 101, matchCount: 2, episodeHits: { '1': 1, '2': 1 } }]);
+    expect(res.body.categories).toEqual([{ category: 'ANIME', count: 2 }]);
   });
 
   it('returns 403 for private collections owned by another user', async () => {

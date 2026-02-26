@@ -129,9 +129,8 @@ export function useSegmentConcatenation() {
       const raw = await sdk.getSegmentContext({
         path: { uuid: result.segment.uuid },
         query: {
-          limit: 1,
+          take: 1,
           contentRating: contentRating.value,
-          include: ['media'],
         },
       });
       const response = raw.data ? resolveContextResponse(raw.data) : null;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SegmentInternal } from '@brigadasos/nadeshiko-sdk';
 import type { SearchResult, Segment } from '~/types/search';
 
 const { t } = useI18n();
@@ -12,6 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const isSubmitting = ref(false);
+const isLoadingInternal = ref(false);
 const errorMessage = ref('');
 
 const form = reactive({
@@ -22,6 +24,16 @@ const form = reactive({
   esMt: false,
   status: 'ACTIVE' as Segment['status'],
   contentRating: 'SAFE' as Segment['contentRating'],
+  position: 0,
+  startTimeMs: 0,
+  endTimeMs: 0,
+  ratingAnalysisJson: '',
+  posAnalysisJson: '',
+});
+
+const jsonErrors = reactive({
+  ratingAnalysis: '',
+  posAnalysis: '',
 });
 
 const statusOptions = [
@@ -70,18 +82,57 @@ const copyUuid = async () => {
   await navigator.clipboard.writeText(props.segment.segment.uuid);
 };
 
+const validateJson = (json: string, field: 'ratingAnalysis' | 'posAnalysis'): boolean => {
+  if (!json.trim()) {
+    jsonErrors[field] = '';
+    return true;
+  }
+  try {
+    JSON.parse(json);
+    jsonErrors[field] = '';
+    return true;
+  } catch {
+    jsonErrors[field] = t('modalSegmentEdit.invalidJson');
+    return false;
+  }
+};
+
 watch(
   () => props.segment,
-  (seg) => {
-    if (seg) {
-      form.ja = seg.segment.textJa.content || '';
-      form.en = seg.segment.textEn.content || '';
-      form.enMt = seg.segment.textEn.isMachineTranslated;
-      form.es = seg.segment.textEs.content || '';
-      form.esMt = seg.segment.textEs.isMachineTranslated;
-      form.status = seg.segment.status;
-      form.contentRating = seg.segment.contentRating || 'SAFE';
-      errorMessage.value = '';
+  async (seg) => {
+    if (!seg) return;
+
+    form.ja = seg.segment.textJa.content || '';
+    form.en = seg.segment.textEn.content || '';
+    form.enMt = seg.segment.textEn.isMachineTranslated;
+    form.es = seg.segment.textEs.content || '';
+    form.esMt = seg.segment.textEs.isMachineTranslated;
+    form.status = seg.segment.status;
+    form.contentRating = seg.segment.contentRating || 'SAFE';
+    form.position = seg.segment.position;
+    form.startTimeMs = seg.segment.startTimeMs;
+    form.endTimeMs = seg.segment.endTimeMs;
+    form.ratingAnalysisJson = '';
+    form.posAnalysisJson = '';
+    jsonErrors.ratingAnalysis = '';
+    jsonErrors.posAnalysis = '';
+    errorMessage.value = '';
+
+    isLoadingInternal.value = true;
+    try {
+      const internal = await $fetch<SegmentInternal>(`/api/v1/media/segments/${seg.segment.uuid}`, {
+        params: { include: ['ratingAnalysis', 'posAnalysis'] },
+      });
+      if (internal.ratingAnalysis) {
+        form.ratingAnalysisJson = JSON.stringify(internal.ratingAnalysis, null, 2);
+      }
+      if (internal.posAnalysis) {
+        form.posAnalysisJson = JSON.stringify(internal.posAnalysis, null, 2);
+      }
+    } catch {
+      // non-fatal: fields remain empty
+    } finally {
+      isLoadingInternal.value = false;
     }
   },
 );
@@ -90,24 +141,46 @@ const closeModal = () => {
   window.NDOverlay?.close('#nd-vertically-centered-scrollable-segment-edit');
 };
 
+const sdk = useNadeshikoSdk();
+
 const submitEdit = async () => {
   if (!props.segment || isSubmitting.value) return;
+
+  const ratingValid = validateJson(form.ratingAnalysisJson, 'ratingAnalysis');
+  const posValid = validateJson(form.posAnalysisJson, 'posAnalysis');
+  if (!ratingValid || !posValid) return;
 
   isSubmitting.value = true;
   errorMessage.value = '';
 
   try {
-    await $fetch(`/v1/media/segments/${props.segment.segment.uuid}`, {
-      method: 'PATCH',
-      credentials: 'include',
-      body: {
-        textJa: form.ja,
-        textEn: { content: form.en, isMachineTranslated: form.enMt },
-        textEs: { content: form.es, isMachineTranslated: form.esMt },
-        status: form.status,
-        contentRating: form.contentRating,
-      },
+    const body: Parameters<typeof sdk.updateSegmentByUuid>[0]['body'] = {
+      textJa: { content: form.ja },
+      textEn: { content: form.en, isMachineTranslated: form.enMt },
+      textEs: { content: form.es, isMachineTranslated: form.esMt },
+      status: form.status,
+      contentRating: form.contentRating,
+      position: form.position,
+      startTimeMs: form.startTimeMs,
+      endTimeMs: form.endTimeMs,
+    };
+
+    if (form.ratingAnalysisJson.trim()) {
+      body.ratingAnalysis = JSON.parse(form.ratingAnalysisJson);
+    }
+    if (form.posAnalysisJson.trim()) {
+      body.posAnalysis = JSON.parse(form.posAnalysisJson);
+    }
+
+    const { error } = await sdk.updateSegmentByUuid({
+      path: { uuid: props.segment.segment.uuid },
+      body,
     });
+
+    if (error) {
+      errorMessage.value = error.detail || t('modalSegmentEdit.saveError');
+      return;
+    }
 
     const updated: SearchResult = {
       ...props.segment,
@@ -118,14 +191,17 @@ const submitEdit = async () => {
         textEs: { content: form.es, isMachineTranslated: form.esMt },
         status: form.status,
         contentRating: form.contentRating,
+        position: form.position,
+        startTimeMs: form.startTimeMs,
+        endTimeMs: form.endTimeMs,
       },
     };
 
     emit('update:success', updated);
     useToastSuccess(t('modalSegmentEdit.saveSuccess'));
     closeModal();
-  } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || t('modalSegmentEdit.saveError');
+  } catch {
+    errorMessage.value = t('modalSegmentEdit.saveError');
   } finally {
     isSubmitting.value = false;
   }
@@ -294,6 +370,42 @@ const submitEdit = async () => {
           </div>
         </div>
 
+        <!-- Position + Timing -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">
+            {{ t('modalSegmentEdit.timing') }}
+          </label>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.position') }}</label>
+              <input
+                v-model.number="form.position"
+                type="number"
+                min="0"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.startTimeMs') }}</label>
+              <input
+                v-model.number="form.startTimeMs"
+                type="number"
+                min="0"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.endTimeMs') }}</label>
+              <input
+                v-model.number="form.endTimeMs"
+                type="number"
+                min="0"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
         <!-- Status -->
         <div>
           <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -328,6 +440,44 @@ const submitEdit = async () => {
               {{ t(`segment.contentRating.${opt.value}`) }}
             </button>
           </div>
+        </div>
+
+        <!-- Rating Analysis -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-sm font-medium text-gray-300">
+              {{ t('modalSegmentEdit.ratingAnalysis') }}
+            </label>
+            <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
+          </div>
+          <p class="text-xs text-neutral-500 mb-1.5">{{ t('modalSegmentEdit.ratingAnalysisDesc') }}</p>
+          <textarea
+            v-model="form.ratingAnalysisJson"
+            rows="6"
+            class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            :class="jsonErrors.ratingAnalysis ? 'border-red-500' : 'border-neutral-600'"
+            @blur="validateJson(form.ratingAnalysisJson, 'ratingAnalysis')"
+          />
+          <p v-if="jsonErrors.ratingAnalysis" class="text-xs text-red-400 mt-0.5">{{ jsonErrors.ratingAnalysis }}</p>
+        </div>
+
+        <!-- POS Analysis -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-sm font-medium text-gray-300">
+              {{ t('modalSegmentEdit.posAnalysis') }}
+            </label>
+            <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
+          </div>
+          <p class="text-xs text-neutral-500 mb-1.5">{{ t('modalSegmentEdit.posAnalysisDesc') }}</p>
+          <textarea
+            v-model="form.posAnalysisJson"
+            rows="6"
+            class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            :class="jsonErrors.posAnalysis ? 'border-red-500' : 'border-neutral-600'"
+            @blur="validateJson(form.posAnalysisJson, 'posAnalysis')"
+          />
+          <p v-if="jsonErrors.posAnalysis" class="text-xs text-red-400 mt-0.5">{{ jsonErrors.posAnalysis }}</p>
         </div>
       </div>
 

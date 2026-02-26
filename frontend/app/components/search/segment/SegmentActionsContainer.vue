@@ -29,6 +29,7 @@ import { useToastError, useToastSuccess } from '~/utils/toast';
 
 type Props = {
   content: SearchResult;
+  hideContextButton?: boolean;
 };
 
 type CollectionListResponse = {
@@ -109,7 +110,7 @@ const loadCollections = async () => {
 
   collectionsLoading.value = true;
   try {
-    const { data } = await sdk.listCollections({ query: { limit: 100 } });
+    const { data } = await sdk.listCollections({ query: { take: 100 } });
     const items = data?.collections ?? [];
     collections.value = items;
     collectionsLoaded.value = true;
@@ -289,7 +290,7 @@ const openCollectionsPage = async () => {
     </template>
   </SearchDropdownContainer>
 
-  <UiButtonPrimaryAction data-nd-overlay="#nd-vertically-centered-scrollable-context" class="mr-2 text-xs py-2.5 px-3"
+  <UiButtonPrimaryAction v-if="!hideContextButton" data-nd-overlay="#nd-vertically-centered-scrollable-context" class="mr-2 text-xs py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
     {{ $t('searchpage.main.buttons.context') }}
@@ -298,7 +299,7 @@ const openCollectionsPage = async () => {
   <UiButtonPrimaryAction
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
-    @click="getSharingURL(content.segment.uuid)"
+    @click="getSharingURL({ uuid: content.segment.uuid, mediaId: content.media.id, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
   >
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>

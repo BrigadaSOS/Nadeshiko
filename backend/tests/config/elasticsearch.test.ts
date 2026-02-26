@@ -103,7 +103,7 @@ describe('setupElasticsearchUser', () => {
     );
   });
 
-  it('returns early when user exists and recreateIfExists is false', async () => {
+  it('upserts role but skips user creation when user exists and recreateIfExists is false', async () => {
     const configValues = makeConfig({
       ELASTICSEARCH_ADMIN_PASSWORD: 'admin-secret',
       ELASTICSEARCH_USER: 'existing_user',
@@ -114,7 +114,7 @@ describe('setupElasticsearchUser', () => {
 
     expect(username).toBe('existing_user');
     expect(mockGetUser).toHaveBeenCalledWith({ username: 'existing_user' });
-    expect(mockPutRole).not.toHaveBeenCalled();
+    expect(mockPutRole).toHaveBeenCalledTimes(1);
     expect(mockPutUser).not.toHaveBeenCalled();
   });
 

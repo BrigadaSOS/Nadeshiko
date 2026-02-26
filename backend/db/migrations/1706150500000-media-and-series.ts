@@ -7,23 +7,23 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "Media" (
         "id" SERIAL PRIMARY KEY,
-        "japanese_name" varchar NOT NULL,
-        "romaji_name" varchar NOT NULL,
-        "english_name" varchar NOT NULL,
-        "airing_format" varchar NOT NULL,
-        "airing_status" varchar NOT NULL,
+        "japanese_name" varchar NOT NULL CHECK ("japanese_name" <> ''),
+        "romaji_name" varchar NOT NULL CHECK ("romaji_name" <> ''),
+        "english_name" varchar NOT NULL CHECK ("english_name" <> ''),
+        "airing_format" varchar NOT NULL CHECK ("airing_format" <> ''),
+        "airing_status" varchar NOT NULL CHECK ("airing_status" <> ''),
         "genres" text[] NOT NULL,
         "storage" segment_storage NOT NULL DEFAULT 'R2',
         "start_date" date NOT NULL,
         "end_date" date,
-        "studio" varchar NOT NULL DEFAULT 'UNKNOWN',
-        "season_name" varchar NOT NULL DEFAULT 'UNKNOWN',
+        "studio" varchar NOT NULL DEFAULT 'UNKNOWN' CHECK ("studio" <> ''),
+        "season_name" varchar NOT NULL DEFAULT 'UNKNOWN' CHECK ("season_name" <> ''),
         "season_year" integer NOT NULL DEFAULT 0,
         "category" category_type NOT NULL DEFAULT 'ANIME',
         "num_segments" integer NOT NULL DEFAULT 0,
-        "version" varchar NOT NULL,
+        "version" varchar NOT NULL CHECK ("version" <> ''),
         "hash_salt" varchar,
-        "storage_base_path" varchar NOT NULL,
+        "storage_base_path" varchar NOT NULL CHECK ("storage_base_path" <> ''),
         "deleted_at" TIMESTAMPTZ,
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ
@@ -55,7 +55,7 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       CREATE TABLE "MediaExternalId" (
         "media_id" integer NOT NULL,
         "source" external_source_type NOT NULL,
-        "external_id" varchar NOT NULL,
+        "external_id" varchar NOT NULL CHECK ("external_id" <> ''),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ,
         CONSTRAINT "PK_MediaExternalId" PRIMARY KEY ("media_id", "source"),
@@ -73,9 +73,9 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       CREATE TABLE "Seiyuu" (
         "id" SERIAL PRIMARY KEY,
         "external_ids" jsonb NOT NULL DEFAULT '{}',
-        "name_japanese" varchar NOT NULL,
-        "name_english" varchar NOT NULL,
-        "image_url" varchar NOT NULL,
+        "name_japanese" varchar NOT NULL CHECK ("name_japanese" <> ''),
+        "name_english" varchar NOT NULL CHECK ("name_english" <> ''),
+        "image_url" varchar NOT NULL CHECK ("image_url" <> ''),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ
       )
@@ -91,9 +91,9 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
       CREATE TABLE "Character" (
         "id" SERIAL PRIMARY KEY,
         "external_ids" jsonb NOT NULL DEFAULT '{}',
-        "name_japanese" varchar NOT NULL,
-        "name_english" varchar NOT NULL,
-        "image_url" varchar NOT NULL,
+        "name_japanese" varchar NOT NULL CHECK ("name_japanese" <> ''),
+        "name_english" varchar NOT NULL CHECK ("name_english" <> ''),
+        "image_url" varchar NOT NULL CHECK ("image_url" <> ''),
         "seiyuu_id" integer NOT NULL,
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ,
@@ -131,9 +131,9 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "Series" (
         "id" SERIAL PRIMARY KEY,
-        "name_japanese" varchar NOT NULL,
-        "name_romaji" varchar NOT NULL,
-        "name_english" varchar NOT NULL,
+        "name_japanese" varchar NOT NULL CHECK ("name_japanese" <> ''),
+        "name_romaji" varchar NOT NULL CHECK ("name_romaji" <> ''),
+        "name_english" varchar NOT NULL CHECK ("name_english" <> ''),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ
       )

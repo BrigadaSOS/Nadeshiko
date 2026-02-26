@@ -179,12 +179,28 @@ export async function copyToClipboard(item: string) {
   useToastSuccess(message);
 }
 
-export async function getSharingURL(uuid: string) {
+export async function getSharingURL(params: {
+  uuid: string;
+  mediaId?: number;
+  mediaName?: string;
+  japaneseText?: string;
+}) {
   const { $i18n } = useNuxtApp();
   try {
-    await navigator.clipboard.writeText(`${window.location.origin}/sentence/${uuid}`);
+    await navigator.clipboard.writeText(`${window.location.origin}/sentence/${params.uuid}`);
     const message = $i18n.t('searchpage.main.labels.copiedsharingurl');
     useToastSuccess(message);
+
+    const sdk = useNadeshikoSdk();
+    sdk.trackUserActivity({
+      body: {
+        activityType: 'SHARE',
+        segmentUuid: params.uuid,
+        mediaId: params.mediaId,
+        mediaName: params.mediaName,
+        japaneseText: params.japaneseText,
+      },
+    }).catch(() => {});
   } catch (_error) {
     const message = $i18n.t('searchpage.main.labels.errorcopiedsharingurl');
     useToastError(message);

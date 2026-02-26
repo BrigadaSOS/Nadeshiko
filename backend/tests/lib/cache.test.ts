@@ -2,9 +2,11 @@ import { describe, it, expect, afterEach } from 'bun:test';
 import { Cache, createCacheNamespace } from '../../lib/cache';
 
 const ns = createCacheNamespace('test');
+const nsOps = createCacheNamespace('ops');
 
 afterEach(() => {
   Cache.invalidate(ns);
+  Cache.invalidate(nsOps);
 });
 
 describe('createCacheNamespace', () => {
@@ -16,150 +18,137 @@ describe('createCacheNamespace', () => {
   });
 });
 
-describe('Cache.fetch', () => {
-  it('calls compute on first access', async () => {
-    let calls = 0;
-    const result = await Cache.fetch(ns, 'k', 1000, async () => {
-      calls++;
-      return 'value';
-    });
-    expect(result).toBe('value');
-    expect(calls).toBe(1);
+describe('Cache.get/set', () => {
+  it('returns null for missing keys', () => {
+    expect(Cache.get<string>(ns, 'missing')).toBeNull();
   });
 
-  it('returns cached value without calling compute again', async () => {
-    let calls = 0;
-    const compute = async () => {
-      calls++;
-      return 'value';
-    };
-
-    await Cache.fetch(ns, 'k', 1000, compute);
-    const result = await Cache.fetch(ns, 'k', 1000, compute);
-
-    expect(result).toBe('value');
-    expect(calls).toBe(1);
+  it('supports set/get for a single key', () => {
+    Cache.set(ns, 'k', 'value', 1000);
+    expect(Cache.get<string>(ns, 'k')).toBe('value');
   });
 
-  it('re-computes after TTL expires', async () => {
-    let calls = 0;
-    const compute = async () => {
-      calls++;
-      return calls;
-    };
-
-    await Cache.fetch(ns, 'k', 1, compute);
-    await new Promise((r) => setTimeout(r, 5));
-    const result = await Cache.fetch(ns, 'k', 1000, compute);
-
-    expect(result).toBe(2);
-    expect(calls).toBe(2);
-  });
-
-  it('isolates keys within the same namespace', async () => {
-    await Cache.fetch(ns, 'a', 1000, async () => 'alpha');
-    const b = await Cache.fetch(ns, 'b', 1000, async () => 'beta');
-
-    expect(b).toBe('beta');
-  });
-
-  it('isolates different namespaces', async () => {
-    const ns2 = createCacheNamespace('other');
-    let calls = 0;
-
-    await Cache.fetch(ns, 'k', 1000, async () => {
-      calls++;
-      return 'ns1';
-    });
-    await Cache.fetch(ns2, 'k', 1000, async () => {
-      calls++;
-      return 'ns2';
-    });
-
-    expect(calls).toBe(2);
-    Cache.invalidate(ns2);
-  });
-});
-
-describe('Cache.fetch with falsy values', () => {
   it.each([
     ['null', null],
     ['false', false],
     ['zero', 0],
     ['empty string', ''],
-  ])('caches %s without re-computing', async (_label, falsy) => {
-    let calls = 0;
-    const compute = async () => {
-      calls++;
-      return falsy;
-    };
-
-    await Cache.fetch(ns, 'k', 1000, compute);
-    const result = await Cache.fetch(ns, 'k', 1000, compute);
-
-    expect(result).toBe(falsy);
-    expect(calls).toBe(1);
+  ])('stores %s values correctly', (_label, value) => {
+    Cache.set(ns, 'k', value, 1000);
+    expect(Cache.get(ns, 'k')).toBe(value);
   });
 
-  it('re-computes when compute throws', async () => {
-    let calls = 0;
+  it('returns null for expired keys', async () => {
+    Cache.set(ns, 'k', 'value', 1);
+    await new Promise((r) => setTimeout(r, 5));
+    expect(Cache.get<string>(ns, 'k')).toBeNull();
+  });
 
-    await expect(
-      Cache.fetch(ns, 'k', 1000, async () => {
-        calls++;
-        throw new Error('boom');
-      }),
-    ).rejects.toThrow('boom');
+  it('isolates values across namespaces', () => {
+    const ns2 = createCacheNamespace('other');
+    Cache.set(ns, 'k', 'one', 1000);
+    Cache.set(ns2, 'k', 'two', 1000);
 
-    const result = await Cache.fetch(ns, 'k', 1000, async () => {
-      calls++;
-      return 'ok';
-    });
+    expect(Cache.get<string>(ns, 'k')).toBe('one');
+    expect(Cache.get<string>(ns2, 'k')).toBe('two');
 
-    expect(result).toBe('ok');
-    expect(calls).toBe(2);
+    Cache.invalidate(ns2);
+  });
+});
+
+describe('Cache.delete', () => {
+  it('removes a single key', () => {
+    Cache.set(ns, 'a', 1, 1000);
+    Cache.set(ns, 'b', 2, 1000);
+
+    Cache.delete(ns, 'a');
+
+    expect(Cache.get<number>(ns, 'a')).toBeNull();
+    expect(Cache.get<number>(ns, 'b')).toBe(2);
+  });
+
+  it('is a no-op for unknown namespace/key', () => {
+    const unknown = createCacheNamespace('never-used');
+    expect(() => Cache.delete(unknown, 'x')).not.toThrow();
+    expect(() => Cache.delete(ns, 'missing')).not.toThrow();
+  });
+});
+
+describe('Cache.deleteWhere', () => {
+  it('deletes keys matching predicate', () => {
+    Cache.set(ns, 'k1', { userId: 1 }, 1000);
+    Cache.set(ns, 'k2', { userId: 2 }, 1000);
+    Cache.set(ns, 'k3', { userId: 1 }, 1000);
+
+    Cache.deleteWhere<{ userId: number }>(ns, (_key, value) => value.userId === 1);
+
+    expect(Cache.get<{ userId: number }>(ns, 'k1')).toBeNull();
+    expect(Cache.get<{ userId: number }>(ns, 'k3')).toBeNull();
+    expect(Cache.get<{ userId: number }>(ns, 'k2')).toEqual({ userId: 2 });
+  });
+
+  it('skips expired entries and keeps unmatched keys', async () => {
+    Cache.set(ns, 'expired', { userId: 1 }, 1);
+    Cache.set(ns, 'active', { userId: 2 }, 1000);
+    await new Promise((r) => setTimeout(r, 5));
+
+    Cache.deleteWhere<{ userId: number }>(ns, (_key, value) => value.userId === 1);
+
+    expect(Cache.get<{ userId: number }>(ns, 'expired')).toBeNull();
+    expect(Cache.get<{ userId: number }>(ns, 'active')).toEqual({ userId: 2 });
   });
 });
 
 describe('Cache.invalidate', () => {
-  it('is a no-op for an unknown namespace', () => {
+  it('is a no-op for unknown namespace', () => {
     const unknown = createCacheNamespace('never-used');
     expect(() => Cache.invalidate(unknown)).not.toThrow();
   });
 
-  it('clears all keys in the namespace', async () => {
-    let calls = 0;
-    const compute = async () => {
-      calls++;
-      return 'v';
-    };
-
-    await Cache.fetch(ns, 'a', 1000, compute);
-    await Cache.fetch(ns, 'b', 1000, compute);
+  it('clears all keys in a namespace', () => {
+    Cache.set(ns, 'a', 'alpha', 1000);
+    Cache.set(ns, 'b', 'beta', 1000);
 
     Cache.invalidate(ns);
 
-    await Cache.fetch(ns, 'a', 1000, compute);
-    await Cache.fetch(ns, 'b', 1000, compute);
-
-    expect(calls).toBe(4);
+    expect(Cache.get<string>(ns, 'a')).toBeNull();
+    expect(Cache.get<string>(ns, 'b')).toBeNull();
   });
 
-  it('does not affect other namespaces', async () => {
+  it('does not affect other namespaces', () => {
     const ns2 = createCacheNamespace('isolated');
-    let calls = 0;
+    Cache.set(ns, 'k', 'one', 1000);
+    Cache.set(ns2, 'k', 'two', 1000);
 
-    await Cache.fetch(ns2, 'k', 1000, async () => {
-      calls++;
-      return 'v';
-    });
     Cache.invalidate(ns);
-    await Cache.fetch(ns2, 'k', 1000, async () => {
-      calls++;
-      return 'v';
-    });
 
-    expect(calls).toBe(1);
+    expect(Cache.get<string>(ns, 'k')).toBeNull();
+    expect(Cache.get<string>(ns2, 'k')).toBe('two');
+
     Cache.invalidate(ns2);
+  });
+});
+
+describe('External compute pattern', () => {
+  it('supports get-or-compute behavior without cache helper', async () => {
+    let calls = 0;
+    const getOrCompute = async () => {
+      const cached = Cache.get<number>(nsOps, 'count');
+      if (cached !== null) {
+        return cached;
+      }
+
+      calls++;
+      const value = 42;
+      Cache.set(nsOps, 'count', value, 1000);
+      return value;
+    };
+
+    const first = await getOrCompute();
+    const second = await getOrCompute();
+
+    expect(first).toBe(42);
+    expect(second).toBe(42);
+    expect(calls).toBe(1);
   });
 });

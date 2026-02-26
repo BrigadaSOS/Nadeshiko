@@ -270,7 +270,7 @@ export const ankiStore = defineStore('anki', {
 
       try {
         const sdk = useNadeshikoSdk();
-        const { data: listData } = await sdk.listCollections({ query: { limit: 100 } });
+        const { data: listData } = await sdk.listCollections({ query: { take: 100 } });
 
         const existing = (listData?.collections ?? []).find(
           (collection) => collection.name === DEFAULT_ANKI_EXPORTS_COLLECTION,

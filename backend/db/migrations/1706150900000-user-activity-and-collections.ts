@@ -32,7 +32,7 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
     await queryRunner.query(`
       CREATE TABLE "Collection" (
         "id" SERIAL PRIMARY KEY,
-        "name" varchar NOT NULL,
+        "name" varchar NOT NULL CHECK ("name" <> ''),
         "user_id" integer NOT NULL,
         "visibility" collection_visibility NOT NULL DEFAULT 'PRIVATE',
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -49,7 +49,7 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
       CREATE TABLE "CollectionSegment" (
         "id" SERIAL PRIMARY KEY,
         "collection_id" integer NOT NULL,
-        "segment_uuid" varchar NOT NULL,
+        "segment_uuid" varchar NOT NULL CHECK ("segment_uuid" <> ''),
         "media_id" integer NOT NULL,
         "position" integer NOT NULL,
         "note" varchar(500),

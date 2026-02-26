@@ -88,16 +88,16 @@ export async function setupElasticsearchUser(
         throw error;
       });
 
-    if (userExists && !recreateIfExists) {
-      logger.info({ username }, 'Elasticsearch user already exists, skipping creation');
-      return username;
-    }
-
-    logger.info({ roleName, indexName }, 'Creating Elasticsearch role');
+    logger.info({ roleName, indexName }, 'Upserting Elasticsearch role');
     await adminClient.security.putRole({
       name: roleName,
       indices: [{ names: [indexName], privileges: ['all'], allow_restricted_indices: false }],
     });
+
+    if (userExists && !recreateIfExists) {
+      logger.info({ username, roleName }, 'Elasticsearch user already exists; role updated, skipping user update');
+      return username;
+    }
 
     logger.info({ username, roleName }, 'Creating Elasticsearch user');
     await adminClient.security.putUser({

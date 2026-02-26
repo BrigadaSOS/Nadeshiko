@@ -67,14 +67,14 @@ export class Segment extends BaseEntity {
   @Column({ name: 'content_english_mt', type: 'boolean', default: false })
   contentEnMt!: boolean;
 
-  @Column({ name: 'content_rating', type: 'enum', enum: ContentRating, default: ContentRating.SAFE })
+  @Column({ name: 'content_rating', type: 'enum', enum: ContentRating })
   contentRating!: ContentRating;
 
-  @Column({ name: 'rating_analysis', type: 'jsonb', nullable: true })
-  ratingAnalysis?: RatingAnalysisData | null;
+  @Column({ name: 'rating_analysis', type: 'jsonb' })
+  ratingAnalysis!: RatingAnalysisData;
 
-  @Column({ name: 'pos_analysis', type: 'jsonb', nullable: true })
-  posAnalysis?: Record<string, unknown> | null;
+  @Column({ name: 'pos_analysis', type: 'jsonb' })
+  posAnalysis!: Record<string, unknown>;
 
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;

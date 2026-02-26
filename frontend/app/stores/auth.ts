@@ -85,11 +85,15 @@ export const userStore = defineStore('user', {
       const { $i18n } = useNuxtApp();
 
       try {
-        await $fetch('/v1/dev/auth/impersonate', {
-          method: 'POST',
-          credentials: 'include',
+        const sdk = useNadeshikoSdk();
+        const { error } = await sdk.impersonateAdminUser({
           body: { userId },
         });
+
+        if (error) {
+          useToastError($i18n.t('modalauth.labels.errorlogin400'));
+          return;
+        }
 
         await this.getBasicInfo();
         if (this.isLoggedIn) {
@@ -102,10 +106,8 @@ export const userStore = defineStore('user', {
 
     async clearDevImpersonation() {
       try {
-        await $fetch('/v1/dev/auth/impersonate/clear', {
-          method: 'POST',
-          credentials: 'include',
-        });
+        const sdk = useNadeshikoSdk();
+        await sdk.clearAdminImpersonation();
       } finally {
         this.resetAuthState();
       }
