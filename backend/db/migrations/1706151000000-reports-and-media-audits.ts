@@ -7,7 +7,7 @@ export class ReportsAndMediaAudits1706151000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "MediaAuditRun" (
         "id" SERIAL PRIMARY KEY,
-        "audit_name" varchar NOT NULL,
+        "audit_name" varchar NOT NULL CHECK ("audit_name" <> ''),
         "category" varchar,
         "result_count" integer NOT NULL,
         "threshold_used" jsonb NOT NULL,
@@ -19,9 +19,9 @@ export class ReportsAndMediaAudits1706151000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "MediaAudit" (
         "id" SERIAL PRIMARY KEY,
-        "name" varchar NOT NULL UNIQUE,
-        "label" varchar NOT NULL,
-        "description" text NOT NULL,
+        "name" varchar NOT NULL UNIQUE CHECK ("name" <> ''),
+        "label" varchar NOT NULL CHECK ("label" <> ''),
+        "description" text NOT NULL CHECK ("description" <> ''),
         "target_type" media_audit_target_type NOT NULL,
         "threshold" jsonb NOT NULL,
         "enabled" boolean NOT NULL DEFAULT true,

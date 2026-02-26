@@ -193,6 +193,69 @@ describe('PATCH /v1/admin/media/audits/:name', () => {
       detail: 'Audit with name "missing-audit" not found',
     });
   });
+
+  it('returns 400 when threshold patch includes unknown keys', async () => {
+    const registryAudit = auditRegistry[0];
+    await MediaAudit.upsert(
+      {
+        name: registryAudit.name,
+        label: registryAudit.label,
+        description: registryAudit.description,
+        targetType: registryAudit.targetType as MediaAuditTargetType,
+        threshold: toThresholdDefaults(registryAudit.thresholdSchema),
+        enabled: true,
+      },
+      { conflictPaths: ['name'] },
+    );
+
+    const res = await request(app)
+      .patch(`/v1/admin/media/audits/${registryAudit.name}`)
+      .send({
+        threshold: { doesNotExist: 1 },
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({
+      code: 'INVALID_REQUEST',
+      detail: `Unknown threshold key "doesNotExist" for audit "${registryAudit.name}"`,
+    });
+  });
+
+  it('returns 400 when threshold patch value type is invalid', async () => {
+    const registryAudit = auditRegistry.find((audit) => audit.thresholdSchema.some((field) => field.type === 'number'));
+    if (!registryAudit) {
+      throw new Error('Expected at least one audit with a numeric threshold field');
+    }
+
+    const numberField = registryAudit.thresholdSchema.find((field) => field.type === 'number');
+    if (!numberField) {
+      throw new Error('Expected at least one numeric threshold field');
+    }
+
+    await MediaAudit.upsert(
+      {
+        name: registryAudit.name,
+        label: registryAudit.label,
+        description: registryAudit.description,
+        targetType: registryAudit.targetType as MediaAuditTargetType,
+        threshold: toThresholdDefaults(registryAudit.thresholdSchema),
+        enabled: true,
+      },
+      { conflictPaths: ['name'] },
+    );
+
+    const res = await request(app)
+      .patch(`/v1/admin/media/audits/${registryAudit.name}`)
+      .send({
+        threshold: { [numberField.key]: true },
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({
+      code: 'INVALID_REQUEST',
+      detail: `Threshold "${numberField.key}" must be a finite number`,
+    });
+  });
 });
 
 describe('POST /v1/admin/media/audits/:name/run', () => {

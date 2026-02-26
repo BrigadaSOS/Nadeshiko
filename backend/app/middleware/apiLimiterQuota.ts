@@ -1,9 +1,10 @@
-import { Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { AuthCredentialsInvalidError, QuotaExceededError } from '@app/errors';
 import { ApiKeyKind, AuthType } from '@app/models';
 import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
+import { logger } from '@config/log';
 
-export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunction): Promise<void> => {
+export const rateLimitApiQuota = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   if (req.auth?.type !== AuthType.API_KEY && req.auth?.type !== AuthType.API_KEY_LEGACY) {
     next();
     return;
@@ -30,7 +31,9 @@ export const rateLimitApiQuota = async (req: any, res: Response, next: NextFunct
 
   res.on('finish', () => {
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      AccountQuotaUsage.incrementForUser(user.id).catch(() => {});
+      AccountQuotaUsage.incrementForUser(user.id).catch((err: unknown) => {
+        logger.warn({ err, userId: user.id }, 'Failed to increment account quota usage');
+      });
     }
   });
 

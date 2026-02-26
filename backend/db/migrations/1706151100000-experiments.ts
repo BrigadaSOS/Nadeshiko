@@ -7,7 +7,7 @@ export class Experiments1706151100000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "Experiment" (
         "id" SERIAL PRIMARY KEY,
-        "key" varchar NOT NULL UNIQUE,
+        "key" varchar NOT NULL UNIQUE CHECK ("key" <> ''),
         "name" varchar,
         "description" text,
         "enforced" boolean NOT NULL DEFAULT false,
@@ -24,7 +24,7 @@ export class Experiments1706151100000 implements MigrationInterface {
       CREATE TABLE "ExperimentEnrollment" (
         "id" SERIAL PRIMARY KEY,
         "user_id" integer NOT NULL,
-        "experiment_key" varchar NOT NULL,
+        "experiment_key" varchar NOT NULL CHECK ("experiment_key" <> ''),
         "enrolled_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ,

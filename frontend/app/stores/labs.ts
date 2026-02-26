@@ -31,18 +31,21 @@ export const useLabsStore = defineStore('labs', {
   actions: {
     async fetchFeatures() {
       try {
-        const features = await $fetch<UserFeature[]>('/v1/user/labs', {
-          credentials: 'include',
-        });
-        this.features = features;
+        const sdk = useNadeshikoSdk();
+        const { data } = await sdk.listUserLabs();
+        this.features = (data ?? []) as UserFeature[];
         this.loaded = true;
       } catch (error) {
         console.error('[Labs] Failed to fetch features:', error);
       }
     },
     async toggleLab(key: string, enable: boolean) {
-      const method = enable ? 'POST' : 'DELETE';
-      await $fetch(`/v1/user/labs/${key}`, { method, credentials: 'include' });
+      const sdk = useNadeshikoSdk();
+      if (enable) {
+        await sdk.enrollUserLab({ path: { key } });
+      } else {
+        await sdk.unenrollUserLab({ path: { key } });
+      }
 
       const feature = this.features.find((f) => f.key === key);
       if (feature) {

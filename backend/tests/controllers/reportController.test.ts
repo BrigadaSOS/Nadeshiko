@@ -52,6 +52,8 @@ async function seedSegment(mediaId: number, episodeNumber: number, overrides: Pa
     contentEs: `es-${segmentSeedCounter}`,
     contentEsMt: false,
     contentRating: ContentRating.SAFE,
+    ratingAnalysis: { scores: {}, tags: {} },
+    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-${segmentSeedCounter}`,
     storageBasePath: '/test',

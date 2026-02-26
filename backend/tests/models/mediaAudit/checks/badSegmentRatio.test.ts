@@ -42,6 +42,8 @@ function createSegment(mediaId: number, episode: number, status: SegmentStatus) 
     contentEs: 'prueba',
     contentEsMt: false,
     contentRating: ContentRating.SAFE,
+    ratingAnalysis: { scores: {}, tags: {} },
+    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-${segIdx}`,
     episode,

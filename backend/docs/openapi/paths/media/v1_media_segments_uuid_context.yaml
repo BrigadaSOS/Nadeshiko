@@ -7,10 +7,11 @@ get:
     Retrieves segments surrounding a specific segment within an episode.
     Returns segments both before and after the target, providing dialogue context for how a sentence is used.
 
-    **Permissions:** `READ_MEDIA`
+    **Permissions:** `UPDATE_MEDIA` (API key) or admin session
 
   security:
-    - apiKeyHeader: [READ_MEDIA]
+    - apiKeyHeader: [UPDATE_MEDIA]
+    - sessionCookie: []
   parameters:
     - name: uuid
       in: path
@@ -53,7 +54,7 @@ get:
             InvalidJson:
               $ref: "../../components/examples/InvalidJson.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

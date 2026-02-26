@@ -35,11 +35,6 @@ const allowedFilterTypes = new Set(['ANIME', 'JDRAMA']);
 const pageSize = 28;
 let debounceTimeout = null;
 
-const normalizePage = (value) => {
-  const parsed = Number.parseInt(String(value || '1'), 10);
-  return Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
-};
-
 const normalizeView = (value) => (value === 'list' ? 'list' : 'grid');
 const normalizeQuery = (value) => (typeof value === 'string' ? value : '');
 const normalizeCategory = (value) => {
@@ -47,57 +42,44 @@ const normalizeCategory = (value) => {
   return allowedFilterTypes.has(category) ? category : '';
 };
 
-const page = computed(() => normalizePage(route.query.page));
 const currentView = computed(() => normalizeView(route.query.view));
 const searchQuery = computed(() => normalizeQuery(route.query.query));
 const filterCategory = computed(() => normalizeCategory(route.query.category));
 
 const buildQueryParams = (params = {}) => {
-  const nextPage = normalizePage(params.page ?? page.value);
   const nextView = normalizeView(params.view ?? currentView.value);
   const nextQuery = normalizeQuery(params.query ?? searchQuery.value);
   const nextCategory = normalizeCategory(params.category ?? filterCategory.value);
 
   return {
-    page: String(nextPage),
     view: nextView,
     query: nextQuery || undefined,
     category: nextCategory || undefined,
   };
 };
 
-const isSameQuery = (nextQuery) => {
-  const current = buildQueryParams();
-  return (
-    current.page === nextQuery.page &&
-    current.view === nextQuery.view &&
-    (current.query || '') === (nextQuery.query || '') &&
-    (current.category || '') === (nextQuery.category || '')
-  );
-};
-
 const updateUrl = async (params = {}) => {
   const nextQuery = buildQueryParams(params);
-
-  if (isSameQuery(nextQuery)) {
-    return;
-  }
-
   await router.push({ query: nextQuery });
 };
 
+const media = ref([]);
+const hasMore = ref(false);
+const nextCursor = ref(undefined);
+const loadingMore = ref(false);
+const sentinelRef = ref(null);
+
 const {
-  data: mediaResponse,
+  data: initialResponse,
   pending,
   error,
 } = await useAsyncData(
-  () => `search-media-${page.value}-${searchQuery.value}-${filterCategory.value}`,
+  () => `search-media-${searchQuery.value}-${filterCategory.value}`,
   async () => {
     const response = await sdk.listMedia({
       query: {
-        cursor: (page.value - 1) * pageSize,
         query: searchQuery.value || undefined,
-        limit: pageSize,
+        take: pageSize,
         category: filterCategory.value || undefined,
       },
     });
@@ -105,21 +87,33 @@ const {
     return {
       media: raw?.media ?? [],
       hasMore: raw?.pagination?.hasMore ?? false,
+      cursor: raw?.pagination?.cursor ?? undefined,
     };
   },
   {
-    watch: [page, searchQuery, filterCategory],
+    watch: [searchQuery, filterCategory],
     server: true,
     lazy: false,
     default: () => ({
       media: [],
       hasMore: false,
+      cursor: undefined,
     }),
   },
 );
 
-const media = computed(() => mediaResponse.value?.media || []);
-const hasMore = computed(() => Boolean(mediaResponse.value?.hasMore && media.value.length > 0));
+const syncFromResponse = () => {
+  media.value = initialResponse.value?.media ?? [];
+  hasMore.value = initialResponse.value?.hasMore ?? false;
+  nextCursor.value = initialResponse.value?.cursor ?? undefined;
+};
+
+syncFromResponse();
+
+watch(initialResponse, () => {
+  syncFromResponse();
+});
+
 const loading = computed(() => pending.value);
 const query = ref(searchQuery.value);
 
@@ -139,10 +133,7 @@ watch(query, (value) => {
   }
 
   debounceTimeout = setTimeout(() => {
-    updateUrl({
-      page: 1,
-      query: value.trim(),
-    });
+    updateUrl({ query: value.trim() });
   }, 300);
 });
 
@@ -166,34 +157,72 @@ const setListView = () => {
   updateUrl({ view: 'list' });
 };
 
-const nextPage = () => {
-  updateUrl({ page: page.value + 1 });
-};
+const loadMore = async () => {
+  if (loadingMore.value || !hasMore.value || !nextCursor.value) return;
 
-const beforePage = () => {
-  updateUrl({ page: page.value - 1 });
-};
-
-const scrollToTop = () => {
-  if (!import.meta.client) {
-    return;
+  loadingMore.value = true;
+  try {
+    const response = await sdk.listMedia({
+      query: {
+        cursor: nextCursor.value,
+        query: searchQuery.value || undefined,
+        take: pageSize,
+        category: filterCategory.value || undefined,
+      },
+    });
+    const raw = response.data;
+    const newMedia = raw?.media ?? [];
+    media.value = [...media.value, ...newMedia];
+    hasMore.value = raw?.pagination?.hasMore ?? false;
+    nextCursor.value = raw?.pagination?.cursor ?? undefined;
+  } catch (err) {
+    console.error('Error loading more media:', err);
+  } finally {
+    loadingMore.value = false;
   }
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  });
 };
 
 const handleFilterChange = (category) => {
-  updateUrl({
-    page: 1,
-    category,
-  });
+  updateUrl({ category });
 };
 
-watch([page, currentView, searchQuery, filterCategory], () => {
-  scrollToTop();
+let observer = null;
+
+const setupObserver = () => {
+  if (!import.meta.client) return;
+
+  observer?.disconnect();
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting && hasMore.value && !loadingMore.value && !loading.value) {
+        loadMore();
+      }
+    },
+    { rootMargin: '200px' },
+  );
+
+  if (sentinelRef.value) {
+    observer.observe(sentinelRef.value);
+  }
+};
+
+watch(sentinelRef, () => {
+  setupObserver();
+});
+
+onMounted(() => {
+  setupObserver();
+});
+
+onBeforeUnmount(() => {
+  observer?.disconnect();
+});
+
+watch([searchQuery, filterCategory], () => {
+  if (import.meta.client) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 });
 </script>
 
@@ -250,15 +279,15 @@ watch([page, currentView, searchQuery, filterCategory], () => {
         v-if="currentView === 'grid'"
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5 xl:gap-6"
       >
-        <!-- Loading Placeholder for Grid -->
-        <div v-if="loading" v-for="i in pageSize" :key="i" class="flex flex-col items-center animate-pulse">
+        <!-- Loading Placeholder for Grid (initial load) -->
+        <div v-if="loading && media.length === 0" v-for="i in pageSize" :key="i" class="flex flex-col items-center animate-pulse">
           <div class="relative w-full overflow-hidden rounded-lg bg-[rgba(255,255,255,0.06)] aspect-[2/3]"></div>
           <div class="mt-2 w-full h-4  rounded"></div>
         </div>
 
         <!-- Media Content -->
         <NuxtLink
-          v-else
+          v-if="!loading || media.length > 0"
           v-for="(mediaInfo, index) in media"
           :key="mediaInfo.id"
           :to="`/search?media=${mediaInfo.id}`"
@@ -289,8 +318,8 @@ watch([page, currentView, searchQuery, filterCategory], () => {
         </NuxtLink>
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
-        <!-- Loading Placeholder for List -->
-        <div v-if="loading" v-for="i in pageSize" :key="i" class="w-full relative mb-4 animate-pulse">
+        <!-- Loading Placeholder for List (initial load) -->
+        <div v-if="loading && media.length === 0" v-for="i in pageSize" :key="i" class="w-full relative mb-4 animate-pulse">
           <div
             class="relative flex flex-col z-20 items-center sm:items-start sm:flex-row rounded-lg bg-[rgba(255,255,255,0.06)] transition-all"
           >
@@ -397,23 +426,14 @@ watch([page, currentView, searchQuery, filterCategory], () => {
           </div>
         </div>
       </div>
-      <div v-if="media.length > 0" class="flex flex-1 py-6">
-        <button
-          v-if="page > 1"
-          @click="beforePage()"
-          class="border-b-2 border-red-500 p-2 left-0 px-4 py-2 text-white transition-transform transform"
-        >
-          {{ $t('animeList.previousPage') }}
-        </button>
 
-        <button
-          v-if="hasMore"
-          @click="nextPage()"
-          class="ml-auto border-b-2 border-red-500 p-2 right-0 px-4 py-2 text-white transition-transform transform"
-        >
-          {{ $t('animeList.nextPage') }}
-        </button>
+      <!-- Loading more indicator -->
+      <div v-if="loadingMore" class="flex justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
       </div>
+
+      <!-- Infinite scroll sentinel -->
+      <div ref="sentinelRef" v-if="hasMore && !loading" class="h-1"></div>
     </div>
   </NuxtLayout>
 </template>

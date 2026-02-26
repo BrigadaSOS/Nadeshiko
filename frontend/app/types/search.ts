@@ -53,7 +53,7 @@ export type SearchStatsResponse = {
 
 export type MediaBrowseResponse = {
   readonly media: Media[];
-  readonly cursor?: number | null;
+  readonly cursor?: string | null;
   readonly hasMore: boolean;
 };
 

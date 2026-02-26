@@ -23,9 +23,8 @@ const getContextSentence = async () => {
     const { data } = await sdk.getSegmentContext({
       path: { uuid: sentence.segment.uuid },
       query: {
-        limit: 15,
+        take: 15,
         contentRating: contentRating.value,
-        include: ['media'],
       },
     });
     const response = data ? resolveContextResponse(data) : { segments: [] };
@@ -87,7 +86,7 @@ const scrollToElement = (id: string) => {
       <div class="flex-grow overflow-y-auto p-6">
         <template v-if="contextData">
           <SearchSegmentContainer :searchData="contextData" :isLoading="isLoading"
-            :highlightedPosition="highlightedPosition" class="w-full h-full" />
+            :highlightedPosition="highlightedPosition" :hideContextButton="true" class="w-full h-full" />
         </template>
       </div>
     </div>

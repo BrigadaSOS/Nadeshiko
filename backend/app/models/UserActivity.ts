@@ -8,6 +8,7 @@ export enum ActivityType {
   ANKI_EXPORT = 'ANKI_EXPORT',
   SEGMENT_PLAY = 'SEGMENT_PLAY',
   LIST_ADD_SEGMENT = 'LIST_ADD_SEGMENT',
+  SHARE = 'SHARE',
 }
 
 export interface UserActivityTrackData {
@@ -113,6 +114,7 @@ export class UserActivity extends BaseEntity {
     totalExports: number;
     totalPlays: number;
     totalListAdds: number;
+    totalShares: number;
     topMedia: Array<{ mediaId: number; count: number }>;
   }> {
     const countsQb = UserActivity.createQueryBuilder('activity')
@@ -150,6 +152,7 @@ export class UserActivity extends BaseEntity {
       totalExports: countMap[ActivityType.ANKI_EXPORT] || 0,
       totalPlays: countMap[ActivityType.SEGMENT_PLAY] || 0,
       totalListAdds: countMap[ActivityType.LIST_ADD_SEGMENT] || 0,
+      totalShares: countMap[ActivityType.SHARE] || 0,
       topMedia: topMediaRows.map((row) => ({
         mediaId: Number(row.mediaId),
         count: Number(row.count),
@@ -157,28 +160,30 @@ export class UserActivity extends BaseEntity {
     };
   }
 
-  static async getHeatmapForUser(userId: number, days: number, activityType?: string): Promise<Record<string, number>> {
+  static async getHeatmapForUser(
+    userId: number,
+    days: number,
+  ): Promise<Record<string, Record<string, number>>> {
     const since = new Date();
     since.setDate(since.getDate() - days);
     since.setHours(0, 0, 0, 0);
 
-    const qb = UserActivity.createQueryBuilder('activity')
+    const rows = await UserActivity.createQueryBuilder('activity')
       .select("TO_CHAR(DATE(activity.created_at), 'YYYY-MM-DD')", 'day')
+      .addSelect('activity.activity_type', 'activityType')
       .addSelect('COUNT(*)', 'count')
       .where('activity.user_id = :userId', { userId })
       .andWhere('activity.created_at >= :since', { since })
-      .groupBy('DATE(activity.created_at)');
+      .groupBy('DATE(activity.created_at)')
+      .addGroupBy('activity.activity_type')
+      .getRawMany<{ day: string; activityType: string; count: string }>();
 
-    if (activityType) {
-      qb.andWhere('activity.activity_type = :activityType', { activityType });
-    }
-
-    const rows = await qb.getRawMany<{ day: string; count: string }>();
-    const counts: Record<string, number> = {};
+    const result: Record<string, Record<string, number>> = {};
     for (const row of rows) {
-      counts[row.day] = Number(row.count);
+      if (!result[row.day]) result[row.day] = {};
+      result[row.day][row.activityType] = Number(row.count);
     }
-    return counts;
+    return result;
   }
 
   static async clearForUser(userId: number, activityType?: string): Promise<number> {

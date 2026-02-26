@@ -53,6 +53,8 @@ async function seedSegment(mediaId: number, episodeNumber: number, overrides: Pa
     contentEs: `es-${segmentSeedCounter}`,
     contentEsMt: false,
     contentRating: ContentRating.SAFE,
+    ratingAnalysis: { scores: {}, tags: {} },
+    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-${segmentSeedCounter}`,
     storageBasePath: '/test',
@@ -124,7 +126,9 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
           position,
           startTimeMs: 1500,
           endTimeMs: 2500,
-          textJa: {},
+          textJa: { content: 'テスト' },
+          textEn: { content: 'test', isMachineTranslated: false },
+          textEs: { content: 'prueba', isMachineTranslated: false },
           storage: 'R2',
           hashedId: 'new-hash',
         });
@@ -137,9 +141,9 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
           mediaId: media.id,
           episode: episode.episodeNumber,
           position,
-          textJa: { content: '' },
-          textEn: { content: '', isMachineTranslated: false },
-          textEs: { content: '', isMachineTranslated: false },
+          textJa: { content: 'テスト' },
+          textEn: { content: 'test', isMachineTranslated: false },
+          textEs: { content: 'prueba', isMachineTranslated: false },
           contentRating: 'SAFE',
           status: 'ACTIVE',
           hashedId: 'new-hash',
@@ -157,6 +161,8 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
         startTimeMs: 0,
         endTimeMs: 1000,
         textJa: { content: 'ja' },
+        textEn: { content: 'en' },
+        textEs: { content: 'es' },
         hashedId: 'missing-media',
       });
 
@@ -175,6 +181,8 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
         startTimeMs: 0,
         endTimeMs: 1000,
         textJa: { content: 'ja' },
+        textEn: { content: 'en' },
+        textEs: { content: 'es' },
         hashedId: 'missing-episode',
       });
 
@@ -229,7 +237,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
     const res = await request(app)
       .patch(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`)
       .send({
-        textJa: { content: '' },
+        textJa: { content: '更新' },
         textEn: { content: 'updated-en', isMachineTranslated: false },
         textEs: { content: 'updated-es', isMachineTranslated: false },
         contentRating: 'QUESTIONABLE',
@@ -238,8 +246,8 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
         endTimeMs: 333,
         position: 9,
         storage: 'LOCAL',
-        ratingAnalysis: null,
-        posAnalysis: null,
+        ratingAnalysis: { scores: { violence: 0.1 }, tags: { action: true } },
+        posAnalysis: { nouns: 3 },
         hashedId: 'updated-hash',
       });
 
@@ -247,7 +255,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
     expect(res.body).toMatchObject({
       id: segment.id,
       position: 9,
-      textJa: { content: '' },
+      textJa: { content: '更新' },
       textEn: { content: 'updated-en', isMachineTranslated: false },
       textEs: { content: 'updated-es', isMachineTranslated: false },
       contentRating: 'QUESTIONABLE',
@@ -257,7 +265,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
     });
 
     const updated = await Segment.findOneByOrFail({ id: segment.id });
-    expect(updated.contentJa).toBe('');
+    expect(updated.contentJa).toBe('更新');
     expect(updated.contentEnMt).toBe(false);
     expect(updated.contentEsMt).toBe(false);
     expect(updated.contentRating).toBe(ContentRating.QUESTIONABLE);

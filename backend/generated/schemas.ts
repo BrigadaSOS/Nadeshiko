@@ -13,7 +13,7 @@ export const PermissiveBoolean = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
-export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'LIST_ADD_SEGMENT']);
+export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'LIST_ADD_SEGMENT', 'SHARE']);
 
 export const s_Category = z.enum(['ANIME', 'JDRAMA']);
 
@@ -146,6 +146,14 @@ export const s_ExternalId = z.object({
   anilist: z.string().optional(),
   imdb: z.string().optional(),
   tvdb: z.string().optional(),
+});
+
+export const s_HeatmapDayCounts = z.object({
+  SEARCH: z.coerce.number().optional(),
+  SEGMENT_PLAY: z.coerce.number().optional(),
+  ANKI_EXPORT: z.coerce.number().optional(),
+  LIST_ADD_SEGMENT: z.coerce.number().optional(),
+  SHARE: z.coerce.number().optional(),
 });
 
 export const s_IncludeExpansion = z.enum(['media']);
@@ -589,11 +597,11 @@ export const s_SearchStatsRequest = z.object({
 
 export const s_SegmentInternal = s_Segment.merge(
   z.object({
-    storage: z.enum(['LOCAL', 'R2']),
-    hashedId: z.string(),
-    storageBasePath: z.string(),
-    ratingAnalysis: z.record(z.unknown()).nullable(),
-    posAnalysis: z.record(z.unknown()).nullable(),
+    storage: z.enum(['LOCAL', 'R2']).nullable().optional(),
+    hashedId: z.string().nullable().optional(),
+    storageBasePath: z.string().nullable().optional(),
+    ratingAnalysis: z.record(z.unknown()).nullable().optional(),
+    posAnalysis: z.record(z.unknown()).nullable().optional(),
   }),
 );
 

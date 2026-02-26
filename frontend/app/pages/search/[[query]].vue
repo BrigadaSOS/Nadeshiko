@@ -56,7 +56,7 @@ const fetchSentenceData = async () => {
     if (collectionIdParam.value) {
       const { data } = await sdk.getCollection({
         path: { id: collectionIdParam.value },
-        query: { limit: 20 },
+        query: { take: 20 },
       });
       if (!data) return null;
       // Reshape collection response to search response format
@@ -66,7 +66,7 @@ const fetchSentenceData = async () => {
         includes: data.includes,
         pagination: {
           hasMore: data.pagination?.hasMore ?? false,
-          cursor: data.pagination?.cursor != null ? [data.pagination.cursor] : undefined,
+          cursor: data.pagination?.cursor ?? '',
           estimatedTotalHits: data.totalCount ?? 0,
           estimatedTotalHitsRelation: 'EXACT',
         },
@@ -84,7 +84,8 @@ const fetchSentenceData = async () => {
       const { data: media } = await sdk.getMedia({ path: { id: segment.mediaId } });
       return resolveSearchResponse({
         segments: [segment],
-        includes: media ? { media: { [String(segment.mediaId)]: media } } : {},
+        includes: { media: media ? { [String(segment.mediaId)]: media } : {} },
+        pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
       });
     }
 
@@ -117,7 +118,7 @@ const fetchSentenceData = async () => {
     const { data } = await sdk.search({
       body: {
         query: q ? { search: q } : undefined,
-        limit: 30,
+        take: 30,
         sort,
         filters,
         include: ['media'],
@@ -134,11 +135,8 @@ const fetchStatsData = async () => {
     const sdk = useNadeshikoSdk();
 
     if (collectionIdParam.value) {
-      // Collection stats: use $fetch through proxy for new endpoint
-      const raw = await $fetch(`/v1/collections/${collectionIdParam.value}/stats`, {
-        credentials: 'include',
-      });
-      return resolveStatsResponse(raw as any);
+      const { data } = await sdk.getCollectionStats({ path: { id: collectionIdParam.value } });
+      return data ? resolveStatsResponse(data) : null;
     }
 
     const filters: SearchFilters = {};
@@ -208,7 +206,7 @@ const { data: collectionDetails } = await useAsyncData(
     const sdk = useNadeshikoSdk();
     const { data } = await sdk.getCollection({
       path: { id: collectionIdParam.value },
-      query: { limit: 1 },
+      query: { take: 1 },
     });
     return data ? { name: data.name } : null;
   },
@@ -329,7 +327,7 @@ useHead(metaTags);
                     <div class="md:max-w-[92%] mx-auto">
                         <SearchModalKeyboardShortcuts ref="shortcutsModal" />
                         <SearchBaseInputSegment />
-                        <SearchContainer :initial-sentence-data="initialSentenceData ?? undefined" :initial-stats-data="initialStatsData ?? undefined" :collection-id="collectionIdParam ?? undefined" :collection-name="collectionDetails?.name ?? undefined">
+                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" :collection-id="collectionIdParam ?? undefined" :collection-name="collectionDetails?.name ?? undefined">
                             <template #result-controls>
                                 <div class="flex items-center gap-3">
                                     <SearchTranslationVisibilityPreferences />

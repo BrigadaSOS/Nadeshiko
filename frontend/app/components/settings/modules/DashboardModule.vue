@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
-
 type DashboardData = {
   media: {
     totalMedia: number;
@@ -43,38 +41,12 @@ type DashboardData = {
 };
 
 const isLoading = ref(false);
+const sdk = useNadeshikoSdk();
 
-const getServerRequestContext = () => {
-  if (!import.meta.server) return null;
-  const event = useRequestEvent();
-  if (!event) return null;
-
-  const config = useRuntimeConfig();
-  const cookieHeader = getRequestHeader(event, 'cookie');
-  const headers: Record<string, string> = { cookie: cookieHeader || '' };
-  if (config.backendHostHeader) {
-    headers.host = String(config.backendHostHeader);
-  }
-
-  return {
-    baseUrl: String(config.backendInternalUrl || ''),
-    headers,
-  };
-};
-
-const fetchDashboardData = async (): Promise<DashboardData | null> => {
-  if (import.meta.server) {
-    const ctx = getServerRequestContext();
-    if (!ctx || !ctx.baseUrl) return null;
-    return await $fetch<DashboardData>(`${ctx.baseUrl}/v1/admin/dashboard`, {
-      headers: ctx.headers,
-    }).catch(() => null);
-  }
-
-  return await $fetch<DashboardData>('/v1/admin/dashboard', { credentials: 'include' }).catch(() => null);
-};
-
-const { data, refresh } = await useAsyncData('settings-admin-dashboard', fetchDashboardData, {
+const { data, refresh } = await useAsyncData('settings-admin-dashboard', async () => {
+  const { data } = await sdk.getAdminDashboard().catch(() => ({ data: null }));
+  return (data ?? null) as DashboardData | null;
+}, {
   default: () => null,
 });
 

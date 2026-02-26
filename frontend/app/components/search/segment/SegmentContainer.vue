@@ -10,6 +10,7 @@ type Props = {
   isLoading: boolean;
   highlightedPosition?: number | null;
   collectionId?: number | null;
+  hideContextButton?: boolean;
 };
 
 const props = defineProps<Props>();
@@ -311,23 +312,13 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
                   : result.segment.textJa.content
                   "></span>
                 <!-- Content Rating Badge -->
-                <span v-if="result.segment.contentRating?.toUpperCase() === 'SUGGESTIVE'"
-                  class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-amber-700/50 bg-amber-100 px-2.5 py-1.5 text-[11px] font-semibold leading-none text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 whitespace-nowrap align-middle ml-2">
-                  <span>{{ $t('segment.nsfwTag') }}</span>
-                  <span
-                    class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
-                    role="tooltip">
-                    {{ $t('segment.contentRatingDescription.SUGGESTIVE') }}
-                    <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
-                  </span>
-                </span>
-                <span v-else-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
+                <span v-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
                   class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-orange-700/50 bg-orange-100 px-2.5 py-1.5 text-[11px] font-semibold leading-none text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 whitespace-nowrap align-middle ml-2">
                   <span>{{ $t('segment.nsfwTag') }}</span>
                   <span
                     class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
                     role="tooltip">
-                    {{ $t('segment.contentRatingDescription.QUESTIONABLE') }}
+                    {{ $t('segment.contentRatingDescription.SENSITIVE') }}
                     <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
                   </span>
                 </span>
@@ -337,7 +328,7 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
                   <span
                     class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
                     role="tooltip">
-                    {{ $t('segment.contentRatingDescription.EXPLICIT') }}
+                    {{ $t('segment.contentRatingDescription.SENSITIVE') }}
                     <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
                   </span>
                 </span>
@@ -393,7 +384,7 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
             <!-- Fourth Row -->
             <!-- Buttons  -->
             <div class="pb-2">
-              <SearchSegmentActionsContainer :content="result" @open-context-modal="openModal"
+              <SearchSegmentActionsContainer :content="result" :hide-context-button="hideContextButton" @open-context-modal="openModal"
                 @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
             </div>
             <!-- End Buttons  -->

@@ -6,10 +6,13 @@ get:
   description: |
     Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
-    **Permissions:** `READ_MEDIA`
+    Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
+
+    **Permissions:** `UPDATE_MEDIA` (API key) or admin session
 
   security:
-    - apiKeyHeader: [READ_MEDIA]
+    - apiKeyHeader: [UPDATE_MEDIA]
+    - sessionCookie: []
   parameters:
     - name: uuid
       in: path
@@ -18,17 +21,24 @@ get:
         type: string
       description: Segment UUID
       example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+    - name: include
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+          enum: [ratingAnalysis, posAnalysis, hashedId, storageBasePath, storage]
+      style: form
+      explode: true
+      description: Additional internal fields to include in the response
   responses:
     "200":
-      description: OK
-      content:
-        application/json:
-          schema:
-            $ref: "../../components/schemas/segment/Segment.yaml"
+      $ref: "../../components/responses/SegmentInternalResponse.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

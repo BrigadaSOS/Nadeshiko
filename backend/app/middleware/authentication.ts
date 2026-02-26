@@ -13,63 +13,17 @@ import { fromNodeHeaders } from 'better-auth/node';
 import { defaultKeyHasher } from 'better-auth/plugins';
 import { AppDataSource } from '@config/database';
 import { logger } from '@config/log';
+import {
+  getCachedApiKey,
+  getCachedUser,
+  invalidateUserCache,
+  setCachedApiKey,
+  setCachedUser,
+} from '@app/middleware/authCacheStore';
 
 const BETTER_AUTH_PREFIX = 'nade_';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
-
-// In-memory cache for User lookups (avoids DB hit on every authenticated request)
-const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const userCache = new Map<number, { user: User; expiresAt: number }>();
-
-function getCachedUser(userId: number): User | null {
-  const entry = userCache.get(userId);
-  if (!entry || Date.now() > entry.expiresAt) {
-    if (entry) userCache.delete(userId);
-    return null;
-  }
-  return entry.user;
-}
-
-function setCachedUser(user: User): void {
-  userCache.set(user.id, { user, expiresAt: Date.now() + USER_CACHE_TTL_MS });
-}
-
-export function invalidateUserCache(userId: number): void {
-  userCache.delete(userId);
-}
-
-// In-memory cache for API key verification (avoids better-auth DB hit on every request)
-const API_KEY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-interface ApiKeyCacheEntry {
-  userId: number;
-  apiKeyId: string | undefined;
-  apiKeyKind: ApiKeyKind;
-  permissions: ApiPermission[];
-  expiresAt: number;
-}
-const apiKeyCache = new Map<string, ApiKeyCacheEntry>();
 type VerifyApiKey = (args: { body: { key: string } }) => Promise<unknown>;
-
-function getCachedApiKey(key: string): ApiKeyCacheEntry | null {
-  const entry = apiKeyCache.get(key);
-  if (!entry || Date.now() > entry.expiresAt) {
-    if (entry) apiKeyCache.delete(key);
-    return null;
-  }
-  return entry;
-}
-
-function setCachedApiKey(key: string, entry: Omit<ApiKeyCacheEntry, 'expiresAt'>): void {
-  apiKeyCache.set(key, { ...entry, expiresAt: Date.now() + API_KEY_CACHE_TTL_MS });
-}
-
-export function invalidateApiKeyCacheForUser(userId: number): void {
-  for (const [key, entry] of apiKeyCache) {
-    if (entry.userId === userId) {
-      apiKeyCache.delete(key);
-    }
-  }
-}
 
 export const requireSessionAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   if (req.auth) return next();
@@ -77,6 +31,7 @@ export const requireSessionAuth = async (req: Request, _res: Response, next: Nex
   try {
     const sessionData = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
+      query: { disableCookieCache: true },
     });
 
     if (!sessionData?.user?.id) {
@@ -177,35 +132,15 @@ function parseApiKeyMetadata(rawMetadata: unknown): Record<string, unknown> | nu
   }
 }
 
-function mapBetterAuthApiKeyCode(
-  code: unknown,
-): AuthCredentialsInvalidError | AuthCredentialsExpiredError | RateLimitExceededError | QuotaExceededError | null {
-  if (typeof code !== 'string') {
-    return null;
-  }
-
-  if (code === 'RATE_LIMITED') {
-    return new RateLimitExceededError('API key rate limit exceeded. Please try again later.');
-  }
-
-  if (code === 'USAGE_EXCEEDED') {
-    return new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.');
-  }
-
-  if (code === 'KEY_DISABLED' || code === 'KEY_EXPIRED') {
-    return new AuthCredentialsExpiredError('API key is disabled or expired.');
-  }
-
-  if (code === 'INVALID_API_KEY') {
-    return new AuthCredentialsInvalidError('Invalid API key.');
-  }
-
-  if (code === 'KEY_NOT_FOUND') {
-    return new AuthCredentialsInvalidError('Invalid API key.');
-  }
-
-  return null;
-}
+type MappedApiKeyError = AuthCredentialsInvalidError | AuthCredentialsExpiredError | RateLimitExceededError | QuotaExceededError;
+const BETTER_AUTH_API_KEY_ERROR_FACTORIES: Record<string, () => MappedApiKeyError> = {
+  RATE_LIMITED: () => new RateLimitExceededError('API key rate limit exceeded. Please try again later.'),
+  USAGE_EXCEEDED: () => new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.'),
+  KEY_DISABLED: () => new AuthCredentialsExpiredError('API key is disabled or expired.'),
+  KEY_EXPIRED: () => new AuthCredentialsExpiredError('API key is disabled or expired.'),
+  INVALID_API_KEY: () => new AuthCredentialsInvalidError('Invalid API key.'),
+  KEY_NOT_FOUND: () => new AuthCredentialsInvalidError('Invalid API key.'),
+};
 
 function inferApiKeyKind(apiKey: { metadata?: unknown }): ApiKeyKind {
   const metadata = parseApiKeyMetadata(apiKey.metadata);
@@ -223,14 +158,17 @@ function inferApiKeyKind(apiKey: { metadata?: unknown }): ApiKeyKind {
   return ApiKeyKind.USER;
 }
 
-function mapBetterAuthApiKeyError(
-  error: unknown,
-): AuthCredentialsInvalidError | AuthCredentialsExpiredError | RateLimitExceededError | QuotaExceededError | null {
+function mapBetterAuthApiKeyError(error: unknown): MappedApiKeyError | null {
+  if (typeof error === 'string') {
+    const mappedByCode = BETTER_AUTH_API_KEY_ERROR_FACTORIES[error];
+    return mappedByCode ? mappedByCode() : null;
+  }
+
   if (!error || typeof error !== 'object') {
     return null;
   }
-
   const maybeError = error as {
+    code?: unknown;
     status?: unknown;
     statusCode?: unknown;
     message?: unknown;
@@ -240,9 +178,12 @@ function mapBetterAuthApiKeyError(
     };
   };
 
-  const mappedFromCode = mapBetterAuthApiKeyCode(maybeError.body?.code);
-  if (mappedFromCode) {
-    return mappedFromCode;
+  const code = typeof maybeError.body?.code === 'string' ? maybeError.body.code : maybeError.code;
+  if (typeof code === 'string') {
+    const mappedByCode = BETTER_AUTH_API_KEY_ERROR_FACTORIES[code];
+    if (mappedByCode) {
+      return mappedByCode();
+    }
   }
 
   const status = typeof maybeError.status === 'string' ? maybeError.status : '';
@@ -334,7 +275,7 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
   }
 
   if (!verification?.valid || !verification.key) {
-    const mappedError = mapBetterAuthApiKeyCode(verification?.error?.code);
+    const mappedError = mapBetterAuthApiKeyError(verification?.error?.code);
     if (mappedError) {
       throw mappedError;
     }

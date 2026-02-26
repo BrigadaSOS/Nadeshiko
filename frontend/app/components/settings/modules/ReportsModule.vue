@@ -36,8 +36,7 @@ type AdminReport = Report & {
   reporterName: string;
 };
 
-type ReviewCheck = {
-  id: number;
+type MediaAudit = {
   name: string;
   label: string;
   description: string;
@@ -55,21 +54,12 @@ type ReviewCheck = {
   latestRun?: { id: number; resultCount: number; createdAt: string } | null;
 };
 
-type ReviewCheckRun = {
+type MediaAuditRun = {
   id: number;
-  checkName: string;
+  auditName: string;
   category?: string | null;
   resultCount: number;
   thresholdUsed: Record<string, number | boolean>;
-  createdAt: string;
-};
-
-type AllowlistEntry = {
-  id: number;
-  checkName: string;
-  mediaId: number;
-  episodeNumber?: number | null;
-  reason?: string | null;
   createdAt: string;
 };
 
@@ -77,7 +67,7 @@ type ReportListResponse = {
   reports: AdminReport[];
   pagination: {
     hasMore: boolean;
-    cursor: number | null;
+    cursor: string | null;
   };
 };
 
@@ -85,28 +75,27 @@ type ReportListResponse = {
 const reports = ref<AdminReport[]>([]);
 const isLoading = ref(false);
 const hasMore = ref(false);
-const cursor = ref<number | null>(null);
+const cursor = ref<string | null>(null);
 
 // Filters
 const sourceFilter = ref<'' | 'USER' | 'AUTO'>('');
 const statusFilter = ref('');
 
-// Auto-check state
-const checks = ref<ReviewCheck[]>([]);
-const runningChecks = ref<Set<string>>(new Set());
-const runs = ref<ReviewCheckRun[]>([]);
-const allowlist = ref<AllowlistEntry[]>([]);
+// Media audit state
+const audits = ref<MediaAudit[]>([]);
+const runningAudits = ref<Set<string>>(new Set());
+const runs = ref<MediaAuditRun[]>([]);
 
 // Sub-tabs for Auto Checks view
-const autoSubTab = ref<'results' | 'runHistory' | 'allowlist'>('results');
+const autoSubTab = ref<'results' | 'runHistory'>('results');
 
 // Modals
-const showCheckConfig = ref(false);
-const editingCheck = ref<ReviewCheck | null>(null);
+const showAuditConfig = ref(false);
+const editingAudit = ref<MediaAudit | null>(null);
 const editThreshold = ref<Record<string, number | boolean>>({});
 
 const buildReportQuery = (append = false) => {
-  const query: Record<string, string | number> = { limit: 20 };
+  const query: Record<string, string | number> = { take: 20 };
   if (cursor.value && append) query.cursor = cursor.value;
   if (statusFilter.value) query.status = statusFilter.value;
   if (sourceFilter.value) query.source = sourceFilter.value;
@@ -131,31 +120,24 @@ const fetchReports = async (append = false) => {
   }
 };
 
-const fetchChecks = async () => {
-  const { data } = await sdk.listAdminReviewChecks().catch(() => ({ data: null }));
-  checks.value = (data ?? []) as ReviewCheck[];
+const fetchAudits = async () => {
+  const { data } = await sdk.listAdminMediaAudits().catch(() => ({ data: null }));
+  audits.value = ((data as any)?.audits ?? []) as MediaAudit[];
 };
 
 const fetchRuns = async () => {
   try {
-    const { data } = await sdk.listAdminReviewRuns({ query: { limit: 50 } });
-    runs.value = (data?.runs ?? []) as ReviewCheckRun[];
-  } catch {}
-};
-
-const fetchAllowlist = async () => {
-  try {
-    const { data } = await sdk.listAdminReviewAllowlist();
-    allowlist.value = (data ?? []) as AllowlistEntry[];
+    const { data } = await sdk.listAdminMediaAuditRuns({ query: { take: 50 } });
+    runs.value = ((data as any)?.runs ?? []) as MediaAuditRun[];
   } catch {}
 };
 
 const { data: initialAdminData } = await useAsyncData(
   'settings-admin-reports-initial',
   async () => {
-    const [reportsResult, checksResult] = await Promise.all([
+    const [reportsResult, auditsResult] = await Promise.all([
       sdk.listAdminReports({ query: buildReportQuery(false) }).catch(() => ({ data: null })),
-      sdk.listAdminReviewChecks().catch(() => ({ data: null })),
+      sdk.listAdminMediaAudits().catch(() => ({ data: null })),
     ]);
 
     const reportData = reportsResult.data;
@@ -163,15 +145,15 @@ const { data: initialAdminData } = await useAsyncData(
       reports: (reportData?.reports ?? []) as AdminReport[],
       hasMore: reportData?.pagination?.hasMore ?? false,
       cursor: reportData?.pagination?.cursor ?? null,
-      checks: (checksResult.data ?? []) as ReviewCheck[],
+      audits: ((auditsResult.data as any)?.audits ?? []) as MediaAudit[],
     };
   },
   {
     default: () => ({
       reports: [] as AdminReport[],
       hasMore: false,
-      cursor: null as number | null,
-      checks: [] as ReviewCheck[],
+      cursor: null as string | null,
+      audits: [] as MediaAudit[],
     }),
   },
 );
@@ -179,26 +161,24 @@ const { data: initialAdminData } = await useAsyncData(
 reports.value = initialAdminData.value.reports;
 hasMore.value = initialAdminData.value.hasMore;
 cursor.value = initialAdminData.value.cursor;
-checks.value = initialAdminData.value.checks;
+audits.value = initialAdminData.value.audits;
 
 watch([sourceFilter, statusFilter], () => {
   cursor.value = null;
-  if (sourceFilter.value !== 'AUTO') {
-    autoSubTab.value = 'results';
-  }
+  autoSubTab.value = 'results';
   fetchReports();
 });
 
-const runCheck = async (checkName: string) => {
-  runningChecks.value.add(checkName);
+const runAudit = async (auditName: string) => {
+  runningAudits.value.add(auditName);
   try {
-    const { data } = await sdk.runAdminReview({ query: { checkName } });
-    useToastSuccess(`${checkName}: ${data?.totalReports ?? 0} findings`);
+    const { data } = await sdk.runAdminMediaAudit({ path: { name: auditName } });
+    useToastSuccess(`${auditName}: ${data?.totalReports ?? 0} findings`);
     await fetchReports();
-    await fetchChecks();
+    await fetchAudits();
   } catch {
   } finally {
-    runningChecks.value.delete(checkName);
+    runningAudits.value.delete(auditName);
   }
 };
 
@@ -223,68 +203,27 @@ const updateReport = async (reportId: number, status: AdminReport['status'], adm
   } catch {}
 };
 
-const openCheckConfig = (check: ReviewCheck) => {
-  editingCheck.value = check;
-  editThreshold.value = { ...check.threshold };
-  showCheckConfig.value = true;
+const openAuditConfig = (audit: MediaAudit) => {
+  editingAudit.value = audit;
+  editThreshold.value = { ...audit.threshold };
+  showAuditConfig.value = true;
 };
 
-const saveCheckConfig = async () => {
-  if (!editingCheck.value) return;
+const saveAuditConfig = async () => {
+  if (!editingAudit.value) return;
 
   try {
-    await sdk.updateAdminReviewCheck({
-      path: { name: editingCheck.value.name },
+    await sdk.updateAdminMediaAudit({
+      path: { name: editingAudit.value.name },
       body: {
         threshold: editThreshold.value,
-        enabled: editingCheck.value.enabled,
+        enabled: editingAudit.value.enabled,
       },
     });
-    useToastSuccess('Check config updated');
-    showCheckConfig.value = false;
-    await fetchChecks();
+    useToastSuccess('Audit config updated');
+    showAuditConfig.value = false;
+    await fetchAudits();
   } catch {}
-};
-
-const addToAllowlist = async (report: AdminReport) => {
-  const checkName = reasonToCheckName(report.reason);
-  if (!checkName) return;
-
-  const episodeNumber = 'episodeNumber' in report.target ? report.target.episodeNumber : undefined;
-
-  try {
-    await sdk.createAdminReviewAllowlistEntry({
-      body: {
-        checkName,
-        mediaId: report.target.mediaId,
-        episodeNumber,
-        reason: 'Allowlisted from admin panel',
-      },
-    });
-    useToastSuccess('Added to allowlist');
-  } catch {}
-};
-
-const removeAllowlistEntry = async (id: number) => {
-  try {
-    await sdk.deleteAdminReviewAllowlistEntry({ path: { id } });
-    allowlist.value = allowlist.value.filter((e) => e.id !== id);
-    useToastSuccess('Removed from allowlist');
-  } catch {}
-};
-
-const reasonToCheckName = (reason: string): string | null => {
-  const map: Record<string, string> = {
-    LOW_SEGMENT_MEDIA: 'lowSegmentMedia',
-    EMPTY_EPISODES: 'emptyEpisodes',
-    MISSING_EPISODES_AUTO: 'missingEpisodes',
-    BAD_SEGMENT_RATIO: 'badSegmentRatio',
-    MEDIA_WITH_NO_EPISODES: 'mediaWithNoEpisodes',
-    MISSING_TRANSLATIONS: 'missingTranslations',
-    DB_ES_SYNC_ISSUES: 'dbEsSyncIssues',
-    HIGH_REPORT_DENSITY: 'highReportDensity',
-  };
-  return map[reason] ?? null;
 };
 
 const statusClass = (status: string) => {
@@ -397,46 +336,46 @@ const formatDate = (iso: string) => {
 
     </div>
 
-    <!-- Check Cards (Auto tab) -->
-    <div v-if="sourceFilter === 'AUTO' && checks.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+    <!-- Audit Cards (Auto tab) -->
+    <div v-if="sourceFilter === 'AUTO' && audits.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
       <div
-        v-for="check in checks"
-        :key="check.name"
+        v-for="audit in audits"
+        :key="audit.name"
         class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3"
       >
         <div class="flex items-center justify-between mb-1">
-          <span class="text-sm font-medium text-white">{{ check.label }}</span>
+          <span class="text-sm font-medium text-white">{{ audit.label }}</span>
           <div class="flex items-center gap-2">
             <button
               class="text-gray-400 hover:text-white text-xs"
               title="Configure"
-              @click="openCheckConfig(check)"
+              @click="openAuditConfig(audit)"
             >
               Settings
             </button>
             <button
-              :disabled="runningChecks.has(check.name) || !check.enabled"
+              :disabled="runningAudits.has(audit.name) || !audit.enabled"
               class="px-2.5 py-1 text-xs rounded bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-40"
-              @click="runCheck(check.name)"
+              @click="runAudit(audit.name)"
             >
-              {{ runningChecks.has(check.name) ? 'Running...' : 'Run' }}
+              {{ runningAudits.has(audit.name) ? 'Running...' : 'Run' }}
             </button>
           </div>
         </div>
-        <p class="text-xs text-gray-500 mb-2">{{ check.description }}</p>
+        <p class="text-xs text-gray-500 mb-2">{{ audit.description }}</p>
         <div class="flex items-center gap-2">
           <span
             class="text-xs px-1.5 py-0.5 rounded"
-            :class="check.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+            :class="audit.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
           >
-            {{ check.enabled ? 'ON' : 'OFF' }}
+            {{ audit.enabled ? 'ON' : 'OFF' }}
           </span>
-          <span v-if="check.latestRun" class="text-xs text-gray-400">
-            {{ check.latestRun.resultCount }} findings
+          <span v-if="audit.latestRun" class="text-xs text-gray-400">
+            {{ audit.latestRun.resultCount }} findings
           </span>
           <span v-else class="text-xs text-gray-500">No runs</span>
-          <span v-if="check.latestRun" class="text-[10px] text-gray-500">
-            &middot; {{ formatDate(check.latestRun.createdAt) }}
+          <span v-if="audit.latestRun" class="text-[10px] text-gray-500">
+            &middot; {{ formatDate(audit.latestRun.createdAt) }}
           </span>
         </div>
       </div>
@@ -457,13 +396,6 @@ const formatDate = (iso: string) => {
         @click="autoSubTab = 'runHistory'; fetchRuns()"
       >
         Run History
-      </button>
-      <button
-        class="px-4 py-2 text-sm border-l border-neutral-700"
-        :class="autoSubTab === 'allowlist' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
-        @click="autoSubTab = 'allowlist'; fetchAllowlist()"
-      >
-        Allowlist
       </button>
     </div>
 
@@ -609,14 +541,6 @@ const formatDate = (iso: string) => {
                   >
                     Ignore
                   </button>
-                  <button
-                    v-if="report.source === 'AUTO'"
-                    class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50"
-                    title="Add to allowlist"
-                    @click="addToAllowlist(report)"
-                  >
-                    Allowlist
-                  </button>
                 </div>
               </td>
             </tr>
@@ -668,7 +592,7 @@ const formatDate = (iso: string) => {
               :key="run.id"
               class="border-b border-neutral-700 hover:bg-neutral-800/50"
             >
-              <td class="px-3 py-3 text-sm font-medium text-white">{{ run.checkName }}</td>
+              <td class="px-3 py-3 text-sm font-medium text-white">{{ run.auditName }}</td>
               <td class="px-3 py-3 text-xs text-gray-400">{{ run.category || 'All' }}</td>
               <td class="px-3 py-3">
                 <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">
@@ -693,61 +617,19 @@ const formatDate = (iso: string) => {
       </div>
     </template>
 
-    <!-- Allowlist (inline, Auto tab) -->
-    <template v-if="sourceFilter === 'AUTO' && autoSubTab === 'allowlist'">
-      <div class="overflow-x-auto rounded-lg border border-neutral-700">
-        <table class="w-full text-sm text-left text-gray-300">
-          <thead class="text-xs uppercase bg-neutral-800 text-gray-400">
-            <tr>
-              <th class="px-3 py-3">Check</th>
-              <th class="px-3 py-3">Media</th>
-              <th class="px-3 py-3">Episode</th>
-              <th class="px-3 py-3">Reason</th>
-              <th class="px-3 py-3">Added</th>
-              <th class="px-3 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="entry in allowlist"
-              :key="entry.id"
-              class="border-b border-neutral-700 hover:bg-neutral-800/50"
-            >
-              <td class="px-3 py-3 text-sm font-medium text-white">{{ entry.checkName }}</td>
-              <td class="px-3 py-3 font-mono text-xs">M{{ entry.mediaId }}</td>
-              <td class="px-3 py-3 text-xs text-gray-400">{{ entry.episodeNumber ? `EP${entry.episodeNumber}` : '-' }}</td>
-              <td class="px-3 py-3 text-xs text-gray-400 max-w-[200px] truncate">{{ entry.reason || '-' }}</td>
-              <td class="px-3 py-3 text-xs text-gray-400">{{ formatDate(entry.createdAt) }}</td>
-              <td class="px-3 py-3">
-                <button
-                  class="text-xs text-red-400 hover:text-red-300"
-                  @click="removeAllowlistEntry(entry.id)"
-                >
-                  Remove
-                </button>
-              </td>
-            </tr>
-            <tr v-if="allowlist.length === 0">
-              <td colspan="6" class="px-4 py-8 text-center text-gray-500">No allowlisted items</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </template>
-
-    <!-- Check Config Modal -->
+    <!-- Audit Config Modal -->
     <Teleport to="body">
       <div
-        v-if="showCheckConfig && editingCheck"
+        v-if="showAuditConfig && editingAudit"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-        @click.self="showCheckConfig = false"
+        @click.self="showAuditConfig = false"
       >
         <div class="bg-neutral-900 border border-neutral-700 rounded-xl p-6 w-full max-w-md">
-          <h3 class="text-lg font-bold text-white mb-4">{{ editingCheck.label }}</h3>
-          <p class="text-sm text-gray-400 mb-4">{{ editingCheck.description }}</p>
+          <h3 class="text-lg font-bold text-white mb-4">{{ editingAudit.label }}</h3>
+          <p class="text-sm text-gray-400 mb-4">{{ editingAudit.description }}</p>
 
           <div class="space-y-3">
-            <div v-for="field in editingCheck.thresholdSchema" :key="field.key" class="flex items-center gap-3">
+            <div v-for="field in editingAudit.thresholdSchema" :key="field.key" class="flex items-center gap-3">
               <label class="text-sm text-gray-300 flex-1">{{ field.label }}</label>
               <input
                 v-if="field.type === 'number'"
@@ -769,19 +651,19 @@ const formatDate = (iso: string) => {
 
           <div class="flex items-center gap-3 mt-4">
             <label class="text-sm text-gray-300">Enabled</label>
-            <input v-model="editingCheck.enabled" type="checkbox" class="rounded border-neutral-600" />
+            <input v-model="editingAudit.enabled" type="checkbox" class="rounded border-neutral-600" />
           </div>
 
           <div class="flex justify-end gap-2 mt-6">
             <button
               class="px-4 py-2 text-sm rounded-lg bg-neutral-700 text-white hover:bg-neutral-600"
-              @click="showCheckConfig = false"
+              @click="showAuditConfig = false"
             >
               Cancel
             </button>
             <button
               class="px-4 py-2 text-sm rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
-              @click="saveCheckConfig"
+              @click="saveAuditConfig"
             >
               Save
             </button>

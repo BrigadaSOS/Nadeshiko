@@ -9,7 +9,7 @@ get:
 
     **Permissions:** `ADD_MEDIA`
   security:
-    - apiKeyHeader: [ADD_MEDIA]
+    - sessionCookie: []
   responses:
     "200":
       description: OK
@@ -20,7 +20,7 @@ get:
             items:
               $ref: "../../components/schemas/MediaAudit.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

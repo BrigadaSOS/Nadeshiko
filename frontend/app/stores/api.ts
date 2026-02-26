@@ -73,19 +73,18 @@ export const apiStore = defineStore('api', {
   actions: {
     async getApiKeysByUser(): Promise<ApiKeysByUserResponse> {
       try {
-        const [keysRaw, quotaRaw] = await Promise.all([
+        const sdk = useNadeshikoSdk();
+        const [keysRaw, quotaResult] = await Promise.all([
           $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []),
-          $fetch<Record<string, unknown>>('/v1/user/quota', { method: 'GET', credentials: 'include' }).catch(
-            () => ({}),
-          ),
+          sdk.getUserQuota().catch(() => ({ data: null })),
         ]);
 
         const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey);
-        const quotaData = asObject(quotaRaw);
+        const quotaData = quotaResult.data;
         const quota: QuotaInfo = {
-          quotaUsed: Number(quotaData.quotaUsed ?? 0),
-          quotaLimit: Number(quotaData.quotaLimit ?? 2500),
-          quotaRemaining: Number(quotaData.quotaRemaining ?? 0),
+          quotaUsed: quotaData?.quotaUsed ?? 0,
+          quotaLimit: quotaData?.quotaLimit ?? 2500,
+          quotaRemaining: quotaData?.quotaRemaining ?? 0,
         };
 
         return { status: 200, keys, quota };

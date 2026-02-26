@@ -18,6 +18,7 @@ import { SegmentDocument } from '@app/models/SegmentDocument';
 import { AccessDeniedError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
 import { UserActivity, ActivityType } from '@app/models/UserActivity';
+import { logger } from '@config/log';
 
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
   const user = assertUser(req);
@@ -158,33 +159,48 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
   assertCollectionOwnership(collection, user);
 
   const segment = await Segment.findOneOrFail({ where: { uuid: body.segmentUuid } });
+  const inserted = await Collection.getRepository().manager.transaction(async (manager) => {
+    await manager
+      .createQueryBuilder(Collection, 'collection')
+      .setLock('pessimistic_write')
+      .where('collection.id = :id', { id: collection.id })
+      .getOneOrFail();
 
-  const existing = await CollectionSegment.findOne({
-    where: { collectionId: collection.id, segmentUuid: body.segmentUuid },
+    const maxPositionResult = await manager
+      .createQueryBuilder(CollectionSegment, 'item')
+      .select('MAX(item.position)', 'maxPos')
+      .where('item.collectionId = :collectionId', { collectionId: collection.id })
+      .getRawOne<{ maxPos: string | null }>();
+    const nextPosition = Number(maxPositionResult?.maxPos ?? 0) + 1;
+
+    const result = await manager
+      .createQueryBuilder()
+      .insert()
+      .into(CollectionSegment)
+      .values({
+        collectionId: collection.id,
+        segmentUuid: body.segmentUuid,
+        mediaId: segment.mediaId,
+        position: nextPosition,
+        note: body.note ?? null,
+      })
+      .orIgnore()
+      .execute();
+
+    return result.identifiers.length > 0 || (result.raw?.rowCount ?? 0) > 0;
   });
-  if (existing) {
-    return respond.with204();
+
+  if (inserted) {
+    UserActivity.trackForUser(user, ActivityType.LIST_ADD_SEGMENT, {
+      segmentUuid: body.segmentUuid,
+      mediaId: segment.mediaId,
+    }).catch((err: unknown) => {
+      logger.warn(
+        { err, userId: user.id, collectionId: collection.id },
+        'Failed to track collection segment add activity',
+      );
+    });
   }
-
-  const maxPositionResult = await CollectionSegment.createQueryBuilder('item')
-    .select('MAX(item.position)', 'maxPos')
-    .where('item.collectionId = :collectionId', { collectionId: collection.id })
-    .getRawOne();
-
-  const nextPosition = (maxPositionResult?.maxPos || 0) + 1;
-
-  await CollectionSegment.save({
-    collectionId: collection.id,
-    segmentUuid: body.segmentUuid,
-    mediaId: segment.mediaId,
-    position: nextPosition,
-    note: body.note ?? null,
-  });
-
-  UserActivity.trackForUser(user, ActivityType.LIST_ADD_SEGMENT, {
-    segmentUuid: body.segmentUuid,
-    mediaId: segment.mediaId,
-  }).catch(() => {});
 
   return respond.with204();
 };
@@ -286,6 +302,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   // Get full segment data from ES to access media info
   const uuids = allSegmentItems.map((item) => item.segmentUuid);
   const { segments: searchResults, includes } = await SegmentDocument.findByUuids(uuids);
+  const expectedUuids = new Set(uuids);
 
   const mediaIncludes = includes.media;
 
@@ -294,6 +311,10 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   const categoryCountMap = new Map<CategoryOutput, number>();
 
   for (const seg of searchResults) {
+    if (!expectedUuids.has(seg.uuid)) {
+      continue;
+    }
+
     let entry = mediaMap.get(seg.mediaId);
     if (!entry) {
       entry = { matchCount: 0, episodeHits: {} };

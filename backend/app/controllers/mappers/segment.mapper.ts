@@ -43,19 +43,22 @@ export const toSegmentDTO = (segment: Segment): t_Segment => {
   };
 };
 
-export const toSegmentInternalDTO = (segment: Segment): t_SegmentInternal => ({
-  ...toSegmentDTO(segment),
-  storage: segment.storage as t_SegmentInternal['storage'],
-  hashedId: segment.hashedId,
-  storageBasePath: segment.storageBasePath,
-  ratingAnalysis: toJsonObjectOrNull(segment.ratingAnalysis),
-  posAnalysis: toJsonObjectOrNull(segment.posAnalysis),
-});
+export const toSegmentInternalDTO = (segment: Segment, include?: string[]): t_SegmentInternal => {
+  const all = include === undefined;
+  return {
+    ...toSegmentDTO(segment),
+    storage: all || include.includes('storage') ? (segment.storage as t_SegmentInternal['storage']) : null,
+    hashedId: all || include.includes('hashedId') ? segment.hashedId : null,
+    storageBasePath: all || include.includes('storageBasePath') ? segment.storageBasePath : null,
+    ratingAnalysis: all || include.includes('ratingAnalysis') ? toJsonObjectOrNull(segment.ratingAnalysis) : null,
+    posAnalysis: all || include.includes('posAnalysis') ? toJsonObjectOrNull(segment.posAnalysis) : null,
+  };
+};
 
 export const toSegmentListDTO = (segments: Segment[]): t_Segment[] => segments.map(toSegmentDTO);
 
 export const toSegmentInternalListDTO = (segments: Segment[]): t_SegmentInternal[] =>
-  segments.map(toSegmentInternalDTO);
+  segments.map((s) => toSegmentInternalDTO(s));
 
 type SegmentCreateAttributesInput = {
   mediaId: number;
@@ -82,8 +85,8 @@ export function toSegmentCreateAttributes(input: SegmentCreateAttributesInput): 
     contentEn: body.textEn?.content ?? '',
     contentEnMt: body.textEn?.isMachineTranslated ?? false,
     contentRating: (body.contentRating ?? ContentRating.SAFE) as ContentRating,
-    ratingAnalysis: body.ratingAnalysis,
-    posAnalysis: body.posAnalysis,
+    ratingAnalysis: body.ratingAnalysis ?? { scores: {}, tags: {} },
+    posAnalysis: body.posAnalysis ?? { nouns: 0 },
     storage: body.storage as SegmentStorage,
     hashedId: body.hashedId,
     episode: episodeNumber,

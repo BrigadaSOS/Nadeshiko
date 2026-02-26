@@ -86,7 +86,7 @@ const searchMediaToHide = (query: string) => {
     void (async () => {
       searchLoading.value = true;
       try {
-        const response = await sdk.autocompleteMedia({ query: { query: trimmedQuery, limit: SEARCH_MAX_RESULTS } });
+        const response = await sdk.autocompleteMedia({ query: { query: trimmedQuery, take: SEARCH_MAX_RESULTS } });
         hiddenMediaSearchResults.value = (response.data as SdkMediaAutocompleteResponse)?.media ?? [];
       } catch {
         hiddenMediaSearchResults.value = [];

@@ -97,6 +97,7 @@ export function useTranslationVisibility() {
   // SSR: always read from cookie (works for both guests and logged-in users)
   if (import.meta.server) {
     prefs.value = decodeCookie(langCookie.value);
+    initialized.value = true;
   } else if (!initialized.value) {
     // Client init: logged-in users get DB prefs, guests get cookie
     if (user.isLoggedIn) {
@@ -128,7 +129,7 @@ export function useTranslationVisibility() {
   if (import.meta.client && !watchersReady.value) {
     watchersReady.value = true;
 
-    // On login: DB prefs always win
+    // On login: DB prefs always win (only on actual state change, not initial load)
     watch(
       () => user.isLoggedIn,
       (loggedIn) => {
@@ -138,7 +139,6 @@ export function useTranslationVisibility() {
           syncCookie(dbPrefs);
         }
       },
-      { immediate: true },
     );
 
     // If server prefs change externally, sync them down

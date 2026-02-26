@@ -1,25 +1,24 @@
-description: Segment with internal fields (for internal API responses)
+description: |
+  Segment with internal fields. For write operations (create, update) all fields are always populated.
+  For GET, optional fields are only populated when requested via include[].
 allOf:
   - $ref: "./Segment.yaml"
   - type: object
-    required:
-      - storage
-      - hashedId
-      - storageBasePath
-      - ratingAnalysis
-      - posAnalysis
     properties:
       storage:
         type: string
         enum: [LOCAL, R2]
+        nullable: true
         description: Storage backend for segment assets
         example: "R2"
       hashedId:
         type: string
+        nullable: true
         description: Hash identifier for the segment
         example: "0d39e46b14"
       storageBasePath:
         type: string
+        nullable: true
         description: Base path in the storage backend
         example: "anime/steins-gate"
       ratingAnalysis:

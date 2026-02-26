@@ -1,8 +1,9 @@
-import express from 'express';
+import express, { type RequestHandler } from 'express';
 import { requireSessionAuth } from '@app/middleware/authentication';
 import {
   apiKeyOnly,
   enforceAdminAccess,
+  enforceAdminOrMediaUpdateAccess,
   mediaAddPermission,
   mediaReadPermission,
   mediaRemovePermission,
@@ -10,6 +11,8 @@ import {
   requireApiKeyOrSession,
   searchAccess,
 } from '@app/middleware/routePolicies';
+import { AccessDeniedError } from '@app/errors';
+import { isLocalEnvironment } from '@config/environment';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminHealth, getAdminDashboard, triggerReindex } from '@app/controllers/adminController';
 import {
@@ -97,6 +100,7 @@ import { createRouter as createAdminRouter } from 'generated/routes/admin';
 import { createRouter as createUserRouter } from 'generated/routes/user';
 
 const router = express.Router();
+const MEDIA_GET_WITH_READ_PERMISSION_PATTERN = /^\/v1\/media\/(?!segments(?:\/|$)).+/;
 
 const SearchRoutes = createSearchRouter({
   search,
@@ -187,20 +191,41 @@ const UserRoutes = createUserRouter({
   unenrollUserLab,
 });
 
+const requireLocalEnvironmentOnly: RequestHandler = (_req, _res, next) => {
+  if (!isLocalEnvironment()) {
+    throw new AccessDeniedError('Development impersonation is only available in local environment.');
+  }
+
+  next();
+};
+const requireAdminSession = [requireSessionAuth, enforceAdminAccess] as const;
+
 // All /v1/user endpoints require session auth
 router.use('/v1/user', requireSessionAuth);
 
 router.use('/v1/search', ...searchAccess);
-router.use('/v1/admin/impersonation', requireSessionAuth);
-router.use('/v1/admin', requireApiKeyOrSession);
-router.use('/v1/admin', enforceAdminAccess);
+router.use('/v1/admin/impersonation', requireLocalEnvironmentOnly);
+router.use('/v1/admin/dashboard', ...requireAdminSession);
+router.use('/v1/admin/health', ...requireAdminSession);
+router.use('/v1/admin/reindex', ...requireAdminSession);
+router.use('/v1/admin/queues', ...requireAdminSession);
+router.use('/v1/admin/reports', ...requireAdminSession);
+router.use('/v1/admin/media/audits', ...requireAdminSession);
+router.use('/v1/media/segments', requireApiKeyOrSession);
 router.use('/v1/media', ...apiKeyOnly);
 router.use('/v1/collections', requireSessionAuth);
 
 router.get('/v1/media', ...mediaReadPermission);
-router.get('/v1/media/*path', ...mediaReadPermission);
+router.get('/v1/media/segments/:uuid', enforceAdminOrMediaUpdateAccess);
+router.get('/v1/media/segments/:uuid/context', enforceAdminOrMediaUpdateAccess);
+router.get(MEDIA_GET_WITH_READ_PERMISSION_PATTERN, ...mediaReadPermission);
 router.post('/v1/media/*path', ...mediaAddPermission);
-router.patch('/v1/media/*path', ...mediaUpdatePermission);
+router.patch('/v1/media/segments/:uuid', enforceAdminOrMediaUpdateAccess);
+router.patch('/v1/media/series/:id', ...mediaUpdatePermission);
+router.patch('/v1/media/series/:id/media/:mediaId', ...mediaUpdatePermission);
+router.patch('/v1/media/:id', ...mediaUpdatePermission);
+router.patch('/v1/media/:mediaId/episodes/:episodeNumber', ...mediaUpdatePermission);
+router.patch('/v1/media/:mediaId/episodes/:episodeNumber/segments/:id', ...mediaUpdatePermission);
 router.delete('/v1/media/*path', ...mediaRemovePermission);
 
 router.use('/', SearchRoutes);

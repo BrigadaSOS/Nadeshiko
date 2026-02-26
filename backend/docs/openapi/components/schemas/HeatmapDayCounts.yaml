@@ -1,0 +1,13 @@
+type: object
+description: Activity counts for a single day, broken down by type. Only types with at least 1 event are present.
+properties:
+  SEARCH:
+    type: integer
+  SEGMENT_PLAY:
+    type: integer
+  ANKI_EXPORT:
+    type: integer
+  LIST_ADD_SEGMENT:
+    type: integer
+  SHARE:
+    type: integer

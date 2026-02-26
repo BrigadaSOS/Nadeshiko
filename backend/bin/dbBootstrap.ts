@@ -120,16 +120,6 @@ async function ensureRoleAndDatabase(
 
   await adminClient.query(`REVOKE ALL ON DATABASE ${quotedDatabase} FROM PUBLIC`);
   await adminClient.query(`GRANT CONNECT, TEMP ON DATABASE ${quotedDatabase} TO ${quotedUser}`);
-
-  // Prevent this app role from connecting to other non-template databases.
-  const otherDatabases = await adminClient.query<{ datname: string }>(
-    'SELECT datname FROM pg_database WHERE datistemplate = false AND datname <> $1',
-    [appDatabase],
-  );
-
-  for (const { datname } of otherDatabases.rows) {
-    await adminClient.query(`REVOKE ALL ON DATABASE ${quoteIdentifier(datname)} FROM ${quotedUser}`);
-  }
 }
 
 async function ensureSchemaAccess(adminConfig: Client, appUser: string): Promise<void> {
@@ -143,6 +133,18 @@ async function ensureSchemaAccess(adminConfig: Client, appUser: string): Promise
     await adminConfig.query(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${quotedUser}`);
     await adminConfig.query(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${quotedUser}`);
     await adminConfig.query(`GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA public TO ${quotedUser}`);
+
+    // Transfer ownership of all functions in public schema so the app user can drop them.
+    const publicFunctions = await adminConfig.query<{ oid: string; signature: string }>(`
+      SELECT p.oid, p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' AS signature
+      FROM pg_proc p
+      JOIN pg_namespace n ON p.pronamespace = n.oid
+      WHERE n.nspname = 'public'
+        AND p.proowner <> (SELECT oid FROM pg_roles WHERE rolname = $1)
+    `, [appUser]);
+    for (const fn of publicFunctions.rows) {
+      await adminConfig.query(`ALTER FUNCTION public.${fn.signature} OWNER TO ${quotedUser}`);
+    }
 
     // pg-boss keeps its tables/functions in this schema.
     // Ensure the app role can read/write/create there even if schema was created by another role.

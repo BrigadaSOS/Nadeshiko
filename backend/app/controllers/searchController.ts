@@ -2,6 +2,7 @@ import { SegmentDocument } from '@app/models/SegmentDocument';
 import { UserActivity, ActivityType } from '@app/models/UserActivity';
 import type { Search, GetSearchStats, SearchWords } from 'generated/routes/search';
 import { toSearchResponseDTO } from './mappers/search.mapper';
+import { logger } from '@config/log';
 
 export const search: Search = async ({ body }, respond, req) => {
   const searchResults = await SegmentDocument.search(body);
@@ -27,5 +28,7 @@ function trackSearchActivity(user: SearchTrackableUser | undefined, searchQuery:
     return;
   }
 
-  UserActivity.trackForUser(user, ActivityType.SEARCH, { searchQuery }).catch(() => {});
+  UserActivity.trackForUser(user, ActivityType.SEARCH, { searchQuery }).catch((err: unknown) => {
+    logger.warn({ err, userId: user.id }, 'Failed to track search activity');
+  });
 }
