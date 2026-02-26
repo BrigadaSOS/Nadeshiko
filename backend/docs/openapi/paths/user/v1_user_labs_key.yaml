@@ -22,7 +22,7 @@ post:
     "204":
       description: Enrolled successfully
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
     "500":
@@ -51,7 +51,7 @@ delete:
     "204":
       description: Unenrolled successfully
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
     "500":

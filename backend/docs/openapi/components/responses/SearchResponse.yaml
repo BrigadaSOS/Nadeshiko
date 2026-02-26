@@ -1,4 +1,8 @@
 type: object
+required:
+  - segments
+  - includes
+  - pagination
 properties:
   segments:
     type: array
@@ -6,6 +10,8 @@ properties:
       $ref: "../schemas/segment/Segment.yaml"
   includes:
     type: object
+    required:
+      - media
     properties:
       media:
         type: object

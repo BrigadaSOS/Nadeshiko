@@ -23,9 +23,30 @@ describe('esSyncQueue', () => {
     await sendEsSyncJob({ segmentId: 13, operation: 'DELETE' });
 
     expect(sendDebounced).toHaveBeenCalledTimes(3);
-    expect(sendDebounced).toHaveBeenNthCalledWith(1, ES_SYNC_CREATE_QUEUE, { segmentId: 11, operation: 'CREATE' }, null, 1, '11');
-    expect(sendDebounced).toHaveBeenNthCalledWith(2, ES_SYNC_UPDATE_QUEUE, { segmentId: 12, operation: 'UPDATE' }, null, 1, '12');
-    expect(sendDebounced).toHaveBeenNthCalledWith(3, ES_SYNC_DELETE_QUEUE, { segmentId: 13, operation: 'DELETE' }, null, 1, '13');
+    expect(sendDebounced).toHaveBeenNthCalledWith(
+      1,
+      ES_SYNC_CREATE_QUEUE,
+      { segmentId: 11, operation: 'CREATE' },
+      null,
+      1,
+      '11',
+    );
+    expect(sendDebounced).toHaveBeenNthCalledWith(
+      2,
+      ES_SYNC_UPDATE_QUEUE,
+      { segmentId: 12, operation: 'UPDATE' },
+      null,
+      1,
+      '12',
+    );
+    expect(sendDebounced).toHaveBeenNthCalledWith(
+      3,
+      ES_SYNC_DELETE_QUEUE,
+      { segmentId: 13, operation: 'DELETE' },
+      null,
+      1,
+      '13',
+    );
   });
 
   it('batches jobs by queue for bulk send', async () => {

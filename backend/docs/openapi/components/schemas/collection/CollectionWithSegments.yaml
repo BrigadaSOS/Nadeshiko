@@ -3,9 +3,12 @@ description: Collection with saved segments (search result format)
 required:
   - id
   - name
-  - userId
   - visibility
+  - segmentCount
+  - createdAt
+  - updatedAt
   - segments
+  - includes
   - totalCount
   - pagination
 properties:
@@ -17,20 +20,33 @@ properties:
     type: string
     description: Name of the collection
     example: "Study Favorites"
-  userId:
-    type: integer
-    description: User ID who owns the collection
-    example: 1
   visibility:
     type: string
     enum: [PUBLIC, PRIVATE]
     description: Visibility of the collection
     example: "PRIVATE"
+  segmentCount:
+    type: integer
+    description: Number of segments in the collection
+    example: 42
+  createdAt:
+    type: string
+    format: date-time
+    description: When the collection was created
+  updatedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the collection was last updated
   segments:
     type: array
     description: Saved segments with their search result data
     items:
       type: object
+      required:
+        - position
+        - note
+        - result
       properties:
         position:
           type: integer
@@ -44,6 +60,8 @@ properties:
           $ref: "../segment/Segment.yaml"
   includes:
     type: object
+    required:
+      - media
     properties:
       media:
         type: object

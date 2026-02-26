@@ -1,4 +1,5 @@
 patch:
+  x-internal: true
   tags:
     - Collections
   operationId: updateCollectionSegment
@@ -45,7 +46,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -56,6 +57,7 @@ patch:
       $ref: "../../components/responses/InternalServerError.yaml"
 
 delete:
+  x-internal: true
   tags:
     - Collections
   operationId: removeSegmentFromCollection
@@ -86,7 +88,7 @@ delete:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

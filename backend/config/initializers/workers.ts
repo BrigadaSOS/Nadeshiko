@@ -50,11 +50,23 @@ export const workersInitializer: RuntimeInitializer = {
     const queues = [
       {
         name: ES_SYNC_CREATE_QUEUE,
-        options: { retryLimit: 5, retryDelay: 1000, retryBackoff: true, expireInSeconds: 3600, retentionSeconds: 86400 },
+        options: {
+          retryLimit: 5,
+          retryDelay: 1000,
+          retryBackoff: true,
+          expireInSeconds: 3600,
+          retentionSeconds: 86400,
+        },
       },
       {
         name: ES_SYNC_UPDATE_QUEUE,
-        options: { retryLimit: 5, retryDelay: 1000, retryBackoff: true, expireInSeconds: 3600, retentionSeconds: 86400 },
+        options: {
+          retryLimit: 5,
+          retryDelay: 1000,
+          retryBackoff: true,
+          expireInSeconds: 3600,
+          retentionSeconds: 86400,
+        },
       },
       {
         name: ES_SYNC_DELETE_QUEUE,
@@ -62,11 +74,23 @@ export const workersInitializer: RuntimeInitializer = {
       },
       {
         name: EMAIL_SEND_QUEUE,
-        options: { retryLimit: 5, retryDelay: 1000, retryBackoff: true, expireInSeconds: 1800, retentionSeconds: 86400 },
+        options: {
+          retryLimit: 5,
+          retryDelay: 1000,
+          retryBackoff: true,
+          expireInSeconds: 1800,
+          retentionSeconds: 86400,
+        },
       },
       {
         name: ACTIVITY_RETENTION_QUEUE,
-        options: { retryLimit: 3, retryDelay: 60000, retryBackoff: true, expireInSeconds: 3600, retentionSeconds: 86400 },
+        options: {
+          retryLimit: 3,
+          retryDelay: 60000,
+          retryBackoff: true,
+          expireInSeconds: 3600,
+          retentionSeconds: 86400,
+        },
       },
     ];
 

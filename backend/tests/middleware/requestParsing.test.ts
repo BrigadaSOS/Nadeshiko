@@ -22,10 +22,7 @@ describe('handleJsonParseErrors', () => {
   const app = createApp();
 
   it('returns 400 INVALID_JSON for malformed JSON body', async () => {
-    const res = await request(app)
-      .post('/test')
-      .set('Content-Type', 'application/json')
-      .send('{ not valid json }');
+    const res = await request(app).post('/test').set('Content-Type', 'application/json').send('{ not valid json }');
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({
@@ -35,10 +32,7 @@ describe('handleJsonParseErrors', () => {
   });
 
   it('includes requestId as instance on the error', async () => {
-    const res = await request(app)
-      .post('/test')
-      .set('Content-Type', 'application/json')
-      .send('{ bad }');
+    const res = await request(app).post('/test').set('Content-Type', 'application/json').send('{ bad }');
 
     expect(res.body.instance).toMatch(/^nade-/);
   });

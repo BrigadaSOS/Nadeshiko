@@ -26,10 +26,10 @@ function buildReq(overrides: Record<string, unknown> = {}) {
 }
 
 function buildRes() {
-  const listeners: Record<string, Function> = {};
+  const listeners: Record<string, (...args: never) => unknown> = {};
   return {
     statusCode: 200,
-    on: vi.fn((event: string, cb: Function) => {
+    on: vi.fn((event: string, cb: (...args: never) => unknown) => {
       listeners[event] = cb;
     }),
     _listeners: listeners,

@@ -85,14 +85,16 @@ describe('POST /v1/user/reports', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).post('/v1/user/reports').send({
-      target: {
-        type: 'MEDIA',
-        mediaId: media.id,
-      },
-      reason: 'WRONG_METADATA',
-      description: 'metadata mismatch',
-    });
+    const res = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: {
+          type: 'MEDIA',
+          mediaId: media.id,
+        },
+        reason: 'WRONG_METADATA',
+        description: 'metadata mismatch',
+      });
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -119,16 +121,18 @@ describe('POST /v1/user/reports', () => {
     const episode = fixtures.episodes.pilot;
     const segment = await seedSegment(media.id, episode.episodeNumber);
 
-    const res = await request(app).post('/v1/user/reports').send({
-      target: {
-        type: 'SEGMENT',
-        mediaId: media.id,
-        episodeNumber: episode.episodeNumber,
-        segmentUuid: segment.uuid,
-      },
-      reason: 'WRONG_TRANSLATION',
-      description: 'english text is wrong',
-    });
+    const res = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: {
+          type: 'SEGMENT',
+          mediaId: media.id,
+          episodeNumber: episode.episodeNumber,
+          segmentUuid: segment.uuid,
+        },
+        reason: 'WRONG_TRANSLATION',
+        description: 'english text is wrong',
+      });
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -150,13 +154,15 @@ describe('POST /v1/user/reports', () => {
   });
 
   it('returns 404 when target media does not exist', async () => {
-    const res = await request(app).post('/v1/user/reports').send({
-      target: {
-        type: 'MEDIA',
-        mediaId: 999999,
-      },
-      reason: 'WRONG_METADATA',
-    });
+    const res = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: {
+          type: 'MEDIA',
+          mediaId: 999999,
+        },
+        reason: 'WRONG_METADATA',
+      });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
@@ -166,14 +172,16 @@ describe('POST /v1/user/reports', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).post('/v1/user/reports').send({
-      target: {
-        type: 'SEGMENT',
-        mediaId: media.id,
-        segmentUuid: 'missing-segment',
-      },
-      reason: 'WRONG_TRANSLATION',
-    });
+    const res = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: {
+          type: 'SEGMENT',
+          mediaId: media.id,
+          segmentUuid: 'missing-segment',
+        },
+        reason: 'WRONG_TRANSLATION',
+      });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
@@ -187,14 +195,38 @@ describe('POST /v1/user/reports', () => {
     const wrongMedia = extraMedia.media.testShow;
     const segment = await seedSegment(media.id, episode.episodeNumber);
 
-    const res = await request(app).post('/v1/user/reports').send({
-      target: {
-        type: 'SEGMENT',
-        mediaId: wrongMedia.id,
-        segmentUuid: segment.uuid,
-      },
-      reason: 'WRONG_TRANSLATION',
-    });
+    const res = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: {
+          type: 'SEGMENT',
+          mediaId: wrongMedia.id,
+          segmentUuid: segment.uuid,
+        },
+        reason: 'WRONG_TRANSLATION',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ code: 'INVALID_REQUEST' });
+  });
+
+  it('returns 400 when segment episodeNumber does not match', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const media = fixtures.media.testShow;
+    const episode = fixtures.episodes.pilot;
+    const segment = await seedSegment(media.id, episode.episodeNumber);
+
+    const res = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: {
+          type: 'SEGMENT',
+          mediaId: media.id,
+          episodeNumber: episode.episodeNumber + 1,
+          segmentUuid: segment.uuid,
+        },
+        reason: 'WRONG_TRANSLATION',
+      });
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ code: 'INVALID_REQUEST' });

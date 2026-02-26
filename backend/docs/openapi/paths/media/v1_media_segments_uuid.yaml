@@ -20,6 +20,7 @@ get:
       example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
   responses:
     "200":
+      description: OK
       content:
         application/json:
           schema:
@@ -72,7 +73,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

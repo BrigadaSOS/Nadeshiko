@@ -1,5 +1,10 @@
 type: object
 description: Response from the reindex operation
+required:
+  - success
+  - message
+  - stats
+  - errors
 properties:
   success:
     type: boolean
@@ -10,6 +15,11 @@ properties:
   stats:
     type: object
     description: Statistics about the reindex operation
+    required:
+      - totalSegments
+      - successfulIndexes
+      - failedIndexes
+      - mediaProcessed
     properties:
       totalSegments:
         type: integer
@@ -28,6 +38,9 @@ properties:
     description: Array of errors that occurred during reindexing (if any)
     items:
       type: object
+      required:
+        - segmentId
+        - error
       properties:
         segmentId:
           type: integer

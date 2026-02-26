@@ -9,6 +9,11 @@ info:
     Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
 
     If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
+    Internal user/admin endpoints use session cookie authentication.
+    401 response components are scoped by auth mode:
+    - `UnauthorizedApiKey` for API key-only endpoints
+    - `UnauthorizedSession` for session-only endpoints
+    - `Unauthorized` for endpoints that accept either auth mode
 
     ### Quotas and Limits
     The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message:
@@ -22,18 +27,19 @@ info:
     | Default      | 2500 requests   |
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
-  version: 1.4.3
+  version: 1.5.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
+  license:
+    name: ISC
+  x-logo:
+    url: https://nadeshiko.co/logo.webp
+    altText: Nadeshiko
+    href: https://nadeshiko.co
 servers:
-  - description: Local server
-    url: http://localhost:5000
   - description: Production server
     url: https://api.nadeshiko.co
-security:
-  - apiKeyHeader: []
-  - sessionCookie: []
 tags:
   - name: Search
     description: |
@@ -44,12 +50,13 @@ tags:
       Administrative endpoints for system management, queue monitoring, and automated review.
   - name: Media
     description: |
-      Media CRUD endpoints for managing anime, J-Drama, and audiobook entries, episodes, segments, characters, and seiyuu.
+      Media CRUD endpoints for managing anime and J-Drama entries, episodes, segments, characters, and seiyuu.
   - name: User
     x-internal: true
     description: |
       User endpoints for account data including quota, preferences, activity history, reports, and data export.
   - name: Collections
+    x-internal: true
     description: |
       Collection endpoints for managing saved segment collections.
 paths:
@@ -60,14 +67,14 @@ paths:
       operationId: search
       summary: Search segments by query
       description: |
-        The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama, audiobooks).
+        The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama).
 
         This endpoint uses Elasticsearch with advanced Japanese text analysis supporting multiple input types (romaji, kanji, kana) and providing intelligent field-based boosting.
 
         **Query Features**
         - **Multi-language Support:** Search using Japanese (kanji/kana), Romaji, or English/Spanish
         - **Boolean Operators:** `AND`, `OR`, `NOT` supported (e.g., `(cat OR dog) AND bird`)
-        - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`), or pass `exact_match: true` to the request body
+        - **Phrase Matching:** Use quotes for exact phrases (e.g., `"good morning"`), or pass `exactMatch: true` to the request body
         - **Wildcards:** `te*t` format (leading wildcards not supported)
         - **Smart Field Selection:** Automatically chooses optimal search fields based on input type
 
@@ -80,6 +87,9 @@ paths:
         | **English/Spanish** | Direct translation search |
 
         **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
       requestBody:
         content:
           application/json:
@@ -127,6 +137,9 @@ paths:
         The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
 
         **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
       requestBody:
         content:
           application/json:
@@ -175,6 +188,9 @@ paths:
         - Comparing word usage across different titles
 
         **Permissions:** `READ_MEDIA`
+      security:
+        - apiKeyHeader:
+            - READ_MEDIA
       requestBody:
         required: true
         content:
@@ -185,7 +201,7 @@ paths:
               words:
                 - 彼女
                 - 私
-              exact_match: false
+              exactMatch: false
       responses:
         '200':
           description: OK
@@ -257,13 +273,12 @@ paths:
             example: steins
         - name: include
           in: query
-          description: Resources to expand in the media response (`media.characters` implies `media`)
+          description: Resources to expand in the media response
           schema:
             type: array
             items:
               $ref: '#/components/schemas/MediaIncludeExpansion'
-            default:
-              - media
+            default: []
       responses:
         '200':
           description: OK
@@ -401,6 +416,7 @@ paths:
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -452,7 +468,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -498,15 +514,6 @@ paths:
             items:
               $ref: '#/components/schemas/ContentRating'
           description: Content ratings to include (omit for all ratings)
-        - name: include
-          in: query
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/IncludeExpansion'
-            default:
-              - media
-          description: Resources to expand in the response includes block
       responses:
         '200':
           description: OK
@@ -550,9 +557,11 @@ paths:
       summary: List all series
       description: |
         Returns a paginated list of media series groupings.
+
+        **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader: []
-        - sessionCookie: []
+        - apiKeyHeader:
+            - READ_MEDIA
       parameters:
         - name: take
           in: query
@@ -598,8 +607,11 @@ paths:
       summary: Create series
       description: |
         Creates a new media series grouping.
+
+        **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader: []
+        - apiKeyHeader:
+            - ADD_MEDIA
       requestBody:
         required: true
         content:
@@ -648,9 +660,11 @@ paths:
       summary: Get series details
       description: |
         Returns a series with all media entries sorted by position.
+
+        **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader: []
-        - sessionCookie: []
+        - apiKeyHeader:
+            - READ_MEDIA
       parameters:
         - name: id
           in: path
@@ -661,13 +675,12 @@ paths:
             example: 1
         - name: include
           in: query
-          description: Resources to expand in the series response (`media.characters` implies `media`)
+          description: Resources to expand in the series response
           schema:
             type: array
             items:
               $ref: '#/components/schemas/MediaIncludeExpansion'
-            default:
-              - media
+            default: []
       responses:
         '200':
           description: OK
@@ -695,8 +708,11 @@ paths:
       summary: Update series metadata
       description: |
         Updates series localized names.
+
+        **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader: []
+        - apiKeyHeader:
+            - UPDATE_MEDIA
       parameters:
         - name: id
           in: path
@@ -751,8 +767,11 @@ paths:
       summary: Delete series
       description: |
         Deletes a series and all its media associations.
+
+        **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader: []
+        - apiKeyHeader:
+            - REMOVE_MEDIA
       parameters:
         - name: id
           in: path
@@ -785,8 +804,11 @@ paths:
       summary: Add media to series
       description: |
         Adds a media entry to a series at a specific position.
+
+        **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader: []
+        - apiKeyHeader:
+            - UPDATE_MEDIA
       parameters:
         - name: id
           in: path
@@ -837,8 +859,11 @@ paths:
       summary: Update media position in series
       description: |
         Updates the position of a media entry in a series.
+
+        **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader: []
+        - apiKeyHeader:
+            - UPDATE_MEDIA
       parameters:
         - name: id
           in: path
@@ -890,8 +915,11 @@ paths:
       summary: Remove media from series
       description: |
         Removes a media entry from a series.
+
+        **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader: []
+        - apiKeyHeader:
+            - REMOVE_MEDIA
       parameters:
         - name: id
           in: path
@@ -1025,13 +1053,12 @@ paths:
             example: 7674
         - name: include
           in: query
-          description: Resources to expand in the media response (`media.characters` implies `media`)
+          description: Resources to expand in the media response
           schema:
             type: array
             items:
               $ref: '#/components/schemas/MediaIncludeExpansion'
-            default:
-              - media
+            default: []
       responses:
         '200':
           description: OK
@@ -1637,17 +1664,15 @@ paths:
     get:
       tags:
         - User
+      x-internal: true
       operationId: getUserQuota
       summary: Get current monthly API quota
       description: |
         Returns the API quota usage for the current billing period.
-        Accepts both session cookie and API key authentication.
 
-        **Permissions:** Session authentication (cookie-based) or API key (`READ_MEDIA`).
+        **Permissions:** Session authentication (cookie-based).
       security:
         - sessionCookie: []
-        - apiKeyHeader:
-            - READ_MEDIA
       responses:
         '200':
           description: OK
@@ -1656,7 +1681,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserQuotaResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -1692,7 +1717,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -1718,7 +1743,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserPreferences'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
@@ -1748,7 +1773,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserPreferences'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity:
@@ -1806,7 +1831,7 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/OpaqueCursorPagination'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
@@ -1838,7 +1863,7 @@ paths:
                   type: string
                 mediaId:
                   type: integer
-                animeName:
+                mediaName:
                   type: string
                 japaneseText:
                   type: string
@@ -1848,7 +1873,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -1882,7 +1907,7 @@ paths:
                   deletedCount:
                     type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/heatmap:
@@ -1928,7 +1953,7 @@ paths:
                       type: integer
                     description: Map of YYYY-MM-DD date strings to activity activityByDay
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/stats:
@@ -1987,7 +2012,7 @@ paths:
                         count:
                           type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/date/{date}:
@@ -2024,7 +2049,7 @@ paths:
                   deletedCount:
                     type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/{id}:
@@ -2051,16 +2076,9 @@ paths:
         '204':
           description: Activity deleted
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
-          description: Activity not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/export:
@@ -2085,7 +2103,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserExportResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/labs:
@@ -2113,7 +2131,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/UserLabFeature'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/labs/{key}:
@@ -2141,7 +2159,7 @@ paths:
         '204':
           description: Enrolled successfully
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -2169,13 +2187,14 @@ paths:
         '204':
           description: Unenrolled successfully
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/collections:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: listCollections
@@ -2199,16 +2218,7 @@ paths:
           description: Opaque pagination cursor token
           schema:
             type: string
-            example: 0
-        - name: page
-          in: query
-          description: Page number (1-indexed)
-          deprecated: true
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-            example: 1
+            example: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9
         - name: take
           in: query
           description: Items per page
@@ -2228,7 +2238,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2236,6 +2246,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
+      x-internal: true
       tags:
         - Collections
       operationId: createCollection
@@ -2260,7 +2271,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2269,6 +2280,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: getCollection
@@ -2290,16 +2302,7 @@ paths:
           description: Opaque pagination cursor token for paginated segments
           schema:
             type: string
-            example: 0
-        - name: page
-          in: query
-          description: Page number (1-indexed)
-          deprecated: true
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-            example: 1
+            example: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9
         - name: take
           in: query
           description: Items per page
@@ -2319,7 +2322,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2329,6 +2332,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
+      x-internal: true
       tags:
         - Collections
       operationId: updateCollection
@@ -2371,7 +2375,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2381,6 +2385,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
+      x-internal: true
       tags:
         - Collections
       operationId: deleteCollection
@@ -2403,7 +2408,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2414,6 +2419,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}/segments:
     post:
+      x-internal: true
       tags:
         - Collections
       operationId: addSegmentToCollection
@@ -2453,7 +2459,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2464,6 +2470,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}/segments/{uuid}:
     patch:
+      x-internal: true
       tags:
         - Collections
       operationId: updateCollectionSegment
@@ -2509,7 +2516,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2519,6 +2526,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
+      x-internal: true
       tags:
         - Collections
       operationId: removeSegmentFromCollection
@@ -2548,7 +2556,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2559,6 +2567,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}/search:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: searchCollectionSegments
@@ -2601,7 +2610,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2612,6 +2621,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}/stats:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: getCollectionStats
@@ -2639,7 +2649,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2931,16 +2941,17 @@ paths:
     post:
       tags:
         - Admin
+      x-internal: true
       operationId: triggerReindex
       summary: Reindex database into Elasticsearch
       description: |
         Reindexes segments from the PostgreSQL database into Elasticsearch.
-        Allows filtering by specific media IDs or episodes.
+        Allows filtering by specific media entries and episodes.
 
         **Behavior:**
         - If no filters provided, reindexes all segments
-        - If `mediaIds` provided, reindexes all segments from those media
-        - If `episodes` provided, reindexes only the specified episodes
+        - If `media` is provided, reindexes segments from those media entries
+        - If a media item includes `episodes`, only those episodes are reindexed for that media
 
         **Permissions:** `ADD_MEDIA`
       security:
@@ -2973,6 +2984,7 @@ paths:
     get:
       tags:
         - Admin
+      x-internal: true
       operationId: listAdminQueueStats
       summary: Get queue statistics
       description: |
@@ -2996,6 +3008,10 @@ paths:
                 type: array
                 items:
                   type: object
+                  required:
+                    - queue
+                    - stuckCount
+                    - failedCount
                   properties:
                     queue:
                       type: string
@@ -3022,6 +3038,7 @@ paths:
     get:
       tags:
         - Admin
+      x-internal: true
       operationId: getAdminQueue
       summary: Get detailed queue information
       description: |
@@ -3165,6 +3182,7 @@ paths:
     get:
       tags:
         - Admin
+      x-internal: true
       operationId: listAdminQueueFailed
       summary: Get failed jobs from a queue
       description: |
@@ -3200,6 +3218,11 @@ paths:
                 type: array
                 items:
                   type: object
+                  required:
+                    - id
+                    - segmentId
+                    - error
+                    - createdOn
                   properties:
                     id:
                       type: string
@@ -3229,6 +3252,7 @@ paths:
     post:
       tags:
         - Admin
+      x-internal: true
       operationId: retryAdminQueueFailed
       summary: Retry failed jobs from a queue
       description: |
@@ -3261,6 +3285,10 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - success
+                  - retriedCount
+                  - message
                 properties:
                   success:
                     type: boolean
@@ -3286,6 +3314,7 @@ paths:
     delete:
       tags:
         - Admin
+      x-internal: true
       operationId: purgeAdminQueueFailed
       summary: Purge failed jobs from a queue
       description: |
@@ -3319,6 +3348,10 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - success
+                  - purgedCount
+                  - message
                 properties:
                   success:
                     type: boolean
@@ -3395,7 +3428,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3428,7 +3461,7 @@ paths:
                   message:
                     type: string
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3439,6 +3472,7 @@ paths:
     get:
       tags:
         - Admin
+      x-internal: true
       operationId: listAdminReports
       summary: List all reports
       description: |
@@ -3530,6 +3564,7 @@ paths:
     patch:
       tags:
         - Admin
+      x-internal: true
       operationId: updateAdminReport
       summary: Update a report
       description: |
@@ -3576,6 +3611,7 @@ paths:
     get:
       tags:
         - Admin
+      x-internal: true
       operationId: listAdminMediaAudits
       summary: List all media audits
       description: |
@@ -3606,6 +3642,7 @@ paths:
     patch:
       tags:
         - Admin
+      x-internal: true
       operationId: updateAdminMediaAudit
       summary: Update a media audit config
       description: |
@@ -3659,6 +3696,7 @@ paths:
     post:
       tags:
         - Admin
+      x-internal: true
       operationId: runAdminMediaAudit
       summary: Run a media audit
       description: |
@@ -3704,6 +3742,7 @@ paths:
     get:
       tags:
         - Admin
+      x-internal: true
       operationId: listAdminMediaAuditRuns
       summary: List past audit runs
       description: |
@@ -3760,6 +3799,7 @@ paths:
     get:
       tags:
         - Admin
+      x-internal: true
       operationId: getAdminMediaAuditRun
       summary: Get a specific audit run's details
       description: |
@@ -4313,6 +4353,11 @@ components:
     PaginationInfo:
       type: object
       description: Pagination metadata for search results
+      required:
+        - hasMore
+        - estimatedTotalHits
+        - estimatedTotalHitsRelation
+        - cursor
       properties:
         hasMore:
           type: boolean
@@ -4335,6 +4380,10 @@ components:
           description: Opaque cursor token for fetching the next page (`null` when hasMore is false)
     SearchResponse:
       type: object
+      required:
+        - segments
+        - includes
+        - pagination
       properties:
         segments:
           type: array
@@ -4342,6 +4391,8 @@ components:
             $ref: '#/components/schemas/Segment'
         includes:
           type: object
+          required:
+            - media
           properties:
             media:
               type: object
@@ -4593,6 +4644,9 @@ components:
     CategoryCount:
       type: object
       description: Count of entries grouped by media category
+      required:
+        - category
+        - count
       properties:
         category:
           $ref: '#/components/schemas/Category'
@@ -4602,6 +4656,10 @@ components:
           example: 1523
     SearchStatsResponse:
       type: object
+      required:
+        - media
+        - categories
+        - includes
       properties:
         media:
           type: array
@@ -4613,6 +4671,8 @@ components:
             $ref: '#/components/schemas/CategoryCount'
         includes:
           type: object
+          required:
+            - media
           properties:
             media:
               type: object
@@ -4668,6 +4728,11 @@ components:
     WordMatch:
       type: object
       description: Word matching result with occurrences across media
+      required:
+        - word
+        - isMatch
+        - matchCount
+        - media
       properties:
         word:
           type: string
@@ -4688,6 +4753,9 @@ components:
             $ref: '#/components/schemas/WordMatchMedia'
     SearchMultipleResponse:
       type: object
+      required:
+        - results
+        - includes
       properties:
         results:
           type: array
@@ -4695,6 +4763,8 @@ components:
             $ref: '#/components/schemas/WordMatch'
         includes:
           type: object
+          required:
+            - media
           properties:
             media:
               type: object
@@ -4705,7 +4775,6 @@ components:
       type: string
       description: Resource to expand in media responses
       enum:
-        - media
         - media.characters
     OpaqueCursorPagination:
       type: object
@@ -5062,6 +5131,7 @@ components:
           example: R2
         hashedId:
           type: string
+          minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
     SegmentInternal:
@@ -5069,6 +5139,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/Segment'
         - type: object
+          required:
+            - storage
+            - hashedId
+            - storageBasePath
+            - ratingAnalysis
+            - posAnalysis
           properties:
             storage:
               type: string
@@ -5099,6 +5175,7 @@ components:
       type: object
       required:
         - segments
+        - includes
       properties:
         segments:
           type: array
@@ -5180,6 +5257,9 @@ components:
           description: All media in the series, sorted by position
           items:
             type: object
+            required:
+              - position
+              - media
             properties:
               position:
                 type: integer
@@ -5232,6 +5312,9 @@ components:
               description: All media this character appears in
               items:
                 type: object
+                required:
+                  - media
+                  - role
                 properties:
                   media:
                     $ref: '#/components/schemas/Media'
@@ -5248,6 +5331,7 @@ components:
       description: Seiyuu details with optional character appearances
       required:
         - id
+        - externalIds
         - nameJa
         - nameEn
         - imageUrl
@@ -5257,6 +5341,8 @@ components:
           type: integer
           description: AniList staff ID
           example: 95991
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
         nameJa:
           type: string
           description: Japanese name of the voice actor
@@ -5613,6 +5699,7 @@ components:
           default: R2
         hashedId:
           type: string
+          minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
     UserQuotaResponse:
@@ -5767,9 +5854,15 @@ components:
         - id
         - source
         - target
+        - auditRunId
         - reason
+        - description
+        - data
         - status
+        - adminNotes
+        - userId
         - createdAt
+        - updatedAt
       properties:
         id:
           type: integer
@@ -5951,6 +6044,11 @@ components:
       required:
         - id
         - activityType
+        - segmentUuid
+        - mediaId
+        - searchQuery
+        - mediaName
+        - japaneseText
         - createdAt
       properties:
         id:
@@ -5966,7 +6064,7 @@ components:
         searchQuery:
           type: string
           nullable: true
-        animeName:
+        mediaName:
           type: string
           nullable: true
         japaneseText:
@@ -5981,8 +6079,10 @@ components:
       required:
         - id
         - name
-        - userId
         - visibility
+        - segmentCount
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: integer
@@ -5992,10 +6092,6 @@ components:
           type: string
           description: Name of the collection
           example: Study Favorites
-        userId:
-          type: integer
-          description: User ID who owns the collection
-          example: 1
         visibility:
           type: string
           enum:
@@ -6014,6 +6110,7 @@ components:
         updatedAt:
           type: string
           format: date-time
+          nullable: true
           description: When the collection was last updated
     UserExportCollection:
       allOf:
@@ -6127,9 +6224,12 @@ components:
       required:
         - id
         - name
-        - userId
         - visibility
+        - segmentCount
+        - createdAt
+        - updatedAt
         - segments
+        - includes
         - totalCount
         - pagination
       properties:
@@ -6141,10 +6241,6 @@ components:
           type: string
           description: Name of the collection
           example: Study Favorites
-        userId:
-          type: integer
-          description: User ID who owns the collection
-          example: 1
         visibility:
           type: string
           enum:
@@ -6152,11 +6248,28 @@ components:
             - PRIVATE
           description: Visibility of the collection
           example: PRIVATE
+        segmentCount:
+          type: integer
+          description: Number of segments in the collection
+          example: 42
+        createdAt:
+          type: string
+          format: date-time
+          description: When the collection was created
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the collection was last updated
         segments:
           type: array
           description: Saved segments with their search result data
           items:
             type: object
+            required:
+              - position
+              - note
+              - result
             properties:
               position:
                 type: integer
@@ -6170,6 +6283,8 @@ components:
                 $ref: '#/components/schemas/Segment'
         includes:
           type: object
+          required:
+            - media
           properties:
             media:
               type: object
@@ -6221,6 +6336,11 @@ components:
     ReindexResponse:
       type: object
       description: Response from the reindex operation
+      required:
+        - success
+        - message
+        - stats
+        - errors
       properties:
         success:
           type: boolean
@@ -6231,6 +6351,11 @@ components:
         stats:
           type: object
           description: Statistics about the reindex operation
+          required:
+            - totalSegments
+            - successfulIndexes
+            - failedIndexes
+            - mediaProcessed
           properties:
             totalSegments:
               type: integer
@@ -6249,6 +6374,9 @@ components:
           description: Array of errors that occurred during reindexing (if any)
           items:
             type: object
+            required:
+              - segmentId
+              - error
             properties:
               segmentId:
                 type: integer
@@ -6313,6 +6441,10 @@ components:
         - targetType
         - threshold
         - enabled
+        - thresholdSchema
+        - latestRun
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: integer
@@ -6346,6 +6478,11 @@ components:
           description: Schema for threshold fields (from registry)
           items:
             type: object
+            required:
+              - key
+              - label
+              - type
+              - default
             properties:
               key:
                 type: string
@@ -6368,6 +6505,10 @@ components:
           type: object
           nullable: true
           description: Latest run info for this audit
+          required:
+            - id
+            - resultCount
+            - createdAt
           properties:
             id:
               type: integer
@@ -6379,6 +6520,7 @@ components:
         createdAt:
           type: string
           format: date-time
+          nullable: true
         updatedAt:
           type: string
           format: date-time
@@ -6566,7 +6708,7 @@ components:
         status: 404
   responses:
     UnauthorizedApiKey:
-      description: Unauthorized
+      description: Unauthorized (API key)
       content:
         application/json:
           schema:
@@ -6644,6 +6786,19 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SegmentInternal'
+    Unauthorized:
+      description: Unauthorized (API key or session)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error401'
+          examples:
+            AuthCredentialsRequired:
+              $ref: '#/components/examples/AuthCredentialsRequired'
+            AuthCredentialsInvalid:
+              $ref: '#/components/examples/AuthCredentialsInvalid'
+            AuthCredentialsExpired:
+              $ref: '#/components/examples/AuthCredentialsExpired'
     EpisodeListResponse:
       description: Paginated list of episodes
       content:
@@ -6679,3 +6834,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Segment'
+    UnauthorizedSession:
+      description: Unauthorized (session)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error401'
+          examples:
+            AuthCredentialsRequired:
+              $ref: '#/components/examples/AuthCredentialsRequired'
+            AuthCredentialsInvalid:
+              $ref: '#/components/examples/AuthCredentialsInvalid'
+            AuthCredentialsExpired:
+              $ref: '#/components/examples/AuthCredentialsExpired'

@@ -29,7 +29,10 @@ describe('Cache.fetch', () => {
 
   it('returns cached value without calling compute again', async () => {
     let calls = 0;
-    const compute = async () => { calls++; return 'value'; };
+    const compute = async () => {
+      calls++;
+      return 'value';
+    };
 
     await Cache.fetch(ns, 'k', 1000, compute);
     const result = await Cache.fetch(ns, 'k', 1000, compute);
@@ -40,10 +43,13 @@ describe('Cache.fetch', () => {
 
   it('re-computes after TTL expires', async () => {
     let calls = 0;
-    const compute = async () => { calls++; return calls; };
+    const compute = async () => {
+      calls++;
+      return calls;
+    };
 
     await Cache.fetch(ns, 'k', 1, compute);
-    await new Promise(r => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 5));
     const result = await Cache.fetch(ns, 'k', 1000, compute);
 
     expect(result).toBe(2);
@@ -61,8 +67,14 @@ describe('Cache.fetch', () => {
     const ns2 = createCacheNamespace('other');
     let calls = 0;
 
-    await Cache.fetch(ns, 'k', 1000, async () => { calls++; return 'ns1'; });
-    await Cache.fetch(ns2, 'k', 1000, async () => { calls++; return 'ns2'; });
+    await Cache.fetch(ns, 'k', 1000, async () => {
+      calls++;
+      return 'ns1';
+    });
+    await Cache.fetch(ns2, 'k', 1000, async () => {
+      calls++;
+      return 'ns2';
+    });
 
     expect(calls).toBe(2);
     Cache.invalidate(ns2);
@@ -77,7 +89,10 @@ describe('Cache.fetch with falsy values', () => {
     ['empty string', ''],
   ])('caches %s without re-computing', async (_label, falsy) => {
     let calls = 0;
-    const compute = async () => { calls++; return falsy; };
+    const compute = async () => {
+      calls++;
+      return falsy;
+    };
 
     await Cache.fetch(ns, 'k', 1000, compute);
     const result = await Cache.fetch(ns, 'k', 1000, compute);
@@ -90,10 +105,16 @@ describe('Cache.fetch with falsy values', () => {
     let calls = 0;
 
     await expect(
-      Cache.fetch(ns, 'k', 1000, async () => { calls++; throw new Error('boom'); })
+      Cache.fetch(ns, 'k', 1000, async () => {
+        calls++;
+        throw new Error('boom');
+      }),
     ).rejects.toThrow('boom');
 
-    const result = await Cache.fetch(ns, 'k', 1000, async () => { calls++; return 'ok'; });
+    const result = await Cache.fetch(ns, 'k', 1000, async () => {
+      calls++;
+      return 'ok';
+    });
 
     expect(result).toBe('ok');
     expect(calls).toBe(2);
@@ -108,7 +129,10 @@ describe('Cache.invalidate', () => {
 
   it('clears all keys in the namespace', async () => {
     let calls = 0;
-    const compute = async () => { calls++; return 'v'; };
+    const compute = async () => {
+      calls++;
+      return 'v';
+    };
 
     await Cache.fetch(ns, 'a', 1000, compute);
     await Cache.fetch(ns, 'b', 1000, compute);
@@ -125,9 +149,15 @@ describe('Cache.invalidate', () => {
     const ns2 = createCacheNamespace('isolated');
     let calls = 0;
 
-    await Cache.fetch(ns2, 'k', 1000, async () => { calls++; return 'v'; });
+    await Cache.fetch(ns2, 'k', 1000, async () => {
+      calls++;
+      return 'v';
+    });
     Cache.invalidate(ns);
-    await Cache.fetch(ns2, 'k', 1000, async () => { calls++; return 'v'; });
+    await Cache.fetch(ns2, 'k', 1000, async () => {
+      calls++;
+      return 'v';
+    });
 
     expect(calls).toBe(1);
     Cache.invalidate(ns2);

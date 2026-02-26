@@ -8,7 +8,11 @@ type GlobalWithBoot = typeof globalThis & {
 
 type StderrWriter = (message: string) => void;
 
-export function writeFatal(prefix: string, payload: unknown, write: StderrWriter = process.stderr.write.bind(process.stderr)) {
+export function writeFatal(
+  prefix: string,
+  payload: unknown,
+  write: StderrWriter = process.stderr.write.bind(process.stderr),
+) {
   const body =
     payload instanceof Error
       ? payload.stack || payload.message

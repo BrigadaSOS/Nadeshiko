@@ -91,7 +91,7 @@ describe('media.mapper', () => {
 
   it('maps character input into nested entity shape', () => {
     const entity = toCharacterEntity({
-      role: 'MAIN',
+      role: CharacterRole.MAIN,
       externalIds: { anilist: 'c-77' },
       nameJa: 'char-ja',
       nameEn: 'char-en',
@@ -105,7 +105,7 @@ describe('media.mapper', () => {
     } as any);
 
     expect(entity).toEqual({
-      role: 'MAIN',
+      role: CharacterRole.MAIN,
       character: {
         externalIds: { anilist: 'c-77' },
         nameJapanese: 'char-ja',

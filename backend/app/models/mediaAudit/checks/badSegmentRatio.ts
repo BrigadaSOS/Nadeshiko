@@ -32,7 +32,13 @@ export const badSegmentRatio: MediaAuditCheck = {
 
     const results: CheckResult[] = [];
 
-    for (const row of rows as { mediaId: number; episodeNumber: number; romajiName: string; totalCount: string; badCount: string }[]) {
+    for (const row of rows as {
+      mediaId: number;
+      episodeNumber: number;
+      romajiName: string;
+      totalCount: string;
+      badCount: string;
+    }[]) {
       const total = Number(row.totalCount);
       const bad = Number(row.badCount);
       const badRatio = total > 0 ? bad / total : 0;

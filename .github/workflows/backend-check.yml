@@ -100,17 +100,16 @@ jobs:
       - name: Lint OpenAPI spec
         run: bun run lint:openapi
 
-      - name: Bundle OpenAPI spec
-        run: bun run docs:bundle
-
-      - name: Validate bundled spec
-        run: bun run lint:openapi:bundled
-
-      - name: Check codegen is up to date
+      - name: Regenerate API artifacts
         run: |
-          bun run generate:all
-          if ! git diff --exit-code generated/; then
-            echo "::error::Generated code is out of date. Run 'bun run generate:all' and commit the result."
+          bun run generate:api
+          bun run generate:bruno
+          bun run lint:openapi:bundled
+
+      - name: Check OpenAPI artifacts are up to date
+        run: |
+          if ! git diff --exit-code -- generated docs/generated/openapi.yaml ":(literal)docs/bruno/[Generated] API"; then
+            echo "::error::OpenAPI artifacts are out of date. Run 'bun run generate:api && bun run generate:bruno && bun run lint:openapi:bundled' and commit results."
             exit 1
           fi
 

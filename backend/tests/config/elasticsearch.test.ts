@@ -24,8 +24,6 @@ vi.mock('@elastic/elasticsearch', () => {
       create: (...args: unknown[]) => mockIndicesCreate(...args),
       delete: (...args: unknown[]) => mockIndicesDelete(...args),
     };
-
-    constructor(_options: unknown) {}
   }
 
   class MockHttpConnection {}

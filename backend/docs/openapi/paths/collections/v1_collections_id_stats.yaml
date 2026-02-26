@@ -1,4 +1,5 @@
 get:
+  x-internal: true
   tags:
     - Collections
   operationId: getCollectionStats
@@ -27,7 +28,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

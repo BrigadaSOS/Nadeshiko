@@ -3,7 +3,6 @@ import { requireSessionAuth } from '@app/middleware/authentication';
 import {
   apiKeyOnly,
   enforceAdminAccess,
-  enforceUserQuotaAccess,
   mediaAddPermission,
   mediaReadPermission,
   mediaRemovePermission,
@@ -71,11 +70,7 @@ import {
   updateSegmentByUuid,
 } from '@app/controllers/segmentController';
 import { getUserQuota } from '@app/controllers/userQuotaController';
-import {
-  createUserReport,
-  listAdminReports,
-  updateAdminReport,
-} from '@app/controllers/reportController';
+import { createUserReport, listAdminReports, updateAdminReport } from '@app/controllers/reportController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
 import { listUserLabs, enrollUserLab, unenrollUserLab } from '@app/controllers/labsController';
 import {
@@ -192,10 +187,7 @@ const UserRoutes = createUserRouter({
   unenrollUserLab,
 });
 
-// /v1/user/quota supports both API key and session auth
-router.use('/v1/user/quota', requireApiKeyOrSession);
-router.use('/v1/user/quota', enforceUserQuotaAccess);
-// All other /v1/user endpoints require session auth only
+// All /v1/user endpoints require session auth
 router.use('/v1/user', requireSessionAuth);
 
 router.use('/v1/search', ...searchAccess);

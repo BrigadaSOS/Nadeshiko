@@ -4,7 +4,16 @@ import type { Application, Request, Response, NextFunction } from 'express';
 import { buildApplication } from '@config/application';
 import { AdminRoutes } from '@app/routes/router';
 import { setupTestSuite } from '../helpers/setup';
-import { MediaAudit, MediaAuditRun, MediaAuditTargetType, Report, ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models';
+import {
+  MediaAudit,
+  MediaAuditRun,
+  MediaAuditTargetType,
+  Report,
+  ReportReason,
+  ReportSource,
+  ReportStatus,
+  ReportTargetType,
+} from '@app/models';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
 import { auditRegistry } from '@app/models/mediaAudit/checks';
 
@@ -127,15 +136,15 @@ describe('GET /v1/admin/media/audits', () => {
       threshold: toThresholdDefaults(unconfiguredAudit.thresholdSchema),
       enabled: true,
       latestRun: null,
+      createdAt: null,
       updatedAt: null,
     });
-    expect(unconfigured.createdAt).toBeUndefined();
   });
 });
 
 describe('PATCH /v1/admin/media/audits/:name', () => {
   it('merges threshold patch and updates enabled flag', async () => {
-    const registryAudit = auditRegistry.find((a) => a.thresholdSchema.length > 0)!;
+    const registryAudit = auditRegistry.find((a) => a.thresholdSchema.length > 0) as (typeof auditRegistry)[number];
     const defaults = toThresholdDefaults(registryAudit.thresholdSchema);
     const key = registryAudit.thresholdSchema[0].key;
 
@@ -153,10 +162,12 @@ describe('PATCH /v1/admin/media/audits/:name', () => {
 
     const updatedValue = typeof defaults[key] === 'boolean' ? !(defaults[key] as boolean) : Number(defaults[key]) + 5;
 
-    const res = await request(app).patch(`/v1/admin/media/audits/${registryAudit.name}`).send({
-      threshold: { [key]: updatedValue },
-      enabled: false,
-    });
+    const res = await request(app)
+      .patch(`/v1/admin/media/audits/${registryAudit.name}`)
+      .send({
+        threshold: { [key]: updatedValue },
+        enabled: false,
+      });
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({

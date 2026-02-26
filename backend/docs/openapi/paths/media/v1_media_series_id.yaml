@@ -6,9 +6,10 @@ get:
   description: |
     Returns a series with all media entries sorted by position.
 
+    **Permissions:** `READ_MEDIA`
+
   security:
-    - apiKeyHeader: []
-    - sessionCookie: []
+    - apiKeyHeader: [READ_MEDIA]
   parameters:
     - name: id
       in: path
@@ -19,12 +20,12 @@ get:
         example: 1
     - name: include
       in: query
-      description: Resources to expand in the series response (`media.characters` implies `media`)
+      description: Resources to expand in the series response
       schema:
         type: array
         items:
           $ref: "../../components/schemas/MediaIncludeExpansion.yaml"
-        default: [media]
+        default: []
   responses:
     "200":
       description: OK
@@ -54,8 +55,10 @@ patch:
   description: |
     Updates series localized names.
 
+    **Permissions:** `UPDATE_MEDIA`
+
   security:
-    - apiKeyHeader: []
+    - apiKeyHeader: [UPDATE_MEDIA]
   parameters:
     - name: id
       in: path
@@ -112,8 +115,10 @@ delete:
   description: |
     Deletes a series and all its media associations.
 
+    **Permissions:** `REMOVE_MEDIA`
+
   security:
-    - apiKeyHeader: []
+    - apiKeyHeader: [REMOVE_MEDIA]
   parameters:
     - name: id
       in: path

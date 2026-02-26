@@ -3,8 +3,10 @@ description: User segment collection
 required:
   - id
   - name
-  - userId
   - visibility
+  - segmentCount
+  - createdAt
+  - updatedAt
 properties:
   id:
     type: integer
@@ -14,10 +16,6 @@ properties:
     type: string
     description: Name of the collection
     example: "Study Favorites"
-  userId:
-    type: integer
-    description: User ID who owns the collection
-    example: 1
   visibility:
     type: string
     enum: [PUBLIC, PRIVATE]
@@ -34,4 +32,5 @@ properties:
   updatedAt:
     type: string
     format: date-time
+    nullable: true
     description: When the collection was last updated

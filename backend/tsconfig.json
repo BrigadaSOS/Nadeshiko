@@ -3,7 +3,7 @@
     "checkJs": false,
     "target": "esnext",
     "module": "esnext",
-    "lib": ["dom", "es2018", "esnext.asynciterable"],
+    "lib": ["dom", "es2021", "esnext.asynciterable"],
     "sourceMap": true,
     "outDir": "./prod",
     "moduleResolution": "bundler",

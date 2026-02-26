@@ -7,8 +7,10 @@ patch:
   description: |
     Updates the position of a media entry in a series.
 
+    **Permissions:** `UPDATE_MEDIA`
+
   security:
-    - apiKeyHeader: []
+    - apiKeyHeader: [UPDATE_MEDIA]
   parameters:
     - name: id
       in: path
@@ -62,8 +64,10 @@ delete:
   description: |
     Removes a media entry from a series.
 
+    **Permissions:** `REMOVE_MEDIA`
+
   security:
-    - apiKeyHeader: []
+    - apiKeyHeader: [REMOVE_MEDIA]
   parameters:
     - name: id
       in: path

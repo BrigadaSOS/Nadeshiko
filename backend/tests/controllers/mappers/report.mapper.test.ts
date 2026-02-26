@@ -51,20 +51,32 @@ describe('report.mapper', () => {
     });
   });
 
-  it('maps EPISODE target and falls back episode number to 0', () => {
+  it('maps EPISODE target with required episode number', () => {
     const dto = toReportDTO(
       buildReport({
         targetType: ReportTargetType.EPISODE,
         targetMediaId: 55,
-        targetEpisodeNumber: null,
+        targetEpisodeNumber: 12,
       }) as any,
     );
 
     expect(dto.target).toEqual({
       type: 'EPISODE',
       mediaId: 55,
-      episodeNumber: 0,
+      episodeNumber: 12,
     });
+  });
+
+  it('throws when EPISODE target is missing required episode number', () => {
+    expect(() =>
+      toReportDTO(
+        buildReport({
+          targetType: ReportTargetType.EPISODE,
+          targetMediaId: 55,
+          targetEpisodeNumber: null,
+        }) as any,
+      ),
+    ).toThrow('missing targetEpisodeNumber');
   });
 
   it('maps MEDIA target via default branch', () => {

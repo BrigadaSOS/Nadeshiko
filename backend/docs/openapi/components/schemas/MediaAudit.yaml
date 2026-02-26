@@ -7,6 +7,10 @@ required:
   - targetType
   - threshold
   - enabled
+  - thresholdSchema
+  - latestRun
+  - createdAt
+  - updatedAt
 properties:
   id:
     type: integer
@@ -38,6 +42,11 @@ properties:
     description: Schema for threshold fields (from registry)
     items:
       type: object
+      required:
+        - key
+        - label
+        - type
+        - default
       properties:
         key:
           type: string
@@ -58,6 +67,10 @@ properties:
     type: object
     nullable: true
     description: Latest run info for this audit
+    required:
+      - id
+      - resultCount
+      - createdAt
     properties:
       id:
         type: integer
@@ -69,6 +82,7 @@ properties:
   createdAt:
     type: string
     format: date-time
+    nullable: true
   updatedAt:
     type: string
     format: date-time

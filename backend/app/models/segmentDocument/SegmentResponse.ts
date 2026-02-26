@@ -19,10 +19,7 @@ type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>;
 type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categories' | 'includes'>;
 
 export class SegmentResponse {
-  static buildSearch(
-    esResponse: estypes.SearchResponse,
-    mediaInfoResponse: MediaInfoMap,
-  ): SearchResponseOutput {
+  static buildSearch(esResponse: estypes.SearchResponse, mediaInfoResponse: MediaInfoMap): SearchResponseOutput {
     const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse);
 
     let cursor: string | undefined;
@@ -35,7 +32,7 @@ export class SegmentResponse {
       segments,
       includes: { media: mediaMap },
       pagination: SegmentResponse.buildPagination(esResponse, cursor),
-    } as SearchResponseOutput;
+    };
   }
 
   static buildSearchResultSegments(
@@ -65,19 +62,21 @@ export class SegmentResponse {
           mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
         }
 
-        const hashedId = data['hashedId'] || '';
+        const hashedId = data['hashedId'];
+        const storageBasePath = mediaInfo.storageBasePath;
+
         const storage: Storage = (data['storage'] || 'R2').toUpperCase() as Storage;
         const segmentForUrls = {
           mediaId: data['mediaId'],
           episode: data['episode'],
           storage,
           hashedId,
-          storageBasePath: mediaInfo.storageBasePath,
+          storageBasePath,
         };
 
-        const imageUrl = hashedId ? getSegmentImageUrl(segmentForUrls) : mediaInfo.cover || '';
-        const audioUrl = hashedId ? getSegmentAudioUrl(segmentForUrls) : '';
-        const videoUrl = hashedId ? getSegmentVideoUrl(segmentForUrls) : '';
+        const imageUrl = getSegmentImageUrl(segmentForUrls);
+        const audioUrl = getSegmentAudioUrl(segmentForUrls);
+        const videoUrl = getSegmentVideoUrl(segmentForUrls);
 
         const normalizedRating = String(data['contentRating'] ?? 'SAFE').toUpperCase();
         const contentRating: SegmentOutput['contentRating'] =
@@ -95,16 +94,16 @@ export class SegmentResponse {
           episode: data['episode'],
           mediaId,
           textJa: {
-            content: data['textJa'],
+            content: SegmentResponse.toTextContent(data['textJa']),
             ...('textJa' in highlight ? { highlight: highlight['textJa'][0] } : {}),
           },
           textEn: {
-            content: data['textEn'] || undefined,
+            content: SegmentResponse.toTextContent(data['textEn']),
             ...('textEn' in highlight ? { highlight: highlight['textEn'][0] } : {}),
             isMachineTranslated: data['textEnMt'] ?? false,
           },
           textEs: {
-            content: data['textEs'] || undefined,
+            content: SegmentResponse.toTextContent(data['textEs']),
             ...('textEs' in highlight ? { highlight: highlight['textEs'][0] } : {}),
             isMachineTranslated: data['textEsMt'] ?? false,
           },
@@ -153,7 +152,7 @@ export class SegmentResponse {
     }
 
     const hasMore = Boolean(cursor);
-    return { hasMore, estimatedTotalHits, estimatedTotalHitsRelation, cursor: hasMore ? cursor : null };
+    return { hasMore, estimatedTotalHits, estimatedTotalHitsRelation, cursor: hasMore ? (cursor ?? null) : null };
   }
 
   static buildWordsMatched(
@@ -254,5 +253,9 @@ export class SegmentResponse {
 
   private static notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
     return value !== null && value !== undefined;
+  }
+
+  private static toTextContent(value: unknown): string {
+    return typeof value === 'string' ? value : '';
   }
 }

@@ -1,6 +1,7 @@
 import type { t_CharacterInput, t_ExternalId, t_Media } from 'generated/models';
 import type { MediaCreateRequestOutput, MediaUpdateRequestOutput } from 'generated/outputTypes';
-import { CategoryType, CharacterRole, ExternalSourceType, type Media } from '@app/models';
+import type { DeepPartial } from 'typeorm';
+import { CategoryType, CharacterRole, ExternalSourceType, SegmentStorage, type Media } from '@app/models';
 import { toMediaBaseDTO, toMediaCharacterDTO } from './shared.mapper';
 
 /**
@@ -39,7 +40,7 @@ export const toMediaExternalIdAttributes = (externalIds?: t_ExternalId) =>
       externalId,
     }));
 
-export function toMediaCreateAttributes(body: MediaCreateRequestOutput): Partial<Media> {
+export function toMediaCreateAttributes(body: MediaCreateRequestOutput): DeepPartial<Media> {
   return {
     nameJa: body.nameJa,
     nameRomaji: body.nameRomaji,
@@ -47,7 +48,7 @@ export function toMediaCreateAttributes(body: MediaCreateRequestOutput): Partial
     airingFormat: body.airingFormat,
     airingStatus: body.airingStatus,
     genres: body.genres,
-    storage: body.storage,
+    storage: body.storage as SegmentStorage,
     startDate: body.startDate,
     endDate: body.endDate,
     category: body.category as CategoryType,
@@ -69,7 +70,7 @@ export function toMediaUpdatePatch(body: MediaUpdateRequestOutput): Partial<Medi
     airingFormat: body.airingFormat,
     airingStatus: body.airingStatus,
     genres: body.genres,
-    storage: body.storage,
+    storage: body.storage as SegmentStorage | undefined,
     startDate: body.startDate,
     endDate: body.endDate,
     category: body.category as CategoryType | undefined,

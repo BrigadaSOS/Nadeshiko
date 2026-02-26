@@ -254,7 +254,6 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   const listCollectionsQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
     cursor: z.string().optional(),
-    page: z.coerce.number().min(1).optional().default(1),
     take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 
@@ -402,7 +401,6 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
 
   const getCollectionQuerySchema = z.object({
     cursor: z.string().optional(),
-    page: z.coerce.number().min(1).optional().default(1),
     take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 

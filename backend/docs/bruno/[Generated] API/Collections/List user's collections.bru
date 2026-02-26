@@ -5,15 +5,14 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/collections?visibility=private&page=1&take=20
+  url: {{baseUrl}}/v1/collections?visibility=private&cursor=eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9&take=20
   body: none
   auth: none
 }
 
 params:query {
   visibility: private
-  cursor:
-  page: 1
+  cursor: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9
   take: 20
 }
 

@@ -40,4 +40,3 @@ function callMiddleware(permissions: ApiPermission[] | undefined, ...required: A
   const next = vi.fn() as unknown as NextFunction;
   return { run: () => middleware(req, {} as Response, next), next };
 }
-

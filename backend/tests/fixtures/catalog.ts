@@ -172,7 +172,12 @@ export const FIXTURE_SETS = {
   },
   mediaWithTwoEpisodes: {
     media: {
-      episodicShow: { ...mediaDefaults, nameJa: 'エピソード作品', nameRomaji: 'Episodic Show', nameEn: 'Episodic Show' },
+      episodicShow: {
+        ...mediaDefaults,
+        nameJa: 'エピソード作品',
+        nameRomaji: 'Episodic Show',
+        nameEn: 'Episodic Show',
+      },
     },
     episodes: {
       first: { mediaId: ref('media.episodicShow.id'), episodeNumber: 1, titleEn: 'First', segmentCount: 0 },
@@ -181,7 +186,12 @@ export const FIXTURE_SETS = {
   },
   mediaWithThreeEpisodes: {
     media: {
-      episodicShow: { ...mediaDefaults, nameJa: 'エピソード作品', nameRomaji: 'Episodic Show', nameEn: 'Episodic Show' },
+      episodicShow: {
+        ...mediaDefaults,
+        nameJa: 'エピソード作品',
+        nameRomaji: 'Episodic Show',
+        nameEn: 'Episodic Show',
+      },
     },
     episodes: {
       first: { mediaId: ref('media.episodicShow.id'), episodeNumber: 1, segmentCount: 0 },

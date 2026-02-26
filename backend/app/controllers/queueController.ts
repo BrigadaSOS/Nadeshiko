@@ -14,9 +14,10 @@ import {
 } from '@app/workers/queueAdmin';
 import { NotFoundError } from '@app/errors';
 import {
-  toAdminQueueActionResultDTO,
   toAdminQueueDetailsDTO,
   toAdminQueueFailedJobsDTO,
+  toAdminQueuePurgeResultDTO,
+  toAdminQueueRetryResultDTO,
   toAdminQueueStatsDTO,
 } from '@app/controllers/mappers/queue.mapper';
 
@@ -47,7 +48,7 @@ export const retryAdminQueueFailed: RetryAdminQueueFailed = async ({ params }, r
 
   const retriedCount = await retryFailedJobs(queueName);
 
-  return respond.with200().body(toAdminQueueActionResultDTO('retry', queueName, retriedCount));
+  return respond.with200().body(toAdminQueueRetryResultDTO(queueName, retriedCount));
 };
 
 export const purgeAdminQueueFailed: PurgeAdminQueueFailed = async ({ params }, respond) => {
@@ -55,7 +56,7 @@ export const purgeAdminQueueFailed: PurgeAdminQueueFailed = async ({ params }, r
 
   const purgedCount = await deleteFailedJobs(queueName);
 
-  return respond.with200().body(toAdminQueueActionResultDTO('purge', queueName, purgedCount));
+  return respond.with200().body(toAdminQueuePurgeResultDTO(queueName, purgedCount));
 };
 
 async function getQueueDetailsOrFail(queueName: string) {

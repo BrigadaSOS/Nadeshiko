@@ -1,4 +1,7 @@
 type: object
+required:
+  - results
+  - includes
 properties:
   results:
     type: array
@@ -6,6 +9,8 @@ properties:
       $ref: "../schemas/WordMatch.yaml"
   includes:
     type: object
+    required:
+      - media
     properties:
       media:
         type: object

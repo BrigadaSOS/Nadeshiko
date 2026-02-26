@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
 import { Media, Episode, CategoryType, SegmentStorage } from '@app/models';
 import { lowSegmentMedia } from '@app/models/mediaAudit/checks/lowSegmentMedia';

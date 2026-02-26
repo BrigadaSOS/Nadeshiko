@@ -11,8 +11,12 @@ setupTestSuite();
 const app = createTestApp();
 
 let fixtures: CoreFixtures;
-beforeAll(async () => { fixtures = await seedCoreFixtures(); });
-beforeEach(() => { signInAs(app, fixtures.users.kevin); });
+beforeAll(async () => {
+  fixtures = await seedCoreFixtures();
+});
+beforeEach(() => {
+  signInAs(app, fixtures.users.kevin);
+});
 
 describe('GET /v1/media/series', () => {
   it('returns paginated series sorted by name', async () => {
@@ -98,7 +102,7 @@ describe('POST /v1/media/series', () => {
 
     const saved = await Series.findOneBy({ id: res.body.id });
     expect(saved).not.toBeNull();
-    expect(saved!.nameRomaji).toBe('Shingeki no Kyojin');
+    expect(saved?.nameRomaji).toBe('Shingeki no Kyojin');
   });
 });
 
@@ -113,7 +117,7 @@ describe('PATCH /v1/media/series/:id', () => {
     expect(res.body).toMatchObject({ nameEn: 'New Name' });
 
     const updated = await Series.findOneBy({ id: series.id });
-    expect(updated!.nameEn).toBe('New Name');
+    expect(updated?.nameEn).toBe('New Name');
   });
 
   it('returns 404 when series does not exist', async () => {
@@ -160,7 +164,7 @@ describe('POST /v1/media/series/:id/media', () => {
 
     const entry = await SeriesMedia.findOneBy({ seriesId: series.id, mediaId: media.id });
     expect(entry).not.toBeNull();
-    expect(entry!.position).toBe(1);
+    expect(entry?.position).toBe(1);
   });
 
   it('returns 404 when series does not exist (FK violation)', async () => {
@@ -196,14 +200,12 @@ describe('PATCH /v1/media/series/:id/media/:mediaId', () => {
     const series = fixtures.series.testSeries;
     const media = fixtures.media.testShow;
 
-    const res = await request(app)
-      .patch(`/v1/media/series/${series.id}/media/${media.id}`)
-      .send({ position: 3 });
+    const res = await request(app).patch(`/v1/media/series/${series.id}/media/${media.id}`).send({ position: 3 });
 
     expect(res.status).toBe(204);
 
     const updated = await SeriesMedia.findOneBy({ seriesId: series.id, mediaId: media.id });
-    expect(updated!.position).toBe(3);
+    expect(updated?.position).toBe(3);
   });
 
   it('returns 404 when relation does not exist', async () => {
@@ -211,9 +213,7 @@ describe('PATCH /v1/media/series/:id/media/:mediaId', () => {
     const series = fixtures.series.testSeries;
     const media = fixtures.media.testShow;
 
-    const res = await request(app)
-      .patch(`/v1/media/series/${series.id}/media/${media.id}`)
-      .send({ position: 2 });
+    const res = await request(app).patch(`/v1/media/series/${series.id}/media/${media.id}`).send({ position: 2 });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });

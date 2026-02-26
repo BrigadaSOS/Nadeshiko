@@ -2,6 +2,12 @@ description: Segment with internal fields (for internal API responses)
 allOf:
   - $ref: "./Segment.yaml"
   - type: object
+    required:
+      - storage
+      - hashedId
+      - storageBasePath
+      - ratingAnalysis
+      - posAnalysis
     properties:
       storage:
         type: string

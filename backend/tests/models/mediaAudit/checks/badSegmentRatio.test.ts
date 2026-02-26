@@ -1,14 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
-import {
-  Media,
-  Episode,
-  Segment,
-  CategoryType,
-  SegmentStorage,
-  SegmentStatus,
-  ContentRating,
-} from '@app/models';
+import { Media, Episode, Segment, CategoryType, SegmentStorage, SegmentStatus, ContentRating } from '@app/models';
 import { badSegmentRatio } from '@app/models/mediaAudit/checks/badSegmentRatio';
 
 setupTestSuite();

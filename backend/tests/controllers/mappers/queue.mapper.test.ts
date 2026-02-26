@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  toAdminQueueActionResultDTO,
   toAdminQueueDetailsDTO,
   toAdminQueueFailedJobDTO,
   toAdminQueueFailedJobsDTO,
+  toAdminQueuePurgeResultDTO,
+  toAdminQueueRetryResultDTO,
   toAdminQueueStatsDTO,
 } from '@app/controllers/mappers/queue.mapper';
 
@@ -77,13 +78,13 @@ describe('queue.mapper', () => {
   });
 
   it('maps retry and purge action responses', () => {
-    expect(toAdminQueueActionResultDTO('retry', 'es-sync-create', 5)).toEqual({
+    expect(toAdminQueueRetryResultDTO('es-sync-create', 5)).toEqual({
       success: true,
       retriedCount: 5,
       message: 'Retried 5 failed jobs from es-sync-create',
     });
 
-    expect(toAdminQueueActionResultDTO('purge', 'es-sync-update', 3)).toEqual({
+    expect(toAdminQueuePurgeResultDTO('es-sync-update', 3)).toEqual({
       success: true,
       purgedCount: 3,
       message: 'Purged 3 failed jobs from es-sync-update',
