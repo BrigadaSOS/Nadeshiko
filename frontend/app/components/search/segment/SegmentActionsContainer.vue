@@ -333,15 +333,15 @@ const openCollectionsPage = async () => {
           @click="concatSentence('both')" />
         <SearchDropdownItem :text="$t('searchpage.main.buttons.expandRight')" :iconPath="mdiTransferRight"
           @click="concatSentence('forward')" />
-        <div
-          class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
-        </div>
-        <SearchDropdownItem
-          :text="isMediaHidden(content.media.id) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia')"
-          :iconPath="isMediaHidden(content.media.id) ? mdiEyeOutline : mdiEyeOffOutline"
-          @click="toggleHideMedia(content.media)"
-        />
         <template v-if="user.isLoggedIn">
+          <div
+            class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
+          </div>
+          <SearchDropdownItem
+            :text="isMediaHidden(content.media.id) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia')"
+            :iconPath="isMediaHidden(content.media.id) ? mdiEyeOutline : mdiEyeOffOutline"
+            @click="toggleHideMedia(content.media)"
+          />
           <div
             class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
           </div>

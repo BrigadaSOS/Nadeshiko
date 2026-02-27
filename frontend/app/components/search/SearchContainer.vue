@@ -65,22 +65,11 @@ const isViewingHiddenMedia = computed(
   () => !!media.value && !showHiddenMediaOverride.value && isMediaHidden(Number(media.value)),
 );
 
-const isResultFromHiddenMedia = computed(() => {
-  if (isViewingHiddenMedia.value || showHiddenMediaOverride.value) return false;
-  const firstResult = sentenceData.value?.results?.[0];
-  if (!firstResult) return false;
-  return isMediaHidden(firstResult.media.id);
-});
-
 const showAnywayAndRefresh = () => {
   showHiddenMediaOverride.value = true;
   resetSentencePagination();
   fetchStats();
   fetchSentences();
-};
-
-const showAnywayForResult = () => {
-  showHiddenMediaOverride.value = true;
 };
 
 const firstQueryValue = (
@@ -480,7 +469,7 @@ onBeforeRouteUpdate(async (to, from) => {
 
 <template>
     <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :media="media" />
-    <div v-if="isViewingHiddenMedia || isResultFromHiddenMedia" class="flex-1 mx-auto">
+    <div v-if="isViewingHiddenMedia" class="flex-1 mx-auto">
         <section class="w-full py-10 px-4">
             <div class="flex flex-col items-center max-w-lg mx-auto text-center">
                 <img class="mb-6" src="/assets/hidden-media.gif" alt="Hidden media illustration" />
@@ -488,7 +477,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.hiddenMediaDescription') }}</p>
                 <button
                     class="mt-6 px-5 py-2.5 rounded-lg text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                    @click="isViewingHiddenMedia ? showAnywayAndRefresh() : showAnywayForResult()"
+                    @click="showAnywayAndRefresh()"
                 >
                     {{ $t('searchContainer.hiddenMediaShowAnyway') }}
                 </button>

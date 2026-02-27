@@ -40,14 +40,13 @@ env:
     - SES_AWS_REGION
     - SES_AWS_ACCESS_KEY_ID
     - SES_AWS_SECRET_ACCESS_KEY
+    - SES_FROM_EMAIL
+    - SES_FROM_NAME
 
   clear:
     ENVIRONMENT: prod
     PORT: 80
     BASE_URL: https://new.nadeshiko.co
-
-    SES_FROM_EMAIL: noreply@nadeshiko.co
-    SES_FROM_NAME: Nadeshiko
 
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432

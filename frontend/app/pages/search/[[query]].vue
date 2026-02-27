@@ -10,6 +10,7 @@ const route = useRoute();
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
+const { hiddenMediaExcludeFilter } = useHiddenMedia();
 
 const firstQueryValue = (value: string | string[] | undefined | null) => (Array.isArray(value) ? value[0] : value);
 const getStringQueryValue = (value: string | string[] | undefined | null) => {
@@ -110,6 +111,9 @@ const fetchSentenceData = async () => {
     if (excludedLanguages.value.length > 0) {
       filters.languages = { exclude: excludedLanguages.value };
     }
+    if (!mediaQueryParam.value && hiddenMediaExcludeFilter.value.length > 0) {
+      filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
+    }
 
     const sortParam = route.query.sort;
     const sort =
@@ -159,6 +163,9 @@ const fetchStatsData = async () => {
     filters.contentRating = contentRating.value;
     if (excludedLanguages.value.length > 0) {
       filters.languages = { exclude: excludedLanguages.value };
+    }
+    if (hiddenMediaExcludeFilter.value.length > 0) {
+      filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
     }
 
     const { data } = await sdk.getSearchStats({
