@@ -64,6 +64,7 @@ import {
   getSegmentByUuid,
   getSegmentContext,
   updateSegmentByUuid,
+  listSegmentRevisions,
 } from '@app/controllers/segmentController';
 import { getUserQuota } from '@app/controllers/userQuotaController';
 import { createUserReport, listAdminReports, updateAdminReport } from '@app/controllers/reportController';
@@ -125,6 +126,7 @@ const MediaRoutes = createMediaRouter({
   getSegmentByUuid,
   getSegmentContext,
   updateSegmentByUuid,
+  listSegmentRevisions,
   listSeries,
   createSeries,
   getSeries,

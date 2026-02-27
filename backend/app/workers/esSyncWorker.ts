@@ -8,7 +8,7 @@ import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from
 
 export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
   const workerOptions = {
-    batchSize: 20,
+    batchSize: 100,
     teamSize: 3,
   };
 
@@ -24,7 +24,7 @@ export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
     await handleBulkDelete(jobs);
   });
 
-  logger.info('ES sync workers registered with batchSize=20, teamSize=3');
+  logger.info('ES sync workers registered with batchSize=100, teamSize=3');
 }
 
 async function handleBulkIndex(jobs: Job<EsSyncJobData>[], operation: 'CREATE' | 'UPDATE'): Promise<void> {

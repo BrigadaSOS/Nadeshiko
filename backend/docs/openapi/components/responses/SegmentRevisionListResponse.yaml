@@ -1,0 +1,12 @@
+description: List of segment revisions
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - revisions
+      properties:
+        revisions:
+          type: array
+          items:
+            $ref: "../schemas/segment/SegmentRevision.yaml#/SegmentRevision"
