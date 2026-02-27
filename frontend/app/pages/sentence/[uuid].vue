@@ -1,55 +1,51 @@
-<script setup>
+<script setup lang="ts">
 import { buildSentenceMetaTags } from '~/utils/metaTags';
-import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
+import { resolveSearchResponse } from '~/utils/resolvers';
+import type { SearchStatsResponse } from '~/types/search';
 
 const route = useRoute();
 const { mediaName } = useMediaName();
-const { contentRating } = useContentRating();
 
 const uuid = computed(() => String(route.params.uuid));
 
 const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const response = await sdk.search({
-      body: {
-        uuid: uuid.value,
-        filters: { contentRating: contentRating.value },
-        include: ['media'],
-      },
+    const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid: uuid.value } });
+    if (!segment) return null;
+    const { data: media } = await sdk.getMedia({ path: { id: segment.mediaId } });
+    return resolveSearchResponse({
+      segments: [segment],
+      includes: { media: media ? { [String(segment.mediaId)]: media } : {} },
+      pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
     });
-    return response.data ? resolveSearchResponse(response.data) : null;
-  } catch {
-    return null;
-  }
-};
-
-const fetchStatsData = async () => {
-  try {
-    const sdk = useNadeshikoSdk();
-    const response = await sdk.getSearchStats({
-      body: {
-        filters: { contentRating: contentRating.value },
-        include: ['media'],
-      },
-    });
-    return response.data ? resolveStatsResponse(response.data) : null;
   } catch {
     return null;
   }
 };
 
 const { data: initialSentenceData } = await useAsyncData(
-  () => `sentence-${uuid.value}`,
+  `sentence-${uuid.value}`,
   () => fetchSentenceData(),
   { server: true, lazy: false },
 );
 
-const { data: initialStatsData } = await useAsyncData(
-  () => `sentence-stats-${uuid.value}`,
-  () => fetchStatsData(),
-  { server: true, lazy: false },
-);
+const initialStatsData = computed<SearchStatsResponse | null>(() => {
+  const result = initialSentenceData.value?.results?.[0];
+  if (!result) return null;
+  return {
+    media: [{
+      mediaId: result.media.id,
+      matchCount: 1,
+      episodeHits: {},
+      nameRomaji: result.media.nameRomaji,
+      nameEn: result.media.nameEn,
+      nameJa: result.media.nameJa,
+      category: result.media.category,
+    }],
+    categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1 }],
+  };
+});
 
 const metaTags = computed(() => {
   const defaultDescription =

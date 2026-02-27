@@ -14,7 +14,6 @@ type ActivityStats = {
   totalSearches: number;
   totalExports: number;
   totalPlays: number;
-  totalListAdds: number;
   totalShares: number;
   streakDays?: number;
   topMedia: { mediaId: number; count: number }[];
@@ -30,7 +29,7 @@ const ACTIVITY_PAGE_SIZE = 20;
 const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''] as const;
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
-const ACTIVITY_TYPES = ['SEARCH', 'SEGMENT_PLAY', 'ANKI_EXPORT', 'LIST_ADD_SEGMENT', 'SHARE'] as const;
+const ACTIVITY_TYPES = ['SEARCH', 'SEGMENT_PLAY', 'ANKI_EXPORT', 'SHARE'] as const;
 
 const sdk = useNadeshikoSdk();
 
@@ -252,7 +251,6 @@ const activityTypeLabel = (type: string) => {
     SEARCH: 'Search',
     SEGMENT_PLAY: 'Audio Play',
     ANKI_EXPORT: 'Anki Export',
-    LIST_ADD_SEGMENT: 'Collection Add',
     SHARE: 'Share',
   };
   return labels[type] || type;
@@ -263,7 +261,6 @@ const activityTypeClass = (type: string) => {
     SEARCH: 'border-red-400/40 bg-red-500/10 text-red-300',
     SEGMENT_PLAY: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300',
     ANKI_EXPORT: 'border-blue-400/40 bg-blue-500/10 text-blue-300',
-    LIST_ADD_SEGMENT: 'border-amber-400/40 bg-amber-500/10 text-amber-300',
     SHARE: 'border-purple-400/40 bg-purple-500/10 text-purple-300',
   };
   return classes[type] || 'border-white/20 bg-white/5 text-white/80';
@@ -274,7 +271,6 @@ const activityTypeMutedClass = (type: string) => {
     SEARCH: 'border-red-400/20 bg-red-500/5 text-red-300/60 hover:text-red-200 hover:bg-red-500/10',
     SEGMENT_PLAY: 'border-emerald-400/20 bg-emerald-500/5 text-emerald-300/60 hover:text-emerald-200 hover:bg-emerald-500/10',
     ANKI_EXPORT: 'border-blue-400/20 bg-blue-500/5 text-blue-300/60 hover:text-blue-200 hover:bg-blue-500/10',
-    LIST_ADD_SEGMENT: 'border-amber-400/20 bg-amber-500/5 text-amber-300/60 hover:text-amber-200 hover:bg-amber-500/10',
     SHARE: 'border-purple-400/20 bg-purple-500/5 text-purple-300/60 hover:text-purple-200 hover:bg-purple-500/10',
   };
   return classes[type] || 'border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10';
@@ -286,7 +282,6 @@ const heatmapTooltipUnit = (count: number): string => {
     SEARCH: ['search', 'searches'],
     SEGMENT_PLAY: ['play', 'plays'],
     ANKI_EXPORT: ['export', 'exports'],
-    LIST_ADD_SEGMENT: ['addition', 'additions'],
     SHARE: ['share', 'shares'],
   };
   const [singular, plural] = units[heatmapFilter.value] ?? ['action', 'actions'];
@@ -353,13 +348,6 @@ const HEATMAP_PALETTES: Record<string, readonly string[]> = {
     'bg-blue-700/60 border-blue-600/70',
     'bg-blue-500/70 border-blue-400/80',
     'bg-blue-300/80 border-blue-200/80',
-  ],
-  LIST_ADD_SEGMENT: [
-    'bg-white/5 border-white/10',
-    'bg-amber-900/50 border-amber-800/60',
-    'bg-amber-700/60 border-amber-600/70',
-    'bg-amber-500/70 border-amber-400/80',
-    'bg-amber-300/80 border-amber-200/80',
   ],
   SHARE: [
     'bg-white/5 border-white/10',

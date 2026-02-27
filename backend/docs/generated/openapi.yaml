@@ -88,8 +88,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -138,8 +139,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -189,8 +191,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -240,8 +243,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -307,8 +311,9 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - ADD_MEDIA
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -348,8 +353,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: query
           in: query
@@ -407,9 +413,10 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
@@ -461,9 +468,10 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
@@ -505,9 +513,10 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
@@ -577,8 +586,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -627,8 +637,9 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - ADD_MEDIA
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -680,8 +691,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -728,8 +740,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -787,8 +800,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -824,8 +838,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
+        - ApiKey:
+            - ADD_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -879,8 +894,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -935,8 +951,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -978,8 +995,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1018,8 +1036,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1058,8 +1077,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1106,8 +1126,10 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: id
           in: path
@@ -1152,8 +1174,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1188,8 +1211,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1241,8 +1265,9 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - ADD_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1285,8 +1310,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1328,8 +1354,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1377,8 +1404,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1421,8 +1449,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1481,8 +1510,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
+        - ApiKey:
+            - ADD_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1532,8 +1562,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1582,8 +1613,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1638,8 +1670,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1689,7 +1722,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -1717,7 +1750,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -1751,7 +1784,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -1775,7 +1808,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -1805,7 +1838,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: cursor
           in: query
@@ -1862,7 +1895,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -1905,7 +1938,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: activityType
           in: query
@@ -1941,7 +1974,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: days
           in: query
@@ -1982,7 +2015,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: since
           in: query
@@ -2043,7 +2076,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: date
           in: path
@@ -2080,7 +2113,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2110,7 +2143,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -2136,7 +2169,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -2163,7 +2196,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: key
           in: path
@@ -2191,7 +2224,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: key
           in: path
@@ -2218,7 +2251,7 @@ paths:
       description: |
         Returns all collections for the authenticated user. Can filter by visibility.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: visibility
           in: query
@@ -2270,7 +2303,7 @@ paths:
       description: |
         Creates a new segment collection for the authenticated user.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -2304,7 +2337,7 @@ paths:
       description: |
         Returns a collection with paginated segments and their search result data.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2356,7 +2389,7 @@ paths:
       description: |
         Updates collection name or visibility. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2409,7 +2442,7 @@ paths:
       description: |
         Deletes a collection and all its segment entries. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2443,7 +2476,7 @@ paths:
       description: |
         Adds a segment to a collection. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2494,7 +2527,7 @@ paths:
       description: |
         Updates the note or position of a segment in a collection. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2550,7 +2583,7 @@ paths:
       description: |
         Removes a segment from a collection. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2592,7 +2625,7 @@ paths:
         Returns collection segments in search-response format with pagination.
         Reshapes the collection data: extracts segment results, includes media, computes pagination.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2646,7 +2679,7 @@ paths:
         Returns per-media segment counts and per-category counts for all segments in a collection.
         Pages through all collection segments internally to compute statistics.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2687,7 +2720,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: OK
@@ -2876,7 +2910,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: OK
@@ -2969,7 +3004,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       requestBody:
         required: false
         content:
@@ -3010,7 +3046,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: Queue statistics retrieved successfully
@@ -3063,7 +3100,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3206,7 +3244,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3274,7 +3313,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3336,7 +3376,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3481,7 +3522,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: cursor
           in: query
@@ -3572,7 +3614,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: id
           in: path
@@ -3617,7 +3660,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: OK
@@ -3647,7 +3691,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: name
           in: path
@@ -3700,7 +3745,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: name
           in: path
@@ -3745,7 +3791,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: auditName
           in: query
@@ -3801,7 +3848,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: id
           in: path
@@ -3838,12 +3886,12 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
-    apiKeyHeader:
+    ApiKey:
       type: http
       scheme: bearer
       bearerFormat: APIKey
       description: API key authentication via Authorization Bearer header
-    sessionCookie:
+    SessionCookie:
       type: apiKey
       in: cookie
       name: nadeshiko.session_token
@@ -4998,6 +5046,40 @@ components:
           additionalProperties:
             type: string
           description: Optional map of field names to their error messages (for validation errors)
+    MediaAutocompleteItem:
+      type: object
+      description: Slim media item returned by autocomplete (names + cover only)
+      required:
+        - id
+        - nameJa
+        - nameRomaji
+        - nameEn
+        - coverUrl
+        - category
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the media
+          example: 7674
+        nameJa:
+          type: string
+          description: Original Japanese name of the media
+          example: バクマン。
+        nameRomaji:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Bakuman.
+        nameEn:
+          type: string
+          description: English name of the media
+          example: Bakuman.
+        coverUrl:
+          type: string
+          format: uri
+          description: Full URL to the cover image
+          example: https://cdn.example.com/media/anime/bakuman/cover.webp
+        category:
+          $ref: '#/components/schemas/Category'
     MediaAutocompleteResponse:
       type: object
       required:
@@ -5006,7 +5088,7 @@ components:
         media:
           type: array
           items:
-            $ref: '#/components/schemas/Media'
+            $ref: '#/components/schemas/MediaAutocompleteItem'
     SegmentInternal:
       description: |
         Segment with internal fields. For write operations (create, update) all fields are always populated.
@@ -6029,7 +6111,6 @@ components:
         - SEARCH
         - ANKI_EXPORT
         - SEGMENT_PLAY
-        - LIST_ADD_SEGMENT
         - SHARE
       description: Type of user activity
     UserActivity:
@@ -6076,8 +6157,6 @@ components:
           type: integer
         ANKI_EXPORT:
           type: integer
-        LIST_ADD_SEGMENT:
-          type: integer
         SHARE:
           type: integer
     Collection:
@@ -6086,6 +6165,7 @@ components:
       required:
         - id
         - name
+        - type
         - visibility
         - segmentCount
         - createdAt
@@ -6099,6 +6179,13 @@ components:
           type: string
           description: Name of the collection
           example: Study Favorites
+        type:
+          type: string
+          enum:
+            - USER
+            - ANKI_EXPORT
+          description: Type of the collection
+          example: USER
         visibility:
           type: string
           enum:

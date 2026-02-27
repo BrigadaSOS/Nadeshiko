@@ -110,6 +110,10 @@
     "previousPage": "前のページ",
     "nextPage": "次のページ"
   },
+  "mediaBrowse": {
+    "showHiddenMedia": "非表示の作品を表示",
+    "hideHiddenMedia": "非表示の作品を隠す"
+  },
   "searchSettingsModal": {
     "title": "検索設定",
     "exactMatchTitle": "完全一致検索",
@@ -154,6 +158,30 @@
   },
   "modalContext": {
     "closeSrOnly": "閉じる"
+  },
+  "modalMediaEdit": {
+    "title": "メディア編集",
+    "editButton": "編集",
+    "nameJa": "日本語名",
+    "nameRomaji": "ローマ字名",
+    "nameEn": "英語名",
+    "airingFormat": "形式",
+    "airingStatus": "放送状況",
+    "category": "カテゴリ",
+    "genres": "ジャンル",
+    "genresPlaceholder": "コメディ, ドラマ, ロマンス",
+    "studio": "スタジオ",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "seasonName": "シーズン",
+    "seasonYear": "年",
+    "externalIds": "外部ID",
+    "save": "保存",
+    "saving": "保存中...",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "saveSuccess": "メディアを更新しました",
+    "saveError": "メディアの更新に失敗しました"
   },
   "modalSegmentEdit": {
     "title": "セグメント編集",
@@ -358,6 +386,7 @@
       "contentRatingHint_hide": "検索結果に含まれません",
       "contentRatingPreview": "検索結果での表示プレビュー",
       "contentRatingHidden": "非表示",
+      "contentRatingHiddenDesc": "非表示 — 検索結果に含まれません",
       "preferenceSaved": "設定を保存しました",
       "preferenceError": "設定の保存に失敗しました",
       "hiddenMedia": "非表示メディア",
@@ -388,7 +417,22 @@
         "PUBLIC": "公開",
         "PRIVATE": "非公開"
       },
-      "noCollections": "コレクションはまだありません。"
+      "noCollections": "コレクションはまだありません。",
+      "makePublic": "公開にする",
+      "makePrivate": "非公開にする",
+      "visibilityTitle": "公開設定を変更",
+      "makePublicMessage": "「{name}」を公開にしますか？誰でもこのコレクションを閲覧できるようになります。",
+      "makePrivateMessage": "「{name}」を非公開にしますか？あなただけがこのコレクションを閲覧できます。",
+      "visibilityConfirm": "確認",
+      "visibilityChanged": "公開設定を更新しました",
+      "visibilityError": "公開設定の更新に失敗しました",
+      "createButton": "新規コレクション",
+      "createTitle": "コレクションを作成",
+      "createConfirm": "作成",
+      "createSuccess": "コレクションを作成しました",
+      "createError": "コレクションの作成に失敗しました",
+      "nameLabel": "名前",
+      "namePlaceholder": "マイコレクション"
     },
     "anki": {
       "syncStatus": "同期状態",
@@ -471,7 +515,10 @@
     "categoryLiveaction": "実写",
     "categoryAudiobook": "オーディオブック",
     "collectionTabPrefix": "コレクション",
-    "backToCollections": "コレクション一覧"
+    "backToCollections": "コレクション一覧",
+    "hiddenMediaNotice": "この作品は非表示リストに含まれています",
+    "hiddenMediaDescription": "この作品は検索結果から非表示にされています。一時的に表示することができます。",
+    "hiddenMediaShowAnyway": "表示する"
   },
   "reports": {
     "title": "マイレポート",

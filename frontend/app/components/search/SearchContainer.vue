@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiRefresh } from '@mdi/js';
+import { mdiRefresh, mdiEyeOff } from '@mdi/js';
 import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
 
 import { usePlayerStore } from '~/stores/player';
@@ -14,7 +14,16 @@ import type {
 } from '~/types/search';
 
 const { mediaName } = useMediaName();
-const { hiddenMediaExcludeFilter } = useHiddenMedia();
+const { hiddenMediaIds, hiddenMediaExcludeFilter, isMediaHidden } = useHiddenMedia();
+
+const recomputeCategories = (media: ResolvedMediaStats[]): ResolvedCategoryCount[] => {
+  const counts = new Map<'ANIME' | 'JDRAMA', number>();
+  for (const m of media) {
+    const cat = m.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME';
+    counts.set(cat, (counts.get(cat) ?? 0) + m.matchCount);
+  }
+  return Array.from(counts.entries()).map(([category, count]) => ({ category, count }));
+};
 
 const props = defineProps<{
   initialSentenceData?: SearchResponse | null;
@@ -50,6 +59,29 @@ const uuid = ref<string | null>(null);
 const episode = ref<number | null>(null);
 
 const categoryApiMapping = CATEGORY_API_MAPPING;
+const showHiddenMediaOverride = ref(false);
+
+const isViewingHiddenMedia = computed(
+  () => !!media.value && !showHiddenMediaOverride.value && isMediaHidden(Number(media.value)),
+);
+
+const isResultFromHiddenMedia = computed(() => {
+  if (isViewingHiddenMedia.value || showHiddenMediaOverride.value) return false;
+  const firstResult = sentenceData.value?.results?.[0];
+  if (!firstResult) return false;
+  return isMediaHidden(firstResult.media.id);
+});
+
+const showAnywayAndRefresh = () => {
+  showHiddenMediaOverride.value = true;
+  resetSentencePagination();
+  fetchStats();
+  fetchSentences();
+};
+
+const showAnywayForResult = () => {
+  showHiddenMediaOverride.value = true;
+};
 
 const firstQueryValue = (
   value: LocationQueryValue | LocationQueryValue[] | undefined,
@@ -65,13 +97,21 @@ const getStringQueryValue = (value: LocationQueryValue | LocationQueryValue[] | 
 const searchData = computed(() => {
   const sentencePayload = sentenceData.value;
   const statsPayload = statsData.value;
+  const hidden = new Set(hiddenMediaIds.value);
+
+  const allMedia = statsPayload?.media || ([] as ResolvedMediaStats[]);
+  const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.mediaId)) : allMedia;
+
+  const categories = hidden.size > 0
+    ? recomputeCategories(filteredMedia)
+    : statsPayload?.categories || ([] as ResolvedCategoryCount[]);
 
   return {
     results: sentencePayload?.results || [],
     cursor: sentencePayload?.pagination?.cursor,
     pagination: sentencePayload?.pagination,
-    categories: statsPayload?.categories || ([] as ResolvedCategoryCount[]),
-    media: statsPayload?.media || ([] as ResolvedMediaStats[]),
+    categories,
+    media: filteredMedia,
   };
 });
 
@@ -98,7 +138,17 @@ const animeTabName = computed(() => {
 
     return t('searchContainer.categoryAll');
   }
+
+  const singleResult = searchData.value?.results;
+  if (singleResult?.length === 1 && !query.value) {
+    return mediaName(singleResult[0]!.media);
+  }
+
   return t('searchContainer.categoryAll');
+});
+
+const isSingleSegmentView = computed(() => {
+  return searchData.value?.results?.length === 1 && !query.value && !media.value && !props.collectionId;
 });
 
 const getSearchQuery = (r: RouteLocationNormalized): string => {
@@ -176,6 +226,13 @@ const fetchStats = async () => {
 
 const fetchSentences = async () => {
   try {
+    if (isViewingHiddenMedia.value) {
+      sentenceData.value = { results: [] };
+      endOfResults.value = true;
+      hasMoreResults.value = false;
+      return;
+    }
+
     if (endOfResults.value || isLoading.value) {
       return;
     }
@@ -225,7 +282,7 @@ const fetchSentences = async () => {
       }
 
       filters.contentRating = contentRating.value;
-      if (hiddenMediaExcludeFilter.value.length > 0) {
+      if (!media.value && hiddenMediaExcludeFilter.value.length > 0) {
         filters.media = {
           ...(filters.media || {}),
           exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
@@ -410,6 +467,7 @@ onBeforeRouteUpdate(async (to, from) => {
   const statsScopeChanged = toQuery !== fromQuery || to.query.category !== from.query.category;
 
   applyRouteQuery(to);
+  showHiddenMediaOverride.value = false;
   resetSentencePagination();
 
   if (statsScopeChanged) {
@@ -422,7 +480,22 @@ onBeforeRouteUpdate(async (to, from) => {
 
 <template>
     <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :media="media" />
-    <div v-if="initialError">
+    <div v-if="isViewingHiddenMedia || isResultFromHiddenMedia" class="flex-1 mx-auto">
+        <section class="w-full py-10 px-4">
+            <div class="flex flex-col items-center max-w-lg mx-auto text-center">
+                <img class="mb-6" src="/assets/hidden-media.gif" alt="Hidden media illustration" />
+                <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchContainer.hiddenMediaNotice') }}</h1>
+                <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.hiddenMediaDescription') }}</p>
+                <button
+                    class="mt-6 px-5 py-2.5 rounded-lg text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                    @click="isViewingHiddenMedia ? showAnywayAndRefresh() : showAnywayForResult()"
+                >
+                    {{ $t('searchContainer.hiddenMediaShowAnyway') }}
+                </button>
+            </div>
+        </section>
+    </div>
+    <div v-else-if="initialError">
         <div v-if="$slots['result-controls']" class="pb-3">
             <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] pb-3">
                 <div class="shrink-0">
@@ -470,32 +543,31 @@ onBeforeRouteUpdate(async (to, from) => {
         </section>
     </div>
     <div v-else class="flex-1 mx-auto">
-        <!-- Collection breadcrumb -->
-        <div v-if="collectionId" class="mt-4 pb-2 flex items-center gap-2 text-sm">
-            <NuxtLink
-                to="/user/collections"
-                class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
-            >
-                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
-                </svg>
-                {{ $t('searchContainer.backToCollections') }}
-            </NuxtLink>
-            <span v-if="collectionName" class="text-gray-600">/</span>
-            <span v-if="collectionName" class="text-white/70 font-medium truncate max-w-[20rem]">{{ collectionName }}</span>
-        </div>
         <!-- Tabs -->
         <div class="pb-3" v-if="searchData?.categories?.length > 0">
             <div class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21]">
+                <div v-if="collectionId" class="shrink-0 flex items-center gap-2 text-sm">
+                    <NuxtLink
+                        to="/user/collections"
+                        class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
+                        </svg>
+                        {{ $t('searchContainer.backToCollections') }}
+                    </NuxtLink>
+                    <span v-if="collectionName" class="text-gray-600">/</span>
+                    <span v-if="collectionName" class="text-white/70 font-medium truncate max-w-[20rem]">{{ collectionName }}</span>
+                </div>
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
                         <CommonTabsHeader :showBorder="false">
                             <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')"
                                 :isActive="category === 'all' || media" @click="categoryFilter('all')" />
-                            <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'ANIME')"
+                            <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'ANIME')"
                                 category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :isActive="category === 'anime'"
                                 @click="categoryFilter('anime')" />
-                            <CommonTabsItem v-if="!media && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
+                            <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
                                 category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :isActive="category === 'liveaction'"
                                 @click="categoryFilter('liveaction')" />
                         </CommonTabsHeader>
@@ -515,9 +587,22 @@ onBeforeRouteUpdate(async (to, from) => {
                 </CommonTabsHeader>
             </CommonTabsContainer>
         </div>
-        <div v-else-if="$slots['result-controls']" class="pb-3">
-            <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] py-4">
-                <div class="shrink-0">
+        <div v-else-if="collectionId || $slots['result-controls']" class="pb-3">
+            <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4">
+                <div v-if="collectionId" class="shrink-0 flex items-center gap-2 text-sm">
+                    <NuxtLink
+                        to="/user/collections"
+                        class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
+                        </svg>
+                        {{ $t('searchContainer.backToCollections') }}
+                    </NuxtLink>
+                    <span v-if="collectionName" class="text-gray-600">/</span>
+                    <span v-if="collectionName" class="text-white/70 font-medium truncate max-w-[20rem]">{{ collectionName }}</span>
+                </div>
+                <div v-if="$slots['result-controls']" class="shrink-0 ml-auto">
                     <slot name="result-controls" />
                 </div>
             </div>

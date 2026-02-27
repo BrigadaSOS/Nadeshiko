@@ -23,10 +23,10 @@ function getQueueName(operation: EsSyncJobData['operation']): EsSyncQueueName {
  * Uses sendDebounced to coalesce rapid updates for the same segment.
  */
 export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null> {
-  const boss = getPgBoss();
   const queueName = getQueueName(data.operation);
 
   try {
+    const boss = getPgBoss();
     // A value of 0 causes a SQL division-by-zero in pg-boss singleton_on calculation.
     const jobId = await boss.sendDebounced(queueName, data, null, 1, `${data.segmentId}`);
     logger.info(`Enqueued ES sync job ${jobId} for segment ${data.segmentId} (${data.operation})`);
@@ -54,8 +54,6 @@ export async function cancelJobsForSegment(segmentId: number): Promise<boolean> 
 }
 
 export async function sendBulkEsSyncJobs(jobs: EsSyncJobData[]): Promise<void> {
-  const boss = getPgBoss();
-
   const jobsByQueue: Record<EsSyncQueueName, EsSyncJobData[]> = {
     [ES_SYNC_CREATE_QUEUE]: [],
     [ES_SYNC_UPDATE_QUEUE]: [],
@@ -71,6 +69,7 @@ export async function sendBulkEsSyncJobs(jobs: EsSyncJobData[]): Promise<void> {
     if (queueJobs.length === 0) continue;
 
     try {
+      const boss = getPgBoss();
       await boss.send(queueName, queueJobs);
       logger.info(`Enqueued ${queueJobs.length} ES sync jobs to ${queueName}`);
     } catch (error) {

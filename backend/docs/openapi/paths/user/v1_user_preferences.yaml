@@ -9,7 +9,7 @@ get:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   responses:
     "200":
       description: OK
@@ -34,7 +34,7 @@ patch:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   requestBody:
     required: true
     content:

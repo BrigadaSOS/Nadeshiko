@@ -111,6 +111,10 @@
     "previousPage": "Previous Page",
     "nextPage": "Next Page"
   },
+  "mediaBrowse": {
+    "showHiddenMedia": "Show hidden media",
+    "hideHiddenMedia": "Hide hidden media"
+  },
   "searchSettingsModal": {
     "title": "Search settings",
     "exactMatchTitle": "Exact match",
@@ -155,6 +159,30 @@
   },
   "modalContext": {
     "closeSrOnly": "Close"
+  },
+  "modalMediaEdit": {
+    "title": "Edit Media",
+    "editButton": "Edit",
+    "nameJa": "Japanese Name",
+    "nameRomaji": "Romaji Name",
+    "nameEn": "English Name",
+    "airingFormat": "Format",
+    "airingStatus": "Airing Status",
+    "category": "Category",
+    "genres": "Genres",
+    "genresPlaceholder": "Comedy, Drama, Romance",
+    "studio": "Studio",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "seasonName": "Season",
+    "seasonYear": "Year",
+    "externalIds": "External IDs",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "saveSuccess": "Media updated successfully",
+    "saveError": "Failed to update media"
   },
   "modalSegmentEdit": {
     "title": "Edit Segment",
@@ -371,6 +399,7 @@
       "contentRatingHint_hide": "Results will not be included in search",
       "contentRatingPreview": "Preview of how flagged results will appear in search",
       "contentRatingHidden": "Hidden",
+      "contentRatingHiddenDesc": "Hidden — will not be included in search results",
       "preferenceSaved": "Preference saved",
       "preferenceError": "Failed to save preference",
       "hiddenMedia": "Hide Media",
@@ -401,7 +430,22 @@
         "PUBLIC": "Public",
         "PRIVATE": "Private"
       },
-      "noCollections": "No collections yet."
+      "noCollections": "No collections yet.",
+      "makePublic": "Make public",
+      "makePrivate": "Make private",
+      "visibilityTitle": "Change visibility",
+      "makePublicMessage": "Make \"{name}\" public? Anyone will be able to view this collection.",
+      "makePrivateMessage": "Make \"{name}\" private? Only you will be able to view this collection.",
+      "visibilityConfirm": "Confirm",
+      "visibilityChanged": "Visibility updated",
+      "visibilityError": "Failed to update visibility",
+      "createButton": "New collection",
+      "createTitle": "Create collection",
+      "createConfirm": "Create",
+      "createSuccess": "Collection created",
+      "createError": "Failed to create collection",
+      "nameLabel": "Name",
+      "namePlaceholder": "My collection"
     },
     "anki": {
       "syncStatus": "Sync Status",
@@ -485,7 +529,10 @@
     "categoryLiveaction": "Live Action",
     "categoryAudiobook": "Audiobook",
     "collectionTabPrefix": "Collection",
-    "backToCollections": "Collections"
+    "backToCollections": "Collections",
+    "hiddenMediaNotice": "This media is in your hidden list",
+    "hiddenMediaDescription": "You've hidden this media from your search results. You can still view it temporarily.",
+    "hiddenMediaShowAnyway": "Show anyway"
   },
   "reports": {
     "title": "My Reports",

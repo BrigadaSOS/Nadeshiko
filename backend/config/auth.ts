@@ -3,6 +3,7 @@ import { config, type AppConfig } from '@config/config';
 import { isProdEnvironment } from '@config/environment';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { sendWelcomeEmail } from '@app/mailers/email';
+import { ensureDefaultCollections } from '@app/controllers/collectionController';
 import { betterAuth } from 'better-auth';
 import { apiKey, customSession } from 'better-auth/plugins';
 import { Pool } from 'pg';
@@ -65,6 +66,7 @@ export interface BuildAuthOptionsDependencies {
   findUserById?: FindUserById;
   sendWelcomeEmailFn?: typeof sendWelcomeEmail;
   onWelcomeEmailError?: WelcomeEmailErrorLogger;
+  ensureDefaultCollectionsFn?: typeof ensureDefaultCollections;
 }
 
 export function getTrustedOrigins(allowedWebsiteUrls: string): string[] {
@@ -160,6 +162,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
   const findUserById = dependencies.findUserById || defaultFindUserById;
   const sendWelcomeEmailFn = dependencies.sendWelcomeEmailFn || sendWelcomeEmail;
   const onWelcomeEmailError = dependencies.onWelcomeEmailError || defaultWelcomeEmailErrorLogger;
+  const ensureDefaultCollectionsFn = dependencies.ensureDefaultCollectionsFn || ensureDefaultCollections;
 
   const trustedOrigins = getTrustedOrigins(configValues.ALLOWED_WEBSITE_URLS);
   const socialProviders = buildSocialProviders(configValues);
@@ -267,8 +270,12 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
               },
             };
           },
-          after: async (user) =>
-            sendWelcomeEmailAfterUserCreate(user as BetterAuthCreatedUser, sendWelcomeEmailFn, onWelcomeEmailError),
+          after: async (user) => {
+            await sendWelcomeEmailAfterUserCreate(user as BetterAuthCreatedUser, sendWelcomeEmailFn, onWelcomeEmailError);
+            if (user.id) {
+              await ensureDefaultCollectionsFn(Number(user.id)).catch(() => {});
+            }
+          },
         },
       },
     },

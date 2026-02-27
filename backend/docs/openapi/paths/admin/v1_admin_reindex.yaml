@@ -15,7 +15,7 @@ post:
 
     **Permissions:** `ADD_MEDIA`
   security:
-    - sessionCookie: []
+    - SessionCookie: [ADMIN]
   requestBody:
     required: false
     content:

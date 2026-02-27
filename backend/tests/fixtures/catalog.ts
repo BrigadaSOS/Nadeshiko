@@ -282,7 +282,6 @@ export const FIXTURE_SETS = {
       kevinExport: { userId: ref('users.kevin.id'), activityType: ActivityType.ANKI_EXPORT, segmentUuid: 'seg-1' },
       kevinPlay1: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaId: 42 },
       kevinPlay2: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaId: 99 },
-      kevinListAdd: { userId: ref('users.kevin.id'), activityType: ActivityType.LIST_ADD_SEGMENT, mediaId: 42 },
     },
   },
   davidActivity: {

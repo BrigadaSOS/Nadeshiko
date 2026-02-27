@@ -2,7 +2,16 @@
 import { mdiClose, mdiMagnify } from '@mdi/js';
 
 import type { HiddenMediaItem } from '~/composables/useHiddenMedia';
-import type { Media, SdkMediaAutocompleteResponse } from '~/types/search';
+import type { SdkMediaAutocompleteResponse } from '~/types/search';
+
+type AutocompleteItem = {
+  id: number;
+  nameEn: string;
+  nameJa: string;
+  nameRomaji: string;
+  coverUrl: string;
+  category: string;
+};
 
 type NamedMedia = {
   mediaId?: number;
@@ -18,7 +27,7 @@ const { mediaName, language } = useMediaName();
 const { prefs: hiddenMediaPrefs, toggleHideMedia, isMediaHidden } = useHiddenMedia();
 
 const hiddenMediaSearchQuery = ref('');
-const hiddenMediaSearchResults = ref<Media[]>([]);
+const hiddenMediaSearchResults = ref<AutocompleteItem[]>([]);
 const searchLoading = ref(false);
 let hiddenMediaSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -105,7 +114,7 @@ onBeforeUnmount(() => {
   }
 });
 
-const toggleFromResult = async (result: Media) => {
+const toggleFromResult = async (result: AutocompleteItem) => {
   await toggleHideMedia(result);
 };
 

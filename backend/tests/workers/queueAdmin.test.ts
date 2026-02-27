@@ -49,9 +49,9 @@ describe('queueAdmin', () => {
 
     expect(getQueueStats).toHaveBeenCalledTimes(ES_SYNC_QUEUES.length);
     expect(stats).toEqual([
-      { queue: 'es-sync-create', stuckCount: 5, failedCount: 0 },
-      { queue: 'es-sync-update', stuckCount: 5, failedCount: 0 },
-      { queue: 'es-sync-delete', stuckCount: 5, failedCount: 0 },
+      { queue: 'es-sync-create', queued: 2, active: 3, failed: 0, completed: 0 },
+      { queue: 'es-sync-update', queued: 2, active: 3, failed: 0, completed: 0 },
+      { queue: 'es-sync-delete', queued: 2, active: 3, failed: 0, completed: 0 },
     ]);
   });
 

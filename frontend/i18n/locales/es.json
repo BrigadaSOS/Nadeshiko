@@ -111,6 +111,10 @@
     "previousPage": "Página Anterior",
     "nextPage": "Página Siguiente"
   },
+  "mediaBrowse": {
+    "showHiddenMedia": "Mostrar contenido oculto",
+    "hideHiddenMedia": "Ocultar contenido oculto"
+  },
   "searchSettingsModal": {
     "title": "Ajustes del buscador",
     "exactMatchTitle": "Habilitar búsqueda exacta",
@@ -155,6 +159,30 @@
   },
   "modalContext": {
     "closeSrOnly": "Cerrar"
+  },
+  "modalMediaEdit": {
+    "title": "Editar Media",
+    "editButton": "Editar",
+    "nameJa": "Nombre en Japonés",
+    "nameRomaji": "Nombre en Romaji",
+    "nameEn": "Nombre en Inglés",
+    "airingFormat": "Formato",
+    "airingStatus": "Estado de emisión",
+    "category": "Categoría",
+    "genres": "Géneros",
+    "genresPlaceholder": "Comedia, Drama, Romance",
+    "studio": "Estudio",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "seasonName": "Temporada",
+    "seasonYear": "Año",
+    "externalIds": "IDs externos",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "saveSuccess": "Media actualizado correctamente",
+    "saveError": "Error al actualizar media"
   },
   "modalSegmentEdit": {
     "title": "Editar segmento",
@@ -359,6 +387,7 @@
       "contentRatingHint_hide": "Los resultados no se incluirán en la búsqueda",
       "contentRatingPreview": "Vista previa de cómo aparecerán los resultados marcados en la búsqueda",
       "contentRatingHidden": "Oculto",
+      "contentRatingHiddenDesc": "Oculto — no se incluirá en los resultados de búsqueda",
       "preferenceSaved": "Preferencia guardada",
       "preferenceError": "Error al guardar la preferencia",
       "hiddenMedia": "Medios ocultos",
@@ -389,7 +418,22 @@
         "PUBLIC": "Pública",
         "PRIVATE": "Privada"
       },
-      "noCollections": "No hay colecciones todavía."
+      "noCollections": "No hay colecciones todavía.",
+      "makePublic": "Hacer pública",
+      "makePrivate": "Hacer privada",
+      "visibilityTitle": "Cambiar visibilidad",
+      "makePublicMessage": "¿Hacer \"{name}\" pública? Cualquier persona podrá ver esta colección.",
+      "makePrivateMessage": "¿Hacer \"{name}\" privada? Solo tú podrás ver esta colección.",
+      "visibilityConfirm": "Confirmar",
+      "visibilityChanged": "Visibilidad actualizada",
+      "visibilityError": "Error al actualizar la visibilidad",
+      "createButton": "Nueva colección",
+      "createTitle": "Crear colección",
+      "createConfirm": "Crear",
+      "createSuccess": "Colección creada",
+      "createError": "Error al crear la colección",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Mi colección"
     },
     "anki": {
       "syncStatus": "Estado Sincronización",
@@ -472,7 +516,10 @@
     "categoryLiveaction": "Live Action",
     "categoryAudiobook": "Audiolibro",
     "collectionTabPrefix": "Colección",
-    "backToCollections": "Colecciones"
+    "backToCollections": "Colecciones",
+    "hiddenMediaNotice": "Este contenido está en tu lista de ocultos",
+    "hiddenMediaDescription": "Has ocultado este contenido de los resultados de búsqueda. Aún puedes verlo temporalmente.",
+    "hiddenMediaShowAnyway": "Mostrar de todas formas"
   },
   "reports": {
     "title": "Mis Reportes",

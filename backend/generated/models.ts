@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type t_ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'LIST_ADD_SEGMENT' | 'SHARE';
+export type t_ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'SHARE';
 
 export type t_AdminReport = t_Report & {
   reportCount: number;
@@ -56,6 +56,7 @@ export type t_Collection = {
   id: number;
   name: string;
   segmentCount: number;
+  type: 'USER' | 'ANKI_EXPORT';
   updatedAt: string | null;
   visibility: 'PUBLIC' | 'PRIVATE';
 };
@@ -198,7 +199,6 @@ export type t_ExternalId = {
 
 export type t_HeatmapDayCounts = {
   ANKI_EXPORT?: number;
-  LIST_ADD_SEGMENT?: number;
   SEARCH?: number;
   SEGMENT_PLAY?: number;
   SHARE?: number;
@@ -266,8 +266,17 @@ export type t_MediaAuditRun = {
   };
 };
 
+export type t_MediaAutocompleteItem = {
+  category: t_Category;
+  coverUrl: string;
+  id: number;
+  nameEn: string;
+  nameJa: string;
+  nameRomaji: string;
+};
+
 export type t_MediaAutocompleteResponse = {
-  media: t_Media[];
+  media: t_MediaAutocompleteItem[];
 };
 
 export type t_MediaCharacter = {

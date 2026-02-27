@@ -1,0 +1,33 @@
+type: object
+description: Slim media item returned by autocomplete (names + cover only)
+required:
+  - id
+  - nameJa
+  - nameRomaji
+  - nameEn
+  - coverUrl
+  - category
+properties:
+  id:
+    type: integer
+    description: Unique identifier for the media
+    example: 7674
+  nameJa:
+    type: string
+    description: Original Japanese name of the media
+    example: "バクマン。"
+  nameRomaji:
+    type: string
+    description: Romaji transliteration of the media name
+    example: "Bakuman."
+  nameEn:
+    type: string
+    description: English name of the media
+    example: "Bakuman."
+  coverUrl:
+    type: string
+    format: uri
+    description: Full URL to the cover image
+    example: "https://cdn.example.com/media/anime/bakuman/cover.webp"
+  category:
+    $ref: "./Category.yaml"

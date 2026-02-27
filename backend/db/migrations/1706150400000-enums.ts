@@ -40,7 +40,11 @@ export class Enums1706150400000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      CREATE TYPE "activity_type" AS ENUM ('SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'LIST_ADD_SEGMENT')
+      CREATE TYPE "activity_type" AS ENUM ('SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'SHARE')
+    `);
+
+    await queryRunner.query(`
+      CREATE TYPE "collection_type" AS ENUM ('USER', 'ANKI_EXPORT')
     `);
 
     await queryRunner.query(`
@@ -75,6 +79,7 @@ export class Enums1706150400000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP TYPE "collection_type"`);
     await queryRunner.query(`DROP TYPE "external_source_type"`);
     await queryRunner.query(`DROP TYPE "media_audit_target_type"`);
     await queryRunner.query(`DROP TYPE "report_target_type"`);

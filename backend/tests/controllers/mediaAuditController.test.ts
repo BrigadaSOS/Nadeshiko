@@ -2,7 +2,7 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'bun:test';
 import type { Application, Request, Response, NextFunction } from 'express';
 import { buildApplication } from '@config/application';
-import { AdminRoutes } from '@app/routes/router';
+import { AdminRoutes } from '@config/routes';
 import { setupTestSuite } from '../helpers/setup';
 import {
   MediaAudit,

@@ -9,7 +9,7 @@ patch:
 
     **Permissions:** `ADD_MEDIA`
   security:
-    - sessionCookie: []
+    - SessionCookie: [ADMIN]
   parameters:
     - name: name
       in: path

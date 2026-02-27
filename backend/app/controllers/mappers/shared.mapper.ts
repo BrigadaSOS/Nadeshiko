@@ -1,4 +1,11 @@
-import type { t_Seiyuu, t_Character, t_Media, t_MediaCharacter, t_ExternalId } from 'generated/models';
+import type {
+  t_Seiyuu,
+  t_Character,
+  t_Media,
+  t_MediaAutocompleteItem,
+  t_MediaCharacter,
+  t_ExternalId,
+} from 'generated/models';
 import type { Seiyuu, Character, Media, MediaCharacter } from '@app/models';
 import type { MediaExternalId } from '@app/models/MediaExternalId';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
@@ -35,6 +42,15 @@ export const toMediaCharacterDTO = (mediaCharacter: MediaCharacter): t_MediaChar
   imageUrl: mediaCharacter.character.imageUrl,
   seiyuu: toSeiyuuDTO(mediaCharacter.character.seiyuu),
   role: mediaCharacter.role as 'MAIN' | 'SUPPORTING' | 'BACKGROUND',
+});
+
+export const toMediaAutocompleteDTO = (media: Media): t_MediaAutocompleteItem => ({
+  id: media.id,
+  nameJa: media.nameJa,
+  nameRomaji: media.nameRomaji,
+  nameEn: media.nameEn,
+  coverUrl: getMediaCoverUrl(media),
+  category: media.category as 'ANIME' | 'JDRAMA',
 });
 
 const toDateString = (date: Date | string): string => {

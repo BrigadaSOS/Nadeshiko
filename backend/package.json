@@ -18,7 +18,7 @@
     "lint:openapi": "redocly lint",
     "lint:fix": "biome check . --write",
     "codegen": "bun run generate:api && bun run bin/generateErrorProfiles.ts",
-    "generate:api": "rm -rf generated && bun run docs:bundle && openapi-code-generator --input ./docs/generated/openapi.yaml --input-type openapi3 --output ./generated --template typescript-express --schema-builder zod-v3 --grouping-strategy first-tag && bun run bin/generateOutputTypes.ts",
+    "generate:api": "rm -rf generated && bun run docs:bundle && openapi-code-generator --input ./docs/generated/openapi.yaml --input-type openapi3 --output ./generated --template typescript-express --schema-builder zod-v3 --grouping-strategy first-tag && bun run bin/generateOutputTypes.ts && bun run bin/generateRouteAuth.ts",
     "generate:bruno": "bun run docs:bundle && bun run bin/generateBrunoCollection.ts",
     "generate:all": "bun run codegen && bun run generate:bruno && bun run docs:build",
     "docs:bundle": "redocly bundle main -o ./docs/generated/openapi.yaml --remove-unused-components",

@@ -9,7 +9,8 @@ get:
     **Permissions:** `READ_MEDIA`
 
   security:
-    - apiKeyHeader: [READ_MEDIA]
+    - ApiKey: [READ_MEDIA]
+    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -58,7 +59,8 @@ patch:
     **Permissions:** `UPDATE_MEDIA`
 
   security:
-    - apiKeyHeader: [UPDATE_MEDIA]
+    - ApiKey: [UPDATE_MEDIA]
+    - SessionCookie: [ADMIN]
   parameters:
     - name: id
       in: path
@@ -105,7 +107,8 @@ delete:
     **Permissions:** `REMOVE_MEDIA`
 
   security:
-    - apiKeyHeader: [REMOVE_MEDIA]
+    - ApiKey: [REMOVE_MEDIA]
+    - SessionCookie: []
   parameters:
     - name: id
       in: path

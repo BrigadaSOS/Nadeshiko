@@ -4,8 +4,10 @@ import { ES_SYNC_QUEUES } from './queueNames';
 
 export interface QueueStats {
   queue: string;
-  stuckCount: number;
-  failedCount: number;
+  queued: number;
+  active: number;
+  failed: number;
+  completed: number;
 }
 
 export interface QueueDetails {
@@ -50,14 +52,27 @@ export async function getStuckJobs(): Promise<QueueStats[]> {
   const boss = getPgBoss();
   const results: QueueStats[] = [];
 
+  const db = boss.getDb();
+
   for (const queue of ES_SYNC_QUEUES) {
     try {
       const stats = await boss.getQueueStats(queue);
 
+      const failedResult = await db.executeSql(
+        `SELECT COUNT(*)::int AS count FROM pgboss.job WHERE name = $1 AND state = 'failed'`,
+        [queue],
+      );
+      const completedResult = await db.executeSql(
+        `SELECT COUNT(*)::int AS count FROM pgboss.job WHERE name = $1 AND state = 'completed'`,
+        [queue],
+      );
+
       results.push({
         queue,
-        stuckCount: stats.queuedCount + stats.activeCount,
-        failedCount: 0, // PgBoss doesn't expose failed count in QueueResult.
+        queued: stats.queuedCount,
+        active: stats.activeCount,
+        failed: Number(failedResult.rows[0]?.count ?? 0),
+        completed: Number(completedResult.rows[0]?.count ?? 0),
       });
     } catch {
       logger.error(`Failed to get queue state for ${queue}`);
