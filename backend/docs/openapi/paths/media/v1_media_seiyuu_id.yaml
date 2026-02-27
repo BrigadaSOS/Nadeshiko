@@ -9,7 +9,8 @@ get:
     **Permissions:** `READ_MEDIA`
 
   security:
-    - apiKeyHeader: [READ_MEDIA]
+    - ApiKey: [READ_MEDIA]
+    - SessionCookie: []
   parameters:
     - name: id
       in: path

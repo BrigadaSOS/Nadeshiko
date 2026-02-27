@@ -16,7 +16,6 @@ type DashboardData = {
     totalSearches: number;
     totalExports: number;
     totalPlays: number;
-    totalCollectionAdds: number;
     activeSearchers7d: number;
     topQueries7d: Array<{ query: string; count: number }>;
     dailyActivity30d: Array<{ date: string; count: number }>;
@@ -145,10 +144,6 @@ const formatNumber = (n: number) => {
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Segment Plays</div>
           <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.activity.totalPlays) }}</div>
-        </div>
-        <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
-          <div class="text-sm text-gray-400">Collection Adds</div>
-          <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.activity.totalCollectionAdds) }}</div>
         </div>
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Active Searchers (7d)</div>

@@ -9,7 +9,8 @@ get:
     **Permissions:** `READ_MEDIA`
 
   security:
-    - apiKeyHeader: [READ_MEDIA]
+    - ApiKey: [READ_MEDIA]
+    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -63,7 +64,8 @@ post:
     **Permissions:** `ADD_MEDIA`
 
   security:
-    - apiKeyHeader: [ADD_MEDIA]
+    - ApiKey: [ADD_MEDIA]
+    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path

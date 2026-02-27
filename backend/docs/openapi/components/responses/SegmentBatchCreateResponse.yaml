@@ -1,0 +1,17 @@
+description: Batch segment creation result
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - created
+        - skipped
+      properties:
+        created:
+          type: integer
+          description: Number of segments successfully created
+          example: 700
+        skipped:
+          type: integer
+          description: Number of segments skipped due to duplicate UUIDs
+          example: 15

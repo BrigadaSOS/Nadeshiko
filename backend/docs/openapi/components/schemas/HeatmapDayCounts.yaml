@@ -7,7 +7,5 @@ properties:
     type: integer
   ANKI_EXPORT:
     type: integer
-  LIST_ADD_SEGMENT:
-    type: integer
   SHARE:
     type: integer

@@ -7,7 +7,6 @@ export enum ActivityType {
   SEARCH = 'SEARCH',
   ANKI_EXPORT = 'ANKI_EXPORT',
   SEGMENT_PLAY = 'SEGMENT_PLAY',
-  LIST_ADD_SEGMENT = 'LIST_ADD_SEGMENT',
   SHARE = 'SHARE',
 }
 
@@ -151,7 +150,7 @@ export class UserActivity extends BaseEntity {
       totalSearches: countMap[ActivityType.SEARCH] || 0,
       totalExports: countMap[ActivityType.ANKI_EXPORT] || 0,
       totalPlays: countMap[ActivityType.SEGMENT_PLAY] || 0,
-      totalListAdds: countMap[ActivityType.LIST_ADD_SEGMENT] || 0,
+      totalListAdds: 0,
       totalShares: countMap[ActivityType.SHARE] || 0,
       topMedia: topMediaRows.map((row) => ({
         mediaId: Number(row.mediaId),

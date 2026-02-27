@@ -6,11 +6,11 @@ type QueueDetails = NonNullable<Awaited<ReturnType<typeof fetchQueueDetails>>>;
 type QueueFailedJobsList = Awaited<ReturnType<typeof getFailedJobs>>;
 type QueueFailedJob = QueueFailedJobsList[number];
 
-export function toAdminQueueStatsDTO(stats: QueueStatsList): QueueStatsList {
+export function toAdminQueueStatsDTO(stats: QueueStatsList) {
   return stats.map((entry: QueueStatsItem) => ({
     queue: entry.queue,
-    stuckCount: entry.stuckCount,
-    failedCount: entry.failedCount,
+    stuckCount: Number(entry.queued ?? 0) + Number(entry.active ?? 0),
+    failedCount: Number(entry.failed ?? 0),
   }));
 }
 

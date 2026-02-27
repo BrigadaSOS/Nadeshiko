@@ -9,7 +9,7 @@ get:
 
     **Permissions:** `ADD_MEDIA`
   security:
-    - sessionCookie: []
+    - SessionCookie: [ADMIN]
   parameters:
     - name: id
       in: path

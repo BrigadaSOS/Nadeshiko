@@ -25,6 +25,14 @@ useHead({
 });
 const config = useRuntimeConfig();
 const { mediaName } = useMediaName();
+const { hiddenMediaIds } = useHiddenMedia();
+
+const filteredRecentMedia = computed(() => {
+  const list = media.value?.media ?? [];
+  const hidden = new Set(hiddenMediaIds.value);
+  if (hidden.size === 0) return list;
+  return list.filter((m) => !hidden.has(m.id));
+});
 
 const sdk = useNadeshikoSdk();
 const {
@@ -150,7 +158,7 @@ const {
                                         <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
-                                                    +{{ Math.ceil((media?.media?.reduce((sum, m) => sum + (m.segmentCount || 0), 0) || 0) / 100) * 100 }}
+                                                    +{{ Math.ceil((filteredRecentMedia.reduce((sum, m) => sum + (m.segmentCount || 0), 0) || 0) / 100) * 100 }}
                                                 </h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.sentenceCount') }}
@@ -160,7 +168,7 @@ const {
                                         <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
-                                                    {{ media?.media?.reduce((sum, m) => sum + (m.episodeCount || 0), 0) || 0 }}
+                                                    {{ filteredRecentMedia.reduce((sum, m) => sum + (m.episodeCount || 0), 0) || 0 }}
                                                 </h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.episodeCount') }}
@@ -170,7 +178,7 @@ const {
                                         <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">{{
-                                                    media?.media?.length || 0 }}</h2>
+                                                    filteredRecentMedia.length || 0 }}</h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.mediaCount') }}
                                                 </p>
@@ -268,7 +276,7 @@ const {
                                                     v-else
                                                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-3">
                                                     <NuxtLink
-                                                        v-for="(media_info, index) in media?.media"
+                                                        v-for="(media_info, index) in filteredRecentMedia"
                                                         :key="media_info.id"
                                                         :to="`/search?media=${media_info.id}`"
                                                         class="w-full relative">

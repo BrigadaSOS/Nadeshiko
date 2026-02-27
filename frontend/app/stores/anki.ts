@@ -71,6 +71,7 @@ interface NotesInfoResponse {
 interface CollectionResponse {
   id: number;
   name: string;
+  type: string;
 }
 
 type CollectionListResponse = {
@@ -273,7 +274,7 @@ export const ankiStore = defineStore('anki', {
         const { data: listData } = await sdk.listCollections({ query: { take: 100 } });
 
         const existing = (listData?.collections ?? []).find(
-          (collection) => collection.name === DEFAULT_ANKI_EXPORTS_COLLECTION,
+          (collection) => collection.type === 'ANKI_EXPORT',
         );
         if (existing) return existing.id;
 

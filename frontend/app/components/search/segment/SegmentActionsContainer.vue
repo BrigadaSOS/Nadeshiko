@@ -33,7 +33,7 @@ type Props = {
 };
 
 type CollectionListResponse = {
-  collections: { id: number; name: string; userId: number; visibility: string }[];
+  collections: { id: number; name: string; type: string; userId: number; visibility: string }[];
   pagination: { hasMore: boolean; cursor: number | null };
 };
 
@@ -68,7 +68,10 @@ onMounted(() => {
   const stored = localStorage.getItem(LAST_COLLECTION_KEY);
   if (stored) {
     try {
-      lastCollection.value = JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (parsed?.id && parsed?.name) {
+        lastCollection.value = parsed;
+      }
     } catch {
       lastCollection.value = null;
     }
@@ -111,12 +114,22 @@ const loadCollections = async () => {
   collectionsLoading.value = true;
   try {
     const { data } = await sdk.listCollections({ query: { take: 100 } });
-    const items = data?.collections ?? [];
+    const allItems = data?.collections ?? [];
+    const items = allItems.filter((c) => c.type !== 'ANKI_EXPORT');
     collections.value = items;
     collectionsLoaded.value = true;
 
+    if (lastCollection.value) {
+      const stillValid = items.some((c) => c.id === lastCollection.value!.id);
+      if (!stillValid) {
+        lastCollection.value = null;
+        localStorage.removeItem(LAST_COLLECTION_KEY);
+      }
+    }
+
     if (!lastCollection.value && items.length > 0) {
-      lastCollection.value = { id: items[0]!.id, name: items[0]!.name };
+      const defaultItem = items[0]!;
+      lastCollection.value = { id: defaultItem.id, name: defaultItem.name };
     }
   } catch (error) {
     console.error('Failed to load collections:', error);
@@ -203,7 +216,7 @@ const openCollectionsPage = async () => {
             :text="$t('searchpage.main.buttons.collectionsLoading')"
             :iconPath="mdiFormatListBulletedSquare"
           />
-          <template v-else>
+          <div v-else data-nd-keep-open>
             <SearchDropdownItem
               :text="$t('searchpage.main.buttons.chooseCollection')"
               :iconPath="mdiFormatListBulletedSquare"
@@ -225,7 +238,7 @@ const openCollectionsPage = async () => {
               :text="$t('searchpage.main.buttons.collectionsEmpty')"
               :iconPath="mdiFormatListBulletedSquare"
             />
-          </template>
+          </div>
           <SearchDropdownItem
             :text="$t('searchpage.main.buttons.manageCollections')"
             :iconPath="mdiFormatListBulletedSquare"

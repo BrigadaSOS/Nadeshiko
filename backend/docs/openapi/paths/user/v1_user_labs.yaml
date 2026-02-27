@@ -11,7 +11,7 @@ get:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   responses:
     "200":
       description: OK

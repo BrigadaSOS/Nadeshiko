@@ -4,7 +4,7 @@ import type { Application, Request, Response, NextFunction } from 'express';
 import { buildApplication } from '@config/application';
 import { AppDataSource } from '@config/database';
 import { client as esClient } from '@config/elasticsearch';
-import { AdminRoutes } from '@app/routes/router';
+import { AdminRoutes } from '@config/routes';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
 import { User, UserRoleType } from '@app/models/User';
@@ -40,8 +40,10 @@ beforeAll(async () => {
     await AppDataSource.initialize();
   }
 
+  const mockExecuteSql = async () => ({ rows: [{ count: 0 }] });
   setBossInstance({
     getQueueStats: async (_queue: string) => ({ queuedCount: 0, activeCount: 0 }),
+    getDb: () => ({ executeSql: mockExecuteSql }),
   } as any);
 
   const kevinDef = FIXTURE_SETS.core.users.kevin;
@@ -202,7 +204,6 @@ describe('GET /v1/admin/dashboard', () => {
         totalSearches: expect.any(Number),
         totalExports: expect.any(Number),
         totalPlays: expect.any(Number),
-        totalCollectionAdds: expect.any(Number),
         activeSearchers7d: expect.any(Number),
         topQueries7d: expect.any(Array),
         dailyActivity30d: expect.any(Array),

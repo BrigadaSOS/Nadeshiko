@@ -409,24 +409,18 @@ const logoutCurrentUser = async () => {
       </div>
       <!-- Content rating visual example -->
       <div v-if="previewSegment" class="mt-3 rounded-lg bg-white/5 overflow-hidden">
-        <div class="flex flex-col sm:flex-row items-stretch">
-          <!-- Image preview -->
+        <div v-if="questionableMode === 'hide'" class="flex items-center justify-center py-6 px-4 bg-neutral-800">
+          <span class="text-gray-500 text-sm">{{ $t('accountSettings.account.contentRatingHiddenDesc') }}</span>
+        </div>
+        <div v-else class="flex flex-col sm:flex-row items-stretch">
           <div class="relative h-36 sm:h-auto sm:w-48 shrink-0 overflow-hidden">
             <img
-              v-if="questionableMode !== 'hide'"
               :src="previewSegment.segment.urls.imageUrl"
               :alt="`Preview image for content rating sample`"
               class="h-full w-full object-cover object-center transition-all duration-300"
               :class="questionableMode === 'blur' ? 'blur-[42px] scale-125' : ''"
             />
-            <div
-              v-else
-              class="h-full min-h-[6rem] w-full flex items-center justify-center bg-neutral-800"
-            >
-              <span class="text-gray-500 text-sm">{{ $t('accountSettings.account.contentRatingHidden') }}</span>
-            </div>
           </div>
-          <!-- Text preview -->
           <div class="flex-1 px-4 py-3 flex flex-col justify-center gap-1.5">
             <p class="text-white text-sm leading-snug">{{ previewSegment.segment.textJa.content }}</p>
             <p class="text-gray-400 text-xs leading-snug">{{ previewSegment.segment.textEn.content }}</p>

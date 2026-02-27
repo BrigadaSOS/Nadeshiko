@@ -10,7 +10,7 @@ get:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: days
       in: query

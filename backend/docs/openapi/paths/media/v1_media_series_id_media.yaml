@@ -10,7 +10,8 @@ post:
     **Permissions:** `UPDATE_MEDIA`
 
   security:
-    - apiKeyHeader: [UPDATE_MEDIA]
+    - ApiKey: [ADD_MEDIA]
+    - SessionCookie: []
   parameters:
     - name: id
       in: path

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { SegmentInternal } from '@brigadasos/nadeshiko-sdk';
 import type { SearchResult, Segment } from '~/types/search';
 
 const { t } = useI18n();
@@ -97,6 +96,8 @@ const validateJson = (json: string, field: 'ratingAnalysis' | 'posAnalysis'): bo
   }
 };
 
+const sdk = useNadeshikoSdk();
+
 watch(
   () => props.segment,
   async (seg) => {
@@ -120,14 +121,12 @@ watch(
 
     isLoadingInternal.value = true;
     try {
-      const internal = await $fetch<SegmentInternal>(`/api/v1/media/segments/${seg.segment.uuid}`, {
-        params: { include: ['ratingAnalysis', 'posAnalysis'] },
-      });
-      if (internal.ratingAnalysis) {
-        form.ratingAnalysisJson = JSON.stringify(internal.ratingAnalysis, null, 2);
+      const { data } = await sdk.getSegmentByUuid({ path: { uuid: seg.segment.uuid } });
+      if (data?.ratingAnalysis) {
+        form.ratingAnalysisJson = JSON.stringify(data.ratingAnalysis, null, 2);
       }
-      if (internal.posAnalysis) {
-        form.posAnalysisJson = JSON.stringify(internal.posAnalysis, null, 2);
+      if (data?.posAnalysis) {
+        form.posAnalysisJson = JSON.stringify(data.posAnalysis, null, 2);
       }
     } catch {
       // non-fatal: fields remain empty
@@ -140,8 +139,6 @@ watch(
 const closeModal = () => {
   window.NDOverlay?.close('#nd-vertically-centered-scrollable-segment-edit');
 };
-
-const sdk = useNadeshikoSdk();
 
 const submitEdit = async () => {
   if (!props.segment || isSubmitting.value) return;

@@ -16,7 +16,8 @@ post:
     **Permissions:** `READ_MEDIA`
 
   security:
-    - apiKeyHeader: [READ_MEDIA]
+    - ApiKey: [READ_MEDIA]
+    - SessionCookie: []
 
   requestBody:
     required: true

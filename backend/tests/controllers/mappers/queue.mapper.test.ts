@@ -11,13 +11,13 @@ import {
 describe('queue.mapper', () => {
   it('maps queue stats list', () => {
     const stats = toAdminQueueStatsDTO([
-      { queue: 'es-sync-create', stuckCount: 2, failedCount: 0 },
-      { queue: 'es-sync-update', stuckCount: 4, failedCount: 1 },
-    ] as any);
+      { queue: 'es-sync-create', queued: 2, active: 1, failed: 0, completed: 10 },
+      { queue: 'es-sync-update', queued: 4, active: 0, failed: 1, completed: 20 },
+    ]);
 
     expect(stats).toEqual([
-      { queue: 'es-sync-create', stuckCount: 2, failedCount: 0 },
-      { queue: 'es-sync-update', stuckCount: 4, failedCount: 1 },
+      { queue: 'es-sync-create', queued: 2, active: 1, failed: 0, completed: 10 },
+      { queue: 'es-sync-update', queued: 4, active: 0, failed: 1, completed: 20 },
     ]);
   });
 

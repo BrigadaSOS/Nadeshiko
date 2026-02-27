@@ -1,5 +1,6 @@
 <script setup>
-import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight } from '@mdi/js';
+import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight, mdiPencilOutline, mdiEyeOff } from '@mdi/js';
+import { userStore } from '@/stores/auth';
 
 useSeoMeta({
   title: 'Browse Media | Nadeshiko',
@@ -14,6 +15,21 @@ const sdk = useNadeshikoSdk();
 const router = useRouter();
 const route = useRoute();
 const { mediaName, language } = useMediaName();
+const { hiddenMediaIds } = useHiddenMedia();
+const user = userStore();
+
+const mediaToEdit = ref(null);
+
+const openEditModal = (mediaInfo) => {
+  mediaToEdit.value = mediaInfo;
+};
+
+const onEditSuccess = (updatedMedia) => {
+  const index = media.value.findIndex((m) => m.id === updatedMedia.id);
+  if (index !== -1) {
+    media.value[index] = { ...media.value[index], ...updatedMedia };
+  }
+};
 
 const secondaryMediaNames = (mediaInfo) => {
   const namesByLanguage = {
@@ -113,6 +129,17 @@ syncFromResponse();
 watch(initialResponse, () => {
   syncFromResponse();
 });
+
+const showHidden = ref(false);
+
+const filteredMedia = computed(() => {
+  if (showHidden.value) return media.value;
+  const hidden = new Set(hiddenMediaIds.value);
+  if (hidden.size === 0) return media.value;
+  return media.value.filter((m) => !hidden.has(m.id));
+});
+
+const hasHiddenMedia = computed(() => hiddenMediaIds.value.length > 0);
 
 const loading = computed(() => pending.value);
 const query = ref(searchQuery.value);
@@ -263,6 +290,14 @@ watch([searchQuery, filterCategory], () => {
                 @click="handleFilterChange('JDRAMA')"
                 :selected="filterCategory === 'JDRAMA'"
               />
+              <div v-if="hasHiddenMedia" class="my-1 border-t border-white/10"></div>
+              <SearchDropdownItem
+                v-if="hasHiddenMedia"
+                :text="showHidden ? $t('mediaBrowse.hideHiddenMedia') : $t('mediaBrowse.showHiddenMedia')"
+                :iconPath="mdiEyeOff"
+                @click="showHidden = !showHidden"
+                :selected="showHidden"
+              />
             </SearchDropdownContent>
           </template>
         </SearchDropdownContainer>
@@ -280,15 +315,15 @@ watch([searchQuery, filterCategory], () => {
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5 xl:gap-6"
       >
         <!-- Loading Placeholder for Grid (initial load) -->
-        <div v-if="loading && media.length === 0" v-for="i in pageSize" :key="i" class="flex flex-col items-center animate-pulse">
+        <div v-if="loading && filteredMedia.length === 0" v-for="i in pageSize" :key="i" class="flex flex-col items-center animate-pulse">
           <div class="relative w-full overflow-hidden rounded-lg bg-[rgba(255,255,255,0.06)] aspect-[2/3]"></div>
           <div class="mt-2 w-full h-4  rounded"></div>
         </div>
 
         <!-- Media Content -->
         <NuxtLink
-          v-if="!loading || media.length > 0"
-          v-for="(mediaInfo, index) in media"
+          v-if="!loading || filteredMedia.length > 0"
+          v-for="(mediaInfo, index) in filteredMedia"
           :key="mediaInfo.id"
           :to="`/search?media=${mediaInfo.id}`"
           class="flex flex-col items-center"
@@ -319,7 +354,7 @@ watch([searchQuery, filterCategory], () => {
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
         <!-- Loading Placeholder for List (initial load) -->
-        <div v-if="loading && media.length === 0" v-for="i in pageSize" :key="i" class="w-full relative mb-4 animate-pulse">
+        <div v-if="loading && filteredMedia.length === 0" v-for="i in pageSize" :key="i" class="w-full relative mb-4 animate-pulse">
           <div
             class="relative flex flex-col z-20 items-center sm:items-start sm:flex-row rounded-lg bg-[rgba(255,255,255,0.06)] transition-all"
           >
@@ -335,8 +370,8 @@ watch([searchQuery, filterCategory], () => {
         </div>
         <!-- Media Content -->
         <div
-          v-if="media.length > 0"
-          v-for="(mediaInfo, index) in media"
+          v-if="filteredMedia.length > 0"
+          v-for="(mediaInfo, index) in filteredMedia"
           :key="mediaInfo.id"
           class="w-full relative mb-4"
         >
@@ -397,6 +432,16 @@ watch([searchQuery, filterCategory], () => {
 
               <div class="mt-auto pt-3 flex justify-end items-center flex-wrap gap-3">
                 <div class="flex">
+                  <button
+                    v-if="user.isAdmin"
+                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg dark:border-amber-400/70 dark:text-amber-400"
+                    data-nd-overlay="#nd-vertically-centered-scrollable-media-edit"
+                    @click="openEditModal(mediaInfo)"
+                  >
+                    <UiBaseIcon :path="mdiPencilOutline" w="w-5" h="h-5" size="20" />
+                    <div>{{ $t('modalMediaEdit.editButton') }}</div>
+                  </button>
+
                   <a
                     v-if="mediaInfo.externalIds?.anilist"
                     :href="`https://anilist.co/anime/${mediaInfo.externalIds.anilist}`"
@@ -435,5 +480,11 @@ watch([searchQuery, filterCategory], () => {
       <!-- Infinite scroll sentinel -->
       <div ref="sentinelRef" v-if="hasMore && !loading" class="h-1"></div>
     </div>
+
+    <MediaModalModalMediaEdit
+      v-if="user.isAdmin"
+      :media="mediaToEdit"
+      @update:success="onEditSuccess"
+    />
   </NuxtLayout>
 </template>

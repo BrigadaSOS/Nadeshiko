@@ -76,8 +76,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -126,8 +127,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -177,8 +179,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -228,8 +231,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -297,9 +301,10 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
@@ -351,9 +356,10 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
@@ -423,8 +429,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -473,8 +480,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -521,8 +529,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -561,8 +570,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -601,8 +611,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -649,8 +660,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -702,8 +714,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -745,8 +758,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -786,12 +800,12 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
-    apiKeyHeader:
+    ApiKey:
       type: http
       scheme: bearer
       bearerFormat: APIKey
       description: API key authentication via Authorization Bearer header
-    sessionCookie:
+    SessionCookie:
       type: apiKey
       in: cookie
       name: nadeshiko.session_token

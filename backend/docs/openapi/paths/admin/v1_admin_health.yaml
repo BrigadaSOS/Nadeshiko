@@ -10,7 +10,7 @@ get:
 
     **Permissions:** `ADD_MEDIA`
   security:
-    - sessionCookie: []
+    - SessionCookie: [ADMIN]
   responses:
     "200":
       description: OK

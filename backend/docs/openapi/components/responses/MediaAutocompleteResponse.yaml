@@ -5,4 +5,4 @@ properties:
   media:
     type: array
     items:
-      $ref: "../schemas/Media.yaml"
+      $ref: "../schemas/MediaAutocompleteItem.yaml"

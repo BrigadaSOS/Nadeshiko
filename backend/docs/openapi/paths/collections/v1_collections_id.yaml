@@ -8,7 +8,7 @@ get:
     Returns a collection with paginated segments and their search result data.
 
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -62,7 +62,7 @@ patch:
     Updates collection name or visibility. Requires collection ownership.
 
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -115,7 +115,7 @@ delete:
     Deletes a collection and all its segment entries. Requires collection ownership.
 
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: id
       in: path

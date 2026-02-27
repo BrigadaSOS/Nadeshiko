@@ -13,13 +13,14 @@ export const PermissiveBoolean = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
-export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'LIST_ADD_SEGMENT', 'SHARE']);
+export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'SHARE']);
 
 export const s_Category = z.enum(['ANIME', 'JDRAMA']);
 
 export const s_Collection = z.object({
   id: z.coerce.number(),
   name: z.string(),
+  type: z.enum(['USER', 'ANKI_EXPORT']),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
   segmentCount: z.coerce.number(),
   createdAt: z.string().datetime({ offset: true }),
@@ -152,7 +153,6 @@ export const s_HeatmapDayCounts = z.object({
   SEARCH: z.coerce.number().optional(),
   SEGMENT_PLAY: z.coerce.number().optional(),
   ANKI_EXPORT: z.coerce.number().optional(),
-  LIST_ADD_SEGMENT: z.coerce.number().optional(),
   SHARE: z.coerce.number().optional(),
 });
 
@@ -345,6 +345,15 @@ export const s_CollectionListResponse = z.object({
 
 export const s_EpisodeListResponse = z.object({ episodes: z.array(s_Episode), pagination: s_OpaqueCursorPagination });
 
+export const s_MediaAutocompleteItem = z.object({
+  id: z.coerce.number(),
+  nameJa: z.string(),
+  nameRomaji: z.string(),
+  nameEn: z.string(),
+  coverUrl: z.string(),
+  category: s_Category,
+});
+
 export const s_ReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetEpisode, s_ReportTargetSegment]);
 
 export const s_SearchFilters = z.object({
@@ -478,6 +487,8 @@ export const s_CreateReportRequest = z.object({
   ]),
   description: z.string().max(1000).optional(),
 });
+
+export const s_MediaAutocompleteResponse = z.object({ media: z.array(s_MediaAutocompleteItem) });
 
 export const s_MediaCharacter = z.object({
   id: z.coerce.number(),
@@ -666,8 +677,6 @@ export const s_CollectionWithSegments = z.object({
   totalCount: z.coerce.number(),
   pagination: s_OpaqueCursorPagination,
 });
-
-export const s_MediaAutocompleteResponse = z.object({ media: z.array(s_Media) });
 
 export const s_MediaListResponse = z.object({ media: z.array(s_Media), pagination: s_OpaqueCursorPagination });
 

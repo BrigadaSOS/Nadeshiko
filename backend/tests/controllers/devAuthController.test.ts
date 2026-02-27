@@ -2,7 +2,7 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'bun:test';
 import type { Application } from 'express';
 import { buildApplication } from '@config/application';
-import { AdminRoutes } from '@app/routes/router';
+import { AdminRoutes } from '@config/routes';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { auth, BETTER_AUTH_SESSION_COOKIE_ALIASES } from '@config/auth';

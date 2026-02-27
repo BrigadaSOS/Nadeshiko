@@ -3,6 +3,5 @@ enum:
   - SEARCH
   - ANKI_EXPORT
   - SEGMENT_PLAY
-  - LIST_ADD_SEGMENT
   - SHARE
 description: Type of user activity

@@ -1,6 +1,7 @@
 import type {
   ListSegments,
   CreateSegment,
+  CreateSegmentsBatch,
   GetSegment,
   UpdateSegment,
   DeleteSegment,
@@ -9,6 +10,7 @@ import type {
   UpdateSegmentByUuid,
 } from 'generated/routes/media';
 import { Segment, Episode, Media, SegmentStatus } from '@app/models';
+import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import {
   toSegmentCreateAttributes,
   toSegmentDTO,
@@ -17,6 +19,8 @@ import {
   toSegmentUpdatePatch,
 } from './mappers/segment.mapper';
 import { SegmentDocument } from '@app/models/SegmentDocument';
+import { sendBulkEsSyncJobs } from '@app/workers/esSyncQueue';
+import { Cache } from '@lib/cache';
 
 export const listSegments: ListSegments = async ({ params, query }, respond) => {
   const { items: segments, pagination } = await Segment.paginateWithOffset({
@@ -52,6 +56,36 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
   await segment.save();
 
   return respond.with201().body(toSegmentInternalDTO(segment));
+};
+
+export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body }, respond) => {
+  const media = await Media.findOneOrFail({ where: { id: params.mediaId } });
+
+  const attributes = body.segments.map((segmentBody) =>
+    toSegmentCreateAttributes({
+      mediaId: params.mediaId,
+      episodeNumber: params.episodeNumber,
+      storageBasePath: media.storageBasePath,
+      body: segmentBody,
+    }),
+  );
+
+  const result = await Segment.createQueryBuilder().insert().into(Segment).values(attributes).orIgnore().execute();
+
+  const created = result.identifiers.filter((id) => id?.id !== undefined).length;
+  const skipped = attributes.length - created;
+
+  if (created > 0) {
+    const createdIds = result.identifiers.filter((id) => id?.id !== undefined).map((id) => id.id as number);
+
+    sendBulkEsSyncJobs(createdIds.map((segmentId) => ({ segmentId, operation: 'CREATE' as const }))).catch((error) => {
+      console.error('Failed to enqueue bulk ES sync jobs for batch segment creation:', error);
+    });
+
+    Cache.invalidate(MEDIA_INFO_CACHE);
+  }
+
+  return respond.with201().body({ created, skipped });
 };
 
 export const getSegment: GetSegment = async ({ params }, respond) => {
