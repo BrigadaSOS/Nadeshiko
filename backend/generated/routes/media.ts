@@ -23,6 +23,8 @@ import type {
   t_CreateMediaRequestBodySchema,
   t_CreateSegmentParamSchema,
   t_CreateSegmentRequestBodySchema,
+  t_CreateSegmentsBatchParamSchema,
+  t_CreateSegmentsBatchRequestBodySchema,
   t_CreateSeriesRequestBodySchema,
   t_DeleteEpisodeParamSchema,
   t_DeleteMediaParamSchema,
@@ -52,6 +54,7 @@ import type {
   t_ListEpisodesParamSchema,
   t_ListEpisodesQuerySchema,
   t_ListMediaQuerySchema,
+  t_ListSegmentRevisionsParamSchema,
   t_ListSegmentsParamSchema,
   t_ListSegmentsQuerySchema,
   t_ListSeriesQuerySchema,
@@ -63,6 +66,7 @@ import type {
   t_Segment,
   t_SegmentContextResponse,
   t_SegmentInternal,
+  t_SegmentRevision,
   t_SeiyuuWithRoles,
   t_Series,
   t_SeriesListResponse,
@@ -80,7 +84,7 @@ import type {
   t_UpdateSeriesParamSchema,
   t_UpdateSeriesRequestBodySchema,
 } from '../models.ts';
-import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentByUuidQueryOutput, GetSegmentContextQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
+import type { AutocompleteMediaQueryOutput, EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetMediaQueryOutput, GetSegmentByUuidQueryOutput, GetSegmentContextQueryOutput, GetSeriesQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, ListSeriesQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentBatchCreateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
   s_CharacterWithMedia,
   s_ContentRating,
@@ -103,9 +107,11 @@ import {
   s_MediaUpdateRequest,
   s_OpaqueCursorPagination,
   s_Segment,
+  s_SegmentBatchCreateRequest,
   s_SegmentContextResponse,
   s_SegmentCreateRequest,
   s_SegmentInternal,
+  s_SegmentRevision,
   s_SegmentUpdateRequest,
   s_SeiyuuWithRoles,
   s_Series,
@@ -214,6 +220,26 @@ export type GetSegmentContextResponder = {
 export type GetSegmentContext = (
   params: Params<t_GetSegmentContextParamSchema, GetSegmentContextQueryOutput, void, void>,
   respond: GetSegmentContextResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListSegmentRevisionsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    revisions: t_SegmentRevision[];
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListSegmentRevisions = (
+  params: Params<t_ListSegmentRevisionsParamSchema, void, void, void>,
+  respond: ListSegmentRevisionsResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -582,6 +608,27 @@ export type CreateSegment = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type CreateSegmentsBatchResponder = {
+  with201(): ExpressRuntimeResponse<{
+    created: number;
+    skipped: number;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type CreateSegmentsBatch = (
+  params: Params<t_CreateSegmentsBatchParamSchema, void, SegmentBatchCreateRequestOutput, void>,
+  respond: CreateSegmentsBatchResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type GetSegmentResponder = {
   with200(): ExpressRuntimeResponse<t_Segment>;
   with400(): ExpressRuntimeResponse<t_Error400>;
@@ -643,6 +690,7 @@ export type MediaImplementation = {
   getSegmentByUuid: GetSegmentByUuid;
   updateSegmentByUuid: UpdateSegmentByUuid;
   getSegmentContext: GetSegmentContext;
+  listSegmentRevisions: ListSegmentRevisions;
   listSeries: ListSeries;
   createSeries: CreateSeries;
   getSeries: GetSeries;
@@ -663,6 +711,7 @@ export type MediaImplementation = {
   deleteEpisode: DeleteEpisode;
   listSegments: ListSegments;
   createSegment: CreateSegment;
+  createSegmentsBatch: CreateSegmentsBatch;
   getSegment: GetSegment;
   updateSegment: UpdateSegment;
   deleteSegment: DeleteSegment;
@@ -1139,6 +1188,83 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
       if (body !== undefined) {
         res.json(getSegmentContextResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listSegmentRevisionsParamSchema = z.object({ uuid: z.string() });
+
+  const listSegmentRevisionsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ revisions: z.array(s_SegmentRevision) })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // listSegmentRevisions
+  router.get(`/v1/media/segments/:uuid/revisions`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(listSegmentRevisionsParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            revisions: t_SegmentRevision[];
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.listSegmentRevisions(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(listSegmentRevisionsResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -2705,6 +2831,89 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
         if (body !== undefined) {
           res.json(createSegmentResponseBodyValidator(status, body));
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const createSegmentsBatchParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+
+  const createSegmentsBatchRequestBodySchema = s_SegmentBatchCreateRequest;
+
+  const createSegmentsBatchResponseBodyValidator = responseValidationFactory(
+    [
+      ['201', z.object({ created: z.coerce.number(), skipped: z.coerce.number() })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // createSegmentsBatch
+  router.post(
+    `/v1/media/:mediaId/episodes/:episodeNumber/segments/batch`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(createSegmentsBatchParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: parseRequestInput(createSegmentsBatchRequestBodySchema, req.body, RequestInputType.RequestBody),
+          headers: undefined,
+        };
+
+        const responder = {
+          with201() {
+            return new ExpressRuntimeResponse<{
+              created: number;
+              skipped: number;
+            }>(201);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        const response = await implementation.createSegmentsBatch(input, responder, req, res, next).catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+        // escape hatch to allow responses to be sent by the implementation handler
+        if (response === SkipResponse) {
+          return;
+        }
+
+        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+        res.status(status);
+
+        if (body !== undefined) {
+          res.json(createSegmentsBatchResponseBodyValidator(status, body));
         } else {
           res.end();
         }

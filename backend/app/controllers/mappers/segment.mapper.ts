@@ -1,6 +1,7 @@
-import type { t_Segment, t_SegmentInternal } from 'generated/models';
+import type { t_Segment, t_SegmentInternal, t_SegmentRevision } from 'generated/models';
 import type { SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from 'generated/outputTypes';
 import type { Segment } from '@app/models';
+import type { SegmentRevision } from '@app/models/SegmentRevision';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 import { config } from '@config/config';
@@ -90,6 +91,33 @@ export function toSegmentCreateAttributes(input: SegmentCreateAttributesInput): 
     storage: body.storage as SegmentStorage,
     hashedId: body.hashedId,
     episode: episodeNumber,
+  };
+}
+
+export function toSegmentSnapshot(segment: Segment): Record<string, unknown> {
+  return {
+    contentJa: segment.contentJa,
+    contentEn: segment.contentEn,
+    contentEnMt: segment.contentEnMt,
+    contentEs: segment.contentEs,
+    contentEsMt: segment.contentEsMt,
+    status: segment.status,
+    contentRating: segment.contentRating,
+    position: segment.position,
+    startTimeMs: segment.startTimeMs,
+    endTimeMs: segment.endTimeMs,
+    ratingAnalysis: toJsonObjectOrNull(segment.ratingAnalysis),
+    posAnalysis: toJsonObjectOrNull(segment.posAnalysis),
+  };
+}
+
+export function toSegmentRevisionDTO(revision: SegmentRevision, userName: string | null): t_SegmentRevision {
+  return {
+    id: revision.id,
+    revisionNumber: revision.revisionNumber,
+    snapshot: revision.snapshot,
+    userName,
+    createdAt: revision.createdAt.toISOString(),
   };
 }
 

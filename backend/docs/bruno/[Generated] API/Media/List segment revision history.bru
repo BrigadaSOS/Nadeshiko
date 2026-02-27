@@ -1,17 +1,17 @@
 meta {
-  name: Get seiyuu details
+  name: List segment revision history
   type: http
-  seq: 20
+  seq: 10
 }
 
 get {
-  url: {{baseUrl}}/v1/media/seiyuu/:id
+  url: {{baseUrl}}/v1/media/segments/:uuid/revisions
   body: none
   auth: bearer
 }
 
 params:query {
-  id:
+  uuid:
 }
 
 auth:bearer {

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { config } from '@config/config';
 
 export async function buildWelcomeEmail(username: string): Promise<{
   subject: string;
@@ -8,7 +9,7 @@ export async function buildWelcomeEmail(username: string): Promise<{
   const subject = 'Welcome to Nadeshiko!';
   const html = await renderTemplate('welcome', {
     username,
-    baseUrl: 'https://nadeshiko.co',
+    baseUrl: config.BASE_URL,
     year: getCurrentYear(),
   });
 

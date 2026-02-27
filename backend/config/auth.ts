@@ -7,6 +7,7 @@ import { ensureDefaultCollections } from '@app/controllers/collectionController'
 import { betterAuth } from 'better-auth';
 import { apiKey, customSession } from 'better-auth/plugins';
 import { Pool } from 'pg';
+import { logger } from '@config/log';
 
 const postgres = getAppPostgresConfig();
 
@@ -56,7 +57,7 @@ type WelcomeEmailErrorLogger = (error: unknown) => void;
 
 const defaultFindUserById: FindUserById = (id) => User.findOne({ where: { id } });
 const defaultWelcomeEmailErrorLogger: WelcomeEmailErrorLogger = (error) => {
-  console.error('Failed to send welcome email:', error);
+  logger.error({ err: error }, 'Failed to send welcome email');
 };
 
 export interface BuildAuthOptionsDependencies {
