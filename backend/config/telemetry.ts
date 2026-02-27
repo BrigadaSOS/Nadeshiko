@@ -4,16 +4,16 @@ import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { config } from '@config/config';
+import packageJson from '../package.json';
 
 let sdk: NodeSDK | undefined;
 
 export function initTelemetry() {
-  const endpoint = config.OTEL_EXPORTER_OTLP_ENDPOINT;
-  if (!endpoint) return;
+  if (!config.OTEL_EXPORTER_OTLP_ENDPOINT) return;
 
   const resource = resourceFromAttributes({
     'service.name': config.OTEL_SERVICE_NAME || 'nadeshiko-backend',
-    'service.version': config.APP_VERSION,
+    'service.version': packageJson.version,
     'deployment.environment': config.ENVIRONMENT,
   });
 

@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
   changes:
@@ -37,6 +38,12 @@ jobs:
     environment: dev
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-dev
+          aws-region: eu-north-1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -68,26 +75,33 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - uses: ruby/setup-ruby@v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: '3.4'
 
-      - name: Install Kamal
-        run: gem install kamal
+      - name: Install Kamal from fork
+        run: |
+          git clone --depth 1 https://github.com/davafons/kamal.git /tmp/kamal
+          cd /tmp/kamal
+          gem build kamal.gemspec
+          gem install kamal-*.gem
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Prepare secrets for CI
+        run: |
+          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' backend/.kamal/secrets.dev
+          sed -i 's/--account nadeshiko-dev //' backend/.kamal/secrets.dev
+
       - name: Deploy backend to dev
         env:
-          KAMAL_SECRETS: ${{ secrets.KAMAL_SECRETS_DEV }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
           ssh-keyscan -H $(grep -oP '(?<=ssh )[\w.-]+' backend/config/deploy.dev.yml || true) >> ~/.ssh/known_hosts 2>/dev/null || true
-
-          echo "${KAMAL_SECRETS}" > backend/.kamal/secrets.dev
           cd backend
           kamal deploy -d dev --skip-push
 
@@ -98,6 +112,12 @@ jobs:
     environment: dev
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-dev
+          aws-region: eu-north-1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -131,26 +151,33 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - uses: ruby/setup-ruby@v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: '3.4'
 
-      - name: Install Kamal
-        run: gem install kamal
+      - name: Install Kamal from fork
+        run: |
+          git clone --depth 1 https://github.com/davafons/kamal.git /tmp/kamal
+          cd /tmp/kamal
+          gem build kamal.gemspec
+          gem install kamal-*.gem
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Prepare secrets for CI
+        run: |
+          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' frontend/.kamal/secrets.dev
+          sed -i 's/--account nadeshiko-dev //' frontend/.kamal/secrets.dev
+
       - name: Deploy frontend to dev
         env:
-          KAMAL_SECRETS: ${{ secrets.KAMAL_SECRETS_FRONTEND_DEV }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
           ssh-keyscan -H $(grep -oP '(?<=ssh )[\w.-]+' frontend/config/deploy.dev.yml || true) >> ~/.ssh/known_hosts 2>/dev/null || true
-
-          echo "${KAMAL_SECRETS}" > frontend/.kamal/secrets.dev
           cd frontend
           kamal deploy -d dev --skip-push
 
@@ -184,7 +211,7 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
             -f event_type='backend_release' \
             -f client_payload[release_channel]="dev" \
-            -f client_payload[backend_sha]="${{ github.sha }}"
+            -f client_payload[backend_sha]="${GITHUB_SHA}"
 
   dispatch-sdk-python:
     needs: changes
@@ -216,4 +243,4 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
             -f client_payload[release_channel]="dev" \
-            -f client_payload[backend_sha]="${{ github.sha }}"
+            -f client_payload[backend_sha]="${GITHUB_SHA}"

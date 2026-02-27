@@ -24,7 +24,7 @@ type NamedMedia = {
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();
 const { mediaName, language } = useMediaName();
-const { prefs: hiddenMediaPrefs, toggleHideMedia, isMediaHidden } = useHiddenMedia();
+const { items: hiddenItems, toggleHideMedia, isMediaHidden } = useHiddenMedia();
 
 const hiddenMediaSearchQuery = ref('');
 const hiddenMediaSearchResults = ref<AutocompleteItem[]>([]);
@@ -77,7 +77,7 @@ const formatHiddenAt = (hiddenAt?: string): string => {
 };
 
 const hiddenMediaItems = computed(() =>
-  [...hiddenMediaPrefs.value.items].sort((a, b) => Date.parse(b.hiddenAt || '') - Date.parse(a.hiddenAt || '')),
+  [...hiddenItems.value].sort((a, b) => Date.parse(b.hiddenAt || '') - Date.parse(a.hiddenAt || '')),
 );
 
 const searchMediaToHide = (query: string) => {

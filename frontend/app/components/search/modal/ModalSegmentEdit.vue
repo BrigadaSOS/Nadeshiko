@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SearchResult, Segment } from '~/types/search';
+import type { SegmentRevision } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
 
@@ -16,7 +17,7 @@ const isLoadingInternal = ref(false);
 const errorMessage = ref('');
 
 const showHistory = ref(false);
-const revisions = ref<Array<{ id: number; revisionNumber: number; snapshot: Record<string, unknown>; userName: string | null; createdAt: string }>>([]);
+const revisions = ref<SegmentRevision[]>([]);
 const activeSnapshotNumber = ref<number | null>(null);
 const isLoadingRevisions = ref(false);
 

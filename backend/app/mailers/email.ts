@@ -17,10 +17,8 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   }
 
   const environment = getAppEnvironment(config.ENVIRONMENT);
-  const isAutomatedTest = config.NODE_ENV === 'test';
-
   // In automated test runs, keep transport fully local and deterministic.
-  if (isAutomatedTest) {
+  if (environment === APP_ENVIRONMENT.LOCAL) {
     transporter = nodemailer.createTransport({
       jsonTransport: true,
     });
@@ -108,11 +106,10 @@ export interface EmailOptions {
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
   const environment = getAppEnvironment(config.ENVIRONMENT);
-  const isAutomatedTest = config.NODE_ENV === 'test';
   const fromEmail = config.SES_FROM_EMAIL;
   const fromName = config.SES_FROM_NAME;
 
-  if (isAutomatedTest) {
+  if (environment === APP_ENVIRONMENT.LOCAL) {
     logger.info(
       {
         environment,

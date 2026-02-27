@@ -10,7 +10,6 @@ import {
   ES_SYNC_DELETE_QUEUE,
   ES_SYNC_UPDATE_QUEUE,
 } from '@app/workers/queueNames';
-import { config } from '@config/config';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
 import type { RuntimeInitializer } from './types';
@@ -20,20 +19,8 @@ let boss: PgBoss | null = null;
 export const workersInitializer: RuntimeInitializer = {
   name: 'workers',
   initialize: async () => {
-    let databaseUrl = config.DATABASE_URL;
-
-    if (!databaseUrl) {
-      const postgres = getAppPostgresConfig();
-      const { host, port, user, password, database } = postgres;
-
-      if (!host || !port || !user || !password || !database) {
-        throw new Error(
-          'Missing required database env vars (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)',
-        );
-      }
-
-      databaseUrl = `postgresql://${user}:${password}@${host}:${port}/${database}`;
-    }
+    const { host, port, user, password, database } = getAppPostgresConfig();
+    const databaseUrl = `postgresql://${user}:${password}@${host}:${port}/${database}`;
 
     boss = new PgBoss({
       connectionString: databaseUrl,
