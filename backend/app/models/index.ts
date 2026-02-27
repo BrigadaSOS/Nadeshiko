@@ -19,6 +19,7 @@ export { Seiyuu } from './Seiyuu';
 export { MediaCharacter, CharacterRole } from './MediaCharacter';
 export { Collection, CollectionType, CollectionVisibility } from './Collection';
 export { CollectionSegment } from './CollectionSegment';
+export { SegmentRevision } from './SegmentRevision';
 export { Series } from './Series';
 export { SeriesMedia } from './SeriesMedia';
 

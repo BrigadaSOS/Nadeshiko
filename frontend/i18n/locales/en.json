@@ -210,6 +210,12 @@
     "posAnalysisDesc": "Part-of-speech tokenization results keyed by engine (sudachi, unidic)",
     "invalidJson": "Invalid JSON",
     "loading": "Loading...",
+    "history": "History",
+    "historyToggle": "Toggle history",
+    "snapshot": "Snapshot",
+    "noRevisions": "No edit history yet",
+    "viewingSnapshot": "Viewing Snapshot {n}",
+    "current": "Current",
     "metadata": {
       "media": "Media",
       "episode": "Ep.",

@@ -86,6 +86,8 @@ paths:
     $ref: "./paths/media/v1_media_segments_uuid.yaml"
   "/v1/media/segments/{uuid}/context":
     $ref: "./paths/media/v1_media_segments_uuid_context.yaml"
+  "/v1/media/segments/{uuid}/revisions":
+    $ref: "./paths/media/v1_media_segments_uuid_revisions.yaml"
 
   # Series endpoints (static prefix before {id})
   "/v1/media/series":
@@ -118,6 +120,8 @@ paths:
   # Segment endpoints (nested under episodes)
   "/v1/media/{mediaId}/episodes/{episodeNumber}/segments":
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments.yaml"
+  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/batch":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_batch.yaml"
   "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}":
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_id.yaml"
 

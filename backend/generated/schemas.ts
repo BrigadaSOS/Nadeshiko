@@ -253,6 +253,14 @@ export const s_RunAuditResponse = z.object({
   totalReports: z.coerce.number(),
 });
 
+export const s_SegmentRevision = z.object({
+  id: z.coerce.number(),
+  revisionNumber: z.coerce.number(),
+  snapshot: z.record(z.unknown()),
+  userName: z.string().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }),
+});
+
 export const s_Series = z.object({
   id: z.coerce.number(),
   nameJa: z.string(),
@@ -605,6 +613,8 @@ export const s_SearchStatsRequest = z.object({
   filters: s_SearchFilters.optional(),
   include: z.array(s_IncludeExpansion).optional().default([]),
 });
+
+export const s_SegmentBatchCreateRequest = z.object({ segments: z.array(s_SegmentCreateRequest).min(1).max(1000) });
 
 export const s_SegmentInternal = s_Segment.merge(
   z.object({

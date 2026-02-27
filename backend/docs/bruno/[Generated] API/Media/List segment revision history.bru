@@ -1,0 +1,24 @@
+meta {
+  name: List segment revision history
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/v1/media/segments/:uuid/revisions
+  body: none
+  auth: bearer
+}
+
+params:query {
+  uuid:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

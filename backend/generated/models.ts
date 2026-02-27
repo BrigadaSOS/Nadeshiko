@@ -491,6 +491,33 @@ export type t_SegmentContextResponse = {
   segments: t_Segment[];
 };
 
+export type t_SegmentCreateRequest = {
+  contentRating?: t_ContentRating;
+  endTimeMs: number;
+  hashedId: string;
+  posAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  position: number;
+  ratingAnalysis?: {
+    [key: string]: unknown | undefined;
+  } | null;
+  startTimeMs: number;
+  status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
+  storage: 'LOCAL' | 'R2';
+  textEn?: {
+    content?: string;
+    isMachineTranslated?: boolean;
+  };
+  textEs?: {
+    content?: string;
+    isMachineTranslated?: boolean;
+  };
+  textJa: {
+    content?: string;
+  };
+};
+
 export type t_SegmentInternal = t_Segment & {
   hashedId?: string | null;
   posAnalysis?: {
@@ -501,6 +528,16 @@ export type t_SegmentInternal = t_Segment & {
   } | null;
   storage?: 'LOCAL' | 'R2' | null;
   storageBasePath?: string | null;
+};
+
+export type t_SegmentRevision = {
+  createdAt: string;
+  id: number;
+  revisionNumber: number;
+  snapshot: {
+    [key: string]: unknown | undefined;
+  };
+  userName?: string | null;
 };
 
 export type t_Seiyuu = {
@@ -732,6 +769,15 @@ export type t_CreateSegmentRequestBodySchema = {
   };
 };
 
+export type t_CreateSegmentsBatchParamSchema = {
+  episodeNumber: number;
+  mediaId: number;
+};
+
+export type t_CreateSegmentsBatchRequestBodySchema = {
+  segments: t_SegmentCreateRequest[];
+};
+
 export type t_CreateSeriesRequestBodySchema = {
   nameEn: string;
   nameJa: string;
@@ -930,6 +976,10 @@ export type t_ListMediaQuerySchema = {
   include?: t_MediaIncludeExpansion[];
   query?: string;
   take?: number;
+};
+
+export type t_ListSegmentRevisionsParamSchema = {
+  uuid: string;
 };
 
 export type t_ListSegmentsParamSchema = {

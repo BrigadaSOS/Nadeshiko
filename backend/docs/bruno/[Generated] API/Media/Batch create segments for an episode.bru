@@ -1,0 +1,54 @@
+meta {
+  name: Batch create segments for an episode
+  type: http
+  seq: 31
+}
+
+post {
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/batch
+  body: json
+  auth: bearer
+}
+
+params:query {
+  mediaId:
+  episodeNumber:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "segments": [
+      {
+        "position": 0,
+        "status": "",
+        "startTimeMs": 0,
+        "endTimeMs": 0,
+        "textJa": {
+          "content": ""
+        },
+        "textEs": {
+          "content": "",
+          "isMachineTranslated": false
+        },
+        "textEn": {
+          "content": "",
+          "isMachineTranslated": false
+        },
+        "contentRating": "",
+        "ratingAnalysis": {},
+        "posAnalysis": {},
+        "storage": "",
+        "hashedId": ""
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

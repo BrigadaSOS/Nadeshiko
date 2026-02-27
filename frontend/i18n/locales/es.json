@@ -200,6 +200,12 @@
     "close": "Cerrar",
     "saveSuccess": "Segmento actualizado correctamente",
     "saveError": "Error al actualizar el segmento",
+    "history": "Historial",
+    "historyToggle": "Alternar historial",
+    "snapshot": "Snapshot",
+    "noRevisions": "Sin historial de ediciones",
+    "viewingSnapshot": "Viendo Snapshot {n}",
+    "current": "Actual",
     "metadata": {
       "media": "Medio",
       "episode": "Ep.",

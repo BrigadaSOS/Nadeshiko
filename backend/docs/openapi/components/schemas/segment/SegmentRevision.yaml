@@ -1,0 +1,26 @@
+SegmentRevision:
+  type: object
+  required:
+    - id
+    - revisionNumber
+    - snapshot
+    - createdAt
+  properties:
+    id:
+      type: integer
+      description: Revision ID
+    revisionNumber:
+      type: integer
+      description: Sequential revision number per segment
+    snapshot:
+      type: object
+      additionalProperties: true
+      description: Snapshot of editable fields at the time of the revision
+    userName:
+      type: string
+      nullable: true
+      description: Name of the user who made the change
+    createdAt:
+      type: string
+      format: date-time
+      description: When the revision was created
