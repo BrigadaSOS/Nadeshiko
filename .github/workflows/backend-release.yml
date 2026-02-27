@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   release:
@@ -17,6 +18,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          aws-region: eu-north-1
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -83,26 +90,33 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - uses: ruby/setup-ruby@v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: '3.4'
 
-      - name: Install Kamal
-        run: gem install kamal
+      - name: Install Kamal from fork
+        run: |
+          git clone --depth 1 https://github.com/davafons/kamal.git /tmp/kamal
+          cd /tmp/kamal
+          gem build kamal.gemspec
+          gem install kamal-*.gem
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Prepare secrets for CI
+        run: |
+          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' backend/.kamal/secrets.prod
+          sed -i 's/--account nadeshiko-prod //' backend/.kamal/secrets.prod
+
       - name: Deploy backend to prod
         env:
-          KAMAL_SECRETS: ${{ secrets.KAMAL_SECRETS_PROD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
           ssh-keyscan -H $(grep -oP '(?<=ssh )[\w.-]+' backend/config/deploy.prod.yml || true) >> ~/.ssh/known_hosts 2>/dev/null || true
-
-          echo "${KAMAL_SECRETS}" > backend/.kamal/secrets.prod
           cd backend
           kamal deploy -d prod --skip-push
 
@@ -119,7 +133,7 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
             -f event_type='backend_release' \
             -f client_payload[release_channel]="stable" \
-            -f client_payload[backend_sha]="${{ github.sha }}"
+            -f client_payload[backend_sha]="${GITHUB_SHA}"
 
   dispatch-sdk-python:
     needs: release
@@ -134,4 +148,4 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
             -f client_payload[release_channel]="stable" \
-            -f client_payload[backend_sha]="${{ github.sha }}"
+            -f client_payload[backend_sha]="${GITHUB_SHA}"

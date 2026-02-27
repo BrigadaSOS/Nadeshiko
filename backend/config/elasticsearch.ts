@@ -3,7 +3,7 @@ import { config, type AppConfig } from '@config/config';
 import { logger } from '@config/log';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 
-export const INDEX_NAME = config.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
+export const INDEX_NAME = config.ELASTICSEARCH_INDEX;
 
 export const client = new Client({
   node: config.ELASTICSEARCH_HOST,
@@ -49,7 +49,7 @@ export async function setupElasticsearchUser(
   options: { recreateIfExists?: boolean; configValues?: AppConfig } = {},
 ): Promise<string> {
   const { recreateIfExists = false, configValues = config } = options;
-  const indexName = configValues.ELASTICSEARCH_INDEX || elasticsearchSchema.index;
+  const indexName = configValues.ELASTICSEARCH_INDEX;
   const appUsername = configValues.ELASTICSEARCH_USER;
   const appPassword = configValues.ELASTICSEARCH_PASSWORD;
 
