@@ -10,15 +10,13 @@ import type {
   SearchCollectionSegments,
   GetCollectionStats,
 } from 'generated/routes/collections';
-import { Collection, CollectionSegment, CollectionVisibility, Segment, UserRoleType } from '@app/models';
+import { Collection, CollectionSegment, CollectionType, CollectionVisibility, Segment, UserRoleType } from '@app/models';
 import type { CategoryOutput } from 'generated/outputTypes';
 import type { User } from '@app/models/User';
 import { toCollectionDTO } from './mappers/collection.mapper';
 import { SegmentDocument } from '@app/models/SegmentDocument';
-import { AccessDeniedError } from '@app/errors';
+import { AccessDeniedError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
-import { UserActivity, ActivityType } from '@app/models/UserActivity';
-import { logger } from '@config/log';
 
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
   const user = assertUser(req);
@@ -148,6 +146,10 @@ export const deleteCollection: DeleteCollection = async ({ params }, respond, re
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, user);
 
+  if (collection.type === CollectionType.ANKI_EXPORT) {
+    throw new InvalidRequestError('Cannot delete the Anki Exports collection.');
+  }
+
   await Collection.deleteOrFail({ where: { id: params.id } });
 
   return respond.with204();
@@ -159,7 +161,7 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
   assertCollectionOwnership(collection, user);
 
   const segment = await Segment.findOneOrFail({ where: { uuid: body.segmentUuid } });
-  const inserted = await Collection.getRepository().manager.transaction(async (manager) => {
+  await Collection.getRepository().manager.transaction(async (manager) => {
     await manager
       .createQueryBuilder(Collection, 'collection')
       .setLock('pessimistic_write')
@@ -190,17 +192,6 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
     return result.identifiers.length > 0 || (result.raw?.rowCount ?? 0) > 0;
   });
 
-  if (inserted) {
-    UserActivity.trackForUser(user, ActivityType.LIST_ADD_SEGMENT, {
-      segmentUuid: body.segmentUuid,
-      mediaId: segment.mediaId,
-    }).catch((err: unknown) => {
-      logger.warn(
-        { err, userId: user.id, collectionId: collection.id },
-        'Failed to track collection segment add activity',
-      );
-    });
-  }
 
   return respond.with204();
 };
@@ -367,3 +358,22 @@ const toCategory = (value: string | undefined): CategoryOutput => (value === 'JD
 
 const toCollectionVisibility = (value: string): CollectionVisibility =>
   value === 'PUBLIC' ? CollectionVisibility.PUBLIC : CollectionVisibility.PRIVATE;
+
+const DEFAULT_COLLECTIONS: { name: string; type: CollectionType }[] = [
+  { name: 'Favorites', type: CollectionType.USER },
+  { name: 'Anki Exports', type: CollectionType.ANKI_EXPORT },
+];
+
+export const ensureDefaultCollections = async (userId: number): Promise<void> => {
+  const count = await Collection.count({ where: { userId } });
+  if (count > 0) return;
+
+  await Collection.save(
+    DEFAULT_COLLECTIONS.map(({ name, type }) => ({
+      name,
+      type,
+      userId,
+      visibility: CollectionVisibility.PRIVATE,
+    })),
+  );
+};

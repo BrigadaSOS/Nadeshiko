@@ -3,6 +3,7 @@ description: User segment collection
 required:
   - id
   - name
+  - type
   - visibility
   - segmentCount
   - createdAt
@@ -16,6 +17,11 @@ properties:
     type: string
     description: Name of the collection
     example: "Study Favorites"
+  type:
+    type: string
+    enum: [USER, ANKI_EXPORT]
+    description: Type of the collection
+    example: "USER"
   visibility:
     type: string
     enum: [PUBLIC, PRIVATE]

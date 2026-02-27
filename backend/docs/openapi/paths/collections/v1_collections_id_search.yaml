@@ -9,7 +9,7 @@ get:
     Reshapes the collection data: extracts segment results, includes media, computes pagination.
 
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: id
       in: path

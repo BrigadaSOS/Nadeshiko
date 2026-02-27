@@ -1,11 +1,13 @@
 import type {
   ListMedia,
+  ListMediaResponder,
   CreateMedia,
   GetMedia,
   UpdateMedia,
   DeleteMedia,
   AutocompleteMedia,
 } from 'generated/routes/media';
+import type { ListMediaQueryOutput } from 'generated/outputTypes';
 import type { t_CharacterInput, t_ExternalId } from 'generated/models';
 import type { EntityManager } from 'typeorm';
 import { ILike } from 'typeorm';
@@ -21,22 +23,19 @@ import {
   toMediaListDTO,
   toMediaUpdatePatch,
 } from './mappers/media.mapper';
+import { toMediaAutocompleteDTO } from './mappers/shared.mapper';
 import { Cache } from '@lib/cache';
+import { decodeOffsetCursor, encodeOffsetCursor } from '@lib/cursor';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { InvalidRequestError } from '@app/errors';
 
 export const listMedia: ListMedia = async ({ query }, respond) => {
-  const base = query.category ? { category: query.category as CategoryType } : {};
+  if (query.query) {
+    return listMediaRanked(query, respond);
+  }
 
-  const where = query.query
-    ? [
-        { ...base, nameEn: ILike(`%${query.query}%`) },
-        { ...base, nameJa: ILike(`%${query.query}%`) },
-        { ...base, nameRomaji: ILike(`%${query.query}%`) },
-      ]
-    : query.category
-      ? base
-      : undefined;
+  const base = query.category ? { category: query.category as CategoryType } : {};
+  const where = query.category ? base : undefined;
 
   const mediaRelations = Media.buildRelations({
     includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
@@ -55,6 +54,63 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
   return respond.with200().body({
     media: toMediaListDTO(mediaList),
     pagination,
+  });
+};
+
+async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaResponder) {
+  const normalizedQuery = query.query!.trim().toLowerCase();
+  const escaped = escapeLikePattern(normalizedQuery);
+  const containsPattern = `%${escaped}%`;
+  const prefixPattern = `${escaped}%`;
+  const matchRankExpression = `CASE
+    WHEN LOWER(media.english_name) = :exact OR LOWER(media.japanese_name) = :exact OR LOWER(media.romaji_name) = :exact THEN 0
+    WHEN LOWER(media.english_name) LIKE :prefix ESCAPE '\\' OR LOWER(media.japanese_name) LIKE :prefix ESCAPE '\\' OR LOWER(media.romaji_name) LIKE :prefix ESCAPE '\\' THEN 1
+    ELSE 2
+  END`;
+
+  const includeCharacters = query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false;
+  const skip = decodeOffsetCursor(query.cursor);
+  const take = query.take;
+
+  const qb = Media.createQueryBuilder('media')
+    .leftJoinAndSelect('media.externalIds', 'externalIds')
+    .leftJoinAndSelect('media.episodes', 'episodes')
+    .addSelect(matchRankExpression, 'match_rank')
+    .addSelect('LENGTH(media.english_name)', 'name_length')
+    .where(
+      `(LOWER(media.english_name) LIKE :contains ESCAPE '\\'
+      OR LOWER(media.japanese_name) LIKE :contains ESCAPE '\\'
+      OR LOWER(media.romaji_name) LIKE :contains ESCAPE '\\')`,
+      { contains: containsPattern },
+    )
+    .setParameter('exact', normalizedQuery)
+    .setParameter('prefix', prefixPattern)
+    .orderBy('match_rank', 'ASC')
+    .addOrderBy('name_length', 'ASC')
+    .addOrderBy('media.id', 'ASC')
+    .skip(skip)
+    .take(take + 1);
+
+  if (query.category) {
+    qb.andWhere('media.category = :category', { category: query.category as CategoryType });
+  }
+
+  if (includeCharacters) {
+    qb.leftJoinAndSelect('media.characters', 'characters')
+      .leftJoinAndSelect('characters.character', 'character')
+      .leftJoinAndSelect('character.seiyuu', 'seiyuu');
+  }
+
+  const rows = await qb.getMany();
+  const hasMore = rows.length > take;
+  const mediaList = hasMore ? rows.slice(0, take) : rows;
+
+  return respond.with200().body({
+    media: toMediaListDTO(mediaList),
+    pagination: {
+      hasMore,
+      cursor: hasMore ? encodeOffsetCursor(skip + mediaList.length) : null,
+    },
   });
 };
 
@@ -143,8 +199,6 @@ export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, re
   END`;
 
   const qb = Media.createQueryBuilder('media')
-    .leftJoinAndSelect('media.externalIds', 'externalIds')
-    .leftJoinAndSelect('media.episodes', 'episodes')
     .addSelect(matchRankExpression, 'match_rank')
     .addSelect('LENGTH(media.english_name)', 'name_length')
     .where(
@@ -166,7 +220,7 @@ export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, re
 
   const media = await qb.getMany();
   return respond.with200().body({
-    media: toMediaListDTO(media),
+    media: media.map(toMediaAutocompleteDTO),
   });
 };
 

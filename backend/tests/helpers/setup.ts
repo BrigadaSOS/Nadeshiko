@@ -20,7 +20,7 @@ import { ApiKeyKind, ApiPermission, AuthType } from '@app/models/ApiPermission';
 import { APP_ENTITIES, APP_SUBSCRIBERS, getDbLogging } from '@config/schema';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { buildApplication } from '@config/application';
-import { MediaRoutes, UserRoutes, CollectionsRoutes } from '@app/routes/router';
+import { MediaRoutes, UserRoutes, CollectionsRoutes } from '@config/routes';
 
 const postgres = getAppPostgresConfig();
 

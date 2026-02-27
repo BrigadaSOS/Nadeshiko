@@ -10,8 +10,8 @@ get:
     **Permissions:** `UPDATE_MEDIA` (API key) or admin session
 
   security:
-    - apiKeyHeader: [UPDATE_MEDIA]
-    - sessionCookie: []
+    - ApiKey: [UPDATE_MEDIA]
+    - SessionCookie: [ADMIN]
   parameters:
     - name: uuid
       in: path

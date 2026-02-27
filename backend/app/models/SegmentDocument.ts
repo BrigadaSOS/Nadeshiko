@@ -290,8 +290,16 @@ export class SegmentDocument {
     return SegmentIndexer.index(segment);
   }
 
+  static bulkIndex(segments: Segment[]) {
+    return SegmentIndexer.bulkIndex(segments);
+  }
+
   static delete(id: number): Promise<boolean> {
     return SegmentIndexer.delete(id);
+  }
+
+  static bulkDelete(ids: number[]) {
+    return SegmentIndexer.bulkDelete(ids);
   }
 
   static reindex(media?: ReindexMediaItem[]): Promise<t_ReindexResponse> {

@@ -8,7 +8,7 @@ get:
     Returns all collections for the authenticated user. Can filter by visibility.
 
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: visibility
       in: query
@@ -60,7 +60,7 @@ post:
     Creates a new segment collection for the authenticated user.
 
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   requestBody:
     required: true
     content:

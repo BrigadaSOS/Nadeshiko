@@ -39,7 +39,7 @@ describe('GET /v1/user/activity', () => {
     const page2 = await request(app).get(`/v1/user/activity?take=3&cursor=${page1.body.pagination.cursor}`);
     expect(page2.status).toBe(200);
     assertMatchesSchema(userActivityListResponseSchema, page2.body, 'GET /v1/user/activity 200 (page 2)');
-    expect(page2.body.activities).toHaveLength(2);
+    expect(page2.body.activities).toHaveLength(1);
     expect(page2.body.pagination).toEqual({ hasMore: false, cursor: null });
   });
 
@@ -53,7 +53,7 @@ describe('GET /v1/user/activity', () => {
 
     const byDate = await request(app).get(`/v1/user/activity?date=${today}`);
     expect(byDate.status).toBe(200);
-    expect(byDate.body.activities).toHaveLength(5);
+    expect(byDate.body.activities).toHaveLength(4);
   });
 });
 
@@ -66,12 +66,11 @@ describe('GET /v1/user/activity/stats', () => {
       totalSearches: 1,
       totalExports: 1,
       totalPlays: 2,
-      totalListAdds: 1,
       totalShares: 0,
     });
     expect(res.body.topMedia).toEqual(
       expect.arrayContaining([
-        { mediaId: 42, count: 2 },
+        { mediaId: 42, count: 1 },
         { mediaId: 99, count: 1 },
       ]),
     );
@@ -90,7 +89,6 @@ describe('GET /v1/user/activity/heatmap', () => {
     expect(dayData.SEARCH).toBe(1);
     expect(dayData.ANKI_EXPORT).toBe(1);
     expect(dayData.SEGMENT_PLAY).toBe(2);
-    expect(dayData.LIST_ADD_SEGMENT).toBe(1);
   });
 });
 
@@ -146,11 +144,11 @@ describe('DELETE /v1/user/activity/date/:date', () => {
 
     await assertDifference(
       () => UserActivity.countBy({ userId: fixtures.users.kevin.id }),
-      -5,
+      -4,
       async () => {
         const res = await request(app).delete(`/v1/user/activity/date/${today}`);
         expect(res.status).toBe(200);
-        expect(res.body.deletedCount).toBe(5);
+        expect(res.body.deletedCount).toBe(4);
       },
     );
   });
@@ -218,11 +216,11 @@ describe('DELETE /v1/user/activity', () => {
   it('clears all activity when no filter is provided', async () => {
     await assertDifference(
       () => UserActivity.countBy({ userId: fixtures.users.kevin.id }),
-      -5,
+      -4,
       async () => {
         const res = await request(app).delete('/v1/user/activity');
         expect(res.status).toBe(200);
-        expect(res.body.deletedCount).toBe(5);
+        expect(res.body.deletedCount).toBe(4);
       },
     );
   });

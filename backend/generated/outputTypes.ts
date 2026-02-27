@@ -49,6 +49,7 @@ export type CharacterOutput = z.output<typeof schemas.s_Character>;
 export type CharacterInputOutput = z.output<typeof schemas.s_CharacterInput>;
 export type CollectionListResponseOutput = z.output<typeof schemas.s_CollectionListResponse>;
 export type EpisodeListResponseOutput = z.output<typeof schemas.s_EpisodeListResponse>;
+export type MediaAutocompleteItemOutput = z.output<typeof schemas.s_MediaAutocompleteItem>;
 export type ReportTargetOutput = z.output<typeof schemas.s_ReportTarget>;
 export type SearchFiltersOutput = z.output<typeof schemas.s_SearchFilters>;
 export type SegmentOutput = z.output<typeof schemas.s_Segment>;
@@ -61,6 +62,7 @@ export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCol
 export type UserReportTargetOutput = z.output<typeof schemas.s_UserReportTarget>;
 export type WordMatchOutput = z.output<typeof schemas.s_WordMatch>;
 export type CreateReportRequestOutput = z.output<typeof schemas.s_CreateReportRequest>;
+export type MediaAutocompleteResponseOutput = z.output<typeof schemas.s_MediaAutocompleteResponse>;
 export type MediaCharacterOutput = z.output<typeof schemas.s_MediaCharacter>;
 export type MediaCreateRequestOutput = z.output<typeof schemas.s_MediaCreateRequest>;
 export type MediaUpdateRequestOutput = z.output<typeof schemas.s_MediaUpdateRequest>;
@@ -75,7 +77,6 @@ export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportRespo
 export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type CharacterWithMediaOutput = z.output<typeof schemas.s_CharacterWithMedia>;
 export type CollectionWithSegmentsOutput = z.output<typeof schemas.s_CollectionWithSegments>;
-export type MediaAutocompleteResponseOutput = z.output<typeof schemas.s_MediaAutocompleteResponse>;
 export type MediaListResponseOutput = z.output<typeof schemas.s_MediaListResponse>;
 export type SearchMultipleResponseOutput = z.output<typeof schemas.s_SearchMultipleResponse>;
 export type SearchResponseOutput = z.output<typeof schemas.s_SearchResponse>;
@@ -186,6 +187,25 @@ export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityH
 export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
 export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
 
+export const listCollectionsQuerySchema = z.object({
+    visibility: z.enum(['public', 'private']).optional(),
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
+
+export const getCollectionQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
+
+export const searchCollectionSegmentsQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;
+
 export const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),
@@ -208,22 +228,3 @@ export const listAdminMediaAuditRunsQuerySchema = z.object({
     take: z.coerce.number().max(100).optional().default(20),
   });
 export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
-
-export const listCollectionsQuerySchema = z.object({
-    visibility: z.enum(['public', 'private']).optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
-
-export const getCollectionQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
-
-export const searchCollectionSegmentsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;

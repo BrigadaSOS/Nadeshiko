@@ -49,6 +49,8 @@ const searchQuery = computed(() => {
   return String(route.query.query || '');
 });
 
+const searchFetchFailed = ref(false);
+
 const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
@@ -115,7 +117,7 @@ const fetchSentenceData = async () => {
         ? { mode: String(sortParam) as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
         : undefined;
 
-    const { data } = await sdk.search({
+    const { data, response } = await sdk.search({
       body: {
         query: q ? { search: q } : undefined,
         take: 30,
@@ -124,8 +126,15 @@ const fetchSentenceData = async () => {
         include: ['media'],
       },
     });
+
+    if (response.status >= 500) {
+      searchFetchFailed.value = true;
+      return null;
+    }
+
     return data ? resolveSearchResponse(data) : null;
   } catch {
+    searchFetchFailed.value = true;
     return null;
   }
 };
@@ -327,7 +336,7 @@ useHead(metaTags);
                     <div class="md:max-w-[92%] mx-auto">
                         <SearchModalKeyboardShortcuts ref="shortcutsModal" />
                         <SearchBaseInputSegment />
-                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" :collection-id="collectionIdParam ?? undefined" :collection-name="collectionDetails?.name ?? undefined">
+                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" :initial-error="searchFetchFailed" :collection-id="collectionIdParam ?? undefined" :collection-name="collectionDetails?.name ?? undefined">
                             <template #result-controls>
                                 <div class="flex items-center gap-3">
                                     <SearchTranslationVisibilityPreferences />
@@ -336,7 +345,7 @@ useHead(metaTags);
                                         @click="shortcutsModal?.open()"
                                         :title="$t('shortcuts.title')"
                                     >
-                                        ? {{ $t('shortcuts.title') }}
+                                        {{ $t('shortcuts.title') }}
                                     </button>
                                 </div>
                             </template>

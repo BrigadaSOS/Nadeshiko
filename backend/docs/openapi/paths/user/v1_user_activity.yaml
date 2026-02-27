@@ -9,7 +9,7 @@ get:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: cursor
       in: query
@@ -67,7 +67,7 @@ post:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   requestBody:
     required: true
     content:
@@ -111,7 +111,7 @@ delete:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: activityType
       in: query

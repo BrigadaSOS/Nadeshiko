@@ -9,7 +9,7 @@ get:
     Pages through all collection segments internally to compute statistics.
 
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: id
       in: path

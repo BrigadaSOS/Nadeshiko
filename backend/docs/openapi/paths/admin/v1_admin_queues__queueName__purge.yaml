@@ -14,7 +14,7 @@ delete:
 
     **Permissions:** `ADD_MEDIA`
   security:
-    - sessionCookie: []
+    - SessionCookie: [ADMIN]
   parameters:
     - name: queueName
       in: path

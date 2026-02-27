@@ -1,6 +1,7 @@
 import type { GetAdminHealth, GetAdminDashboard, TriggerReindex } from 'generated/routes/admin';
 import type { t_TriggerReindexRequestBodySchema } from 'generated/models';
 import { getStuckJobs } from '@app/workers/queueAdmin';
+import { toAdminQueueStatsDTO } from '@app/controllers/mappers/queue.mapper';
 import { Cache } from '@lib/cache';
 import { client as esClient, INDEX_NAME } from '@config/elasticsearch';
 import { SegmentDocument, type ReindexMediaItem } from '@app/models/SegmentDocument';
@@ -56,7 +57,7 @@ export const getAdminDashboard: GetAdminDashboard = async (_params, respond) => 
       app: { version: API_VERSION },
       elasticsearch: esHealth,
       database: dbHealth,
-      queues,
+      queues: toAdminQueueStatsDTO(queues),
     },
   });
 };
@@ -208,7 +209,7 @@ async function getActivityStats() {
     totalSearches: countMap.SEARCH ?? 0,
     totalExports: countMap.ANKI_EXPORT ?? 0,
     totalPlays: countMap.SEGMENT_PLAY ?? 0,
-    totalCollectionAdds: countMap.LIST_ADD_SEGMENT ?? 0,
+    totalCollectionAdds: countMap.COLLECTION_ADD ?? 0,
     activeSearchers7d: Number(activeSearchers?.count ?? 0),
     topQueries7d: topQueries.map((row) => ({ query: row.query as string, count: Number(row.count) })),
     dailyActivity30d: dailyActivity.map((row) => ({ date: row.date as string, count: Number(row.count) })),

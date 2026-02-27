@@ -9,7 +9,7 @@ delete:
 
     **Permissions:** Session authentication (cookie-based).
   security:
-    - sessionCookie: []
+    - SessionCookie: []
   parameters:
     - name: id
       in: path

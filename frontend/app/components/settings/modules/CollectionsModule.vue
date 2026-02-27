@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline } from '@mdi/js';
+import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiPlus, mdiEyeOutline, mdiEyeOffOutline } from '@mdi/js';
 
 type Collection = {
   id: number;
@@ -10,7 +10,7 @@ type Collection = {
   updatedAt: string;
 };
 
-const { t, d } = useI18n();
+const { t } = useI18n();
 
 const sdk = useNadeshikoSdk();
 
@@ -27,9 +27,9 @@ const { data: initialData } = await useAsyncData(
 
 const collections = ref<Collection[]>(initialData.value);
 
-const formatDate = (dateStr?: string) => {
+const formatDate = (dateStr?: string | null) => {
   if (!dateStr) return '';
-  return d(new Date(dateStr), 'short');
+  return new Date(dateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 // Actions dropdown
@@ -93,6 +93,81 @@ const submitRename = async () => {
   }
 };
 
+// Create collection
+const showCreateModal = ref(false);
+const createName = ref('');
+const isCreating = ref(false);
+
+const openCreate = () => {
+  createName.value = '';
+  showCreateModal.value = true;
+  nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>('#nd-create-collection-input');
+    input?.focus();
+  });
+};
+
+const submitCreate = async () => {
+  if (isCreating.value || !createName.value.trim()) return;
+
+  isCreating.value = true;
+  try {
+    const { data } = await sdk.createCollection({
+      body: { name: createName.value.trim() },
+    });
+
+    if (data) {
+      collections.value.unshift({
+        id: data.id,
+        name: data.name,
+        visibility: data.visibility as 'PUBLIC' | 'PRIVATE',
+        segmentCount: 0,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+      });
+    }
+
+    useToastSuccess(t('accountSettings.collections.createSuccess'));
+    showCreateModal.value = false;
+  } catch {
+    useToastError(t('accountSettings.collections.createError'));
+  } finally {
+    isCreating.value = false;
+  }
+};
+
+// Toggle visibility
+const visibilityTarget = ref<Collection | null>(null);
+const isTogglingVisibility = ref(false);
+
+const openToggleVisibility = (collection: Collection) => {
+  closeMenu();
+  visibilityTarget.value = collection;
+};
+
+const submitToggleVisibility = async () => {
+  if (!visibilityTarget.value || isTogglingVisibility.value) return;
+
+  isTogglingVisibility.value = true;
+  const newVisibility = visibilityTarget.value.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
+  try {
+    await sdk.updateCollection({
+      path: { id: visibilityTarget.value.id },
+      body: { visibility: newVisibility },
+    });
+
+    const idx = collections.value.findIndex((c) => c.id === visibilityTarget.value!.id);
+    if (idx !== -1) collections.value[idx]!.visibility = newVisibility;
+
+    useToastSuccess(t('accountSettings.collections.visibilityChanged'));
+    visibilityTarget.value = null;
+  } catch {
+    useToastError(t('accountSettings.collections.visibilityError'));
+  } finally {
+    isTogglingVisibility.value = false;
+  }
+};
+
 // Delete confirmation
 const deleteTarget = ref<Collection | null>(null);
 const isDeleting = ref(false);
@@ -127,16 +202,26 @@ const submitDelete = async () => {
   <div class="dark:bg-card-background p-6 mb-6 mx-auto rounded-lg shadow-md">
     <div class="flex flex-wrap items-center gap-2 justify-between">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">Collections</h3>
-      <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ collections.length }} collections</p>
+      <div class="flex items-center gap-3">
+        <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ collections.length }} collections</p>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 py-1.5 px-3 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+          @click="openCreate"
+        >
+          <UiBaseIcon :path="mdiPlus" size="16" />
+          <span class="hidden sm:inline">{{ t('accountSettings.collections.createButton') }}</span>
+        </button>
+      </div>
     </div>
     <div class="border-b pt-4 border-white/10" />
 
-    <div class="mt-4 overflow-x-auto">
+    <div class="mt-4">
       <table v-if="collections.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
         <thead>
           <tr>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Name</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Segments</th>
+            <th class="py-2 text-center text-xs font-medium text-white/90 uppercase">Segments</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Visibility</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden sm:table-cell">Created</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden lg:table-cell">Updated</th>
@@ -153,7 +238,7 @@ const submitDelete = async () => {
                 {{ collection.name }}
               </NuxtLink>
             </td>
-            <td class="py-3 text-sm text-gray-300 tabular-nums">
+            <td class="py-3 text-sm text-gray-300 tabular-nums text-center">
               {{ collection.segmentCount ?? 0 }}
             </td>
             <td class="py-3 text-sm">
@@ -201,6 +286,16 @@ const submitDelete = async () => {
                     >
                       <UiBaseIcon :path="mdiPencilOutline" size="16" />
                       {{ t('accountSettings.collections.rename') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                      @click="openToggleVisibility(collection)"
+                    >
+                      <UiBaseIcon :path="collection.visibility === 'PUBLIC' ? mdiEyeOffOutline : mdiEyeOutline" size="16" />
+                      {{ collection.visibility === 'PUBLIC'
+                        ? t('accountSettings.collections.makePrivate')
+                        : t('accountSettings.collections.makePublic') }}
                     </button>
                     <button
                       type="button"
@@ -270,6 +365,116 @@ const submitDelete = async () => {
                   class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
                 />
                 {{ t('accountSettings.collections.renameConfirm') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Create collection modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="showCreateModal"
+          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
+          @click.self="showCreateModal = false"
+        >
+          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
+            <div class="px-4 py-3 border-b border-modal-border">
+              <h3 class="font-bold text-white">{{ t('accountSettings.collections.createTitle') }}</h3>
+            </div>
+            <div class="p-4">
+              <label class="block text-sm text-gray-400 mb-1.5">{{ t('accountSettings.collections.nameLabel') }}</label>
+              <input
+                id="nd-create-collection-input"
+                v-model="createName"
+                type="text"
+                maxlength="100"
+                :placeholder="t('accountSettings.collections.namePlaceholder')"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                @keydown.enter="submitCreate"
+                @keydown.escape="showCreateModal = false"
+              />
+            </div>
+            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+              <button
+                type="button"
+                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+                @click="showCreateModal = false"
+              >
+                {{ t('accountSettings.collections.renameCancel') }}
+              </button>
+              <button
+                type="button"
+                :disabled="isCreating || !createName.trim()"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                @click="submitCreate"
+              >
+                <span
+                  v-if="isCreating"
+                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+                />
+                {{ t('accountSettings.collections.createConfirm') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Visibility toggle confirmation modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="visibilityTarget"
+          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
+          @click.self="visibilityTarget = null"
+        >
+          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
+            <div class="px-4 py-3 border-b border-modal-border">
+              <h3 class="font-bold text-white">{{ t('accountSettings.collections.visibilityTitle') }}</h3>
+            </div>
+            <div class="p-4">
+              <p class="text-sm text-gray-300">
+                {{ visibilityTarget.visibility === 'PUBLIC'
+                  ? t('accountSettings.collections.makePrivateMessage', { name: visibilityTarget.name })
+                  : t('accountSettings.collections.makePublicMessage', { name: visibilityTarget.name }) }}
+              </p>
+            </div>
+            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+              <button
+                type="button"
+                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+                @click="visibilityTarget = null"
+              >
+                {{ t('accountSettings.collections.renameCancel') }}
+              </button>
+              <button
+                type="button"
+                :disabled="isTogglingVisibility"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                @click="submitToggleVisibility"
+              >
+                <span
+                  v-if="isTogglingVisibility"
+                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+                />
+                {{ t('accountSettings.collections.visibilityConfirm') }}
               </button>
             </div>
           </div>

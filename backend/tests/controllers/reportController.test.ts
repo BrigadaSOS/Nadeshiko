@@ -2,7 +2,7 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
 import type { Application, Request, Response, NextFunction } from 'express';
 import { buildApplication } from '@config/application';
-import { UserRoutes, AdminRoutes } from '@app/routes/router';
+import { UserRoutes, AdminRoutes } from '@config/routes';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';

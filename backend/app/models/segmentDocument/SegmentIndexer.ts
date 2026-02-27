@@ -5,6 +5,14 @@ import { In } from 'typeorm';
 import type { t_ReindexResponse } from 'generated/models';
 import type { SegmentDocumentShape, ReindexMediaItem } from '../SegmentDocument';
 
+export interface BulkResult {
+  succeeded: number;
+  failed: number;
+  errors: { segmentId: number; error: string }[];
+}
+
+const REINDEX_CHUNK_SIZE = 500;
+
 export class SegmentIndexer {
   static async index(segment: Segment): Promise<boolean> {
     try {
@@ -33,6 +41,57 @@ export class SegmentIndexer {
     }
   }
 
+  static async bulkIndex(segments: Segment[]): Promise<BulkResult> {
+    if (segments.length === 0) return { succeeded: 0, failed: 0, errors: [] };
+
+    const mediaIds = [...new Set(segments.map((s) => s.mediaId))];
+    const mediaList = await Media.find({ where: { id: In(mediaIds) } });
+    const mediaMap = new Map(mediaList.map((m) => [m.id, m]));
+
+    const operations: object[] = [];
+    const skippedErrors: BulkResult['errors'] = [];
+
+    for (const segment of segments) {
+      const media = mediaMap.get(segment.mediaId);
+      if (!media) {
+        skippedErrors.push({ segmentId: segment.id, error: `Media with id ${segment.mediaId} not found` });
+        continue;
+      }
+      operations.push({ index: { _index: INDEX_NAME, _id: segment.id.toString() } });
+      operations.push(SegmentIndexer.buildDocument(segment, media));
+    }
+
+    if (operations.length === 0) {
+      return { succeeded: 0, failed: skippedErrors.length, errors: skippedErrors };
+    }
+
+    const response = await client.bulk({ operations });
+
+    let succeeded = 0;
+    let failed = skippedErrors.length;
+    const errors = [...skippedErrors];
+
+    if (response.errors) {
+      for (const item of response.items) {
+        const action = item.index;
+        if (action?.error) {
+          failed++;
+          errors.push({
+            segmentId: Number(action._id),
+            error: action.error.reason ?? JSON.stringify(action.error),
+          });
+        } else {
+          succeeded++;
+        }
+      }
+    } else {
+      succeeded = response.items.length;
+    }
+
+    logger.info(`Bulk indexed ${succeeded} segments (${failed} failed) in ES`);
+    return { succeeded, failed, errors };
+  }
+
   static async delete(id: number): Promise<boolean> {
     try {
       await client.delete({ index: INDEX_NAME, id: id.toString() });
@@ -47,6 +106,38 @@ export class SegmentIndexer {
       logger.error(`Failed to delete segment ${id} from ES: ${errorMessage}`);
       return false;
     }
+  }
+
+  static async bulkDelete(ids: number[]): Promise<BulkResult> {
+    if (ids.length === 0) return { succeeded: 0, failed: 0, errors: [] };
+
+    const operations = ids.flatMap((id) => [{ delete: { _index: INDEX_NAME, _id: id.toString() } }]);
+
+    const response = await client.bulk({ operations });
+
+    let succeeded = 0;
+    let failed = 0;
+    const errors: BulkResult['errors'] = [];
+
+    for (const item of response.items) {
+      const action = item.delete;
+      if (action?.error) {
+        if (action.error.type === 'document_missing_exception') {
+          succeeded++;
+        } else {
+          failed++;
+          errors.push({
+            segmentId: Number(action._id),
+            error: action.error.reason ?? JSON.stringify(action.error),
+          });
+        }
+      } else {
+        succeeded++;
+      }
+    }
+
+    logger.info(`Bulk deleted ${succeeded} segments (${failed} failed) from ES`);
+    return { succeeded, failed, errors };
   }
 
   static async reindex(media?: ReindexMediaItem[]): Promise<t_ReindexResponse> {
@@ -82,25 +173,45 @@ export class SegmentIndexer {
       stats.totalSegments = allSegments.length;
       stats.mediaProcessed = uniqueMediaIds.size;
 
-      for (const segment of allSegments) {
-        const mediaItem = mediaMap.get(segment.mediaId);
-        if (!mediaItem) {
-          errors.push({ segmentId: segment.id, error: `Media with id ${segment.mediaId} not found` });
-          stats.failedIndexes++;
-          continue;
+      for (let i = 0; i < allSegments.length; i += REINDEX_CHUNK_SIZE) {
+        const chunk = allSegments.slice(i, i + REINDEX_CHUNK_SIZE);
+
+        const validSegments: Segment[] = [];
+        for (const segment of chunk) {
+          if (!mediaMap.has(segment.mediaId)) {
+            errors.push({ segmentId: segment.id, error: `Media with id ${segment.mediaId} not found` });
+            stats.failedIndexes++;
+          } else {
+            validSegments.push(segment);
+          }
         }
 
-        try {
-          await client.index({
-            index: INDEX_NAME,
-            id: segment.id.toString(),
-            document: SegmentIndexer.buildDocument(segment, mediaItem),
-          });
-          stats.successfulIndexes++;
-        } catch (error: any) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          errors.push({ segmentId: segment.id, error: errorMessage });
-          stats.failedIndexes++;
+        if (validSegments.length === 0) continue;
+
+        const operations: object[] = [];
+        for (const segment of validSegments) {
+          const mediaItem = mediaMap.get(segment.mediaId)!;
+          operations.push({ index: { _index: INDEX_NAME, _id: segment.id.toString() } });
+          operations.push(SegmentIndexer.buildDocument(segment, mediaItem));
+        }
+
+        const response = await client.bulk({ operations });
+
+        if (response.errors) {
+          for (const item of response.items) {
+            const action = item.index;
+            if (action?.error) {
+              errors.push({
+                segmentId: Number(action._id),
+                error: action.error.reason ?? JSON.stringify(action.error),
+              });
+              stats.failedIndexes++;
+            } else {
+              stats.successfulIndexes++;
+            }
+          }
+        } else {
+          stats.successfulIndexes += response.items.length;
         }
       }
 

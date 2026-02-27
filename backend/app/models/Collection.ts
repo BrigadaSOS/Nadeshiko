@@ -3,6 +3,11 @@ import { BaseEntity } from './base.entity';
 import type { User } from './User';
 import type { CollectionSegment } from './CollectionSegment';
 
+export enum CollectionType {
+  USER = 'USER',
+  ANKI_EXPORT = 'ANKI_EXPORT',
+}
+
 export enum CollectionVisibility {
   PUBLIC = 'PUBLIC',
   PRIVATE = 'PRIVATE',
@@ -15,6 +20,14 @@ export class Collection extends BaseEntity {
 
   @Column({ type: 'varchar' })
   name!: string;
+
+  @Column({
+    name: 'collection_type',
+    type: 'enum',
+    enum: CollectionType,
+    default: CollectionType.USER,
+  })
+  type!: CollectionType;
 
   @Index()
   @Column({ name: 'user_id', type: 'int' })

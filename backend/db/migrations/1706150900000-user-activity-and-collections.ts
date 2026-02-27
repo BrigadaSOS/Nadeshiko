@@ -34,6 +34,7 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
         "id" SERIAL PRIMARY KEY,
         "name" varchar NOT NULL CHECK ("name" <> ''),
         "user_id" integer NOT NULL,
+        "collection_type" collection_type NOT NULL DEFAULT 'USER',
         "visibility" collection_visibility NOT NULL DEFAULT 'PRIVATE',
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ,

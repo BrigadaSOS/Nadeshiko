@@ -195,13 +195,13 @@ paths:
 
 components:
   securitySchemes:
-    apiKeyHeader:
+    ApiKey:
       type: http
       scheme: bearer
       bearerFormat: APIKey
       description: API key authentication via Authorization Bearer header
 
-    sessionCookie:
+    SessionCookie:
       type: apiKey
       in: cookie
       name: nadeshiko.session_token

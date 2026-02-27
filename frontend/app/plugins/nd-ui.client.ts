@@ -158,7 +158,35 @@ function toggleCollapse(trigger: HTMLElement) {
 
   const isOpen = !target.classList.contains('hidden');
 
-  target.classList.toggle('hidden', isOpen);
+  if (isOpen) {
+    target.style.maxHeight = `${target.scrollHeight}px`;
+    target.offsetHeight; // force reflow
+    target.style.maxHeight = '0';
+    target.style.opacity = '0';
+
+    const onEnd = () => {
+      target.classList.add('hidden');
+      target.style.maxHeight = '';
+      target.style.opacity = '';
+      target.removeEventListener('transitionend', onEnd);
+    };
+    target.addEventListener('transitionend', onEnd, { once: true });
+  } else {
+    target.classList.remove('hidden');
+    target.style.maxHeight = '0';
+    target.style.opacity = '0';
+    target.offsetHeight; // force reflow
+    target.style.maxHeight = `${target.scrollHeight}px`;
+    target.style.opacity = '1';
+
+    const onEnd = () => {
+      target.style.maxHeight = '';
+      target.style.opacity = '';
+      target.removeEventListener('transitionend', onEnd);
+    };
+    target.addEventListener('transitionend', onEnd, { once: true });
+  }
+
   trigger.setAttribute('aria-expanded', String(!isOpen));
   applyPrefixedStateClasses(trigger, 'nd-collapse-open', !isOpen);
 }
@@ -219,6 +247,8 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     const dropdownItem = target.closest('.nd-dropdown-menu a, .nd-dropdown-menu button');
     if (dropdownItem) {
+      const keepOpen = target.closest<HTMLElement>('[data-nd-keep-open]');
+      if (keepOpen) return;
       const dropdown = target.closest<HTMLElement>('.nd-dropdown');
       if (dropdown) closeDropdown(dropdown);
       return;

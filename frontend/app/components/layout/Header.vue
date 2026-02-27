@@ -43,7 +43,7 @@ function openLoginModal() {
                 </div>
             </div>
             <div id="nd-navbar-example"
-                class="hidden nd-collapse transition-all duration-300 basis-full grow sm:block"
+                class="hidden nd-collapse overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out basis-full grow sm:block sm:!overflow-visible"
                 aria-labelledby="nd-navbar-example-collapse">
                 <div class="flex flex-col  mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
                     <div class="gap-6 flex flex-col sm:flex-row mr-auto">

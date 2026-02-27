@@ -1,101 +1,78 @@
 import { PgBoss, Job } from 'pg-boss';
-import { SegmentDocument } from '@app/models/SegmentDocument';
 import { Segment } from '@app/models';
+import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
 import { logger } from '@config/log';
+import { In } from 'typeorm';
 import type { EsSyncJobData } from './esSyncQueue';
 import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from './queueNames';
 
 export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
   const workerOptions = {
-    batchSize: 20, // Process 20 jobs at a time
-    teamSize: 3, // Use 3 concurrent workers per queue
-    // pollingIntervalSeconds defaults to 2 seconds
+    batchSize: 20,
+    teamSize: 3,
   };
 
-  // Handler for CREATE operations
   await boss.work(ES_SYNC_CREATE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
-    for (const job of jobs) {
-      await handleCreateJob(job);
-    }
+    await handleBulkIndex(jobs, 'CREATE');
   });
 
-  // Handler for UPDATE operations
   await boss.work(ES_SYNC_UPDATE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
-    for (const job of jobs) {
-      await handleUpdateJob(job);
-    }
+    await handleBulkIndex(jobs, 'UPDATE');
   });
 
-  // Handler for DELETE operations
   await boss.work(ES_SYNC_DELETE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
-    for (const job of jobs) {
-      await handleDeleteJob(job);
-    }
+    await handleBulkDelete(jobs);
   });
 
   logger.info('ES sync workers registered with batchSize=20, teamSize=3');
 }
 
-async function handleCreateJob(job: Job<EsSyncJobData>): Promise<void> {
-  const { segmentId } = job.data;
+async function handleBulkIndex(jobs: Job<EsSyncJobData>[], operation: 'CREATE' | 'UPDATE'): Promise<void> {
+  const segmentIds = jobs.map((j) => j.data.segmentId);
 
   try {
-    const segment = await Segment.findOne({ where: { id: segmentId } });
-    if (!segment) {
-      logger.warn(`Segment ${segmentId} not found for CREATE, skipping`);
-      return;
+    const segments = await Segment.find({ where: { id: In(segmentIds) } });
+
+    const foundIds = new Set(segments.map((s) => s.id));
+    const missingIds = segmentIds.filter((id) => !foundIds.has(id));
+
+    if (missingIds.length > 0) {
+      const label = operation === 'UPDATE' ? '(may have been deleted)' : '';
+      logger.warn(`Segments not found for ${operation} ${label}: ${missingIds.join(', ')}`);
     }
 
-    const success = await SegmentDocument.index(segment);
+    if (segments.length === 0) return;
 
-    if (!success) {
-      throw new Error(`Failed to create segment ${segmentId} in ES`);
+    const result = await SegmentIndexer.bulkIndex(segments);
+
+    for (const err of result.errors) {
+      logger.warn(`Bulk ${operation} failed for segment ${err.segmentId}: ${err.error}`);
     }
 
-    logger.info(`Successfully created segment ${segmentId} in ES`);
+    if (result.succeeded === 0 && result.failed > 0) {
+      throw new Error(`All ${result.failed} segments failed during bulk ${operation}`);
+    }
   } catch (error) {
-    logger.error({ err: error, segmentId }, 'Error processing ES CREATE job');
-    throw error; // Re-throw to trigger pg-boss retry
+    logger.error({ err: error, segmentIds }, `Error processing ES ${operation} batch`);
+    throw error;
   }
 }
 
-async function handleUpdateJob(job: Job<EsSyncJobData>): Promise<void> {
-  const { segmentId } = job.data;
+async function handleBulkDelete(jobs: Job<EsSyncJobData>[]): Promise<void> {
+  const segmentIds = jobs.map((j) => j.data.segmentId);
 
   try {
-    const segment = await Segment.findOne({ where: { id: segmentId } });
-    if (!segment) {
-      // Segment may have been deleted - this is not an error for UPDATE jobs
-      logger.warn(`Segment ${segmentId} not found for UPDATE (may have been deleted), skipping`);
-      return;
+    const result = await SegmentIndexer.bulkDelete(segmentIds);
+
+    for (const err of result.errors) {
+      logger.warn(`Bulk DELETE failed for segment ${err.segmentId}: ${err.error}`);
     }
 
-    const success = await SegmentDocument.index(segment);
-
-    if (!success) {
-      throw new Error(`Failed to update segment ${segmentId} in ES`);
+    if (result.succeeded === 0 && result.failed > 0) {
+      throw new Error(`All ${result.failed} segments failed during bulk DELETE`);
     }
-
-    logger.info(`Successfully updated segment ${segmentId} in ES`);
   } catch (error) {
-    logger.error({ err: error, segmentId }, 'Error processing ES UPDATE job');
-    throw error; // Re-throw to trigger pg-boss retry
-  }
-}
-
-async function handleDeleteJob(job: Job<EsSyncJobData>): Promise<void> {
-  const { segmentId } = job.data;
-
-  try {
-    const success = await SegmentDocument.delete(segmentId);
-
-    if (!success) {
-      throw new Error(`Failed to delete segment ${segmentId} from ES`);
-    }
-
-    logger.info(`Successfully deleted segment ${segmentId} from ES`);
-  } catch (error) {
-    logger.error({ err: error, segmentId }, 'Error processing ES DELETE job');
-    throw error; // Re-throw to trigger pg-boss retry
+    logger.error({ err: error, segmentIds }, 'Error processing ES DELETE batch');
+    throw error;
   }
 }

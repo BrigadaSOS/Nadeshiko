@@ -17,7 +17,7 @@ export { Episode } from './Episode';
 export { Character } from './Character';
 export { Seiyuu } from './Seiyuu';
 export { MediaCharacter, CharacterRole } from './MediaCharacter';
-export { Collection, CollectionVisibility } from './Collection';
+export { Collection, CollectionType, CollectionVisibility } from './Collection';
 export { CollectionSegment } from './CollectionSegment';
 export { Series } from './Series';
 export { SeriesMedia } from './SeriesMedia';
