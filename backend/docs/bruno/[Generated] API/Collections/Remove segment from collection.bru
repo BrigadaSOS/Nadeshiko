@@ -5,14 +5,14 @@ meta {
 }
 
 delete {
-  url: {{baseUrl}}/v1/collections/:id/segments/:uuid
+  url: {{baseUrl}}/v1/collections/:id/segments/:segmentId
   body: none
   auth: none
 }
 
 params:query {
   id:
-  uuid:
+  segmentId:
 }
 
 settings {

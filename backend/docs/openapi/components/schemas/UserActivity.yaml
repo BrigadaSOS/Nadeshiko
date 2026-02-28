@@ -2,7 +2,7 @@ type: object
 required:
   - id
   - activityType
-  - segmentUuid
+  - segmentId
   - mediaId
   - searchQuery
   - mediaName
@@ -13,8 +13,8 @@ properties:
     type: integer
   activityType:
     $ref: "./ActivityType.yaml"
-  segmentUuid:
-    type: string
+  segmentId:
+    type: integer
     nullable: true
   mediaId:
     type: integer

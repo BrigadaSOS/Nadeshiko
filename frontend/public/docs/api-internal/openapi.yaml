@@ -27,7 +27,7 @@ info:
     | Default      | 2500 requests   |
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
-  version: 1.4.3
+  version: 1.5.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -45,15 +45,18 @@ tags:
     description: |
       Search endpoints for querying Japanese segments across indexed media.
   - name: Admin
+    x-internal: true
     description: |
       Administrative endpoints for system management, queue monitoring, and automated review.
   - name: Media
     description: |
       Media CRUD endpoints for managing anime and J-Drama entries, episodes, segments, characters, and seiyuu.
   - name: User
+    x-internal: true
     description: |
       User endpoints for account data including quota, preferences, activity history, reports, and data export.
   - name: Collections
+    x-internal: true
     description: |
       Collection endpoints for managing saved segment collections.
 paths:
@@ -85,8 +88,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -135,8 +139,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -186,8 +191,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -237,8 +243,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -304,8 +311,9 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - ADD_MEDIA
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -345,8 +353,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: query
           in: query
@@ -355,6 +364,7 @@ paths:
           schema:
             type: string
             minLength: 1
+            pattern: .*\S.*
             example: steins
         - name: take
           in: query
@@ -395,33 +405,49 @@ paths:
       tags:
         - Media
       operationId: getSegmentByUuid
-      summary: Get segment by UUID
+      summary: Get segment by UUID or publicId
       description: |
-        Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+        Returns a specific segment by its UUID or publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
-        **Permissions:** `READ_MEDIA`
+        Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
+
+        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
-        - apiKeyHeader:
-            - READ_MEDIA
+        - ApiKey:
+            - UPDATE_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - ratingAnalysis
+                - posAnalysis
+                - hashedId
+                - storageBasePath
+                - storage
+          style: form
+          explode: true
+          description: Additional internal fields to include in the response
       responses:
         '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Segment'
+          $ref: '#/components/responses/SegmentInternalResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -435,23 +461,24 @@ paths:
       x-internal: true
       tags:
         - Media
-      summary: Update segment by UUID
+      summary: Update segment by UUID or publicId
       description: |
-        Updates an existing segment identified by its UUID. Performs the UUID→segment lookup internally,
+        Updates an existing segment identified by its UUID or publicId. Performs the lookup internally,
         then applies the update. Only provided fields will be updated.
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
-        - sessionCookie: []
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       requestBody:
         required: true
@@ -484,17 +511,19 @@ paths:
         Retrieves segments surrounding a specific segment within an episode.
         Returns segments both before and after the target, providing dialogue context for how a sentence is used.
 
-        **Permissions:** `READ_MEDIA`
+        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
-        - apiKeyHeader:
-            - READ_MEDIA
+        - ApiKey:
+            - UPDATE_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: take
           in: query
@@ -530,7 +559,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -546,6 +575,45 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/media/segments/{uuid}/revisions:
+    get:
+      operationId: listSegmentRevisions
+      x-internal: true
+      tags:
+        - Media
+      summary: List segment revision history
+      description: |
+        Returns the revision history for a segment identified by UUID, ordered by most recent first.
+
+        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
+      security:
+        - ApiKey:
+            - UPDATE_MEDIA
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Segment UUID or publicId
+          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+      responses:
+        '200':
+          $ref: '#/components/responses/SegmentRevisionListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/series:
     get:
       tags:
@@ -557,8 +625,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -607,8 +676,9 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - ADD_MEDIA
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -660,8 +730,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -708,8 +779,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -767,8 +839,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -804,8 +877,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
+        - ApiKey:
+            - ADD_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -859,8 +933,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -915,8 +990,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -958,8 +1034,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -998,8 +1075,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1038,8 +1116,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1086,8 +1165,10 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: id
           in: path
@@ -1132,8 +1213,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1168,8 +1250,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1221,8 +1304,9 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - ADD_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1265,8 +1349,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1308,8 +1393,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1357,8 +1443,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1401,8 +1488,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1461,8 +1549,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
-            - UPDATE_MEDIA
+        - ApiKey:
+            - ADD_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1501,6 +1590,58 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaId}/episodes/{episodeNumber}/segments/batch:
+    post:
+      tags:
+        - Media
+      operationId: createSegmentsBatch
+      x-internal: true
+      summary: Batch create segments for an episode
+      description: |
+        Creates multiple segments for a specific episode in a single request.
+        Duplicate UUIDs are silently skipped.
+
+        **Permissions:** `ADD_MEDIA`
+      security:
+        - ApiKey:
+            - ADD_MEDIA
+        - SessionCookie: []
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the media
+          example: 7674
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SegmentBatchCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/SegmentBatchCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedApiKey'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
     get:
       operationId: getSegment
@@ -1512,8 +1653,9 @@ paths:
 
         **Permissions:** `READ_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - READ_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1562,8 +1704,9 @@ paths:
 
         **Permissions:** `UPDATE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - UPDATE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1618,8 +1761,9 @@ paths:
 
         **Permissions:** `REMOVE_MEDIA`
       security:
-        - apiKeyHeader:
+        - ApiKey:
             - REMOVE_MEDIA
+        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -1669,7 +1813,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -1697,7 +1841,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -1731,7 +1875,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -1755,7 +1899,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -1785,7 +1929,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: cursor
           in: query
@@ -1842,7 +1986,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -1856,8 +2000,9 @@ paths:
                   type: string
                   enum:
                     - SEGMENT_PLAY
-                segmentUuid:
-                  type: string
+                    - SHARE
+                segmentId:
+                  type: integer
                 mediaId:
                   type: integer
                 mediaName:
@@ -1884,7 +2029,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: activityType
           in: query
@@ -1915,12 +2060,12 @@ paths:
       operationId: getUserActivityHeatmap
       summary: Get activity heatmap data
       description: |
-        Returns daily activity activityByDay for the authenticated user, grouped by date.
-        Designed for rendering a GitHub-style contribution heatmap.
+        Returns daily activity counts for the authenticated user, grouped by date and activity type.
+        Each day contains per-type counts that can be summed or filtered client-side.
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: days
           in: query
@@ -1929,11 +2074,6 @@ paths:
             default: 365
             maximum: 730
           description: Number of days to include in the heatmap
-        - name: activityType
-          in: query
-          schema:
-            $ref: '#/components/schemas/ActivityType'
-          description: Filter by activity type
       responses:
         '200':
           description: OK
@@ -1947,8 +2087,8 @@ paths:
                   activityByDay:
                     type: object
                     additionalProperties:
-                      type: integer
-                    description: Map of YYYY-MM-DD date strings to activity activityByDay
+                      $ref: '#/components/schemas/HeatmapDayCounts'
+                    description: Map of YYYY-MM-DD date strings to per-type activity counts
         '401':
           $ref: '#/components/responses/UnauthorizedSession'
         '500':
@@ -1966,7 +2106,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: since
           in: query
@@ -1986,6 +2126,7 @@ paths:
                   - totalExports
                   - totalPlays
                   - totalListAdds
+                  - totalShares
                   - topMedia
                 properties:
                   totalSearches:
@@ -1995,6 +2136,8 @@ paths:
                   totalPlays:
                     type: integer
                   totalListAdds:
+                    type: integer
+                  totalShares:
                     type: integer
                   topMedia:
                     type: array
@@ -2024,7 +2167,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: date
           in: path
@@ -2061,7 +2204,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2091,7 +2234,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -2117,7 +2260,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       responses:
         '200':
           description: OK
@@ -2144,7 +2287,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: key
           in: path
@@ -2172,7 +2315,7 @@ paths:
 
         **Permissions:** Session authentication (cookie-based).
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: key
           in: path
@@ -2191,6 +2334,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: listCollections
@@ -2198,7 +2342,7 @@ paths:
       description: |
         Returns all collections for the authenticated user. Can filter by visibility.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: visibility
           in: query
@@ -2242,6 +2386,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
+      x-internal: true
       tags:
         - Collections
       operationId: createCollection
@@ -2249,7 +2394,7 @@ paths:
       description: |
         Creates a new segment collection for the authenticated user.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -2275,6 +2420,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: getCollection
@@ -2282,7 +2428,7 @@ paths:
       description: |
         Returns a collection with paginated segments and their search result data.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2326,6 +2472,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
+      x-internal: true
       tags:
         - Collections
       operationId: updateCollection
@@ -2333,7 +2480,7 @@ paths:
       description: |
         Updates collection name or visibility. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2378,6 +2525,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
+      x-internal: true
       tags:
         - Collections
       operationId: deleteCollection
@@ -2385,7 +2533,7 @@ paths:
       description: |
         Deletes a collection and all its segment entries. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2411,6 +2559,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}/segments:
     post:
+      x-internal: true
       tags:
         - Collections
       operationId: addSegmentToCollection
@@ -2418,7 +2567,7 @@ paths:
       description: |
         Adds a segment to a collection. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2434,12 +2583,12 @@ paths:
             schema:
               type: object
               required:
-                - segmentUuid
+                - segmentId
               properties:
-                segmentUuid:
+                segmentId:
                   type: string
-                  description: UUID of the segment to add
-                  example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+                  description: Public ID or UUID of the segment to add
+                  example: abc123def456
                 note:
                   type: string
                   maxLength: 500
@@ -2459,8 +2608,9 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/collections/{id}/segments/{uuid}:
+  /v1/collections/{id}/segments/{segmentId}:
     patch:
+      x-internal: true
       tags:
         - Collections
       operationId: updateCollectionSegment
@@ -2468,7 +2618,7 @@ paths:
       description: |
         Updates the note or position of a segment in a collection. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2477,13 +2627,13 @@ paths:
           schema:
             type: integer
             example: 123
-        - name: uuid
+        - name: segmentId
           in: path
           required: true
-          description: Segment UUID
+          description: Segment ID
           schema:
-            type: string
-            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+            type: integer
+            example: 456
       requestBody:
         required: true
         content:
@@ -2516,6 +2666,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
+      x-internal: true
       tags:
         - Collections
       operationId: removeSegmentFromCollection
@@ -2523,7 +2674,7 @@ paths:
       description: |
         Removes a segment from a collection. Requires collection ownership.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2532,13 +2683,13 @@ paths:
           schema:
             type: integer
             example: 123
-        - name: uuid
+        - name: segmentId
           in: path
           required: true
-          description: Segment UUID
+          description: Segment ID
           schema:
-            type: string
-            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+            type: integer
+            example: 456
       responses:
         '204':
           description: No Content
@@ -2556,6 +2707,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}/search:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: searchCollectionSegments
@@ -2564,7 +2716,7 @@ paths:
         Returns collection segments in search-response format with pagination.
         Reshapes the collection data: extracts segment results, includes media, computes pagination.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2609,6 +2761,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/collections/{id}/stats:
     get:
+      x-internal: true
       tags:
         - Collections
       operationId: getCollectionStats
@@ -2617,7 +2770,7 @@ paths:
         Returns per-media segment counts and per-category counts for all segments in a collection.
         Pages through all collection segments internally to compute statistics.
       security:
-        - sessionCookie: []
+        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2658,8 +2811,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: OK
@@ -2828,7 +2981,7 @@ paths:
                             failedCount:
                               type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2848,8 +3001,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: OK
@@ -2917,7 +3070,7 @@ paths:
                         type: string
                         nullable: true
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2942,8 +3095,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       requestBody:
         required: false
         content:
@@ -2960,7 +3113,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2984,8 +3137,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: Queue statistics retrieved successfully
@@ -3014,7 +3167,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3038,8 +3191,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3156,7 +3309,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3182,8 +3335,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3228,7 +3381,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3251,8 +3404,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3290,7 +3443,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3314,8 +3467,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: queueName
           in: path
@@ -3353,7 +3506,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3369,9 +3522,7 @@ paths:
       summary: Start admin impersonation
       description: |
         Creates an impersonation session for the target user.
-        This endpoint is restricted to admin sessions and only available in local environment.
-      security:
-        - sessionCookie: []
+        This endpoint is only available in local environment.
       requestBody:
         required: true
         content:
@@ -3414,8 +3565,6 @@ paths:
                         format: email
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3432,9 +3581,7 @@ paths:
       summary: Clear admin impersonation
       description: |
         Clears the current impersonation session and related cookies.
-        This endpoint is restricted to admin sessions and only available in local environment.
-      security:
-        - sessionCookie: []
+        This endpoint is only available in local environment.
       responses:
         '200':
           description: Impersonation session cleared
@@ -3447,8 +3594,6 @@ paths:
                 properties:
                   message:
                     type: string
-        '401':
-          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3468,8 +3613,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: cursor
           in: query
@@ -3522,11 +3667,11 @@ paths:
           schema:
             type: integer
           description: Filter by target episode number
-        - name: target.segmentUuid
+        - name: target.segmentId
           in: query
           schema:
-            type: string
-          description: Filter by target segment UUID
+            type: integer
+          description: Filter by target segment ID
         - name: auditRunId
           in: query
           schema:
@@ -3540,7 +3685,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminReportListResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3560,8 +3705,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: id
           in: path
@@ -3585,7 +3730,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3606,8 +3751,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       responses:
         '200':
           description: OK
@@ -3618,7 +3763,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/MediaAudit'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3637,8 +3782,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: name
           in: path
@@ -3670,7 +3815,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3691,8 +3836,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: name
           in: path
@@ -3716,7 +3861,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RunAuditResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3737,8 +3882,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: auditName
           in: query
@@ -3775,7 +3920,7 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/OpaqueCursorPagination'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3794,8 +3939,8 @@ paths:
 
         **Permissions:** `ADD_MEDIA`
       security:
-        - apiKeyHeader:
-            - ADD_MEDIA
+        - SessionCookie:
+            - ADMIN
       parameters:
         - name: id
           in: path
@@ -3821,7 +3966,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/Report'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/UnauthorizedSession'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3832,12 +3977,12 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
-    apiKeyHeader:
+    ApiKey:
       type: http
       scheme: bearer
       bearerFormat: APIKey
       description: API key authentication via Authorization Bearer header
-    sessionCookie:
+    SessionCookie:
       type: apiKey
       in: cookie
       name: nadeshiko.session_token
@@ -4026,6 +4171,7 @@ components:
       required:
         - id
         - uuid
+        - publicId
         - position
         - status
         - startTimeMs
@@ -4046,6 +4192,10 @@ components:
           type: string
           description: Unique identifier for the segment
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        publicId:
+          type: string
+          description: Public identifier for the segment (use this instead of uuid in public URLs)
+          example: V1StGXR8_Z5d
         position:
           type: integer
           description: Position of the segment within the episode
@@ -4169,6 +4319,7 @@ components:
       description: Japanese voice actor (seiyuu)
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameEn
@@ -4178,6 +4329,10 @@ components:
           type: integer
           description: Internal seiyuu ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the seiyuu (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -4236,6 +4391,7 @@ components:
       description: Media entry with full metadata
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameRomaji
@@ -4255,8 +4411,12 @@ components:
       properties:
         id:
           type: integer
-          description: Unique identifier for the media
+          description: Internal unique identifier for the media
           example: 7674
+        publicId:
+          type: string
+          description: Public identifier for the media (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -4992,6 +5152,40 @@ components:
           additionalProperties:
             type: string
           description: Optional map of field names to their error messages (for validation errors)
+    MediaAutocompleteItem:
+      type: object
+      description: Slim media item returned by autocomplete (names + cover only)
+      required:
+        - id
+        - nameJa
+        - nameRomaji
+        - nameEn
+        - coverUrl
+        - category
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the media
+          example: 7674
+        nameJa:
+          type: string
+          description: Original Japanese name of the media
+          example: バクマン。
+        nameRomaji:
+          type: string
+          description: Romaji transliteration of the media name
+          example: Bakuman.
+        nameEn:
+          type: string
+          description: English name of the media
+          example: Bakuman.
+        coverUrl:
+          type: string
+          format: uri
+          description: Full URL to the cover image
+          example: https://cdn.example.com/media/anime/bakuman/cover.webp
+        category:
+          $ref: '#/components/schemas/Category'
     MediaAutocompleteResponse:
       type: object
       required:
@@ -5000,7 +5194,43 @@ components:
         media:
           type: array
           items:
-            $ref: '#/components/schemas/Media'
+            $ref: '#/components/schemas/MediaAutocompleteItem'
+    SegmentInternal:
+      description: |
+        Segment with internal fields. For write operations (create, update) all fields are always populated.
+        For GET, optional fields are only populated when requested via include[].
+      allOf:
+        - $ref: '#/components/schemas/Segment'
+        - type: object
+          properties:
+            storage:
+              type: string
+              enum:
+                - LOCAL
+                - R2
+              nullable: true
+              description: Storage backend for segment assets
+              example: R2
+            hashedId:
+              type: string
+              nullable: true
+              description: Hash identifier for the segment
+              example: 0d39e46b14
+            storageBasePath:
+              type: string
+              nullable: true
+              description: Base path in the storage backend
+              example: anime/steins-gate
+            ratingAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: Raw WD Tagger v3 classifier output used to derive content rating
+            posAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: POS tokenization results keyed by engine (sudachi, unidic)
     Error404:
       type: object
       description: Not Found error response
@@ -5121,43 +5351,6 @@ components:
           minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
-    SegmentInternal:
-      description: Segment with internal fields (for internal API responses)
-      allOf:
-        - $ref: '#/components/schemas/Segment'
-        - type: object
-          required:
-            - storage
-            - hashedId
-            - storageBasePath
-            - ratingAnalysis
-            - posAnalysis
-          properties:
-            storage:
-              type: string
-              enum:
-                - LOCAL
-                - R2
-              description: Storage backend for segment assets
-              example: R2
-            hashedId:
-              type: string
-              description: Hash identifier for the segment
-              example: 0d39e46b14
-            storageBasePath:
-              type: string
-              description: Base path in the storage backend
-              example: anime/steins-gate
-            ratingAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: Raw WD Tagger v3 classifier output used to derive content rating
-            posAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: POS tokenization results keyed by engine (sudachi, unidic)
     SegmentContextResponse:
       type: object
       required:
@@ -5176,6 +5369,32 @@ components:
               additionalProperties:
                 $ref: '#/components/schemas/Media'
               description: Media objects keyed by mediaId
+    SegmentRevision:
+      type: object
+      required:
+        - id
+        - revisionNumber
+        - snapshot
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Revision ID
+        revisionNumber:
+          type: integer
+          description: Sequential revision number per segment
+        snapshot:
+          type: object
+          additionalProperties: true
+          description: Snapshot of editable fields at the time of the revision
+        userName:
+          type: string
+          nullable: true
+          description: Name of the user who made the change
+        createdAt:
+          type: string
+          format: date-time
+          description: When the revision was created
     Series:
       type: object
       description: Ordered media series grouping
@@ -5259,6 +5478,7 @@ components:
       description: Anime character
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameEn
@@ -5268,6 +5488,10 @@ components:
           type: integer
           description: Internal character ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the character (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -5689,6 +5913,17 @@ components:
           minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
+    SegmentBatchCreateRequest:
+      type: object
+      required:
+        - segments
+      properties:
+        segments:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/SegmentCreateRequest'
     UserQuotaResponse:
       type: object
       required:
@@ -5746,7 +5981,7 @@ components:
       required:
         - type
         - mediaId
-        - segmentUuid
+        - segmentId
       properties:
         type:
           type: string
@@ -5762,10 +5997,10 @@ components:
           type: integer
           description: Episode number containing the segment
           example: 5
-        segmentUuid:
+        segmentId:
           type: string
-          description: Segment UUID this report targets
-          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+          description: Segment public ID or UUID
+          example: abc123def456
     UserReportTarget:
       oneOf:
         - $ref: '#/components/schemas/ReportTargetMedia'
@@ -6024,14 +6259,14 @@ components:
         - SEARCH
         - ANKI_EXPORT
         - SEGMENT_PLAY
-        - LIST_ADD_SEGMENT
+        - SHARE
       description: Type of user activity
     UserActivity:
       type: object
       required:
         - id
         - activityType
-        - segmentUuid
+        - segmentId
         - mediaId
         - searchQuery
         - mediaName
@@ -6042,8 +6277,8 @@ components:
           type: integer
         activityType:
           $ref: '#/components/schemas/ActivityType'
-        segmentUuid:
-          type: string
+        segmentId:
+          type: integer
           nullable: true
         mediaId:
           type: integer
@@ -6060,12 +6295,25 @@ components:
         createdAt:
           type: string
           format: date-time
+    HeatmapDayCounts:
+      type: object
+      description: Activity counts for a single day, broken down by type. Only types with at least 1 event are present.
+      properties:
+        SEARCH:
+          type: integer
+        SEGMENT_PLAY:
+          type: integer
+        ANKI_EXPORT:
+          type: integer
+        SHARE:
+          type: integer
     Collection:
       type: object
       description: User segment collection
       required:
         - id
         - name
+        - type
         - visibility
         - segmentCount
         - createdAt
@@ -6079,6 +6327,13 @@ components:
           type: string
           description: Name of the collection
           example: Study Favorites
+        type:
+          type: string
+          enum:
+            - USER
+            - ANKI_EXPORT
+          description: Type of the collection
+          example: USER
         visibility:
           type: string
           enum:
@@ -6104,14 +6359,13 @@ components:
         - $ref: '#/components/schemas/Collection'
         - type: object
           required:
-            - segmentUuids
+            - segmentIds
           properties:
-            segmentUuids:
+            segmentIds:
               type: array
-              description: Segment UUIDs in saved order
+              description: Segment IDs in saved order
               items:
-                type: string
-                format: uuid
+                type: integer
     UserExportResponse:
       type: object
       description: User data export payload (identifier-oriented references)
@@ -6758,15 +7012,6 @@ components:
               $ref: '#/components/examples/AccountConflict'
             DuplicateKey:
               $ref: '#/components/examples/DuplicateKey'
-    NotFound:
-      description: Not Found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error404'
-          examples:
-            NotFound:
-              $ref: '#/components/examples/NotFound'
     SegmentInternalResponse:
       description: Single segment response with internal fields
       content:
@@ -6786,6 +7031,28 @@ components:
               $ref: '#/components/examples/AuthCredentialsInvalid'
             AuthCredentialsExpired:
               $ref: '#/components/examples/AuthCredentialsExpired'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error404'
+          examples:
+            NotFound:
+              $ref: '#/components/examples/NotFound'
+    SegmentRevisionListResponse:
+      description: List of segment revisions
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - revisions
+            properties:
+              revisions:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SegmentRevision'
     EpisodeListResponse:
       description: Paginated list of episodes
       content:
@@ -6815,6 +7082,24 @@ components:
                 description: Array of segment objects
               pagination:
                 $ref: '#/components/schemas/OpaqueCursorPagination'
+    SegmentBatchCreateResponse:
+      description: Batch segment creation result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - created
+              - skipped
+            properties:
+              created:
+                type: integer
+                description: Number of segments successfully created
+                example: 700
+              skipped:
+                type: integer
+                description: Number of segments skipped due to duplicate UUIDs
+                example: 15
     SegmentResponse:
       description: Single segment response
       content:

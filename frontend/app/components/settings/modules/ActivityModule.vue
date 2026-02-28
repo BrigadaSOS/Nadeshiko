@@ -2,7 +2,7 @@
 type ActivityItem = {
   id: number;
   activityType: string;
-  segmentUuid?: string | null;
+  segmentId?: number | null;
   mediaId?: number | null;
   searchQuery?: string | null;
   animeName?: string | null;
@@ -308,7 +308,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
     if (
       prev &&
       prev.activityType === item.activityType &&
-      prev.segmentUuid === item.segmentUuid &&
+      prev.segmentId === item.segmentId &&
       prev.searchQuery === item.searchQuery
     ) {
       prev.count++;
@@ -662,8 +662,8 @@ onMounted(async () => {
                 {{ activity.searchQuery }}
               </a>
               <a
-                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE') && activity.segmentUuid && (activity.animeName || activity.japaneseText)"
-                :href="`/search?uuid=${activity.segmentUuid}`"
+                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE') && activity.segmentId && (activity.animeName || activity.japaneseText)"
+                :href="`/search?uuid=${activity.segmentId}`"
                 class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
               >
                 <span v-if="activity.animeName" class="text-gray-400">{{ activity.animeName }}</span>

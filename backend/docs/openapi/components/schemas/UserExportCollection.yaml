@@ -2,11 +2,10 @@ allOf:
   - $ref: "./collection/Collection.yaml"
   - type: object
     required:
-      - segmentUuids
+      - segmentIds
     properties:
-      segmentUuids:
+      segmentIds:
         type: array
-        description: Segment UUIDs in saved order
+        description: Segment IDs in saved order
         items:
-          type: string
-          format: uuid
+          type: integer

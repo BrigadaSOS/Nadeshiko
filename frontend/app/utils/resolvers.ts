@@ -74,6 +74,7 @@ export function resolveStatsResponse(raw: SdkSearchStatsResponse): SearchStatsRe
         nameEn: included?.nameEn ?? '',
         nameJa: included?.nameJa ?? '',
         category: included?.category ?? 'ANIME',
+        airingFormat: included?.airingFormat ?? '',
       };
     }) ?? [];
 

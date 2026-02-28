@@ -637,7 +637,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
   const trackUserActivityRequestBodySchema = z.object({
     activityType: z.enum(['SEGMENT_PLAY', 'SHARE']),
-    segmentUuid: z.string().optional(),
+    segmentId: z.coerce.number().optional(),
     mediaId: z.coerce.number().optional(),
     mediaName: z.string().optional(),
     japaneseText: z.string().optional(),

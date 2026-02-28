@@ -230,6 +230,7 @@ export class SegmentIndexer {
   private static buildDocument(segment: Segment, media: Media): SegmentDocumentShape {
     return {
       uuid: segment.uuid,
+      publicId: segment.publicId,
       position: segment.position,
       status: segment.status,
       startTimeMs: segment.startTimeMs,
@@ -237,9 +238,9 @@ export class SegmentIndexer {
       durationMs: segment.endTimeMs - segment.startTimeMs,
       textJa: segment.contentJa,
       characterCount: segment.contentJa.length,
-      textEs: segment.contentEs ?? undefined,
+      textEs: segment.contentEs,
       textEsMt: segment.contentEsMt,
-      textEn: segment.contentEn ?? undefined,
+      textEn: segment.contentEn,
       textEnMt: segment.contentEnMt,
       contentRating: segment.contentRating,
       storage: segment.storage,
@@ -247,7 +248,7 @@ export class SegmentIndexer {
       category: media.category,
       episode: segment.episode,
       mediaId: segment.mediaId,
-      storageBasePath: segment.storageBasePath ?? media.storageBasePath,
+      storageBasePath: segment.storageBasePath,
     };
   }
 }

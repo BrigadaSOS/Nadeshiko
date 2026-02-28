@@ -1,11 +1,20 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, BeforeInsert } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { Character } from './Character';
+import { nanoid } from 'nanoid';
 
 @Entity('Seiyuu')
 export class Seiyuu extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  @Column({ name: 'public_id', type: 'varchar', unique: true })
+  publicId!: string;
+
+  @BeforeInsert()
+  generatePublicId() {
+    this.publicId = nanoid(12);
+  }
 
   @Column({ name: 'external_ids', type: 'jsonb', default: {} })
   externalIds!: Record<string, string>;

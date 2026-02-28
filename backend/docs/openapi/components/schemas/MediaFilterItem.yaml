@@ -4,9 +4,9 @@ required:
   - mediaId
 properties:
   mediaId:
-    type: integer
-    description: Media ID to filter
-    example: 123
+    type: string
+    description: Media identifier (publicId or AniList external ID)
+    example: abc123xyz
   episodes:
     type: array
     description: Specific episodes (omit for all episodes)

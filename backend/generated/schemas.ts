@@ -192,15 +192,13 @@ export const s_MediaAuditRun = z.object({
   createdAt: z.string().datetime({ offset: true }),
 });
 
-export const s_MediaFilterItem = z.object({
-  mediaId: z.coerce.number(),
-  episodes: z.array(z.coerce.number()).optional(),
-});
+export const s_MediaFilterItem = z.object({ mediaId: z.string(), episodes: z.array(z.coerce.number()).optional() });
 
 export const s_MediaIncludeExpansion = z.enum(['media.characters']);
 
 export const s_MediaSearchStats = z.object({
   mediaId: z.coerce.number(),
+  publicId: z.string(),
   matchCount: z.coerce.number(),
   episodeHits: z.record(z.coerce.number()),
 });
@@ -242,7 +240,14 @@ export const s_ReportTargetSegment = z.object({
   type: z.enum(['SEGMENT']),
   mediaId: z.coerce.number(),
   episodeNumber: z.coerce.number().optional(),
-  segmentUuid: z.string(),
+  segmentId: z.coerce.number().nullable(),
+});
+
+export const s_ReportTargetSegmentInput = z.object({
+  type: z.enum(['SEGMENT']),
+  mediaId: z.coerce.number(),
+  episodeNumber: z.coerce.number().optional(),
+  segmentId: z.string(),
 });
 
 export const s_RunAuditResponse = z.object({
@@ -331,6 +336,7 @@ export const s_CategoryCount = z.object({ category: s_Category, count: z.coerce.
 
 export const s_Character = z.object({
   id: z.coerce.number(),
+  publicId: z.string(),
   externalIds: s_ExternalId,
   nameJa: z.string(),
   nameEn: z.string(),
@@ -382,6 +388,7 @@ export const s_SearchFilters = z.object({
 export const s_Segment = z.object({
   id: z.coerce.number(),
   uuid: z.string(),
+  publicId: z.string(),
   position: z.coerce.number(),
   status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']),
   startTimeMs: z.coerce.number(),
@@ -449,6 +456,7 @@ export const s_SegmentUpdateRequest = z.object({
 
 export const s_Seiyuu = z.object({
   id: z.coerce.number(),
+  publicId: z.string(),
   externalIds: s_ExternalId,
   nameJa: z.string(),
   nameEn: z.string(),
@@ -460,7 +468,7 @@ export const s_SeriesListResponse = z.object({ series: z.array(s_Series), pagina
 export const s_UserActivity = z.object({
   id: z.coerce.number(),
   activityType: s_ActivityType,
-  segmentUuid: z.string().nullable(),
+  segmentId: z.coerce.number().nullable(),
   mediaId: z.coerce.number().nullable(),
   searchQuery: z.string().nullable(),
   mediaName: z.string().nullable(),
@@ -468,9 +476,9 @@ export const s_UserActivity = z.object({
   createdAt: z.string().datetime({ offset: true }),
 });
 
-export const s_UserExportCollection = s_Collection.merge(z.object({ segmentUuids: z.array(z.string()) }));
+export const s_UserExportCollection = s_Collection.merge(z.object({ segmentIds: z.array(z.coerce.number()) }));
 
-export const s_UserReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetSegment]);
+export const s_UserReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetSegmentInput]);
 
 export const s_WordMatch = z.object({
   word: z.string(),
@@ -630,6 +638,7 @@ export const s_AdminReport = s_Report.merge(z.object({ reportCount: z.coerce.num
 
 export const s_Media = z.object({
   id: z.coerce.number(),
+  publicId: z.string(),
   externalIds: s_ExternalId,
   nameJa: z.string(),
   nameRomaji: z.string(),

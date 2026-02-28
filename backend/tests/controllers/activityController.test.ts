@@ -100,14 +100,14 @@ describe('POST /v1/user/activity', () => {
       async () => {
         const res = await request(app).post('/v1/user/activity').send({
           activityType: 'SEGMENT_PLAY',
-          segmentUuid: 'test-uuid',
+          segmentId: 123,
           mediaId: 1,
           mediaName: 'Test Anime',
           japaneseText: 'テスト',
         });
         expect(res.status).toBe(204);
         // Wait for fire-and-forget to complete
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 1000));
       },
     );
   });
@@ -119,13 +119,13 @@ describe('POST /v1/user/activity', () => {
       async () => {
         const res = await request(app).post('/v1/user/activity').send({
           activityType: 'SHARE',
-          segmentUuid: 'shared-uuid',
+          segmentId: 456,
           mediaId: 1,
           mediaName: 'Test Anime',
           japaneseText: 'テスト',
         });
         expect(res.status).toBe(204);
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 1000));
       },
     );
   });

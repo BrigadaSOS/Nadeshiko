@@ -52,11 +52,11 @@ get:
       schema:
         type: integer
       description: Filter by target episode number
-    - name: target.segmentUuid
+    - name: target.segmentId
       in: query
       schema:
-        type: string
-      description: Filter by target segment UUID
+        type: integer
+      description: Filter by target segment ID
     - name: auditRunId
       in: query
       schema:

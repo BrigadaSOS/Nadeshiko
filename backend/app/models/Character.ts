@@ -1,12 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn, BeforeInsert } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Seiyuu } from './Seiyuu';
 import type { MediaCharacter } from './MediaCharacter';
+import { nanoid } from 'nanoid';
 
 @Entity('Character')
 export class Character extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  @Column({ name: 'public_id', type: 'varchar', unique: true })
+  publicId!: string;
+
+  @BeforeInsert()
+  generatePublicId() {
+    this.publicId = nanoid(12);
+  }
 
   @Column({ name: 'external_ids', type: 'jsonb', default: {} })
   externalIds!: Record<string, string>;

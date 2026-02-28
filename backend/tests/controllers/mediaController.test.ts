@@ -68,6 +68,7 @@ describe('GET /v1/media', () => {
     await loadFixtures(['seiyuuWithRoles']);
 
     await Media.save({
+      publicId: 'pub-drama-title',
       nameJa: 'ドラマ作品',
       nameRomaji: 'Drama Title',
       nameEn: 'Drama Title',
@@ -100,6 +101,7 @@ describe('GET /v1/media/autocomplete', () => {
     await loadFixtures(['seiyuuWithRoles']);
 
     await Media.save({
+      publicId: 'pub-drama-story',
       nameJa: 'ドラマ',
       nameRomaji: 'Drama Story',
       nameEn: 'Drama Story',

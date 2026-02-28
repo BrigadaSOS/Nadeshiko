@@ -15,22 +15,22 @@ type Props = {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  'remove-from-collection': [uuid: string];
+  'remove-from-collection': [segmentId: number];
 }>();
 
-const confirmingRemoveUuid = ref<string | null>(null);
+const confirmingRemoveId = ref<number | null>(null);
 
-const confirmRemove = (uuid: string) => {
-  confirmingRemoveUuid.value = uuid;
+const confirmRemove = (id: number) => {
+  confirmingRemoveId.value = id;
 };
 
 const cancelRemove = () => {
-  confirmingRemoveUuid.value = null;
+  confirmingRemoveId.value = null;
 };
 
-const executeRemove = (uuid: string) => {
-  confirmingRemoveUuid.value = null;
-  emit('remove-from-collection', uuid);
+const executeRemove = (id: number) => {
+  confirmingRemoveId.value = null;
+  emit('remove-from-collection', id);
 };
 const { locale } = useI18n();
 const resultList = computed(() => props.searchData?.results ?? []);
@@ -132,7 +132,7 @@ const reportTarget = ref<{
     | {
         type: 'SEGMENT';
         mediaId: number;
-        segmentUuid: string;
+        segmentId: string;
       }
     | {
         type: 'MEDIA';
@@ -188,7 +188,7 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
   reportTarget.value = {
     target:
       type === 'SEGMENT'
-        ? { type: 'SEGMENT', mediaId: result.media.id, segmentUuid: result.segment.uuid }
+        ? { type: 'SEGMENT', mediaId: result.media.id, segmentId: result.segment.publicId }
         : { type: 'MEDIA', mediaId: result.media.id },
     segment: result,
     mediaName: mediaName(result.media),
@@ -267,8 +267,8 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
         <!-- Remove from collection button -->
         <div v-if="collectionId" class="absolute top-2 z-10" :class="shouldBlur(result.segment.contentRating) ? 'right-24' : 'right-2'">
           <button
-            v-if="confirmingRemoveUuid !== result.segment.uuid"
-            @click.stop="confirmRemove(result.segment.uuid)"
+            v-if="confirmingRemoveId !== result.segment.id"
+            @click.stop="confirmRemove(result.segment.id)"
             class="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md bg-black/50 hover:bg-red-600/80 text-white/70 hover:text-white"
             :title="$t('accountSettings.collections.removeFromCollection')"
           >
@@ -277,7 +277,7 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
           <div v-else class="flex items-center gap-1.5 bg-black/80 rounded-md px-2 py-1.5">
             <span class="text-xs text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
             <button
-              @click.stop="executeRemove(result.segment.uuid)"
+              @click.stop="executeRemove(result.segment.id)"
               class="px-2 py-0.5 rounded text-xs bg-red-600 hover:bg-red-500 text-white font-medium"
             >{{ $t('accountSettings.collections.yes') }}</button>
             <button
@@ -400,6 +400,13 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
                 </button>
                 &bull;
                 <button
+                  v-if="result.media.airingFormat === 'MOVIE'"
+                  @click="filterByMedia(result.media.id)"
+                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  {{ $t('searchpage.main.labels.movie') }}
+                </button>
+                <button
+                  v-else
                   @click="filterByMedia(result.media.id, result.segment.episode)"
                   class="hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}

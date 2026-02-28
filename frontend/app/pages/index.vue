@@ -278,7 +278,7 @@ const {
                                                     <NuxtLink
                                                         v-for="(media_info, index) in filteredRecentMedia"
                                                         :key="media_info.id"
-                                                        :to="`/search?media=${media_info.id}`"
+                                                        :to="`/search?media=${media_info.publicId}`"
                                                         class="w-full relative">
                                                         <div class="w-full">
                                                             <div

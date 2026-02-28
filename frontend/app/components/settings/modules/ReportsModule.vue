@@ -10,7 +10,7 @@ type Report = {
         type: 'SEGMENT';
         mediaId: number;
         episodeNumber?: number;
-        segmentUuid: string;
+        segmentId: string;
       }
     | {
         type: 'EPISODE';
@@ -447,10 +447,10 @@ const formatDate = (iso: string) => {
                 <span v-if="'episodeNumber' in report.target && report.target.episodeNumber"> EP{{ report.target.episodeNumber }}</span>
                 <NuxtLink
                   v-if="report.target.type === 'SEGMENT'"
-                  :to="`/sentence/${report.target.segmentUuid}`"
+                  :to="`/sentence/${report.target.segmentId}`"
                   class="block text-purple-400 hover:text-purple-300 underline truncate"
                 >
-                  {{ report.target.segmentUuid }}
+                  {{ report.target.segmentId }}
                 </NuxtLink>
               </td>
               <td class="px-3 py-3 text-xs">

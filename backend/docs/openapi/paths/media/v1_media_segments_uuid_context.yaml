@@ -18,7 +18,7 @@ get:
       required: true
       schema:
         type: string
-      description: Segment UUID
+      description: Segment UUID or publicId
       example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
     - name: take
       in: query

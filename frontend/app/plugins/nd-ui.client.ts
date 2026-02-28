@@ -122,6 +122,12 @@ function closeOverlay(target: OverlayTarget) {
   }
 }
 
+function closeAllOverlays() {
+  for (const overlay of document.querySelectorAll<HTMLElement>('.nd-overlay:not(.hidden)')) {
+    closeOverlay(overlay);
+  }
+}
+
 function closeAllDropdowns() {
   for (const dropdown of document.querySelectorAll<HTMLElement>(`.${DROPDOWN_OPEN_CLASS}`)) {
     closeDropdown(dropdown);
@@ -273,6 +279,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   document.addEventListener('keydown', keydownHandler);
 
   nuxtApp.hook('page:finish', () => {
+    closeAllOverlays();
     closeAllDropdowns();
   });
 });

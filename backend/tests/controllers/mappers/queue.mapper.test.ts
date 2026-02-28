@@ -16,8 +16,8 @@ describe('queue.mapper', () => {
     ]);
 
     expect(stats).toEqual([
-      { queue: 'es-sync-create', queued: 2, active: 1, failed: 0, completed: 10 },
-      { queue: 'es-sync-update', queued: 4, active: 0, failed: 1, completed: 20 },
+      { queue: 'es-sync-create', stuckCount: 3, failedCount: 0 },
+      { queue: 'es-sync-update', stuckCount: 4, failedCount: 1 },
     ]);
   });
 

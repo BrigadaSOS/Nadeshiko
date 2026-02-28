@@ -11,7 +11,7 @@ export enum ActivityType {
 }
 
 export interface UserActivityTrackData {
-  segmentUuid?: string;
+  segmentId?: number;
   mediaId?: number;
   searchQuery?: string;
   mediaName?: string;
@@ -31,8 +31,8 @@ export class UserActivity extends BaseEntity {
   @Column({ name: 'activity_type', type: 'enum', enum: ActivityType })
   activityType!: ActivityType;
 
-  @Column({ name: 'segment_uuid', type: 'varchar', nullable: true })
-  segmentUuid?: string | null;
+  @Column({ name: 'segment_id', type: 'int', nullable: true })
+  segmentId?: number | null;
 
   @Column({ name: 'media_id', type: 'int', nullable: true })
   mediaId?: number | null;
@@ -62,7 +62,7 @@ export class UserActivity extends BaseEntity {
     await UserActivity.save({
       userId: user.id,
       activityType,
-      segmentUuid: data.segmentUuid ?? null,
+      segmentId: data.segmentId ?? null,
       mediaId: data.mediaId ?? null,
       searchQuery: data.searchQuery ?? null,
       mediaName: data.mediaName ?? null,

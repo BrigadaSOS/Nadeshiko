@@ -32,6 +32,7 @@ export interface QuerySurroundingSegmentsRequest {
 
 export interface SegmentDocumentShape {
   uuid: string;
+  publicId: string;
   position: number;
   status: string;
   startTimeMs: number;
@@ -39,9 +40,9 @@ export interface SegmentDocumentShape {
   durationMs: number;
   textJa: string;
   characterCount: number;
-  textEs?: string;
+  textEs: string;
   textEsMt: boolean;
-  textEn?: string;
+  textEn: string;
   textEnMt: boolean;
   contentRating: string;
   storage: string;
@@ -49,7 +50,7 @@ export interface SegmentDocumentShape {
   category: string;
   episode: number;
   mediaId: number;
-  storageBasePath?: string;
+  storageBasePath: string;
 }
 
 export interface ReindexMediaItem {
@@ -270,15 +271,15 @@ export class SegmentDocument {
     return { segments: sortedSegments, includes: { media: mergedMediaMap } };
   }
 
-  static async findByUuids(
-    uuids: string[],
+  static async findByIds(
+    ids: number[],
   ): Promise<{ segments: SegmentOutput[]; includes: { media: Record<string, MediaOutput> } }> {
-    if (uuids.length === 0) return { segments: [], includes: { media: {} } };
+    if (ids.length === 0) return { segments: [], includes: { media: {} } };
 
     const esResponse = await client.search({
       index: INDEX_NAME,
-      size: uuids.length,
-      query: { terms: { uuid: uuids } },
+      size: ids.length,
+      query: { terms: { _id: ids.map(String) } },
     });
 
     const mediaInfo = await Media.getMediaInfoMap();

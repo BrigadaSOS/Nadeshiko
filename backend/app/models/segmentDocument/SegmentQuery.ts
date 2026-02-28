@@ -437,7 +437,7 @@ export class SegmentQuery {
   }
 
   private static buildMediaFilter(
-    include: Array<{ mediaId: number; episodes?: number[] }>,
+    include: Array<{ mediaId: number | string; episodes?: number[] }>,
   ): estypes.QueryDslQueryContainer {
     const mediaQueries: estypes.QueryDslQueryContainer[] = include.flatMap((mediaFilter) => {
       if (!mediaFilter.episodes || mediaFilter.episodes.length === 0) {

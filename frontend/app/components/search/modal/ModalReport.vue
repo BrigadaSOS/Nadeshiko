@@ -10,7 +10,7 @@ const props = defineProps<{
     | {
         type: 'SEGMENT';
         mediaId: number;
-        segmentUuid: string;
+        segmentId: string;
       }
     | {
         type: 'MEDIA';

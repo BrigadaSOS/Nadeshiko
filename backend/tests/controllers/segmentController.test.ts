@@ -12,6 +12,7 @@ import { toMediaBaseDTO } from '@app/controllers/mappers/shared.mapper';
 import { config } from '@config/config';
 import { ContentRating, Segment, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { Media } from '@app/models/Media';
+import { MediaExternalId, ExternalSourceType } from '@app/models/MediaExternalId';
 
 setupTestSuite();
 
@@ -41,8 +42,10 @@ afterEach(() => {
 async function seedSegment(mediaId: number, episodeNumber: number, overrides: Partial<Segment> = {}): Promise<Segment> {
   segmentSeedCounter += 1;
 
+  const uuid = `seg-${mediaId}-${episodeNumber}-${segmentSeedCounter}`;
   return Segment.save({
-    uuid: `seg-${mediaId}-${episodeNumber}-${segmentSeedCounter}`,
+    uuid,
+    publicId: `pub-${uuid}`,
     position: segmentSeedCounter,
     status: SegmentStatus.ACTIVE,
     startTimeMs: 1000,
@@ -116,6 +119,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
+    await MediaExternalId.save({ mediaId: media.id, source: ExternalSourceType.ANILIST, externalId: '99999' });
     const position = 7;
 
     await assertDifference(
@@ -133,7 +137,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
           hashedId: 'new-hash',
         });
 
-        const expectedUuid = uuidv3(`${media.id}-1-${episode.episodeNumber}-${position}`, config.UUID_NAMESPACE);
+        const expectedUuid = uuidv3(`99999-1-${episode.episodeNumber}-${position}`, config.UUID_NAMESPACE);
 
         expect(res.status).toBe(201);
         expect(res.body).toMatchObject({
@@ -173,6 +177,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
   it('returns 404 when episode does not exist (FK violation)', async () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
+    await MediaExternalId.save({ mediaId: media.id, source: ExternalSourceType.ANILIST, externalId: '99998' });
 
     const res = await request(app)
       .post(`/v1/media/${media.id}/episodes/999/segments`)

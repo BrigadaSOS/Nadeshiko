@@ -13,6 +13,7 @@ let mockTrackForUser: Mock<typeof UserActivity.trackForUser>;
 function buildMediaRecord(id: number) {
   return {
     id,
+    publicId: `media-pid-${id}`,
     externalIds: {},
     nameJa: `media-${id}-ja`,
     nameRomaji: `media-${id}-romaji`,
@@ -172,7 +173,7 @@ describe('search controller', () => {
 
   it('search stats strips includes by default', async () => {
     mockSearchStats.mockResolvedValue({
-      media: [{ mediaId: 1, matchCount: 2, episodeHits: { 1: 2 } }],
+      media: [{ mediaId: 1, publicId: 'pub1', matchCount: 2, episodeHits: { 1: 2 } }],
       categories: [{ category: 'ANIME', count: 2 }],
       includes: { media: { 1: buildMediaRecord(1) } },
     });

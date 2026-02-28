@@ -293,9 +293,9 @@ paths:
       tags:
         - Media
       operationId: getSegmentByUuid
-      summary: Get segment by UUID
+      summary: Get segment by UUID or publicId
       description: |
-        Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+        Returns a specific segment by its UUID or publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
         Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
 
@@ -311,7 +311,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: include
           in: query
@@ -366,7 +366,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: take
           in: query
@@ -818,9 +818,9 @@ components:
         - mediaId
       properties:
         mediaId:
-          type: integer
-          description: Media ID to filter
-          example: 123
+          type: string
+          description: Media identifier (publicId or AniList external ID)
+          example: abc123xyz
         episodes:
           type: array
           description: Specific episodes (omit for all episodes)
@@ -994,6 +994,7 @@ components:
       required:
         - id
         - uuid
+        - publicId
         - position
         - status
         - startTimeMs
@@ -1014,6 +1015,10 @@ components:
           type: string
           description: Unique identifier for the segment
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        publicId:
+          type: string
+          description: Public identifier for the segment (use this instead of uuid in public URLs)
+          example: V1StGXR8_Z5d
         position:
           type: integer
           description: Position of the segment within the episode
@@ -1137,6 +1142,7 @@ components:
       description: Japanese voice actor (seiyuu)
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameEn
@@ -1146,6 +1152,10 @@ components:
           type: integer
           description: Internal seiyuu ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the seiyuu (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -1204,6 +1214,7 @@ components:
       description: Media entry with full metadata
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameRomaji
@@ -1223,8 +1234,12 @@ components:
       properties:
         id:
           type: integer
-          description: Unique identifier for the media
+          description: Internal unique identifier for the media
           example: 7674
+        publicId:
+          type: string
+          description: Public identifier for the media (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -1576,6 +1591,7 @@ components:
       description: Search hit statistics for a single media
       required:
         - mediaId
+        - publicId
         - matchCount
         - episodeHits
       properties:
@@ -1583,6 +1599,10 @@ components:
           type: integer
           description: Media identifier (look up full details in includes.media)
           example: 110316
+        publicId:
+          type: string
+          description: Public identifier for use in URLs and filters
+          example: abc123xyz
         matchCount:
           type: integer
           description: Number of matching segments found in this media
@@ -1933,6 +1953,7 @@ components:
       description: Anime character
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameEn
@@ -1942,6 +1963,10 @@ components:
           type: integer
           description: Internal character ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the character (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:

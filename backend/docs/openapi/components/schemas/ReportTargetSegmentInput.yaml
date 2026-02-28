@@ -18,7 +18,6 @@ properties:
     description: Episode number containing the segment
     example: 5
   segmentId:
-    type: integer
-    nullable: true
-    description: Segment ID
-    example: 42
+    type: string
+    description: Segment public ID or UUID
+    example: "abc123def456"

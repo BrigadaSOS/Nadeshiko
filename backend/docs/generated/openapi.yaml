@@ -405,9 +405,9 @@ paths:
       tags:
         - Media
       operationId: getSegmentByUuid
-      summary: Get segment by UUID
+      summary: Get segment by UUID or publicId
       description: |
-        Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+        Returns a specific segment by its UUID or publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
         Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
 
@@ -423,7 +423,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: include
           in: query
@@ -461,9 +461,9 @@ paths:
       x-internal: true
       tags:
         - Media
-      summary: Update segment by UUID
+      summary: Update segment by UUID or publicId
       description: |
-        Updates an existing segment identified by its UUID. Performs the UUID→segment lookup internally,
+        Updates an existing segment identified by its UUID or publicId. Performs the lookup internally,
         then applies the update. Only provided fields will be updated.
 
         **Permissions:** `UPDATE_MEDIA`
@@ -478,7 +478,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       requestBody:
         required: true
@@ -523,7 +523,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: take
           in: query
@@ -597,7 +597,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Segment UUID
+          description: Segment UUID or publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       responses:
         '200':
@@ -2001,8 +2001,8 @@ paths:
                   enum:
                     - SEGMENT_PLAY
                     - SHARE
-                segmentUuid:
-                  type: string
+                segmentId:
+                  type: integer
                 mediaId:
                   type: integer
                 mediaName:
@@ -2583,12 +2583,12 @@ paths:
             schema:
               type: object
               required:
-                - segmentUuid
+                - segmentId
               properties:
-                segmentUuid:
+                segmentId:
                   type: string
-                  description: UUID of the segment to add
-                  example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+                  description: Public ID or UUID of the segment to add
+                  example: abc123def456
                 note:
                   type: string
                   maxLength: 500
@@ -2608,7 +2608,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/collections/{id}/segments/{uuid}:
+  /v1/collections/{id}/segments/{segmentId}:
     patch:
       x-internal: true
       tags:
@@ -2627,13 +2627,13 @@ paths:
           schema:
             type: integer
             example: 123
-        - name: uuid
+        - name: segmentId
           in: path
           required: true
-          description: Segment UUID
+          description: Segment ID
           schema:
-            type: string
-            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+            type: integer
+            example: 456
       requestBody:
         required: true
         content:
@@ -2683,13 +2683,13 @@ paths:
           schema:
             type: integer
             example: 123
-        - name: uuid
+        - name: segmentId
           in: path
           required: true
-          description: Segment UUID
+          description: Segment ID
           schema:
-            type: string
-            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+            type: integer
+            example: 456
       responses:
         '204':
           description: No Content
@@ -3667,11 +3667,11 @@ paths:
           schema:
             type: integer
           description: Filter by target episode number
-        - name: target.segmentUuid
+        - name: target.segmentId
           in: query
           schema:
-            type: string
-          description: Filter by target segment UUID
+            type: integer
+          description: Filter by target segment ID
         - name: auditRunId
           in: query
           schema:
@@ -3995,9 +3995,9 @@ components:
         - mediaId
       properties:
         mediaId:
-          type: integer
-          description: Media ID to filter
-          example: 123
+          type: string
+          description: Media identifier (publicId or AniList external ID)
+          example: abc123xyz
         episodes:
           type: array
           description: Specific episodes (omit for all episodes)
@@ -4171,6 +4171,7 @@ components:
       required:
         - id
         - uuid
+        - publicId
         - position
         - status
         - startTimeMs
@@ -4191,6 +4192,10 @@ components:
           type: string
           description: Unique identifier for the segment
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+        publicId:
+          type: string
+          description: Public identifier for the segment (use this instead of uuid in public URLs)
+          example: V1StGXR8_Z5d
         position:
           type: integer
           description: Position of the segment within the episode
@@ -4314,6 +4319,7 @@ components:
       description: Japanese voice actor (seiyuu)
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameEn
@@ -4323,6 +4329,10 @@ components:
           type: integer
           description: Internal seiyuu ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the seiyuu (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -4381,6 +4391,7 @@ components:
       description: Media entry with full metadata
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameRomaji
@@ -4400,8 +4411,12 @@ components:
       properties:
         id:
           type: integer
-          description: Unique identifier for the media
+          description: Internal unique identifier for the media
           example: 7674
+        publicId:
+          type: string
+          description: Public identifier for the media (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -4753,6 +4768,7 @@ components:
       description: Search hit statistics for a single media
       required:
         - mediaId
+        - publicId
         - matchCount
         - episodeHits
       properties:
@@ -4760,6 +4776,10 @@ components:
           type: integer
           description: Media identifier (look up full details in includes.media)
           example: 110316
+        publicId:
+          type: string
+          description: Public identifier for use in URLs and filters
+          example: abc123xyz
         matchCount:
           type: integer
           description: Number of matching segments found in this media
@@ -5463,6 +5483,7 @@ components:
       description: Anime character
       required:
         - id
+        - publicId
         - externalIds
         - nameJa
         - nameEn
@@ -5472,6 +5493,10 @@ components:
           type: integer
           description: Internal character ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the character (use this in public URLs)
+          example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
@@ -5956,12 +5981,12 @@ components:
           type: integer
           description: Media ID this report targets
           example: 42
-    ReportTargetSegment:
+    ReportTargetSegmentInput:
       type: object
       required:
         - type
         - mediaId
-        - segmentUuid
+        - segmentId
       properties:
         type:
           type: string
@@ -5977,19 +6002,19 @@ components:
           type: integer
           description: Episode number containing the segment
           example: 5
-        segmentUuid:
+        segmentId:
           type: string
-          description: Segment UUID this report targets
-          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+          description: Segment public ID or UUID
+          example: abc123def456
     UserReportTarget:
       oneOf:
         - $ref: '#/components/schemas/ReportTargetMedia'
-        - $ref: '#/components/schemas/ReportTargetSegment'
+        - $ref: '#/components/schemas/ReportTargetSegmentInput'
       discriminator:
         propertyName: type
         mapping:
           MEDIA: '#/components/schemas/ReportTargetMedia'
-          SEGMENT: '#/components/schemas/ReportTargetSegment'
+          SEGMENT: '#/components/schemas/ReportTargetSegmentInput'
     CreateReportRequest:
       type: object
       required:
@@ -6039,6 +6064,32 @@ components:
           type: integer
           description: Episode number this report targets
           example: 5
+    ReportTargetSegment:
+      type: object
+      required:
+        - type
+        - mediaId
+        - segmentId
+      properties:
+        type:
+          type: string
+          enum:
+            - SEGMENT
+          description: Report target type
+          example: SEGMENT
+        mediaId:
+          type: integer
+          description: Media ID this report targets
+          example: 42
+        episodeNumber:
+          type: integer
+          description: Episode number containing the segment
+          example: 5
+        segmentId:
+          type: integer
+          nullable: true
+          description: Segment ID
+          example: 42
     ReportTarget:
       oneOf:
         - $ref: '#/components/schemas/ReportTargetMedia'
@@ -6246,7 +6297,7 @@ components:
       required:
         - id
         - activityType
-        - segmentUuid
+        - segmentId
         - mediaId
         - searchQuery
         - mediaName
@@ -6257,8 +6308,8 @@ components:
           type: integer
         activityType:
           $ref: '#/components/schemas/ActivityType'
-        segmentUuid:
-          type: string
+        segmentId:
+          type: integer
           nullable: true
         mediaId:
           type: integer
@@ -6339,14 +6390,13 @@ components:
         - $ref: '#/components/schemas/Collection'
         - type: object
           required:
-            - segmentUuids
+            - segmentIds
           properties:
-            segmentUuids:
+            segmentIds:
               type: array
-              description: Segment UUIDs in saved order
+              description: Segment IDs in saved order
               items:
-                type: string
-                format: uuid
+                type: integer
     UserExportResponse:
       type: object
       description: User data export payload (identifier-oriented references)

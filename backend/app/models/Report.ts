@@ -69,8 +69,8 @@ export class Report extends BaseEntity {
   @Column({ name: 'target_episode_number', type: 'int', nullable: true })
   targetEpisodeNumber?: number | null;
 
-  @Column({ name: 'target_segment_uuid', type: 'varchar', nullable: true })
-  targetSegmentUuid?: string | null;
+  @Column({ name: 'target_segment_id', type: 'int', nullable: true })
+  targetSegmentId?: number | null;
 
   @Column({ name: 'audit_run_id', type: 'int', nullable: true })
   auditRunId?: number | null;

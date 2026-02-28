@@ -233,19 +233,19 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
     });
   });
 
-  describe('findByUuids()', () => {
-    it('finds segments by UUID', async () => {
-      const { segments } = await seedSegmentsIntoEs({}, [{ contentJa: 'UUID検索' }]);
+  describe('findByIds()', () => {
+    it('finds segments by ID', async () => {
+      const { segments } = await seedSegmentsIntoEs({}, [{ contentJa: 'ID検索' }]);
 
-      const result = await SegmentDocument.findByUuids([segments[0].uuid]);
+      const result = await SegmentDocument.findByIds([segments[0].id]);
 
       expect(result.segments).toHaveLength(1);
-      expect(result.segments[0].uuid).toBe(segments[0].uuid);
+      expect(result.segments[0].id).toBe(segments[0].id);
       expect(result.includes.media).toBeDefined();
     });
 
-    it('returns empty for empty UUID array without calling ES', async () => {
-      const result = await SegmentDocument.findByUuids([]);
+    it('returns empty for empty ID array without calling ES', async () => {
+      const result = await SegmentDocument.findByIds([]);
 
       expect(result.segments).toHaveLength(0);
       expect(result.includes.media).toEqual({});

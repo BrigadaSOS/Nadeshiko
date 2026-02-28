@@ -2,9 +2,9 @@ get:
   tags:
     - Media
   operationId: getSegmentByUuid
-  summary: Get segment by UUID
+  summary: Get segment by UUID or publicId
   description: |
-    Returns a specific segment by its UUID. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+    Returns a specific segment by its UUID or publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
     Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
 
@@ -19,7 +19,7 @@ get:
       required: true
       schema:
         type: string
-      description: Segment UUID
+      description: Segment UUID or publicId
       example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
     - name: include
       in: query
@@ -53,9 +53,9 @@ patch:
   x-internal: true
   tags:
     - Media
-  summary: Update segment by UUID
+  summary: Update segment by UUID or publicId
   description: |
-    Updates an existing segment identified by its UUID. Performs the UUID→segment lookup internally,
+    Updates an existing segment identified by its UUID or publicId. Performs the lookup internally,
     then applies the update. Only provided fields will be updated.
 
     **Permissions:** `UPDATE_MEDIA`
@@ -69,7 +69,7 @@ patch:
       required: true
       schema:
         type: string
-      description: Segment UUID
+      description: Segment UUID or publicId
       example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
   requestBody:
     required: true

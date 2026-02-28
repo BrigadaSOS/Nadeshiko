@@ -20,7 +20,7 @@ const toReportTargetDTO = (report: Report): t_Report['target'] => {
       return {
         type: 'SEGMENT',
         mediaId: report.targetMediaId,
-        segmentUuid: requireReportField(report, 'targetSegmentUuid', report.targetSegmentUuid),
+        segmentId: requireReportField(report, 'targetSegmentId', report.targetSegmentId),
         ...(report.targetEpisodeNumber != null ? { episodeNumber: report.targetEpisodeNumber } : {}),
       };
     case 'EPISODE':
@@ -43,7 +43,7 @@ export type AdminReportFilters = {
   targetType?: ReportTargetType;
   targetMediaId?: number;
   targetEpisodeNumber?: number;
-  targetSegmentUuid?: string;
+  targetSegmentId?: number;
   auditRunId?: number;
 };
 
@@ -75,15 +75,16 @@ export const toAdminReportDTO = (report: Report, reportCount: number): t_AdminRe
 type ReportCreateAttributesInput = {
   body: CreateReportRequestOutput;
   userId: number;
+  resolvedSegmentId: number | null;
 };
 
-export function toReportCreateAttributes({ body, userId }: ReportCreateAttributesInput): Partial<Report> {
+export function toReportCreateAttributes({ body, userId, resolvedSegmentId }: ReportCreateAttributesInput): Partial<Report> {
   return {
     source: ReportSource.USER,
     targetType: body.target.type as ReportTargetType,
     targetMediaId: body.target.mediaId,
     targetEpisodeNumber: 'episodeNumber' in body.target ? (body.target.episodeNumber ?? null) : null,
-    targetSegmentUuid: body.target.type === 'SEGMENT' ? body.target.segmentUuid : null,
+    targetSegmentId: resolvedSegmentId,
     reason: body.reason as ReportReason,
     description: body.description ?? null,
     userId,
@@ -105,7 +106,7 @@ export function toAdminReportFilters(query: ListAdminReportsQueryOutput): AdminR
     targetType: query['target.type'] as ReportTargetType | undefined,
     targetMediaId: query['target.mediaId'],
     targetEpisodeNumber: query['target.episodeNumber'],
-    targetSegmentUuid: query['target.segmentUuid'],
+    targetSegmentId: query['target.segmentId'],
     auditRunId: query.auditRunId,
   };
 }

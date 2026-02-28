@@ -8,6 +8,7 @@ export class Segments1706150600000 implements MigrationInterface {
       CREATE TABLE "Segment" (
         "id" SERIAL PRIMARY KEY,
         "uuid" varchar NOT NULL UNIQUE CHECK ("uuid" <> ''),
+        "public_id" varchar NOT NULL UNIQUE CHECK ("public_id" <> ''),
         "position" integer NOT NULL,
         "status" segment_status NOT NULL DEFAULT 'ACTIVE',
         "start_time_ms" integer NOT NULL,
