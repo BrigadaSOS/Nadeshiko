@@ -360,7 +360,8 @@ watch([searchQuery, filterCategory], () => {
               {{ mediaInfo.segmentCount }} {{ $t('animeList.sentenceCount') }}
             </h3>
             <h3 class="text-sm text-center font-medium dark:text-gray-300">
-              {{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.episodes') }}
+              <template v-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
+              <template v-else>{{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.episodes') }}</template>
             </h3>
           </div>
         </div>
@@ -439,7 +440,8 @@ watch([searchQuery, filterCategory], () => {
                 <p
                   class="text-sm font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  {{ $t('animeList.episodes') }}: {{ mediaInfo.episodeCount || 0 }}
+                  <template v-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
+                  <template v-else>{{ $t('animeList.episodes') }}: {{ mediaInfo.episodeCount || 0 }}</template>
                 </p>
               </div>
 

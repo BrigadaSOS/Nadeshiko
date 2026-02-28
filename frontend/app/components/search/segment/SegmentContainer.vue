@@ -240,18 +240,18 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
 
     <div v-for="(result, index) in resultList" :key="result.segment.uuid"
       :id="result.segment.uuid"
-      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col lg:flex-row py-2"
+      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col min-[650px]:flex-row py-2"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
         'bg-neutral-700/30 hover:bg-neutral-700/40': focusedIndex === index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
       }">
       <!-- Image -->
-      <div class="h-56 shrink-0 w-auto lg:w-[25rem] min-w-[200px] flex justify-center relative overflow-hidden">
+      <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
         <img loading="lazy" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
           @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid)) && zoomImage(result.segment.urls.imageUrl)"
-          class="inset-0 h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
+          class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent mx-auto max-w-2xl min-[650px]:max-w-none"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
           :key="result.segment.urls.imageUrl" />
@@ -430,10 +430,10 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
   </div>
   <div v-else-if="(isLoading && (searchData?.results?.length ?? 0) === 0) || !searchData" class="w-full">
     <div v-for="i in 10" :key="i"
-      class="hover:bg-neutral-800/20 mb-11 animate-pulse items-stretch b-2 rounded-lg group transition-all flex flex-col lg:flex-row py-2">
+      class="hover:bg-neutral-800/20 mb-11 animate-pulse items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2">
       <!-- Image placeholder  -->
-      <div class="h-auto shrink-0 w-auto lg:w-[26em]">
-        <div class="h-56 w-full bg-gray-300 dark:bg-neutral-700"></div>
+      <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[26em]">
+        <div class="aspect-video min-[650px]:aspect-auto min-[650px]:h-56 w-full max-w-2xl min-[650px]:max-w-none mx-auto bg-gray-300 dark:bg-neutral-700"></div>
       </div>
 
       <!-- Content placeholders  -->

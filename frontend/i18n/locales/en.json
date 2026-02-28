@@ -560,6 +560,7 @@
     "submitError": "Failed to submit report",
     "cancel": "Cancel",
     "reportSegment": "Report",
+    "loginRequired": "Please log in to use this feature",
     "reportMedia": "Report media",
     "allStatuses": "All statuses",
     "allTypes": "All types",
