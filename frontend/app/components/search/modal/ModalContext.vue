@@ -2,7 +2,11 @@
 import type { SearchResponse, SearchResult } from '~/types/search';
 import { resolveContextResponse } from '~/utils/resolvers';
 import { useI18n } from 'vue-i18n';
+import { storeToRefs } from 'pinia';
+import { usePlayerStore } from '~/stores/player';
 const { t } = useI18n();
+const playerStore = usePlayerStore();
+const { showPlayer } = storeToRefs(playerStore);
 const { mediaName } = useMediaName();
 const props = defineProps<{ sentence: SearchResult | null }>();
 
@@ -66,7 +70,8 @@ const scrollToElement = (id: string) => {
   <div id="nd-vertically-centered-scrollable-context"
     class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/60 hidden w-full h-full flex items-center justify-center fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
     <div
-      class="w-full max-w-7xl mx-auto h-full max-h-[95vh] flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border">
+      class="w-full max-w-7xl mx-auto h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
+      :style="{ maxHeight: showPlayer ? '85vh' : '95vh', marginBottom: showPlayer ? '5rem' : '0' }">
       <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
         <h3 class="font-bold text-gray-800 dark:text-white">
           {{ t('searchpage.modalcontext.labels.context') }} - {{

@@ -540,6 +540,7 @@
     "submitError": "報告の送信に失敗しました",
     "cancel": "キャンセル",
     "reportSegment": "報告",
+    "loginRequired": "この機能を使用するにはログインしてください",
     "reportMedia": "メディアを報告",
     "allStatuses": "すべてのステータス",
     "allTypes": "すべてのタイプ",

@@ -304,7 +304,8 @@ const {
                                                                 {{ media_info.segmentCount }} {{ $t('animeList.sentenceCount') }}
                                                             </h3>
                                                             <h3 class="text-sm text-center font-medium">
-                                                                {{ media_info.episodeCount || 0 }} {{ $t('animeList.episodes') }}
+                                                                <template v-if="media_info.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
+                                                                <template v-else>{{ media_info.episodeCount || 0 }} {{ $t('animeList.episodes') }}</template>
                                                             </h3>
                                                         </div>
                                                     </NuxtLink>
