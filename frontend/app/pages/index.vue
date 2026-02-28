@@ -158,7 +158,7 @@ const {
                                         <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
-                                                    +{{ Math.ceil((filteredRecentMedia.reduce((sum, m) => sum + (m.segmentCount || 0), 0) || 0) / 100) * 100 }}
+                                                    +{{ Math.ceil((media?.stats?.totalSegments || 0) / 100) * 100 }}
                                                 </h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.sentenceCount') }}
@@ -168,7 +168,7 @@ const {
                                         <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
-                                                    {{ filteredRecentMedia.reduce((sum, m) => sum + (m.episodeCount || 0), 0) || 0 }}
+                                                    {{ media?.stats?.totalEpisodes || 0 }}
                                                 </h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.episodeCount') }}
@@ -178,7 +178,7 @@ const {
                                         <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">{{
-                                                    filteredRecentMedia.length || 0 }}</h2>
+                                                    media?.stats?.totalMedia || 0 }}</h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.mediaCount') }}
                                                 </p>

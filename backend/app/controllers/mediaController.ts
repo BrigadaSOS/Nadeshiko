@@ -40,19 +40,27 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
     includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
   });
 
-  const { items: mediaList, pagination } = await Media.paginateWithOffset({
-    find: {
-      where,
-      relations: mediaRelations,
-      order: { id: 'ASC' },
-    },
-    take: query.take,
-    cursor: query.cursor,
-  });
+  const [{ items: mediaList, pagination }, globalStats] = await Promise.all([
+    Media.paginateWithOffset({
+      find: {
+        where,
+        relations: mediaRelations,
+        order: { id: 'ASC' },
+      },
+      take: query.take,
+      cursor: query.cursor,
+    }),
+    Media.getGlobalStats(),
+  ]);
 
   return respond.with200().body({
     media: toMediaListDTO(mediaList),
     pagination,
+    stats: {
+      totalMedia: globalStats.fullTotalAnimes,
+      totalSegments: globalStats.fullTotalSegments,
+      totalEpisodes: globalStats.fullTotalEpisodes,
+    },
   });
 };
 
@@ -100,7 +108,7 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
       .leftJoinAndSelect('character.seiyuu', 'seiyuu');
   }
 
-  const rows = await qb.getMany();
+  const [rows, globalStats] = await Promise.all([qb.getMany(), Media.getGlobalStats()]);
   const hasMore = rows.length > take;
   const mediaList = hasMore ? rows.slice(0, take) : rows;
 
@@ -109,6 +117,11 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
     pagination: {
       hasMore,
       cursor: hasMore ? encodeOffsetCursor(skip + mediaList.length) : null,
+    },
+    stats: {
+      totalMedia: globalStats.fullTotalAnimes,
+      totalSegments: globalStats.fullTotalSegments,
+      totalEpisodes: globalStats.fullTotalEpisodes,
     },
   });
 };

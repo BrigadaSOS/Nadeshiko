@@ -2,6 +2,7 @@ type: object
 required:
   - media
   - pagination
+  - stats
 properties:
   media:
     type: array
@@ -9,3 +10,19 @@ properties:
       $ref: "../schemas/Media.yaml"
   pagination:
     $ref: "../schemas/OpaqueCursorPagination.yaml"
+  stats:
+    type: object
+    required:
+      - totalMedia
+      - totalSegments
+      - totalEpisodes
+    properties:
+      totalMedia:
+        type: integer
+        description: Total number of media across all pages
+      totalSegments:
+        type: integer
+        description: Total number of non-deleted segments
+      totalEpisodes:
+        type: integer
+        description: Total number of episodes
