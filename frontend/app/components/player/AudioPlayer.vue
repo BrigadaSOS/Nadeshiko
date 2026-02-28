@@ -295,7 +295,6 @@ const getAnimeImage = (result: any) => {
 </script>
 
 <template>
-    <transition name="fade">
         <div v-if="showPlayer && currentResult">
 
             <transition name="zoom-fade">
@@ -472,5 +471,4 @@ const getAnimeImage = (result: any) => {
                 </div>
             </div>
         </div>
-    </transition>
 </template>

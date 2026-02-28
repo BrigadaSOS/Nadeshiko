@@ -92,23 +92,6 @@ export type SeriesWithMediaOutput = z.output<typeof schemas.s_SeriesWithMedia>;
 // Inline query schemas and their output types
 // ============================================
 
-export const listUserActivityQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    activityType: schemas.s_ActivityType.optional(),
-    date: z.string().optional(),
-  });
-export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
-
-export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
-export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;
-
-export const getUserActivityHeatmapQuerySchema = z.object({ days: z.coerce.number().max(730).optional().default(365) });
-export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
-
-export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
-export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
-
 export const listCollectionsQuerySchema = z.object({
     visibility: z.enum(['public', 'private']).optional(),
     cursor: z.string().optional(),
@@ -127,6 +110,23 @@ export const searchCollectionSegmentsQuerySchema = z.object({
     take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;
+
+export const listUserActivityQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
+    activityType: schemas.s_ActivityType.optional(),
+    date: z.string().optional(),
+  });
+export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
+
+export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
+export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;
+
+export const getUserActivityHeatmapQuerySchema = z.object({ days: z.coerce.number().max(730).optional().default(365) });
+export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
+
+export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
+export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
 
 export const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),

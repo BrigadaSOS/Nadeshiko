@@ -17,8 +17,6 @@ import {
   mdiTransferRight,
   mdiPencilOutline,
   mdiFlagOutline,
-  mdiEyeOffOutline,
-  mdiEyeOutline,
   mdiFormatListBulletedSquare,
 } from '@mdi/js';
 
@@ -50,7 +48,6 @@ const user = userStore();
 const sdk = useNadeshikoSdk();
 const { t } = useI18n();
 const router = useRouter();
-const { isMediaHidden, toggleHideMedia } = useHiddenMedia();
 const isAnkiConfigured = ref(false);
 const collections = ref<CollectionOption[]>([]);
 const collectionsLoading = ref(false);
@@ -168,24 +165,34 @@ const openCollectionsPage = async () => {
 };
 </script>
 <template>
-  <SearchDropdownContainer class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer :class="['mr-2 my-1 text-xs', { 'hidden min-[1250px]:inline-flex': !user.isLoggedIn }]" dropdownId="nd-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header" @click="loadCollections">
         <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
-        {{ $t('searchpage.main.buttons.add') }}
+        <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.add') }}</span>
       </SearchDropdownMainButton>
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.add')">
         <!-- Anki by last added -->
         <ClientOnly>
-          <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
-            :iconPath="mdiStarShootingOutline" @click="anki.addSentenceToAnki(content)" />
+          <template v-if="user.isLoggedIn">
+            <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
+              :iconPath="mdiStarShootingOutline" @click="anki.addSentenceToAnki(content)" />
 
-          <!-- Anki by ID -->
-          <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
-            @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
-            data-nd-overlay="#nd-vertically-centered-scrollable-anki-collection" />
+            <!-- Anki by ID -->
+            <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
+              @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
+              data-nd-overlay="#nd-vertically-centered-scrollable-anki-collection" />
+          </template>
+          <template v-else>
+            <div class="hidden min-[1250px]:block">
+              <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"
+                :iconPath="mdiStarShootingOutline" :tooltip="$t('reports.loginRequired')" />
+              <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
+                :iconPath="mdiStarShootingOutline" :tooltip="$t('reports.loginRequired')" />
+            </div>
+          </template>
           <template #fallback>
             <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"
               :iconPath="mdiStarShootingOutline" />
@@ -193,6 +200,7 @@ const openCollectionsPage = async () => {
               :iconPath="mdiStarShootingOutline" />
           </template>
         </ClientOnly>
+
         <template v-if="user.isLoggedIn">
           <div
             class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
@@ -245,6 +253,15 @@ const openCollectionsPage = async () => {
             @click="openCollectionsPage"
           />
         </template>
+        <template v-else>
+          <div class="hidden min-[1250px]:block">
+            <div
+              class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
+            </div>
+            <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.chooseCollection')"
+              :iconPath="mdiFormatListBulletedSquare" :tooltip="$t('reports.loginRequired')" />
+          </div>
+        </template>
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>
@@ -253,7 +270,7 @@ const openCollectionsPage = async () => {
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiTrayArrowDown" />
-        {{ $t('searchpage.main.buttons.download') }}
+        <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.download') }}</span>
       </SearchDropdownMainButton>
     </template>
     <template #content>
@@ -279,7 +296,7 @@ const openCollectionsPage = async () => {
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiContentCopy" />
-        {{ $t('searchpage.main.buttons.copyclipboard') }}
+        <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.copyclipboard') }}</span>
       </SearchDropdownMainButton>
     </template>
     <template #content>
@@ -306,7 +323,7 @@ const openCollectionsPage = async () => {
   <UiButtonPrimaryAction v-if="!hideContextButton" data-nd-overlay="#nd-vertically-centered-scrollable-context" class="mr-2 text-xs py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
-    {{ $t('searchpage.main.buttons.context') }}
+    <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.context') }}</span>
   </UiButtonPrimaryAction>
 
   <UiButtonPrimaryAction
@@ -333,22 +350,16 @@ const openCollectionsPage = async () => {
           @click="concatSentence('both')" />
         <SearchDropdownItem :text="$t('searchpage.main.buttons.expandRight')" :iconPath="mdiTransferRight"
           @click="concatSentence('forward')" />
-        <template v-if="user.isLoggedIn">
-          <div
-            class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
-          </div>
-          <SearchDropdownItem
-            :text="isMediaHidden(content.media.id) ? $t('searchpage.main.buttons.unhideMedia') : $t('searchpage.main.buttons.hideMedia')"
-            :iconPath="isMediaHidden(content.media.id) ? mdiEyeOutline : mdiEyeOffOutline"
-            @click="toggleHideMedia(content.media)"
-          />
+        <div :class="{ 'hidden min-[1250px]:block': !user.isLoggedIn }">
           <div
             class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
           </div>
           <SearchDropdownItem :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
+            :isDisabled="!user.isLoggedIn"
+            :tooltip="!user.isLoggedIn ? $t('reports.loginRequired') : undefined"
             data-nd-overlay="#nd-vertically-centered-scrollable-report"
-            @click="emit('open-report-modal', content)" />
-        </template>
+            @click="user.isLoggedIn && emit('open-report-modal', content)" />
+        </div>
         <template v-if="user.isAdmin">
           <div
             class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">

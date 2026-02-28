@@ -547,6 +547,7 @@
     "submitError": "Error al enviar el reporte",
     "cancel": "Cancelar",
     "reportSegment": "Reportar",
+    "loginRequired": "Inicia sesión para usar esta función",
     "reportMedia": "Reportar contenido",
     "allStatuses": "Todos los estados",
     "allTypes": "Todos los tipos",

@@ -61,16 +61,19 @@ export const usePlayerStore = defineStore('player', {
           .play()
           .then(() => {
             this.isPlaying = true;
-            const sdk = useNadeshikoSdk();
-            sdk.trackUserActivity({
-              body: {
-                activityType: 'SEGMENT_PLAY',
-                segmentId: this.currentResult?.segment.id,
-                mediaId: this.currentResult?.media.id,
-                mediaName: this.currentResult?.media.nameRomaji,
-                japaneseText: this.currentResult?.segment.textJa.content,
-              },
-            }).catch(() => {});
+            const user = userStore();
+            if (user.isLoggedIn) {
+              const sdk = useNadeshikoSdk();
+              sdk.trackUserActivity({
+                body: {
+                  activityType: 'SEGMENT_PLAY',
+                  segmentId: this.currentResult?.segment.id,
+                  mediaId: this.currentResult?.media.id,
+                  mediaName: this.currentResult?.media.nameRomaji,
+                  japaneseText: this.currentResult?.segment.textJa.content,
+                },
+              }).catch(() => {});
+            }
           })
           .catch((error) => {
             console.error('Error playing audio:', error);

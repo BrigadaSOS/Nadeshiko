@@ -192,16 +192,19 @@ export async function getSharingURL(params: {
     const message = $i18n.t('searchpage.main.labels.copiedsharingurl');
     useToastSuccess(message);
 
-    const sdk = useNadeshikoSdk();
-    sdk.trackUserActivity({
-      body: {
-        activityType: 'SHARE',
-        segmentId: params.segmentId,
-        mediaId: params.mediaId,
-        mediaName: params.mediaName,
-        japaneseText: params.japaneseText,
-      },
-    }).catch(() => {});
+    const user = userStore();
+    if (user.isLoggedIn) {
+      const sdk = useNadeshikoSdk();
+      sdk.trackUserActivity({
+        body: {
+          activityType: 'SHARE',
+          segmentId: params.segmentId,
+          mediaId: params.mediaId,
+          mediaName: params.mediaName,
+          japaneseText: params.japaneseText,
+        },
+      }).catch(() => {});
+    }
   } catch (_error) {
     const message = $i18n.t('searchpage.main.labels.errorcopiedsharingurl');
     useToastError(message);
