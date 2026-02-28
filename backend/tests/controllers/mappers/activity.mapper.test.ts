@@ -6,7 +6,7 @@ function buildActivity(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
     activityType: ActivityType.SEARCH,
-    segmentUuid: null,
+    segmentId: null,
     mediaId: 42,
     searchQuery: 'query',
     mediaName: 'Show',
@@ -22,7 +22,7 @@ describe('activity.mapper', () => {
     expect(dto).toEqual({
       id: 1,
       activityType: 'SEARCH',
-      segmentUuid: null,
+      segmentId: null,
       mediaId: 42,
       searchQuery: 'query',
       mediaName: 'Show',

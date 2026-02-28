@@ -6,6 +6,7 @@ import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segmen
 import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 import { config } from '@config/config';
 import { v3 as uuidv3 } from 'uuid';
+import { nanoid } from 'nanoid';
 
 const toJsonObjectOrNull = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
@@ -18,6 +19,7 @@ export const toSegmentDTO = (segment: Segment): t_Segment => {
   return {
     id: segment.id,
     uuid: segment.uuid,
+    publicId: segment.publicId,
     position: segment.position,
     status: segment.status as t_Segment['status'],
     startTimeMs: segment.startTimeMs,
@@ -63,18 +65,22 @@ export const toSegmentInternalListDTO = (segments: Segment[]): t_SegmentInternal
 
 type SegmentCreateAttributesInput = {
   mediaId: number;
+  anilistId: string;
+  airingFormat: string;
   episodeNumber: number;
   storageBasePath: string;
   body: SegmentCreateRequestOutput;
 };
 
 export function toSegmentCreateAttributes(input: SegmentCreateAttributesInput): Partial<Segment> {
-  const { mediaId, episodeNumber, storageBasePath, body } = input;
-  const uniqueBaseId = `${mediaId}-1-${episodeNumber}-${body.position}`;
+  const { mediaId, anilistId, airingFormat, episodeNumber, storageBasePath, body } = input;
+  const season = airingFormat === 'MOVIE' ? 0 : 1;
+  const uniqueBaseId = `${anilistId}-${season}-${episodeNumber}-${body.position}`;
 
   return {
     mediaId,
     storageBasePath,
+    publicId: nanoid(12),
     uuid: uuidv3(uniqueBaseId, config.UUID_NAMESPACE),
     position: body.position,
     status: body.status as SegmentStatus,

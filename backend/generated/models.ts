@@ -27,6 +27,7 @@ export type t_Character = {
   imageUrl: string;
   nameEn: string;
   nameJa: string;
+  publicId: string;
 };
 
 export type t_CharacterInput = {
@@ -221,6 +222,7 @@ export type t_Media = {
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
+  publicId: string;
   seasonName: string;
   seasonYear: number;
   segmentCount: number;
@@ -290,7 +292,7 @@ export type t_MediaCharacter = {
 
 export type t_MediaFilterItem = {
   episodes?: number[];
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_MediaIncludeExpansion = 'media.characters';
@@ -306,6 +308,7 @@ export type t_MediaSearchStats = {
   };
   matchCount: number;
   mediaId: number;
+  publicId: string;
 };
 
 export type t_OpaqueCursorPagination = {
@@ -386,7 +389,14 @@ export type t_ReportTargetMedia = {
 export type t_ReportTargetSegment = {
   episodeNumber?: number;
   mediaId: number;
-  segmentUuid: string;
+  segmentId: number | null;
+  type: 'SEGMENT';
+};
+
+export type t_ReportTargetSegmentInput = {
+  episodeNumber?: number;
+  mediaId: number;
+  segmentId: string;
   type: 'SEGMENT';
 };
 
@@ -458,6 +468,7 @@ export type t_Segment = {
   id: number;
   mediaId: number;
   position: number;
+  publicId: string;
   startTimeMs: number;
   status: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   textEn: {
@@ -546,6 +557,7 @@ export type t_Seiyuu = {
   imageUrl: string;
   nameEn: string;
   nameJa: string;
+  publicId: string;
 };
 
 export type t_SeiyuuWithRoles = {
@@ -591,11 +603,11 @@ export type t_UserActivity = {
   mediaId: number | null;
   mediaName: string | null;
   searchQuery: string | null;
-  segmentUuid: string | null;
+  segmentId: number | null;
 };
 
 export type t_UserExportCollection = t_Collection & {
-  segmentUuids: string[];
+  segmentIds: number[];
 };
 
 export type t_UserExportResponse = {
@@ -658,7 +670,7 @@ export type t_UserQuotaResponse = {
   quotaUsed: number;
 };
 
-export type t_UserReportTarget = t_ReportTargetMedia | t_ReportTargetSegment;
+export type t_UserReportTarget = t_ReportTargetMedia | t_ReportTargetSegmentInput;
 
 export type t_WordMatch = {
   isMatch: boolean;
@@ -687,7 +699,7 @@ export type t_AddSegmentToCollectionParamSchema = {
 
 export type t_AddSegmentToCollectionRequestBodySchema = {
   note?: string;
-  segmentUuid: string;
+  segmentId: string;
 };
 
 export type t_AutocompleteMediaQuerySchema = {
@@ -951,7 +963,7 @@ export type t_ListAdminReportsQuerySchema = {
   take?: number;
   'target.episodeNumber'?: number;
   'target.mediaId'?: number;
-  'target.segmentUuid'?: string;
+  'target.segmentId'?: number;
   'target.type'?: 'SEGMENT' | 'EPISODE' | 'MEDIA';
 };
 
@@ -1016,7 +1028,7 @@ export type t_RemoveMediaFromSeriesParamSchema = {
 
 export type t_RemoveSegmentFromCollectionParamSchema = {
   id: number;
-  uuid: string;
+  segmentId: number;
 };
 
 export type t_RetryAdminQueueFailedParamSchema = {
@@ -1069,7 +1081,7 @@ export type t_TrackUserActivityRequestBodySchema = {
   japaneseText?: string;
   mediaId?: number;
   mediaName?: string;
-  segmentUuid?: string;
+  segmentId?: number;
 };
 
 export type t_TriggerReindexRequestBodySchema = {
@@ -1114,7 +1126,7 @@ export type t_UpdateCollectionRequestBodySchema = {
 
 export type t_UpdateCollectionSegmentParamSchema = {
   id: number;
-  uuid: string;
+  segmentId: number;
 };
 
 export type t_UpdateCollectionSegmentRequestBodySchema = {

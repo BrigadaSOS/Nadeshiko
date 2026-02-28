@@ -40,8 +40,10 @@ function signInAs(targetApp: Application, user: CoreFixtures['users']['regular']
 async function seedSegment(mediaId: number, episodeNumber: number, overrides: Partial<Segment> = {}): Promise<Segment> {
   segmentSeedCounter += 1;
 
+  const uuid = `report-seg-${mediaId}-${episodeNumber}-${segmentSeedCounter}`;
   return Segment.save({
-    uuid: `report-seg-${mediaId}-${episodeNumber}-${segmentSeedCounter}`,
+    uuid,
+    publicId: `pub-${uuid}`,
     position: segmentSeedCounter,
     status: SegmentStatus.ACTIVE,
     startTimeMs: 1000,
@@ -130,7 +132,7 @@ describe('POST /v1/user/reports', () => {
           type: 'SEGMENT',
           mediaId: media.id,
           episodeNumber: episode.episodeNumber,
-          segmentUuid: segment.uuid,
+          segmentId: segment.publicId,
         },
         reason: 'WRONG_TRANSLATION',
         description: 'english text is wrong',
@@ -143,7 +145,7 @@ describe('POST /v1/user/reports', () => {
         type: 'SEGMENT',
         mediaId: media.id,
         episodeNumber: episode.episodeNumber,
-        segmentUuid: segment.uuid,
+        segmentId: segment.id,
       },
       reason: 'WRONG_TRANSLATION',
       status: 'PENDING',
@@ -151,7 +153,7 @@ describe('POST /v1/user/reports', () => {
 
     const saved = await Report.findOneByOrFail({ id: res.body.id });
     expect(saved.targetType).toBe(ReportTargetType.SEGMENT);
-    expect(saved.targetSegmentUuid).toBe(segment.uuid);
+    expect(saved.targetSegmentId).toBe(segment.id);
     expect(saved.targetEpisodeNumber).toBe(episode.episodeNumber);
   });
 
@@ -180,7 +182,7 @@ describe('POST /v1/user/reports', () => {
         target: {
           type: 'SEGMENT',
           mediaId: media.id,
-          segmentUuid: 'missing-segment',
+          segmentId: 'missing-segment',
         },
         reason: 'WRONG_TRANSLATION',
       });
@@ -203,7 +205,7 @@ describe('POST /v1/user/reports', () => {
         target: {
           type: 'SEGMENT',
           mediaId: wrongMedia.id,
-          segmentUuid: segment.uuid,
+          segmentId: segment.publicId,
         },
         reason: 'WRONG_TRANSLATION',
       });
@@ -225,7 +227,7 @@ describe('POST /v1/user/reports', () => {
           type: 'SEGMENT',
           mediaId: media.id,
           episodeNumber: episode.episodeNumber + 1,
-          segmentUuid: segment.uuid,
+          segmentId: segment.publicId,
         },
         reason: 'WRONG_TRANSLATION',
       });
@@ -247,8 +249,11 @@ describe('GET /v1/admin/reports', () => {
   });
 
   it('filters by all query fields and returns reportCount by target', async () => {
-    const fixtures = await loadFixtures(['singleMedia']);
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
     const media = fixtures.media.testShow;
+    const episode = fixtures.episodes.pilot;
+    const seg1 = await seedSegment(media.id, episode.episodeNumber);
+    const seg2 = await seedSegment(media.id, episode.episodeNumber);
     const auditRun = (await MediaAuditRun.save({
       auditName: 'db-es-sync-issues',
       category: 'ANIME',
@@ -260,8 +265,8 @@ describe('GET /v1/admin/reports', () => {
       source: ReportSource.AUTO,
       targetType: ReportTargetType.SEGMENT,
       targetMediaId: media.id,
-      targetEpisodeNumber: 3,
-      targetSegmentUuid: 'seg-filter',
+      targetEpisodeNumber: episode.episodeNumber,
+      targetSegmentId: seg1.id,
       reason: ReportReason.DB_ES_SYNC_ISSUES,
       status: ReportStatus.CONCERN,
       auditRunId: auditRun.id,
@@ -272,15 +277,15 @@ describe('GET /v1/admin/reports', () => {
       source: ReportSource.AUTO,
       targetType: ReportTargetType.SEGMENT,
       targetMediaId: media.id,
-      targetEpisodeNumber: 99,
-      targetSegmentUuid: 'another-seg',
+      targetEpisodeNumber: episode.episodeNumber,
+      targetSegmentId: seg2.id,
       reason: ReportReason.BAD_SEGMENT_RATIO,
       status: ReportStatus.PENDING,
       userId: null,
     });
 
     const res = await request(app).get(
-      `/v1/admin/reports?status=CONCERN&source=AUTO&target.type=SEGMENT&target.mediaId=${media.id}&target.episodeNumber=3&target.segmentUuid=seg-filter&auditRunId=${auditRun.id}&take=20`,
+      `/v1/admin/reports?status=CONCERN&source=AUTO&target.type=SEGMENT&target.mediaId=${media.id}&target.episodeNumber=${episode.episodeNumber}&target.segmentId=${seg1.id}&auditRunId=${auditRun.id}&take=20`,
     );
 
     expect(res.status).toBe(200);
@@ -290,8 +295,8 @@ describe('GET /v1/admin/reports', () => {
       target: {
         type: 'SEGMENT',
         mediaId: media.id,
-        episodeNumber: 3,
-        segmentUuid: 'seg-filter',
+        episodeNumber: episode.episodeNumber,
+        segmentId: seg1.id,
       },
       status: 'CONCERN',
       auditRunId: auditRun.id,

@@ -302,13 +302,13 @@ export const ankiStore = defineStore('anki', {
         const sdk = useNadeshikoSdk();
         await sdk.addSegmentToCollection({
           path: { id: collectionId },
-          body: { segmentUuid: sentence.segment.uuid },
+          body: { segmentId: sentence.segment.publicId },
         });
       } catch (error: unknown) {
         const err = error as { statusCode?: number };
         if (err.statusCode !== 409) {
           console.warn('[Anki] Could not sync segment to Anki Exports collection', {
-            segmentUuid: sentence.segment.uuid,
+            segmentId: sentence.segment.publicId,
             error,
           });
         }

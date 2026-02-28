@@ -6,12 +6,12 @@ import type { SearchStatsResponse } from '~/types/search';
 const route = useRoute();
 const { mediaName } = useMediaName();
 
-const uuid = computed(() => String(route.params.uuid));
+const id = computed(() => String(route.params.id));
 
 const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid: uuid.value } });
+    const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid: id.value } });
     if (!segment) return null;
     const { data: media } = await sdk.getMedia({ path: { id: segment.mediaId } });
     return resolveSearchResponse({
@@ -25,7 +25,7 @@ const fetchSentenceData = async () => {
 };
 
 const { data: initialSentenceData } = await useAsyncData(
-  `sentence-${uuid.value}`,
+  `sentence-${id.value}`,
   () => fetchSentenceData(),
   { server: true, lazy: false },
 );

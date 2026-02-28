@@ -1,6 +1,7 @@
-import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn, BeforeInsert } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
+import { nanoid } from 'nanoid';
 export enum SegmentStatus {
   DELETED = 'DELETED',
   ACTIVE = 'ACTIVE',
@@ -29,12 +30,21 @@ export enum SegmentStorage {
 
 @Entity('Segment')
 @Index(['uuid'], { unique: true })
+@Index(['publicId'], { unique: true })
 export class Segment extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
   id!: number;
 
   @Column({ type: 'varchar', unique: true })
   uuid!: string;
+
+  @Column({ name: 'public_id', type: 'varchar', unique: true })
+  publicId!: string;
+
+  @BeforeInsert()
+  generatePublicId() {
+    this.publicId = nanoid(12);
+  }
 
   @Column({ type: 'int' })
   position!: number;

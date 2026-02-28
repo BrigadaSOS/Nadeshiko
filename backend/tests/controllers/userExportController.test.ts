@@ -9,6 +9,32 @@ import { Collection, CollectionVisibility } from '@app/models/Collection';
 import { CollectionSegment } from '@app/models/CollectionSegment';
 import { Report, ReportSource, ReportTargetType, ReportReason } from '@app/models/Report';
 import { User } from '@app/models/User';
+import { Segment, SegmentStatus, SegmentStorage, ContentRating } from '@app/models/Segment';
+
+let segmentCounter = 0;
+async function createTestSegment(mediaId: number): Promise<Segment> {
+  segmentCounter += 1;
+  const uuid = `export-seg-${segmentCounter}`;
+  return Segment.save({
+    uuid,
+    publicId: `pub-${uuid}`,
+    position: segmentCounter,
+    status: SegmentStatus.ACTIVE,
+    startTimeMs: 0,
+    endTimeMs: 1000,
+    contentJa: 'テスト',
+    contentEs: 'prueba',
+    contentEn: 'test',
+    contentRating: ContentRating.SAFE,
+    ratingAnalysis: { scores: {}, tags: {} },
+    posAnalysis: { nouns: 0 },
+    storage: SegmentStorage.R2,
+    hashedId: `hash-export-${segmentCounter}`,
+    episode: 1,
+    mediaId,
+    storageBasePath: '/test',
+  });
+}
 
 setupTestSuite();
 
@@ -51,7 +77,7 @@ describe('GET /v1/user/export', () => {
     await UserActivity.save({
       userId: fixtures.users.kevin.id,
       activityType: ActivityType.ANKI_EXPORT,
-      segmentUuid: 'abc-123',
+      segmentId: 999,
     });
 
     const res = await request(app).get('/v1/user/export');
@@ -59,13 +85,15 @@ describe('GET /v1/user/export', () => {
     expect(res.status).toBe(200);
     expect(res.body.activity).toEqualUnordered([
       expect.objectContaining({ activityType: 'SEARCH', searchQuery: '猫' }),
-      expect.objectContaining({ activityType: 'ANKI_EXPORT', segmentUuid: 'abc-123' }),
+      expect.objectContaining({ activityType: 'ANKI_EXPORT', segmentId: 999 }),
     ]);
   });
 
-  it('includes collections with ordered segment UUIDs', async () => {
-    const mediaFixtures = await loadFixtures(['singleMedia']);
+  it('includes collections with ordered segment IDs', async () => {
+    const mediaFixtures = await loadFixtures(['mediaWithEpisode']);
     const media = mediaFixtures.media.testShow;
+    const segA = await createTestSegment(media.id);
+    const segB = await createTestSegment(media.id);
     const collection = await Collection.save({
       name: 'My Favorites',
       userId: fixtures.users.kevin.id,
@@ -74,14 +102,14 @@ describe('GET /v1/user/export', () => {
 
     await CollectionSegment.save({
       collectionId: collection.id,
-      segmentUuid: 'seg-b',
+      segmentId: segB.id,
       mediaId: media.id,
       position: 2,
       note: null,
     });
     await CollectionSegment.save({
       collectionId: collection.id,
-      segmentUuid: 'seg-a',
+      segmentId: segA.id,
       mediaId: media.id,
       position: 1,
       note: null,
@@ -91,7 +119,7 @@ describe('GET /v1/user/export', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      collections: [{ name: 'My Favorites', segmentUuids: ['seg-a', 'seg-b'] }],
+      collections: [{ name: 'My Favorites', segmentIds: [segA.id, segB.id] }],
     });
     expect(res.body.collections).toHaveLength(1);
   });

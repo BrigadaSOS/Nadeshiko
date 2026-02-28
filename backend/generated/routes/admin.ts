@@ -1435,7 +1435,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
     'target.mediaId': z.coerce.number().optional(),
     'target.episodeNumber': z.coerce.number().optional(),
-    'target.segmentUuid': z.string().optional(),
+    'target.segmentId': z.coerce.number().optional(),
     auditRunId: z.coerce.number().optional(),
   });
 

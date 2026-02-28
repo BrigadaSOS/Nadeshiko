@@ -9,11 +9,11 @@ import { toUserActivityDTO } from './activity.mapper';
 
 export const toExportCollectionDTO = (collection: Collection): t_UserExportCollection => ({
   ...toCollectionDTO(collection, collection.segmentItems?.length ?? 0),
-  segmentUuids:
+  segmentIds:
     collection.segmentItems
       ?.slice()
       .sort((a, b) => a.position - b.position)
-      .map((s) => s.segmentUuid) || [],
+      .map((s) => s.segmentId) || [],
 });
 
 export const toUserExportDTO = (

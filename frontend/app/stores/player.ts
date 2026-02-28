@@ -65,7 +65,7 @@ export const usePlayerStore = defineStore('player', {
             sdk.trackUserActivity({
               body: {
                 activityType: 'SEGMENT_PLAY',
-                segmentUuid: this.currentResult?.segment.uuid,
+                segmentId: this.currentResult?.segment.id,
                 mediaId: this.currentResult?.media.id,
                 mediaName: this.currentResult?.media.nameRomaji,
                 japaneseText: this.currentResult?.segment.textJa.content,

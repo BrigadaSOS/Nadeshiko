@@ -2,6 +2,7 @@ type: object
 description: Japanese voice actor (seiyuu)
 required:
   - id
+  - publicId
   - externalIds
   - nameJa
   - nameEn
@@ -11,6 +12,10 @@ properties:
     type: integer
     description: Internal seiyuu ID
     example: 1
+  publicId:
+    type: string
+    description: Public identifier for the seiyuu (use this in public URLs)
+    example: "V1StGXR8_Z5d"
   externalIds:
     $ref: "./ExternalId.yaml"
   nameJa:

@@ -225,6 +225,12 @@
       "position": "Position",
       "uuid": "UUID",
       "copyUuid": "Copy UUID",
+      "publicId": "Public ID",
+      "copyPublicId": "Copy Public ID",
+      "mediaId": "Media ID",
+      "hashedId": "Hashed ID",
+      "storage": "Storage",
+      "storagePath": "Storage Path",
       "image": "Image",
       "audio": "Audio",
       "video": "Video"

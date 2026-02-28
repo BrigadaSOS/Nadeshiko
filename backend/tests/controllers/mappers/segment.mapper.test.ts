@@ -15,6 +15,7 @@ function buildSegment(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
     uuid: 'seg-1',
+    publicId: 'seg-pid-1',
     position: 5,
     status: SegmentStatus.ACTIVE,
     startTimeMs: 10,
@@ -82,6 +83,8 @@ describe('segment.mapper', () => {
   it('maps create attributes with deterministic uuid and defaults', () => {
     const attrs = toSegmentCreateAttributes({
       mediaId: 10,
+      anilistId: '99999',
+      airingFormat: 'TV',
       episodeNumber: 2,
       storageBasePath: '/anime/show',
       body: {
@@ -94,13 +97,33 @@ describe('segment.mapper', () => {
       } as any,
     });
 
-    expect(attrs.uuid).toBe(uuidv3('10-1-2-3', config.UUID_NAMESPACE));
+    expect(attrs.uuid).toBe(uuidv3('99999-1-2-3', config.UUID_NAMESPACE));
     expect(attrs.contentJa).toBe('');
     expect(attrs.contentEn).toBe('');
     expect(attrs.contentEs).toBe('');
     expect(attrs.contentEnMt).toBe(false);
     expect(attrs.contentEsMt).toBe(false);
     expect(attrs.contentRating).toBe(ContentRating.SAFE);
+  });
+
+  it('uses season 0 for MOVIE airing format in uuid', () => {
+    const attrs = toSegmentCreateAttributes({
+      mediaId: 10,
+      anilistId: '99999',
+      airingFormat: 'MOVIE',
+      episodeNumber: 1,
+      storageBasePath: '/anime/movie',
+      body: {
+        position: 3,
+        startTimeMs: 100,
+        endTimeMs: 500,
+        textJa: {},
+        storage: 'R2',
+        hashedId: 'h123',
+      } as any,
+    });
+
+    expect(attrs.uuid).toBe(uuidv3('99999-0-1-3', config.UUID_NAMESPACE));
   });
 
   it('maps update patch and keeps falsy values', () => {

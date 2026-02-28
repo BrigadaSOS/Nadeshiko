@@ -183,7 +183,7 @@ const fetchStats = async () => {
     }
 
     if (props.listMediaIds && props.listMediaIds.length > 0) {
-      filters.media = { include: props.listMediaIds.map((id: number) => ({ mediaId: id })) };
+      filters.media = { include: props.listMediaIds.map((id: number) => ({ mediaId: String(id) })) };
     }
 
     filters.contentRating = contentRating.value;
@@ -253,9 +253,9 @@ const fetchSentences = async () => {
       }
 
       // Build media include filter
-      const mediaInclude: Array<{ mediaId: number; episodes?: number[] }> = [];
+      const mediaInclude: Array<{ mediaId: string; episodes?: number[] }> = [];
       if (media.value) {
-        const mediaEntry: { mediaId: number; episodes?: number[] } = { mediaId: Number(media.value) };
+        const mediaEntry: { mediaId: string; episodes?: number[] } = { mediaId: String(media.value) };
         if (episode.value !== null) {
           mediaEntry.episodes = [episode.value];
         }
@@ -263,7 +263,7 @@ const fetchSentences = async () => {
       }
       if (props.listMediaIds && props.listMediaIds.length > 0) {
         for (const id of props.listMediaIds) {
-          mediaInclude.push({ mediaId: id });
+          mediaInclude.push({ mediaId: String(id) });
         }
       }
       if (mediaInclude.length > 0) {
@@ -379,31 +379,32 @@ const categoryFilter = (categoryKey: string) => {
   router.push({ path: route.path, query: queryParams });
 };
 
-const getEpisodeHitsData = () => {
-  if (!media.value || !searchData.value?.media) {
-    return {};
-  }
-
+const selectedMediaStat = computed(() => {
+  if (!media.value || !searchData.value?.media) return null;
   const mediaId = Number(media.value);
   if (Number.isNaN(mediaId)) {
-    return {};
+    return searchData.value.media.find((stat) => stat.publicId === media.value) ?? null;
   }
+  return searchData.value.media.find((stat) => stat.mediaId === mediaId) ?? null;
+});
 
-  const selectedMedia = searchData.value.media.find((stat) => stat.mediaId === mediaId);
-  return selectedMedia?.episodeHits || {};
+const isSelectedMediaMovie = computed(() => selectedMediaStat.value?.airingFormat === 'MOVIE');
+
+const getEpisodeHitsData = () => {
+  return selectedMediaStat.value?.episodeHits || {};
 };
 
-const handleRemoveFromCollection = async (segmentUuid: string) => {
+const handleRemoveFromCollection = async (segmentId: number) => {
   if (!props.collectionId) return;
   try {
     await sdk.removeSegmentFromCollection({
-      path: { id: props.collectionId, uuid: segmentUuid },
+      path: { id: props.collectionId, segmentId },
     });
     // Remove from current results
     if (sentenceData.value?.results) {
       sentenceData.value = {
         ...sentenceData.value,
-        results: sentenceData.value.results.filter((r) => r.segment.uuid !== segmentUuid),
+        results: sentenceData.value.results.filter((r) => r.segment.id !== segmentId),
       };
     }
     // Refresh stats
@@ -468,7 +469,7 @@ onBeforeRouteUpdate(async (to, from) => {
 </script>
 
 <template>
-    <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :media="media" />
+    <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :media="media" :isMovieMedia="isSelectedMediaMovie" />
     <div v-if="isViewingHiddenMedia" class="flex-1 mx-auto">
         <section class="w-full py-10 px-4">
             <div class="flex flex-col items-center max-w-lg mx-auto text-center">
@@ -619,7 +620,7 @@ onBeforeRouteUpdate(async (to, from) => {
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
                     <SearchSegmentFilterEpisodeFilter
-                        v-if="media"
+                        v-if="media && !isSelectedMediaMovie"
                         :episodeHits="getEpisodeHitsData()"
                         :selectedMediaId="media"
                     />

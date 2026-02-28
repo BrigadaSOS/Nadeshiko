@@ -7,6 +7,7 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "Media" (
         "id" SERIAL PRIMARY KEY,
+        "public_id" varchar NOT NULL UNIQUE CHECK ("public_id" <> ''),
         "japanese_name" varchar NOT NULL CHECK ("japanese_name" <> ''),
         "romaji_name" varchar NOT NULL CHECK ("romaji_name" <> ''),
         "english_name" varchar NOT NULL CHECK ("english_name" <> ''),
@@ -72,6 +73,7 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "Seiyuu" (
         "id" SERIAL PRIMARY KEY,
+        "public_id" varchar NOT NULL UNIQUE CHECK ("public_id" <> ''),
         "external_ids" jsonb NOT NULL DEFAULT '{}',
         "name_japanese" varchar NOT NULL CHECK ("name_japanese" <> ''),
         "name_english" varchar NOT NULL CHECK ("name_english" <> ''),
@@ -90,6 +92,7 @@ export class MediaAndSeries1706150500000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "Character" (
         "id" SERIAL PRIMARY KEY,
+        "public_id" varchar NOT NULL UNIQUE CHECK ("public_id" <> ''),
         "external_ids" jsonb NOT NULL DEFAULT '{}',
         "name_japanese" varchar NOT NULL CHECK ("name_japanese" <> ''),
         "name_english" varchar NOT NULL CHECK ("name_english" <> ''),

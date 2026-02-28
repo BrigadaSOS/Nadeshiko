@@ -1,8 +1,8 @@
 oneOf:
   - $ref: "./ReportTargetMedia.yaml"
-  - $ref: "./ReportTargetSegment.yaml"
+  - $ref: "./ReportTargetSegmentInput.yaml"
 discriminator:
   propertyName: type
   mapping:
     MEDIA: "./ReportTargetMedia.yaml"
-    SEGMENT: "./ReportTargetSegment.yaml"
+    SEGMENT: "./ReportTargetSegmentInput.yaml"

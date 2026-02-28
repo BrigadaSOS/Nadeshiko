@@ -15,12 +15,13 @@ import {
 
 export const createUserReport: CreateUserReport = async ({ body }, respond, req) => {
   const user = assertUser(req);
-  await assertUserReportTargetExists(body.target);
+  const resolved = await resolveReportTarget(body.target);
 
   const report = Report.create(
     toReportCreateAttributes({
       body,
       userId: Number(user.id),
+      resolvedSegmentId: resolved.segmentId,
     }),
   ) as Report;
   await report.save();
@@ -54,9 +55,9 @@ export const listAdminReports: ListAdminReports = async ({ query }, respond) => 
           targetEpisodeNumber: filters.targetEpisodeNumber,
         });
       }
-      if (filters.targetSegmentUuid !== undefined) {
-        qb.andWhere('report.target_segment_uuid = :targetSegmentUuid', {
-          targetSegmentUuid: filters.targetSegmentUuid,
+      if (filters.targetSegmentId !== undefined) {
+        qb.andWhere('report.target_segment_id = :targetSegmentId', {
+          targetSegmentId: filters.targetSegmentId,
         });
       }
       if (filters.auditRunId !== undefined) {
@@ -85,11 +86,13 @@ export const updateAdminReport: UpdateAdminReport = async ({ params, body }, res
   return respond.with200().body(toReportDTO(report as Report));
 };
 
-async function assertUserReportTargetExists(target: CreateReportRequestOutput['target']): Promise<void> {
+async function resolveReportTarget(
+  target: CreateReportRequestOutput['target'],
+): Promise<{ segmentId: number | null }> {
   if (target.type === 'SEGMENT') {
-    const segment = await Segment.findOne({ where: { uuid: target.segmentUuid } });
+    const segment = await Segment.findOne({ where: [{ publicId: target.segmentId }, { uuid: target.segmentId }] });
     if (!segment) {
-      throw new NotFoundError(`Segment with UUID ${target.segmentUuid} not found`);
+      throw new NotFoundError(`Segment with ID ${target.segmentId} not found`);
     }
     if (segment.mediaId !== target.mediaId) {
       throw new InvalidRequestError('SEGMENT target mediaId does not match segment mediaId');
@@ -97,13 +100,14 @@ async function assertUserReportTargetExists(target: CreateReportRequestOutput['t
     if (target.episodeNumber !== undefined && segment.episode !== target.episodeNumber) {
       throw new InvalidRequestError('SEGMENT target episodeNumber does not match segment episode');
     }
-    return;
+    return { segmentId: segment.id };
   }
 
   const mediaExists = await Media.existsBy({ id: target.mediaId });
   if (!mediaExists) {
     throw new NotFoundError(`Media with ID ${target.mediaId} not found`);
   }
+  return { segmentId: null };
 }
 
 type ReportCountRow = {

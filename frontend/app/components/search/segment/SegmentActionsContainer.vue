@@ -147,7 +147,7 @@ const addToCollection = async (collection: CollectionOption) => {
   try {
     await sdk.addSegmentToCollection({
       path: { id: collection.id },
-      body: { segmentUuid: props.content.segment.uuid },
+      body: { segmentId: props.content.segment.publicId },
     });
     useToastSuccess(t('searchpage.main.labels.collectionAdded', { name: collection.name }));
     saveLastCollection(collection);
@@ -312,7 +312,7 @@ const openCollectionsPage = async () => {
   <UiButtonPrimaryAction
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
-    @click="getSharingURL({ uuid: content.segment.uuid, mediaId: content.media.id, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
+    @click="getSharingURL({ publicId: content.segment.publicId, segmentId: content.segment.id, mediaId: content.media.id, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
   >
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>

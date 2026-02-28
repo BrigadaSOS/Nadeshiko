@@ -5,6 +5,7 @@ import { SegmentStorage } from '@app/models/Segment';
 function buildMedia(overrides: Record<string, unknown> = {}) {
   return {
     id: 12,
+    publicId: 'media-pid-12',
     externalIds: [{ source: 'ANILIST', externalId: '555' }],
     nameJa: 'ja',
     nameRomaji: 'romaji',

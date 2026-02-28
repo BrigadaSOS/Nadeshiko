@@ -9,7 +9,6 @@ import type {
 } from 'generated/routes/media';
 import type { ListMediaQueryOutput } from 'generated/outputTypes';
 import type { t_CharacterInput, t_ExternalId } from 'generated/models';
-import type { EntityManager } from 'typeorm';
 import { ILike } from 'typeorm';
 import { CategoryType, Media, MediaCharacter, MediaExternalId, MediaInclude } from '@app/models';
 import { Character } from '@app/models/Character';
@@ -115,15 +114,11 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
 };
 
 export const createMedia: CreateMedia = async ({ body }, respond) => {
-  const media = await Media.getRepository().manager.transaction(async (manager) => {
-    const media = await manager.save(Media, toMediaCreateAttributes(body));
+  const media = await Media.create(toMediaCreateAttributes(body)).save();
 
-    if (body.characters?.length) {
-      media.characters = await replaceMediaCharacters(manager, media.id, body.characters);
-    }
-
-    return media;
-  });
+  if (body.characters?.length) {
+    media.characters = await replaceMediaCharacters(media.id, body.characters);
+  }
 
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
@@ -145,34 +140,32 @@ export const getMedia: GetMedia = async ({ params, query }, respond) => {
 };
 
 export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
-  const media = await Media.getRepository().manager.transaction(async (manager) => {
-    const media = await manager.findOneOrFail(Media, { where: { id: params.id } });
-    const patch = toMediaUpdatePatch(body);
+  const media = await Media.findOneOrFail({ where: { id: params.id } });
+  const patch = toMediaUpdatePatch(body);
 
-    Media.merge(media, patch);
+  Media.merge(media, patch);
 
-    if (body.externalIds !== undefined) {
-      media.externalIds = await replaceMediaExternalIds(manager, media.id, body.externalIds);
-    }
+  if (body.externalIds !== undefined) {
+    media.externalIds = await replaceMediaExternalIds(media.id, body.externalIds);
+  }
 
-    if (body.characters !== undefined) {
-      media.characters = await replaceMediaCharacters(manager, media.id, body.characters);
-    }
+  if (body.characters !== undefined) {
+    media.characters = await replaceMediaCharacters(media.id, body.characters);
+  }
 
-    await manager.save(media);
+  await media.save();
 
-    return manager.findOneOrFail(Media, {
-      where: { id: media.id },
-      relations: Media.buildRelations({
-        includeCharacters: body.characters !== undefined,
-      }),
-    });
+  const updated = await Media.findOneOrFail({
+    where: { id: media.id },
+    relations: Media.buildRelations({
+      includeCharacters: body.characters !== undefined,
+    }),
   });
 
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
-  return respond.with200().body(toMediaDTO(media));
+  return respond.with200().body(toMediaDTO(updated));
 };
 
 export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
@@ -227,43 +220,41 @@ export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, re
 const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
 
 async function replaceMediaExternalIds(
-  manager: EntityManager,
   mediaId: number,
   externalIds: t_ExternalId,
 ): Promise<MediaExternalId[]> {
-  await manager.delete(MediaExternalId, { mediaId });
+  await MediaExternalId.delete({ mediaId });
 
   const rows = toMediaExternalIdAttributes(externalIds).map((externalId) =>
-    manager.create(MediaExternalId, { mediaId, ...externalId }),
+    MediaExternalId.create({ mediaId, ...externalId }),
   );
 
   if (rows.length === 0) {
     return [];
   }
 
-  return manager.save(MediaExternalId, rows);
+  return MediaExternalId.save(rows);
 }
 
 async function replaceMediaCharacters(
-  manager: EntityManager,
   mediaId: number,
   characters: t_CharacterInput[],
 ): Promise<MediaCharacter[]> {
-  await manager.delete(MediaCharacter, { mediaId });
+  await MediaCharacter.delete({ mediaId });
 
   if (characters.length === 0) {
     return [];
   }
 
-  const result = await insertCharactersForMedia(manager, characters);
+  const result = await insertCharactersForMedia(characters);
   const mediaCharacters = result.map((r) => {
     r.mediaCharacter.mediaId = mediaId;
     return r.mediaCharacter;
   });
-  const saved = await manager.save(MediaCharacter, mediaCharacters);
+  const saved = await MediaCharacter.save(mediaCharacters);
 
   for (let i = 0; i < saved.length; i++) {
-    saved[i].character = await manager.findOneOrFail(Character, {
+    saved[i].character = await Character.findOneOrFail({
       where: { id: saved[i].characterId },
       relations: ['seiyuu'],
     });
@@ -273,49 +264,45 @@ async function replaceMediaCharacters(
 }
 
 async function insertCharactersForMedia(
-  manager: EntityManager,
   characters: t_CharacterInput[],
 ): Promise<{ mediaCharacter: MediaCharacter; seiyuu: Seiyuu }[]> {
   const result: { mediaCharacter: MediaCharacter; seiyuu: Seiyuu }[] = [];
 
   for (const char of characters) {
-    const seiyuu = await upsertSeiyuu(manager, char.seiyuu);
+    const seiyuu = await upsertSeiyuu(char.seiyuu);
 
     const characterAnilistId = char.externalIds.anilist;
     let character: Character;
 
     if (characterAnilistId === undefined) {
-      character = manager.create(Character, {
+      character = await Character.create({
         externalIds: char.externalIds,
         nameJapanese: char.nameJa,
         nameEnglish: char.nameEn,
         imageUrl: char.imageUrl,
         seiyuu,
-      });
-      await manager.save(character);
+      }).save();
     } else {
-      const existing = await manager
-        .createQueryBuilder(Character, 'c')
+      const existing = await Character.createQueryBuilder('c')
         .where(`c.external_ids->>'anilist' = :id`, { id: characterAnilistId })
         .getOne();
 
       if (existing) {
         character = existing;
       } else {
-        character = manager.create(Character, {
+        character = await Character.create({
           externalIds: char.externalIds,
           nameJapanese: char.nameJa,
           nameEnglish: char.nameEn,
           imageUrl: char.imageUrl,
           seiyuu,
-        });
-        await manager.save(character);
+        }).save();
       }
     }
 
     result.push({
       seiyuu,
-      mediaCharacter: manager.create(MediaCharacter, {
+      mediaCharacter: MediaCharacter.create({
         characterId: character.id,
         role: char.role as CharacterRole,
       }),
@@ -326,26 +313,22 @@ async function insertCharactersForMedia(
 }
 
 async function upsertSeiyuu(
-  manager: EntityManager,
   seiyuuInput: t_CharacterInput['seiyuu'],
 ): Promise<Seiyuu> {
   const anilistId = seiyuuInput.externalIds.anilist;
 
   if (anilistId === undefined) {
-    const seiyuu = manager.create(Seiyuu, {
+    return Seiyuu.create({
       externalIds: seiyuuInput.externalIds,
       nameJapanese: seiyuuInput.nameJa,
       nameEnglish: seiyuuInput.nameEn,
       imageUrl: seiyuuInput.imageUrl,
-    });
-    await manager.save(seiyuu);
-    return seiyuu;
+    }).save();
   }
 
   const maxRetries = 3;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const existing = await manager
-      .createQueryBuilder(Seiyuu, 's')
+    const existing = await Seiyuu.createQueryBuilder('s')
       .where(`s.external_ids->>'anilist' = :id`, { id: anilistId })
       .getOne();
 
@@ -353,16 +336,13 @@ async function upsertSeiyuu(
       return existing;
     }
 
-    const seiyuu = manager.create(Seiyuu, {
-      externalIds: seiyuuInput.externalIds,
-      nameJapanese: seiyuuInput.nameJa,
-      nameEnglish: seiyuuInput.nameEn,
-      imageUrl: seiyuuInput.imageUrl,
-    });
-
     try {
-      await manager.save(seiyuu);
-      return seiyuu;
+      return await Seiyuu.create({
+        externalIds: seiyuuInput.externalIds,
+        nameJapanese: seiyuuInput.nameJa,
+        nameEnglish: seiyuuInput.nameEn,
+        imageUrl: seiyuuInput.imageUrl,
+      }).save();
     } catch (error: unknown) {
       if (
         attempt < maxRetries - 1 &&

@@ -180,14 +180,15 @@ export async function copyToClipboard(item: string) {
 }
 
 export async function getSharingURL(params: {
-  uuid: string;
+  publicId: string;
+  segmentId?: number;
   mediaId?: number;
   mediaName?: string;
   japaneseText?: string;
 }) {
   const { $i18n } = useNuxtApp();
   try {
-    await navigator.clipboard.writeText(`${window.location.origin}/sentence/${params.uuid}`);
+    await navigator.clipboard.writeText(`${window.location.origin}/sentence/${params.publicId}`);
     const message = $i18n.t('searchpage.main.labels.copiedsharingurl');
     useToastSuccess(message);
 
@@ -195,7 +196,7 @@ export async function getSharingURL(params: {
     sdk.trackUserActivity({
       body: {
         activityType: 'SHARE',
-        segmentUuid: params.uuid,
+        segmentId: params.segmentId,
         mediaId: params.mediaId,
         mediaName: params.mediaName,
         japaneseText: params.japaneseText,

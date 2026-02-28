@@ -27,7 +27,7 @@ export function useHiddenMedia() {
   const hiddenMediaIds = computed<number[]>(() => items.value.map((item) => item.mediaId));
 
   const hiddenMediaExcludeFilter = computed<MediaFilterItem[]>(() =>
-    items.value.map((item) => ({ mediaId: item.mediaId })),
+    items.value.map((item) => ({ mediaId: String(item.mediaId) })),
   );
 
   const isMediaHidden = (mediaId: number): boolean => {

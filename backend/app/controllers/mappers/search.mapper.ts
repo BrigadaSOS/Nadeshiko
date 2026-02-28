@@ -18,6 +18,7 @@ const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
 export const toMediaSummary = (media: Media): t_Media => {
   return {
     id: media.id,
+    publicId: media.publicId,
     externalIds: toExternalIdsMap(media.externalIds),
     nameJa: media.nameJa,
     nameRomaji: media.nameRomaji,

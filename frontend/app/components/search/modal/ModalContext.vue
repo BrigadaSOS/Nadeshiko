@@ -21,7 +21,7 @@ const getContextSentence = async () => {
 
   try {
     const { data } = await sdk.getSegmentContext({
-      path: { uuid: sentence.segment.uuid },
+      path: { uuid: sentence.segment.publicId },
       query: {
         take: 15,
         contentRating: contentRating.value,

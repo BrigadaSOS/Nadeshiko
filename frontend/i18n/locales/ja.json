@@ -208,6 +208,12 @@
       "position": "位置",
       "uuid": "UUID",
       "copyUuid": "UUIDをコピー",
+      "publicId": "公開ID",
+      "copyPublicId": "公開IDをコピー",
+      "mediaId": "メディアID",
+      "hashedId": "ハッシュID",
+      "storage": "ストレージ",
+      "storagePath": "ストレージパス",
       "image": "画像",
       "audio": "音声",
       "video": "動画"
