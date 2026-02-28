@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not, BeforeInsert } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import type { Episode } from './Episode';
+import { Episode } from './Episode';
 import { MediaCharacter } from './MediaCharacter';
 import { MediaExternalId } from './MediaExternalId';
 import { Segment, SegmentStatus } from './Segment';
@@ -227,16 +227,29 @@ export class Media extends BaseEntity {
   static async getGlobalStats(): Promise<{
     fullTotalAnimes: number;
     fullTotalSegments: number;
+    fullTotalEpisodes: number;
   }> {
-    const [mediaCount, segmentCount] = await Promise.all([
+    const cached = Cache.get<{
+      fullTotalAnimes: number;
+      fullTotalSegments: number;
+      fullTotalEpisodes: number;
+    }>(MEDIA_INFO_CACHE, 'globalStats');
+    if (cached) return cached;
+
+    const [mediaCount, segmentCount, episodeCount] = await Promise.all([
       Media.count(),
       Segment.count({ where: { status: Not(SegmentStatus.DELETED) } }),
+      Episode.count(),
     ]);
 
-    return {
+    const stats = {
       fullTotalAnimes: mediaCount,
       fullTotalSegments: segmentCount,
+      fullTotalEpisodes: episodeCount,
     };
+
+    Cache.set(MEDIA_INFO_CACHE, 'globalStats', stats, MEDIA_INFO_TTL_MS);
+    return stats;
   }
 
   private static toMediaInfoData(media: Media) {

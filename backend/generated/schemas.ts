@@ -697,7 +697,15 @@ export const s_CollectionWithSegments = z.object({
   pagination: s_OpaqueCursorPagination,
 });
 
-export const s_MediaListResponse = z.object({ media: z.array(s_Media), pagination: s_OpaqueCursorPagination });
+export const s_MediaListResponse = z.object({
+  media: z.array(s_Media),
+  pagination: s_OpaqueCursorPagination,
+  stats: z.object({
+    totalMedia: z.coerce.number(),
+    totalSegments: z.coerce.number(),
+    totalEpisodes: z.coerce.number(),
+  }),
+});
 
 export const s_SearchMultipleResponse = z.object({
   results: z.array(s_WordMatch),

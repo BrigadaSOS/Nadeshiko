@@ -1772,6 +1772,7 @@ components:
       required:
         - media
         - pagination
+        - stats
       properties:
         media:
           type: array
@@ -1779,6 +1780,22 @@ components:
             $ref: '#/components/schemas/Media'
         pagination:
           $ref: '#/components/schemas/OpaqueCursorPagination'
+        stats:
+          type: object
+          required:
+            - totalMedia
+            - totalSegments
+            - totalEpisodes
+          properties:
+            totalMedia:
+              type: integer
+              description: Total number of media across all pages
+            totalSegments:
+              type: integer
+              description: Total number of non-deleted segments
+            totalEpisodes:
+              type: integer
+              description: Total number of episodes
     SegmentInternal:
       description: |
         Segment with internal fields. For write operations (create, update) all fields are always populated.

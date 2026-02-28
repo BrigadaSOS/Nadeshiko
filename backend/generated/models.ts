@@ -300,6 +300,11 @@ export type t_MediaIncludeExpansion = 'media.characters';
 export type t_MediaListResponse = {
   media: t_Media[];
   pagination: t_OpaqueCursorPagination;
+  stats: {
+    totalEpisodes: number;
+    totalMedia: number;
+    totalSegments: number;
+  };
 };
 
 export type t_MediaSearchStats = {
