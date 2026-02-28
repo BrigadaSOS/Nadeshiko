@@ -101,14 +101,14 @@ export const getCollection: GetCollection = async ({ params, query }, respond, r
     });
   }
 
-  const uuids = segmentItems.map((item) => item.segmentUuid);
-  const { segments: searchResults, includes } = await SegmentDocument.findByUuids(uuids);
+  const segmentIds = segmentItems.map((item) => item.segmentId);
+  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
 
-  const resultByUuid = new Map(searchResults.map((r) => [r.uuid, r]));
+  const resultById = new Map(searchResults.map((r) => [r.id, r]));
 
   const segments = segmentItems
     .map((item) => {
-      const result = resultByUuid.get(item.segmentUuid);
+      const result = resultById.get(item.segmentId);
       if (!result) return null;
       return {
         position: item.position,
@@ -160,7 +160,7 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
   const collection = await Collection.findOneOrFail({ where: { id: params.id } });
   assertCollectionOwnership(collection, user);
 
-  const segment = await Segment.findOneOrFail({ where: { uuid: body.segmentUuid } });
+  const segment = await Segment.findOneOrFail({ where: [{ publicId: body.segmentId }, { uuid: body.segmentId }] });
   await Collection.getRepository().manager.transaction(async (manager) => {
     await manager
       .createQueryBuilder(Collection, 'collection')
@@ -181,7 +181,7 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
       .into(CollectionSegment)
       .values({
         collectionId: collection.id,
-        segmentUuid: body.segmentUuid,
+        segmentId: segment.id,
         mediaId: segment.mediaId,
         position: nextPosition,
         note: body.note ?? null,
@@ -202,7 +202,7 @@ export const updateCollectionSegment: UpdateCollectionSegment = async ({ params,
   assertCollectionOwnership(collection, user);
 
   const item = await CollectionSegment.findOneOrFail({
-    where: { collectionId: params.id, segmentUuid: params.uuid },
+    where: { collectionId: params.id, segmentId: params.segmentId },
   });
 
   if (body.position !== undefined) item.position = body.position;
@@ -219,7 +219,7 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
   assertCollectionOwnership(collection, user);
 
   await CollectionSegment.deleteOrFail({
-    where: { collectionId: params.id, segmentUuid: params.uuid },
+    where: { collectionId: params.id, segmentId: params.segmentId },
   });
 
   return respond.with204();
@@ -255,13 +255,13 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
     });
   }
 
-  const uuids = segmentItems.map((item) => item.segmentUuid);
-  const { segments: searchResults, includes } = await SegmentDocument.findByUuids(uuids);
+  const segmentIds = segmentItems.map((item) => item.segmentId);
+  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
 
   // Preserve collection ordering
-  const resultByUuid = new Map(searchResults.map((r) => [r.uuid, r]));
+  const resultById = new Map(searchResults.map((r) => [r.id, r]));
   const segments = segmentItems
-    .map((item) => resultByUuid.get(item.segmentUuid))
+    .map((item) => resultById.get(item.segmentId))
     .filter((s): s is NonNullable<typeof s> => s != null);
 
   return respond.with200().body({
@@ -291,9 +291,9 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   }
 
   // Get full segment data from ES to access media info
-  const uuids = allSegmentItems.map((item) => item.segmentUuid);
-  const { segments: searchResults, includes } = await SegmentDocument.findByUuids(uuids);
-  const expectedUuids = new Set(uuids);
+  const segmentIds = allSegmentItems.map((item) => item.segmentId);
+  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
+  const expectedIds = new Set(segmentIds);
 
   const mediaIncludes = includes.media;
 
@@ -302,7 +302,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   const categoryCountMap = new Map<CategoryOutput, number>();
 
   for (const seg of searchResults) {
-    if (!expectedUuids.has(seg.uuid)) {
+    if (!expectedIds.has(seg.id)) {
       continue;
     }
 
@@ -322,6 +322,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
 
   const media = Array.from(mediaMap.entries()).map(([mediaId, stats]) => ({
     mediaId,
+    publicId: mediaIncludes[String(mediaId)]?.publicId ?? '',
     matchCount: stats.matchCount,
     episodeHits: stats.episodeHits,
   }));

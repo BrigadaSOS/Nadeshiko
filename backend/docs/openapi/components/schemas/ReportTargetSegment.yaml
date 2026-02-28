@@ -2,7 +2,7 @@ type: object
 required:
   - type
   - mediaId
-  - segmentUuid
+  - segmentId
 properties:
   type:
     type: string
@@ -17,7 +17,8 @@ properties:
     type: integer
     description: Episode number containing the segment
     example: 5
-  segmentUuid:
-    type: string
-    description: Segment UUID this report targets
-    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  segmentId:
+    type: integer
+    nullable: true
+    description: Segment ID
+    example: 42

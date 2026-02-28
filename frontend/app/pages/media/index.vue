@@ -20,8 +20,13 @@ const user = userStore();
 
 const mediaToEdit = ref(null);
 
+const EDIT_OVERLAY_ID = '#nd-vertically-centered-scrollable-media-edit';
+
 const openEditModal = (mediaInfo) => {
   mediaToEdit.value = mediaInfo;
+  nextTick(() => {
+    window.NDOverlay?.open(EDIT_OVERLAY_ID);
+  });
 };
 
 const onEditSuccess = (updatedMedia) => {
@@ -321,27 +326,35 @@ watch([searchQuery, filterCategory], () => {
         </div>
 
         <!-- Media Content -->
-        <NuxtLink
+        <div
           v-if="!loading || filteredMedia.length > 0"
           v-for="(mediaInfo, index) in filteredMedia"
           :key="mediaInfo.id"
-          :to="`/search?media=${mediaInfo.id}`"
           class="flex flex-col items-center"
         >
           <div
             class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
-            <img
-              :src="mediaInfo.coverUrl"
-              :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
-              class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
-            />
+            <NuxtLink :to="`/search?media=${mediaInfo.publicId}`">
+              <img
+                :src="mediaInfo.coverUrl"
+                :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
+                class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
+              />
+            </NuxtLink>
+            <button
+              v-if="user.isAdmin"
+              class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded bg-neutral-900/70 text-white hover:bg-neutral-900/90 transition-colors"
+              @click.stop="openEditModal(mediaInfo)"
+            >
+              <UiBaseIcon :path="mdiPencilOutline" w="w-4" h="h-4" size="16" />
+            </button>
           </div>
-          <div class="mt-2 text-center justify-center flex flex-col items-center">
+          <NuxtLink :to="`/search?media=${mediaInfo.publicId}`" class="mt-2 text-center justify-center flex flex-col items-center">
             <h3 class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
               {{ mediaName(mediaInfo) }}
             </h3>
-          </div>
+          </NuxtLink>
           <div class="text-center mt-1 mb-5 justify-center flex flex-col items-center">
             <h3 class="text-sm text-center font-medium dark:text-gray-300">
               {{ mediaInfo.segmentCount }} {{ $t('animeList.sentenceCount') }}
@@ -350,7 +363,7 @@ watch([searchQuery, filterCategory], () => {
               {{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.episodes') }}
             </h3>
           </div>
-        </NuxtLink>
+        </div>
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
         <!-- Loading Placeholder for List (initial load) -->
@@ -435,8 +448,7 @@ watch([searchQuery, filterCategory], () => {
                   <button
                     v-if="user.isAdmin"
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg dark:border-amber-400/70 dark:text-amber-400"
-                    data-nd-overlay="#nd-vertically-centered-scrollable-media-edit"
-                    @click="openEditModal(mediaInfo)"
+                    @click.stop="openEditModal(mediaInfo)"
                   >
                     <UiBaseIcon :path="mdiPencilOutline" w="w-5" h="h-5" size="20" />
                     <div>{{ $t('modalMediaEdit.editButton') }}</div>
@@ -453,7 +465,7 @@ watch([searchQuery, filterCategory], () => {
                   </a>
 
                   <NuxtLink
-                    :to="`/search?media=${mediaInfo.id}`"
+                    :to="`/search?media=${mediaInfo.publicId}`"
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-red-500 dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
                   >
                     <div>{{ $t('animeList.vocabularyButton') }}</div>
@@ -479,12 +491,12 @@ watch([searchQuery, filterCategory], () => {
 
       <!-- Infinite scroll sentinel -->
       <div ref="sentinelRef" v-if="hasMore && !loading" class="h-1"></div>
-    </div>
 
-    <MediaModalModalMediaEdit
-      v-if="user.isAdmin"
-      :media="mediaToEdit"
-      @update:success="onEditSuccess"
-    />
+      <MediaModalMediaEdit
+        v-if="user.isAdmin"
+        :media="mediaToEdit"
+        @update:success="onEditSuccess"
+      />
+    </div>
   </NuxtLayout>
 </template>

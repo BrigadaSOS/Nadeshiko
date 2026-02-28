@@ -4,6 +4,7 @@ const { t } = useI18n();
 const props = defineProps<{
   media: {
     id: number;
+    publicId: string;
     nameJa: string;
     nameRomaji: string;
     nameEn: string;
@@ -17,6 +18,7 @@ const props = defineProps<{
     seasonName: string;
     seasonYear: number;
     coverUrl: string;
+    bannerUrl?: string;
     externalIds?: { anilist?: string; imdb?: string; tvdb?: string };
   } | null;
 }>();
@@ -202,16 +204,32 @@ const submitEdit = async () => {
           {{ errorMessage }}
         </div>
 
-        <div v-if="media" class="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 space-y-2 text-sm">
-          <div class="flex items-center gap-2 text-neutral-300">
-            <span class="text-neutral-500 min-w-[4.5rem]">ID</span>
+        <div v-if="media" class="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 text-sm">
+          <div class="flex gap-3">
             <img
               v-if="media.coverUrl"
               :src="media.coverUrl"
-              class="w-10 h-10 rounded object-cover flex-shrink-0 text-transparent"
+              class="w-16 h-22 rounded object-cover flex-shrink-0 text-transparent"
               :alt="media.nameRomaji"
             />
-            <span class="font-mono text-neutral-300">#{{ media.id }}</span>
+            <div class="space-y-2 min-w-0 flex-1">
+              <div class="flex items-center gap-2 text-neutral-300">
+                <span class="text-neutral-500 min-w-[4.5rem]">ID</span>
+                <span class="font-mono text-neutral-300">#{{ media.id }}</span>
+              </div>
+              <div class="flex items-center gap-2 text-neutral-300">
+                <span class="text-neutral-500 min-w-[4.5rem]">Public ID</span>
+                <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ media.publicId }}</code>
+              </div>
+              <div v-if="media.coverUrl" class="flex items-center gap-2 text-neutral-300">
+                <span class="text-neutral-500 min-w-[4.5rem]">Cover</span>
+                <a :href="media.coverUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ media.coverUrl }}</a>
+              </div>
+              <div v-if="media.bannerUrl" class="flex items-center gap-2 text-neutral-300">
+                <span class="text-neutral-500 min-w-[4.5rem]">Banner</span>
+                <a :href="media.bannerUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ media.bannerUrl }}</a>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -243,37 +261,26 @@ const submitEdit = async () => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.airingFormat') }}</label>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="opt in airingFormatOptions"
-              :key="opt"
-              type="button"
-              :class="pillClasses(form.airingFormat === opt)"
-              @click="form.airingFormat = opt"
-            >
-              {{ opt }}
-            </button>
-          </div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.studio') }}</label>
+          <input
+            v-model="form.studio"
+            type="text"
+            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.airingStatus') }}</label>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="opt in airingStatusOptions"
-              :key="opt"
-              type="button"
-              :class="pillClasses(form.airingStatus === opt)"
-              @click="form.airingStatus = opt"
-            >
-              {{ opt }}
-            </button>
-          </div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.genres') }}</label>
+          <input
+            v-model="form.genres"
+            type="text"
+            :placeholder="t('modalMediaEdit.genresPlaceholder')"
+            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.category') }}</label>
+          <label class="block text-sm font-medium text-amber-400 mb-2">{{ t('modalMediaEdit.category') }}</label>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="opt in categoryOptions"
@@ -288,22 +295,33 @@ const submitEdit = async () => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.genres') }}</label>
-          <input
-            v-model="form.genres"
-            type="text"
-            :placeholder="t('modalMediaEdit.genresPlaceholder')"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          <label class="block text-sm font-medium text-amber-400 mb-2">{{ t('modalMediaEdit.airingStatus') }}</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="opt in airingStatusOptions"
+              :key="opt"
+              type="button"
+              :class="pillClasses(form.airingStatus === opt)"
+              @click="form.airingStatus = opt"
+            >
+              {{ opt }}
+            </button>
+          </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.studio') }}</label>
-          <input
-            v-model="form.studio"
-            type="text"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          <label class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.airingFormat') }}</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="opt in airingFormatOptions"
+              :key="opt"
+              type="button"
+              :class="pillClasses(form.airingFormat === opt)"
+              @click="form.airingFormat = opt"
+            >
+              {{ opt }}
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">

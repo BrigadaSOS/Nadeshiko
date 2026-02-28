@@ -12,6 +12,7 @@ export class SegmentRevisions1706151300000 implements MigrationInterface {
         "snapshot" JSONB NOT NULL,
         "user_id" INT REFERENCES "User"("id") ON DELETE SET NULL,
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "updated_at" TIMESTAMPTZ,
         UNIQUE ("segment_id", "revision_number")
       )
     `);

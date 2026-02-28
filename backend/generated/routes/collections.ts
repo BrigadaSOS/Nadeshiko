@@ -635,7 +635,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   const addSegmentToCollectionParamSchema = z.object({ id: z.coerce.number() });
 
   const addSegmentToCollectionRequestBodySchema = z.object({
-    segmentUuid: z.string(),
+    segmentId: z.string(),
     note: z.string().max(500).optional(),
   });
 
@@ -712,7 +712,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const updateCollectionSegmentParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
+  const updateCollectionSegmentParamSchema = z.object({ id: z.coerce.number(), segmentId: z.coerce.number() });
 
   const updateCollectionSegmentRequestBodySchema = z.object({
     position: z.coerce.number().optional(),
@@ -733,7 +733,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   );
 
   // updateCollectionSegment
-  router.patch(`/v1/collections/:id/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
+  router.patch(`/v1/collections/:id/segments/:segmentId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: parseRequestInput(updateCollectionSegmentParamSchema, req.params, RequestInputType.RouteParam),
@@ -792,7 +792,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const removeSegmentFromCollectionParamSchema = z.object({ id: z.coerce.number(), uuid: z.string() });
+  const removeSegmentFromCollectionParamSchema = z.object({ id: z.coerce.number(), segmentId: z.coerce.number() });
 
   const removeSegmentFromCollectionResponseBodyValidator = responseValidationFactory(
     [
@@ -808,7 +808,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   );
 
   // removeSegmentFromCollection
-  router.delete(`/v1/collections/:id/segments/:uuid`, async (req: Request, res: Response, next: NextFunction) => {
+  router.delete(`/v1/collections/:id/segments/:segmentId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: parseRequestInput(removeSegmentFromCollectionParamSchema, req.params, RequestInputType.RouteParam),

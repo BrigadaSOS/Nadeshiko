@@ -37,7 +37,7 @@ export class ReportsAndMediaAudits1706151000000 implements MigrationInterface {
         "target_type" report_target_type NOT NULL,
         "target_media_id" integer NOT NULL,
         "target_episode_number" integer,
-        "target_segment_uuid" varchar,
+        "target_segment_id" integer,
         "reason" report_reason NOT NULL,
         "description" varchar(1000),
         "status" report_status NOT NULL DEFAULT 'PENDING',

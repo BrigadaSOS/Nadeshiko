@@ -10,8 +10,8 @@ function buildCollection(overrides: Record<string, unknown> = {}) {
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     updatedAt: new Date('2025-01-02T00:00:00.000Z'),
     segmentItems: [
-      { position: 2, segmentUuid: 'seg-b' },
-      { position: 1, segmentUuid: 'seg-a' },
+      { position: 2, segmentId: 2 },
+      { position: 1, segmentId: 1 },
     ],
     ...overrides,
   };
@@ -31,9 +31,9 @@ function buildReport() {
 }
 
 describe('userExport.mapper', () => {
-  it('sorts segment uuids by position in export collection dto', () => {
+  it('sorts segment ids by position in export collection dto', () => {
     const dto = toExportCollectionDTO(buildCollection() as any);
-    expect(dto.segmentUuids).toEqual(['seg-a', 'seg-b']);
+    expect(dto.segmentIds).toEqual([1, 2]);
     expect(dto.segmentCount).toBe(2);
   });
 
@@ -64,7 +64,7 @@ describe('userExport.mapper', () => {
       createdAt: '2025-01-01T00:00:00.000Z',
     });
     expect(dto.activity).toHaveLength(1);
-    expect(dto.collections[0].segmentUuids).toEqual(['seg-a', 'seg-b']);
+    expect(dto.collections[0].segmentIds).toEqual([1, 2]);
     expect(dto.reports).toHaveLength(1);
   });
 });

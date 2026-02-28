@@ -25,6 +25,7 @@ import {
   MediaAudit,
   MediaAuditRun,
   UserActivity,
+  SegmentRevision,
   Experiment,
   ExperimentEnrollment,
 } from '@app/models';
@@ -50,6 +51,7 @@ export const APP_ENTITIES = [
   MediaAudit,
   MediaAuditRun,
   UserActivity,
+  SegmentRevision,
   Experiment,
   ExperimentEnrollment,
 ];

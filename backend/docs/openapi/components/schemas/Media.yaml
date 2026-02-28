@@ -2,6 +2,7 @@ type: object
 description: Media entry with full metadata
 required:
   - id
+  - publicId
   - externalIds
   - nameJa
   - nameRomaji
@@ -21,8 +22,12 @@ required:
 properties:
   id:
     type: integer
-    description: Unique identifier for the media
+    description: Internal unique identifier for the media
     example: 7674
+  publicId:
+    type: string
+    description: Public identifier for the media (use this in public URLs)
+    example: "V1StGXR8_Z5d"
   externalIds:
     $ref: "./ExternalId.yaml"
   nameJa:

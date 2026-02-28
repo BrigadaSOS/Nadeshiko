@@ -4,7 +4,7 @@ import type { UserActivity } from '@app/models/UserActivity';
 export const toUserActivityDTO = (activity: UserActivity): t_UserActivity => ({
   id: activity.id,
   activityType: activity.activityType,
-  segmentUuid: activity.segmentUuid ?? null,
+  segmentId: activity.segmentId ?? null,
   mediaId: activity.mediaId ?? null,
   searchQuery: activity.searchQuery ?? null,
   mediaName: activity.mediaName ?? null,

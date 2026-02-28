@@ -3,6 +3,7 @@ description: Segment with content, optional highlights, and media URLs
 required:
   - id
   - uuid
+  - publicId
   - position
   - status
   - startTimeMs
@@ -23,6 +24,10 @@ properties:
     type: string
     description: Unique identifier for the segment
     example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+  publicId:
+    type: string
+    description: Public identifier for the segment (use this instead of uuid in public URLs)
+    example: "V1StGXR8_Z5d"
   position:
     type: integer
     description: Position of the segment within the episode

@@ -3,7 +3,7 @@ import { BaseEntity } from './base.entity';
 import type { Collection } from './Collection';
 
 @Entity('CollectionSegment')
-@Index(['collectionId', 'segmentUuid'], { unique: true })
+@Index(['collectionId', 'segmentId'], { unique: true })
 @Index(['collectionId', 'position'])
 export class CollectionSegment extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
@@ -12,8 +12,8 @@ export class CollectionSegment extends BaseEntity {
   @Column({ name: 'collection_id', type: 'int' })
   collectionId!: number;
 
-  @Column({ name: 'segment_uuid', type: 'varchar' })
-  segmentUuid!: string;
+  @Column({ name: 'segment_id', type: 'int' })
+  segmentId!: number;
 
   @Column({ name: 'media_id', type: 'int' })
   mediaId!: number;

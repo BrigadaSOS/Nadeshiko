@@ -9,7 +9,7 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
         "id" SERIAL PRIMARY KEY,
         "user_id" integer NOT NULL,
         "activity_type" activity_type NOT NULL,
-        "segment_uuid" varchar,
+        "segment_id" integer,
         "media_id" integer,
         "search_query" varchar,
         "anime_name" varchar,
@@ -50,20 +50,22 @@ export class UserActivityAndCollections1706150900000 implements MigrationInterfa
       CREATE TABLE "CollectionSegment" (
         "id" SERIAL PRIMARY KEY,
         "collection_id" integer NOT NULL,
-        "segment_uuid" varchar NOT NULL CHECK ("segment_uuid" <> ''),
+        "segment_id" integer NOT NULL,
         "media_id" integer NOT NULL,
         "position" integer NOT NULL,
         "note" varchar(500),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ,
         CONSTRAINT "CollectionSegment_collection_fkey" FOREIGN KEY ("collection_id")
-          REFERENCES "Collection"("id") ON DELETE CASCADE
+          REFERENCES "Collection"("id") ON DELETE CASCADE,
+        CONSTRAINT "CollectionSegment_segment_fkey" FOREIGN KEY ("segment_id")
+          REFERENCES "Segment"("id")
       )
     `);
 
     await queryRunner.query(`
-      CREATE UNIQUE INDEX "IDX_collection_segment_collection_uuid"
-        ON "CollectionSegment" ("collection_id", "segment_uuid")
+      CREATE UNIQUE INDEX "IDX_collection_segment_collection_segment"
+        ON "CollectionSegment" ("collection_id", "segment_id")
     `);
 
     await queryRunner.query(`

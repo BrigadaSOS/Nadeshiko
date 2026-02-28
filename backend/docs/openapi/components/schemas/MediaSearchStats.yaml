@@ -2,6 +2,7 @@ type: object
 description: Search hit statistics for a single media
 required:
   - mediaId
+  - publicId
   - matchCount
   - episodeHits
 properties:
@@ -9,6 +10,10 @@ properties:
     type: integer
     description: Media identifier (look up full details in includes.media)
     example: 110316
+  publicId:
+    type: string
+    description: Public identifier for use in URLs and filters
+    example: abc123xyz
   matchCount:
     type: integer
     description: Number of matching segments found in this media

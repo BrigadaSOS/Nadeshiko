@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not, BeforeInsert } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { Episode } from './Episode';
@@ -9,6 +9,7 @@ import type { SeriesMedia } from './SeriesMedia';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 import { SegmentStorage } from './Segment';
 import { Cache, createCacheNamespace } from '@lib/cache';
+import { nanoid } from 'nanoid';
 
 export const MEDIA_INFO_CACHE = createCacheNamespace('mediaInfo');
 const MEDIA_INFO_TTL_MS = 24 * 60 * 60 * 1000;
@@ -33,6 +34,14 @@ interface MediaRelationsOptions {
 export class Media extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id!: number;
+
+  @Column({ name: 'public_id', type: 'varchar', unique: true })
+  publicId!: string;
+
+  @BeforeInsert()
+  generatePublicId() {
+    this.publicId = nanoid(12);
+  }
 
   @Column({ name: 'japanese_name', type: 'varchar' })
   nameJa!: string;
@@ -238,6 +247,7 @@ export class Media extends BaseEntity {
 
     return {
       mediaId: media.id,
+      publicId: media.publicId,
       category: media.category, // "ANIME", "JDRAMA"
       categoryName: media.category, // Same as category - for backwards compatibility
       createdAt: media.createdAt.toISOString(),

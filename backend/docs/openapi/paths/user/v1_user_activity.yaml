@@ -82,8 +82,8 @@ post:
               enum:
                 - SEGMENT_PLAY
                 - SHARE
-            segmentUuid:
-              type: string
+            segmentId:
+              type: integer
             mediaId:
               type: integer
             mediaName:

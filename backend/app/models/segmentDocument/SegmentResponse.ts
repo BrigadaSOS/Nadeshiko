@@ -3,6 +3,7 @@ import { logger } from '@config/log';
 import { type Storage, getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 import { encodeKeysetCursor } from '@lib/cursor';
 import type { Media } from '@app/models';
+import type { SegmentDocumentShape } from '../SegmentDocument';
 import type {
   PaginationInfoOutput,
   SearchResponseOutput,
@@ -18,25 +19,7 @@ import type {
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>;
 type MediaInfo = MediaInfoMap['results'] extends Map<number, infer T> ? T : never;
 type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categories' | 'includes'>;
-type SegmentSourceDocument = {
-  id?: number | string;
-  status?: string;
-  uuid?: string;
-  position?: number;
-  startTimeMs?: number;
-  endTimeMs?: number;
-  episode?: number;
-  mediaId?: number | string;
-  textJa?: unknown;
-  textEn?: unknown;
-  textEs?: unknown;
-  textEnMt?: boolean;
-  textEsMt?: boolean;
-  contentRating?: string;
-  storage?: string;
-  hashedId?: string;
-};
-type SegmentSearchHit = estypes.SearchHit<SegmentSourceDocument>;
+type SegmentSearchHit = estypes.SearchHit<SegmentDocumentShape>;
 type HighlightMap = Record<string, string[]>;
 type TermsBucket = { key?: string | number; doc_count?: number } & Record<string, unknown>;
 type TermsAggregation = { buckets?: TermsBucket[] };
@@ -74,8 +57,8 @@ export class SegmentResponse {
         }
 
         const highlight = (hit.highlight ?? {}) as HighlightMap;
-        const segmentId = Number(hit._id ?? data.id);
-        const mediaId = Number(data.mediaId);
+        const segmentId = Number(hit._id);
+        const mediaId = data.mediaId;
         const mediaInfo = mediaInfoResponse.results.get(mediaId);
 
         if (!mediaInfo) {
@@ -91,21 +74,13 @@ export class SegmentResponse {
           mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
         }
 
-        const hashedId = typeof data.hashedId === 'string' ? data.hashedId : undefined;
         const storageBasePath = mediaInfo.storageBasePath;
-        const episodeNumber = SegmentResponse.toFiniteNumber(data.episode);
-
-        if (!hashedId || episodeNumber === null) {
-          logger.error({ uuid: data.uuid, mediaId, episode: data.episode }, 'Segment is missing required URL fields');
-          return null;
-        }
-
-        const storage: Storage = String(data.storage ?? 'R2').toUpperCase() as Storage;
+        const storage: Storage = data.storage.toUpperCase() as Storage;
         const segmentForUrls = {
-          mediaId: mediaId,
-          episode: episodeNumber,
+          mediaId,
+          episode: data.episode,
           storage,
-          hashedId,
+          hashedId: data.hashedId,
           storageBasePath,
         };
 
@@ -113,43 +88,35 @@ export class SegmentResponse {
         const audioUrl = getSegmentAudioUrl(segmentForUrls);
         const videoUrl = getSegmentVideoUrl(segmentForUrls);
 
-        const normalizedRating = String(data.contentRating ?? 'SAFE').toUpperCase();
-        const contentRating: SegmentOutput['contentRating'] =
-          normalizedRating === 'SUGGESTIVE' || normalizedRating === 'QUESTIONABLE' || normalizedRating === 'EXPLICIT'
-            ? normalizedRating
-            : 'SAFE';
+        const contentRating = SegmentResponse.toContentRating(data.contentRating);
 
         const textJaHighlight = highlight.textJa?.[0];
         const textEnHighlight = highlight.textEn?.[0];
         const textEsHighlight = highlight.textEs?.[0];
-        const uuid = SegmentResponse.toNonEmptyString(data.uuid);
-        if (!uuid) {
-          logger.error({ id: segmentId }, 'Segment uuid missing in Elasticsearch hit');
-          return null;
-        }
 
         return {
           id: segmentId,
+          publicId: data.publicId,
           status: SegmentResponse.toSegmentStatus(data.status),
-          uuid,
-          position: SegmentResponse.toFiniteNumber(data.position) ?? 0,
-          startTimeMs: SegmentResponse.toFiniteNumber(data.startTimeMs) ?? 0,
-          endTimeMs: SegmentResponse.toFiniteNumber(data.endTimeMs) ?? 0,
-          episode: episodeNumber,
+          uuid: data.uuid,
+          position: data.position,
+          startTimeMs: data.startTimeMs,
+          endTimeMs: data.endTimeMs,
+          episode: data.episode,
           mediaId,
           textJa: {
-            content: SegmentResponse.toTextContent(data.textJa),
+            content: data.textJa,
             ...(textJaHighlight ? { highlight: textJaHighlight } : {}),
           },
           textEn: {
-            content: SegmentResponse.toTextContent(data.textEn),
+            content: data.textEn,
             ...(textEnHighlight ? { highlight: textEnHighlight } : {}),
-            isMachineTranslated: data.textEnMt ?? false,
+            isMachineTranslated: data.textEnMt,
           },
           textEs: {
-            content: SegmentResponse.toTextContent(data.textEs),
+            content: data.textEs,
             ...(textEsHighlight ? { highlight: textEsHighlight } : {}),
-            isMachineTranslated: data.textEsMt ?? false,
+            isMachineTranslated: data.textEsMt,
           },
           contentRating,
           urls: { imageUrl, audioUrl, videoUrl },
@@ -163,6 +130,7 @@ export class SegmentResponse {
   static buildMedia(mediaId: number, mediaInfo: MediaInfo): MediaOutput {
     return {
       id: mediaId,
+      publicId: mediaInfo.publicId,
       externalIds: mediaInfo.externalIds,
       nameJa: mediaInfo.nameJa,
       nameRomaji: mediaInfo.nameRomaji,
@@ -283,7 +251,12 @@ export class SegmentResponse {
           mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
         }
 
-        return { mediaId, matchCount: Number(mediaBucket.doc_count ?? 0), episodeHits: episodesWithResults };
+        return {
+          mediaId,
+          publicId: mediaInfo.publicId,
+          matchCount: Number(mediaBucket.doc_count ?? 0),
+          episodeHits: episodesWithResults,
+        };
       })
       .filter(SegmentResponse.notEmpty);
 
@@ -310,23 +283,20 @@ export class SegmentResponse {
     return value !== null && value !== undefined;
   }
 
-  private static toTextContent(value: unknown): string {
-    return typeof value === 'string' ? value : '';
-  }
 
-  private static toNonEmptyString(value: unknown): string | null {
-    if (typeof value !== 'string') return null;
-    return value.trim() ? value : null;
-  }
-
-  private static toFiniteNumber(value: unknown): number | null {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return null;
+  private static toContentRating(value: string): SegmentOutput['contentRating'] {
+    const normalized = value.toUpperCase();
+    switch (normalized) {
+      case 'SUGGESTIVE':
+      case 'QUESTIONABLE':
+      case 'EXPLICIT':
+        return normalized;
+      default:
+        return 'SAFE';
     }
-    return value;
   }
 
-  private static toSegmentStatus(value: unknown): SegmentOutput['status'] {
+  private static toSegmentStatus(value: string): SegmentOutput['status'] {
     switch (value) {
       case 'DELETED':
       case 'ACTIVE':

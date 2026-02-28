@@ -16,7 +16,7 @@ const isSubmitting = ref(false);
 const isLoadingInternal = ref(false);
 const errorMessage = ref('');
 
-const showHistory = ref(false);
+const showHistory = ref(true);
 const revisions = ref<SegmentRevision[]>([]);
 const activeSnapshotNumber = ref<number | null>(null);
 const isLoadingRevisions = ref(false);
@@ -87,6 +87,11 @@ const copyUuid = async () => {
   await navigator.clipboard.writeText(props.segment.segment.uuid);
 };
 
+const copyPublicId = async () => {
+  if (!props.segment) return;
+  await navigator.clipboard.writeText(props.segment.segment.publicId);
+};
+
 const validateJson = (json: string, field: 'ratingAnalysis' | 'posAnalysis'): boolean => {
   if (!json.trim()) {
     jsonErrors[field] = '';
@@ -122,6 +127,10 @@ const populateFormFromSegment = (seg: SearchResult, ratingAnalysis?: object | nu
 let lastRatingAnalysis: object | null = null;
 let lastPosAnalysis: object | null = null;
 
+const internalHashedId = ref<string | null>(null);
+const internalStorage = ref<string | null>(null);
+const internalStorageBasePath = ref<string | null>(null);
+
 watch(
   () => props.segment,
   async (seg) => {
@@ -132,14 +141,20 @@ watch(
     jsonErrors.posAnalysis = '';
     errorMessage.value = '';
     activeSnapshotNumber.value = null;
-    showHistory.value = false;
     revisions.value = [];
+
+    internalHashedId.value = null;
+    internalStorage.value = null;
+    internalStorageBasePath.value = null;
 
     isLoadingInternal.value = true;
     try {
-      const { data } = await sdk.getSegmentByUuid({ path: { uuid: seg.segment.uuid }, query: { include: ['ratingAnalysis', 'posAnalysis'] } });
+      const { data } = await sdk.getSegmentByUuid({ path: { uuid: seg.segment.uuid }, query: { include: ['ratingAnalysis', 'posAnalysis', 'hashedId', 'storage', 'storageBasePath'] } });
       lastRatingAnalysis = data?.ratingAnalysis ?? null;
       lastPosAnalysis = data?.posAnalysis ?? null;
+      internalHashedId.value = data?.hashedId ?? null;
+      internalStorage.value = data?.storage ?? null;
+      internalStorageBasePath.value = data?.storageBasePath ?? null;
       if (data?.ratingAnalysis) {
         form.ratingAnalysisJson = JSON.stringify(data.ratingAnalysis, null, 2);
       }
@@ -151,6 +166,10 @@ watch(
       lastPosAnalysis = null;
     } finally {
       isLoadingInternal.value = false;
+    }
+
+    if (showHistory.value) {
+      fetchRevisions();
     }
   },
 );
@@ -402,6 +421,48 @@ const submitEdit = async () => {
                   <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                 </svg>
               </button>
+            </div>
+            <!-- Public ID -->
+            <div class="flex items-center gap-2 text-neutral-300">
+              <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.publicId') }}</span>
+              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.publicId }}</code>
+              <button
+                type="button"
+                class="text-neutral-500 hover:text-neutral-300 transition-colors"
+                :title="t('modalSegmentEdit.metadata.copyPublicId')"
+                @click="copyPublicId"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+              </button>
+            </div>
+            <!-- Media ID -->
+            <div class="flex items-center gap-2 text-neutral-300">
+              <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.mediaId') }}</span>
+              <span class="font-mono text-neutral-300">{{ segment.segment.mediaId }}</span>
+            </div>
+            <!-- Hashed ID (from internal fetch) -->
+            <div class="flex items-center gap-2 text-neutral-300">
+              <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.hashedId') }}</span>
+              <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
+              <code v-else-if="internalHashedId" class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ internalHashedId }}</code>
+              <span v-else class="text-xs text-neutral-500">—</span>
+            </div>
+            <!-- Storage -->
+            <div class="flex items-center gap-2 text-neutral-300">
+              <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.storage') }}</span>
+              <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
+              <span v-else-if="internalStorage" class="font-mono text-neutral-300">{{ internalStorage }}</span>
+              <span v-else class="text-xs text-neutral-500">—</span>
+            </div>
+            <!-- Storage Path -->
+            <div class="flex items-center gap-2 text-neutral-300">
+              <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.storagePath') }}</span>
+              <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
+              <code v-else-if="internalStorageBasePath" class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ internalStorageBasePath }}</code>
+              <span v-else class="text-xs text-neutral-500">—</span>
             </div>
             <!-- Resource URLs -->
             <div v-if="segment.segment.urls.imageUrl" class="flex items-center gap-2 text-neutral-300">

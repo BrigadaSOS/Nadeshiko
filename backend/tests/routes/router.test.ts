@@ -82,14 +82,14 @@ const SESSION_ONLY_ROUTES: RouteEntry[] = [
   { method: 'delete', path: '/v1/user/labs/test-key' },
   { method: 'get', path: '/v1/collections' },
   { method: 'post', path: '/v1/collections' },
-  { method: 'get', path: '/v1/collections/1' },
-  { method: 'patch', path: '/v1/collections/1' },
-  { method: 'delete', path: '/v1/collections/1' },
-  { method: 'post', path: '/v1/collections/1/segments' },
-  { method: 'patch', path: '/v1/collections/1/segments/test-uuid' },
-  { method: 'delete', path: '/v1/collections/1/segments/test-uuid' },
-  { method: 'get', path: '/v1/collections/1/search' },
-  { method: 'get', path: '/v1/collections/1/stats' },
+  { method: 'get', path: '/v1/collections/999999' },
+  { method: 'patch', path: '/v1/collections/999999' },
+  { method: 'delete', path: '/v1/collections/999999' },
+  { method: 'post', path: '/v1/collections/999999/segments' },
+  { method: 'patch', path: '/v1/collections/999999/segments/1' },
+  { method: 'delete', path: '/v1/collections/999999/segments/1' },
+  { method: 'get', path: '/v1/collections/999999/search' },
+  { method: 'get', path: '/v1/collections/999999/stats' },
 ];
 
 const ADMIN_SESSION_ROUTES: RouteEntry[] = [

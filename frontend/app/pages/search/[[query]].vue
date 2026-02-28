@@ -98,8 +98,8 @@ const fetchSentenceData = async () => {
     }
 
     if (mediaQueryParam.value) {
-      const mediaEntry: { mediaId: number; episodes?: number[] } = {
-        mediaId: Number(mediaQueryParam.value),
+      const mediaEntry: { mediaId: string; episodes?: number[] } = {
+        mediaId: mediaQueryParam.value,
       };
       if (episodeNumberParam.value !== null) {
         mediaEntry.episodes = [episodeNumberParam.value];

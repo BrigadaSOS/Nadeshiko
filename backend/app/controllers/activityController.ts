@@ -61,7 +61,7 @@ export const trackUserActivity: TrackUserActivity = async ({ body }, respond, re
   const user = assertUser(req);
 
   UserActivity.trackForUser(user, body.activityType as ActivityType, {
-    segmentUuid: body.segmentUuid,
+    segmentId: body.segmentId,
     mediaId: body.mediaId,
     mediaName: body.mediaName,
     japaneseText: body.japaneseText,

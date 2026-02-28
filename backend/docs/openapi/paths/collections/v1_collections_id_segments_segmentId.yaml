@@ -17,13 +17,13 @@ patch:
       schema:
         type: integer
         example: 123
-    - name: uuid
+    - name: segmentId
       in: path
       required: true
-      description: Segment UUID
+      description: Segment ID
       schema:
-        type: string
-        example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+        type: integer
+        example: 456
   requestBody:
     required: true
     content:
@@ -75,13 +75,13 @@ delete:
       schema:
         type: integer
         example: 123
-    - name: uuid
+    - name: segmentId
       in: path
       required: true
-      description: Segment UUID
+      description: Segment ID
       schema:
-        type: string
-        example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+        type: integer
+        example: 456
   responses:
     "204":
       description: No Content

@@ -17,7 +17,7 @@ function buildReport(overrides: Record<string, unknown> = {}) {
     targetType: ReportTargetType.MEDIA,
     targetMediaId: 10,
     targetEpisodeNumber: null,
-    targetSegmentUuid: null,
+    targetSegmentId: null,
     auditRunId: null,
     reason: ReportReason.OTHER,
     description: null,
@@ -39,14 +39,14 @@ describe('report.mapper', () => {
         targetType: ReportTargetType.SEGMENT,
         targetMediaId: 20,
         targetEpisodeNumber: 3,
-        targetSegmentUuid: 'seg-1',
+        targetSegmentId: 101,
       }) as any,
     );
 
     expect(dto.target).toEqual({
       type: 'SEGMENT',
       mediaId: 20,
-      segmentUuid: 'seg-1',
+      segmentId: 101,
       episodeNumber: 3,
     });
   });
@@ -96,12 +96,13 @@ describe('report.mapper', () => {
   it('maps create attributes for segment target', () => {
     const attrs = toReportCreateAttributes({
       userId: 17,
+      resolvedSegmentId: 123,
       body: {
         target: {
           type: 'SEGMENT',
           mediaId: 55,
           episodeNumber: 7,
-          segmentUuid: 'seg-123',
+          segmentId: 'seg-123',
         },
         reason: 'WRONG_TRANSLATION',
         description: 'needs fix',
@@ -113,7 +114,7 @@ describe('report.mapper', () => {
       targetType: ReportTargetType.SEGMENT,
       targetMediaId: 55,
       targetEpisodeNumber: 7,
-      targetSegmentUuid: 'seg-123',
+      targetSegmentId: 123,
       reason: ReportReason.WRONG_TRANSLATION,
       description: 'needs fix',
       userId: 17,
@@ -124,6 +125,7 @@ describe('report.mapper', () => {
   it('maps create attributes for media target with nullables', () => {
     const attrs = toReportCreateAttributes({
       userId: 18,
+      resolvedSegmentId: null,
       body: {
         target: {
           type: 'MEDIA',
@@ -137,7 +139,7 @@ describe('report.mapper', () => {
       targetType: ReportTargetType.MEDIA,
       targetMediaId: 42,
       targetEpisodeNumber: null,
-      targetSegmentUuid: null,
+      targetSegmentId: null,
       description: null,
     });
   });
@@ -159,7 +161,7 @@ describe('report.mapper', () => {
       'target.type': 'SEGMENT',
       'target.mediaId': 9,
       'target.episodeNumber': 3,
-      'target.segmentUuid': 'seg-9',
+      'target.segmentId': 9,
       auditRunId: 12,
     } as any);
 
@@ -169,7 +171,7 @@ describe('report.mapper', () => {
       targetType: ReportTargetType.SEGMENT,
       targetMediaId: 9,
       targetEpisodeNumber: 3,
-      targetSegmentUuid: 'seg-9',
+      targetSegmentId: 9,
       auditRunId: 12,
     });
   });

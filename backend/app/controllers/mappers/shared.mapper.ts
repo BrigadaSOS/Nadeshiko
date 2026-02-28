@@ -21,6 +21,7 @@ const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
 
 export const toSeiyuuDTO = (seiyuu: Seiyuu): t_Seiyuu => ({
   id: seiyuu.id,
+  publicId: seiyuu.publicId,
   externalIds: seiyuu.externalIds as t_ExternalId,
   nameJa: seiyuu.nameJapanese,
   nameEn: seiyuu.nameEnglish,
@@ -29,6 +30,7 @@ export const toSeiyuuDTO = (seiyuu: Seiyuu): t_Seiyuu => ({
 
 export const toCharacterDTO = (character: Character): t_Character => ({
   id: character.id,
+  publicId: character.publicId,
   externalIds: character.externalIds as t_ExternalId,
   nameJa: character.nameJapanese,
   nameEn: character.nameEnglish,
@@ -64,6 +66,7 @@ const toDateString = (date: Date | string): string => {
  */
 export const toMediaBaseDTO = (media: Media): t_Media => ({
   id: media.id,
+  publicId: media.publicId,
   externalIds: toExternalIdsMap(media.externalIds),
   nameJa: media.nameJa,
   nameRomaji: media.nameRomaji,

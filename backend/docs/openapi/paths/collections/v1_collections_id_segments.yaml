@@ -24,12 +24,12 @@ post:
         schema:
           type: object
           required:
-            - segmentUuid
+            - segmentId
           properties:
-            segmentUuid:
+            segmentId:
               type: string
-              description: UUID of the segment to add
-              example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
+              description: Public ID or UUID of the segment to add
+              example: "abc123def456"
             note:
               type: string
               maxLength: 500

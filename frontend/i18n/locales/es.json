@@ -215,6 +215,12 @@
       "position": "Posición",
       "uuid": "UUID",
       "copyUuid": "Copiar UUID",
+      "publicId": "ID Público",
+      "copyPublicId": "Copiar ID Público",
+      "mediaId": "ID de Media",
+      "hashedId": "ID Hash",
+      "storage": "Almacenamiento",
+      "storagePath": "Ruta de Almacenamiento",
       "image": "Imagen",
       "audio": "Audio",
       "video": "Video"

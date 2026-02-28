@@ -7,13 +7,14 @@ import { storeToRefs } from 'pinia';
 
 const playerStore = usePlayerStore();
 const { showPlayer } = storeToRefs(playerStore);
-const props = defineProps(['searchData', 'categorySelected', 'media']);
+const props = defineProps(['searchData', 'categorySelected', 'media', 'isMovieMedia']);
 
 const getEpisodeHitsData = () => {
   if (!props.media || !props.searchData?.media) return {};
   const mediaId = Number(props.media);
-  if (Number.isNaN(mediaId)) return {};
-  const selectedMedia = props.searchData.media.find((stat) => stat.mediaId === mediaId);
+  const selectedMedia = Number.isNaN(mediaId)
+    ? props.searchData.media.find((stat) => stat.publicId === props.media)
+    : props.searchData.media.find((stat) => stat.mediaId === mediaId);
   return selectedMedia?.episodeHits || {};
 };
 
@@ -75,7 +76,7 @@ onUnmounted(() => {
         <SearchSegmentFilterSortContent />
         <SearchSegmentFilterContent :searchData="searchData" :categorySelected="categorySelected" />
         <SearchSegmentFilterEpisodeFilter
-            v-if="media"
+            v-if="media && !isMovieMedia"
             :episodeHits="getEpisodeHitsData()"
             :selectedMediaId="media"
         />
