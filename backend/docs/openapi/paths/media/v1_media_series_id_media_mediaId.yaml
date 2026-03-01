@@ -16,17 +16,17 @@ patch:
     - name: id
       in: path
       required: true
-      description: Series ID
+      description: Series public ID
       schema:
-        type: integer
-        example: 1
+        type: string
+        example: "V1StGXR8_Z5d"
     - name: mediaId
       in: path
       required: true
-      description: Media ID
+      description: Media public ID
       schema:
-        type: integer
-        example: 42
+        type: string
+        example: "abc123def456"
   requestBody:
     required: true
     content:
@@ -74,17 +74,17 @@ delete:
     - name: id
       in: path
       required: true
-      description: Series ID
+      description: Series public ID
       schema:
-        type: integer
-        example: 1
+        type: string
+        example: "V1StGXR8_Z5d"
     - name: mediaId
       in: path
       required: true
-      description: Media ID
+      description: Media public ID
       schema:
-        type: integer
-        example: 42
+        type: string
+        example: "abc123def456"
   responses:
     "204":
       description: No Content

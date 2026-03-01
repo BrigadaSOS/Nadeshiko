@@ -19,6 +19,7 @@ export const s_Category = z.enum(['ANIME', 'JDRAMA']);
 
 export const s_Collection = z.object({
   id: z.coerce.number(),
+  publicId: z.string(),
   name: z.string(),
   type: z.enum(['USER', 'ANKI_EXPORT']),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
@@ -230,22 +231,22 @@ export const s_ReindexResponse = z.object({
 
 export const s_ReportTargetEpisode = z.object({
   type: z.enum(['EPISODE']),
-  mediaId: z.coerce.number(),
+  mediaId: z.string(),
   episodeNumber: z.coerce.number(),
 });
 
-export const s_ReportTargetMedia = z.object({ type: z.enum(['MEDIA']), mediaId: z.coerce.number() });
+export const s_ReportTargetMedia = z.object({ type: z.enum(['MEDIA']), mediaId: z.string() });
 
 export const s_ReportTargetSegment = z.object({
   type: z.enum(['SEGMENT']),
-  mediaId: z.coerce.number(),
+  mediaId: z.string(),
   episodeNumber: z.coerce.number().optional(),
-  segmentId: z.coerce.number().nullable(),
+  segmentId: z.string().nullable(),
 });
 
 export const s_ReportTargetSegmentInput = z.object({
   type: z.enum(['SEGMENT']),
-  mediaId: z.coerce.number(),
+  mediaId: z.string(),
   episodeNumber: z.coerce.number().optional(),
   segmentId: z.string(),
 });
@@ -268,6 +269,7 @@ export const s_SegmentRevision = z.object({
 
 export const s_Series = z.object({
   id: z.coerce.number(),
+  publicId: z.string(),
   nameJa: z.string(),
   nameRomaji: z.string(),
   nameEn: z.string(),
@@ -396,6 +398,7 @@ export const s_Segment = z.object({
   contentRating: s_ContentRating,
   episode: z.coerce.number(),
   mediaId: z.coerce.number(),
+  mediaPublicId: z.string(),
   textJa: z.object({ content: z.string().max(500), highlight: z.string().optional() }),
   textEn: z.object({
     content: z.string().max(500),
@@ -493,11 +496,15 @@ export const s_CreateReportRequest = z.object({
     'WRONG_TRANSLATION',
     'WRONG_TIMING',
     'WRONG_AUDIO',
+    'WRONG_JAPANESE_TEXT',
+    'LOW_QUALITY_AUDIO',
     'NSFW_NOT_TAGGED',
     'DUPLICATE_SEGMENT',
-    'WRONG_METADATA',
+    'WRONG_TITLE',
+    'DUPLICATE_MEDIA',
+    'WRONG_EPISODE_NUMBER',
+    'IMAGE_ISSUE',
     'MISSING_EPISODES',
-    'WRONG_COVER_IMAGE',
     'INAPPROPRIATE_CONTENT',
     'OTHER',
   ]),
@@ -567,11 +574,17 @@ export const s_Report = z.object({
     'WRONG_TRANSLATION',
     'WRONG_TIMING',
     'WRONG_AUDIO',
+    'WRONG_JAPANESE_TEXT',
+    'LOW_QUALITY_AUDIO',
     'NSFW_NOT_TAGGED',
     'DUPLICATE_SEGMENT',
     'WRONG_METADATA',
     'MISSING_EPISODES',
     'WRONG_COVER_IMAGE',
+    'WRONG_TITLE',
+    'DUPLICATE_MEDIA',
+    'WRONG_EPISODE_NUMBER',
+    'IMAGE_ISSUE',
     'INAPPROPRIATE_CONTENT',
     'OTHER',
     'LOW_SEGMENT_MEDIA',

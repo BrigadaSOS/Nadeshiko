@@ -1,24 +1,13 @@
 {
   "navbar": {
-    "languages": {
-      "english": "English",
-      "spanish": "Spanish",
-      "japanese": "Japanese"
-    },
     "buttons": {
       "home": "Home",
-      "faq": "FAQ",
       "about": "About",
-      "discord": "Discord",
-      "guide": "Main Page",
       "login": "Login / Sign up",
       "profile": "Profile",
-      "seeProfile": "Settings",
-      "logout": "Logout",
       "privacy": "Privacy",
       "dmca": "DMCA",
       "terms": "Terms and Conditions",
-      "contact": "Contact",
       "settings": "Settings",
       "blog": "Blog",
       "media": "Media"
@@ -54,14 +43,12 @@
       "description": "If you find this site useful, you can support our work and future development with a contribution on our GitHub, a donation, or by sharing this site with others."
     },
     "stats": {
-      "title": "General Stats",
       "sentenceCount": "Sentences",
       "episodeCount": "Episodes",
       "mediaCount": "Total content"
     }
   },
   "batchSearch": {
-    "button": "Simultaneous Search",
     "title": "Simultaneous Search",
     "description1": "This feature can be used to search multiple words at once. A list will be returned with the words that have been found in the database, and a link to that specific search",
     "description2": "To start, add some words on the box below",
@@ -85,41 +72,23 @@
       "return": "Return"
     }
   },
-  "ankiSearch": {
-    "title": "Search in your collection",
-    "description": "Look for a card that you have in Anki and add an image and audio to it. It is necessary that the 'Key Field' is configured in the settings tab."
-  },
   "animeList": {
     "recentlyAddedTitle": "Recently Added",
     "fullListTitle": "List of content",
     "seeAll": "See all",
     "sentenceCount": "sentences",
-    "romajiName": "Name",
-    "japaneseName": "Japanese",
     "episodes": "Episodes",
-    "genres": "Genres",
     "sentenceCountLabel": "Sentence Count:",
-    "wordCountLabel": "Word Count:",
-    "uniqueWordsLabel": "Unique Words:",
-    "uniqueKanjiLabel": "Unique Kanji:",
-    "uniqueWordsOnceLabel": "Unique Words (used once):",
-    "lexicalDiversityLabel": "Lexical Diversity Index:",
-    "anilistScoreLabel": "Anilist Score:",
-    "difficultyLabel": "Difficulty:",
     "anilistButton": "Anilist",
-    "vocabularyButton": "Vocabulary",
-    "previousPage": "Previous Page",
-    "nextPage": "Next Page"
+    "vocabularyButton": "Vocabulary"
   },
   "mediaBrowse": {
     "showHiddenMedia": "Show hidden media",
     "hideHiddenMedia": "Hide hidden media"
   },
   "searchSettingsModal": {
-    "title": "Search settings",
     "exactMatchTitle": "Exact match",
-    "exactMatchDescription": "Perform an exact match search, without including conjugations or other results",
-    "close": "Close"
+    "exactMatchDescription": "Perform an exact match search, without including conjugations or other results"
   },
   "anki": {
     "modal": {
@@ -191,7 +160,6 @@
     "english": "English",
     "spanish": "Spanish",
     "machineTranslated": "Machine translated",
-    "translations": "Translations",
     "status": "Status",
     "contentRating": "Content Rating",
     "save": "Save",
@@ -250,9 +218,6 @@
   "searchpage": {
     "main": {
       "translationPreferences": {
-        "legend": "Translations",
-        "english": "English",
-        "spanish": "Spanish",
         "englishShown": "English translations shown",
         "englishSpoiler": "English translations in spoiler mode",
         "englishHidden": "English translations hidden",
@@ -275,7 +240,6 @@
         "ensentence": "English sentence",
         "essentence": "Spanish sentence",
         "context": "Context",
-        "report": "Report",
         "share": "Share",
         "more": "More",
         "expandLeft": "Expand (left)",
@@ -292,30 +256,19 @@
         "sortlengthnone": "None",
         "sortlengthmin": "Shortest",
         "sortlengthmax": "Largest",
-        "sortasc": "Shortest",
-        "sortdesc": "Largest",
         "sorttime_asc": "Chronological",
         "sorttime_desc": "Reverse",
-        "sortrandom": "Random",
-        "search": "Search"
+        "sortrandom": "Random"
       },
       "labels": {
-        "errorMessage1": "An error has occurred while doing the search.",
-        "errorMessage2": "Please try again later.",
         "contentList": "Content",
         "noresults": "No results found...",
         "episode": "Episode",
-        "translation": "Translation (EN/ES)",
         "movie": "Movie",
-        "audiobook": "Audiobook",
         "searchmain": "Search a title here...",
         "searchbar": "Filter",
-        "multimedia": "Multimedia",
-        "text": "Text",
-        "options": "Options",
         "all": "All",
         "copiedcontent": "The content has been copied to the clipboard.",
-        "errorcopiedcontent": "Error copying content to clipboard. Try again.",
         "copiedsharingurl": "The URL has been copied to the clipboard.",
         "errorcopiedsharingurl": "Error copying URL to clipboard. Try again.",
         "collectionAdded": "Added to \"{name}\"",
@@ -324,14 +277,8 @@
       }
     },
     "modalcontext": {
-      "buttons": {
-        "close": "Close",
-        "downloadmultipleaudios": "Save selected audios"
-      },
       "labels": {
-        "context": "Context",
-        "errordownloadmultipleaudios": "Error saving audios. Try again.",
-        "errorconnection": "Error connecting to the server."
+        "context": "Context"
       }
     }
   },
@@ -345,7 +292,6 @@
       "advancedTitle": "Advanced"
     },
     "tabs": {
-      "account": "Account",
       "sync": "Anki",
       "developer": "Developer"
     },
@@ -371,13 +317,10 @@
       "options": "Options",
       "rename": "Rename",
       "deactivate": "Deactivate",
-      "unlimited": "Unlimited",
       "createApiKeyModal": {
         "title": "Create API Key",
         "nameLabel": "Name",
         "namePlaceholder": "Enter a name for this API key",
-        "permissionsLabel": "Permissions",
-        "cancel": "Cancel",
         "create": "Create"
       },
       "renameApiKeyModal": {
@@ -392,15 +335,8 @@
       "usernameLabel": "Username",
       "emailLabel": "Email",
       "notAvailable": "Not available",
-      "dataLoadError": "Failed to load user data",
-      "securityTitle": "Security",
-      "passwordLabel": "Password",
       "additionalTitle": "Additional",
       "deleteAccount": "Delete account (Irreversible action)",
-      "suggestiveContent": "Suggestive Content",
-      "suggestiveContentDesc": "Heavy fanservice, revealing clothing",
-      "explicitContent": "Explicit Content",
-      "explicitContentDesc": "Questionable or explicit content",
       "questionableContent": "Sensitive Content",
       "questionableContentDesc": "Questionable or explicit content",
       "contentRatingShow": "Show",
@@ -410,7 +346,6 @@
       "contentRatingHint_blur": "Results will be included in search but blurred",
       "contentRatingHint_hide": "Results will not be included in search",
       "contentRatingPreview": "Preview of how flagged results will appear in search",
-      "contentRatingHidden": "Hidden",
       "contentRatingHiddenDesc": "Hidden — will not be included in search results",
       "preferenceSaved": "Preference saved",
       "preferenceError": "Failed to save preference",
@@ -420,9 +355,6 @@
       "hiddenMediaEmpty": "No hidden media. Search results will include all available media."
     },
     "collections": {
-      "segmentCount": "{count} segments",
-      "created": "Created {date}",
-      "updated": "Updated {date}",
       "removeFromCollection": "Remove from collection",
       "confirmRemove": "Remove?",
       "yes": "Yes",
@@ -484,8 +416,11 @@
       "contentColumn": "Content",
       "noFieldsFound": "No fields found",
       "noFieldsMessage": "Please try again or check your AnkiConnect connection",
-      "advancedSettings": "Advanced Settings",
-      "serverAddressLabel": "AnkiConnect server address"
+      "serverAddressLabel": "AnkiConnect server address",
+      "profile": "Profile",
+      "newProfile": "New",
+      "deleteProfile": "Delete",
+      "saving": "Saving..."
     }
   },
   "contentPage": {
@@ -512,14 +447,8 @@
     },
     "nsfwTag": "NSFW",
     "contentRatingDescription": {
-      "SUGGESTIVE": "Sensitive content (Suggestive)",
-      "QUESTIONABLE": "Questionable content",
-      "EXPLICIT": "Explicit adult content",
       "SENSITIVE": "Sensitive Content (Questionable)"
     },
-    "expandLeft": "Expand left",
-    "expandBoth": "Expand both sides",
-    "expandRight": "Expand right",
     "revert": "Revert"
   },
   "searchContainer": {
@@ -530,28 +459,22 @@
     "retrying": "Retrying...",
     "endOfResults": "You've reached the end!",
     "loadMore": "Load more sentences",
-    "pageTitle": "{query} - Search in Nadeshiko",
-    "pageTitleDefault": "Nadeshiko - Search",
-    "seoDescription": "Search results for \"{query}\" in Nadeshiko",
-    "seoDescriptionDefault": "Search anime and live action phrases in Nadeshiko",
-    "mediaInfo": "{jpSentence} from {animeName}, {mediaType}",
-    "mediaTypeMovie": "Movie",
     "categoryAll": "All",
     "categoryAnime": "Anime",
     "categoryLiveaction": "Live Action",
-    "categoryAudiobook": "Audiobook",
     "collectionTabPrefix": "Collection",
     "backToCollections": "Collections",
     "hiddenMediaNotice": "This media is in your hidden list",
     "hiddenMediaDescription": "You've hidden this media from your search results. You can still view it temporarily.",
-    "hiddenMediaShowAnyway": "Show anyway"
+    "hiddenMediaShowAnyway": "Show anyway",
+    "loading": "Loading..."
   },
   "reports": {
-    "title": "My Reports",
     "modalTitle": "Report an Issue",
     "targetLabel": "Target",
     "reason": "Reason",
-    "selectReason": "Select a reason...",
+    "tabSegment": "Segment",
+    "tabMedia": "Media",
     "description": "Description (optional)",
     "descriptionPlaceholder": "Provide additional details about the issue...",
     "submit": "Submit Report",
@@ -561,9 +484,7 @@
     "cancel": "Cancel",
     "reportSegment": "Report",
     "loginRequired": "Please log in to use this feature",
-    "reportMedia": "Report media",
     "allStatuses": "All statuses",
-    "allTypes": "All types",
     "noReports": "No reports found",
     "loading": "Loading...",
     "loadMore": "Load more",
@@ -571,8 +492,14 @@
       "WRONG_TRANSLATION": "Wrong translation",
       "WRONG_TIMING": "Wrong timing",
       "WRONG_AUDIO": "Wrong audio",
+      "WRONG_JAPANESE_TEXT": "Wrong Japanese text",
+      "LOW_QUALITY_AUDIO": "Low quality audio",
       "NSFW_NOT_TAGGED": "Content not rated",
       "DUPLICATE_SEGMENT": "Duplicate segment",
+      "WRONG_TITLE": "Wrong title",
+      "DUPLICATE_MEDIA": "Duplicate media",
+      "WRONG_EPISODE_NUMBER": "Wrong episode number",
+      "IMAGE_ISSUE": "Image issue",
       "WRONG_METADATA": "Wrong metadata",
       "MISSING_EPISODES": "Missing episodes",
       "WRONG_COVER_IMAGE": "Wrong cover image",
@@ -586,7 +513,6 @@
       "RESOLVED": "Resolved"
     },
     "table": {
-      "date": "Date",
       "type": "Type",
       "target": "Target",
       "reason": "Reason",
@@ -620,41 +546,6 @@
       "logout": "You are now logged out.",
       "errorlogin400": "Please check your email/password and try again.",
       "closeSrOnly": "Close"
-    }
-  },
-  "lists": {
-    "pageTitle": "Lists",
-    "pageDescription": "Browse and manage your media lists and saved segments",
-    "seriesSection": "Series",
-    "customSection": "Custom Lists",
-    "segmentSection": "Saved Segments",
-    "createList": "Create List",
-    "noLists": "No lists found",
-    "loading": "Loading...",
-    "nameLabel": "Name",
-    "namePlaceholder": "Enter a name for your list",
-    "typeLabel": "Type",
-    "visibilityLabel": "Visibility",
-    "cancel": "Cancel",
-    "create": "Create",
-    "creating": "Creating...",
-    "createError": "Failed to create list",
-    "save": "Save",
-    "noSegmentLists": "No segment lists. Create one first.",
-    "backToLists": "Back to lists",
-    "loadError": "Failed to load list",
-    "confirmDelete": "Are you sure you want to delete this list?",
-    "mediaCount": "media",
-    "segmentCount": "segments",
-    "noSegments": "No saved segments yet",
-    "types": {
-      "SERIES": "Series",
-      "CUSTOM": "Custom",
-      "SEGMENT": "Segments"
-    },
-    "visibility": {
-      "PUBLIC": "Public",
-      "PRIVATE": "Private"
     }
   },
   "shortcuts": {

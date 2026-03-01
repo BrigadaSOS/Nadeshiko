@@ -5,7 +5,7 @@ import type {
   UpdateReportRequestOutput,
 } from 'generated/outputTypes';
 import type { Report } from '@app/models';
-import { ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models';
+import { Media, Segment, ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models';
 
 const requireReportField = <T>(report: Report, field: string, value: T | null | undefined): T => {
   if (value == null) {
@@ -14,25 +14,30 @@ const requireReportField = <T>(report: Report, field: string, value: T | null | 
   return value;
 };
 
-const toReportTargetDTO = (report: Report): t_Report['target'] => {
+type ReportPublicIds = {
+  mediaPublicId: string;
+  segmentPublicId?: string | null;
+};
+
+const toReportTargetDTO = (report: Report, ids: ReportPublicIds): t_Report['target'] => {
   switch (report.targetType) {
     case 'SEGMENT':
       return {
         type: 'SEGMENT',
-        mediaId: report.targetMediaId,
-        segmentId: requireReportField(report, 'targetSegmentId', report.targetSegmentId),
+        mediaId: ids.mediaPublicId,
+        segmentId: ids.segmentPublicId ?? null,
         ...(report.targetEpisodeNumber != null ? { episodeNumber: report.targetEpisodeNumber } : {}),
       };
     case 'EPISODE':
       return {
         type: 'EPISODE',
-        mediaId: report.targetMediaId,
+        mediaId: ids.mediaPublicId,
         episodeNumber: requireReportField(report, 'targetEpisodeNumber', report.targetEpisodeNumber),
       };
     default:
       return {
         type: 'MEDIA',
-        mediaId: report.targetMediaId,
+        mediaId: ids.mediaPublicId,
       };
   }
 };
@@ -47,11 +52,11 @@ export type AdminReportFilters = {
   auditRunId?: number;
 };
 
-export const toReportDTO = (report: Report): t_Report => {
+export const toReportDTO = (report: Report, ids: ReportPublicIds): t_Report => {
   return {
     id: report.id,
     source: report.source,
-    target: toReportTargetDTO(report),
+    target: toReportTargetDTO(report, ids),
     auditRunId: report.auditRunId ?? null,
     reason: report.reason,
     description: report.description ?? null,
@@ -64,9 +69,9 @@ export const toReportDTO = (report: Report): t_Report => {
   };
 };
 
-export const toAdminReportDTO = (report: Report, reportCount: number): t_AdminReport => {
+export const toAdminReportDTO = (report: Report, reportCount: number, ids: ReportPublicIds): t_AdminReport => {
   return {
-    ...toReportDTO(report),
+    ...toReportDTO(report, ids),
     reportCount,
     reporterName: report.user?.username ?? 'System',
   };
@@ -76,13 +81,14 @@ type ReportCreateAttributesInput = {
   body: CreateReportRequestOutput;
   userId: number;
   resolvedSegmentId: number | null;
+  resolvedMediaId: number;
 };
 
-export function toReportCreateAttributes({ body, userId, resolvedSegmentId }: ReportCreateAttributesInput): Partial<Report> {
+export function toReportCreateAttributes({ body, userId, resolvedSegmentId, resolvedMediaId }: ReportCreateAttributesInput): Partial<Report> {
   return {
     source: ReportSource.USER,
     targetType: body.target.type as ReportTargetType,
-    targetMediaId: body.target.mediaId,
+    targetMediaId: resolvedMediaId,
     targetEpisodeNumber: 'episodeNumber' in body.target ? (body.target.episodeNumber ?? null) : null,
     targetSegmentId: resolvedSegmentId,
     reason: body.reason as ReportReason,
@@ -115,6 +121,37 @@ export function toReportTargetCountKey(report: Pick<Report, 'targetType' | 'targ
   return `${report.targetType}:${report.targetMediaId}`;
 }
 
-export function toAdminReportListDTO(reports: Report[], countMap: ReadonlyMap<string, number>): t_AdminReport[] {
-  return reports.map((report) => toAdminReportDTO(report, countMap.get(toReportTargetCountKey(report)) ?? 1));
+export type ReportPublicIdMaps = { media: ReadonlyMap<number, string>; segments: ReadonlyMap<number, string> };
+
+export function toAdminReportListDTO(
+  reports: Report[],
+  countMap: ReadonlyMap<string, number>,
+  publicIdMaps: ReportPublicIdMaps,
+): t_AdminReport[] {
+  return reports.map((report) =>
+    toAdminReportDTO(
+      report,
+      countMap.get(toReportTargetCountKey(report)) ?? 1,
+      {
+        mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
+        segmentPublicId: report.targetSegmentId ? publicIdMaps.segments.get(report.targetSegmentId) ?? null : null,
+      },
+    ),
+  );
+}
+
+export async function resolveReportPublicIds(reports: Report[]): Promise<ReportPublicIdMaps> {
+  const mediaIds = [...new Set(reports.map((r) => r.targetMediaId))];
+  const segmentIds = [...new Set(reports.map((r) => r.targetSegmentId).filter((id): id is number => id != null))];
+
+  const { In } = await import('typeorm');
+  const [mediaEntries, segmentEntries] = await Promise.all([
+    mediaIds.length > 0 ? Media.find({ where: { id: In(mediaIds) }, select: ['id', 'publicId'] }) : [],
+    segmentIds.length > 0 ? Segment.find({ where: { id: In(segmentIds) }, select: ['id', 'publicId'] }) : [],
+  ]);
+
+  return {
+    media: new Map(mediaEntries.map((m) => [m.id, m.publicId])),
+    segments: new Map(segmentEntries.map((s) => [s.id, s.publicId])),
+  };
 }

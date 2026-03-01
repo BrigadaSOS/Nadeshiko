@@ -1,0 +1,92 @@
+get:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: getAnnouncement
+  summary: Get the current announcement
+  description: |
+    Returns the current announcement if one is active. Public endpoint (no auth required).
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+              - type
+              - active
+            properties:
+              message:
+                type: string
+              type:
+                type: string
+                enum: [info, warning, maintenance]
+              active:
+                type: boolean
+    "204":
+      description: No announcement set
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+put:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: updateAnnouncement
+  summary: Create or update the announcement
+  description: |
+    Upserts the site-wide announcement. Only one announcement exists at a time.
+  security:
+    - SessionCookie: [ADMIN]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - message
+            - type
+            - active
+          properties:
+            message:
+              type: string
+              maxLength: 500
+            type:
+              type: string
+              enum: [info, warning, maintenance]
+            active:
+              type: boolean
+  responses:
+    "200":
+      description: Announcement updated
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+              - type
+              - active
+            properties:
+              message:
+                type: string
+              type:
+                type: string
+                enum: [info, warning, maintenance]
+              active:
+                type: boolean
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

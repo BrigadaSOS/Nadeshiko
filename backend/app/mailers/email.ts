@@ -17,39 +17,8 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   }
 
   const environment = getAppEnvironment(config.ENVIRONMENT);
-  // In automated test runs, keep transport fully local and deterministic.
+
   if (environment === APP_ENVIRONMENT.LOCAL) {
-    transporter = nodemailer.createTransport({
-      jsonTransport: true,
-    });
-    return transporter;
-  }
-
-  // In local/dev, prefer SES when configured, otherwise use Ethereal previews.
-  if (environment === APP_ENVIRONMENT.LOCAL || environment === APP_ENVIRONMENT.DEV) {
-    const region = config.SES_AWS_REGION;
-    const accessKeyId = config.SES_AWS_ACCESS_KEY_ID;
-    const secretAccessKey = config.SES_AWS_SECRET_ACCESS_KEY;
-
-    // If SES is configured, use it.
-    if (region && accessKeyId && secretAccessKey) {
-      const ses = new SES({
-        region,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-      });
-
-      transporter = nodemailer.createTransport({
-        SES: { ses, aws: { Ses: SES } },
-      } as any);
-
-      logger.info({ environment }, 'Email transport configured with Amazon SES');
-      return transporter;
-    }
-
-    // Otherwise, use Ethereal for email previews.
     const testAccount = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
       host: testAccount.smtp.host,
@@ -61,18 +30,17 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
       },
     });
 
-    logger.info({ environment }, 'Email transport configured with Ethereal. Preview URLs will be logged.');
+    logger.info('Email transport configured with Ethereal. Preview URLs will be logged.');
     return transporter;
   }
 
-  // Production - require SES configuration
   const region = config.SES_AWS_REGION;
   const accessKeyId = config.SES_AWS_ACCESS_KEY_ID;
   const secretAccessKey = config.SES_AWS_SECRET_ACCESS_KEY;
 
   if (!region || !accessKeyId || !secretAccessKey) {
     throw new Error(
-      'SES configuration is required in prod. Set SES_AWS_REGION, SES_AWS_ACCESS_KEY_ID, and SES_AWS_SECRET_ACCESS_KEY.',
+      'SES configuration is required in dev/prod. Set SES_AWS_REGION, SES_AWS_ACCESS_KEY_ID, and SES_AWS_SECRET_ACCESS_KEY.',
     );
   }
 
@@ -88,7 +56,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
     SES: { ses, aws: { Ses: SES } },
   } as any);
 
-  logger.info('Email transport configured with Amazon SES (prod)');
+  logger.info({ environment }, 'Email transport configured with Amazon SES');
   return transporter;
 }
 
@@ -105,21 +73,8 @@ export interface EmailOptions {
  * Sends an email directly (synchronous, for use by workers).
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const environment = getAppEnvironment(config.ENVIRONMENT);
   const fromEmail = config.SES_FROM_EMAIL;
   const fromName = config.SES_FROM_NAME;
-
-  if (environment === APP_ENVIRONMENT.LOCAL) {
-    logger.info(
-      {
-        environment,
-        to: options.to,
-        subject: options.subject,
-      },
-      'Email sent (test mode - logged only)',
-    );
-    return;
-  }
 
   try {
     const transport = await getTransporter();
@@ -131,27 +86,24 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       html: options.html,
     });
 
-    // Log preview URL when Ethereal transport is used.
-    if (nodemailer.getTestMessageUrl) {
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      if (previewUrl) {
-        logger.info(
-          {
-            to: options.to,
-            subject: options.subject,
-            previewUrl: previewUrl.toString(),
-          },
-          'Email sent (preview URL available)',
-        );
-        return;
-      }
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      logger.info(
+        {
+          to: options.to,
+          subject: options.subject,
+          previewUrl: previewUrl.toString(),
+        },
+        'Email sent (preview URL available)',
+      );
+      return;
     }
 
     logger.info(`Email sent to ${options.to}: ${options.subject}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`Failed to send email to ${options.to}: ${errorMessage}`);
-    throw error; // Re-throw for pg-boss retry
+    throw error;
   }
 }
 
@@ -203,4 +155,42 @@ export async function sendAnnouncementEmail(
     },
     `announcement-${userId}-${subject.replace(/\s+/g, '-').toLowerCase()}`, // Dedupe key per user and announcement
   );
+}
+
+export type TestEmailTemplate = 'welcome' | 'announcement';
+
+/**
+ * Sends a test email synchronously (bypassing the queue) and returns the Ethereal preview URL.
+ * Intended for local development only.
+ */
+export async function sendTestEmail(
+  template: TestEmailTemplate,
+  to: string,
+): Promise<{ previewUrl: string | null }> {
+  const username = 'TestUser';
+
+  const { subject, html } =
+    template === 'welcome'
+      ? await buildWelcomeEmail(username)
+      : await buildAnnouncementEmail(username, 'Test Announcement', 'This is a test announcement email.');
+
+  const fromEmail = config.SES_FROM_EMAIL;
+  const fromName = config.SES_FROM_NAME;
+  const transport = await getTransporter();
+
+  const info = await transport.sendMail({
+    from: `${fromName} <${fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
+
+  const previewUrl = nodemailer.getTestMessageUrl(info);
+  if (previewUrl) {
+    logger.info({ to, subject, previewUrl: previewUrl.toString() }, 'Test email sent (preview URL available)');
+  } else {
+    logger.info({ to, subject }, 'Test email sent via SES');
+  }
+
+  return { previewUrl: previewUrl ? previewUrl.toString() : null };
 }

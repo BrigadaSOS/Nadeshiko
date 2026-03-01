@@ -20,6 +20,7 @@ import type { WordMatch } from '@brigadasos/nadeshiko-sdk';
 
 const EMPTY_MEDIA: Media = {
   id: 0,
+  publicId: '',
   externalIds: {},
   nameJa: '',
   nameRomaji: '',
@@ -40,7 +41,7 @@ const EMPTY_MEDIA: Media = {
 
 function resolveSearchResult(segment: Segment, mediaMap: Record<string, Media>): SearchResult {
   return {
-    media: mediaMap[String(segment.mediaId)] ?? { ...EMPTY_MEDIA, id: segment.mediaId },
+    media: mediaMap[segment.mediaPublicId] ?? { ...EMPTY_MEDIA, id: segment.mediaId, publicId: segment.mediaPublicId },
     segment,
     blobAudio: null,
     blobAudioUrl: null,
@@ -67,7 +68,7 @@ export function resolveStatsResponse(raw: SdkSearchStatsResponse): SearchStatsRe
 
   const media: ResolvedMediaStats[] =
     raw.media?.map((stat) => {
-      const included = mediaMap[String(stat.mediaId)];
+      const included = mediaMap[stat.publicId];
       return {
         ...stat,
         nameRomaji: included?.nameRomaji ?? '',

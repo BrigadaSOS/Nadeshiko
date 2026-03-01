@@ -21,6 +21,7 @@ export const toUserExportDTO = (
   activity: UserActivity[],
   collections: Collection[],
   reports: Report[],
+  publicIdMaps: { media: ReadonlyMap<number, string>; segments: ReadonlyMap<number, string> },
 ): t_UserExportResponse => ({
   profile: {
     id: user.id,
@@ -31,5 +32,10 @@ export const toUserExportDTO = (
   preferences: user.preferences || {},
   activity: activity.map(toUserActivityDTO),
   collections: collections.map(toExportCollectionDTO),
-  reports: reports.map(toReportDTO),
+  reports: reports.map((report) =>
+    toReportDTO(report, {
+      mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
+      segmentPublicId: report.targetSegmentId ? publicIdMaps.segments.get(report.targetSegmentId) ?? null : null,
+    }),
+  ),
 });

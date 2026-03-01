@@ -1,7 +1,8 @@
-import { Entity, PrimaryColumn, Column, OneToMany, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToMany, ManyToOne, JoinColumn, Index, BeforeInsert } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { User } from './User';
 import type { CollectionSegment } from './CollectionSegment';
+import { nanoid } from 'nanoid';
 
 export enum CollectionType {
   USER = 'USER',
@@ -17,6 +18,14 @@ export enum CollectionVisibility {
 export class Collection extends BaseEntity {
   @PrimaryColumn({ type: 'int', generated: 'increment' })
   id!: number;
+
+  @Column({ name: 'public_id', type: 'varchar', unique: true })
+  publicId!: string;
+
+  @BeforeInsert()
+  generatePublicId() {
+    this.publicId = nanoid(12);
+  }
 
   @Column({ type: 'varchar' })
   name!: string;

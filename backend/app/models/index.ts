@@ -38,4 +38,6 @@ export { MediaAuditRun } from './mediaAudit/MediaAuditRun';
 // Activity tracking
 export { UserActivity, ActivityType } from './UserActivity';
 
-// Miscellaneous
+// Announcements
+export { Announcement } from './Announcement';
+export type { AnnouncementType } from './Announcement';

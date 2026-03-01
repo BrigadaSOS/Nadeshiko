@@ -737,10 +737,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
         - name: include
           in: query
           description: Resources to expand in the series response
@@ -786,10 +786,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -846,10 +846,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '204':
           description: No Content
@@ -884,10 +884,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -899,9 +899,9 @@ paths:
                 - position
               properties:
                 mediaId:
-                  type: integer
-                  description: Media ID to add
-                  example: 42
+                  type: string
+                  description: Media public ID to add
+                  example: abc123def456
                 position:
                   type: integer
                   description: Position in the series (1-indexed)
@@ -940,17 +940,17 @@ paths:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
         - name: mediaId
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 42
+            type: string
+            example: abc123def456
       requestBody:
         required: true
         content:
@@ -997,17 +997,17 @@ paths:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
         - name: mediaId
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 42
+            type: string
+            example: abc123def456
       responses:
         '204':
           description: No Content
@@ -1041,7 +1041,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: Internal character ID
+          description: Character ID
           schema:
             type: integer
             example: 1
@@ -1123,10 +1123,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 7674
+            type: string
+            example: V1StGXR8_Z5d
         - name: include
           in: query
           description: Resources to expand in the media response
@@ -1173,10 +1173,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 7674
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -1220,10 +1220,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 7674
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '204':
           description: No Content
@@ -1258,9 +1258,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: take
           in: query
           required: false
@@ -1312,9 +1312,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -1357,9 +1357,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1401,9 +1401,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1451,9 +1451,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1496,9 +1496,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1557,9 +1557,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1611,9 +1611,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1661,9 +1661,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1712,9 +1712,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1769,9 +1769,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -2433,10 +2433,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: cursor
           in: query
           description: Opaque pagination cursor token for paginated segments
@@ -2485,10 +2485,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -2538,10 +2538,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '204':
           description: No Content
@@ -2572,10 +2572,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -2623,10 +2623,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: segmentId
           in: path
           required: true
@@ -2679,10 +2679,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: segmentId
           in: path
           required: true
@@ -2721,10 +2721,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: cursor
           in: query
           description: Opaque cursor token for pagination
@@ -2775,10 +2775,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '200':
           description: OK
@@ -3975,6 +3975,108 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/announcement:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAnnouncement
+      summary: Get the current announcement
+      description: |
+        Returns the current announcement if one is active. Public endpoint (no auth required).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - type
+                  - active
+                properties:
+                  message:
+                    type: string
+                  type:
+                    type: string
+                    enum:
+                      - info
+                      - warning
+                      - maintenance
+                  active:
+                    type: boolean
+        '204':
+          description: No announcement set
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: updateAnnouncement
+      summary: Create or update the announcement
+      description: |
+        Upserts the site-wide announcement. Only one announcement exists at a time.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+                - type
+                - active
+              properties:
+                message:
+                  type: string
+                  maxLength: 500
+                type:
+                  type: string
+                  enum:
+                    - info
+                    - warning
+                    - maintenance
+                active:
+                  type: boolean
+      responses:
+        '200':
+          description: Announcement updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - type
+                  - active
+                properties:
+                  message:
+                    type: string
+                  type:
+                    type: string
+                    enum:
+                      - info
+                      - warning
+                      - maintenance
+                  active:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedSession'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     ApiKey:
@@ -4179,6 +4281,7 @@ components:
         - contentRating
         - episode
         - mediaId
+        - mediaPublicId
         - textJa
         - textEn
         - textEs
@@ -4229,6 +4332,10 @@ components:
           type: integer
           description: Media ID this segment belongs to
           example: 7674
+        mediaPublicId:
+          type: string
+          description: Public ID of the media this segment belongs to
+          example: V1StGXR8_Z5d
         textJa:
           type: object
           required:
@@ -4545,7 +4652,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by media publicId
         pagination:
           $ref: '#/components/schemas/PaginationInfo'
     Error400:
@@ -4830,7 +4937,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by media publicId
     SearchMultipleRequest:
       type: object
       properties:
@@ -5422,6 +5529,7 @@ components:
       description: Ordered media series grouping
       required:
         - id
+        - publicId
         - nameJa
         - nameRomaji
         - nameEn
@@ -5430,6 +5538,10 @@ components:
           type: integer
           description: Series ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the series
+          example: V1StGXR8_Z5d
         nameJa:
           type: string
           description: Japanese name of the series
@@ -5995,9 +6107,9 @@ components:
           description: Report target type
           example: MEDIA
         mediaId:
-          type: integer
-          description: Media ID this report targets
-          example: 42
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
     ReportTargetSegmentInput:
       type: object
       required:
@@ -6012,9 +6124,9 @@ components:
           description: Report target type
           example: SEGMENT
         mediaId:
-          type: integer
-          description: Media ID this report targets
-          example: 42
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
         episodeNumber:
           type: integer
           description: Episode number containing the segment
@@ -6046,11 +6158,15 @@ components:
             - WRONG_TRANSLATION
             - WRONG_TIMING
             - WRONG_AUDIO
+            - WRONG_JAPANESE_TEXT
+            - LOW_QUALITY_AUDIO
             - NSFW_NOT_TAGGED
             - DUPLICATE_SEGMENT
-            - WRONG_METADATA
+            - WRONG_TITLE
+            - DUPLICATE_MEDIA
+            - WRONG_EPISODE_NUMBER
+            - IMAGE_ISSUE
             - MISSING_EPISODES
-            - WRONG_COVER_IMAGE
             - INAPPROPRIATE_CONTENT
             - OTHER
           description: Reason for the report
@@ -6074,9 +6190,9 @@ components:
           description: Report target type
           example: EPISODE
         mediaId:
-          type: integer
-          description: Media ID this report targets
-          example: 42
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
         episodeNumber:
           type: integer
           description: Episode number this report targets
@@ -6095,18 +6211,18 @@ components:
           description: Report target type
           example: SEGMENT
         mediaId:
-          type: integer
-          description: Media ID this report targets
-          example: 42
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
         episodeNumber:
           type: integer
           description: Episode number containing the segment
           example: 5
         segmentId:
-          type: integer
+          type: string
           nullable: true
-          description: Segment ID
-          example: 42
+          description: Segment public ID or UUID
+          example: abc123xyz
     ReportTarget:
       oneOf:
         - $ref: '#/components/schemas/ReportTargetMedia'
@@ -6157,11 +6273,17 @@ components:
             - WRONG_TRANSLATION
             - WRONG_TIMING
             - WRONG_AUDIO
+            - WRONG_JAPANESE_TEXT
+            - LOW_QUALITY_AUDIO
             - NSFW_NOT_TAGGED
             - DUPLICATE_SEGMENT
             - WRONG_METADATA
             - MISSING_EPISODES
             - WRONG_COVER_IMAGE
+            - WRONG_TITLE
+            - DUPLICATE_MEDIA
+            - WRONG_EPISODE_NUMBER
+            - IMAGE_ISSUE
             - INAPPROPRIATE_CONTENT
             - OTHER
             - LOW_SEGMENT_MEDIA
@@ -6360,6 +6482,7 @@ components:
       description: User segment collection
       required:
         - id
+        - publicId
         - name
         - type
         - visibility
@@ -6371,6 +6494,10 @@ components:
           type: integer
           description: Collection ID
           example: 123
+        publicId:
+          type: string
+          description: Public identifier for the collection
+          example: V1StGXR8_Z5d
         name:
           type: string
           description: Name of the collection

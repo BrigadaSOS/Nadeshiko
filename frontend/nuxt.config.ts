@@ -37,6 +37,7 @@ export default defineNuxtConfig({
     public: {
       appVersion: frontendPackageJson.version,
       environment: process.env.NUXT_PUBLIC_ENVIRONMENT || 'prod',
+      sentryDsn: process.env.SENTRY_FRONTEND_DSN || '',
     },
   },
   pages: true,
@@ -50,6 +51,7 @@ export default defineNuxtConfig({
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
     'nuxt-umami',
+    '@sentry/nuxt/module',
   ],
   umami: {
     id: '98441c04-c8f9-4882-93c8-0215535b02f1',
@@ -198,6 +200,13 @@ export default defineNuxtConfig({
         'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
+    },
+  },
+  sentry: {
+    sourceMapsUploadOptions: {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     },
   },
   nitro: {

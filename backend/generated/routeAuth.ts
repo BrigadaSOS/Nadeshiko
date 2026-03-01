@@ -84,4 +84,5 @@ export const routeAuth: RouteAuth[] = [
   { method: 'post', path: '/v1/admin/media/audits/:name/run', middleware: requireSession(enforceAdminAccess) },
   { method: 'get', path: '/v1/admin/media/audits/runs', middleware: requireSession(enforceAdminAccess) },
   { method: 'get', path: '/v1/admin/media/audits/runs/:id', middleware: requireSession(enforceAdminAccess) },
+  { method: 'put', path: '/v1/admin/announcement', middleware: requireSession(enforceAdminAccess) },
 ];

@@ -4,6 +4,7 @@ import { User } from '@app/models/User';
 import { UserActivity } from '@app/models/UserActivity';
 import { Collection, CollectionSegment, Report } from '@app/models';
 import { toUserExportDTO } from './mappers/userExport.mapper';
+import { resolveReportPublicIds } from './mappers/report.mapper';
 
 const EXPORT_BATCH_SIZE = 1000;
 
@@ -17,7 +18,8 @@ export const exportUserData: ExportUserData = async (_params, respond, req) => {
     loadUserReportsForExport(user.id),
   ]);
 
-  return respond.with200().body(toUserExportDTO(fullUser, activity, collections, reports));
+  const publicIdMaps = await resolveReportPublicIds(reports);
+  return respond.with200().body(toUserExportDTO(fullUser, activity, collections, reports, publicIdMaps));
 };
 
 async function loadUserActivityForExport(userId: number): Promise<UserActivity[]> {

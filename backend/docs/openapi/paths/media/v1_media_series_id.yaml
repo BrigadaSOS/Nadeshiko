@@ -15,10 +15,10 @@ get:
     - name: id
       in: path
       required: true
-      description: Series ID
+      description: Series public ID
       schema:
-        type: integer
-        example: 1
+        type: string
+        example: "V1StGXR8_Z5d"
     - name: include
       in: query
       description: Resources to expand in the series response
@@ -65,10 +65,10 @@ patch:
     - name: id
       in: path
       required: true
-      description: Series ID
+      description: Series public ID
       schema:
-        type: integer
-        example: 1
+        type: string
+        example: "V1StGXR8_Z5d"
   requestBody:
     required: true
     content:
@@ -126,10 +126,10 @@ delete:
     - name: id
       in: path
       required: true
-      description: Series ID
+      description: Series public ID
       schema:
-        type: integer
-        example: 1
+        type: string
+        example: "V1StGXR8_Z5d"
   responses:
     "204":
       description: No Content

@@ -70,8 +70,8 @@ export class SegmentResponse {
           return null;
         }
 
-        if (!(String(mediaId) in mediaMap)) {
-          mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
+        if (!(mediaInfo.publicId in mediaMap)) {
+          mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaId, mediaInfo);
         }
 
         const storageBasePath = mediaInfo.storageBasePath;
@@ -104,6 +104,7 @@ export class SegmentResponse {
           endTimeMs: data.endTimeMs,
           episode: data.episode,
           mediaId,
+          mediaPublicId: mediaInfo.publicId,
           textJa: {
             content: data.textJa,
             ...(textJaHighlight ? { highlight: textJaHighlight } : {}),
@@ -199,8 +200,8 @@ export class SegmentResponse {
             const mediaInfo = mediaInfoResponse.results.get(mediaId);
             if (!mediaInfo) return null;
 
-            if (!(String(mediaId) in mediaMap)) {
-              mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
+            if (!(mediaInfo.publicId in mediaMap)) {
+              mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaId, mediaInfo);
             }
 
             return { mediaId, matchCount: Number(bucket.doc_count ?? 0) };
@@ -247,8 +248,8 @@ export class SegmentResponse {
           return acc;
         }, {});
 
-        if (!(String(mediaId) in mediaMap)) {
-          mediaMap[String(mediaId)] = SegmentResponse.buildMedia(mediaId, mediaInfo);
+        if (!(mediaInfo.publicId in mediaMap)) {
+          mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaId, mediaInfo);
         }
 
         return {

@@ -17,6 +17,6 @@ properties:
         type: object
         additionalProperties:
           $ref: "../schemas/Media.yaml"
-        description: Media objects keyed by mediaId
+        description: Media objects keyed by media publicId
   pagination:
     $ref: "../schemas/PaginationInfo.yaml"

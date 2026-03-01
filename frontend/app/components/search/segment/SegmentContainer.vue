@@ -9,7 +9,7 @@ type Props = {
   searchData: SearchResponse | null;
   isLoading: boolean;
   highlightedPosition?: number | null;
-  collectionId?: number | null;
+  collectionId?: string | null;
   hideContextButton?: boolean;
 };
 
@@ -131,12 +131,12 @@ const reportTarget = ref<{
   target:
     | {
         type: 'SEGMENT';
-        mediaId: number;
+        mediaId: string;
         segmentId: string;
       }
     | {
         type: 'MEDIA';
-        mediaId: number;
+        mediaId: string;
       };
   segment: SearchResult;
   mediaName?: string;
@@ -188,8 +188,8 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
   reportTarget.value = {
     target:
       type === 'SEGMENT'
-        ? { type: 'SEGMENT', mediaId: result.media.id, segmentId: result.segment.publicId }
-        : { type: 'MEDIA', mediaId: result.media.id },
+        ? { type: 'SEGMENT', mediaId: result.media.publicId, segmentId: result.segment.publicId }
+        : { type: 'MEDIA', mediaId: result.media.publicId },
     segment: result,
     mediaName: mediaName(result.media),
   };
@@ -209,7 +209,7 @@ const { revertActiveConcatenation, loadNextSegment } = useSegmentConcatenation()
 const router = useRouter();
 const route = useRoute();
 
-const filterByMedia = (mediaId: number, episodeNumber?: number) => {
+const filterByMedia = (mediaId: string, episodeNumber?: number) => {
   const query: Record<string, string | number | string[] | number[] | undefined> = { ...route.query, media: mediaId };
 
   // Clear episode when selecting only media
@@ -394,20 +394,20 @@ const filterByMedia = (mediaId: number, episodeNumber?: number) => {
             <div class="justify-left">
               <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
                 <button
-                  @click="filterByMedia(result.media.id)"
+                  @click="filterByMedia(result.media.publicId)"
                   class="hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ mediaName(result.media) }}
                 </button>
                 &bull;
                 <button
                   v-if="result.media.airingFormat === 'MOVIE'"
-                  @click="filterByMedia(result.media.id)"
+                  @click="filterByMedia(result.media.publicId)"
                   class="hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ $t('searchpage.main.labels.movie') }}
                 </button>
                 <button
                   v-else
-                  @click="filterByMedia(result.media.id, result.segment.episode)"
+                  @click="filterByMedia(result.media.publicId, result.segment.episode)"
                   class="hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
                 </button>

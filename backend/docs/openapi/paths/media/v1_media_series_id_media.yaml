@@ -16,10 +16,10 @@ post:
     - name: id
       in: path
       required: true
-      description: Series ID
+      description: Series public ID
       schema:
-        type: integer
-        example: 1
+        type: string
+        example: "V1StGXR8_Z5d"
   requestBody:
     required: true
     content:
@@ -31,9 +31,9 @@ post:
             - position
           properties:
             mediaId:
-              type: integer
-              description: Media ID to add
-              example: 42
+              type: string
+              description: Media public ID to add
+              example: "abc123def456"
             position:
               type: integer
               description: Position in the series (1-indexed)

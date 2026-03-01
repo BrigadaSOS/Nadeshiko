@@ -1,6 +1,8 @@
 // Client-side error handler plugin
 // Logs Vue errors to console with structured formatting for pino-pretty
 
+import * as Sentry from '@sentry/nuxt';
+
 export default defineNuxtPlugin((nuxtApp) => {
   const getErrorMessage = (value: unknown): string => {
     if (value instanceof Error) {
@@ -41,6 +43,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     };
 
     console.error('[Vue Error]', JSON.stringify(errorLog, null, 2));
+    if (err instanceof Error) Sentry.captureException(err);
   };
 
   // Handle unhandled promise rejections
@@ -53,6 +56,7 @@ export default defineNuxtPlugin((nuxtApp) => {
         timestamp: new Date().toISOString(),
       };
       console.error('[Unhandled Rejection]', JSON.stringify(errorLog, null, 2));
+      if (event.reason instanceof Error) Sentry.captureException(event.reason);
     });
 
     // Handle global errors
@@ -67,6 +71,7 @@ export default defineNuxtPlugin((nuxtApp) => {
         timestamp: new Date().toISOString(),
       };
       console.error('[Global Error]', JSON.stringify(errorLog, null, 2));
+      if (event.error instanceof Error) Sentry.captureException(event.error);
     });
   }
 });

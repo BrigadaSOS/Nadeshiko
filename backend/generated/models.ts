@@ -56,6 +56,7 @@ export type t_Collection = {
   createdAt: string;
   id: number;
   name: string;
+  publicId: string;
   segmentCount: number;
   type: 'USER' | 'ANKI_EXPORT';
   updatedAt: string | null;
@@ -356,11 +357,17 @@ export type t_Report = {
     | 'WRONG_TRANSLATION'
     | 'WRONG_TIMING'
     | 'WRONG_AUDIO'
+    | 'WRONG_JAPANESE_TEXT'
+    | 'LOW_QUALITY_AUDIO'
     | 'NSFW_NOT_TAGGED'
     | 'DUPLICATE_SEGMENT'
     | 'WRONG_METADATA'
     | 'MISSING_EPISODES'
     | 'WRONG_COVER_IMAGE'
+    | 'WRONG_TITLE'
+    | 'DUPLICATE_MEDIA'
+    | 'WRONG_EPISODE_NUMBER'
+    | 'IMAGE_ISSUE'
     | 'INAPPROPRIATE_CONTENT'
     | 'OTHER'
     | 'LOW_SEGMENT_MEDIA'
@@ -382,25 +389,25 @@ export type t_ReportTarget = t_ReportTargetMedia | t_ReportTargetEpisode | t_Rep
 
 export type t_ReportTargetEpisode = {
   episodeNumber: number;
-  mediaId: number;
+  mediaId: string;
   type: 'EPISODE';
 };
 
 export type t_ReportTargetMedia = {
-  mediaId: number;
+  mediaId: string;
   type: 'MEDIA';
 };
 
 export type t_ReportTargetSegment = {
   episodeNumber?: number;
-  mediaId: number;
-  segmentId: number | null;
+  mediaId: string;
+  segmentId: string | null;
   type: 'SEGMENT';
 };
 
 export type t_ReportTargetSegmentInput = {
   episodeNumber?: number;
-  mediaId: number;
+  mediaId: string;
   segmentId: string;
   type: 'SEGMENT';
 };
@@ -472,6 +479,7 @@ export type t_Segment = {
   episode: number;
   id: number;
   mediaId: number;
+  mediaPublicId: string;
   position: number;
   publicId: string;
   startTimeMs: number;
@@ -582,6 +590,7 @@ export type t_Series = {
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
+  publicId: string;
 };
 
 export type t_SeriesListResponse = {
@@ -690,16 +699,16 @@ export type t_WordMatchMedia = {
 };
 
 export type t_AddMediaToSeriesParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_AddMediaToSeriesRequestBodySchema = {
-  mediaId: number;
+  mediaId: string;
   position: number;
 };
 
 export type t_AddSegmentToCollectionParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_AddSegmentToCollectionRequestBodySchema = {
@@ -719,7 +728,7 @@ export type t_CreateCollectionRequestBodySchema = {
 };
 
 export type t_CreateEpisodeParamSchema = {
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_CreateEpisodeRequestBodySchema = {
@@ -756,7 +765,7 @@ export type t_CreateMediaRequestBodySchema = {
 
 export type t_CreateSegmentParamSchema = {
   episodeNumber: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_CreateSegmentRequestBodySchema = {
@@ -788,7 +797,7 @@ export type t_CreateSegmentRequestBodySchema = {
 
 export type t_CreateSegmentsBatchParamSchema = {
   episodeNumber: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_CreateSegmentsBatchRequestBodySchema = {
@@ -807,37 +816,41 @@ export type t_CreateUserReportRequestBodySchema = {
     | 'WRONG_TRANSLATION'
     | 'WRONG_TIMING'
     | 'WRONG_AUDIO'
+    | 'WRONG_JAPANESE_TEXT'
+    | 'LOW_QUALITY_AUDIO'
     | 'NSFW_NOT_TAGGED'
     | 'DUPLICATE_SEGMENT'
-    | 'WRONG_METADATA'
+    | 'WRONG_TITLE'
+    | 'DUPLICATE_MEDIA'
+    | 'WRONG_EPISODE_NUMBER'
+    | 'IMAGE_ISSUE'
     | 'MISSING_EPISODES'
-    | 'WRONG_COVER_IMAGE'
     | 'INAPPROPRIATE_CONTENT'
     | 'OTHER';
   target: t_UserReportTarget;
 };
 
 export type t_DeleteCollectionParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_DeleteEpisodeParamSchema = {
   episodeNumber: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_DeleteMediaParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_DeleteSegmentParamSchema = {
   episodeNumber: number;
   id: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_DeleteSeriesParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_DeleteUserActivityQuerySchema = {
@@ -869,7 +882,7 @@ export type t_GetCharacterParamSchema = {
 };
 
 export type t_GetCollectionParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_GetCollectionQuerySchema = {
@@ -878,16 +891,16 @@ export type t_GetCollectionQuerySchema = {
 };
 
 export type t_GetCollectionStatsParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_GetEpisodeParamSchema = {
   episodeNumber: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_GetMediaParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_GetMediaQuerySchema = {
@@ -906,7 +919,7 @@ export type t_GetSearchStatsRequestBodySchema = {
 export type t_GetSegmentParamSchema = {
   episodeNumber: number;
   id: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_GetSegmentByUuidParamSchema = {
@@ -931,7 +944,7 @@ export type t_GetSeiyuuParamSchema = {
 };
 
 export type t_GetSeriesParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_GetSeriesQuerySchema = {
@@ -979,7 +992,7 @@ export type t_ListCollectionsQuerySchema = {
 };
 
 export type t_ListEpisodesParamSchema = {
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_ListEpisodesQuerySchema = {
@@ -1001,7 +1014,7 @@ export type t_ListSegmentRevisionsParamSchema = {
 
 export type t_ListSegmentsParamSchema = {
   episodeNumber: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_ListSegmentsQuerySchema = {
@@ -1027,12 +1040,12 @@ export type t_PurgeAdminQueueFailedParamSchema = {
 };
 
 export type t_RemoveMediaFromSeriesParamSchema = {
-  id: number;
-  mediaId: number;
+  id: string;
+  mediaId: string;
 };
 
 export type t_RemoveSegmentFromCollectionParamSchema = {
-  id: number;
+  id: string;
   segmentId: number;
 };
 
@@ -1064,7 +1077,7 @@ export type t_SearchRequestBodySchema = {
 };
 
 export type t_SearchCollectionSegmentsParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_SearchCollectionSegmentsQuerySchema = {
@@ -1120,8 +1133,14 @@ export type t_UpdateAdminReportRequestBodySchema = {
   status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
 };
 
+export type t_UpdateAnnouncementRequestBodySchema = {
+  active: boolean;
+  message: string;
+  type: 'info' | 'warning' | 'maintenance';
+};
+
 export type t_UpdateCollectionParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_UpdateCollectionRequestBodySchema = {
@@ -1130,7 +1149,7 @@ export type t_UpdateCollectionRequestBodySchema = {
 };
 
 export type t_UpdateCollectionSegmentParamSchema = {
-  id: number;
+  id: string;
   segmentId: number;
 };
 
@@ -1141,7 +1160,7 @@ export type t_UpdateCollectionSegmentRequestBodySchema = {
 
 export type t_UpdateEpisodeParamSchema = {
   episodeNumber: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_UpdateEpisodeRequestBodySchema = {
@@ -1155,7 +1174,7 @@ export type t_UpdateEpisodeRequestBodySchema = {
 };
 
 export type t_UpdateMediaParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_UpdateMediaRequestBodySchema = {
@@ -1183,7 +1202,7 @@ export type t_UpdateMediaRequestBodySchema = {
 export type t_UpdateSegmentParamSchema = {
   episodeNumber: number;
   id: number;
-  mediaId: number;
+  mediaId: string;
 };
 
 export type t_UpdateSegmentRequestBodySchema = {
@@ -1245,7 +1264,7 @@ export type t_UpdateSegmentByUuidRequestBodySchema = {
 };
 
 export type t_UpdateSeriesParamSchema = {
-  id: number;
+  id: string;
 };
 
 export type t_UpdateSeriesRequestBodySchema = {
@@ -1255,8 +1274,8 @@ export type t_UpdateSeriesRequestBodySchema = {
 };
 
 export type t_UpdateSeriesMediaParamSchema = {
-  id: number;
-  mediaId: number;
+  id: string;
+  mediaId: string;
 };
 
 export type t_UpdateSeriesMediaRequestBodySchema = {
