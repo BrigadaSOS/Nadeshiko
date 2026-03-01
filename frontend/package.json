@@ -14,7 +14,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "^1.5.0-dev.be49703",
+    "@brigadasos/nadeshiko-sdk": "^1.5.0-dev.f8e069f",
     "@mdi/js": "^7.4.47",
     "@nuxt/content": "^3.11.0",
     "@nuxtjs/i18n": "^10.2.1",
@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
+    "@nuxtjs/critters": "^0.9.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@types/chrome": "^0.1.35",
     "@vueuse/core": "^14.1.0",

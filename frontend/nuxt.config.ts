@@ -52,6 +52,7 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     'nuxt-umami',
     '@sentry/nuxt/module',
+    '@nuxtjs/critters',
   ],
   umami: {
     id: '98441c04-c8f9-4882-93c8-0215535b02f1',
@@ -212,6 +213,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'bun',
     rollupConfig: {
+      external: [/@opentelemetry\/.*/],
       onwarn(warning, defaultHandler) {
         if (warning.code === 'THIS_IS_UNDEFINED' || warning.code === 'CIRCULAR_DEPENDENCY') return;
         defaultHandler(warning);
