@@ -15,7 +15,7 @@ get:
     - name: id
       in: path
       required: true
-      description: Internal character ID
+      description: Character ID
       schema:
         type: integer
         example: 1

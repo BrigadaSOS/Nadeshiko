@@ -10,9 +10,9 @@ properties:
     description: Report target type
     example: "SEGMENT"
   mediaId:
-    type: integer
-    description: Media ID this report targets
-    example: 42
+    type: string
+    description: Public ID of the media this report targets
+    example: "V1StGXR8_Z5d"
   episodeNumber:
     type: integer
     description: Episode number containing the segment

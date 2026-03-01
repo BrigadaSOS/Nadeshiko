@@ -13,10 +13,10 @@ const fetchSentenceData = async () => {
     const sdk = useNadeshikoSdk();
     const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid: id.value } });
     if (!segment) return null;
-    const { data: media } = await sdk.getMedia({ path: { id: segment.mediaId } });
+    const { data: media } = await sdk.getMedia({ path: { id: segment.mediaPublicId } });
     return resolveSearchResponse({
       segments: [segment],
-      includes: { media: media ? { [String(segment.mediaId)]: media } : {} },
+      includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
       pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
     });
   } catch {
@@ -36,6 +36,7 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
   return {
     media: [{
       mediaId: result.media.id,
+      publicId: result.media.publicId,
       matchCount: 1,
       episodeHits: {},
       nameRomaji: result.media.nameRomaji,

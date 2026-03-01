@@ -75,7 +75,7 @@ export const createCollection: CreateCollection = async ({ body }, respond, req)
 
 export const getCollection: GetCollection = async ({ params, query }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionReadable(collection, user);
 
   const {
@@ -129,35 +129,35 @@ export const getCollection: GetCollection = async ({ params, query }, respond, r
 
 export const updateCollection: UpdateCollection = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionOwnership(collection, user);
 
   const patch: Partial<Pick<Collection, 'name' | 'visibility'>> = {};
   if (body.name !== undefined) patch.name = body.name;
   if (body.visibility !== undefined) patch.visibility = toCollectionVisibility(body.visibility);
 
-  const updated = await Collection.findAndUpdateOrFail({ where: { id: params.id }, patch });
+  const updated = await Collection.findAndUpdateOrFail({ where: { publicId: params.id }, patch });
 
   return respond.with200().body(toCollectionDTO(updated));
 };
 
 export const deleteCollection: DeleteCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionOwnership(collection, user);
 
   if (collection.type === CollectionType.ANKI_EXPORT) {
     throw new InvalidRequestError('Cannot delete the Anki Exports collection.');
   }
 
-  await Collection.deleteOrFail({ where: { id: params.id } });
+  await Collection.deleteOrFail({ where: { publicId: params.id } });
 
   return respond.with204();
 };
 
 export const addSegmentToCollection: AddSegmentToCollection = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionOwnership(collection, user);
 
   const segment = await Segment.findOneOrFail({ where: [{ publicId: body.segmentId }, { uuid: body.segmentId }] });
@@ -198,11 +198,11 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
 
 export const updateCollectionSegment: UpdateCollectionSegment = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionOwnership(collection, user);
 
   const item = await CollectionSegment.findOneOrFail({
-    where: { collectionId: params.id, segmentId: params.segmentId },
+    where: { collectionId: collection.id, segmentId: params.segmentId },
   });
 
   if (body.position !== undefined) item.position = body.position;
@@ -215,11 +215,11 @@ export const updateCollectionSegment: UpdateCollectionSegment = async ({ params,
 
 export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionOwnership(collection, user);
 
   await CollectionSegment.deleteOrFail({
-    where: { collectionId: params.id, segmentId: params.segmentId },
+    where: { collectionId: collection.id, segmentId: params.segmentId },
   });
 
   return respond.with204();
@@ -227,7 +227,7 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
 
 export const searchCollectionSegments: SearchCollectionSegments = async ({ params, query }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionReadable(collection, user);
 
   const {
@@ -277,7 +277,7 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
 
 export const getCollectionStats: GetCollectionStats = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { id: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
   assertCollectionReadable(collection, user);
 
   // Fetch all segment items from the collection

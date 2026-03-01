@@ -3,15 +3,17 @@ import { Episode, Media } from '@app/models';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episode.mapper';
 
 export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
+
   const { items: episodes, pagination } = await Episode.paginateWithOffset({
     take: query.take,
     cursor: query.cursor,
     exists: {
       entity: Media,
-      where: { id: params.mediaId },
+      where: { id: media.id },
     },
     find: {
-      where: { mediaId: params.mediaId },
+      where: { mediaId: media.id },
       order: { episodeNumber: 'ASC' },
     },
   });
@@ -23,8 +25,10 @@ export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => 
 };
 
 export const createEpisode: CreateEpisode = async ({ params, body }, respond) => {
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
+
   const episode = await Episode.save({
-    mediaId: params.mediaId,
+    mediaId: media.id,
     episodeNumber: body.episodeNumber,
     titleEn: body.titleEn,
     titleRomaji: body.titleRomaji,
@@ -39,9 +43,11 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
 };
 
 export const getEpisode: GetEpisode = async ({ params }, respond) => {
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
+
   const episode = await Episode.findOneOrFail({
     where: {
-      mediaId: params.mediaId,
+      mediaId: media.id,
       episodeNumber: params.episodeNumber,
     },
   });
@@ -50,8 +56,10 @@ export const getEpisode: GetEpisode = async ({ params }, respond) => {
 };
 
 export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) => {
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
+
   const episode = await Episode.findAndUpdateOrFail({
-    where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber },
+    where: { mediaId: media.id, episodeNumber: params.episodeNumber },
     patch: body,
   });
 
@@ -59,7 +67,9 @@ export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) =>
 };
 
 export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
-  await Episode.softDeleteOrFail({ where: { mediaId: params.mediaId, episodeNumber: params.episodeNumber } });
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
+
+  await Episode.softDeleteOrFail({ where: { mediaId: media.id, episodeNumber: params.episodeNumber } });
 
   return respond.with204();
 };

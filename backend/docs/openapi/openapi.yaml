@@ -196,6 +196,8 @@ paths:
     $ref: "./paths/admin/v1_admin_media_audits_runs.yaml"
   "/v1/admin/media/audits/runs/{id}":
     $ref: "./paths/admin/v1_admin_media_audits_runs_id.yaml"
+  "/v1/admin/announcement":
+    $ref: "./paths/admin/v1_admin_announcement.yaml"
 
 components:
   securitySchemes:

@@ -22,10 +22,7 @@ const getStringQueryValue = (value: string | string[] | undefined | null) => {
 };
 
 const collectionIdParam = computed(() => {
-  const raw = getStringQueryValue(route.query.collectionId as string | string[] | undefined);
-  if (!raw) return null;
-  const parsed = Number(raw);
-  return Number.isNaN(parsed) ? null : parsed;
+  return getStringQueryValue(route.query.collectionId as string | string[] | undefined);
 });
 
 const mediaQueryParam = computed(() =>
@@ -84,10 +81,10 @@ const fetchSentenceData = async () => {
       const uuid = String(route.query.uuid);
       const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid } });
       if (!segment) return null;
-      const { data: media } = await sdk.getMedia({ path: { id: segment.mediaId } });
+      const { data: media } = await sdk.getMedia({ path: { id: segment.mediaPublicId } });
       return resolveSearchResponse({
         segments: [segment],
-        includes: { media: media ? { [String(segment.mediaId)]: media } : {} },
+        includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
         pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
       });
     }
@@ -288,9 +285,7 @@ const metaTags = computed(() => {
   } else if (mediaQueryParam.value && (initialSentenceData.value?.results?.length ?? 0) > 0) {
     const firstResult = initialSentenceData.value!.results[0]!;
     const animeName = mediaName(firstResult.media);
-    const mediaId = firstResult.media.id;
-
-    const mediaStats = initialStatsData.value?.media?.find((s) => s.mediaId === Number(mediaId));
+    const mediaStats = initialStatsData.value?.media?.find((s) => s.publicId === mediaQueryParam.value);
 
     const filterEpisode = episodeNumberParam.value;
 

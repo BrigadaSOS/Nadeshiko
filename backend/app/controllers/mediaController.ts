@@ -145,7 +145,7 @@ export const getMedia: GetMedia = async ({ params, query }, respond) => {
   });
 
   const media = await Media.findOneOrFail({
-    where: { id: params.id },
+    where: { publicId: params.id },
     relations: mediaRelations,
   });
 
@@ -153,7 +153,7 @@ export const getMedia: GetMedia = async ({ params, query }, respond) => {
 };
 
 export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
-  const media = await Media.findOneOrFail({ where: { id: params.id } });
+  const media = await Media.findOneOrFail({ where: { publicId: params.id } });
   const patch = toMediaUpdatePatch(body);
 
   Media.merge(media, patch);
@@ -182,7 +182,7 @@ export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
 };
 
 export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
-  await Media.softDeleteOrFail({ where: { id: params.id } });
+  await Media.softDeleteOrFail({ where: { publicId: params.id } });
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 

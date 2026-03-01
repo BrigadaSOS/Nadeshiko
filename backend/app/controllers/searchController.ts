@@ -77,8 +77,5 @@ function resolveMediaId(identifier: string, mediaMap: MediaInfoMap): number | nu
     if (anilistId && anilistId === identifier) return id;
   }
 
-  const parsed = Number(identifier);
-  if (Number.isFinite(parsed) && mediaMap.has(parsed)) return parsed;
-
   return null;
 }

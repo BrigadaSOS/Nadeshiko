@@ -13,10 +13,10 @@ post:
     - name: id
       in: path
       required: true
-      description: Collection ID
+      description: Collection public ID
       schema:
-        type: integer
-        example: 123
+        type: string
+        example: "V1StGXR8_Z5d"
   requestBody:
     required: true
     content:

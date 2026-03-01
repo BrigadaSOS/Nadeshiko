@@ -36,7 +36,7 @@ type CollectionListResponse = {
 };
 
 type CollectionOption = {
-  id: number;
+  id: string;
   name: string;
 };
 
@@ -52,7 +52,7 @@ const isAnkiConfigured = ref(false);
 const collections = ref<CollectionOption[]>([]);
 const collectionsLoading = ref(false);
 const collectionsLoaded = ref(false);
-const addingCollectionId = ref<number | null>(null);
+const addingCollectionId = ref<string | null>(null);
 const showCollectionPicker = ref(false);
 
 const lastCollection = ref<CollectionOption | null>(null);
@@ -112,7 +112,9 @@ const loadCollections = async () => {
   try {
     const { data } = await sdk.listCollections({ query: { take: 100 } });
     const allItems = data?.collections ?? [];
-    const items = allItems.filter((c) => c.type !== 'ANKI_EXPORT');
+    const items = allItems
+      .filter((c) => c.type !== 'ANKI_EXPORT')
+      .map((c) => ({ id: c.publicId, name: c.name }));
     collections.value = items;
     collectionsLoaded.value = true;
 

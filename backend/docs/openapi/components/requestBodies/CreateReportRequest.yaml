@@ -11,11 +11,15 @@ properties:
       - WRONG_TRANSLATION
       - WRONG_TIMING
       - WRONG_AUDIO
+      - WRONG_JAPANESE_TEXT
+      - LOW_QUALITY_AUDIO
       - NSFW_NOT_TAGGED
       - DUPLICATE_SEGMENT
-      - WRONG_METADATA
+      - WRONG_TITLE
+      - DUPLICATE_MEDIA
+      - WRONG_EPISODE_NUMBER
+      - IMAGE_ISSUE
       - MISSING_EPISODES
-      - WRONG_COVER_IMAGE
       - INAPPROPRIATE_CONTENT
       - OTHER
     description: Reason for the report

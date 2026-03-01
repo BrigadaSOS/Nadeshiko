@@ -4,6 +4,7 @@ import { toMediaDTO } from './media.mapper';
 
 export const toSeriesDTO = (series: Series): t_Series => ({
   id: series.id,
+  publicId: series.publicId,
   nameJa: series.nameJa,
   nameRomaji: series.nameRomaji,
   nameEn: series.nameEn,

@@ -2,6 +2,7 @@ type: object
 description: Ordered media series grouping
 required:
   - id
+  - publicId
   - nameJa
   - nameRomaji
   - nameEn
@@ -10,6 +11,10 @@ properties:
     type: integer
     description: Series ID
     example: 1
+  publicId:
+    type: string
+    description: Public identifier for the series
+    example: "V1StGXR8_Z5d"
   nameJa:
     type: string
     description: Japanese name of the series

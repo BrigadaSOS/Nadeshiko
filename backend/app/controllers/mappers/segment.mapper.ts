@@ -11,7 +11,7 @@ import { nanoid } from 'nanoid';
 const toJsonObjectOrNull = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 
-export const toSegmentDTO = (segment: Segment): t_Segment => {
+export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segment => {
   const imageUrl = getSegmentImageUrl(segment);
   const audioUrl = getSegmentAudioUrl(segment);
   const videoUrl = getSegmentVideoUrl(segment);
@@ -38,6 +38,7 @@ export const toSegmentDTO = (segment: Segment): t_Segment => {
     contentRating: segment.contentRating as t_Segment['contentRating'],
     episode: segment.episode,
     mediaId: segment.mediaId,
+    mediaPublicId: mediaPublicId ?? '',
     urls: {
       imageUrl,
       audioUrl,
@@ -46,10 +47,10 @@ export const toSegmentDTO = (segment: Segment): t_Segment => {
   };
 };
 
-export const toSegmentInternalDTO = (segment: Segment, include?: string[]): t_SegmentInternal => {
+export const toSegmentInternalDTO = (segment: Segment, include?: string[], mediaPublicId?: string): t_SegmentInternal => {
   const all = include === undefined;
   return {
-    ...toSegmentDTO(segment),
+    ...toSegmentDTO(segment, mediaPublicId),
     storage: all || include.includes('storage') ? (segment.storage as t_SegmentInternal['storage']) : null,
     hashedId: all || include.includes('hashedId') ? segment.hashedId : null,
     storageBasePath: all || include.includes('storageBasePath') ? segment.storageBasePath : null,
@@ -58,7 +59,8 @@ export const toSegmentInternalDTO = (segment: Segment, include?: string[]): t_Se
   };
 };
 
-export const toSegmentListDTO = (segments: Segment[]): t_Segment[] => segments.map(toSegmentDTO);
+export const toSegmentListDTO = (segments: Segment[], mediaPublicId?: string): t_Segment[] =>
+  segments.map((s) => toSegmentDTO(s, mediaPublicId));
 
 export const toSegmentInternalListDTO = (segments: Segment[]): t_SegmentInternal[] =>
   segments.map((s) => toSegmentInternalDTO(s));

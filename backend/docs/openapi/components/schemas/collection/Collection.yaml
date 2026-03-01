@@ -2,6 +2,7 @@ type: object
 description: User segment collection
 required:
   - id
+  - publicId
   - name
   - type
   - visibility
@@ -13,6 +14,10 @@ properties:
     type: integer
     description: Collection ID
     example: 123
+  publicId:
+    type: string
+    description: Public identifier for the collection
+    example: "V1StGXR8_Z5d"
   name:
     type: string
     description: Name of the collection

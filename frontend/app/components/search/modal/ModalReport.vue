@@ -9,12 +9,12 @@ const props = defineProps<{
   target:
     | {
         type: 'SEGMENT';
-        mediaId: number;
+        mediaId: string;
         segmentId: string;
       }
     | {
         type: 'MEDIA';
-        mediaId: number;
+        mediaId: string;
       }
     | null;
   segment: SearchResult | null;
@@ -23,6 +23,7 @@ const props = defineProps<{
 
 const isSubmitting = ref(false);
 const errorMessage = ref('');
+const tab = ref<'SEGMENT' | 'MEDIA'>(props.target?.type === 'MEDIA' ? 'MEDIA' : 'SEGMENT');
 
 const form = reactive({
   reason: '',
@@ -33,6 +34,8 @@ const segmentReasons = [
   'WRONG_TRANSLATION',
   'WRONG_TIMING',
   'WRONG_AUDIO',
+  'WRONG_JAPANESE_TEXT',
+  'LOW_QUALITY_AUDIO',
   'NSFW_NOT_TAGGED',
   'DUPLICATE_SEGMENT',
   'INAPPROPRIATE_CONTENT',
@@ -40,14 +43,22 @@ const segmentReasons = [
 ] as const;
 
 const mediaReasons = [
-  'WRONG_METADATA',
+  'WRONG_TITLE',
+  'DUPLICATE_MEDIA',
+  'WRONG_EPISODE_NUMBER',
+  'IMAGE_ISSUE',
   'MISSING_EPISODES',
-  'WRONG_COVER_IMAGE',
   'INAPPROPRIATE_CONTENT',
   'OTHER',
 ] as const;
 
-const availableReasons = computed(() => (props.target?.type === 'SEGMENT' ? segmentReasons : mediaReasons));
+const availableReasons = computed(() => (tab.value === 'SEGMENT' ? segmentReasons : mediaReasons));
+
+const switchTab = (newTab: 'SEGMENT' | 'MEDIA') => {
+  if (tab.value === newTab) return;
+  tab.value = newTab;
+  form.reason = '';
+};
 
 const selectReason = (reason: string) => {
   form.reason = reason;
@@ -76,6 +87,7 @@ const copyUuid = async () => {
 watch(
   () => props.target,
   () => {
+    tab.value = props.target?.type === 'MEDIA' ? 'MEDIA' : 'SEGMENT';
     form.reason = '';
     form.description = '';
     errorMessage.value = '';
@@ -83,11 +95,7 @@ watch(
 );
 
 const closeModal = () => {
-  const overlay = document.querySelector('#nd-vertically-centered-scrollable-report');
-  if (overlay) {
-    overlay.classList.add('hidden');
-    overlay.classList.remove('open');
-  }
+  window.NDOverlay?.close('#nd-vertically-centered-scrollable-report');
 };
 
 const submitReport = async () => {
@@ -98,9 +106,12 @@ const submitReport = async () => {
 
   try {
     const sdk = useNadeshikoSdk();
+    const target = tab.value === 'SEGMENT' && props.target?.type === 'SEGMENT'
+      ? props.target
+      : { type: 'MEDIA' as const, mediaId: props.target!.mediaId };
     const { error } = await sdk.createUserReport({
       body: {
-        target: props.target,
+        target,
         reason: form.reason as CreateReportRequest['reason'],
         description: form.description || undefined,
       },
@@ -157,6 +168,26 @@ const submitReport = async () => {
           class="p-3 text-sm text-red-400 bg-red-900/20 border border-red-700 rounded-lg"
         >
           {{ errorMessage }}
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 bg-neutral-800/60 p-1 rounded-lg">
+          <button
+            type="button"
+            class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            :class="tab === 'SEGMENT' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-neutral-300'"
+            @click="switchTab('SEGMENT')"
+          >
+            {{ t('reports.tabSegment') }}
+          </button>
+          <button
+            type="button"
+            class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            :class="tab === 'MEDIA' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-neutral-300'"
+            @click="switchTab('MEDIA')"
+          >
+            {{ t('reports.tabMedia') }}
+          </button>
         </div>
 
         <!-- Segment metadata (read-only) -->

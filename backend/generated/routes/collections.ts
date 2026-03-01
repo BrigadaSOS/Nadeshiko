@@ -397,7 +397,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const getCollectionParamSchema = z.object({ id: z.coerce.number() });
+  const getCollectionParamSchema = z.object({ id: z.string() });
 
   const getCollectionQuerySchema = z.object({
     cursor: z.string().optional(),
@@ -477,7 +477,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const updateCollectionParamSchema = z.object({ id: z.coerce.number() });
+  const updateCollectionParamSchema = z.object({ id: z.string() });
 
   const updateCollectionRequestBodySchema = z.object({
     name: z.string().optional(),
@@ -557,7 +557,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const deleteCollectionParamSchema = z.object({ id: z.coerce.number() });
+  const deleteCollectionParamSchema = z.object({ id: z.string() });
 
   const deleteCollectionResponseBodyValidator = responseValidationFactory(
     [
@@ -632,7 +632,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const addSegmentToCollectionParamSchema = z.object({ id: z.coerce.number() });
+  const addSegmentToCollectionParamSchema = z.object({ id: z.string() });
 
   const addSegmentToCollectionRequestBodySchema = z.object({
     segmentId: z.string(),
@@ -712,7 +712,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const updateCollectionSegmentParamSchema = z.object({ id: z.coerce.number(), segmentId: z.coerce.number() });
+  const updateCollectionSegmentParamSchema = z.object({ id: z.string(), segmentId: z.coerce.number() });
 
   const updateCollectionSegmentRequestBodySchema = z.object({
     position: z.coerce.number().optional(),
@@ -792,7 +792,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const removeSegmentFromCollectionParamSchema = z.object({ id: z.coerce.number(), segmentId: z.coerce.number() });
+  const removeSegmentFromCollectionParamSchema = z.object({ id: z.string(), segmentId: z.coerce.number() });
 
   const removeSegmentFromCollectionResponseBodyValidator = responseValidationFactory(
     [
@@ -869,7 +869,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const searchCollectionSegmentsParamSchema = z.object({ id: z.coerce.number() });
+  const searchCollectionSegmentsParamSchema = z.object({ id: z.string() });
 
   const searchCollectionSegmentsQuerySchema = z.object({
     cursor: z.string().optional(),
@@ -949,7 +949,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     }
   });
 
-  const getCollectionStatsParamSchema = z.object({ id: z.coerce.number() });
+  const getCollectionStatsParamSchema = z.object({ id: z.string() });
 
   const getCollectionStatsResponseBodyValidator = responseValidationFactory(
     [

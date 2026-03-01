@@ -3,6 +3,7 @@ import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiPlus, mdiEyeOut
 
 type Collection = {
   id: number;
+  publicId: string;
   name: string;
   visibility: 'PUBLIC' | 'PRIVATE';
   segmentCount: number;
@@ -33,9 +34,9 @@ const formatDate = (dateStr?: string | null) => {
 };
 
 // Actions dropdown
-const openMenuId = ref<number | null>(null);
+const openMenuId = ref<string | null>(null);
 
-const toggleMenu = (id: number) => {
+const toggleMenu = (id: string) => {
   openMenuId.value = openMenuId.value === id ? null : id;
 };
 
@@ -75,13 +76,13 @@ const submitRename = async () => {
   isRenaming.value = true;
   try {
     await sdk.updateCollection({
-      path: { id: renameTarget.value.id },
+      path: { id: renameTarget.value.publicId },
       body: { name: renameValue.value.trim() },
     });
 
     const target = renameTarget.value;
     if (!target) return;
-    const idx = collections.value.findIndex((c) => c.id === target.id);
+    const idx = collections.value.findIndex((c) => c.publicId === target.publicId);
     if (idx !== -1) collections.value[idx]!.name = renameValue.value.trim();
 
     useToastSuccess(t('accountSettings.collections.renamed'));
@@ -119,6 +120,7 @@ const submitCreate = async () => {
     if (data) {
       collections.value.unshift({
         id: data.id,
+        publicId: data.publicId,
         name: data.name,
         visibility: data.visibility as 'PUBLIC' | 'PRIVATE',
         segmentCount: 0,
@@ -152,11 +154,11 @@ const submitToggleVisibility = async () => {
   const newVisibility = visibilityTarget.value.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
   try {
     await sdk.updateCollection({
-      path: { id: visibilityTarget.value.id },
+      path: { id: visibilityTarget.value.publicId },
       body: { visibility: newVisibility },
     });
 
-    const idx = collections.value.findIndex((c) => c.id === visibilityTarget.value!.id);
+    const idx = collections.value.findIndex((c) => c.publicId === visibilityTarget.value!.publicId);
     if (idx !== -1) collections.value[idx]!.visibility = newVisibility;
 
     useToastSuccess(t('accountSettings.collections.visibilityChanged'));
@@ -183,10 +185,10 @@ const submitDelete = async () => {
   isDeleting.value = true;
   try {
     await sdk.deleteCollection({
-      path: { id: deleteTarget.value.id },
+      path: { id: deleteTarget.value.publicId },
     });
 
-    collections.value = collections.value.filter((c) => c.id !== deleteTarget.value!.id);
+    collections.value = collections.value.filter((c) => c.publicId !== deleteTarget.value!.publicId);
 
     useToastSuccess(t('accountSettings.collections.deleted'));
     deleteTarget.value = null;
@@ -229,10 +231,10 @@ const submitDelete = async () => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="collection in collections" :key="collection.id">
+          <tr v-for="collection in collections" :key="collection.publicId">
             <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <NuxtLink
-                :to="{ path: '/search', query: { collectionId: collection.id } }"
+                :to="{ path: '/search', query: { collectionId: collection.publicId } }"
                 class="font-medium truncate block hover:text-blue-400 transition-colors"
               >
                 {{ collection.name }}
@@ -262,7 +264,7 @@ const submitDelete = async () => {
                 <button
                   type="button"
                   class="p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
-                  @click="toggleMenu(collection.id)"
+                  @click="toggleMenu(collection.publicId)"
                 >
                   <UiBaseIcon :path="mdiDotsVertical" size="18" />
                 </button>
@@ -276,7 +278,7 @@ const submitDelete = async () => {
                   leave-to-class="opacity-0 scale-95"
                 >
                   <div
-                    v-if="openMenuId === collection.id"
+                    v-if="openMenuId === collection.publicId"
                     class="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-white/10 bg-neutral-800 shadow-xl py-1"
                   >
                     <button
