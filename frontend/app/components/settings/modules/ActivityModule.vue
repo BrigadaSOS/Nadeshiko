@@ -323,10 +323,10 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
 const HEATMAP_PALETTES: Record<string, readonly string[]> = {
   default: [
     'bg-white/5 border-white/10',
-    'bg-gray-600/50 border-gray-500/60',
-    'bg-gray-500/60 border-gray-400/70',
-    'bg-gray-400/70 border-gray-300/80',
-    'bg-gray-300/80 border-gray-200/80',
+    'bg-amber-900/50 border-amber-800/60',
+    'bg-amber-700/60 border-amber-600/70',
+    'bg-amber-500/70 border-amber-400/80',
+    'bg-amber-300/80 border-amber-200/80',
   ],
   SEARCH: [
     'bg-white/5 border-white/10',

@@ -190,6 +190,25 @@ export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityH
 export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
 export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
 
+export const listCollectionsQuerySchema = z.object({
+    visibility: z.enum(['public', 'private']).optional(),
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
+
+export const getCollectionQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
+
+export const searchCollectionSegmentsQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;
+
 export const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),
@@ -212,22 +231,3 @@ export const listAdminMediaAuditRunsQuerySchema = z.object({
     take: z.coerce.number().max(100).optional().default(20),
   });
 export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
-
-export const listCollectionsQuerySchema = z.object({
-    visibility: z.enum(['public', 'private']).optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
-
-export const getCollectionQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
-
-export const searchCollectionSegmentsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;

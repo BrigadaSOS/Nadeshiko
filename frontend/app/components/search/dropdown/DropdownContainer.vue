@@ -31,20 +31,3 @@ const resolvedDropdownId = computed(
 );
 provide('ndDropdownResolvedId', resolvedDropdownId);
 </script>
-
-<style>
-.nd-dropdown-menu {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 150ms ease, transform 150ms ease;
-    transform: translateY(-4px);
-}
-
-.nd-dropdown-open > .nd-dropdown-menu {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateY(0);
-}
-</style>
