@@ -11,6 +11,7 @@ import {
   toReportDTO,
   toReportTargetCountKey,
   toReportUpdatePatch,
+  resolveReportPublicIds,
 } from '@app/controllers/mappers/report.mapper';
 
 export const createUserReport: CreateUserReport = async ({ body }, respond, req) => {
@@ -22,11 +23,15 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
       body,
       userId: Number(user.id),
       resolvedSegmentId: resolved.segmentId,
+      resolvedMediaId: resolved.mediaId,
     }),
   ) as Report;
   await report.save();
 
-  return respond.with201().body(toReportDTO(report));
+  return respond.with201().body(toReportDTO(report, {
+    mediaPublicId: body.target.mediaId,
+    segmentPublicId: 'segmentId' in body.target ? body.target.segmentId : null,
+  }));
 };
 
 export const listAdminReports: ListAdminReports = async ({ query }, respond) => {
@@ -68,10 +73,13 @@ export const listAdminReports: ListAdminReports = async ({ query }, respond) => 
     },
   });
 
-  const countMap = await countReportsByTarget(reports);
+  const [countMap, reportPublicIds] = await Promise.all([
+    countReportsByTarget(reports),
+    resolveReportPublicIds(reports),
+  ]);
 
   return respond.with200().body({
-    reports: toAdminReportListDTO(reports, countMap),
+    reports: toAdminReportListDTO(reports, countMap, reportPublicIds),
     pagination,
   });
 };
@@ -83,31 +91,39 @@ export const updateAdminReport: UpdateAdminReport = async ({ params, body }, res
     detail: `Report with ID ${params.id} not found`,
   });
 
-  return respond.with200().body(toReportDTO(report as Report));
+  const r = report as Report;
+  const media = await Media.findOneOrFail({ where: { id: r.targetMediaId }, select: ['publicId'] });
+  let segmentPublicId: string | null = null;
+  if (r.targetSegmentId) {
+    const segment = await Segment.findOne({ where: { id: r.targetSegmentId }, select: ['publicId'] });
+    segmentPublicId = segment?.publicId ?? null;
+  }
+  return respond.with200().body(toReportDTO(r, { mediaPublicId: media.publicId, segmentPublicId }));
 };
 
 async function resolveReportTarget(
   target: CreateReportRequestOutput['target'],
-): Promise<{ segmentId: number | null }> {
+): Promise<{ segmentId: number | null; mediaId: number }> {
+  const media = await Media.findOne({ where: { publicId: target.mediaId }, select: ['id', 'publicId'] });
+  if (!media) {
+    throw new NotFoundError(`Media with publicId ${target.mediaId} not found`);
+  }
+
   if (target.type === 'SEGMENT') {
     const segment = await Segment.findOne({ where: [{ publicId: target.segmentId }, { uuid: target.segmentId }] });
     if (!segment) {
       throw new NotFoundError(`Segment with ID ${target.segmentId} not found`);
     }
-    if (segment.mediaId !== target.mediaId) {
+    if (segment.mediaId !== media.id) {
       throw new InvalidRequestError('SEGMENT target mediaId does not match segment mediaId');
     }
     if (target.episodeNumber !== undefined && segment.episode !== target.episodeNumber) {
       throw new InvalidRequestError('SEGMENT target episodeNumber does not match segment episode');
     }
-    return { segmentId: segment.id };
+    return { segmentId: segment.id, mediaId: media.id };
   }
 
-  const mediaExists = await Media.existsBy({ id: target.mediaId });
-  if (!mediaExists) {
-    throw new NotFoundError(`Media with ID ${target.mediaId} not found`);
-  }
-  return { segmentId: null };
+  return { segmentId: null, mediaId: media.id };
 }
 
 type ReportCountRow = {

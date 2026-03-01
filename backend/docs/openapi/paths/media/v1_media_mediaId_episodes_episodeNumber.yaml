@@ -16,9 +16,9 @@ get:
       in: path
       required: true
       schema:
-        type: integer
-      description: ID of the media
-      example: 7674
+        type: string
+      description: Public ID of the media
+      example: "V1StGXR8_Z5d"
     - name: episodeNumber
       in: path
       required: true
@@ -61,9 +61,9 @@ patch:
       in: path
       required: true
       schema:
-        type: integer
-      description: ID of the media
-      example: 7674
+        type: string
+      description: Public ID of the media
+      example: "V1StGXR8_Z5d"
     - name: episodeNumber
       in: path
       required: true
@@ -112,9 +112,9 @@ delete:
       in: path
       required: true
       schema:
-        type: integer
-      description: ID of the media
-      example: 7674
+        type: string
+      description: Public ID of the media
+      example: "V1StGXR8_Z5d"
     - name: episodeNumber
       in: path
       required: true

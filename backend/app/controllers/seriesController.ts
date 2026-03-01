@@ -37,7 +37,7 @@ export const listSeries: ListSeries = async ({ query }, respond) => {
 
 export const getSeries: GetSeries = async ({ params, query }, respond) => {
   const series = await Series.findOneOrFail({
-    where: { id: params.id },
+    where: { publicId: params.id },
     relations: {
       mediaEntries: {
         media: Media.buildRelations({
@@ -62,21 +62,24 @@ export const createSeries: CreateSeries = async ({ body }, respond) => {
 };
 
 export const updateSeries: UpdateSeries = async ({ params, body }, respond) => {
-  const series = await Series.findAndUpdateOrFail({ where: { id: params.id }, patch: body });
+  const series = await Series.findAndUpdateOrFail({ where: { publicId: params.id }, patch: body });
 
   return respond.with200().body(toSeriesDTO(series));
 };
 
 export const deleteSeries: DeleteSeries = async ({ params }, respond) => {
-  await Series.deleteOrFail({ where: { id: params.id } });
+  await Series.deleteOrFail({ where: { publicId: params.id } });
 
   return respond.with204();
 };
 
 export const addMediaToSeries: AddMediaToSeries = async ({ params, body }, respond) => {
+  const series = await Series.findOneOrFail({ where: { publicId: params.id } });
+  const media = await Media.findOneOrFail({ where: { publicId: body.mediaId } });
+
   await SeriesMedia.save({
-    seriesId: params.id,
-    mediaId: body.mediaId,
+    seriesId: series.id,
+    mediaId: media.id,
     position: body.position,
   });
 
@@ -84,13 +87,19 @@ export const addMediaToSeries: AddMediaToSeries = async ({ params, body }, respo
 };
 
 export const updateSeriesMedia: UpdateSeriesMedia = async ({ params, body }, respond) => {
-  await SeriesMedia.updateOrFail({ where: { seriesId: params.id, mediaId: params.mediaId }, patch: body });
+  const series = await Series.findOneOrFail({ where: { publicId: params.id } });
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
+
+  await SeriesMedia.updateOrFail({ where: { seriesId: series.id, mediaId: media.id }, patch: body });
 
   return respond.with204();
 };
 
 export const removeMediaFromSeries: RemoveMediaFromSeries = async ({ params }, respond) => {
-  await SeriesMedia.deleteOrFail({ where: { seriesId: params.id, mediaId: params.mediaId } });
+  const series = await Series.findOneOrFail({ where: { publicId: params.id } });
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
+
+  await SeriesMedia.deleteOrFail({ where: { seriesId: series.id, mediaId: media.id } });
 
   return respond.with204();
 };

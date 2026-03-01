@@ -42,6 +42,7 @@ import type {
   t_UpdateAdminMediaAuditRequestBodySchema,
   t_UpdateAdminReportParamSchema,
   t_UpdateAdminReportRequestBodySchema,
+  t_UpdateAnnouncementRequestBodySchema,
 } from '../models.ts';
 import type { ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
@@ -477,6 +478,46 @@ export type GetAdminMediaAuditRun = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type GetAnnouncementResponder = {
+  with200(): ExpressRuntimeResponse<{
+    active: boolean;
+    message: string;
+    type: 'info' | 'warning' | 'maintenance';
+  }>;
+  with204(): ExpressRuntimeResponse<void>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAnnouncement = (
+  params: Params<void, void, void, void>,
+  respond: GetAnnouncementResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateAnnouncementResponder = {
+  with200(): ExpressRuntimeResponse<{
+    active: boolean;
+    message: string;
+    type: 'info' | 'warning' | 'maintenance';
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UpdateAnnouncement = (
+  params: Params<void, void, t_UpdateAnnouncementRequestBodySchema, void>,
+  respond: UpdateAnnouncementResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type AdminImplementation = {
   getAdminDashboard: GetAdminDashboard;
   getAdminHealth: GetAdminHealth;
@@ -495,6 +536,8 @@ export type AdminImplementation = {
   runAdminMediaAudit: RunAdminMediaAudit;
   listAdminMediaAuditRuns: ListAdminMediaAuditRuns;
   getAdminMediaAuditRun: GetAdminMediaAuditRun;
+  getAnnouncement: GetAnnouncement;
+  updateAnnouncement: UpdateAnnouncement;
 };
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
@@ -1939,6 +1982,156 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       if (body !== undefined) {
         res.json(getAdminMediaAuditRunResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAnnouncementResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({ message: z.string(), type: z.enum(['info', 'warning', 'maintenance']), active: PermissiveBoolean }),
+      ],
+      ['204', z.undefined()],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAnnouncement
+  router.get(`/v1/admin/announcement`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            active: boolean;
+            message: string;
+            type: 'info' | 'warning' | 'maintenance';
+          }>(200);
+        },
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getAnnouncement(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAnnouncementResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const updateAnnouncementRequestBodySchema = z.object({
+    message: z.string().max(500),
+    type: z.enum(['info', 'warning', 'maintenance']),
+    active: PermissiveBoolean,
+  });
+
+  const updateAnnouncementResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({ message: z.string(), type: z.enum(['info', 'warning', 'maintenance']), active: PermissiveBoolean }),
+      ],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // updateAnnouncement
+  router.put(`/v1/admin/announcement`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(updateAnnouncementRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            active: boolean;
+            message: string;
+            type: 'info' | 'warning' | 'maintenance';
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.updateAnnouncement(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(updateAnnouncementResponseBodyValidator(status, body));
       } else {
         res.end();
       }

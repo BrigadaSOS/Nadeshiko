@@ -487,10 +487,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
         - name: include
           in: query
           description: Resources to expand in the series response
@@ -536,7 +536,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: Internal character ID
+          description: Character ID
           schema:
             type: integer
             example: 1
@@ -618,10 +618,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 7674
+            type: string
+            example: V1StGXR8_Z5d
         - name: include
           in: query
           description: Resources to expand in the media response
@@ -668,9 +668,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: take
           in: query
           required: false
@@ -722,9 +722,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -766,9 +766,9 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1002,6 +1002,7 @@ components:
         - contentRating
         - episode
         - mediaId
+        - mediaPublicId
         - textJa
         - textEn
         - textEs
@@ -1052,6 +1053,10 @@ components:
           type: integer
           description: Media ID this segment belongs to
           example: 7674
+        mediaPublicId:
+          type: string
+          description: Public ID of the media this segment belongs to
+          example: V1StGXR8_Z5d
         textJa:
           type: object
           required:
@@ -1368,7 +1373,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by media publicId
         pagination:
           $ref: '#/components/schemas/PaginationInfo'
     Error400:
@@ -1653,7 +1658,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by media publicId
     SearchMultipleRequest:
       type: object
       properties:
@@ -1892,6 +1897,7 @@ components:
       description: Ordered media series grouping
       required:
         - id
+        - publicId
         - nameJa
         - nameRomaji
         - nameEn
@@ -1900,6 +1906,10 @@ components:
           type: integer
           description: Series ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the series
+          example: V1StGXR8_Z5d
         nameJa:
           type: string
           description: Japanese name of the series

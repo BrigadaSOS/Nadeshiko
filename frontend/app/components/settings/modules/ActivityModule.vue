@@ -323,10 +323,10 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
 const HEATMAP_PALETTES: Record<string, readonly string[]> = {
   default: [
     'bg-white/5 border-white/10',
-    'bg-red-900/50 border-red-800/60',
-    'bg-red-700/60 border-red-600/70',
-    'bg-red-500/70 border-red-400/80',
-    'bg-red-300/80 border-red-200/80',
+    'bg-gray-600/50 border-gray-500/60',
+    'bg-gray-500/60 border-gray-400/70',
+    'bg-gray-400/70 border-gray-300/80',
+    'bg-gray-300/80 border-gray-200/80',
   ],
   SEARCH: [
     'bg-white/5 border-white/10',
@@ -626,13 +626,13 @@ onMounted(async () => {
 
     <div v-if="loadingActivities" class="mt-4 text-gray-400">Loading...</div>
     <div v-else-if="groupedActivities.length === 0" class="mt-4 text-gray-400">No activity recorded{{ selectedDay ? ' for this day' : activityTypeFilter ? ' for this type' : ' yet' }}.</div>
-    <div v-else class="mt-4">
-      <table class="w-full text-sm">
+    <div v-else class="mt-4 overflow-x-auto">
+      <table class="w-full text-sm table-fixed">
         <thead>
           <tr class="border-b border-white/10 text-left">
-            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">Type</th>
+            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium w-28">Type</th>
             <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">Details</th>
-            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium text-right">Date</th>
+            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium text-right w-36">Date</th>
             <th class="pb-2 w-8" />
           </tr>
         </thead>
@@ -653,7 +653,7 @@ onMounted(async () => {
                 <span v-if="activity.count > 1" class="opacity-70">&times;{{ activity.count }}</span>
               </span>
             </td>
-            <td class="py-2.5 pr-4 max-w-md truncate">
+            <td class="py-2.5 pr-4 truncate">
               <a
                 v-if="activity.searchQuery"
                 :href="`/search/${encodeURIComponent(activity.searchQuery)}`"

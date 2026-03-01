@@ -70,6 +70,7 @@ interface NotesInfoResponse {
 
 interface CollectionResponse {
   id: number;
+  publicId: string;
   name: string;
   type: string;
 }
@@ -266,7 +267,7 @@ export const ankiStore = defineStore('anki', {
       return [];
     },
 
-    async getOrCreateAnkiExportsCollectionId(): Promise<number | null> {
+    async getOrCreateAnkiExportsCollectionId(): Promise<string | null> {
       if (!import.meta.client) return null;
 
       try {
@@ -276,7 +277,7 @@ export const ankiStore = defineStore('anki', {
         const existing = (listData?.collections ?? []).find(
           (collection) => collection.type === 'ANKI_EXPORT',
         );
-        if (existing) return existing.id;
+        if (existing) return existing.publicId;
 
         const { data: created } = await sdk.createCollection({
           body: {
@@ -285,7 +286,7 @@ export const ankiStore = defineStore('anki', {
           },
         });
 
-        return created?.id ?? null;
+        return created?.publicId ?? null;
       } catch {
         return null;
       }

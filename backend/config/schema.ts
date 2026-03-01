@@ -28,6 +28,7 @@ import {
   SegmentRevision,
   Experiment,
   ExperimentEnrollment,
+  Announcement,
 } from '@app/models';
 import { SegmentSubscriber } from '@app/subscribers';
 
@@ -54,6 +55,7 @@ export const APP_ENTITIES = [
   SegmentRevision,
   Experiment,
   ExperimentEnrollment,
+  Announcement,
 ];
 
 export const APP_SUBSCRIBERS = [SegmentSubscriber];

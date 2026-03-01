@@ -172,7 +172,7 @@ watch(ankiconnectAddress, (newValue) => {
         <div class="border-b pt-4 border-white/10" />
 
         <div class="mt-4">
-          <label class="block text-sm mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') || 'AnkiConnect Server Address' }}</label>
+          <label class="block text-sm mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
           <input v-model="ankiconnectAddress"
             class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
           </input>
@@ -244,7 +244,7 @@ watch(ankiconnectAddress, (newValue) => {
 
     <!-- Profile Selector -->
     <div v-if="store.profiles.length > 0" class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.profile') || 'Profile' }}</h3>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.profile') }}</h3>
       <div class="border-b pt-4 border-white/10" />
       <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <select
@@ -263,7 +263,7 @@ watch(ankiconnectAddress, (newValue) => {
             @click="createNewProfile"
           >
             <UiBaseIcon :path="mdiPlus" size="16" />
-            {{ $t('accountSettings.anki.newProfile') || 'New' }}
+            {{ $t('accountSettings.anki.newProfile') }}
           </button>
           <button
             v-if="store.profiles.length > 1"
@@ -272,11 +272,11 @@ watch(ankiconnectAddress, (newValue) => {
             @click="deleteCurrentProfile"
           >
             <UiBaseIcon :path="mdiDelete" size="16" />
-            {{ $t('accountSettings.anki.deleteProfile') || 'Delete' }}
+            {{ $t('accountSettings.anki.deleteProfile') }}
           </button>
         </div>
       </div>
-      <p v-if="isSaving" class="mt-2 text-sm text-gray-400">{{ $t('accountSettings.anki.saving') || 'Saving...' }}</p>
+      <p v-if="isSaving" class="mt-2 text-sm text-gray-400">{{ $t('accountSettings.anki.saving') }}</p>
     </div>
 
     <template v-if="store.activeProfile">

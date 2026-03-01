@@ -1,25 +1,15 @@
 {
   "navbar": {
-    "languages": {
-      "english": "英語",
-      "spanish": "スペイン語",
-      "japanese": "日本語"
-    },
     "buttons": {
       "home": "ホーム",
-      "faq": "よくある質問",
       "about": "About",
-      "discord": "ディスコード",
-      "guide": "メインページ",
       "login": "ログイン / サインアップ",
       "profile": "プロフィール",
-      "seeProfile": "設定",
-      "logout": "ログアウト",
       "privacy": "プライバシー",
       "dmca": "DMCA",
       "terms": "利用規約",
-      "contact": "お問い合わせ",
       "settings": "設定",
+      "blog": "ブログ",
       "media": "メディア"
     }
   },
@@ -53,14 +43,12 @@
       "description": "このサイトが役に立った場合は、GitHubでの支援、寄付、またはこのサイトを共有することで、今後の開発をサポートできます。"
     },
     "stats": {
-      "title": "全体統計",
       "sentenceCount": "文",
       "episodeCount": "エピソード",
       "mediaCount": "総コンテンツ数"
     }
   },
   "batchSearch": {
-    "button": "同時検索",
     "title": "同時検索",
     "description1": "この機能を使うと、複数の単語を一度に検索できます。データベース内で見つかった単語のリストと、その検索へのリンクが表示されます。",
     "description2": "まずは下のボックスに単語を入力してください。",
@@ -84,41 +72,23 @@
       "return": "戻る"
     }
   },
-  "ankiSearch": {
-    "title": "コレクション内を検索",
-    "description": "Ankiにあるカードを検索し、画像や音声を追加できます。「キー フィールド」が設定タブで設定されている必要があります。"
-  },
   "animeList": {
     "recentlyAddedTitle": "最近追加されたもの",
     "fullListTitle": "コンテンツ一覧",
     "seeAll": "すべて見る",
     "sentenceCount": "文",
-    "romajiName": "名前（ローマ字）",
-    "japaneseName": "日本語名",
     "episodes": "エピソード",
-    "genres": "ジャンル",
     "sentenceCountLabel": "文:",
-    "wordCountLabel": "単語数:",
-    "uniqueWordsLabel": "ユニークな単語:",
-    "uniqueKanjiLabel": "ユニークな漢字:",
-    "uniqueWordsOnceLabel": "ユニークな単語（1回のみ使用）:",
-    "lexicalDiversityLabel": "語彙多様性指数:",
-    "anilistScoreLabel": "Anilistスコア:",
-    "difficultyLabel": "難易度:",
     "anilistButton": "Anilist",
-    "vocabularyButton": "語彙",
-    "previousPage": "前のページ",
-    "nextPage": "次のページ"
+    "vocabularyButton": "語彙"
   },
   "mediaBrowse": {
     "showHiddenMedia": "非表示の作品を表示",
     "hideHiddenMedia": "非表示の作品を隠す"
   },
   "searchSettingsModal": {
-    "title": "検索設定",
     "exactMatchTitle": "完全一致検索",
-    "exactMatchDescription": "活用形やその他の結果を含めずに、完全一致の検索を行います。",
-    "close": "閉じる"
+    "exactMatchDescription": "活用形やその他の結果を含めずに、完全一致の検索を行います。"
   },
   "anki": {
     "modal": {
@@ -190,7 +160,6 @@
     "english": "英語",
     "spanish": "スペイン語",
     "machineTranslated": "機械翻訳",
-    "translations": "翻訳",
     "status": "ステータス",
     "contentRating": "コンテンツレーティング",
     "save": "保存",
@@ -199,6 +168,22 @@
     "close": "閉じる",
     "saveSuccess": "セグメントを更新しました",
     "saveError": "セグメントの更新に失敗しました",
+    "timing": "位置とタイミング",
+    "position": "位置",
+    "startTimeMs": "開始 (ms)",
+    "endTimeMs": "終了 (ms)",
+    "ratingAnalysis": "レーティング分析",
+    "ratingAnalysisDesc": "コンテンツレーティングの導出に使用されたWD Tagger v3分類器の出力（スコア/タグ）",
+    "posAnalysis": "品詞分析",
+    "posAnalysisDesc": "エンジン別の品詞トークン化結果（sudachi、unidic）",
+    "invalidJson": "無効なJSON",
+    "loading": "読み込み中...",
+    "history": "履歴",
+    "historyToggle": "履歴の切り替え",
+    "snapshot": "スナップショット",
+    "noRevisions": "編集履歴はまだありません",
+    "viewingSnapshot": "スナップショット {n} を表示中",
+    "current": "現在",
     "metadata": {
       "media": "メディア",
       "episode": "話",
@@ -233,9 +218,6 @@
   "searchpage": {
     "main": {
       "translationPreferences": {
-        "legend": "翻訳",
-        "english": "英語",
-        "spanish": "スペイン語",
         "englishShown": "英語翻訳を表示しました",
         "englishSpoiler": "英語翻訳をスポイラーモードにしました",
         "englishHidden": "英語翻訳を非表示にしました",
@@ -258,7 +240,6 @@
         "ensentence": "英語の文",
         "essentence": "スペイン語の文",
         "context": "文脈",
-        "report": "報告",
         "share": "共有",
         "more": "その他",
         "expandLeft": "左に展開",
@@ -275,30 +256,19 @@
         "sortlengthnone": "なし",
         "sortlengthmin": "最短",
         "sortlengthmax": "最長",
-        "sortasc": "最短",
-        "sortdesc": "最長",
         "sorttime_asc": "時系列順",
         "sorttime_desc": "逆順",
-        "sortrandom": "ランダム",
-        "search": "検索"
+        "sortrandom": "ランダム"
       },
       "labels": {
-        "errorMessage1": "検索中にエラーが発生しました。",
-        "errorMessage2": "しばらくしてから再試行してください。",
         "contentList": "コンテンツ",
         "noresults": "結果が見つかりませんでした...",
         "episode": "エピソード",
-        "translation": "翻訳（EN/ES）",
         "movie": "映画",
-        "audiobook": "オーディオブック",
         "searchmain": "タイトルを書いてください",
         "searchbar": "フィルター",
-        "multimedia": "マルチメディア",
-        "text": "テキスト",
-        "options": "オプション",
         "all": "すべて",
         "copiedcontent": "内容がクリップボードにコピーされました。",
-        "errorcopiedcontent": "コピーエラー。再試行してください。",
         "copiedsharingurl": "URLがクリップボードにコピーされました。",
         "errorcopiedsharingurl": "URLのコピーに失敗しました。再試行してください。",
         "collectionAdded": "\"{name}\" に追加しました",
@@ -307,14 +277,8 @@
       }
     },
     "modalcontext": {
-      "buttons": {
-        "close": "閉じる",
-        "downloadmultipleaudios": "選択した音声を保存"
-      },
       "labels": {
-        "context": "文脈",
-        "errordownloadmultipleaudios": "音声の保存エラー。再試行してください。",
-        "errorconnection": "サーバー接続エラー。"
+        "context": "文脈"
       }
     }
   },
@@ -328,7 +292,6 @@
       "advancedTitle": "高度な設定"
     },
     "tabs": {
-      "account": "アカウント",
       "sync": "Anki同期",
       "developer": "開発者"
     },
@@ -354,13 +317,10 @@
       "options": "オプション",
       "rename": "名前変更",
       "deactivate": "無効化",
-      "unlimited": "無制限",
       "createApiKeyModal": {
         "title": "APIキー作成",
         "nameLabel": "名前",
         "namePlaceholder": "このAPIキーの名前を入力してください",
-        "permissionsLabel": "権限",
-        "cancel": "キャンセル",
         "create": "作成"
       },
       "renameApiKeyModal": {
@@ -375,15 +335,10 @@
       "usernameLabel": "ユーザー名",
       "emailLabel": "メール",
       "notAvailable": "利用不可",
-      "dataLoadError": "ユーザーデータの読み込みに失敗しました",
-      "securityTitle": "セキュリティ",
-      "passwordLabel": "パスワード",
       "additionalTitle": "エキストラ",
       "deleteAccount": "アカウント削除（取り消し不可）",
-      "suggestiveContent": "示唆的コンテンツ",
-      "suggestiveContentDesc": "ファンサービス、露出度の高い服装",
-      "explicitContent": "露骨なコンテンツ",
-      "explicitContentDesc": "露骨またはきわどいコンテンツ",
+      "questionableContent": "センシティブコンテンツ",
+      "questionableContentDesc": "きわどいまたは露骨なコンテンツ",
       "contentRatingShow": "表示",
       "contentRatingBlur": "ぼかし（デフォルト）",
       "contentRatingHide": "非表示",
@@ -391,7 +346,6 @@
       "contentRatingHint_blur": "検索結果に含まれますが、ぼかして表示されます",
       "contentRatingHint_hide": "検索結果に含まれません",
       "contentRatingPreview": "検索結果での表示プレビュー",
-      "contentRatingHidden": "非表示",
       "contentRatingHiddenDesc": "非表示 — 検索結果に含まれません",
       "preferenceSaved": "設定を保存しました",
       "preferenceError": "設定の保存に失敗しました",
@@ -401,9 +355,6 @@
       "hiddenMediaEmpty": "非表示のメディアはありません。検索結果にはすべてのメディアが表示されます。"
     },
     "collections": {
-      "segmentCount": "{count} セグメント",
-      "created": "作成日: {date}",
-      "updated": "更新日: {date}",
       "removeFromCollection": "コレクションから削除",
       "confirmRemove": "削除しますか？",
       "yes": "はい",
@@ -465,8 +416,11 @@
       "contentColumn": "内容",
       "noFieldsFound": "フィールドが見つかりません",
       "noFieldsMessage": "再度お試しいただくか、AnkiConnectの接続を確認してください",
-      "advancedSettings": "高度な設定",
-      "serverAddressLabel": "AnkiConnectサーバーアドレス"
+      "serverAddressLabel": "AnkiConnectサーバーアドレス",
+      "profile": "プロフィール",
+      "newProfile": "新規",
+      "deleteProfile": "削除",
+      "saving": "保存中..."
     }
   },
   "contentPage": {
@@ -493,13 +447,8 @@
     },
     "nsfwTag": "NSFW",
     "contentRatingDescription": {
-      "SUGGESTIVE": "センシティブな内容（示唆的）",
-      "QUESTIONABLE": "問題のある可能性が高い内容",
-      "EXPLICIT": "露骨な成人向け表現を含む内容"
+      "SENSITIVE": "センシティブコンテンツ（きわどい）"
     },
-    "expandLeft": "左に展開",
-    "expandBoth": "両側に展開",
-    "expandRight": "右に展開",
     "revert": "元に戻す"
   },
   "searchContainer": {
@@ -510,28 +459,22 @@
     "retrying": "再試行中...",
     "endOfResults": "最後まで到達しました！",
     "loadMore": "さらに文を読み込む",
-    "pageTitle": "{query} - Nadeshiko検索",
-    "pageTitleDefault": "Nadeshiko - 検索",
-    "seoDescription": "Nadeshikoで「{query}」の検索結果",
-    "seoDescriptionDefault": "アニメと実写のフレーズをNadeshikoで検索",
-    "mediaInfo": "{animeName}、{mediaType}の{jpSentence}",
-    "mediaTypeMovie": "映画",
     "categoryAll": "すべて",
     "categoryAnime": "アニメ",
     "categoryLiveaction": "実写",
-    "categoryAudiobook": "オーディオブック",
     "collectionTabPrefix": "コレクション",
     "backToCollections": "コレクション一覧",
     "hiddenMediaNotice": "この作品は非表示リストに含まれています",
     "hiddenMediaDescription": "この作品は検索結果から非表示にされています。一時的に表示することができます。",
-    "hiddenMediaShowAnyway": "表示する"
+    "hiddenMediaShowAnyway": "表示する",
+    "loading": "読み込み中..."
   },
   "reports": {
-    "title": "マイレポート",
     "modalTitle": "問題を報告する",
     "targetLabel": "対象",
     "reason": "理由",
-    "selectReason": "理由を選択...",
+    "tabSegment": "セグメント",
+    "tabMedia": "メディア",
     "description": "説明（任意）",
     "descriptionPlaceholder": "問題の詳細を入力してください...",
     "submit": "報告を送信",
@@ -541,9 +484,7 @@
     "cancel": "キャンセル",
     "reportSegment": "報告",
     "loginRequired": "この機能を使用するにはログインしてください",
-    "reportMedia": "メディアを報告",
     "allStatuses": "すべてのステータス",
-    "allTypes": "すべてのタイプ",
     "noReports": "レポートが見つかりません",
     "loading": "読み込み中...",
     "loadMore": "もっと読み込む",
@@ -551,8 +492,14 @@
       "WRONG_TRANSLATION": "翻訳が間違っている",
       "WRONG_TIMING": "タイミングが間違っている",
       "WRONG_AUDIO": "音声が間違っている",
+      "WRONG_JAPANESE_TEXT": "日本語テキストが間違っている",
+      "LOW_QUALITY_AUDIO": "音声の品質が低い",
       "NSFW_NOT_TAGGED": "コンテンツ未分類",
       "DUPLICATE_SEGMENT": "重複セグメント",
+      "WRONG_TITLE": "タイトルが間違っている",
+      "DUPLICATE_MEDIA": "重複メディア",
+      "WRONG_EPISODE_NUMBER": "エピソード番号が間違っている",
+      "IMAGE_ISSUE": "画像の問題",
       "WRONG_METADATA": "メタデータが間違っている",
       "MISSING_EPISODES": "エピソードが不足している",
       "WRONG_COVER_IMAGE": "カバー画像が間違っている",
@@ -566,7 +513,6 @@
       "RESOLVED": "解決済み"
     },
     "table": {
-      "date": "日付",
       "type": "タイプ",
       "target": "対象",
       "reason": "理由",
@@ -600,41 +546,6 @@
       "logout": "ログアウトしました。",
       "errorlogin400": "メールアドレス/パスワードを確認して再試行してください。",
       "closeSrOnly": "閉じる"
-    }
-  },
-  "lists": {
-    "pageTitle": "リスト",
-    "pageDescription": "メディアリストと保存したセグメントを閲覧・管理",
-    "seriesSection": "シリーズ",
-    "customSection": "カスタムリスト",
-    "segmentSection": "保存したセグメント",
-    "createList": "リスト作成",
-    "noLists": "リストが見つかりません",
-    "loading": "読み込み中...",
-    "nameLabel": "名前",
-    "namePlaceholder": "リスト名を入力",
-    "typeLabel": "タイプ",
-    "visibilityLabel": "公開設定",
-    "cancel": "キャンセル",
-    "create": "作成",
-    "creating": "作成中...",
-    "createError": "リストの作成に失敗しました",
-    "save": "保存",
-    "noSegmentLists": "セグメントリストがありません。先に作成してください。",
-    "backToLists": "リスト一覧に戻る",
-    "loadError": "リストの読み込みに失敗しました",
-    "confirmDelete": "このリストを削除してもよろしいですか？",
-    "mediaCount": "メディア",
-    "segmentCount": "セグメント",
-    "noSegments": "保存されたセグメントはまだありません",
-    "types": {
-      "SERIES": "シリーズ",
-      "CUSTOM": "カスタム",
-      "SEGMENT": "セグメント"
-    },
-    "visibility": {
-      "PUBLIC": "公開",
-      "PRIVATE": "非公開"
     }
   },
   "shortcuts": {

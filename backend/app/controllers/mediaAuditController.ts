@@ -10,7 +10,7 @@ import { InvalidRequestError, NotFoundError } from '@app/errors';
 import { runAllAudits } from '@app/models/mediaAudit/runner';
 import { auditRegistry } from '@app/models/mediaAudit/checks';
 import type { MediaAuditCheck, ThresholdField } from '@app/models/mediaAudit/checks';
-import { toReportDTO } from '@app/controllers/mappers/report.mapper';
+import { toReportDTO, resolveReportPublicIds } from '@app/controllers/mappers/report.mapper';
 import {
   toAdminMediaAuditListDTO,
   toMediaAuditDTO,
@@ -76,9 +76,16 @@ export const getAdminMediaAuditRun: GetAdminMediaAuditRun = async ({ params }, r
     order: { id: 'ASC' },
   });
 
+  const publicIdMaps = await resolveReportPublicIds(reports);
+
   return respond.with200().body({
     run: toMediaAuditRunDTO(run),
-    reports: reports.map(toReportDTO),
+    reports: reports.map((report) =>
+      toReportDTO(report, {
+        mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
+        segmentPublicId: report.targetSegmentId ? publicIdMaps.segments.get(report.targetSegmentId) ?? null : null,
+      }),
+    ),
   });
 };
 

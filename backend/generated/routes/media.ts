@@ -1419,7 +1419,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const getSeriesParamSchema = z.object({ id: z.coerce.number() });
+  const getSeriesParamSchema = z.object({ id: z.string() });
 
   const getSeriesQuerySchema = z.object({
     include: z
@@ -1504,7 +1504,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const updateSeriesParamSchema = z.object({ id: z.coerce.number() });
+  const updateSeriesParamSchema = z.object({ id: z.string() });
 
   const updateSeriesRequestBodySchema = z.object({
     nameJa: z.string().optional(),
@@ -1585,7 +1585,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const deleteSeriesParamSchema = z.object({ id: z.coerce.number() });
+  const deleteSeriesParamSchema = z.object({ id: z.string() });
 
   const deleteSeriesResponseBodyValidator = responseValidationFactory(
     [
@@ -1660,9 +1660,9 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const addMediaToSeriesParamSchema = z.object({ id: z.coerce.number() });
+  const addMediaToSeriesParamSchema = z.object({ id: z.string() });
 
-  const addMediaToSeriesRequestBodySchema = z.object({ mediaId: z.coerce.number(), position: z.coerce.number() });
+  const addMediaToSeriesRequestBodySchema = z.object({ mediaId: z.string(), position: z.coerce.number() });
 
   const addMediaToSeriesResponseBodyValidator = responseValidationFactory(
     [
@@ -1737,7 +1737,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const updateSeriesMediaParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
+  const updateSeriesMediaParamSchema = z.object({ id: z.string(), mediaId: z.string() });
 
   const updateSeriesMediaRequestBodySchema = z.object({ position: z.coerce.number() });
 
@@ -1814,7 +1814,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const removeMediaFromSeriesParamSchema = z.object({ id: z.coerce.number(), mediaId: z.coerce.number() });
+  const removeMediaFromSeriesParamSchema = z.object({ id: z.string(), mediaId: z.string() });
 
   const removeMediaFromSeriesResponseBodyValidator = responseValidationFactory(
     [
@@ -2039,7 +2039,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const getMediaParamSchema = z.object({ id: z.coerce.number() });
+  const getMediaParamSchema = z.object({ id: z.string() });
 
   const getMediaQuerySchema = z.object({
     include: z
@@ -2124,7 +2124,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const updateMediaParamSchema = z.object({ id: z.coerce.number() });
+  const updateMediaParamSchema = z.object({ id: z.string() });
 
   const updateMediaRequestBodySchema = s_MediaUpdateRequest;
 
@@ -2201,7 +2201,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const deleteMediaParamSchema = z.object({ id: z.coerce.number() });
+  const deleteMediaParamSchema = z.object({ id: z.string() });
 
   const deleteMediaResponseBodyValidator = responseValidationFactory(
     [
@@ -2276,7 +2276,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const listEpisodesParamSchema = z.object({ mediaId: z.coerce.number() });
+  const listEpisodesParamSchema = z.object({ mediaId: z.string() });
 
   const listEpisodesQuerySchema = z.object({
     take: z.coerce.number().min(1).max(100).optional().default(50),
@@ -2356,7 +2356,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const createEpisodeParamSchema = z.object({ mediaId: z.coerce.number() });
+  const createEpisodeParamSchema = z.object({ mediaId: z.string() });
 
   const createEpisodeRequestBodySchema = s_EpisodeCreateRequest;
 
@@ -2437,7 +2437,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const getEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const getEpisodeParamSchema = z.object({ mediaId: z.string(), episodeNumber: z.coerce.number() });
 
   const getEpisodeResponseBodyValidator = responseValidationFactory(
     [
@@ -2512,7 +2512,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     }
   });
 
-  const updateEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const updateEpisodeParamSchema = z.object({ mediaId: z.string(), episodeNumber: z.coerce.number() });
 
   const updateEpisodeRequestBodySchema = s_EpisodeUpdateRequest;
 
@@ -2592,7 +2592,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const deleteEpisodeParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const deleteEpisodeParamSchema = z.object({ mediaId: z.string(), episodeNumber: z.coerce.number() });
 
   const deleteEpisodeResponseBodyValidator = responseValidationFactory(
     [
@@ -2670,7 +2670,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const listSegmentsParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const listSegmentsParamSchema = z.object({ mediaId: z.string(), episodeNumber: z.coerce.number() });
 
   const listSegmentsQuerySchema = z.object({
     take: z.coerce.number().min(1).max(100).optional().default(50),
@@ -2756,7 +2756,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const createSegmentParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const createSegmentParamSchema = z.object({ mediaId: z.string(), episodeNumber: z.coerce.number() });
 
   const createSegmentRequestBodySchema = s_SegmentCreateRequest;
 
@@ -2840,7 +2840,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const createSegmentsBatchParamSchema = z.object({ mediaId: z.coerce.number(), episodeNumber: z.coerce.number() });
+  const createSegmentsBatchParamSchema = z.object({ mediaId: z.string(), episodeNumber: z.coerce.number() });
 
   const createSegmentsBatchRequestBodySchema = s_SegmentBatchCreateRequest;
 
@@ -2924,7 +2924,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   );
 
   const getSegmentParamSchema = z.object({
-    mediaId: z.coerce.number(),
+    mediaId: z.string(),
     episodeNumber: z.coerce.number(),
     id: z.coerce.number(),
   });
@@ -3006,7 +3006,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   );
 
   const updateSegmentParamSchema = z.object({
-    mediaId: z.coerce.number(),
+    mediaId: z.string(),
     episodeNumber: z.coerce.number(),
     id: z.coerce.number(),
   });
@@ -3090,7 +3090,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   );
 
   const deleteSegmentParamSchema = z.object({
-    mediaId: z.coerce.number(),
+    mediaId: z.string(),
     episodeNumber: z.coerce.number(),
     id: z.coerce.number(),
   });

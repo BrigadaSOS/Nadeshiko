@@ -13,10 +13,10 @@ get:
     - name: id
       in: path
       required: true
-      description: Collection ID
+      description: Collection public ID
       schema:
-        type: integer
-        example: 123
+        type: string
+        example: "V1StGXR8_Z5d"
     - name: cursor
       in: query
       description: Opaque pagination cursor token for paginated segments
@@ -67,10 +67,10 @@ patch:
     - name: id
       in: path
       required: true
-      description: Collection ID
+      description: Collection public ID
       schema:
-        type: integer
-        example: 123
+        type: string
+        example: "V1StGXR8_Z5d"
   requestBody:
     required: true
     content:
@@ -120,10 +120,10 @@ delete:
     - name: id
       in: path
       required: true
-      description: Collection ID
+      description: Collection public ID
       schema:
-        type: integer
-        example: 123
+        type: string
+        example: "V1StGXR8_Z5d"
   responses:
     "204":
       description: No Content

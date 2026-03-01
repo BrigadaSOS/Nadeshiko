@@ -1,0 +1,16 @@
+meta {
+  name: Get the current announcement
+  type: http
+  seq: 77
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/announcement
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -15,6 +15,7 @@ import {
   purgeAdminQueueFailed,
 } from '@app/controllers/queueController';
 import { impersonateAdminUser, clearAdminImpersonation } from '@app/controllers/devAuthController';
+import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
 import {
   listMedia,
   createMedia,
@@ -170,6 +171,8 @@ const AdminRoutes = createAdminRouter({
   getAdminMediaAuditRun,
   impersonateAdminUser,
   clearAdminImpersonation,
+  getAnnouncement,
+  updateAnnouncement,
 });
 
 const UserRoutes = createUserRouter({

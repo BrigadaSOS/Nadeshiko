@@ -16,9 +16,9 @@ get:
       in: path
       required: true
       schema:
-        type: integer
-      description: ID of the media
-      example: 7674
+        type: string
+      description: Public ID of the media
+      example: "V1StGXR8_Z5d"
     - name: take
       in: query
       required: false
@@ -71,9 +71,9 @@ post:
       in: path
       required: true
       schema:
-        type: integer
-      description: ID of the media
-      example: 7674
+        type: string
+      description: Public ID of the media
+      example: "V1StGXR8_Z5d"
   requestBody:
     required: true
     content:

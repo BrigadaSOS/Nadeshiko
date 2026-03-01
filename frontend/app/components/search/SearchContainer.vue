@@ -29,7 +29,7 @@ const props = defineProps<{
   initialSentenceData?: SearchResponse | null;
   initialStatsData?: SearchStatsResponse | null;
   listMediaIds?: number[] | null;
-  collectionId?: number | null;
+  collectionId?: string | null;
   collectionName?: string | null;
 }>();
 
@@ -62,7 +62,7 @@ const categoryApiMapping = CATEGORY_API_MAPPING;
 const showHiddenMediaOverride = ref(false);
 
 const isViewingHiddenMedia = computed(
-  () => !!media.value && !showHiddenMediaOverride.value && isMediaHidden(Number(media.value)),
+  () => !!media.value && !showHiddenMediaOverride.value && isMediaHidden(media.value),
 );
 
 const showAnywayAndRefresh = () => {
@@ -89,7 +89,7 @@ const searchData = computed(() => {
   const hidden = new Set(hiddenMediaIds.value);
 
   const allMedia = statsPayload?.media || ([] as ResolvedMediaStats[]);
-  const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.mediaId)) : allMedia;
+  const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.publicId)) : allMedia;
 
   const categories = hidden.size > 0
     ? recomputeCategories(filteredMedia)
@@ -111,10 +111,7 @@ const animeTabName = computed(() => {
       : t('searchContainer.collectionTabPrefix');
   }
   if (media.value) {
-    const mediaId = Number(media.value);
-    const mediaStat = Number.isNaN(mediaId)
-      ? null
-      : (searchData.value?.media || []).find((item) => item.mediaId === mediaId);
+    const mediaStat = (searchData.value?.media || []).find((item) => item.publicId === media.value);
     const mediaSource = mediaStat || searchData.value?.results?.[0]?.media || null;
 
     if (mediaSource) {
@@ -381,11 +378,7 @@ const categoryFilter = (categoryKey: string) => {
 
 const selectedMediaStat = computed(() => {
   if (!media.value || !searchData.value?.media) return null;
-  const mediaId = Number(media.value);
-  if (Number.isNaN(mediaId)) {
-    return searchData.value.media.find((stat) => stat.publicId === media.value) ?? null;
-  }
-  return searchData.value.media.find((stat) => stat.mediaId === mediaId) ?? null;
+  return searchData.value.media.find((stat) => stat.publicId === media.value) ?? null;
 });
 
 const isSelectedMediaMovie = computed(() => selectedMediaStat.value?.airingFormat === 'MOVIE');

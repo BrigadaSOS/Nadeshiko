@@ -20,21 +20,25 @@
         padding: 40px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
-      h1 {
-        color: #e91e63;
-        margin-top: 0;
-        font-size: 28px;
-      }
-      .logo {
-        text-align: center;
+      .header {
         margin-bottom: 30px;
       }
-      .logo img {
-        max-width: 150px;
+      .header td {
+        vertical-align: middle;
+      }
+      .header img {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #ef5552;
+        margin: 0;
+        font-size: 28px;
       }
       .button {
         display: inline-block;
-        background-color: #e91e63;
+        background-color: #ef5552;
         color: #ffffff;
         text-decoration: none;
         padding: 12px 30px;
@@ -43,7 +47,7 @@
         font-weight: bold;
       }
       .button:hover {
-        background-color: #c2185b;
+        background-color: #c74f4d;
       }
       .footer {
         margin-top: 30px;
@@ -52,6 +56,10 @@
         font-size: 14px;
         color: #666;
         text-align: center;
+      }
+      .footer a {
+        color: #ef5552;
+        text-decoration: none;
       }
       .features {
         background-color: #f9f9f9;
@@ -70,27 +78,30 @@
   </head>
   <body>
     <div class="container">
-      <div class="logo">
-        <h1>Welcome to Nadeshiko!</h1>
+      <div class="header">
+        <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto">
+          <tr>
+            <td><img src="https://nadeshiko.co/logo.webp" alt="Nadeshiko" /></td>
+            <td style="padding-left: 8px"><h1>Welcome to Nadeshiko!</h1></td>
+          </tr>
+        </table>
       </div>
 
-      <p>Hi <strong>{{username}}</strong>,</p>
+      <p>Hey <strong>{{username}}</strong>,</p>
 
-      <p>Thank you for joining Nadeshiko! We're excited to have you as part of our community.</p>
+      <p>Thanks for signing up! Here's a quick look at what you can do:</p>
 
       <div class="features">
-        <h3>What can you do with Nadeshiko?</h3>
         <ul>
-          <li><strong>Search</strong> - Find specific words and phrases across anime, dramas, and audiobooks</li>
-          <li><strong>Context</strong> - See how words are used in real situations by native speakers</li>
-          <li><strong>Shadow</strong> - Practice pronunciation with native audio using our immersive player</li>
-          <li><strong>Lists</strong> - Save and organize your favorite segments and media</li>
+          <li><strong>Search:</strong> Look up words and phrases in English, Spanish, or Japanese across anime and dramas</li>
+          <li><strong>Context:</strong> See how words are actually used by native speakers in real scenes</li>
+          <li><strong>Shadow:</strong> Practice your pronunciation with native audio in our immersive player</li>
+          <li><strong>Collections:</strong> Save and organize your favorite segments for later review</li>
         </ul>
       </div>
 
       <p>
-        Start your journey by searching for a word or phrase you're curious about. Our database contains thousands of
-        hours of content with accurate subtitles and timings.
+        Our database contains millions of example sentences. The easiest way to get started is to just search for a word or phrase you're curious about.
       </p>
 
       <p style="text-align: center">
@@ -98,13 +109,13 @@
       </p>
 
       <p>
-        If you have any questions or feedback, feel free to reach out to us anytime. We're always looking to improve
-        Nadeshiko.
+        Have questions or feedback? We'd love to hear from you,
+        <a href="https://new.nadeshiko.co/about#contact" style="color: #ef5552; text-decoration: none">reach out here</a>.
       </p>
 
       <div class="footer">
         <p>You received this email because you signed up for a Nadeshiko account.</p>
-        <p>&copy; {{year}} Nadeshiko. All rights reserved.</p>
+        <p>&copy; {{year}} Nadeshiko</p>
       </div>
     </div>
   </body>
