@@ -284,7 +284,6 @@ export class SegmentResponse {
     return value !== null && value !== undefined;
   }
 
-
   private static toContentRating(value: string): SegmentOutput['contentRating'] {
     const normalized = value.toUpperCase();
     switch (normalized) {

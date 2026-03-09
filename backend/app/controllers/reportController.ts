@@ -28,10 +28,12 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
   ) as Report;
   await report.save();
 
-  return respond.with201().body(toReportDTO(report, {
-    mediaPublicId: body.target.mediaId,
-    segmentPublicId: 'segmentId' in body.target ? body.target.segmentId : null,
-  }));
+  return respond.with201().body(
+    toReportDTO(report, {
+      mediaPublicId: body.target.mediaId,
+      segmentPublicId: 'segmentId' in body.target ? body.target.segmentId : null,
+    }),
+  );
 };
 
 export const listAdminReports: ListAdminReports = async ({ query }, respond) => {

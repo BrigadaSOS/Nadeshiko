@@ -70,8 +70,8 @@ export class Media extends BaseEntity {
   @Column({ name: 'end_date', type: 'date', nullable: true })
   endDate?: string; // Format: YYYY-MM-DD
 
-  @Column({ type: 'varchar' })
-  studio!: string;
+  @Column({ type: 'varchar', nullable: true })
+  studio?: string | null;
 
   @Column({ name: 'season_name', type: 'varchar' })
   seasonName!: string;

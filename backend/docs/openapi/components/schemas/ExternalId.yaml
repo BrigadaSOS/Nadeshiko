@@ -13,3 +13,7 @@ properties:
     type: string
     description: TVDB ID
     example: "12345"
+  tmdb:
+    type: string
+    description: TMDB ID
+    example: "90955"

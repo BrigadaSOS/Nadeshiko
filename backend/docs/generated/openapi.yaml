@@ -4421,6 +4421,10 @@ components:
           type: string
           description: TVDB ID
           example: '12345'
+        tmdb:
+          type: string
+          description: TMDB ID
+          example: '90955'
     Seiyuu:
       type: object
       description: Japanese voice actor (seiyuu)
@@ -4512,7 +4516,6 @@ components:
         - category
         - segmentCount
         - episodeCount
-        - studio
         - seasonName
         - seasonYear
       properties:
@@ -4589,6 +4592,7 @@ components:
           example: 25
         studio:
           type: string
+          nullable: true
           description: Animation studio that produced the media
           example: J.C.STAFF
         seasonName:
@@ -5152,7 +5156,6 @@ components:
         - category
         - version
         - hashSalt
-        - studio
         - seasonName
         - seasonYear
       properties:

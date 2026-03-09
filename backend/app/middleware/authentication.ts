@@ -132,10 +132,15 @@ function parseApiKeyMetadata(rawMetadata: unknown): Record<string, unknown> | nu
   }
 }
 
-type MappedApiKeyError = AuthCredentialsInvalidError | AuthCredentialsExpiredError | RateLimitExceededError | QuotaExceededError;
+type MappedApiKeyError =
+  | AuthCredentialsInvalidError
+  | AuthCredentialsExpiredError
+  | RateLimitExceededError
+  | QuotaExceededError;
 const BETTER_AUTH_API_KEY_ERROR_FACTORIES: Record<string, () => MappedApiKeyError> = {
   RATE_LIMITED: () => new RateLimitExceededError('API key rate limit exceeded. Please try again later.'),
-  USAGE_EXCEEDED: () => new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.'),
+  USAGE_EXCEEDED: () =>
+    new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.'),
   KEY_DISABLED: () => new AuthCredentialsExpiredError('API key is disabled or expired.'),
   KEY_EXPIRED: () => new AuthCredentialsExpiredError('API key is disabled or expired.'),
   INVALID_API_KEY: () => new AuthCredentialsInvalidError('Invalid API key.'),

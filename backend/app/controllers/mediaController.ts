@@ -9,7 +9,6 @@ import type {
 } from 'generated/routes/media';
 import type { ListMediaQueryOutput } from 'generated/outputTypes';
 import type { t_CharacterInput, t_ExternalId } from 'generated/models';
-import { ILike } from 'typeorm';
 import { CategoryType, Media, MediaCharacter, MediaExternalId, MediaInclude } from '@app/models';
 import { Character } from '@app/models/Character';
 import { Seiyuu } from '@app/models/Seiyuu';
@@ -65,7 +64,7 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
 };
 
 async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaResponder) {
-  const normalizedQuery = query.query!.trim().toLowerCase();
+  const normalizedQuery = (query.query ?? '').trim().toLowerCase();
   const escaped = escapeLikePattern(normalizedQuery);
   const containsPattern = `%${escaped}%`;
   const prefixPattern = `${escaped}%`;
@@ -124,7 +123,7 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
       totalEpisodes: globalStats.fullTotalEpisodes,
     },
   });
-};
+}
 
 export const createMedia: CreateMedia = async ({ body }, respond) => {
   const media = await Media.create(toMediaCreateAttributes(body)).save();
@@ -232,10 +231,7 @@ export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, re
 
 const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
 
-async function replaceMediaExternalIds(
-  mediaId: number,
-  externalIds: t_ExternalId,
-): Promise<MediaExternalId[]> {
+async function replaceMediaExternalIds(mediaId: number, externalIds: t_ExternalId): Promise<MediaExternalId[]> {
   await MediaExternalId.delete({ mediaId });
 
   const rows = toMediaExternalIdAttributes(externalIds).map((externalId) =>
@@ -249,10 +245,7 @@ async function replaceMediaExternalIds(
   return MediaExternalId.save(rows);
 }
 
-async function replaceMediaCharacters(
-  mediaId: number,
-  characters: t_CharacterInput[],
-): Promise<MediaCharacter[]> {
+async function replaceMediaCharacters(mediaId: number, characters: t_CharacterInput[]): Promise<MediaCharacter[]> {
   await MediaCharacter.delete({ mediaId });
 
   if (characters.length === 0) {
@@ -325,9 +318,7 @@ async function insertCharactersForMedia(
   return result;
 }
 
-async function upsertSeiyuu(
-  seiyuuInput: t_CharacterInput['seiyuu'],
-): Promise<Seiyuu> {
+async function upsertSeiyuu(seiyuuInput: t_CharacterInput['seiyuu']): Promise<Seiyuu> {
   const anilistId = seiyuuInput.externalIds.anilist;
 
   if (anilistId === undefined) {
@@ -357,10 +348,7 @@ async function upsertSeiyuu(
         imageUrl: seiyuuInput.imageUrl,
       }).save();
     } catch (error: unknown) {
-      if (
-        attempt < maxRetries - 1 &&
-        isDuplicateKeyError(error)
-      ) {
+      if (attempt < maxRetries - 1 && isDuplicateKeyError(error)) {
         continue;
       }
       throw error;

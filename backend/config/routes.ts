@@ -1,4 +1,10 @@
-import express, { type Application, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
+import express, {
+  type Application,
+  type NextFunction,
+  type Request,
+  type RequestHandler,
+  type Response,
+} from 'express';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from '@config/auth';
 import { AccessDeniedError } from '@app/errors';

@@ -7,7 +7,9 @@ const CACHE_KEY = 'active';
 const CACHE_TTL_MS = 60_000;
 
 const NO_ANNOUNCEMENT = Symbol('none');
-type CachedAnnouncement = { message: string; type: 'info' | 'warning' | 'maintenance'; active: boolean } | typeof NO_ANNOUNCEMENT;
+type CachedAnnouncement =
+  | { message: string; type: 'info' | 'warning' | 'maintenance'; active: boolean }
+  | typeof NO_ANNOUNCEMENT;
 
 export const getAnnouncement: GetAnnouncement = async (_params, respond) => {
   const cached = Cache.get<CachedAnnouncement>(ANNOUNCEMENT_CACHE, CACHE_KEY);

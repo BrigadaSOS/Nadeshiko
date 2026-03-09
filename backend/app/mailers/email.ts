@@ -163,10 +163,7 @@ export type TestEmailTemplate = 'welcome' | 'announcement';
  * Sends a test email synchronously (bypassing the queue) and returns the Ethereal preview URL.
  * Intended for local development only.
  */
-export async function sendTestEmail(
-  template: TestEmailTemplate,
-  to: string,
-): Promise<{ previewUrl: string | null }> {
+export async function sendTestEmail(template: TestEmailTemplate, to: string): Promise<{ previewUrl: string | null }> {
   const username = 'TestUser';
 
   const { subject, html } =

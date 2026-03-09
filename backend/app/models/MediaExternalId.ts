@@ -6,6 +6,7 @@ export enum ExternalSourceType {
   ANILIST = 'ANILIST',
   IMDB = 'IMDB',
   TVDB = 'TVDB',
+  TMDB = 'TMDB',
 }
 
 @Entity('MediaExternalId')

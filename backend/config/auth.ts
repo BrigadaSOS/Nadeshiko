@@ -272,7 +272,11 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
             };
           },
           after: async (user) => {
-            await sendWelcomeEmailAfterUserCreate(user as BetterAuthCreatedUser, sendWelcomeEmailFn, onWelcomeEmailError);
+            await sendWelcomeEmailAfterUserCreate(
+              user as BetterAuthCreatedUser,
+              sendWelcomeEmailFn,
+              onWelcomeEmailError,
+            );
             if (user.id) {
               await ensureDefaultCollectionsFn(Number(user.id)).catch(() => {});
             }
