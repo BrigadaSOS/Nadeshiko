@@ -223,6 +223,11 @@ router.use('/', UserRoutes);
 
 export function mountRoutes(app: Application): Application {
   app.get('/up', (_req, res) => res.status(200).send('OK'));
+
+  app.get('/debug-sentry', () => {
+    throw new Error('Sentry test error');
+  });
+
   app.all('/v1/auth', noCache, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
   app.all('/v1/auth/*splat', noCache, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
   app.use('/', router);
