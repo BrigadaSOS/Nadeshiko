@@ -5,6 +5,7 @@ import { getAppEnvironment } from '@config/environment';
 import { runInitializers, runShutdownInitializers } from '@config/initializers';
 import type { RuntimeContext } from '@config/initializers/types';
 import { logger } from '@config/log';
+import { initSentry } from '@config/sentry';
 
 async function closeServer(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -26,6 +27,10 @@ async function startServer(context: RuntimeContext, port: number): Promise<Serve
 }
 
 async function startRuntime(): Promise<void> {
+  // Sentry must be initialized before building the Express app so that
+  // setupExpressErrorHandler (called inside buildApplication) sees an active SDK.
+  initSentry();
+
   const app = buildApplication();
   const context: RuntimeContext = {
     app,

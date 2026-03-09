@@ -1,7 +1,4 @@
-import { initTelemetry, shutdownTelemetry } from '../utils/telemetry';
 import { trace, SpanKind, SpanStatusCode, type Span } from '@opentelemetry/api';
-
-initTelemetry();
 
 const tracer = trace.getTracer('nadeshiko-frontend');
 
@@ -35,9 +32,5 @@ export default defineNitroPlugin((nitroApp) => {
 
     span.recordException(error);
     span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-  });
-
-  nitroApp.hooks.hook('close', async () => {
-    await shutdownTelemetry();
   });
 });
