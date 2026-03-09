@@ -5,6 +5,7 @@ type Collection = {
   id: number;
   publicId: string;
   name: string;
+  type: 'USER' | 'ANKI_EXPORT';
   visibility: 'PUBLIC' | 'PRIVATE';
   segmentCount: number;
   createdAt: string;
@@ -300,6 +301,7 @@ const submitDelete = async () => {
                         : t('accountSettings.collections.makePublic') }}
                     </button>
                     <button
+                      v-if="collection.type !== 'ANKI_EXPORT'"
                       type="button"
                       class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
                       @click="openDelete(collection)"

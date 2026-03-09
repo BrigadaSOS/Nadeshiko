@@ -14,7 +14,7 @@ properties:
   activityType:
     $ref: "./ActivityType.yaml"
   segmentId:
-    type: integer
+    type: string
     nullable: true
   mediaId:
     type: integer

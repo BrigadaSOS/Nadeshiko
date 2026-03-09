@@ -287,6 +287,24 @@ useHead(() => {
   text-decoration-color: #ef5552;
 }
 
+/* Images */
+.content-markdown :deep(img) {
+  display: block;
+  max-width: 100%;
+  margin: 2rem auto 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.content-markdown :deep(img + em),
+.content-markdown :deep(p:has(> img) + p > em:only-child) {
+  display: block;
+  text-align: center;
+  color: #9ca3af;
+  font-style: normal;
+  font-size: 0.925rem;
+  margin-bottom: 2rem;
+}
+
 /* Paragraphs */
 .content-markdown :deep(p) {
   font-size: 1.125rem;
