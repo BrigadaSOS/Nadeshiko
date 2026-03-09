@@ -1999,15 +1999,18 @@ paths:
                 activityType:
                   type: string
                   enum:
+                    - SEARCH
                     - SEGMENT_PLAY
                     - SHARE
                 segmentId:
-                  type: integer
+                  type: string
                 mediaId:
                   type: integer
                 mediaName:
                   type: string
                 japaneseText:
+                  type: string
+                searchQuery:
                   type: string
       responses:
         '204':
@@ -6451,7 +6454,7 @@ components:
         activityType:
           $ref: '#/components/schemas/ActivityType'
         segmentId:
-          type: integer
+          type: string
           nullable: true
         mediaId:
           type: integer

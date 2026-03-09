@@ -618,7 +618,7 @@ export type t_UserActivity = {
   mediaId: number | null;
   mediaName: string | null;
   searchQuery: string | null;
-  segmentId: number | null;
+  segmentId: string | null;
 };
 
 export type t_UserExportCollection = t_Collection & {
@@ -1096,11 +1096,12 @@ export type t_SearchWordsRequestBodySchema = {
 };
 
 export type t_TrackUserActivityRequestBodySchema = {
-  activityType: 'SEGMENT_PLAY' | 'SHARE';
+  activityType: 'SEARCH' | 'SEGMENT_PLAY' | 'SHARE';
   japaneseText?: string;
   mediaId?: number;
   mediaName?: string;
-  segmentId?: number;
+  searchQuery?: string;
+  segmentId?: string;
 };
 
 export type t_TriggerReindexRequestBodySchema = {

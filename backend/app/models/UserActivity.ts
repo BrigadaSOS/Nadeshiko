@@ -11,7 +11,7 @@ export enum ActivityType {
 }
 
 export interface UserActivityTrackData {
-  segmentId?: number;
+  segmentId?: string;
   mediaId?: number;
   searchQuery?: string;
   mediaName?: string;
@@ -31,8 +31,8 @@ export class UserActivity extends BaseEntity {
   @Column({ name: 'activity_type', type: 'enum', enum: ActivityType })
   activityType!: ActivityType;
 
-  @Column({ name: 'segment_id', type: 'int', nullable: true })
-  segmentId?: number | null;
+  @Column({ name: 'segment_id', type: 'varchar', nullable: true })
+  segmentId?: string | null;
 
   @Column({ name: 'media_id', type: 'int', nullable: true })
   mediaId?: number | null;

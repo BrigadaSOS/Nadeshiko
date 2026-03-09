@@ -1,11 +1,13 @@
 <script setup lang="ts">
+const stripTags = (text: string) => text.replace(/<[^>]*>/g, '');
+
 type ActivityItem = {
   id: number;
   activityType: string;
-  segmentId?: number | null;
+  segmentId?: string | null;
   mediaId?: number | null;
   searchQuery?: string | null;
-  animeName?: string | null;
+  mediaName?: string | null;
   japaneseText?: string | null;
   createdAt: string;
 };
@@ -662,13 +664,13 @@ onMounted(async () => {
                 {{ activity.searchQuery }}
               </a>
               <a
-                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE') && activity.segmentId && (activity.animeName || activity.japaneseText)"
-                :href="`/search?uuid=${activity.segmentId}`"
+                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE') && activity.segmentId && (activity.mediaName || activity.japaneseText)"
+                :href="`/sentence/${activity.segmentId}`"
                 class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
               >
-                <span v-if="activity.animeName" class="text-gray-400">{{ activity.animeName }}</span>
-                <span v-if="activity.animeName && activity.japaneseText" class="text-gray-600 mx-1">—</span>
-                <span v-if="activity.japaneseText">{{ activity.japaneseText }}</span>
+                <span v-if="activity.mediaName" class="text-gray-400">{{ activity.mediaName }}</span>
+                <span v-if="activity.mediaName && activity.japaneseText" class="text-gray-600 mx-1">—</span>
+                <span v-if="activity.japaneseText">{{ stripTags(activity.japaneseText) }}</span>
               </a>
               <span v-else class="text-gray-500">-</span>
             </td>

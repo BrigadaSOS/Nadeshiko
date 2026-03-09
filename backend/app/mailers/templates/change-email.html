@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirm Email Change</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 40px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        margin-bottom: 30px;
+      }
+      .header td {
+        vertical-align: middle;
+      }
+      .header img {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+      }
+      h1 {
+        color: #ef5552;
+        margin: 0;
+        font-size: 28px;
+      }
+      .button {
+        display: inline-block;
+        background-color: #ef5552;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 30px;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+      .button:hover {
+        background-color: #c74f4d;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+        font-size: 14px;
+        color: #666;
+        text-align: center;
+      }
+      .footer a {
+        color: #ef5552;
+        text-decoration: none;
+      }
+      .info-box {
+        background-color: #f9f9f9;
+        padding: 20px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto">
+          <tr>
+            <td><img src="https://nadeshiko.co/logo.webp" alt="Nadeshiko" /></td>
+            <td style="padding-left: 8px"><h1>Confirm Email Change</h1></td>
+          </tr>
+        </table>
+      </div>
+
+      <p>Hey <strong>{{username}}</strong>,</p>
+
+      <p>We received a request to change the email address associated with your Nadeshiko account.</p>
+
+      <div class="info-box">
+        <p style="margin: 0"><strong>New email:</strong> {{newEmail}}</p>
+      </div>
+
+      <p>Click the button below to confirm this change. If you didn't request this, you can safely ignore this email.</p>
+
+      <p style="text-align: center">
+        <a href="{{url}}" class="button">Confirm Email Change</a>
+      </p>
+
+      <p style="font-size: 14px; color: #666">This link will expire in 1 hour.</p>
+
+      <div class="footer">
+        <p>You received this email because an email change was requested for your Nadeshiko account.</p>
+        <p>&copy; {{year}} Nadeshiko</p>
+      </div>
+    </div>
+  </body>
+</html>

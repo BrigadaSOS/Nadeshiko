@@ -331,7 +331,7 @@ const openCollectionsPage = async () => {
   <UiButtonPrimaryAction
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
-    @click="getSharingURL({ publicId: content.segment.publicId, segmentId: content.segment.id, mediaId: content.media.id, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
+    @click="getSharingURL({ publicId: content.segment.publicId, mediaId: content.media.id, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
   >
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>

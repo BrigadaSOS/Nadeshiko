@@ -63,6 +63,7 @@ export const trackUserActivity: TrackUserActivity = async ({ body }, respond, re
   UserActivity.trackForUser(user, body.activityType as ActivityType, {
     segmentId: body.segmentId,
     mediaId: body.mediaId,
+    searchQuery: body.searchQuery,
     mediaName: body.mediaName,
     japaneseText: body.japaneseText,
   }).catch((err: unknown) => {

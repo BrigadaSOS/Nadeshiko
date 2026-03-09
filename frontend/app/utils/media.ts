@@ -181,7 +181,6 @@ export async function copyToClipboard(item: string) {
 
 export async function getSharingURL(params: {
   publicId: string;
-  segmentId?: number;
   mediaId?: number;
   mediaName?: string;
   japaneseText?: string;
@@ -198,7 +197,7 @@ export async function getSharingURL(params: {
       sdk.trackUserActivity({
         body: {
           activityType: 'SHARE',
-          segmentId: params.segmentId,
+          segmentId: params.publicId,
           mediaId: params.mediaId,
           mediaName: params.mediaName,
           japaneseText: params.japaneseText,

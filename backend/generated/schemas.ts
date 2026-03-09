@@ -472,7 +472,7 @@ export const s_SeriesListResponse = z.object({ series: z.array(s_Series), pagina
 export const s_UserActivity = z.object({
   id: z.coerce.number(),
   activityType: s_ActivityType,
-  segmentId: z.coerce.number().nullable(),
+  segmentId: z.string().nullable(),
   mediaId: z.coerce.number().nullable(),
   searchQuery: z.string().nullable(),
   mediaName: z.string().nullable(),

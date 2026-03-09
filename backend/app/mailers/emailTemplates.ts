@@ -34,6 +34,22 @@ export async function buildAnnouncementEmail(
   return { subject, html };
 }
 
+export async function buildChangeEmailVerificationEmail(
+  username: string,
+  newEmail: string,
+  url: string,
+): Promise<{ subject: string; html: string }> {
+  const subject = 'Confirm your email change';
+  const html = await renderTemplate('change-email', {
+    username,
+    newEmail,
+    url,
+    year: getCurrentYear(),
+  });
+
+  return { subject, html };
+}
+
 export async function renderTemplate(templateName: string, variables: Record<string, string>): Promise<string> {
   const templatePath = path.join(__dirname, 'templates', `${templateName}.html`);
 

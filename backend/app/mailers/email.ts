@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { SES } from '@aws-sdk/client-ses';
 import { config } from '@config/config';
 import { logger } from '@config/log';
-import { buildWelcomeEmail, buildAnnouncementEmail } from './emailTemplates';
+import { buildWelcomeEmail, buildAnnouncementEmail, buildChangeEmailVerificationEmail } from './emailTemplates';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
@@ -155,6 +155,22 @@ export async function sendAnnouncementEmail(
     },
     `announcement-${userId}-${subject.replace(/\s+/g, '-').toLowerCase()}`, // Dedupe key per user and announcement
   );
+}
+
+export async function sendChangeEmailVerificationEmail(
+  userId: number,
+  username: string,
+  currentEmail: string,
+  newEmail: string,
+  verificationUrl: string,
+): Promise<void> {
+  const { subject, html } = await buildChangeEmailVerificationEmail(username, newEmail, verificationUrl);
+
+  await sendEmailJob({
+    to: currentEmail,
+    subject,
+    html,
+  });
 }
 
 export type TestEmailTemplate = 'welcome' | 'announcement';

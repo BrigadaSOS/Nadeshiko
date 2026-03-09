@@ -214,6 +214,23 @@ export const userStore = defineStore('user', {
       }
     },
 
+    async changeEmail(newEmail: string): Promise<{ success: boolean; error?: string }> {
+      try {
+        await $fetch('/v1/auth/change-email', {
+          method: 'POST',
+          credentials: 'include',
+          body: {
+            newEmail,
+            callbackURL: window.location.origin + '/settings',
+          },
+        });
+        return { success: true };
+      } catch (error: any) {
+        const message = error?.data?.message || error?.message || 'Failed to change email';
+        return { success: false, error: message };
+      }
+    },
+
     async deleteAccount(): Promise<boolean> {
       try {
         await $fetch('/v1/auth/delete-user', {

@@ -636,11 +636,12 @@ export function createUserRouter(implementation: UserImplementation): Router {
   });
 
   const trackUserActivityRequestBodySchema = z.object({
-    activityType: z.enum(['SEGMENT_PLAY', 'SHARE']),
-    segmentId: z.coerce.number().optional(),
+    activityType: z.enum(['SEARCH', 'SEGMENT_PLAY', 'SHARE']),
+    segmentId: z.string().optional(),
     mediaId: z.coerce.number().optional(),
     mediaName: z.string().optional(),
     japaneseText: z.string().optional(),
+    searchQuery: z.string().optional(),
   });
 
   const trackUserActivityResponseBodyValidator = responseValidationFactory(
