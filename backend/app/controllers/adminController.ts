@@ -154,7 +154,9 @@ async function getUserStats() {
   const [totalUsers, recentlyRegistered, recentlyActive] = await Promise.all([
     queryCount('SELECT COUNT(*)::int AS count FROM "User"'),
     queryCount('SELECT COUNT(*)::int AS count FROM "User" WHERE created_at > NOW() - INTERVAL \'30 days\''),
-    queryCount('SELECT COUNT(DISTINCT user_id)::int AS count FROM "UserActivity" WHERE created_at > NOW() - INTERVAL \'30 days\''),
+    queryCount(
+      'SELECT COUNT(DISTINCT user_id)::int AS count FROM "UserActivity" WHERE created_at > NOW() - INTERVAL \'30 days\'',
+    ),
   ]);
 
   return {

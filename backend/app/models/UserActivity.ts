@@ -159,10 +159,7 @@ export class UserActivity extends BaseEntity {
     };
   }
 
-  static async getHeatmapForUser(
-    userId: number,
-    days: number,
-  ): Promise<Record<string, Record<string, number>>> {
+  static async getHeatmapForUser(userId: number, days: number): Promise<Record<string, Record<string, number>>> {
     const since = new Date();
     since.setDate(since.getDate() - days);
     since.setHours(0, 0, 0, 0);

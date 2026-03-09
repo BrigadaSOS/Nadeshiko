@@ -6,11 +6,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } 
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { requestIdMiddleware } from '@app/middleware/requestId';
-import {
-  requireApiKeyAuth,
-  requireSessionAuth,
-  assertUser,
-} from '@app/middleware/authentication';
+import { requireApiKeyAuth, requireSessionAuth, assertUser } from '@app/middleware/authentication';
 import { invalidateUserCache, invalidateApiKeyCacheForUser } from '@app/middleware/authCacheStore';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { ApiAuth, User } from '@app/models';

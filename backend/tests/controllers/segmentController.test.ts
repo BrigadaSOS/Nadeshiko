@@ -126,16 +126,18 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
       () => Segment.count(),
       +1,
       async () => {
-        const res = await request(app).post(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments`).send({
-          position,
-          startTimeMs: 1500,
-          endTimeMs: 2500,
-          textJa: { content: 'テスト' },
-          textEn: { content: 'test', isMachineTranslated: false },
-          textEs: { content: 'prueba', isMachineTranslated: false },
-          storage: 'R2',
-          hashedId: 'new-hash',
-        });
+        const res = await request(app)
+          .post(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments`)
+          .send({
+            position,
+            startTimeMs: 1500,
+            endTimeMs: 2500,
+            textJa: { content: 'テスト' },
+            textEn: { content: 'test', isMachineTranslated: false },
+            textEs: { content: 'prueba', isMachineTranslated: false },
+            storage: 'R2',
+            hashedId: 'new-hash',
+          });
 
         const expectedUuid = uuidv3(`99999-1-${episode.episodeNumber}-${position}`, config.UUID_NAMESPACE);
 

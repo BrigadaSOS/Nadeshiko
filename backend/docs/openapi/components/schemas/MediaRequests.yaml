@@ -102,7 +102,6 @@ MediaCreateRequest:
     - category
     - version
     - hashSalt
-    - studio
     - seasonName
     - seasonYear
   properties:
