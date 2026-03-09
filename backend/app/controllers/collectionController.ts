@@ -10,7 +10,14 @@ import type {
   SearchCollectionSegments,
   GetCollectionStats,
 } from 'generated/routes/collections';
-import { Collection, CollectionSegment, CollectionType, CollectionVisibility, Segment, UserRoleType } from '@app/models';
+import {
+  Collection,
+  CollectionSegment,
+  CollectionType,
+  CollectionVisibility,
+  Segment,
+  UserRoleType,
+} from '@app/models';
 import type { CategoryOutput } from 'generated/outputTypes';
 import type { User } from '@app/models/User';
 import { toCollectionDTO } from './mappers/collection.mapper';
@@ -191,7 +198,6 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
 
     return result.identifiers.length > 0 || (result.raw?.rowCount ?? 0) > 0;
   });
-
 
   return respond.with204();
 };

@@ -27,6 +27,7 @@ const EXTERNAL_SOURCE_BY_KEY: Record<ExternalIdInputKey, ExternalSourceType> = {
   anilist: ExternalSourceType.ANILIST,
   imdb: ExternalSourceType.IMDB,
   tvdb: ExternalSourceType.TVDB,
+  tmdb: ExternalSourceType.TMDB,
 };
 
 export const toMediaExternalIdAttributes = (externalIds?: t_ExternalId) =>

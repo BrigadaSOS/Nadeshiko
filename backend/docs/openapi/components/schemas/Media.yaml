@@ -16,7 +16,6 @@ required:
   - category
   - segmentCount
   - episodeCount
-  - studio
   - seasonName
   - seasonYear
 properties:
@@ -89,6 +88,7 @@ properties:
     example: 25
   studio:
     type: string
+    nullable: true
     description: Animation studio that produced the media
     example: "J.C.STAFF"
   seasonName:

@@ -47,7 +47,11 @@ export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segmen
   };
 };
 
-export const toSegmentInternalDTO = (segment: Segment, include?: string[], mediaPublicId?: string): t_SegmentInternal => {
+export const toSegmentInternalDTO = (
+  segment: Segment,
+  include?: string[],
+  mediaPublicId?: string,
+): t_SegmentInternal => {
   const all = include === undefined;
   return {
     ...toSegmentDTO(segment, mediaPublicId),

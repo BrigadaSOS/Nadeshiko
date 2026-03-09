@@ -35,7 +35,7 @@ export const toUserExportDTO = (
   reports: reports.map((report) =>
     toReportDTO(report, {
       mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
-      segmentPublicId: report.targetSegmentId ? publicIdMaps.segments.get(report.targetSegmentId) ?? null : null,
+      segmentPublicId: report.targetSegmentId ? (publicIdMaps.segments.get(report.targetSegmentId) ?? null) : null,
     }),
   ),
 });

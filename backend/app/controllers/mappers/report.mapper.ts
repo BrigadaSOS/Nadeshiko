@@ -84,7 +84,12 @@ type ReportCreateAttributesInput = {
   resolvedMediaId: number;
 };
 
-export function toReportCreateAttributes({ body, userId, resolvedSegmentId, resolvedMediaId }: ReportCreateAttributesInput): Partial<Report> {
+export function toReportCreateAttributes({
+  body,
+  userId,
+  resolvedSegmentId,
+  resolvedMediaId,
+}: ReportCreateAttributesInput): Partial<Report> {
   return {
     source: ReportSource.USER,
     targetType: body.target.type as ReportTargetType,
@@ -129,14 +134,10 @@ export function toAdminReportListDTO(
   publicIdMaps: ReportPublicIdMaps,
 ): t_AdminReport[] {
   return reports.map((report) =>
-    toAdminReportDTO(
-      report,
-      countMap.get(toReportTargetCountKey(report)) ?? 1,
-      {
-        mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
-        segmentPublicId: report.targetSegmentId ? publicIdMaps.segments.get(report.targetSegmentId) ?? null : null,
-      },
-    ),
+    toAdminReportDTO(report, countMap.get(toReportTargetCountKey(report)) ?? 1, {
+      mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
+      segmentPublicId: report.targetSegmentId ? (publicIdMaps.segments.get(report.targetSegmentId) ?? null) : null,
+    }),
   );
 }
 

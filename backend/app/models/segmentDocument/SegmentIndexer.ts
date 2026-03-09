@@ -190,7 +190,8 @@ export class SegmentIndexer {
 
         const operations: object[] = [];
         for (const segment of validSegments) {
-          const mediaItem = mediaMap.get(segment.mediaId)!;
+          const mediaItem = mediaMap.get(segment.mediaId);
+          if (!mediaItem) continue;
           operations.push({ index: { _index: INDEX_NAME, _id: segment.id.toString() } });
           operations.push(SegmentIndexer.buildDocument(segment, mediaItem));
         }

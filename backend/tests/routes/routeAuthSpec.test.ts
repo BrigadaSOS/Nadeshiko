@@ -100,7 +100,7 @@ describe('OpenAPI security definitions', () => {
     for (const op of adminOps) {
       const sessionReq = op.security.find((s) => 'SessionCookie' in s);
       expect(sessionReq).toBeDefined();
-      expect(sessionReq!.SessionCookie).toContain('ADMIN');
+      expect(sessionReq?.SessionCookie).toContain('ADMIN');
     }
   });
 
@@ -134,8 +134,8 @@ describe('OpenAPI security definitions', () => {
       expect(op.security).toHaveLength(2);
       const apiKeyReq = op.security.find((s) => 'ApiKey' in s);
       const sessionReq = op.security.find((s) => 'SessionCookie' in s);
-      expect(apiKeyReq!.ApiKey).toEqual(['READ_MEDIA']);
-      expect(sessionReq!.SessionCookie).toEqual([]);
+      expect(apiKeyReq?.ApiKey).toEqual(['READ_MEDIA']);
+      expect(sessionReq?.SessionCookie).toEqual([]);
     }
   });
 });
@@ -177,9 +177,7 @@ describe('generated routeAuth coverage', () => {
       }
     }
 
-    const extra = routeAuth
-      .map((r) => `${r.method} ${r.path}`)
-      .filter((key) => !specKeys.has(key));
+    const extra = routeAuth.map((r) => `${r.method} ${r.path}`).filter((key) => !specKeys.has(key));
 
     expect(extra).toEqual([]);
   });

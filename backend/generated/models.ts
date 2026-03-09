@@ -196,6 +196,7 @@ export type t_Error500 = {
 export type t_ExternalId = {
   anilist?: string;
   imdb?: string;
+  tmdb?: string;
   tvdb?: string;
 };
 
@@ -228,7 +229,7 @@ export type t_Media = {
   seasonYear: number;
   segmentCount: number;
   startDate: string;
-  studio: string;
+  studio?: string | null;
 };
 
 export type t_MediaAudit = {
@@ -759,7 +760,7 @@ export type t_CreateMediaRequestBodySchema = {
   startDate: string;
   storage: 'LOCAL' | 'R2';
   storageBasePath?: string;
-  studio: string;
+  studio?: string;
   version: string;
 };
 

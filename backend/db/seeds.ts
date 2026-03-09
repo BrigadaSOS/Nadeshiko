@@ -50,7 +50,12 @@ export async function seed() {
     if (collectionCount === 0) {
       await Collection.save([
         { name: 'Favorites', type: CollectionType.USER, userId: user.id, visibility: CollectionVisibility.PRIVATE },
-        { name: 'Anki Exports', type: CollectionType.ANKI_EXPORT, userId: user.id, visibility: CollectionVisibility.PRIVATE },
+        {
+          name: 'Anki Exports',
+          type: CollectionType.ANKI_EXPORT,
+          userId: user.id,
+          visibility: CollectionVisibility.PRIVATE,
+        },
       ]);
     }
     logger.info({ userId: user.id, email }, 'Admin user created');

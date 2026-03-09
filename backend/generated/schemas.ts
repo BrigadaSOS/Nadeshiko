@@ -148,6 +148,7 @@ export const s_ExternalId = z.object({
   anilist: z.string().optional(),
   imdb: z.string().optional(),
   tvdb: z.string().optional(),
+  tmdb: z.string().optional(),
 });
 
 export const s_HeatmapDayCounts = z.object({
@@ -536,7 +537,7 @@ export const s_MediaCreateRequest = z.object({
   category: z.enum(['ANIME', 'JDRAMA']),
   version: z.string(),
   hashSalt: z.string(),
-  studio: z.string(),
+  studio: z.string().optional(),
   seasonName: z.string(),
   seasonYear: z.coerce.number(),
   storageBasePath: z.string().optional(),
@@ -666,7 +667,7 @@ export const s_Media = z.object({
   category: s_Category,
   segmentCount: z.coerce.number(),
   episodeCount: z.coerce.number(),
-  studio: z.string(),
+  studio: z.string().nullable().optional(),
   seasonName: z.string(),
   seasonYear: z.coerce.number(),
   characters: z.array(s_MediaCharacter).optional(),
