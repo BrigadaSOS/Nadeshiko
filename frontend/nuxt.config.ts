@@ -213,7 +213,6 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'bun',
     rollupConfig: {
-      external: [/@opentelemetry\/.*/],
       onwarn(warning, defaultHandler) {
         if (warning.code === 'THIS_IS_UNDEFINED' || warning.code === 'CIRCULAR_DEPENDENCY') return;
         defaultHandler(warning);
