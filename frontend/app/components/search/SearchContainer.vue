@@ -3,6 +3,7 @@ import { mdiRefresh, mdiEyeOff } from '@mdi/js';
 import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
 
 import { usePlayerStore } from '~/stores/player';
+import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 import type {
@@ -45,6 +46,7 @@ const sentenceData = ref<SearchResponse | null>(props.initialSentenceData ?? nul
 const statsData = ref<SearchStatsResponse | null>(props.initialStatsData ?? null);
 const isLoading = ref(false);
 const endOfResults = ref(false);
+const lastTrackedQuery = ref<string | null>(null);
 const isSingleSentenceView = computed(() => route.path.startsWith('/sentence/'));
 const hasMoreResults = ref(!route.path.startsWith('/sentence/'));
 const showLoadMoreButton = ref(false);
@@ -106,9 +108,7 @@ const searchData = computed(() => {
 
 const animeTabName = computed(() => {
   if (props.collectionId) {
-    return props.collectionName
-      ? `${t('searchContainer.collectionTabPrefix')}: ${props.collectionName}`
-      : t('searchContainer.collectionTabPrefix');
+    return props.collectionName ?? t('searchContainer.collectionTabPrefix');
   }
   if (media.value) {
     const mediaStat = (searchData.value?.media || []).find((item) => item.publicId === media.value);
@@ -167,7 +167,11 @@ applyRouteQuery(route);
 const fetchStats = async () => {
   try {
     if (props.collectionId) {
-      const { data } = await sdk.getCollectionStats({ path: { id: props.collectionId } });
+      const { data, response } = await sdk.getCollectionStats({ path: { id: props.collectionId } });
+      if (response.status === 403 || response.status === 401) {
+        await navigateTo('/', { redirectCode: 302 });
+        return;
+      }
       statsData.value = data ? resolveStatsResponse(data) : { media: [], categories: [] };
       return;
     }
@@ -233,13 +237,17 @@ const fetchSentences = async () => {
     let response;
 
     if (props.collectionId) {
-      const { data } = await sdk.searchCollectionSegments({
+      const { data, response: fetchResponse } = await sdk.searchCollectionSegments({
         path: { id: props.collectionId },
         query: {
           ...(cursor.value ? { cursor: cursor.value } : {}),
           take: 20,
         },
       });
+      if (fetchResponse.status === 403 || fetchResponse.status === 401) {
+        await navigateTo('/', { redirectCode: 302 });
+        return;
+      }
       response = data ? resolveSearchResponse(data) : null;
     } else {
       const filters: SearchFilters = {};
@@ -278,6 +286,7 @@ const fetchSentences = async () => {
         filters.languages = { exclude: excludedLanguages.value };
       }
 
+      const isInitialSearch = !cursor.value;
       const { data } = await sdk.search({
         body: {
           query: query.value ? { search: query.value } : undefined,
@@ -292,6 +301,11 @@ const fetchSentences = async () => {
         },
       });
       response = data ? resolveSearchResponse(data) : null;
+
+      if (isInitialSearch && query.value && query.value !== lastTrackedQuery.value && import.meta.client && userStore().isLoggedIn) {
+        lastTrackedQuery.value = query.value;
+        sdk.trackUserActivity({ body: { activityType: 'SEARCH', searchQuery: query.value } }).catch(() => {});
+      }
     }
     const incomingResults = response?.results || [];
 
@@ -529,19 +543,16 @@ onBeforeRouteUpdate(async (to, from) => {
         <!-- Tabs -->
         <div class="pb-3" v-if="searchData?.categories?.length > 0">
             <div class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21]">
-                <div v-if="collectionId" class="shrink-0 flex items-center gap-2 text-sm">
-                    <NuxtLink
-                        to="/user/collections"
-                        class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
-                    >
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
-                        </svg>
-                        {{ $t('searchContainer.backToCollections') }}
-                    </NuxtLink>
-                    <span v-if="collectionName" class="text-gray-600">/</span>
-                    <span v-if="collectionName" class="text-white/70 font-medium truncate max-w-[20rem]">{{ collectionName }}</span>
-                </div>
+                <NuxtLink
+                    v-if="collectionId"
+                    to="/user/collections"
+                    class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                    :title="$t('searchContainer.backToCollections')"
+                >
+                    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
+                    </svg>
+                </NuxtLink>
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
                         <CommonTabsHeader :showBorder="false">
@@ -572,19 +583,17 @@ onBeforeRouteUpdate(async (to, from) => {
         </div>
         <div v-else-if="collectionId || $slots['result-controls']" class="pb-3">
             <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4">
-                <div v-if="collectionId" class="shrink-0 flex items-center gap-2 text-sm">
-                    <NuxtLink
-                        to="/user/collections"
-                        class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
-                    >
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
-                        </svg>
-                        {{ $t('searchContainer.backToCollections') }}
-                    </NuxtLink>
-                    <span v-if="collectionName" class="text-gray-600">/</span>
-                    <span v-if="collectionName" class="text-white/70 font-medium truncate max-w-[20rem]">{{ collectionName }}</span>
-                </div>
+                <NuxtLink
+                    v-if="collectionId"
+                    to="/user/collections"
+                    class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                    :title="$t('searchContainer.backToCollections')"
+                >
+                    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
+                    </svg>
+                </NuxtLink>
+                <span v-if="collectionId && collectionName" class="text-white/70 font-medium text-sm truncate max-w-[20rem]">{{ collectionName }}</span>
                 <div v-if="$slots['result-controls']" class="shrink-0 ml-auto">
                     <slot name="result-controls" />
                 </div>

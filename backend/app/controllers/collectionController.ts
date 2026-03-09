@@ -304,7 +304,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   const mediaIncludes = includes.media;
 
   // Compute per-media stats
-  const mediaMap = new Map<number, { matchCount: number; episodeHits: Record<string, number> }>();
+  const mediaMap = new Map<number, { publicId: string; matchCount: number; episodeHits: Record<string, number> }>();
   const categoryCountMap = new Map<CategoryOutput, number>();
 
   for (const seg of searchResults) {
@@ -314,21 +314,21 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
 
     let entry = mediaMap.get(seg.mediaId);
     if (!entry) {
-      entry = { matchCount: 0, episodeHits: {} };
+      entry = { publicId: seg.mediaPublicId, matchCount: 0, episodeHits: {} };
       mediaMap.set(seg.mediaId, entry);
     }
     entry.matchCount++;
     const epKey = String(seg.episode);
     entry.episodeHits[epKey] = (entry.episodeHits[epKey] ?? 0) + 1;
 
-    const mediaInfo = mediaIncludes[String(seg.mediaId)];
+    const mediaInfo = mediaIncludes[seg.mediaPublicId];
     const category = toCategory(mediaInfo?.category);
     categoryCountMap.set(category, (categoryCountMap.get(category) ?? 0) + 1);
   }
 
   const media = Array.from(mediaMap.entries()).map(([mediaId, stats]) => ({
     mediaId,
-    publicId: mediaIncludes[String(mediaId)]?.publicId ?? '',
+    publicId: stats.publicId,
     matchCount: stats.matchCount,
     episodeHits: stats.episodeHits,
   }));
@@ -370,6 +370,7 @@ const DEFAULT_COLLECTIONS: { name: string; type: CollectionType }[] = [
   { name: 'Favorites', type: CollectionType.USER },
   { name: 'Anki Exports', type: CollectionType.ANKI_EXPORT },
 ];
+
 
 export const ensureDefaultCollections = async (userId: number): Promise<void> => {
   const count = await Collection.count({ where: { userId } });

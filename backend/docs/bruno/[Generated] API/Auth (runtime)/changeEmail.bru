@@ -1,11 +1,11 @@
 meta {
-  name: Revoke all other sessions for the user except the current one
+  name: changeEmail
   type: http
-  seq: 90
+  seq: 84
 }
 
 post {
-  url: {{baseUrl}}/v1/auth/revoke-other-sessions
+  url: {{baseUrl}}/v1/auth/change-email
   body: none
   auth: none
 }

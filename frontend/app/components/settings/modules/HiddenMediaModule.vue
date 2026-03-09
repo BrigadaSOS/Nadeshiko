@@ -63,19 +63,6 @@ const secondaryMediaNames = (media: NamedMedia): string => {
   return secondaryNames.join(' | ');
 };
 
-const formatHiddenAt = (hiddenAt?: string): string => {
-  if (!hiddenAt) {
-    return '-';
-  }
-
-  const date = new Date(hiddenAt);
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return date.toLocaleString();
-};
-
 const hiddenMediaItems = computed(() =>
   [...hiddenItems.value].sort((a, b) => Date.parse(b.hiddenAt || '') - Date.parse(a.hiddenAt || '')),
 );
@@ -198,7 +185,6 @@ const unhide = async (item: HiddenMediaItem) => {
           <tr>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Media</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Other Names</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Hidden At</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
           </tr>
         </thead>
@@ -210,7 +196,6 @@ const unhide = async (item: HiddenMediaItem) => {
             <td class="py-3 text-xs text-gray-400 max-w-[24rem]">
               <p class="truncate">{{ secondaryMediaNames(item) || '-' }}</p>
             </td>
-            <td class="py-3 text-sm text-gray-300">{{ formatHiddenAt(item.hiddenAt) }}</td>
             <td class="py-3 text-sm text-right">
               <button
                 class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-1 px-3 rounded"

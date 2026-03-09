@@ -10,11 +10,12 @@ tags:
 
 # A New Home for Nadeshiko
 
-*[Photo of the Raspberry Pi]*
+![The Orange Pi that hosted Nadeshiko](/images/blog/orange-pi.jpg)
+*"Rest in peace, little Orange Pi"*
 
-This little Raspberry Pi is where Nadeshiko has been running for the past year. Initially, it worked just fine. When this whole page was just a prototype and we had a few animes included. Now we have more than 1M segments, including audio and images. This is roughly >3M individual files, over ~200GB of media that we serve throughout this page.
+This little Orange Pi is where Nadeshiko has been running for the past year. Initially, it worked just fine. When this whole page was just a prototype and we had a few animes included. Now we have more than 1M segments, including audio and images. This is roughly >3M individual files, over ~200GB of media that we serve throughout this page.
 
-And with that, the poor Raspberry Pi has reached it's limit. The SD card would die, small electricity fluctiations
+And with that, the poor Orange Pi has reached it's limit. The SD card would die, small electricity fluctiations
 
 And the environment conditions weren't that much better. Running this in a home server meant that we were at mercy of the local ISP internet. And having hours (or even days) internet blackouts were sadly becomming a common thing out of our control.
 

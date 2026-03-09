@@ -18,6 +18,30 @@ const loggingOut = ref(false);
 const exportingData = ref(false);
 const savingPreferences = ref(false);
 
+const editingEmail = ref(false);
+const newEmail = ref('');
+const changingEmail = ref(false);
+const changeEmailMessage = ref('');
+const changeEmailError = ref('');
+
+const requestEmailChange = async () => {
+  if (changingEmail.value || !newEmail.value.trim()) return;
+  changingEmail.value = true;
+  changeEmailMessage.value = '';
+  changeEmailError.value = '';
+  try {
+    const result = await user_store.changeEmail(newEmail.value.trim());
+    if (result.success) {
+      changeEmailMessage.value = t('accountSettings.account.changeEmailSuccess');
+      editingEmail.value = false;
+    } else {
+      changeEmailError.value = result.error || t('accountSettings.account.changeEmailFailed');
+    }
+  } finally {
+    changingEmail.value = false;
+  }
+};
+
 const updatePreference = async (key: string, value: string) => {
   savingPreferences.value = true;
   try {
@@ -290,10 +314,46 @@ const logoutCurrentUser = async () => {
         </div>
       </div>
       <div class="flex justify-between items-center mt-3">
-        <div>
+        <div class="flex-1">
           <p class="text-gray-400">{{ $t('accountSettings.account.emailLabel') }}</p>
-          <p class="text-white font-semibold">{{ user_store.userEmail || $t('accountSettings.account.notAvailable') }}</p>
+          <template v-if="!editingEmail">
+            <p class="text-white font-semibold">{{ user_store.userEmail || $t('accountSettings.account.notAvailable') }}</p>
+          </template>
+          <template v-else>
+            <div class="flex items-center gap-2 mt-1">
+              <input
+                v-model="newEmail"
+                type="email"
+                :placeholder="$t('accountSettings.account.changeEmailPlaceholder')"
+                class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500 flex-1"
+                :disabled="changingEmail"
+                @keyup.enter="requestEmailChange"
+              />
+              <button
+                class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+                :disabled="changingEmail || !newEmail.trim()"
+                @click="requestEmailChange"
+              >
+                {{ changingEmail ? $t('accountSettings.account.changeEmailSending') : $t('accountSettings.account.changeEmailSend') }}
+              </button>
+              <button
+                class="text-gray-400 hover:text-white text-sm font-medium py-2 px-3"
+                @click="editingEmail = false; changeEmailError = ''"
+              >
+                {{ $t('accountSettings.account.changeEmailCancel') }}
+              </button>
+            </div>
+          </template>
+          <p v-if="changeEmailMessage" class="text-green-400 text-sm mt-1">{{ changeEmailMessage }}</p>
+          <p v-if="changeEmailError" class="text-red-300 text-sm mt-1">{{ changeEmailError }}</p>
         </div>
+        <button
+          v-if="!editingEmail"
+          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded"
+          @click="editingEmail = true; newEmail = ''; changeEmailMessage = ''; changeEmailError = ''"
+        >
+          {{ $t('accountSettings.account.changeEmail') }}
+        </button>
       </div>
     </div>
   </div>
@@ -427,18 +487,6 @@ const logoutCurrentUser = async () => {
             <p class="text-gray-500 text-xs mt-1">{{ $t('accountSettings.account.contentRatingPreview') }}</p>
           </div>
         </div>
-      </div>
-      <div class="flex justify-between items-center mt-4">
-        <div>
-          <p class="text-white">{{ $t('accountSettings.account.hiddenMedia') }}</p>
-          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.hiddenMediaDescription') }}</p>
-        </div>
-        <NuxtLink
-          to="/user/hidden-media"
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded"
-        >
-          Manage
-        </NuxtLink>
       </div>
     </div>
   </div>

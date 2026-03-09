@@ -2,7 +2,7 @@ import { ApiPermission, User, UserRoleType } from '@app/models';
 import { config, type AppConfig } from '@config/config';
 import { isProdEnvironment } from '@config/environment';
 import { getAppPostgresConfig } from '@config/postgresConfig';
-import { sendWelcomeEmail } from '@app/mailers/email';
+import { sendWelcomeEmail, sendChangeEmailVerificationEmail } from '@app/mailers/email';
 import { ensureDefaultCollections } from '@app/controllers/collectionController';
 import { betterAuth } from 'better-auth';
 import { apiKey, customSession } from 'better-auth/plugins';
@@ -28,9 +28,7 @@ export const BETTER_AUTH_SESSION_COOKIE_ALIASES = [
 export const BETTER_AUTH_API_PERMISSION_RESOURCE = 'api';
 
 const DISABLED_PATHS = [
-  '/verify-email',
   '/send-verification-email',
-  '/change-email',
   '/update-user',
   '/delete-user/callback',
   '/link-social',
@@ -66,6 +64,7 @@ export interface BuildAuthOptionsDependencies {
   production?: boolean;
   findUserById?: FindUserById;
   sendWelcomeEmailFn?: typeof sendWelcomeEmail;
+  sendChangeEmailVerificationFn?: typeof sendChangeEmailVerificationEmail;
   onWelcomeEmailError?: WelcomeEmailErrorLogger;
   ensureDefaultCollectionsFn?: typeof ensureDefaultCollections;
 }
@@ -162,6 +161,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
   const isProduction = dependencies.production ?? isProdEnvironment(configValues.ENVIRONMENT);
   const findUserById = dependencies.findUserById || defaultFindUserById;
   const sendWelcomeEmailFn = dependencies.sendWelcomeEmailFn || sendWelcomeEmail;
+  const sendChangeEmailFn = dependencies.sendChangeEmailVerificationFn || sendChangeEmailVerificationEmail;
   const onWelcomeEmailError = dependencies.onWelcomeEmailError || defaultWelcomeEmailErrorLogger;
   const ensureDefaultCollectionsFn = dependencies.ensureDefaultCollectionsFn || ensureDefaultCollections;
 
@@ -193,7 +193,10 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
         role: { type: 'string', fieldName: 'role', defaultValue: 'USER' },
       },
       changeEmail: {
-        enabled: false,
+        enabled: true,
+        sendChangeEmailVerification: async ({ user, newEmail, url }) => {
+          await sendChangeEmailFn(Number(user.id), user.name, user.email, newEmail, url);
+        },
       },
       deleteUser: {
         enabled: true,

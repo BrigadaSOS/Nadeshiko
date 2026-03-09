@@ -1,11 +1,11 @@
 meta {
-  name: Revoke all other sessions for the user except the current one
+  name: Verify the email of the user
   type: http
-  seq: 90
+  seq: 95
 }
 
-post {
-  url: {{baseUrl}}/v1/auth/revoke-other-sessions
+get {
+  url: {{baseUrl}}/v1/auth/verify-email
   body: none
   auth: none
 }

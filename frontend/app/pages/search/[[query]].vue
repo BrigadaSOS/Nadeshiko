@@ -54,10 +54,14 @@ const fetchSentenceData = async () => {
     const sdk = useNadeshikoSdk();
 
     if (collectionIdParam.value) {
-      const { data } = await sdk.getCollection({
+      const { data, response } = await sdk.getCollection({
         path: { id: collectionIdParam.value },
         query: { take: 20 },
       });
+      if (response.status === 403 || response.status === 401) {
+        await navigateTo('/', { redirectCode: 302 });
+        return null;
+      }
       if (!data) return null;
       // Reshape collection response to search response format
       const segments = (data.segments ?? []).map((entry: any) => entry.result).filter(Boolean);
@@ -217,10 +221,14 @@ const { data: collectionDetails } = await useAsyncData(
   async () => {
     if (!collectionIdParam.value) return null;
     const sdk = useNadeshikoSdk();
-    const { data } = await sdk.getCollection({
+    const { data, response } = await sdk.getCollection({
       path: { id: collectionIdParam.value },
       query: { take: 1 },
     });
+    if (response.status === 403 || response.status === 401) {
+      await navigateTo('/', { redirectCode: 302 });
+      return null;
+    }
     return data ? { name: data.name } : null;
   },
   { server: true, lazy: false },
