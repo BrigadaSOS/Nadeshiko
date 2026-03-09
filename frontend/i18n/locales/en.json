@@ -423,6 +423,11 @@
       "saving": "Saving..."
     }
   },
+  "errorPage": {
+    "pageNotFound": "Page Not Found",
+    "somethingWentWrong": "Something went wrong.",
+    "goHome": "Go Home"
+  },
   "contentPage": {
     "emptyMessage": "Stay tuned; it will be added later 😉"
   },
