@@ -80,6 +80,8 @@ jobs:
             ghcr.io/brigadasos/nadeshiko-backend-prod:latest
           labels: |
             service=nadeshiko-backend-prod
+          secrets: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
