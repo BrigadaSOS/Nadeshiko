@@ -19,6 +19,10 @@ const { data } = await useAsyncData(
   { watch: [() => route.path, locale] },
 );
 
+if (!data.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Page Not Found' });
+}
+
 const title = computed(() => data.value?.title || 'Nadeshiko');
 const description = computed(() => data.value?.description || '');
 const canonicalUrl = computed(() => new URL(route.path || '/', siteUrl).toString());

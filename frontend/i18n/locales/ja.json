@@ -423,6 +423,11 @@
       "saving": "保存中..."
     }
   },
+  "errorPage": {
+    "pageNotFound": "ページが見つかりません",
+    "somethingWentWrong": "エラーが発生しました。",
+    "goHome": "ホームへ戻る"
+  },
   "contentPage": {
     "emptyMessage": "近日公開予定 😉"
   },

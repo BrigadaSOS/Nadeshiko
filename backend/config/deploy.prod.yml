@@ -1,6 +1,10 @@
 image: brigadasos/nadeshiko-backend-prod
 service: nadeshiko-backend-prod
 
+builder:
+  secrets:
+    - SENTRY_AUTH_TOKEN
+
 servers:
   web:
     cmd: sh -c 'bun run db:prepare && bun run start'

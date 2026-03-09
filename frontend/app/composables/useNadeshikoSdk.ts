@@ -46,7 +46,7 @@ let clientSdk: NadeshikoClient | null = null;
 
 function useClientSdk(): NadeshikoClient {
   if (!clientSdk) {
-    clientSdk = createNadeshikoClient({ baseUrl: '' });
+    clientSdk = createNadeshikoClient({ baseUrl: 'PROXY' });
   }
   return clientSdk;
 }
