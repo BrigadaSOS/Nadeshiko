@@ -73,6 +73,11 @@ properties:
       highlight:
         type: string
         description: Japanese content with search terms highlighted
+      tokens:
+        type: array
+        description: Morphological tokens for interactive display (Labs feature)
+        items:
+          $ref: "Token.yaml"
   textEn:
     type: object
     required:

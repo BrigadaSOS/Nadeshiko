@@ -43,7 +43,7 @@ const {
 } = await useAsyncData(
   'recentMedia',
   async () => {
-    const { data } = await sdk.listMedia({ query: { take: 10, sort: 'RECENT' } });
+    const { data } = await sdk.listMedia({ query: { take: 10 } });
     return data ?? null;
   },
   {

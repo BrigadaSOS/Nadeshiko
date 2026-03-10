@@ -34,20 +34,12 @@ export interface MediaAuditCheck {
   run(ctx: CheckRunContext): Promise<CheckResult[]>;
 }
 
-import { lowSegmentMedia } from './lowSegmentMedia';
-import { emptyEpisodes } from './emptyEpisodes';
 import { missingEpisodes } from './missingEpisodes';
-import { badSegmentRatio } from './badSegmentRatio';
-import { mediaWithNoEpisodes } from './mediaWithNoEpisodes';
+import { lowSegmentEpisodes } from './lowSegmentEpisodes';
 import { dbEsSyncIssues } from './dbEsSyncIssues';
-import { highReportDensity } from './highReportDensity';
 
 export const auditRegistry: MediaAuditCheck[] = [
-  lowSegmentMedia,
-  emptyEpisodes,
   missingEpisodes,
-  badSegmentRatio,
-  mediaWithNoEpisodes,
+  lowSegmentEpisodes,
   dbEsSyncIssues,
-  highReportDensity,
 ];

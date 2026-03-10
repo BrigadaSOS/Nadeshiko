@@ -498,6 +498,7 @@ export type t_Segment = {
   textJa: {
     content: string;
     highlight?: string;
+    tokens?: t_Token[];
   };
   urls: {
     audioUrl: string;
@@ -608,6 +609,15 @@ export type t_SeriesWithMedia = {
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
+};
+
+export type t_Token = {
+  b: number;
+  d: string;
+  e: number;
+  p: string;
+  r: string;
+  s: string;
 };
 
 export type t_UserActivity = {

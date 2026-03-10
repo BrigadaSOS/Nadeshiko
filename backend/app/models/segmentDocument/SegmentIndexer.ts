@@ -3,7 +3,7 @@ import { logger } from '@config/log';
 import { Media, Segment } from '@app/models';
 import { In } from 'typeorm';
 import type { t_ReindexResponse } from 'generated/models';
-import type { SegmentDocumentShape, ReindexMediaItem } from '../SegmentDocument';
+import type { SegmentDocumentShape, SlimToken, ReindexMediaItem } from '../SegmentDocument';
 
 export interface BulkResult {
   succeeded: number;
@@ -250,6 +250,23 @@ export class SegmentIndexer {
       episode: segment.episode,
       mediaId: segment.mediaId,
       storageBasePath: segment.storageBasePath,
+      tokens: SegmentIndexer.extractSlimTokens(segment.posAnalysis),
     };
+  }
+
+  private static extractSlimTokens(posAnalysis: Record<string, unknown> | null): SlimToken[] | undefined {
+    if (!posAnalysis) return undefined;
+
+    const sudachi = posAnalysis.sudachi;
+    if (!Array.isArray(sudachi) || sudachi.length === 0) return undefined;
+
+    return sudachi.map((token: Record<string, unknown>) => ({
+      s: String(token.surface ?? ''),
+      d: String(token.dictionary_form ?? token.surface ?? ''),
+      r: String(token.reading ?? ''),
+      b: Number(token.begin ?? 0),
+      e: Number(token.end ?? 0),
+      p: Array.isArray(token.pos) ? String(token.pos[0] ?? '') : '',
+    }));
   }
 }

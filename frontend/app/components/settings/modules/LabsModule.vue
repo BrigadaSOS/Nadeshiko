@@ -34,7 +34,6 @@ const toggleFeature = async (key: string, currentOptedIn: boolean) => {
   <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
     <div class="flex items-center gap-2">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">Nadeshiko Labs</h3>
-      <span class="inline-flex items-center rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">Beta</span>
     </div>
     <p class="text-gray-400 text-sm mt-1">
       Try experimental features before they are released to everyone!
@@ -52,33 +51,24 @@ const toggleFeature = async (key: string, currentOptedIn: boolean) => {
       <div
         v-for="feature in labsStore.labFeatures"
         :key="feature.key"
-        class="flex items-center justify-between p-4 rounded-lg bg-white/5"
+        class="flex items-center justify-between mt-4"
       >
         <div class="flex-1">
-          <div class="flex items-center gap-2">
-            <span class="text-white font-medium">{{ feature.name }}</span>
-            <span class="inline-flex items-center rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">
-              Beta
-            </span>
-          </div>
+          <span class="text-white font-medium">{{ feature.name }}</span>
           <p class="text-gray-400 text-sm mt-1">{{ feature.description }}</p>
-          <p v-if="!feature.active" class="text-yellow-400/80 text-xs mt-1">
-            This feature is currently unavailable.
-          </p>
         </div>
         <button
-          :disabled="!feature.active || togglingKey === feature.key"
+          :disabled="togglingKey === feature.key"
           :class="[
             'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-            feature.userOptedIn && feature.active ? 'bg-purple-600' : 'bg-gray-600',
-            !feature.active ? 'opacity-50 cursor-not-allowed' : '',
+            feature.active ? 'bg-purple-600' : 'bg-gray-600',
           ]"
-          @click="toggleFeature(feature.key, feature.userOptedIn ?? false)"
+          @click="toggleFeature(feature.key, feature.active)"
         >
           <span
             :class="[
               'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-              feature.userOptedIn && feature.active ? 'translate-x-5' : 'translate-x-0',
+              feature.active ? 'translate-x-5' : 'translate-x-0',
             ]"
           />
         </button>

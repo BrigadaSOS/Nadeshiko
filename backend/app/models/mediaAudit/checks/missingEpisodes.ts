@@ -4,12 +4,34 @@ import { runCategoryFilteredQuery } from './queryHelper';
 export const missingEpisodes: MediaAuditCheck = {
   name: 'missingEpisodes',
   label: 'Missing Episodes',
-  description: 'Media with gaps in episode numbering sequence',
+  description: 'Media with zero episodes or gaps in episode numbering',
   targetType: 'MEDIA',
   thresholdSchema: [],
 
   async run(ctx: CheckRunContext): Promise<CheckResult[]> {
-    const rows = await runCategoryFilteredQuery(ctx.dataSource, {
+    const results: CheckResult[] = [];
+
+    const noEpisodeRows = await runCategoryFilteredQuery(ctx.dataSource, {
+      sql: `
+        SELECT m.id AS "mediaId", m.romaji_name AS "romajiName"
+        FROM "Media" m
+        LEFT JOIN "Episode" e ON e.media_id = m.id AND e.deleted_at IS NULL
+        WHERE m.deleted_at IS NULL
+      `,
+      category: ctx.category,
+      suffix: `GROUP BY m.id, m.romaji_name HAVING COUNT(e.episode_number) = 0`,
+    });
+
+    for (const row of noEpisodeRows as { mediaId: number; romajiName: string }[]) {
+      results.push({
+        targetType: 'MEDIA',
+        mediaId: row.mediaId,
+        data: { missingCount: 0, totalEpisodes: 0, noEpisodes: true },
+        description: `${row.romajiName}: no episodes found`,
+      });
+    }
+
+    const gapRows = await runCategoryFilteredQuery(ctx.dataSource, {
       sql: `
         SELECT m.id AS "mediaId", m.romaji_name AS "romajiName",
                array_agg(e.episode_number ORDER BY e.episode_number) AS "episodes"
@@ -21,9 +43,7 @@ export const missingEpisodes: MediaAuditCheck = {
       suffix: `GROUP BY m.id, m.romaji_name HAVING COUNT(*) > 1`,
     });
 
-    const results: CheckResult[] = [];
-
-    for (const row of rows as { mediaId: number; romajiName: string; episodes: number[] }[]) {
+    for (const row of gapRows as { mediaId: number; romajiName: string; episodes: number[] }[]) {
       const episodes = row.episodes;
       if (episodes.length < 2) continue;
 
