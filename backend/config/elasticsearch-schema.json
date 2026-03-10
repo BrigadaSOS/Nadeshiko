@@ -765,6 +765,10 @@
       },
       "storageBasePath": {
         "type": "keyword"
+      },
+      "tokens": {
+        "type": "object",
+        "enabled": false
       }
     }
   }

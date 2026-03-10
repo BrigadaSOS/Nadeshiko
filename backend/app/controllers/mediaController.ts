@@ -44,7 +44,7 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
       find: {
         where,
         relations: mediaRelations,
-        order: { id: 'ASC' },
+        order: { id: 'DESC' },
       },
       take: query.take,
       cursor: query.cursor,

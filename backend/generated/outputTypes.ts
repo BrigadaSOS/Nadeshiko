@@ -41,6 +41,7 @@ export type ReportTargetSegmentInputOutput = z.output<typeof schemas.s_ReportTar
 export type RunAuditResponseOutput = z.output<typeof schemas.s_RunAuditResponse>;
 export type SegmentRevisionOutput = z.output<typeof schemas.s_SegmentRevision>;
 export type SeriesOutput = z.output<typeof schemas.s_Series>;
+export type TokenOutput = z.output<typeof schemas.s_Token>;
 export type UpdateReportRequestOutput = z.output<typeof schemas.s_UpdateReportRequest>;
 export type UserLabFeatureOutput = z.output<typeof schemas.s_UserLabFeature>;
 export type UserPreferencesOutput = z.output<typeof schemas.s_UserPreferences>;
@@ -91,48 +92,6 @@ export type SeriesWithMediaOutput = z.output<typeof schemas.s_SeriesWithMedia>;
 // ============================================
 // Inline query schemas and their output types
 // ============================================
-
-export const listCollectionsQuerySchema = z.object({
-    visibility: z.enum(['public', 'private']).optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
-
-export const getCollectionQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
-
-export const searchCollectionSegmentsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;
-
-export const listAdminReportsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
-    source: z.enum(['USER', 'AUTO']).optional(),
-    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
-    'target.mediaId': z.coerce.number().optional(),
-    'target.episodeNumber': z.coerce.number().optional(),
-    'target.segmentId': z.coerce.number().optional(),
-    auditRunId: z.coerce.number().optional(),
-  });
-export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
-
-export const runAdminMediaAuditQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
-export type RunAdminMediaAuditQueryOutput = z.output<typeof runAdminMediaAuditQuerySchema>;
-
-export const listAdminMediaAuditRunsQuerySchema = z.object({
-    auditName: z.string().optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-  });
-export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
 
 export const listMediaQuerySchema = z.object({
     take: z.coerce.number().min(1).max(40).optional().default(20),
@@ -231,3 +190,45 @@ export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityH
 
 export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
 export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
+
+export const listAdminReportsQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
+    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
+    source: z.enum(['USER', 'AUTO']).optional(),
+    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    'target.mediaId': z.coerce.number().optional(),
+    'target.episodeNumber': z.coerce.number().optional(),
+    'target.segmentId': z.coerce.number().optional(),
+    auditRunId: z.coerce.number().optional(),
+  });
+export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
+
+export const runAdminMediaAuditQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
+export type RunAdminMediaAuditQueryOutput = z.output<typeof runAdminMediaAuditQuerySchema>;
+
+export const listAdminMediaAuditRunsQuerySchema = z.object({
+    auditName: z.string().optional(),
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
+  });
+export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
+
+export const listCollectionsQuerySchema = z.object({
+    visibility: z.enum(['public', 'private']).optional(),
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
+
+export const getCollectionQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
+
+export const searchCollectionSegmentsQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+  });
+export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;

@@ -38,7 +38,7 @@ export const userStore = defineStore('user', {
     ? {
         key: 'info',
         storage: piniaPluginPersistedstate.localStorage(),
-        pick: ['filterPreferences', 'userInfo'],
+        pick: ['filterPreferences'],
       }
     : false,
   actions: {

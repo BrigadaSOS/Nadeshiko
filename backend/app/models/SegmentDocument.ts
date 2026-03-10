@@ -18,7 +18,7 @@ import type {
 import type { t_ReindexResponse } from 'generated/models';
 
 import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQuery';
-import { SegmentResponse } from './segmentDocument/SegmentResponse';
+import { SegmentResponse, type SearchResponseOptions } from './segmentDocument/SegmentResponse';
 import { SegmentIndexer } from './segmentDocument/SegmentIndexer';
 import { withSafeQueryFallback } from './segmentDocument/errors';
 
@@ -28,6 +28,15 @@ export interface QuerySurroundingSegmentsRequest {
   readonly segmentPosition: number;
   readonly limit?: number;
   readonly contentRating?: string[];
+}
+
+export interface SlimToken {
+  s: string;
+  d: string;
+  r: string;
+  b: number;
+  e: number;
+  p: string;
 }
 
 export interface SegmentDocumentShape {
@@ -51,6 +60,7 @@ export interface SegmentDocumentShape {
   episode: number;
   mediaId: number;
   storageBasePath: string;
+  tokens?: SlimToken[];
 }
 
 export interface ReindexMediaItem {
@@ -70,6 +80,7 @@ export class SegmentDocument {
   static async search(
     request: SearchRequestInput,
     parserMode: QueryParserMode = 'strict',
+    options?: SearchResponseOptions,
   ): Promise<SearchResponseOutput> {
     const filters: SearchFiltersOutput = request.filters ?? { status: ['ACTIVE'], category: ['ANIME', 'JDRAMA'] };
     const sl = filters.segmentLengthChars;
@@ -133,9 +144,9 @@ export class SegmentDocument {
     return withSafeQueryFallback(
       async () => {
         const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
-        return SegmentResponse.buildSearch(esResult, mediaResult);
+        return SegmentResponse.buildSearch(esResult, mediaResult, options);
       },
-      () => SegmentDocument.search(request, 'safe'),
+      () => SegmentDocument.search(request, 'safe', options),
       {
         parserMode,
         hasQuery,

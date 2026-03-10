@@ -1,12 +1,14 @@
 import type { MediaAuditCheck, CheckRunContext, CheckResult } from './index';
 import { runCategoryFilteredQuery } from './queryHelper';
 
-export const emptyEpisodes: MediaAuditCheck = {
-  name: 'emptyEpisodes',
-  label: 'Empty Episodes',
+export const lowSegmentEpisodes: MediaAuditCheck = {
+  name: 'lowSegmentEpisodes',
+  label: 'Low Segment Episodes',
   description: 'Episodes with segment count below threshold',
   targetType: 'EPISODE',
-  thresholdSchema: [{ key: 'minSegments', label: 'Min segments per episode', type: 'number', default: 10, min: 0 }],
+  thresholdSchema: [
+    { key: 'minSegments', label: 'Min segments per episode', type: 'number', default: 200, min: 0 },
+  ],
 
   async run(ctx: CheckRunContext): Promise<CheckResult[]> {
     const minSegments = ctx.threshold.minSegments as number;
@@ -31,7 +33,7 @@ export const emptyEpisodes: MediaAuditCheck = {
         mediaId: row.mediaId,
         episodeNumber: row.episodeNumber,
         data: { segmentCount: Number(row.segmentCount) },
-        description: `${row.romajiName} EP${row.episodeNumber}: ${row.segmentCount} segments (threshold: ${minSegments})`,
+        description: `${row.romajiName} EP${row.episodeNumber}: ${row.segmentCount} segments`,
       }),
     );
   },

@@ -3,7 +3,8 @@ import { logger } from '@config/log';
 import { type Storage, getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 import { encodeKeysetCursor } from '@lib/cursor';
 import type { Media } from '@app/models';
-import type { SegmentDocumentShape } from '../SegmentDocument';
+import type { SegmentDocumentShape, SlimToken } from '../SegmentDocument';
+import { enhanceHighlight } from './HighlightEnhancer';
 import type {
   PaginationInfoOutput,
   SearchResponseOutput,
@@ -24,9 +25,17 @@ type HighlightMap = Record<string, string[]>;
 type TermsBucket = { key?: string | number; doc_count?: number } & Record<string, unknown>;
 type TermsAggregation = { buckets?: TermsBucket[] };
 
+export interface SearchResponseOptions {
+  tokensEnabled?: boolean;
+}
+
 export class SegmentResponse {
-  static buildSearch(esResponse: estypes.SearchResponse, mediaInfoResponse: MediaInfoMap): SearchResponseOutput {
-    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse);
+  static buildSearch(
+    esResponse: estypes.SearchResponse,
+    mediaInfoResponse: MediaInfoMap,
+    options?: SearchResponseOptions,
+  ): SearchResponseOutput {
+    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse, options);
 
     let cursor: string | undefined;
     const hits = esResponse.hits.hits as SegmentSearchHit[];
@@ -45,6 +54,7 @@ export class SegmentResponse {
   static buildSearchResultSegments(
     esResponse: estypes.SearchResponse,
     mediaInfoResponse: MediaInfoMap,
+    options?: SearchResponseOptions,
   ): { segments: SegmentOutput[]; mediaMap: Record<string, MediaOutput> } {
     const mediaMap: Record<string, MediaOutput> = {};
     const hits = esResponse.hits.hits as SegmentSearchHit[];
@@ -94,6 +104,10 @@ export class SegmentResponse {
         const textEnHighlight = highlight.textEn?.[0];
         const textEsHighlight = highlight.textEs?.[0];
 
+        const tokens: SlimToken[] | undefined = options?.tokensEnabled ? (data.tokens ?? undefined) : undefined;
+        const enhancedHighlight =
+          tokens && textJaHighlight ? enhanceHighlight(textJaHighlight, tokens) : textJaHighlight;
+
         return {
           id: segmentId,
           publicId: data.publicId,
@@ -107,7 +121,8 @@ export class SegmentResponse {
           mediaPublicId: mediaInfo.publicId,
           textJa: {
             content: data.textJa,
-            ...(textJaHighlight ? { highlight: textJaHighlight } : {}),
+            ...(enhancedHighlight ? { highlight: enhancedHighlight } : {}),
+            ...(tokens ? { tokens } : {}),
           },
           textEn: {
             content: data.textEn,
