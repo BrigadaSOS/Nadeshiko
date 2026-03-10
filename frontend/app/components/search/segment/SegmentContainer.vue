@@ -3,6 +3,7 @@ import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose } from '@mdi/j
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
+import { useLabsStore } from '~/stores/labs';
 import type { SearchResult, SearchResponse } from '~/types/search';
 
 type Props = {
@@ -209,6 +210,13 @@ const { revertActiveConcatenation, loadNextSegment } = useSegmentConcatenation()
 const router = useRouter();
 const route = useRoute();
 
+const labsStore = useLabsStore();
+const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
+
+const handleTokenSearch = (dictionaryForm: string) => {
+  router.push({ path: `/search/${encodeURIComponent(dictionaryForm)}` });
+};
+
 const filterByMedia = (mediaId: string, episodeNumber?: number) => {
   const query: Record<string, string | number | string[] | number[] | undefined> = { ...route.query, media: mediaId };
 
@@ -307,7 +315,15 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
               <h3 class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
-                <span class="leading-snug" v-html="result.segment.textJa.highlight
+                <SearchSegmentSegmentTokenText
+                  v-if="tokensEnabled && (result.segment.textJa as any).tokens"
+                  :tokens="(result.segment.textJa as any).tokens"
+                  :highlight="result.segment.textJa.highlight"
+                  :content="result.segment.textJa.content"
+                  class="leading-snug"
+                  @token-click="handleTokenSearch"
+                />
+                <span v-else class="leading-snug" v-html="result.segment.textJa.highlight
                   ? result.segment.textJa.highlight
                   : result.segment.textJa.content
                   "></span>

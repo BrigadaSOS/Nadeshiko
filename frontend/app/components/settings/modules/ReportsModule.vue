@@ -63,33 +63,20 @@ type MediaAuditRun = {
   createdAt: string;
 };
 
-type ReportListResponse = {
-  reports: AdminReport[];
-  pagination: {
-    hasMore: boolean;
-    cursor: string | null;
-  };
-};
-
-// State
 const reports = ref<AdminReport[]>([]);
 const isLoading = ref(false);
 const hasMore = ref(false);
 const cursor = ref<string | null>(null);
 
-// Filters
 const sourceFilter = ref<'' | 'USER' | 'AUTO'>('');
 const statusFilter = ref('');
 
-// Media audit state
 const audits = ref<MediaAudit[]>([]);
 const runningAudits = ref<Set<string>>(new Set());
 const runs = ref<MediaAuditRun[]>([]);
 
-// Sub-tabs for Auto Checks view
 const autoSubTab = ref<'results' | 'runHistory'>('results');
 
-// Modals
 const showAuditConfig = ref(false);
 const editingAudit = ref<MediaAudit | null>(null);
 const editThreshold = ref<Record<string, number | boolean>>({});
@@ -122,7 +109,7 @@ const fetchReports = async (append = false) => {
 
 const fetchAudits = async () => {
   const { data } = await sdk.listAdminMediaAudits().catch(() => ({ data: null }));
-  audits.value = ((data as any)?.audits ?? []) as MediaAudit[];
+  audits.value = (Array.isArray(data) ? data : []) as MediaAudit[];
 };
 
 const fetchRuns = async () => {
@@ -145,7 +132,7 @@ const { data: initialAdminData } = await useAsyncData(
       reports: (reportData?.reports ?? []) as AdminReport[],
       hasMore: reportData?.pagination?.hasMore ?? false,
       cursor: reportData?.pagination?.cursor ?? null,
-      audits: ((auditsResult.data as any)?.audits ?? []) as MediaAudit[],
+      audits: (Array.isArray(auditsResult.data) ? auditsResult.data : []) as MediaAudit[],
     };
   },
   {
@@ -179,6 +166,13 @@ const runAudit = async (auditName: string) => {
   } catch {
   } finally {
     runningAudits.value.delete(auditName);
+  }
+};
+
+const runAllAudits = async () => {
+  const enabled = audits.value.filter((a) => a.enabled);
+  for (const audit of enabled) {
+    await runAudit(audit.name);
   }
 };
 
@@ -264,29 +258,21 @@ const saveNotes = (reportId: number) => {
   delete editingNotes.value[reportId];
 };
 
-const getTrendArrow = (report: AdminReport): string | null => {
-  if (report.source !== 'AUTO' || !report.data) return null;
-  const prev = report.data.previousData as Record<string, unknown> | undefined;
-  if (!prev) return 'NEW';
-  const currentData = report.data as Record<string, unknown>;
-
-  const keys = Object.keys(currentData).filter(
-    (k) => k !== 'previousData' && k !== 'userReportCount' && typeof currentData[k] === 'number',
-  );
-  if (keys.length === 0) return null;
-
-  const key = keys[0];
-  if (!key) return null;
-  const current = currentData[key] as number;
-  const previous = prev[key] as number;
-  if (current > previous) return 'UP';
-  if (current < previous) return 'DOWN';
-  return 'SAME';
-};
-
 const formatDate = (iso: string) => {
   return new Date(iso).toLocaleString();
 };
+
+const formatRelativeDate = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+const isRunningAny = computed(() => runningAudits.value.size > 0);
 </script>
 
 <template>
@@ -295,7 +281,6 @@ const formatDate = (iso: string) => {
       <h1 class="text-2xl font-bold text-white">{{ t('reports.admin.title') }}</h1>
     </div>
 
-    <!-- Source Tabs + Filters -->
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <div class="flex rounded-lg border border-neutral-600 overflow-hidden">
         <button
@@ -333,50 +318,74 @@ const formatDate = (iso: string) => {
         <option value="RESOLVED">{{ t('reports.statuses.RESOLVED') }}</option>
         <option value="IGNORED">Ignored</option>
       </select>
-
     </div>
 
     <!-- Audit Cards (Auto tab) -->
-    <div v-if="sourceFilter === 'AUTO' && audits.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-      <div
-        v-for="audit in audits"
-        :key="audit.name"
-        class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3"
-      >
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-sm font-medium text-white">{{ audit.label }}</span>
-          <div class="flex items-center gap-2">
-            <button
-              class="text-gray-400 hover:text-white text-xs"
-              title="Configure"
-              @click="openAuditConfig(audit)"
-            >
-              Settings
-            </button>
-            <button
-              :disabled="runningAudits.has(audit.name) || !audit.enabled"
-              class="px-2.5 py-1 text-xs rounded bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-40"
-              @click="runAudit(audit.name)"
-            >
-              {{ runningAudits.has(audit.name) ? 'Running...' : 'Run' }}
-            </button>
+    <div v-if="sourceFilter === 'AUTO'" class="mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm text-gray-400">Available checks</span>
+        <button
+          :disabled="isRunningAny || audits.filter(a => a.enabled).length === 0"
+          class="px-3 py-1.5 text-xs rounded-lg bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed"
+          @click="runAllAudits"
+        >
+          {{ isRunningAny ? 'Running...' : 'Run All' }}
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div
+          v-for="audit in audits"
+          :key="audit.name"
+          class="rounded-lg border bg-neutral-800/50 p-4 transition-colors"
+          :class="audit.enabled ? 'border-neutral-700' : 'border-neutral-800 opacity-60'"
+        >
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-white truncate">{{ audit.label }}</span>
+                <span
+                  class="shrink-0 w-1.5 h-1.5 rounded-full"
+                  :class="audit.enabled ? 'bg-green-400' : 'bg-neutral-600'"
+                />
+              </div>
+              <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ audit.description }}</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                class="p-1.5 rounded text-gray-500 hover:text-white hover:bg-neutral-700 transition-colors"
+                title="Configure"
+                @click="openAuditConfig(audit)"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              <button
+                :disabled="runningAudits.has(audit.name) || !audit.enabled"
+                class="px-2.5 py-1 text-xs rounded bg-cyan-600/80 text-white hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                @click="runAudit(audit.name)"
+              >
+                <span v-if="runningAudits.has(audit.name)" class="flex items-center gap-1">
+                  <span class="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
+                  Running
+                </span>
+                <span v-else>Run</span>
+              </button>
+            </div>
           </div>
-        </div>
-        <p class="text-xs text-gray-500 mb-2">{{ audit.description }}</p>
-        <div class="flex items-center gap-2">
-          <span
-            class="text-xs px-1.5 py-0.5 rounded"
-            :class="audit.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
-          >
-            {{ audit.enabled ? 'ON' : 'OFF' }}
-          </span>
-          <span v-if="audit.latestRun" class="text-xs text-gray-400">
-            {{ audit.latestRun.resultCount }} findings
-          </span>
-          <span v-else class="text-xs text-gray-500">No runs</span>
-          <span v-if="audit.latestRun" class="text-[10px] text-gray-500">
-            &middot; {{ formatDate(audit.latestRun.createdAt) }}
-          </span>
+
+          <div v-if="audit.latestRun" class="flex items-center gap-2 mt-2 pt-2 border-t border-neutral-700/50">
+            <span class="text-xs text-gray-400">
+              <span class="font-mono font-medium text-white">{{ audit.latestRun.resultCount }}</span> findings
+            </span>
+            <span class="text-neutral-600">&middot;</span>
+            <span class="text-xs text-gray-500">{{ formatRelativeDate(audit.latestRun.createdAt) }}</span>
+          </div>
+          <div v-else class="mt-2 pt-2 border-t border-neutral-700/50">
+            <span class="text-xs text-gray-600">Never run</span>
+          </div>
         </div>
       </div>
     </div>
@@ -399,7 +408,7 @@ const formatDate = (iso: string) => {
       </button>
     </div>
 
-    <!-- Reports Table (shown when not on Auto sub-tabs, or on Auto "Results" sub-tab) -->
+    <!-- Reports Table -->
     <template v-if="sourceFilter !== 'AUTO' || autoSubTab === 'results'">
       <div class="overflow-x-auto rounded-lg border border-neutral-700">
         <table class="w-full text-sm text-left text-gray-300">
@@ -413,7 +422,6 @@ const formatDate = (iso: string) => {
               <th class="px-3 py-3">{{ t('reports.table.description') }}</th>
               <th v-if="sourceFilter !== 'AUTO'" class="px-3 py-3">{{ t('reports.admin.reporter') }}</th>
               <th class="px-3 py-3">{{ t('reports.admin.count') }}</th>
-              <th v-if="sourceFilter !== 'USER'" class="px-3 py-3">Trend</th>
               <th class="px-3 py-3">{{ t('reports.table.status') }}</th>
               <th class="px-3 py-3">{{ t('reports.admin.notes') }}</th>
               <th class="px-3 py-3">{{ t('reports.admin.actions') }}</th>
@@ -472,16 +480,6 @@ const formatDate = (iso: string) => {
                 >
                   +{{ report.data.userReportCount }} user
                 </span>
-              </td>
-              <td v-if="sourceFilter !== 'USER'" class="px-3 py-3 text-center">
-                <template v-if="report.source === 'AUTO'">
-                  <span v-if="getTrendArrow(report) === 'NEW'" class="text-xs font-bold text-green-400">NEW</span>
-                  <span v-else-if="getTrendArrow(report) === 'UP'" class="text-red-400">&#9650;</span>
-                  <span v-else-if="getTrendArrow(report) === 'DOWN'" class="text-green-400">&#9660;</span>
-                  <span v-else-if="getTrendArrow(report) === 'SAME'" class="text-gray-500">&#8212;</span>
-                  <span v-else class="text-gray-600">-</span>
-                </template>
-                <span v-else class="text-gray-600">-</span>
               </td>
               <td class="px-3 py-3">
                 <span
@@ -545,7 +543,7 @@ const formatDate = (iso: string) => {
               </td>
             </tr>
             <tr v-if="reports.length === 0 && !isLoading">
-              <td colspan="12" class="px-4 py-8 text-center text-gray-500">
+              <td colspan="11" class="px-4 py-8 text-center text-gray-500">
                 {{ t('reports.noReports') }}
               </td>
             </tr>
@@ -553,7 +551,6 @@ const formatDate = (iso: string) => {
         </table>
       </div>
 
-      <!-- Load More -->
       <div v-if="hasMore" class="mt-4 text-center">
         <button
           :disabled="isLoading"
@@ -564,7 +561,6 @@ const formatDate = (iso: string) => {
         </button>
       </div>
 
-      <!-- Loading -->
       <div v-if="isLoading && reports.length === 0" class="text-center py-8">
         <div
           class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-white rounded-full"
@@ -573,7 +569,7 @@ const formatDate = (iso: string) => {
       </div>
     </template>
 
-    <!-- Run History (inline, Auto tab) -->
+    <!-- Run History (Auto tab) -->
     <template v-if="sourceFilter === 'AUTO' && autoSubTab === 'runHistory'">
       <div class="overflow-x-auto rounded-lg border border-neutral-700">
         <table class="w-full text-sm text-left text-gray-300">

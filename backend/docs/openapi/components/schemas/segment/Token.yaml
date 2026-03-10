@@ -1,0 +1,34 @@
+type: object
+description: Morphological token from Japanese text analysis
+required:
+  - s
+  - d
+  - r
+  - b
+  - e
+  - p
+properties:
+  s:
+    type: string
+    description: Surface form (the text as it appears in the sentence)
+    example: "食べ"
+  d:
+    type: string
+    description: Dictionary form (base/lemma form for search)
+    example: "食べる"
+  r:
+    type: string
+    description: Reading in katakana
+    example: "タベ"
+  b:
+    type: integer
+    description: Begin character offset in textJa.content
+    example: 3
+  e:
+    type: integer
+    description: End character offset in textJa.content
+    example: 5
+  p:
+    type: string
+    description: Primary part-of-speech tag
+    example: "動詞"

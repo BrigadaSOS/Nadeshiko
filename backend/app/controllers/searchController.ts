@@ -3,10 +3,14 @@ import { Media } from '@app/models';
 import type { Search, GetSearchStats, SearchWords } from 'generated/routes/search';
 import type { t_SearchFilters, t_MediaFilterItem } from 'generated/models';
 import { toSearchResponseDTO } from './mappers/search.mapper';
+import { assertUser } from '@app/middleware/authentication';
+import { isExperimentActive } from '@lib/experiments';
 
-export const search: Search = async ({ body }, respond) => {
+export const search: Search = async ({ body }, respond, req) => {
   await resolveMediaFilterIds(body.filters);
-  const searchResults = await SegmentDocument.search(body);
+  const user = assertUser(req);
+  const tokensEnabled = await isExperimentActive(user, 'interactive-tokens');
+  const searchResults = await SegmentDocument.search(body, 'strict', { tokensEnabled });
   return respond.with200().body(toSearchResponseDTO(searchResults, body.include));
 };
 

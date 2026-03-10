@@ -28,14 +28,9 @@ export interface AuditDeps {
 }
 
 export const AUDIT_NAME_TO_REASON: Record<string, ReportReason> = {
-  lowSegmentMedia: ReportReason.LOW_SEGMENT_MEDIA,
-  emptyEpisodes: ReportReason.EMPTY_EPISODES,
   missingEpisodes: ReportReason.MISSING_EPISODES_AUTO,
-  badSegmentRatio: ReportReason.BAD_SEGMENT_RATIO,
-  mediaWithNoEpisodes: ReportReason.MEDIA_WITH_NO_EPISODES,
-  missingTranslations: ReportReason.MISSING_TRANSLATIONS,
+  lowSegmentEpisodes: ReportReason.EMPTY_EPISODES,
   dbEsSyncIssues: ReportReason.DB_ES_SYNC_ISSUES,
-  highReportDensity: ReportReason.HIGH_REPORT_DENSITY,
 };
 
 export async function runAllAudits(category?: string, auditName?: string): Promise<RunResult> {

@@ -276,6 +276,15 @@ export const s_Series = z.object({
   nameEn: z.string(),
 });
 
+export const s_Token = z.object({
+  s: z.string(),
+  d: z.string(),
+  r: z.string(),
+  b: z.coerce.number(),
+  e: z.coerce.number(),
+  p: z.string(),
+});
+
 export const s_UpdateReportRequest = z.object({
   status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
   adminNotes: z.string().max(1000).optional(),
@@ -400,7 +409,11 @@ export const s_Segment = z.object({
   episode: z.coerce.number(),
   mediaId: z.coerce.number(),
   mediaPublicId: z.string(),
-  textJa: z.object({ content: z.string().max(500), highlight: z.string().optional() }),
+  textJa: z.object({
+    content: z.string().max(500),
+    highlight: z.string().optional(),
+    tokens: z.array(s_Token).optional(),
+  }),
   textEn: z.object({
     content: z.string().max(500),
     isMachineTranslated: PermissiveBoolean,

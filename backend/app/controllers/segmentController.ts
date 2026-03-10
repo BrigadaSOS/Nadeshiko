@@ -56,7 +56,7 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
   const segment = Segment.create(
     toSegmentCreateAttributes({
       mediaId: media.id,
-      anilistId: getAnilistId(media),
+      anilistId: getPrimaryExternalId(media),
       airingFormat: media.airingFormat,
       episodeNumber: params.episodeNumber,
       storageBasePath: media.storageBasePath,
@@ -71,7 +71,7 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
 export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaId }, relations: ['externalIds'] });
 
-  const anilistId = getAnilistId(media);
+  const anilistId = getPrimaryExternalId(media);
   const attributes = body.segments.map((segmentBody) =>
     toSegmentCreateAttributes({
       mediaId: media.id,
@@ -219,12 +219,13 @@ async function findSegmentByUuidOrPublicId(
   return { segment, mediaPublicId: media.publicId };
 }
 
-function getAnilistId(media: Media): string {
-  const anilist = media.externalIds?.find((e) => e.source === ExternalSourceType.ANILIST);
-  if (!anilist) {
-    throw new InvalidRequestError(`Media ${media.id} is missing an AniList external ID`);
+function getPrimaryExternalId(media: Media): string {
+  const preferred = [ExternalSourceType.ANILIST, ExternalSourceType.TMDB, ExternalSourceType.TVDB, ExternalSourceType.IMDB];
+  for (const source of preferred) {
+    const ext = media.externalIds?.find((e) => e.source === source);
+    if (ext) return ext.externalId;
   }
-  return anilist.externalId;
+  throw new InvalidRequestError(`Media ${media.id} is missing an external ID (AniList, TMDB, etc.)`);
 }
 
 async function createSegmentRevision(
