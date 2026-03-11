@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { SES } from '@aws-sdk/client-ses';
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import { buildWelcomeEmail, buildAnnouncementEmail, buildChangeEmailVerificationEmail } from './emailTemplates';
@@ -44,7 +44,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
     );
   }
 
-  const ses = new SES({
+  const sesClient = new SESv2Client({
     region,
     credentials: {
       accessKeyId,
@@ -53,8 +53,8 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   });
 
   transporter = nodemailer.createTransport({
-    SES: { ses, aws: { Ses: SES } },
-  } as any);
+    SES: { sesClient, SendEmailCommand },
+  });
 
   logger.info({ environment }, 'Email transport configured with Amazon SES');
   return transporter;

@@ -42,6 +42,12 @@ We shipped a lot of improvements with the recent 1.5.0 update:
 - **Audio normalization**: all sentence audio is now leveled to a consistent volume.
 - **SEO improvements**: Nadeshiko pages are now properly indexed and shareable.
 
+### Your account and API keys are ready
+
+All existing accounts have been migrated to the new platform, and your API keys have already been created. You can log in and find them in your account settings right away.
+
+If you still need access to the previous version, the old UI remains available at [old.nadeshiko.co](https://old.nadeshiko.co) until the end of April 2026. After that, it will be permanently shut down.
+
 ### Revamped API and SDKs
 
 We also completely rebuilt the Nadeshiko API. It's already available to use ([link to API docs]). Official SDKs are coming later this week, and we'll do a separate post diving into the API.
