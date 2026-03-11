@@ -206,7 +206,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber', () => {
 });
 
 describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber', () => {
-  it('soft-deletes the episode and returns 204', async () => {
+  it('hard-deletes the episode and returns 204', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
     const media = fixtures.media.testShow;
     const pilot = fixtures.episodes.pilot;
@@ -215,24 +215,22 @@ describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber', () => {
       () => Episode.count(),
       -1,
       async () => {
-        const res = await request(app).delete(`/v1/media/${media.id}/episodes/${pilot.episodeNumber}`);
+        const res = await request(app).delete(`/v1/media/${media.publicId}/episodes/${pilot.episodeNumber}`);
         expect(res.status).toBe(204);
       },
     );
 
-    const withDeleted = await Episode.findOne({
+    const deleted = await Episode.findOne({
       where: { mediaId: media.id, episodeNumber: pilot.episodeNumber },
-      withDeleted: true,
     });
-    expect(withDeleted).not.toBeNull();
-    expect(withDeleted?.deletedAt).not.toBeNull();
+    expect(deleted).toBeNull();
   });
 
   it('returns 404 when episode does not exist', async () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).delete(`/v1/media/${media.id}/episodes/999`);
+    const res = await request(app).delete(`/v1/media/${media.publicId}/episodes/999`);
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });

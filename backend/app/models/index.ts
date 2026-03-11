@@ -5,8 +5,7 @@ export { BaseEntity } from './base.entity';
 export { User, UserRoleType } from './User';
 export type { UserPreferences } from './User';
 export { AccountQuotaUsage } from './AccountQuotaUsage';
-export { Experiment } from './Experiment';
-export { ExperimentEnrollment } from './ExperimentEnrollment';
+export { LabEnrollment } from './LabEnrollment';
 
 // Media domain
 export { Media, CategoryType, MediaInclude } from './Media';

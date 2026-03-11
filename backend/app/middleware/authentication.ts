@@ -219,7 +219,7 @@ async function attachAuthPayloadToRequest(
 ): Promise<void> {
   let user = getCachedUser(userId);
   if (!user) {
-    user = await User.findOne({ where: { id: userId }, relations: ['experimentEnrollments'] });
+    user = await User.findOne({ where: { id: userId }, relations: ['labEnrollments'] });
     if (!user || !user.isActive) {
       throw new AuthCredentialsInvalidError('User is invalid or inactive.');
     }

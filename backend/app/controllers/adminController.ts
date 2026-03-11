@@ -198,13 +198,16 @@ async function getActivityStats() {
     .limit(10)
     .getRawMany();
 
-  const dailyActivity = await UserActivity.createQueryBuilder('a')
+  const dailyActivityRows = await UserActivity.createQueryBuilder('a')
     .select("TO_CHAR(DATE(a.created_at), 'YYYY-MM-DD')", 'date')
     .addSelect('COUNT(*)', 'count')
     .where("a.created_at > NOW() - INTERVAL '30 days'")
     .groupBy('DATE(a.created_at)')
     .orderBy('date', 'ASC')
     .getRawMany();
+
+  const dailyActivityMap = new Map(dailyActivityRows.map((row) => [row.date as string, Number(row.count)]));
+  const dailyActivity30d = fillDailyRange(30, dailyActivityMap);
 
   return {
     totalSearches: countMap.SEARCH ?? 0,
@@ -213,6 +216,20 @@ async function getActivityStats() {
     totalCollectionAdds: countMap.COLLECTION_ADD ?? 0,
     activeSearchers7d: Number(activeSearchers?.count ?? 0),
     topQueries7d: topQueries.map((row) => ({ query: row.query as string, count: Number(row.count) })),
-    dailyActivity30d: dailyActivity.map((row) => ({ date: row.date as string, count: Number(row.count) })),
+    dailyActivity30d,
   };
+}
+
+function fillDailyRange(days: number, countsByDate: Map<string, number>): Array<{ date: string; count: number }> {
+  const result: Array<{ date: string; count: number }> = [];
+  const today = new Date();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    result.push({ date: dateStr, count: countsByDate.get(dateStr) ?? 0 });
+  }
+
+  return result;
 }

@@ -653,7 +653,6 @@ export type t_UserLabFeature = {
   description?: string;
   key: string;
   name?: string;
-  userControllable: boolean;
 };
 
 export type t_UserPreferences = {
@@ -731,6 +730,12 @@ export type t_AutocompleteMediaQuerySchema = {
   category?: 'ANIME' | 'JDRAMA';
   query: string;
   take?: number;
+};
+
+export type t_BatchUpdateAdminReportsRequestBodySchema = {
+  adminNotes?: string;
+  ids: number[];
+  status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
 };
 
 export type t_CreateCollectionRequestBodySchema = {
@@ -988,7 +993,7 @@ export type t_ListAdminReportsQuerySchema = {
   auditRunId?: number;
   cursor?: string;
   source?: 'USER' | 'AUTO';
-  status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  status?: string;
   take?: number;
   'target.episodeNumber'?: number;
   'target.mediaId'?: number;

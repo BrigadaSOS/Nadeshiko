@@ -1,17 +1,9 @@
 import { defineStore } from 'pinia';
-
-interface UserFeature {
-  key: string;
-  name?: string;
-  description?: string;
-  active: boolean;
-  userControllable: boolean;
-  userOptedIn?: boolean;
-}
+import type { UserLabFeature } from '@brigadasos/nadeshiko-sdk';
 
 export const useLabsStore = defineStore('labs', {
   state: () => ({
-    features: [] as UserFeature[],
+    features: [] as UserLabFeature[],
     loaded: false,
   }),
   getters: {
@@ -19,7 +11,6 @@ export const useLabsStore = defineStore('labs', {
       const feature = state.features.find((f) => f.key === key);
       return feature?.active ?? false;
     },
-    labFeatures: (state) => state.features.filter((f) => f.userControllable),
   },
   persist: import.meta.client
     ? {
@@ -33,7 +24,7 @@ export const useLabsStore = defineStore('labs', {
       try {
         const sdk = useNadeshikoSdk();
         const { data } = await sdk.listUserLabs();
-        this.features = (data ?? []) as UserFeature[];
+        this.features = (data ?? []) as UserLabFeature[];
         this.loaded = true;
       } catch (error) {
         console.error('[Labs] Failed to fetch features:', error);
@@ -50,7 +41,6 @@ export const useLabsStore = defineStore('labs', {
       const feature = this.features.find((f) => f.key === key);
       if (feature) {
         feature.active = enable;
-        feature.userOptedIn = enable;
       }
     },
   },

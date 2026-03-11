@@ -15,6 +15,7 @@ import { type NextFunction, type Request, type Response, Router } from 'express'
 import { z } from 'zod/v3';
 import type {
   t_AdminReportListResponse,
+  t_BatchUpdateAdminReportsRequestBodySchema,
   t_Error400,
   t_Error401,
   t_Error403,
@@ -44,10 +45,11 @@ import type {
   t_UpdateAdminReportRequestBodySchema,
   t_UpdateAnnouncementRequestBodySchema,
 } from '../models.ts';
-import type { ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { BatchUpdateReportsRequestOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
+  s_BatchUpdateReportsRequest,
   s_Error400,
   s_Error401,
   s_Error403,
@@ -370,6 +372,25 @@ export type ListAdminReports = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type BatchUpdateAdminReportsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    updated: number;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type BatchUpdateAdminReports = (
+  params: Params<void, void, BatchUpdateReportsRequestOutput, void>,
+  respond: BatchUpdateAdminReportsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type UpdateAdminReportResponder = {
   with200(): ExpressRuntimeResponse<t_Report>;
   with400(): ExpressRuntimeResponse<t_Error400>;
@@ -530,6 +551,7 @@ export type AdminImplementation = {
   impersonateAdminUser: ImpersonateAdminUser;
   clearAdminImpersonation: ClearAdminImpersonation;
   listAdminReports: ListAdminReports;
+  batchUpdateAdminReports: BatchUpdateAdminReports;
   updateAdminReport: UpdateAdminReport;
   listAdminMediaAudits: ListAdminMediaAudits;
   updateAdminMediaAudit: UpdateAdminMediaAudit;
@@ -1473,7 +1495,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),
-    status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
+    status: z.string().optional(),
     source: z.enum(['USER', 'AUTO']).optional(),
     'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
     'target.mediaId': z.coerce.number().optional(),
@@ -1539,6 +1561,79 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       if (body !== undefined) {
         res.json(listAdminReportsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const batchUpdateAdminReportsRequestBodySchema = s_BatchUpdateReportsRequest;
+
+  const batchUpdateAdminReportsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ updated: z.coerce.number() })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // batchUpdateAdminReports
+  router.patch(`/v1/admin/reports/batch`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(batchUpdateAdminReportsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            updated: number;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.batchUpdateAdminReports(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(batchUpdateAdminReportsResponseBodyValidator(status, body));
       } else {
         res.end();
       }

@@ -336,7 +336,8 @@ const openCollectionsPage = async () => {
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>
 
-  <SearchDropdownContainer class="mr-2 my-1" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer class="mr-2 my-1" dropdownId="nd-dropdown-with-header"
+    dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiDotsHorizontal" />

@@ -2,20 +2,16 @@ type: object
 required:
   - key
   - active
-  - userControllable
 properties:
   key:
     type: string
     description: Unique identifier for the feature
   name:
     type: string
-    description: Human-readable feature name (only present for labs)
+    description: Human-readable feature name
   description:
     type: string
-    description: Description of what the feature does (only present for labs)
+    description: Description of what the feature does
   active:
     type: boolean
     description: Whether this feature is currently active for the user
-  userControllable:
-    type: boolean
-    description: Whether the user can toggle this feature (lab=true, flag=false)

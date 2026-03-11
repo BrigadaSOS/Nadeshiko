@@ -9,7 +9,7 @@ import type {
 } from 'generated/routes/media';
 import type { ListMediaQueryOutput } from 'generated/outputTypes';
 import type { t_CharacterInput, t_ExternalId } from 'generated/models';
-import { CategoryType, Media, MediaCharacter, MediaExternalId, MediaInclude } from '@app/models';
+import { CategoryType, Media, MediaCharacter, MediaExternalId, MediaInclude, Segment } from '@app/models';
 import { Character } from '@app/models/Character';
 import { Seiyuu } from '@app/models/Seiyuu';
 import { CharacterRole } from '@app/models/MediaCharacter';
@@ -25,6 +25,7 @@ import { toMediaAutocompleteDTO } from './mappers/shared.mapper';
 import { Cache } from '@lib/cache';
 import { decodeOffsetCursor, encodeOffsetCursor } from '@lib/cursor';
 import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
 import { InvalidRequestError } from '@app/errors';
 
 export const listMedia: ListMedia = async ({ query }, respond) => {
@@ -181,7 +182,20 @@ export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
 };
 
 export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
-  await Media.softDeleteOrFail({ where: { publicId: params.id } });
+  const media = await Media.findOneOrFail({ where: { publicId: params.id } });
+
+  const segmentIds = await Segment.createQueryBuilder('s')
+    .select('s.id')
+    .where('s.mediaId = :mediaId', { mediaId: media.id })
+    .getMany()
+    .then((rows) => rows.map((r) => r.id));
+
+  await Media.deleteOrFail({ where: { id: media.id } });
+
+  if (segmentIds.length > 0) {
+    await SegmentIndexer.bulkDelete(segmentIds);
+  }
+
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
