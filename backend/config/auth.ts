@@ -2,7 +2,7 @@ import { ApiPermission, User, UserRoleType } from '@app/models';
 import { config, type AppConfig } from '@config/config';
 import { isProdEnvironment } from '@config/environment';
 import { getAppPostgresConfig } from '@config/postgresConfig';
-import { sendWelcomeEmail, sendChangeEmailVerificationEmail } from '@app/mailers/email';
+import { sendWelcomeEmail, sendVerifyNewEmail } from '@app/mailers/email';
 import { ensureDefaultCollections } from '@app/controllers/collectionController';
 import { betterAuth } from 'better-auth';
 import { apiKey, customSession } from 'better-auth/plugins';
@@ -64,7 +64,7 @@ export interface BuildAuthOptionsDependencies {
   production?: boolean;
   findUserById?: FindUserById;
   sendWelcomeEmailFn?: typeof sendWelcomeEmail;
-  sendChangeEmailVerificationFn?: typeof sendChangeEmailVerificationEmail;
+  sendVerifyNewEmailFn?: typeof sendVerifyNewEmail;
   onWelcomeEmailError?: WelcomeEmailErrorLogger;
   ensureDefaultCollectionsFn?: typeof ensureDefaultCollections;
 }
@@ -161,7 +161,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
   const isProduction = dependencies.production ?? isProdEnvironment(configValues.ENVIRONMENT);
   const findUserById = dependencies.findUserById || defaultFindUserById;
   const sendWelcomeEmailFn = dependencies.sendWelcomeEmailFn || sendWelcomeEmail;
-  const sendChangeEmailFn = dependencies.sendChangeEmailVerificationFn || sendChangeEmailVerificationEmail;
+  const sendVerifyNewEmailFn = dependencies.sendVerifyNewEmailFn || sendVerifyNewEmail;
   const onWelcomeEmailError = dependencies.onWelcomeEmailError || defaultWelcomeEmailErrorLogger;
   const ensureDefaultCollectionsFn = dependencies.ensureDefaultCollectionsFn || ensureDefaultCollections;
 
@@ -175,6 +175,11 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
     database: databasePool,
     trustedOrigins: trustedOrigins.length > 0 ? trustedOrigins : undefined,
     disabledPaths: DISABLED_PATHS,
+    emailVerification: {
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendVerifyNewEmailFn(user.email, url);
+      },
+    },
     emailAndPassword: {
       enabled: false,
     },
@@ -194,9 +199,6 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       },
       changeEmail: {
         enabled: true,
-        sendChangeEmailVerification: async ({ user, newEmail, url }) => {
-          await sendChangeEmailFn(Number(user.id), user.name, user.email, newEmail, url);
-        },
       },
       deleteUser: {
         enabled: true,
