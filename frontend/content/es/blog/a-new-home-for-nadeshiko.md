@@ -22,6 +22,12 @@ Aqui tienes un resumen rapido de lo mas destacado:
 - **Mejor reproduccion de audio** — El reproductor de audio ha sido rediseñado para una experiencia mas fluida.
 - **Cuentas de usuario** — Ahora puedes crear una cuenta para guardar tus preferencias y claves API.
 
+## Tu cuenta y claves API estan listas
+
+Todas las cuentas existentes han sido migradas a la nueva plataforma, y tus claves API ya han sido creadas. Puedes iniciar sesion y encontrarlas en la configuracion de tu cuenta.
+
+Si todavia necesitas acceder a la version anterior, la interfaz antigua seguira disponible en [old.nadeshiko.co](https://old.nadeshiko.co) hasta finales de abril de 2026. Despues de eso, sera cerrada permanentemente.
+
 ## Que viene despues?
 
 Tenemos mucho planeado para el futuro cercano:

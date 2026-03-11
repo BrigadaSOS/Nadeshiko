@@ -49,7 +49,7 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.985.0",
+    "@aws-sdk/client-sesv2": "^3.1006.0",
     "@elastic/elasticsearch": "^8.17.0",
     "@nahkies/typescript-express-runtime": "0.22.0",
     "@opentelemetry/api": "^1.9.0",
