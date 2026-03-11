@@ -166,7 +166,7 @@ describe('report.mapper', () => {
     } as any);
 
     expect(filters).toEqual({
-      status: ReportStatus.CONCERN,
+      statuses: [ReportStatus.CONCERN],
       source: ReportSource.AUTO,
       targetType: ReportTargetType.SEGMENT,
       targetMediaId: 9,

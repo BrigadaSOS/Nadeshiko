@@ -74,16 +74,4 @@ describe('mediaWithNoEpisodes check', () => {
     expect(results[0].mediaId).toBe(drama.id);
   });
 
-  it('excludes soft-deleted media', async () => {
-    const media = createMedia();
-    await media.save();
-    await Media.update(media.id, { deletedAt: new Date() });
-
-    const results = await mediaWithNoEpisodes.run({
-      threshold: {},
-      dataSource: TestDataSource,
-    });
-
-    expect(results).toHaveLength(0);
-  });
 });

@@ -18,7 +18,7 @@ describe('runCategoryFilteredQuery', () => {
       sql: `
         SELECT m.id
         FROM "Media" m
-        WHERE m.deleted_at IS NULL
+        WHERE 1=1
       `,
       category: 'ANIME',
     });
@@ -50,7 +50,7 @@ describe('runCategoryFilteredQuery', () => {
       sql: `
         SELECT m.id
         FROM "Media" m
-        WHERE m.deleted_at IS NULL
+        WHERE 1=1
           AND m.id = $1
       `,
       params: [-999],
@@ -87,7 +87,7 @@ describe('runCategoryFilteredQuery', () => {
       sql: `
         SELECT m.id
         FROM "Media" m
-        WHERE m.deleted_at IS NULL
+        WHERE 1=1
       `,
       category: 'ANIME',
       suffix: `LIMIT $NEXT`,

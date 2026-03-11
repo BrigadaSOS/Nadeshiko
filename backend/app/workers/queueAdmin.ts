@@ -1,6 +1,6 @@
 import { logger } from '@config/log';
 import { getPgBoss } from './pgBossClient';
-import { ES_SYNC_QUEUES } from './queueNames';
+import { ALL_QUEUES } from './queueNames';
 
 export interface QueueStats {
   queue: string;
@@ -54,7 +54,7 @@ export async function getStuckJobs(): Promise<QueueStats[]> {
 
   const db = boss.getDb();
 
-  for (const queue of ES_SYNC_QUEUES) {
+  for (const queue of ALL_QUEUES) {
     try {
       const stats = await boss.getQueueStats(queue);
 

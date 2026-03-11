@@ -322,7 +322,7 @@ describe('PATCH /v1/media/:id', () => {
 });
 
 describe('DELETE /v1/media/:id', () => {
-  it('soft-deletes media and returns 204', async () => {
+  it('hard-deletes media and returns 204', async () => {
     const loaded = await loadFixtures(['singleMedia']);
     const media = loaded.media.testShow;
 
@@ -330,21 +330,17 @@ describe('DELETE /v1/media/:id', () => {
       () => Media.count(),
       -1,
       async () => {
-        const res = await request(app).delete(`/v1/media/${media.id}`);
+        const res = await request(app).delete(`/v1/media/${media.publicId}`);
         expect(res.status).toBe(204);
       },
     );
 
-    const withDeleted = await Media.findOne({
-      where: { id: media.id },
-      withDeleted: true,
-    });
-    expect(withDeleted).not.toBeNull();
-    expect(withDeleted?.deletedAt).not.toBeNull();
+    const deleted = await Media.findOne({ where: { id: media.id } });
+    expect(deleted).toBeNull();
   });
 
   it('returns 404 when media does not exist', async () => {
-    const res = await request(app).delete('/v1/media/999999');
+    const res = await request(app).delete('/v1/media/nonexistent');
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });

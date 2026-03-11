@@ -15,8 +15,8 @@ export const missingEpisodes: MediaAuditCheck = {
       sql: `
         SELECT m.id AS "mediaId", m.romaji_name AS "romajiName"
         FROM "Media" m
-        LEFT JOIN "Episode" e ON e.media_id = m.id AND e.deleted_at IS NULL
-        WHERE m.deleted_at IS NULL
+        LEFT JOIN "Episode" e ON e.media_id = m.id
+        WHERE 1=1
       `,
       category: ctx.category,
       suffix: `GROUP BY m.id, m.romaji_name HAVING COUNT(e.episode_number) = 0`,
@@ -36,8 +36,8 @@ export const missingEpisodes: MediaAuditCheck = {
         SELECT m.id AS "mediaId", m.romaji_name AS "romajiName",
                array_agg(e.episode_number ORDER BY e.episode_number) AS "episodes"
         FROM "Media" m
-        JOIN "Episode" e ON e.media_id = m.id AND e.deleted_at IS NULL
-        WHERE m.deleted_at IS NULL
+        JOIN "Episode" e ON e.media_id = m.id
+        WHERE 1=1
       `,
       category: ctx.category,
       suffix: `GROUP BY m.id, m.romaji_name HAVING COUNT(*) > 1`,

@@ -19,9 +19,8 @@ export const lowSegmentEpisodes: MediaAuditCheck = {
                COALESCE(e.num_segments, 0) AS "segmentCount",
                m.romaji_name AS "romajiName"
         FROM "Episode" e
-        JOIN "Media" m ON m.id = e.media_id AND m.deleted_at IS NULL
-        WHERE e.deleted_at IS NULL
-          AND COALESCE(e.num_segments, 0) < $1
+        JOIN "Media" m ON m.id = e.media_id
+        WHERE COALESCE(e.num_segments, 0) < $1
       `,
       params: [minSegments],
       category: ctx.category,

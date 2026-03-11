@@ -1,5 +1,6 @@
 import type { ListEpisodes, CreateEpisode, GetEpisode, UpdateEpisode, DeleteEpisode } from 'generated/routes/media';
-import { Episode, Media } from '@app/models';
+import { Episode, Media, Segment } from '@app/models';
+import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episode.mapper';
 
 export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
@@ -69,7 +70,20 @@ export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) =>
 export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
 
-  await Episode.softDeleteOrFail({ where: { mediaId: media.id, episodeNumber: params.episodeNumber } });
+  const segmentIds = await Segment.createQueryBuilder('s')
+    .select('s.id')
+    .where('s.mediaId = :mediaId AND s.episode = :episode', {
+      mediaId: media.id,
+      episode: params.episodeNumber,
+    })
+    .getMany()
+    .then((rows) => rows.map((r) => r.id));
+
+  await Episode.deleteOrFail({ where: { mediaId: media.id, episodeNumber: params.episodeNumber } });
+
+  if (segmentIds.length > 0) {
+    await SegmentIndexer.bulkDelete(segmentIds);
+  }
 
   return respond.with204();
 };

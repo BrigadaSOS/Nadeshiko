@@ -43,7 +43,7 @@ const toReportTargetDTO = (report: Report, ids: ReportPublicIds): t_Report['targ
 };
 
 export type AdminReportFilters = {
-  status?: ReportStatus;
+  statuses?: ReportStatus[];
   source?: ReportSource;
   targetType?: ReportTargetType;
   targetMediaId?: number;
@@ -110,9 +110,20 @@ export function toReportUpdatePatch(body: UpdateReportRequestOutput): Partial<Re
   return patch;
 }
 
+const VALID_STATUSES = new Set(Object.values(ReportStatus));
+
+function parseStatusFilter(raw?: string): ReportStatus[] | undefined {
+  if (!raw) return undefined;
+  const statuses = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => VALID_STATUSES.has(s as ReportStatus)) as ReportStatus[];
+  return statuses.length > 0 ? statuses : undefined;
+}
+
 export function toAdminReportFilters(query: ListAdminReportsQueryOutput): AdminReportFilters {
   return {
-    status: query.status as ReportStatus | undefined,
+    statuses: parseStatusFilter(query.status),
     source: query.source as ReportSource | undefined,
     targetType: query['target.type'] as ReportTargetType | undefined,
     targetMediaId: query['target.mediaId'],

@@ -235,7 +235,7 @@ const submitDelete = async () => {
           <tr v-for="collection in collections" :key="collection.publicId">
             <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <NuxtLink
-                :to="{ path: '/search', query: { collectionId: collection.publicId } }"
+                :to="`/collection/${collection.publicId}`"
                 class="font-medium truncate block hover:text-blue-400 transition-colors"
               >
                 {{ collection.name }}

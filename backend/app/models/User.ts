@@ -2,7 +2,7 @@ import { Entity, PrimaryColumn, Column, OneToOne, OneToMany, Index } from 'typeo
 import { BaseEntity } from './base.entity';
 import type { ApiAuth } from './ApiAuth';
 import type { AccountQuotaUsage } from './AccountQuotaUsage';
-import type { ExperimentEnrollment } from './ExperimentEnrollment';
+import type { LabEnrollment } from './LabEnrollment';
 
 export enum UserRoleType {
   ADMIN = 'ADMIN',
@@ -78,6 +78,6 @@ export class User extends BaseEntity {
   @OneToMany('AccountQuotaUsage', 'user')
   accountQuotaUsages?: AccountQuotaUsage[];
 
-  @OneToMany('ExperimentEnrollment', 'user')
-  experimentEnrollments?: ExperimentEnrollment[];
+  @OneToMany('LabEnrollment', 'user')
+  labEnrollments?: LabEnrollment[];
 }

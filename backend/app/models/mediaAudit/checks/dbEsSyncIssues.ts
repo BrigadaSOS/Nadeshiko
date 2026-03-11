@@ -20,7 +20,7 @@ export const dbEsSyncIssues: MediaAuditCheck = {
         SELECT m.id AS "mediaId", m.romaji_name AS "romajiName",
                COALESCE(m.num_segments, 0) AS "dbCount"
         FROM "Media" m
-        WHERE m.deleted_at IS NULL
+        WHERE 1=1
       `,
       category: ctx.category,
     });

@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <div class="flex dark bg-background flex-col min-h-screen">
+  <div class="flex dark bg-background flex-col min-h-screen overflow-x-hidden">
     <AuthModalLoginSignUp />
     <LayoutHeader />
     <main class="flex-grow pb-20">

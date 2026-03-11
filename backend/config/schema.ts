@@ -26,8 +26,7 @@ import {
   MediaAuditRun,
   UserActivity,
   SegmentRevision,
-  Experiment,
-  ExperimentEnrollment,
+  LabEnrollment,
   Announcement,
 } from '@app/models';
 import { SegmentSubscriber } from '@app/subscribers';
@@ -53,8 +52,7 @@ export const APP_ENTITIES = [
   MediaAuditRun,
   UserActivity,
   SegmentRevision,
-  Experiment,
-  ExperimentEnrollment,
+  LabEnrollment,
   Announcement,
 ];
 
