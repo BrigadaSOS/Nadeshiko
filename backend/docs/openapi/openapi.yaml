@@ -28,7 +28,7 @@ info:
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
 
-  version: 1.5.0
+  version: 1.5.1
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -214,4 +214,5 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
+
 
