@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { config } from '@config/config';
 import { logger } from '@config/log';
-import { buildWelcomeEmail, buildAnnouncementEmail, buildChangeEmailVerificationEmail } from './emailTemplates';
+import { buildWelcomeEmail, buildAnnouncementEmail, buildVerifyNewEmailEmail } from './emailTemplates';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
@@ -157,17 +157,11 @@ export async function sendAnnouncementEmail(
   );
 }
 
-export async function sendChangeEmailVerificationEmail(
-  userId: number,
-  username: string,
-  currentEmail: string,
-  newEmail: string,
-  verificationUrl: string,
-): Promise<void> {
-  const { subject, html } = await buildChangeEmailVerificationEmail(username, newEmail, verificationUrl);
+export async function sendVerifyNewEmail(email: string, verificationUrl: string): Promise<void> {
+  const { subject, html } = await buildVerifyNewEmailEmail(verificationUrl);
 
   await sendEmailJob({
-    to: currentEmail,
+    to: email,
     subject,
     html,
   });

@@ -34,15 +34,9 @@ export async function buildAnnouncementEmail(
   return { subject, html };
 }
 
-export async function buildChangeEmailVerificationEmail(
-  username: string,
-  newEmail: string,
-  url: string,
-): Promise<{ subject: string; html: string }> {
-  const subject = 'Confirm your email change';
-  const html = await renderTemplate('change-email', {
-    username,
-    newEmail,
+export async function buildVerifyNewEmailEmail(url: string): Promise<{ subject: string; html: string }> {
+  const subject = 'Verify your new email';
+  const html = await renderTemplate('verify-new-email', {
     url,
     year: getCurrentYear(),
   });

@@ -9,71 +9,81 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         line-height: 1.6;
         color: #333;
-        max-width: 600px;
-        margin: 0 auto;
+        margin: 0;
         padding: 20px;
         background-color: #f4f4f4;
+      }
+      .wrapper {
+        max-width: 480px;
+        margin: 0 auto;
       }
       .container {
         background-color: #ffffff;
         border-radius: 8px;
-        padding: 40px;
+        padding: 36px 32px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        color: #e91e63;
-        margin-top: 0;
-        font-size: 28px;
-      }
-      .header {
         text-align: center;
-        margin-bottom: 30px;
+      }
+      .header img {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        vertical-align: middle;
+      }
+      .header span {
+        font-size: 22px;
+        font-weight: 700;
+        color: #ef5552;
+        vertical-align: middle;
+        margin-left: 8px;
+      }
+      .body-text {
+        text-align: left;
+        margin-top: 24px;
+      }
+      .subject {
+        font-size: 20px;
+        font-weight: 700;
+        color: #333;
+        margin: 20px 0 12px;
+        text-align: left;
       }
       .announcement-body {
-        margin: 20px 0;
-        padding: 20px;
+        margin: 16px 0;
+        padding: 16px 20px;
         background-color: #f9f9f9;
         border-radius: 5px;
-        border-left: 4px solid #e91e63;
+        border-left: 4px solid #ef5552;
+        text-align: left;
       }
       .footer {
-        margin-top: 30px;
-        padding-top: 20px;
+        margin-top: 28px;
+        padding-top: 16px;
         border-top: 1px solid #e0e0e0;
-        font-size: 14px;
-        color: #666;
+        font-size: 13px;
+        color: #999;
         text-align: center;
-      }
-      .button {
-        display: inline-block;
-        background-color: #e91e63;
-        color: #ffffff;
-        text-decoration: none;
-        padding: 12px 30px;
-        border-radius: 5px;
-        margin: 20px 0;
-        font-weight: bold;
-      }
-      .button:hover {
-        background-color: #c2185b;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <h1>{{subject}}</h1>
-      </div>
+    <div class="wrapper">
+      <div class="container">
+        <div class="header">
+          <img src="https://nadeshiko.co/logo.webp" alt="Nadeshiko" />
+          <span>Nadeshiko</span>
+        </div>
 
-      <p>Hi <strong>{{username}}</strong>,</p>
+        <div class="body-text">
+          <p>Hi <strong>{{username}}</strong>,</p>
+          <div class="subject">{{subject}}</div>
+          <div class="announcement-body">{{message}}</div>
+          <p>If you have any questions about this announcement, please don't hesitate to reach out to us.</p>
+        </div>
 
-      <div class="announcement-body">{{message}}</div>
-
-      <p>If you have any questions about this announcement, please don't hesitate to reach out to us.</p>
-
-      <div class="footer">
-        <p>You received this email because you have a Nadeshiko account.</p>
-        <p>&copy; {{year}} Nadeshiko. All rights reserved.</p>
+        <div class="footer">
+          <p>&copy; {{year}} Nadeshiko</p>
+        </div>
       </div>
     </div>
   </body>
