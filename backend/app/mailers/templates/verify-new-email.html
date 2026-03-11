@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to Nadeshiko</title>
+    <title>Verify Your New Email</title>
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -41,20 +41,6 @@
         text-align: left;
         margin-top: 24px;
       }
-      .features {
-        background-color: #f9f9f9;
-        padding: 16px 20px;
-        border-radius: 5px;
-        margin: 16px 0;
-        text-align: left;
-      }
-      .features ul {
-        margin: 0;
-        padding-left: 20px;
-      }
-      .features li {
-        margin-bottom: 8px;
-      }
       .footer {
         margin-top: 28px;
         padding-top: 16px;
@@ -74,29 +60,15 @@
         </div>
 
         <div class="body-text">
-          <p>Hey <strong>{{username}}</strong>,</p>
-          <p>Thanks for signing up! Here's a quick look at what you can do:</p>
-
-          <div class="features">
-            <ul>
-              <li><strong>Search:</strong> Look up words and phrases in English, Spanish, or Japanese across anime and dramas</li>
-              <li><strong>Context:</strong> See how words are actually used by native speakers in real scenes</li>
-              <li><strong>Shadow:</strong> Practice your pronunciation with native audio in our immersive player</li>
-              <li><strong>Collections:</strong> Save and organize your favorite segments for later review</li>
-            </ul>
-          </div>
-
-          <p>Our database contains millions of example sentences. The easiest way to get started is to just search for a word or phrase you're curious about.</p>
+          <p>Hey there,</p>
+          <p>Please verify that this email address belongs to you by clicking the button below.</p>
         </div>
 
         <p>
-          <a href="{{baseUrl}}" style="display: inline-block; background-color: #ef5552; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 5px; font-weight: bold;">Start Searching</a>
+          <a href="{{url}}" style="display: inline-block; background-color: #ef5552; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 5px; font-weight: bold;">Verify Email</a>
         </p>
 
-        <p style="font-size: 13px; color: #999; text-align: left;">
-          Have questions or feedback? We'd love to hear from you,
-          <a href="https://new.nadeshiko.co/about#contact" style="color: #ef5552; text-decoration: none;">reach out here</a>.
-        </p>
+        <p style="font-size: 13px; color: #999;">This link will expire in 1 hour. If you didn't request this change, you can safely ignore this email.</p>
 
         <div class="footer">
           <p>&copy; {{year}} Nadeshiko</p>

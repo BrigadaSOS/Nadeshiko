@@ -94,6 +94,29 @@ export type SeriesWithMediaOutput = z.output<typeof schemas.s_SeriesWithMedia>;
 // Inline query schemas and their output types
 // ============================================
 
+export const listAdminReportsQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
+    status: z.string().optional(),
+    source: z.enum(['USER', 'AUTO']).optional(),
+    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    'target.mediaId': z.coerce.number().optional(),
+    'target.episodeNumber': z.coerce.number().optional(),
+    'target.segmentId': z.coerce.number().optional(),
+    auditRunId: z.coerce.number().optional(),
+  });
+export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
+
+export const runAdminMediaAuditQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
+export type RunAdminMediaAuditQueryOutput = z.output<typeof runAdminMediaAuditQuerySchema>;
+
+export const listAdminMediaAuditRunsQuerySchema = z.object({
+    auditName: z.string().optional(),
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
+  });
+export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
+
 export const listMediaQuerySchema = z.object({
     take: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.string().optional(),
@@ -174,29 +197,6 @@ export const listSegmentsQuerySchema = z.object({
     cursor: z.string().optional(),
   });
 export type ListSegmentsQueryOutput = z.output<typeof listSegmentsQuerySchema>;
-
-export const listAdminReportsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    status: z.string().optional(),
-    source: z.enum(['USER', 'AUTO']).optional(),
-    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
-    'target.mediaId': z.coerce.number().optional(),
-    'target.episodeNumber': z.coerce.number().optional(),
-    'target.segmentId': z.coerce.number().optional(),
-    auditRunId: z.coerce.number().optional(),
-  });
-export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
-
-export const runAdminMediaAuditQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
-export type RunAdminMediaAuditQueryOutput = z.output<typeof runAdminMediaAuditQuerySchema>;
-
-export const listAdminMediaAuditRunsQuerySchema = z.object({
-    auditName: z.string().optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-  });
-export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
 
 export const listUserActivityQuerySchema = z.object({
     cursor: z.string().optional(),
