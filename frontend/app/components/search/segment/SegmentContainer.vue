@@ -315,7 +315,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
               <h3 class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
-                <SearchSegmentSegmentTokenText
+                <SearchSegmentTokenText
                   v-if="tokensEnabled && (result.segment.textJa as any).tokens"
                   :tokens="(result.segment.textJa as any).tokens"
                   :highlight="result.segment.textJa.highlight"

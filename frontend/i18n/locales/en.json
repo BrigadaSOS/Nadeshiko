@@ -151,7 +151,14 @@
     "cancel": "Cancel",
     "close": "Close",
     "saveSuccess": "Media updated successfully",
-    "saveError": "Failed to update media"
+    "saveError": "Failed to update media",
+    "delete": "Delete",
+    "deleteConfirm": "Are you sure?",
+    "confirmYes": "Yes, delete",
+    "confirmNo": "No",
+    "deleting": "Deleting...",
+    "deleteSuccess": "Media deleted successfully",
+    "deleteError": "Failed to delete media"
   },
   "modalSegmentEdit": {
     "title": "Edit Segment",

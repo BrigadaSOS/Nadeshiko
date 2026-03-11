@@ -15,6 +15,12 @@ export const PermissiveBoolean = z.preprocess((value) => {
 
 export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'SHARE']);
 
+export const s_BatchUpdateReportsRequest = z.object({
+  ids: z.array(z.coerce.number()).min(1).max(100),
+  status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']),
+  adminNotes: z.string().max(1000).optional(),
+});
+
 export const s_Category = z.enum(['ANIME', 'JDRAMA']);
 
 export const s_Collection = z.object({
@@ -295,7 +301,6 @@ export const s_UserLabFeature = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
   active: PermissiveBoolean,
-  userControllable: PermissiveBoolean,
 });
 
 export const s_UserPreferences = z.object({

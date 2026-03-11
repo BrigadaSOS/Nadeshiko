@@ -91,6 +91,7 @@ export async function setupElasticsearchUser(
     logger.info({ roleName, indexName }, 'Upserting Elasticsearch role');
     await adminClient.security.putRole({
       name: roleName,
+      cluster: ['monitor'],
       indices: [{ names: [indexName], privileges: ['all'], allow_restricted_indices: false }],
     });
 

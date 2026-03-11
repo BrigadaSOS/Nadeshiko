@@ -28,8 +28,9 @@ get:
       in: query
       schema:
         type: string
-        enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
-      description: Filter by report status
+      description: >
+        Filter by report status. Accepts a single value or comma-separated list
+        (e.g. "PENDING,ACCEPTED"). Valid values: PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED.
     - name: source
       in: query
       schema:

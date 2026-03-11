@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn, Index, Not, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Index, Not, BeforeInsert } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
@@ -98,9 +98,6 @@ export class Media extends BaseEntity {
 
   @Column({ name: 'storage_base_path', type: 'varchar' })
   storageBasePath!: string;
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt?: Date;
 
   @OneToMany('Segment', 'media')
   segments!: Segment[];

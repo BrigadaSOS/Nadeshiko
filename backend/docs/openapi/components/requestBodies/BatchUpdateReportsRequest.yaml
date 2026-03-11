@@ -1,0 +1,22 @@
+type: object
+required:
+  - ids
+  - status
+properties:
+  ids:
+    type: array
+    items:
+      type: integer
+    minItems: 1
+    maxItems: 100
+    description: Report IDs to update
+    example: [1, 2, 3]
+  status:
+    type: string
+    enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
+    description: New status for all selected reports
+    example: "IGNORED"
+  adminNotes:
+    type: string
+    maxLength: 1000
+    description: Optional admin notes to set on all selected reports

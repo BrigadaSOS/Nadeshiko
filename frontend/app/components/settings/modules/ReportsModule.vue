@@ -1,67 +1,8 @@
 <script setup lang="ts">
+import type { AdminReport, MediaAudit, MediaAuditRun } from '@brigadasos/nadeshiko-sdk';
+
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();
-
-type Report = {
-  id: number;
-  source: 'USER' | 'AUTO';
-  target:
-    | {
-        type: 'SEGMENT';
-        mediaId: number;
-        episodeNumber?: number;
-        segmentId: string;
-      }
-    | {
-        type: 'EPISODE';
-        mediaId: number;
-        episodeNumber: number;
-      }
-    | {
-        type: 'MEDIA';
-        mediaId: number;
-      };
-  reviewCheckRunId?: number | null;
-  reason: string;
-  description?: string | null;
-  data?: Record<string, unknown> | null;
-  status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
-  adminNotes?: string | null;
-  userId?: number | null;
-  createdAt: string;
-};
-
-type AdminReport = Report & {
-  reportCount: number;
-  reporterName: string;
-};
-
-type MediaAudit = {
-  name: string;
-  label: string;
-  description: string;
-  targetType: 'MEDIA' | 'EPISODE';
-  threshold: Record<string, number | boolean>;
-  enabled: boolean;
-  thresholdSchema: Array<{
-    key: string;
-    label: string;
-    type: 'number' | 'boolean';
-    default: number | boolean;
-    min?: number;
-    max?: number;
-  }>;
-  latestRun?: { id: number; resultCount: number; createdAt: string } | null;
-};
-
-type MediaAuditRun = {
-  id: number;
-  auditName: string;
-  category?: string | null;
-  resultCount: number;
-  thresholdUsed: Record<string, number | boolean>;
-  createdAt: string;
-};
 
 const reports = ref<AdminReport[]>([]);
 const isLoading = ref(false);
@@ -69,7 +10,24 @@ const hasMore = ref(false);
 const cursor = ref<string | null>(null);
 
 const sourceFilter = ref<'' | 'USER' | 'AUTO'>('');
-const statusFilter = ref('');
+
+const ALL_STATUSES = ['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED'] as const;
+const activeStatuses = ref(new Set<string>(ALL_STATUSES));
+
+const statusFilterQuery = computed(() => {
+  if (activeStatuses.value.size === 0 || activeStatuses.value.size === ALL_STATUSES.length) return '';
+  return [...activeStatuses.value].join(',');
+});
+
+const toggleStatus = (status: string) => {
+  const next = new Set(activeStatuses.value);
+  if (next.has(status)) {
+    next.delete(status);
+  } else {
+    next.add(status);
+  }
+  activeStatuses.value = next;
+};
 
 const audits = ref<MediaAudit[]>([]);
 const runningAudits = ref<Set<string>>(new Set());
@@ -84,7 +42,7 @@ const editThreshold = ref<Record<string, number | boolean>>({});
 const buildReportQuery = (append = false) => {
   const query: Record<string, string | number> = { take: 20 };
   if (cursor.value && append) query.cursor = cursor.value;
-  if (statusFilter.value) query.status = statusFilter.value;
+  if (statusFilterQuery.value) query.status = statusFilterQuery.value;
   if (sourceFilter.value) query.source = sourceFilter.value;
   return query;
 };
@@ -150,9 +108,10 @@ hasMore.value = initialAdminData.value.hasMore;
 cursor.value = initialAdminData.value.cursor;
 audits.value = initialAdminData.value.audits;
 
-watch([sourceFilter, statusFilter], () => {
+watch([sourceFilter, statusFilterQuery], () => {
   cursor.value = null;
   autoSubTab.value = 'results';
+  selectedIds.value = new Set();
   fetchReports();
 });
 
@@ -199,7 +158,7 @@ const updateReport = async (reportId: number, status: AdminReport['status'], adm
 
 const openAuditConfig = (audit: MediaAudit) => {
   editingAudit.value = audit;
-  editThreshold.value = { ...audit.threshold };
+  editThreshold.value = { ...audit.threshold } as Record<string, number | boolean>;
   showAuditConfig.value = true;
 };
 
@@ -273,6 +232,51 @@ const formatRelativeDate = (iso: string) => {
 };
 
 const isRunningAny = computed(() => runningAudits.value.size > 0);
+
+const selectedIds = ref(new Set<number>());
+const isBatchUpdating = ref(false);
+
+const allVisibleSelected = computed(() => {
+  return reports.value.length > 0 && reports.value.every((r) => selectedIds.value.has(r.id));
+});
+
+const toggleSelectAll = () => {
+  if (allVisibleSelected.value) {
+    selectedIds.value = new Set();
+  } else {
+    selectedIds.value = new Set(reports.value.map((r) => r.id));
+  }
+};
+
+const toggleSelect = (id: number) => {
+  const next = new Set(selectedIds.value);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  selectedIds.value = next;
+};
+
+const batchUpdate = async (status: AdminReport['status']) => {
+  const ids = [...selectedIds.value];
+  if (ids.length === 0) return;
+
+  isBatchUpdating.value = true;
+  try {
+    await sdk.batchUpdateAdminReports({ body: { ids, status } });
+    for (const report of reports.value) {
+      if (selectedIds.value.has(report.id)) {
+        report.status = status;
+      }
+    }
+    selectedIds.value = new Set();
+    useToastSuccess(`${ids.length} report(s) updated`);
+  } catch {
+  } finally {
+    isBatchUpdating.value = false;
+  }
+};
 </script>
 
 <template>
@@ -306,18 +310,17 @@ const isRunningAny = computed(() => runningAudits.value.size > 0);
         </button>
       </div>
 
-      <select
-        v-model="statusFilter"
-        class="rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm"
-      >
-        <option value="">{{ t('reports.allStatuses') }}</option>
-        <option value="PENDING">{{ t('reports.statuses.PENDING') }}</option>
-        <option value="CONCERN">Concern</option>
-        <option value="ACCEPTED">{{ t('reports.statuses.ACCEPTED') }}</option>
-        <option value="REJECTED">{{ t('reports.statuses.REJECTED') }}</option>
-        <option value="RESOLVED">{{ t('reports.statuses.RESOLVED') }}</option>
-        <option value="IGNORED">Ignored</option>
-      </select>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button
+          v-for="status in ALL_STATUSES"
+          :key="status"
+          class="px-2.5 py-1.5 text-xs font-medium rounded-md border transition-all duration-150 cursor-pointer"
+          :class="activeStatuses.has(status) ? statusClass(status) : 'border-neutral-700 text-neutral-600 bg-neutral-800/50'"
+          @click="toggleStatus(status)"
+        >
+          {{ status }}
+        </button>
+      </div>
     </div>
 
     <!-- Audit Cards (Auto tab) -->
@@ -408,12 +411,64 @@ const isRunningAny = computed(() => runningAudits.value.size > 0);
       </button>
     </div>
 
+    <!-- Batch Actions Bar -->
+    <div
+      v-if="selectedIds.size > 0"
+      class="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg border border-neutral-600 bg-neutral-800/80"
+    >
+      <span class="text-sm text-white font-medium">{{ selectedIds.size }} selected</span>
+      <div class="flex gap-1.5 ml-2">
+        <button
+          :disabled="isBatchUpdating"
+          class="px-2.5 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50 disabled:opacity-50"
+          @click="batchUpdate('ACCEPTED')"
+        >
+          Accept
+        </button>
+        <button
+          :disabled="isBatchUpdating"
+          class="px-2.5 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50 disabled:opacity-50"
+          @click="batchUpdate('REJECTED')"
+        >
+          Reject
+        </button>
+        <button
+          :disabled="isBatchUpdating"
+          class="px-2.5 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50 disabled:opacity-50"
+          @click="batchUpdate('RESOLVED')"
+        >
+          Resolve
+        </button>
+        <button
+          :disabled="isBatchUpdating"
+          class="px-2.5 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50 disabled:opacity-50"
+          @click="batchUpdate('IGNORED')"
+        >
+          Ignore
+        </button>
+      </div>
+      <button
+        class="ml-auto text-xs text-gray-500 hover:text-white"
+        @click="selectedIds = new Set()"
+      >
+        Clear
+      </button>
+    </div>
+
     <!-- Reports Table -->
     <template v-if="sourceFilter !== 'AUTO' || autoSubTab === 'results'">
       <div class="overflow-x-auto rounded-lg border border-neutral-700">
         <table class="w-full text-sm text-left text-gray-300">
           <thead class="text-xs uppercase bg-neutral-800 text-gray-400">
             <tr>
+              <th class="px-3 py-3 w-8">
+                <input
+                  type="checkbox"
+                  :checked="allVisibleSelected"
+                  class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer"
+                  @change="toggleSelectAll"
+                />
+              </th>
               <th class="px-3 py-3">ID</th>
               <th class="px-3 py-3">Source</th>
               <th class="px-3 py-3">{{ t('reports.table.type') }}</th>
@@ -433,6 +488,14 @@ const isRunningAny = computed(() => runningAudits.value.size > 0);
               :key="report.id"
               class="border-b border-neutral-700 hover:bg-neutral-800/50"
             >
+              <td class="px-3 py-3 w-8">
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.has(report.id)"
+                  class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer"
+                  @change="toggleSelect(report.id)"
+                />
+              </td>
               <td class="px-3 py-3">{{ report.id }}</td>
               <td class="px-3 py-3">
                 <span
@@ -543,7 +606,7 @@ const isRunningAny = computed(() => runningAudits.value.size > 0);
               </td>
             </tr>
             <tr v-if="reports.length === 0 && !isLoading">
-              <td colspan="11" class="px-4 py-8 text-center text-gray-500">
+              <td colspan="12" class="px-4 py-8 text-center text-gray-500">
                 {{ t('reports.noReports') }}
               </td>
             </tr>
@@ -599,7 +662,7 @@ const isRunningAny = computed(() => runningAudits.value.size > 0);
               <td class="px-3 py-3">
                 <button
                   class="text-xs text-cyan-400 hover:text-cyan-300"
-                  @click="autoSubTab = 'results'; statusFilter = ''; cursor = null; fetchReports()"
+                  @click="autoSubTab = 'results'; activeStatuses = new Set(ALL_STATUSES); cursor = null; fetchReports()"
                 >
                   View Results
                 </button>

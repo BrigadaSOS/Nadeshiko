@@ -78,6 +78,7 @@ export const routeAuth: RouteAuth[] = [
   { method: 'post', path: '/v1/admin/queues/:queueName/retry', middleware: requireSession(enforceAdminAccess) },
   { method: 'delete', path: '/v1/admin/queues/:queueName/purge', middleware: requireSession(enforceAdminAccess) },
   { method: 'get', path: '/v1/admin/reports', middleware: requireSession(enforceAdminAccess) },
+  { method: 'patch', path: '/v1/admin/reports/batch', middleware: requireSession(enforceAdminAccess) },
   { method: 'patch', path: '/v1/admin/reports/:id', middleware: requireSession(enforceAdminAccess) },
   { method: 'get', path: '/v1/admin/media/audits', middleware: requireSession(enforceAdminAccess) },
   { method: 'patch', path: '/v1/admin/media/audits/:name', middleware: requireSession(enforceAdminAccess) },

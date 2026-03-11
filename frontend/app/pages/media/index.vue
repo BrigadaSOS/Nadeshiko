@@ -36,6 +36,10 @@ const onEditSuccess = (updatedMedia) => {
   }
 };
 
+const onDeleteSuccess = (mediaId) => {
+  media.value = media.value.filter((m) => m.id !== mediaId);
+};
+
 const secondaryMediaNames = (mediaInfo) => {
   const namesByLanguage = {
     english: mediaInfo?.nameEn || '',
@@ -498,6 +502,7 @@ watch([searchQuery, filterCategory], () => {
         v-if="user.isAdmin"
         :media="mediaToEdit"
         @update:success="onEditSuccess"
+        @delete:success="onDeleteSuccess"
       />
     </div>
   </NuxtLayout>

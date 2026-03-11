@@ -1,6 +1,6 @@
 import type { CreateReportRequestOutput } from 'generated/outputTypes';
 import type { CreateUserReport } from 'generated/routes/user';
-import type { ListAdminReports, UpdateAdminReport } from 'generated/routes/admin';
+import type { ListAdminReports, UpdateAdminReport, BatchUpdateAdminReports } from 'generated/routes/admin';
 import { Report, ReportTargetType, Segment, Media } from '@app/models';
 import { NotFoundError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
@@ -45,8 +45,8 @@ export const listAdminReports: ListAdminReports = async ({ query }, respond) => 
     query: () => {
       const qb = Report.createQueryBuilder('report').leftJoinAndSelect('report.user', 'user');
 
-      if (filters.status) {
-        qb.andWhere('report.status = :status', { status: filters.status });
+      if (filters.statuses) {
+        qb.andWhere('report.status IN (:...statuses)', { statuses: filters.statuses });
       }
       if (filters.source) {
         qb.andWhere('report.source = :source', { source: filters.source });
@@ -101,6 +101,21 @@ export const updateAdminReport: UpdateAdminReport = async ({ params, body }, res
     segmentPublicId = segment?.publicId ?? null;
   }
   return respond.with200().body(toReportDTO(r, { mediaPublicId: media.publicId, segmentPublicId }));
+};
+
+export const batchUpdateAdminReports: BatchUpdateAdminReports = async ({ body }, respond) => {
+  const { ids, status, adminNotes } = body;
+
+  const patch: Record<string, unknown> = { status };
+  if (adminNotes !== undefined) patch.adminNotes = adminNotes;
+
+  const result = await Report.createQueryBuilder()
+    .update(Report)
+    .set(patch)
+    .whereInIds(ids)
+    .execute();
+
+  return respond.with200().body({ updated: result.affected ?? 0 });
 };
 
 async function resolveReportTarget(

@@ -151,7 +151,14 @@
     "cancel": "キャンセル",
     "close": "閉じる",
     "saveSuccess": "メディアを更新しました",
-    "saveError": "メディアの更新に失敗しました"
+    "saveError": "メディアの更新に失敗しました",
+    "delete": "削除",
+    "deleteConfirm": "本当に削除しますか？",
+    "confirmYes": "はい、削除",
+    "confirmNo": "いいえ",
+    "deleting": "削除中...",
+    "deleteSuccess": "メディアを削除しました",
+    "deleteError": "メディアの削除に失敗しました"
   },
   "modalSegmentEdit": {
     "title": "セグメント編集",

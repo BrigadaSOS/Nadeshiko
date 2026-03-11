@@ -1,13 +1,25 @@
 meta {
-  name: Revoke a single session
+  name: Batch update reports
   type: http
-  seq: 92
+  seq: 71
 }
 
-post {
-  url: {{baseUrl}}/v1/auth/revoke-session
-  body: none
+patch {
+  url: {{baseUrl}}/v1/admin/reports/batch
+  body: json
   auth: none
+}
+
+body:json {
+  {
+    "ids": [
+      1,
+      2,
+      3
+    ],
+    "status": "IGNORED",
+    "adminNotes": ""
+  }
 }
 
 settings {

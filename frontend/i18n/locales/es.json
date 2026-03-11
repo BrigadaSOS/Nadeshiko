@@ -151,7 +151,14 @@
     "cancel": "Cancelar",
     "close": "Cerrar",
     "saveSuccess": "Media actualizado correctamente",
-    "saveError": "Error al actualizar media"
+    "saveError": "Error al actualizar media",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Estás seguro?",
+    "confirmYes": "Sí, eliminar",
+    "confirmNo": "No",
+    "deleting": "Eliminando...",
+    "deleteSuccess": "Media eliminado correctamente",
+    "deleteError": "Error al eliminar media"
   },
   "modalSegmentEdit": {
     "title": "Editar segmento",

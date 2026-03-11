@@ -165,6 +165,7 @@ function toggleCollapse(trigger: HTMLElement) {
   const isOpen = !target.classList.contains('hidden');
 
   if (isOpen) {
+    target.style.overflow = '';
     target.style.maxHeight = `${target.scrollHeight}px`;
     target.offsetHeight; // force reflow
     target.style.maxHeight = '0';
@@ -188,6 +189,7 @@ function toggleCollapse(trigger: HTMLElement) {
     const onEnd = () => {
       target.style.maxHeight = '';
       target.style.opacity = '';
+      target.style.overflow = 'visible';
       target.removeEventListener('transitionend', onEnd);
     };
     target.addEventListener('transitionend', onEnd, { once: true });

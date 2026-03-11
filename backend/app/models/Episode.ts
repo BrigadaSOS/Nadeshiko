@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { Media } from './Media';
 import type { Segment } from './Segment';
@@ -38,9 +38,6 @@ export class Episode extends BaseEntity {
 
   @Column({ name: 'num_segments', type: 'int', default: 0 })
   segmentCount!: number;
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt?: Date;
 
   @OneToMany('Segment', 'episodeRelation', { cascade: true })
   segments!: Segment[];

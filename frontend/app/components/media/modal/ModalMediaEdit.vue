@@ -19,16 +19,19 @@ const props = defineProps<{
     seasonYear: number;
     coverUrl: string;
     bannerUrl?: string;
-    externalIds?: { anilist?: string; imdb?: string; tvdb?: string };
+    externalIds?: { anilist?: string; imdb?: string; tvdb?: string; tmdb?: string };
   } | null;
 }>();
 
 const emit = defineEmits<{
   'update:success': [media: typeof props.media];
+  'delete:success': [mediaId: number];
 }>();
 
 const sdk = useNadeshikoSdk();
 const isSubmitting = ref(false);
+const isDeleting = ref(false);
+const showDeleteConfirm = ref(false);
 const errorMessage = ref('');
 
 const OVERLAY_ID = '#nd-vertically-centered-scrollable-media-edit';
@@ -49,6 +52,7 @@ const form = reactive({
   anilistId: '',
   imdbId: '',
   tvdbId: '',
+  tmdbId: '',
 });
 
 const airingFormatOptions = ['TV', 'TV_SHORT', 'MOVIE', 'SPECIAL', 'OVA', 'ONA', 'MUSIC'] as const;
@@ -83,7 +87,9 @@ watch(
     form.anilistId = m.externalIds?.anilist || '';
     form.imdbId = m.externalIds?.imdb || '';
     form.tvdbId = m.externalIds?.tvdb || '';
+    form.tmdbId = m.externalIds?.tmdb || '';
     errorMessage.value = '';
+    showDeleteConfirm.value = false;
   },
 );
 
@@ -120,12 +126,13 @@ const submitEdit = async () => {
     if (form.anilistId) externalIds.anilist = form.anilistId;
     if (form.imdbId) externalIds.imdb = form.imdbId;
     if (form.tvdbId) externalIds.tvdb = form.tvdbId;
+    if (form.tmdbId) externalIds.tmdb = form.tmdbId;
     if (Object.keys(externalIds).length > 0) {
       body.externalIds = externalIds;
     }
 
     const { error } = await sdk.updateMedia({
-      path: { id: props.media.id },
+      path: { id: props.media.publicId },
       body: body as any,
     });
 
@@ -165,6 +172,33 @@ const submitEdit = async () => {
     errorMessage.value = t('modalMediaEdit.saveError');
   } finally {
     isSubmitting.value = false;
+  }
+};
+
+const submitDelete = async () => {
+  if (!props.media || isDeleting.value) return;
+
+  isDeleting.value = true;
+  errorMessage.value = '';
+
+  try {
+    const { error } = await sdk.deleteMedia({
+      path: { id: props.media.publicId },
+    });
+
+    if (error) {
+      errorMessage.value = (error as any).detail || t('modalMediaEdit.deleteError');
+      return;
+    }
+
+    emit('delete:success', props.media.id);
+    useToastSuccess(t('modalMediaEdit.deleteSuccess'));
+    closeModal();
+  } catch {
+    errorMessage.value = t('modalMediaEdit.deleteError');
+  } finally {
+    isDeleting.value = false;
+    showDeleteConfirm.value = false;
   }
 };
 </script>
@@ -369,7 +403,7 @@ const submitEdit = async () => {
 
         <div>
           <label class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.externalIds') }}</label>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
               <label class="block text-xs text-neutral-500 mb-1">AniList ID</label>
               <input
@@ -397,30 +431,76 @@ const submitEdit = async () => {
                 class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+            <div>
+              <label class="block text-xs text-neutral-500 mb-1">TMDB ID</label>
+              <input
+                v-model="form.tmdbId"
+                type="text"
+                placeholder="e.g. 90955"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
-        <button
-          type="button"
-          class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-          :data-nd-overlay="OVERLAY_ID"
-        >
-          {{ t('modalMediaEdit.cancel') }}
-        </button>
-        <button
-          type="button"
-          :disabled="isSubmitting"
-          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
-          @click="submitEdit"
-        >
-          <span
-            v-if="isSubmitting"
-            class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
-          />
-          {{ isSubmitting ? t('modalMediaEdit.saving') : t('modalMediaEdit.save') }}
-        </button>
+      <div class="flex justify-between items-center py-3 px-4 border-t dark:border-modal-border">
+        <div>
+          <template v-if="!showDeleteConfirm">
+            <button
+              type="button"
+              class="py-2 px-3 text-sm font-medium rounded-lg text-red-400 hover:text-red-300 hover:bg-red-900/30 transition-colors"
+              @click="showDeleteConfirm = true"
+            >
+              {{ t('modalMediaEdit.delete') }}
+            </button>
+          </template>
+          <template v-else>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-red-400">{{ t('modalMediaEdit.deleteConfirm') }}</span>
+              <button
+                type="button"
+                :disabled="isDeleting"
+                class="py-1.5 px-3 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 disabled:pointer-events-none"
+                @click="submitDelete"
+              >
+                <span
+                  v-if="isDeleting"
+                  class="animate-spin inline-block w-3.5 h-3.5 border-[2px] border-current border-t-transparent rounded-full mr-1"
+                />
+                {{ isDeleting ? t('modalMediaEdit.deleting') : t('modalMediaEdit.confirmYes') }}
+              </button>
+              <button
+                type="button"
+                class="py-1.5 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+                @click="showDeleteConfirm = false"
+              >
+                {{ t('modalMediaEdit.confirmNo') }}
+              </button>
+            </div>
+          </template>
+        </div>
+        <div class="flex items-center gap-x-2">
+          <button
+            type="button"
+            class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+            :data-nd-overlay="OVERLAY_ID"
+          >
+            {{ t('modalMediaEdit.cancel') }}
+          </button>
+          <button
+            type="button"
+            :disabled="isSubmitting"
+            class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
+            @click="submitEdit"
+          >
+            <span
+              v-if="isSubmitting"
+              class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+            />
+            {{ isSubmitting ? t('modalMediaEdit.saving') : t('modalMediaEdit.save') }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -3635,14 +3635,8 @@ paths:
           in: query
           schema:
             type: string
-            enum:
-              - PENDING
-              - CONCERN
-              - ACCEPTED
-              - REJECTED
-              - RESOLVED
-              - IGNORED
-          description: Filter by report status
+          description: |
+            Filter by report status. Accepts a single value or comma-separated list (e.g. "PENDING,ACCEPTED"). Valid values: PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED.
         - name: source
           in: query
           schema:
@@ -3687,6 +3681,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdminReportListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedSession'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/reports/batch:
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: batchUpdateAdminReports
+      summary: Batch update reports
+      description: |
+        Updates the status (and optionally admin notes) of multiple reports at once.
+
+        **Permissions:** `ADD_MEDIA`
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateReportsRequest'
+      responses:
+        '200':
+          description: Reports updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - updated
+                properties:
+                  updated:
+                    type: integer
+                    description: Number of reports updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/UnauthorizedSession'
         '403':
@@ -6633,23 +6670,19 @@ components:
       required:
         - key
         - active
-        - userControllable
       properties:
         key:
           type: string
           description: Unique identifier for the feature
         name:
           type: string
-          description: Human-readable feature name (only present for labs)
+          description: Human-readable feature name
         description:
           type: string
-          description: Description of what the feature does (only present for labs)
+          description: Description of what the feature does
         active:
           type: boolean
           description: Whether this feature is currently active for the user
-        userControllable:
-          type: boolean
-          description: Whether the user can toggle this feature (lab=true, flag=false)
     CollectionListResponse:
       type: object
       description: Paginated collection list response
@@ -6874,6 +6907,38 @@ components:
             $ref: '#/components/schemas/AdminReport'
         pagination:
           $ref: '#/components/schemas/OpaqueCursorPagination'
+    BatchUpdateReportsRequest:
+      type: object
+      required:
+        - ids
+        - status
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+          maxItems: 100
+          description: Report IDs to update
+          example:
+            - 1
+            - 2
+            - 3
+        status:
+          type: string
+          enum:
+            - PENDING
+            - CONCERN
+            - ACCEPTED
+            - REJECTED
+            - RESOLVED
+            - IGNORED
+          description: New status for all selected reports
+          example: IGNORED
+        adminNotes:
+          type: string
+          maxLength: 1000
+          description: Optional admin notes to set on all selected reports
     UpdateReportRequest:
       type: object
       properties:

@@ -93,16 +93,4 @@ describe('emptyEpisodes check', () => {
     expect(results[0].mediaId).toBe(drama.id);
   });
 
-  it('excludes soft-deleted episodes', async () => {
-    const ep = Episode.create({ mediaId: media.id, episodeNumber: 1, segmentCount: 0 });
-    await ep.save();
-    await Episode.update({ mediaId: media.id, episodeNumber: 1 }, { deletedAt: new Date() });
-
-    const results = await emptyEpisodes.run({
-      threshold: { minSegments: 10 },
-      dataSource: TestDataSource,
-    });
-
-    expect(results).toHaveLength(0);
-  });
 });

@@ -15,13 +15,12 @@ const { data: featuresData } = await useAsyncData('settings-labs-features', asyn
 labsStore.features = featuresData.value;
 labsStore.loaded = true;
 
-const toggleFeature = async (key: string, currentOptedIn: boolean) => {
+const toggleFeature = async (key: string, currentActive: boolean) => {
   if (togglingKey.value) return;
   togglingKey.value = key;
 
-  const newValue = !currentOptedIn;
   try {
-    await labsStore.toggleLab(key, newValue);
+    await labsStore.toggleLab(key, !currentActive);
   } catch (error) {
     console.error('[Labs] Failed to toggle feature:', error);
   } finally {
@@ -43,13 +42,13 @@ const toggleFeature = async (key: string, currentOptedIn: boolean) => {
     </p>
     <div class="border-b pt-4 border-white/10" />
 
-    <div v-if="labsStore.labFeatures.length === 0" class="mt-4 text-gray-400">
+    <div v-if="labsStore.features.length === 0" class="mt-4 text-gray-400">
       No lab features available at this time.
     </div>
 
     <div v-else class="mt-4 space-y-4">
       <div
-        v-for="feature in labsStore.labFeatures"
+        v-for="feature in labsStore.features"
         :key="feature.key"
         class="flex items-center justify-between mt-4"
       >
@@ -61,7 +60,7 @@ const toggleFeature = async (key: string, currentOptedIn: boolean) => {
           :disabled="togglingKey === feature.key"
           :class="[
             'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-            feature.active ? 'bg-purple-600' : 'bg-gray-600',
+            feature.active ? 'bg-red-400' : 'bg-gray-600',
           ]"
           @click="toggleFeature(feature.key, feature.active)"
         >

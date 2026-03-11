@@ -1,0 +1,41 @@
+patch:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: batchUpdateAdminReports
+  summary: Batch update reports
+  description: |
+    Updates the status (and optionally admin notes) of multiple reports at once.
+
+    **Permissions:** `ADD_MEDIA`
+  security:
+    - SessionCookie: [ADMIN]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/BatchUpdateReportsRequest.yaml"
+  responses:
+    "200":
+      description: Reports updated successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - updated
+            properties:
+              updated:
+                type: integer
+                description: Number of reports updated
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/UnauthorizedSession.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
