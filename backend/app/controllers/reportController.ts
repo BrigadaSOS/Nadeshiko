@@ -109,11 +109,7 @@ export const batchUpdateAdminReports: BatchUpdateAdminReports = async ({ body },
   const patch: Record<string, unknown> = { status };
   if (adminNotes !== undefined) patch.adminNotes = adminNotes;
 
-  const result = await Report.createQueryBuilder()
-    .update(Report)
-    .set(patch)
-    .whereInIds(ids)
-    .execute();
+  const result = await Report.createQueryBuilder().update(Report).set(patch).whereInIds(ids).execute();
 
   return respond.with200().body({ updated: result.affected ?? 0 });
 };
