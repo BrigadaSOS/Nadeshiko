@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/collections/:id/search
+  url: {{baseUrl}}/v1/collections/:id/search?take=20
   body: none
   auth: none
 }
@@ -13,7 +13,7 @@ get {
 params:query {
   id:
   cursor:
-  take:
+  take: 20
 }
 
 settings {

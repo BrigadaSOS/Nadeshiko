@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments?take=50
   body: none
   auth: bearer
 }
@@ -13,7 +13,7 @@ get {
 params:query {
   mediaId:
   episodeNumber:
-  take:
+  take: 50
   cursor:
 }
 
