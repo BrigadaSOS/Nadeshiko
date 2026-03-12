@@ -5,7 +5,8 @@ import { getAppPostgresConfig } from '@config/postgresConfig';
 import { sendWelcomeEmail, sendVerifyNewEmail } from '@app/mailers/email';
 import { ensureDefaultCollections } from '@app/controllers/collectionController';
 import { betterAuth } from 'better-auth';
-import { apiKey, customSession } from 'better-auth/plugins';
+import { apiKey } from '@better-auth/api-key';
+import { customSession } from 'better-auth/plugins';
 import { Pool } from 'pg';
 import { logger } from '@config/log';
 

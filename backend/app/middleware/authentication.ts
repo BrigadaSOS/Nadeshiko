@@ -10,7 +10,7 @@ import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '@config/auth';
 import { fromNodeHeaders } from 'better-auth/node';
-import { defaultKeyHasher } from 'better-auth/plugins';
+import { defaultKeyHasher } from '@better-auth/api-key';
 import { AppDataSource } from '@config/database';
 import { logger } from '@config/log';
 import {
@@ -319,7 +319,9 @@ async function authenticateLegacyApiKey(req: Request, apiKey: string): Promise<v
   }
 
   if (!apiAuth.isActive) {
-    throw new AuthCredentialsExpiredError('API key has been deactivated.');
+    // Key was migrated to Better Auth — verify through that flow
+    await authenticateBetterAuthApiKey(req, apiKey);
+    return;
   }
 
   if (apiAuth.userId == null) {
@@ -364,15 +366,7 @@ async function migrateLegacyKeyToBetterAuth(plaintextKey: string, legacyRecord: 
       VALUES ($1, $2, $3, $4, $5, true, false, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       ON CONFLICT ("key") DO NOTHING
     `,
-    [
-      `Migrated Legacy Key #${legacyRecord.id}`,
-      plaintextKey.slice(0, 6),
-      keyPrefix,
-      hashedKey,
-      legacyRecord.userId,
-      metadata,
-      permissions,
-    ],
+    [legacyRecord.name, plaintextKey.slice(0, 6), keyPrefix, hashedKey, legacyRecord.userId, metadata, permissions],
   );
 
   // Deactivate the legacy record

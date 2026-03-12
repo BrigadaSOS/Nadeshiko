@@ -92,5 +92,4 @@ describe('emptyEpisodes check', () => {
     expect(results).toHaveLength(1);
     expect(results[0].mediaId).toBe(drama.id);
   });
-
 });

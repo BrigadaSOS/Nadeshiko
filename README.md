@@ -68,6 +68,21 @@ git tag -a v1.2.3 -m "Release v1.2.3"
 git push origin v1.2.3
 ```
 
+## Projects Using Nadeshiko
+
+### Anki Note Types
+- **[Senren](https://github.com/BrenoAqua/Senren)** — A highly customizable Anki note type for studying Japanese.
+- **[Kiku](https://github.com/youyoumu/kiku)** — A modern, fully interactive Anki note type designed for Japanese learners.
+
+### Anki Add-ons
+- **[AnkiAutoImage](https://github.com/swagercode/AnkiAutoImage)** — On-demand images for Anki flashcards.
+- **[Anki InContext](https://github.com/abdnh/anki-incontext)** — An Anki add-on to fetch example sentences for various languages.
+
+### External Tools
+- **[NihongoClick](https://github.com/FragozoLeonardo/NihongoClick)** — Context menu Japanese study assistant.
+- **[JPDB-Nadeshiko-Examples](https://github.com/Sacus1/JPDB-Nadeshiko-Examples)** — Userscript for jpdb.io that embeds anime examples from Nadeshiko.
+
+
 ## Contribution and Attribution
 <table>
 <tr>
