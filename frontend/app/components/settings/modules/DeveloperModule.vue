@@ -207,6 +207,10 @@ const formatDate = (value?: string) => {
           If you need to increase your API usage limit, please reach out to us at
           <a href="mailto:contact@nadeshiko.co" class="text-red-400 hover:underline">contact@nadeshiko.co</a>.
         </p>
+        <p class="mt-2 text-gray-400 text-sm">
+          To manage API keys created on the previous version of the site, visit
+          <a href="https://old.nadeshiko.co/settings/developer" target="_blank" rel="noopener noreferrer" class="text-red-400 hover:underline">old.nadeshiko.co/settings/developer</a>.
+        </p>
     </div>
 
     <!-- Card -->
