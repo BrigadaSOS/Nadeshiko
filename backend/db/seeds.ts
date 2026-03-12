@@ -3,7 +3,7 @@ import { AppDataSource } from '@config/database';
 import { config } from '@config/config';
 import { getAppEnvironment } from '@config/environment';
 import { logger } from '@config/log';
-import { defaultKeyHasher } from 'better-auth/plugins';
+import { defaultKeyHasher } from '@better-auth/api-key';
 
 const SEEDED_MASTER_KEY_NAME = 'Local Master Key';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
