@@ -319,7 +319,9 @@ async function authenticateLegacyApiKey(req: Request, apiKey: string): Promise<v
   }
 
   if (!apiAuth.isActive) {
-    throw new AuthCredentialsExpiredError('API key has been deactivated.');
+    // Key was migrated to Better Auth — verify through that flow
+    await authenticateBetterAuthApiKey(req, apiKey);
+    return;
   }
 
   if (apiAuth.userId == null) {
@@ -365,7 +367,7 @@ async function migrateLegacyKeyToBetterAuth(plaintextKey: string, legacyRecord: 
       ON CONFLICT ("key") DO NOTHING
     `,
     [
-      `Migrated Legacy Key #${legacyRecord.id}`,
+      legacyRecord.name,
       plaintextKey.slice(0, 6),
       keyPrefix,
       hashedKey,
