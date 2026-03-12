@@ -8,8 +8,6 @@ export class ActivitySegmentIdToVarchar1741700000000 implements MigrationInterfa
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "UserActivity" ALTER COLUMN "segment_id" TYPE int USING "segment_id"::int`,
-    );
+    await queryRunner.query(`ALTER TABLE "UserActivity" ALTER COLUMN "segment_id" TYPE int USING "segment_id"::int`);
   }
 }

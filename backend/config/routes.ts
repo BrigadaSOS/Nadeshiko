@@ -74,7 +74,12 @@ import {
   listSegmentRevisions,
 } from '@app/controllers/segmentController';
 import { getUserQuota } from '@app/controllers/userQuotaController';
-import { createUserReport, listAdminReports, updateAdminReport, batchUpdateAdminReports } from '@app/controllers/reportController';
+import {
+  createUserReport,
+  listAdminReports,
+  updateAdminReport,
+  batchUpdateAdminReports,
+} from '@app/controllers/reportController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
 import { listUserLabs, enrollUserLab, unenrollUserLab } from '@app/controllers/labsController';
 import {

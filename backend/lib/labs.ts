@@ -11,7 +11,8 @@ const LABS: LabDefinition[] = [
   {
     key: 'interactive-tokens',
     name: 'Interactive Tokens & Enhanced Highlighting',
-    description: 'Break Japanese sentences into clickable word tokens and extend search highlights to cover full conjugated forms.',
+    description:
+      'Break Japanese sentences into clickable word tokens and extend search highlights to cover full conjugated forms.',
   },
 ];
 

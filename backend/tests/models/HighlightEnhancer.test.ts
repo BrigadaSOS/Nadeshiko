@@ -68,10 +68,7 @@ describe('enhanceHighlight', () => {
   });
 
   it('handles no compound extension needed', () => {
-    const tokens = [
-      token('猫', '猫', 0, 1, '名詞'),
-      token('です', 'です', 1, 3, '助動詞'),
-    ];
+    const tokens = [token('猫', '猫', 0, 1, '名詞'), token('です', 'です', 1, 3, '助動詞')];
     const highlight = '猫<em>です</em>';
     const result = enhanceHighlight(highlight, tokens);
     // "です" is 助動詞, not a stem POS, so no extension
@@ -100,10 +97,7 @@ describe('enhanceHighlight', () => {
 
   it('handles highlight that already covers full compound form', () => {
     // If ES already highlighted the full form, no extension needed
-    const tokens = [
-      token('食べ', '食べる', 0, 2, '動詞'),
-      token('ました', 'ます', 2, 5, '助動詞'),
-    ];
+    const tokens = [token('食べ', '食べる', 0, 2, '動詞'), token('ました', 'ます', 2, 5, '助動詞')];
     const highlight = '<em>食べました</em>';
     const result = enhanceHighlight(highlight, tokens);
     // The em already covers everything, no compound range needed

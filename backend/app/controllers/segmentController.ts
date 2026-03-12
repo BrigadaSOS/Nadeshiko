@@ -220,7 +220,12 @@ async function findSegmentByUuidOrPublicId(
 }
 
 function getPrimaryExternalId(media: Media): string {
-  const preferred = [ExternalSourceType.ANILIST, ExternalSourceType.TMDB, ExternalSourceType.TVDB, ExternalSourceType.IMDB];
+  const preferred = [
+    ExternalSourceType.ANILIST,
+    ExternalSourceType.TMDB,
+    ExternalSourceType.TVDB,
+    ExternalSourceType.IMDB,
+  ];
   for (const source of preferred) {
     const ext = media.externalIds?.find((e) => e.source === source);
     if (ext) return ext.externalId;
