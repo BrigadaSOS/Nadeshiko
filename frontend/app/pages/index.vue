@@ -2,12 +2,17 @@
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
 
 useSeoMeta({
-  title: 'Nadeshiko',
+  title: 'Nadeshiko: Japanese Sentence Search Engine',
   description:
-    'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!',
-  ogTitle: 'Nadeshiko',
+    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+  ogTitle: 'Nadeshiko: Japanese Sentence Search Engine',
   ogDescription:
-    'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!',
+    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+});
+
+defineOgImage({
+  title: 'Nadeshiko',
+  description: 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
 });
 
 useSchemaOrg([

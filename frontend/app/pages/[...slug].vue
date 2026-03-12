@@ -35,91 +35,51 @@ const contentAuthor = computed(() => {
   return typeof raw === 'string' && raw ? raw : null;
 });
 
-const breadcrumbSchema = computed(() => {
-  const items = [{ name: 'Home', item: `${siteUrl}/` }];
-  if (isBlogPost.value) {
-    items.push({ name: 'Blog', item: `${siteUrl}/blog` });
-  }
-  items.push({ name: title.value, item: canonicalUrl.value });
-
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: items.map((entry, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: entry.name,
-      item: entry.item,
-    })),
-  };
-});
-
-const webPageSchema = computed(() => ({
-  '@context': 'https://schema.org',
-  '@type': 'WebPage',
-  name: title.value,
-  description: description.value || undefined,
-  url: canonicalUrl.value,
-  inLanguage: locale.value,
-}));
-
-const articleSchema = computed(() => {
-  if (!isBlogPost.value || !data.value?.title) {
-    return null;
-  }
-
-  const article: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: data.value.title,
-    description: description.value || undefined,
-    url: canonicalUrl.value,
-    mainEntityOfPage: canonicalUrl.value,
-    inLanguage: locale.value,
-  };
-
-  if (contentDate.value) {
-    article.datePublished = contentDate.value;
-    article.dateModified = contentDate.value;
-  }
-
-  if (contentAuthor.value) {
-    article.author = {
-      '@type': 'Person',
-      name: contentAuthor.value,
-    };
-  }
-
-  return article;
-});
-
-useHead(() => {
-  const scripts = [
-    {
-      key: 'ld-webpage',
-      type: 'application/ld+json',
-      children: JSON.stringify(webPageSchema.value),
-    },
-    {
-      key: 'ld-breadcrumb',
-      type: 'application/ld+json',
-      children: JSON.stringify(breadcrumbSchema.value),
-    },
+const schemaOrgDefs = computed(() => {
+  const defs: any[] = [
+    defineWebPage({
+      name: title.value,
+      description: description.value || undefined,
+      url: canonicalUrl.value,
+      inLanguage: locale.value,
+    }),
   ];
 
-  if (articleSchema.value) {
-    scripts.push({
-      key: 'ld-article',
-      type: 'application/ld+json',
-      children: JSON.stringify(articleSchema.value),
-    });
+  const breadcrumbItems = [{ name: 'Home', item: '/' }];
+  if (isBlogPost.value) {
+    breadcrumbItems.push({ name: 'Blog', item: '/blog' });
+  }
+  breadcrumbItems.push({ name: title.value, item: route.path });
+  defs.push(defineBreadcrumb({ itemListElement: breadcrumbItems }));
+
+  if (isBlogPost.value && data.value?.title) {
+    const articleDef: Record<string, unknown> = {
+      headline: data.value.title,
+      description: description.value || undefined,
+    };
+    if (contentDate.value) {
+      articleDef.datePublished = contentDate.value;
+      articleDef.dateModified = contentDate.value;
+    }
+    if (contentAuthor.value) {
+      articleDef.author = { name: contentAuthor.value };
+    }
+    defs.push(defineArticle(articleDef));
   }
 
-  return {
-    title: title.value,
-    meta: [{ name: 'description', content: description.value }],
-    script: scripts,
-  };
+  return defs;
+});
+
+useSchemaOrg(schemaOrgDefs);
+
+useHead(() => ({
+  title: title.value,
+  meta: [{ name: 'description', content: description.value }],
+}));
+
+defineOgImage({
+  title: title,
+  description: description,
 });
 </script>
 
@@ -344,7 +304,11 @@ useHead(() => {
   color: #f87171;
 }
 
-/* Contributor card description overrides */
+/* Contributor card overrides */
+.content-markdown :deep(.about-contributor-card img) {
+  margin: 0;
+}
+
 .content-markdown :deep(.about-contributor-card p) {
   font-size: 1rem;
   line-height: 1.5;

@@ -11,6 +11,15 @@ useSeoMeta({
     'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
 });
 
+defineOgImage({
+  title: 'Browse Media | Nadeshiko',
+  description: 'Browse anime, J-dramas, and audiobooks available on Nadeshiko.',
+});
+
+useSchemaOrg([
+  defineWebPage({ '@type': 'CollectionPage' }),
+]);
+
 const sdk = useNadeshikoSdk();
 const router = useRouter();
 const route = useRoute();
