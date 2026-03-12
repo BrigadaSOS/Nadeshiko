@@ -11,10 +11,6 @@ const VERB_ADJECTIVE_POS = new Set(['動詞', '形容詞']);
 
 const HIRAGANA_RE = /^[\u3040-\u309F]+$/;
 
-function isGrammaticalSuffix(token: SlimToken): boolean {
-  return (COMPOUND_EXTENDING_POS.has(token.p) || token.p === '助詞') && HIRAGANA_RE.test(token.s);
-}
-
 export function enhanceHighlight(highlight: string, tokens: SlimToken[]): string {
   if (!highlight || tokens.length === 0) return highlight;
 
@@ -57,9 +53,7 @@ function buildCompoundRanges(highlightedRanges: CharRange[], tokens: SlimToken[]
   const compoundRanges: CharRange[] = [];
 
   for (const range of highlightedRanges) {
-    const overlappingTokens = tokens.filter(
-      (t) => t.b < range.end && t.e > range.start,
-    );
+    const overlappingTokens = tokens.filter((t) => t.b < range.end && t.e > range.start);
 
     const hasStem = overlappingTokens.some((t) => COMPOUND_STEM_POS.has(t.p));
     if (!hasStem) continue;
@@ -74,9 +68,8 @@ function buildCompoundRanges(highlightedRanges: CharRange[], tokens: SlimToken[]
     for (let j = lastIdx + 1; j < tokens.length; j++) {
       const next = tokens[j];
       if (next.b !== extendEnd) break;
-      const canExtend = HIRAGANA_RE.test(next.s) && (
-        COMPOUND_EXTENDING_POS.has(next.p) || (hasVerbAdjStem && next.p === '助詞')
-      );
+      const canExtend =
+        HIRAGANA_RE.test(next.s) && (COMPOUND_EXTENDING_POS.has(next.p) || (hasVerbAdjStem && next.p === '助詞'));
       if (!canExtend) break;
       extendEnd = next.e;
     }

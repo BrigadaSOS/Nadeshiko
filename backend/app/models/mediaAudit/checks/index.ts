@@ -38,8 +38,4 @@ import { missingEpisodes } from './missingEpisodes';
 import { lowSegmentEpisodes } from './lowSegmentEpisodes';
 import { dbEsSyncIssues } from './dbEsSyncIssues';
 
-export const auditRegistry: MediaAuditCheck[] = [
-  missingEpisodes,
-  lowSegmentEpisodes,
-  dbEsSyncIssues,
-];
+export const auditRegistry: MediaAuditCheck[] = [missingEpisodes, lowSegmentEpisodes, dbEsSyncIssues];
