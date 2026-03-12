@@ -5,13 +5,15 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/v1/admin/queues/:queueName/retry
+  url: {{baseUrl}}/v1/admin/queues/:queueName/retry?queueName=es-sync-create&queueName=es-sync-update&queueName=es-sync-delete
   body: none
   auth: none
 }
 
 params:query {
-  queueName:
+  queueName: es-sync-create
+  queueName: es-sync-update
+  queueName: es-sync-delete
 }
 
 settings {

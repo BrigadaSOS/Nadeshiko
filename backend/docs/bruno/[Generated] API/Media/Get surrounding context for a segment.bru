@@ -5,15 +5,18 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/segments/:uuid/context
+  url: {{baseUrl}}/v1/media/segments/:uuid/context?take=3&contentRating=SAFE&contentRating=SUGGESTIVE&contentRating=QUESTIONABLE&contentRating=EXPLICIT
   body: none
   auth: bearer
 }
 
 params:query {
   uuid:
-  take:
-  contentRating:
+  take: 3
+  contentRating: SAFE
+  contentRating: SUGGESTIVE
+  contentRating: QUESTIONABLE
+  contentRating: EXPLICIT
 }
 
 auth:bearer {

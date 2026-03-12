@@ -10,9 +10,9 @@ import {
   SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
+import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
 import { type NextFunction, type Request, type Response, Router } from 'express';
-import { z } from 'zod/v3';
+import { z } from 'zod/v4';
 import type {
   t_AdminReportListResponse,
   t_BatchUpdateAdminReportsRequestBodySchema,
@@ -999,8 +999,8 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
             expireInSeconds: z.coerce.number().nullable().optional(),
             retentionSeconds: z.coerce.number().nullable().optional(),
             deleteAfterSeconds: z.coerce.number().nullable().optional(),
-            createdOn: z.string().datetime({ offset: true }),
-            updatedOn: z.string().datetime({ offset: true }),
+            createdOn: z.iso.datetime({ offset: true }),
+            updatedOn: z.iso.datetime({ offset: true }),
             singletonsActive: z.array(z.string()),
             table: z.string(),
           }),
@@ -1114,7 +1114,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
             id: z.string(),
             segmentId: z.coerce.number(),
             error: z.string().nullable(),
-            createdOn: z.string().datetime({ offset: true }),
+            createdOn: z.iso.datetime({ offset: true }),
           }),
         ),
       ],
@@ -1353,7 +1353,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         '200',
         z.object({
           message: z.string(),
-          user: z.object({ id: z.coerce.number(), username: z.string(), email: z.string().email() }),
+          user: z.object({ id: z.coerce.number(), username: z.string(), email: z.email() }),
         }),
       ],
       ['400', s_Error400],
@@ -1787,7 +1787,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   const updateAdminMediaAuditParamSchema = z.object({ name: z.string() });
 
   const updateAdminMediaAuditRequestBodySchema = z.object({
-    threshold: z.record(z.unknown()).optional(),
+    threshold: z.record(z.string(), z.unknown()).optional(),
     enabled: PermissiveBoolean.optional(),
   });
 
