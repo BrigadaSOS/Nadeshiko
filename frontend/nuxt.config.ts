@@ -14,10 +14,11 @@ export default defineNuxtConfig({
         {
           name: 'description',
           content:
-            'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.',
+            'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
         },
       ],
       link: [
+        { rel: 'icon', type: 'image/png', href: '/logo-og.png' },
         { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
       ],
     },
@@ -64,9 +65,9 @@ export default defineNuxtConfig({
   },
   site: {
     url: 'https://nadeshiko.co',
-    name: 'Nadeshiko',
+    name: 'Nadeshiko: Japanese Sentence Search Engine',
     description:
-      'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more.',
+      'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
   },
   robots: {
     groups: [
@@ -91,6 +92,26 @@ export default defineNuxtConfig({
   },
   sitemap: {
     urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media'],
+    strictNuxtContentPaths: true,
+    autoI18n: {
+      locales: {
+        en: { _sitemap: 'en' },
+        es: { _sitemap: 'es' },
+        ja: { _sitemap: 'ja' },
+      },
+      defaultLocale: 'en',
+    },
+  },
+  ogImage: {
+    defaults: {
+      component: 'OgImageDefault',
+    },
+    fonts: [
+      'Space+Grotesk:400',
+      'Space+Grotesk:700',
+      'Noto+Sans+JP:400',
+      'Noto+Sans+JP:700',
+    ],
   },
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',
@@ -175,6 +196,12 @@ export default defineNuxtConfig({
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
+    '/__og-image__/**': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
+      },
+    },
     '/favicon.ico': {
       headers: {
         'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
@@ -188,6 +215,12 @@ export default defineNuxtConfig({
       },
     },
     '/patreon.png': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/logo-og.png': {
       headers: {
         'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',

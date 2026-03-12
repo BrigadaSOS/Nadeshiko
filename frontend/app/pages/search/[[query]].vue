@@ -7,6 +7,16 @@ import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 const shortcutsModal = ref<{ open: () => void } | null>(null);
 
 const route = useRoute();
+
+const ogTitle = computed(() => {
+  const q = route.params.query ? decodeURIComponent(String(route.params.query)) : String(route.query.query || '');
+  return q ? `Search: ${q} | Nadeshiko` : 'Search | Nadeshiko';
+});
+
+defineOgImage({
+  title: ogTitle,
+  description: 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+});
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
@@ -185,10 +195,10 @@ const { data: initialStatsData } = await useAsyncData(statsCacheKey.value, () =>
 
 const metaTags = computed(() => {
   const defaultDescription =
-    'Online sentence search engine designed to display content from a wide variety of media including anime, J-dramas, films and more!';
+    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
 
   const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
-    title: 'Nadeshiko',
+    title: 'Nadeshiko: Japanese Sentence Search Engine',
     meta: [
       { name: 'description', content: defaultDescription },
       { property: 'og:title', content: 'Nadeshiko' },

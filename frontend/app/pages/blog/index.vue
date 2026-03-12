@@ -60,9 +60,18 @@ const { data: posts } = await useAsyncData(
 );
 
 useSeoMeta({
-  title: 'Blog - Nadeshiko',
+  title: 'Blog',
   description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
 });
+
+defineOgImage({
+  title: 'Blog',
+  description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
+});
+
+useSchemaOrg([
+  defineWebPage({ '@type': 'CollectionPage' }),
+]);
 </script>
 
 <template>
