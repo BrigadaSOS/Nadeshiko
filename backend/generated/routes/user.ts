@@ -10,9 +10,9 @@ import {
   SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
+import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
 import { type NextFunction, type Request, type Response, Router } from 'express';
-import { z } from 'zod/v3';
+import { z } from 'zod/v4';
 import type {
   t_CreateUserReportRequestBodySchema,
   t_DeleteUserActivityByDateParamSchema,
@@ -770,7 +770,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
   const getUserActivityHeatmapResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ activityByDay: z.record(s_HeatmapDayCounts) })],
+      ['200', z.object({ activityByDay: z.record(z.string(), s_HeatmapDayCounts) })],
       ['401', s_Error401],
       ['500', s_Error500],
     ],
