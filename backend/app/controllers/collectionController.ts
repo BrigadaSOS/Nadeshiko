@@ -371,7 +371,6 @@ const DEFAULT_COLLECTIONS: { name: string; type: CollectionType }[] = [
   { name: 'Anki Exports', type: CollectionType.ANKI_EXPORT },
 ];
 
-
 export const ensureDefaultCollections = async (userId: number): Promise<void> => {
   const count = await Collection.count({ where: { userId } });
   if (count > 0) return;
