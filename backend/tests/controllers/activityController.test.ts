@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
-import { z } from 'zod/v3';
+import { z } from 'zod/v4';
 import * as schemas from 'generated/schemas';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';

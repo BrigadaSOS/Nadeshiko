@@ -1,11 +1,11 @@
 meta {
-  name: Verify the email of the user
+  name: List all API keys for the authenticated user or for a specific organization
   type: http
-  seq: 97
+  seq: 83
 }
 
 get {
-  url: {{baseUrl}}/v1/auth/verify-email
+  url: {{baseUrl}}/v1/auth/api-key/list
   body: none
   auth: none
 }

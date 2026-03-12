@@ -10,9 +10,9 @@ import {
   SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
+import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
 import { type NextFunction, type Request, type Response, Router } from 'express';
-import { z } from 'zod/v3';
+import { z } from 'zod/v4';
 import type {
   t_AddMediaToSeriesParamSchema,
   t_AddMediaToSeriesRequestBodySchema,
