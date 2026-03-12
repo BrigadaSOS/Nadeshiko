@@ -30,10 +30,15 @@ export const rateLimitApiQuota = async (req: Request, res: Response, next: NextF
   }
 
   res.on('finish', () => {
+    logger.debug({ userId: user.id, statusCode: res.statusCode }, 'API quota finish callback fired');
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      AccountQuotaUsage.incrementForUser(user.id).catch((err: unknown) => {
-        logger.warn({ err, userId: user.id }, 'Failed to increment account quota usage');
-      });
+      AccountQuotaUsage.incrementForUser(user.id)
+        .then(() => {
+          logger.debug({ userId: user.id }, 'Account quota incremented successfully');
+        })
+        .catch((err: unknown) => {
+          logger.warn({ err, userId: user.id }, 'Failed to increment account quota usage');
+        });
     }
   });
 

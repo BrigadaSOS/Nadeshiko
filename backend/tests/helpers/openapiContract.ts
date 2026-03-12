@@ -1,4 +1,4 @@
-import type { ZodTypeAny } from 'zod/v3';
+import type { ZodTypeAny } from 'zod/v4';
 
 function formatIssues(issues: Array<{ path: Array<string | number>; message: string }>): string {
   return issues
