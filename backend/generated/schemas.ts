@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { z } from 'zod/v3';
+import { z } from 'zod/v4';
 
 export const PermissiveBoolean = z.preprocess((value) => {
   if (typeof value === 'string' && (value === 'true' || value === 'false')) {
@@ -30,8 +30,8 @@ export const s_Collection = z.object({
   type: z.enum(['USER', 'ANKI_EXPORT']),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
   segmentCount: z.coerce.number(),
-  createdAt: z.string().datetime({ offset: true }),
-  updatedAt: z.string().datetime({ offset: true }).nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
 export const s_CollectionRequests = z.object({
@@ -48,7 +48,7 @@ export const s_Episode = z.object({
   titleRomaji: z.string().nullable().optional(),
   titleJa: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  airedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  airedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   lengthSeconds: z.coerce.number().nullable().optional(),
   thumbnailUrl: z.string().nullable().optional(),
   segmentCount: z.coerce.number(),
@@ -59,7 +59,7 @@ export const s_EpisodeCreateRequest = z.object({
   titleRomaji: z.string().optional(),
   titleJa: z.string().optional(),
   description: z.string().optional(),
-  airedAt: z.string().datetime({ offset: true }).optional(),
+  airedAt: z.iso.datetime({ offset: true }).optional(),
   lengthSeconds: z.coerce.number().optional(),
   thumbnailUrl: z.string().optional(),
   episodeNumber: z.coerce.number(),
@@ -70,7 +70,7 @@ export const s_EpisodeUpdateRequest = z.object({
   titleRomaji: z.string().optional(),
   titleJa: z.string().optional(),
   description: z.string().optional(),
-  airedAt: z.string().datetime({ offset: true }).optional(),
+  airedAt: z.iso.datetime({ offset: true }).optional(),
   lengthSeconds: z.coerce.number().optional(),
   thumbnailUrl: z.string().optional(),
 });
@@ -82,7 +82,7 @@ export const s_Error400 = z.object({
   type: z.string().optional(),
   instance: z.string().optional(),
   status: z.literal(400),
-  errors: z.record(z.string()).optional(),
+  errors: z.record(z.string(), z.string()).optional(),
 });
 
 export const s_Error401 = z.object({
@@ -97,7 +97,7 @@ export const s_Error401 = z.object({
   type: z.string().optional(),
   instance: z.string().optional(),
   status: z.literal(401),
-  errors: z.record(z.string()).optional(),
+  errors: z.record(z.string(), z.string()).optional(),
 });
 
 export const s_Error403 = z.object({
@@ -107,7 +107,7 @@ export const s_Error403 = z.object({
   type: z.string().optional(),
   instance: z.string().optional(),
   status: z.literal(403),
-  errors: z.record(z.string()).optional(),
+  errors: z.record(z.string(), z.string()).optional(),
 });
 
 export const s_Error404 = z.object({
@@ -117,7 +117,7 @@ export const s_Error404 = z.object({
   type: z.string().optional(),
   instance: z.string().optional(),
   status: z.literal(404),
-  errors: z.record(z.string()).optional(),
+  errors: z.record(z.string(), z.string()).optional(),
 });
 
 export const s_Error409 = z.object({
@@ -127,7 +127,7 @@ export const s_Error409 = z.object({
   type: z.string().optional(),
   instance: z.string().optional(),
   status: z.literal(409),
-  errors: z.record(z.string()).optional(),
+  errors: z.record(z.string(), z.string()).optional(),
 });
 
 export const s_Error429 = z.object({
@@ -137,7 +137,7 @@ export const s_Error429 = z.object({
   type: z.string().optional(),
   instance: z.string().optional(),
   status: z.literal(429),
-  errors: z.record(z.string()).optional(),
+  errors: z.record(z.string(), z.string()).optional(),
 });
 
 export const s_Error500 = z.object({
@@ -147,7 +147,7 @@ export const s_Error500 = z.object({
   type: z.string().optional(),
   instance: z.string().optional(),
   status: z.literal(500),
-  errors: z.record(z.string()).optional(),
+  errors: z.record(z.string(), z.string()).optional(),
 });
 
 export const s_ExternalId = z.object({
@@ -172,7 +172,7 @@ export const s_MediaAudit = z.object({
   label: z.string(),
   description: z.string(),
   targetType: z.enum(['MEDIA', 'EPISODE']),
-  threshold: z.record(z.unknown()),
+  threshold: z.record(z.string(), z.unknown()),
   enabled: PermissiveBoolean,
   thresholdSchema: z.array(
     z.object({
@@ -185,10 +185,10 @@ export const s_MediaAudit = z.object({
     }),
   ),
   latestRun: z
-    .object({ id: z.coerce.number(), resultCount: z.coerce.number(), createdAt: z.string().datetime({ offset: true }) })
+    .object({ id: z.coerce.number(), resultCount: z.coerce.number(), createdAt: z.iso.datetime({ offset: true }) })
     .nullable(),
-  createdAt: z.string().datetime({ offset: true }).nullable(),
-  updatedAt: z.string().datetime({ offset: true }).nullable(),
+  createdAt: z.iso.datetime({ offset: true }).nullable(),
+  updatedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
 export const s_MediaAuditRun = z.object({
@@ -196,8 +196,8 @@ export const s_MediaAuditRun = z.object({
   auditName: z.string(),
   category: z.string().nullable().optional(),
   resultCount: z.coerce.number(),
-  thresholdUsed: z.record(z.unknown()),
-  createdAt: z.string().datetime({ offset: true }),
+  thresholdUsed: z.record(z.string(), z.unknown()),
+  createdAt: z.iso.datetime({ offset: true }),
 });
 
 export const s_MediaFilterItem = z.object({ mediaId: z.string(), episodes: z.array(z.coerce.number()).optional() });
@@ -208,7 +208,7 @@ export const s_MediaSearchStats = z.object({
   mediaId: z.coerce.number(),
   publicId: z.string(),
   matchCount: z.coerce.number(),
-  episodeHits: z.record(z.coerce.number()),
+  episodeHits: z.record(z.string(), z.coerce.number()),
 });
 
 export const s_OpaqueCursorPagination = z.object({ hasMore: PermissiveBoolean, cursor: z.string().nullable() });
@@ -269,9 +269,9 @@ export const s_RunAuditResponse = z.object({
 export const s_SegmentRevision = z.object({
   id: z.coerce.number(),
   revisionNumber: z.coerce.number(),
-  snapshot: z.record(z.unknown()),
+  snapshot: z.record(z.string(), z.unknown()),
   userName: z.string().nullable().optional(),
-  createdAt: z.string().datetime({ offset: true }),
+  createdAt: z.iso.datetime({ offset: true }),
 });
 
 export const s_Series = z.object({
@@ -312,7 +312,7 @@ export const s_UserPreferences = z.object({
     })
     .optional(),
   searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
-  blogLastVisited: z.string().datetime({ offset: true }).optional(),
+  blogLastVisited: z.iso.datetime({ offset: true }).optional(),
   ankiProfiles: z
     .array(
       z.object({
@@ -343,8 +343,8 @@ export const s_UserQuotaResponse = z.object({
   quotaLimit: z.coerce.number(),
   quotaRemaining: z.coerce.number(),
   periodYyyymm: z.coerce.number(),
-  periodStart: z.string().datetime({ offset: true }),
-  periodEnd: z.string().datetime({ offset: true }),
+  periodStart: z.iso.datetime({ offset: true }),
+  periodEnd: z.iso.datetime({ offset: true }),
 });
 
 export const s_WordMatchMedia = z.object({ mediaId: z.coerce.number(), matchCount: z.coerce.number() });
@@ -451,8 +451,8 @@ export const s_SegmentCreateRequest = z.object({
     })
     .optional(),
   contentRating: s_ContentRating.optional(),
-  ratingAnalysis: z.record(z.unknown()).nullable().optional(),
-  posAnalysis: z.record(z.unknown()).nullable().optional(),
+  ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
+  posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
   storage: z.enum(['LOCAL', 'R2']).default('R2'),
   hashedId: z.string().min(1),
 });
@@ -470,8 +470,8 @@ export const s_SegmentUpdateRequest = z.object({
     .object({ content: z.string().max(500).optional(), isMachineTranslated: PermissiveBoolean.optional() })
     .optional(),
   contentRating: s_ContentRating.optional(),
-  ratingAnalysis: z.record(z.unknown()).nullable().optional(),
-  posAnalysis: z.record(z.unknown()).nullable().optional(),
+  ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
+  posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
   storage: z.enum(['LOCAL', 'R2']).optional(),
   hashedId: z.string().min(1).optional(),
 });
@@ -495,7 +495,7 @@ export const s_UserActivity = z.object({
   searchQuery: z.string().nullable(),
   mediaName: z.string().nullable(),
   japaneseText: z.string().nullable(),
-  createdAt: z.string().datetime({ offset: true }),
+  createdAt: z.iso.datetime({ offset: true }),
 });
 
 export const s_UserExportCollection = s_Collection.merge(z.object({ segmentIds: z.array(z.coerce.number()) }));
@@ -616,12 +616,12 @@ export const s_Report = z.object({
     'HIGH_REPORT_DENSITY',
   ]),
   description: z.string().nullable(),
-  data: z.record(z.unknown()).nullable(),
+  data: z.record(z.string(), z.unknown()).nullable(),
   status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']),
   adminNotes: z.string().max(1000).nullable(),
   userId: z.coerce.number().nullable(),
-  createdAt: z.string().datetime({ offset: true }),
-  updatedAt: z.string().datetime({ offset: true }).nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
 export const s_SearchMultipleRequest = z.object({
@@ -661,8 +661,8 @@ export const s_SegmentInternal = s_Segment.merge(
     storage: z.enum(['LOCAL', 'R2']).nullable().optional(),
     hashedId: z.string().nullable().optional(),
     storageBasePath: z.string().nullable().optional(),
-    ratingAnalysis: z.record(z.unknown()).nullable().optional(),
-    posAnalysis: z.record(z.unknown()).nullable().optional(),
+    ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
+    posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
   }),
 );
 
@@ -696,7 +696,7 @@ export const s_UserExportResponse = z.object({
     id: z.coerce.number(),
     username: z.string(),
     email: z.string(),
-    createdAt: z.string().datetime({ offset: true }),
+    createdAt: z.iso.datetime({ offset: true }),
   }),
   preferences: s_UserPreferences,
   activity: z.array(s_UserActivity),
@@ -721,10 +721,10 @@ export const s_CollectionWithSegments = z.object({
   name: z.string(),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
   segmentCount: z.coerce.number(),
-  createdAt: z.string().datetime({ offset: true }),
-  updatedAt: z.string().datetime({ offset: true }).nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }).nullable(),
   segments: z.array(z.object({ position: z.coerce.number(), note: z.string().nullable(), result: s_Segment })),
-  includes: z.object({ media: z.record(s_Media) }),
+  includes: z.object({ media: z.record(z.string(), s_Media) }),
   totalCount: z.coerce.number(),
   pagination: s_OpaqueCursorPagination,
 });
@@ -741,24 +741,24 @@ export const s_MediaListResponse = z.object({
 
 export const s_SearchMultipleResponse = z.object({
   results: z.array(s_WordMatch),
-  includes: z.object({ media: z.record(s_Media) }),
+  includes: z.object({ media: z.record(z.string(), s_Media) }),
 });
 
 export const s_SearchResponse = z.object({
   segments: z.array(s_Segment),
-  includes: z.object({ media: z.record(s_Media) }),
+  includes: z.object({ media: z.record(z.string(), s_Media) }),
   pagination: s_PaginationInfo,
 });
 
 export const s_SearchStatsResponse = z.object({
   media: z.array(s_MediaSearchStats),
   categories: z.array(s_CategoryCount),
-  includes: z.object({ media: z.record(s_Media) }),
+  includes: z.object({ media: z.record(z.string(), s_Media) }),
 });
 
 export const s_SegmentContextResponse = z.object({
   segments: z.array(s_Segment),
-  includes: z.object({ media: z.record(s_Media).optional() }),
+  includes: z.object({ media: z.record(z.string(), s_Media).optional() }),
 });
 
 export const s_SeiyuuWithRoles = z.object({

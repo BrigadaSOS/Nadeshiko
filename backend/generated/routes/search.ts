@@ -10,7 +10,7 @@ import {
   SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v3';
+import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import type {
   t_Error400,

@@ -5,14 +5,15 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/v1/admin/media/audits/:name/run
+  url: {{baseUrl}}/v1/admin/media/audits/:name/run?category=ANIME&category=JDRAMA
   body: none
   auth: none
 }
 
 params:query {
   name:
-  category:
+  category: ANIME
+  category: JDRAMA
 }
 
 settings {

@@ -1,11 +1,11 @@
 meta {
-  name: List all API keys for the authenticated user
+  name: Update the current session
   type: http
-  seq: 83
+  seq: 96
 }
 
-get {
-  url: {{baseUrl}}/v1/auth/api-key/list
+post {
+  url: {{baseUrl}}/v1/auth/update-session
   body: none
   auth: none
 }
