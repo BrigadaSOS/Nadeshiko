@@ -1,54 +1,41 @@
-import { AppDataSource } from './config/database';
-import { AccountQuotaUsage } from './app/models/AccountQuotaUsage';
-import { buildApplication } from './config/application';
-import { auth } from './config/auth';
-import { User } from './app/models';
+import express from 'express';
+import http from 'http';
 
-await AppDataSource.initialize();
-await AppDataSource.query('DELETE FROM "AccountQuotaUsage"');
+// Test: res.on('finish') registered in route handler A, response sent from route handler B
+const app = express();
+const router = express.Router();
+let finishFired = false;
 
-const user = await User.findOne({ where: {} });
-console.log('User:', user?.id);
-
-// Create a key via better-auth internal API
-const keyRes = await (auth.api as any).createApiKey({
-  body: { name: 'quota-test-key', permissions: { api: ['READ_MEDIA'] } },
-  headers: new Headers(),
-  _context: { userId: String(user!.id) },
+// Mimics routeAuth: router.get(path, requireAuth) where requireAuth registers finish listener
+router.get('/v1/media', (req, res, next) => {
+  console.log('Handler A: registering finish listener');
+  res.on('finish', () => {
+    finishFired = true;
+    console.log('FINISH EVENT FIRED from handler A listener, statusCode:', res.statusCode);
+  });
+  next();
 });
-const apiKey = keyRes?.key;
-console.log('Created key:', apiKey ? apiKey.slice(0, 20) + '...' : 'FAILED');
 
-if (!apiKey) {
-  await AppDataSource.destroy();
-  process.exit(1);
-}
-
-const app = buildApplication();
-const server = app.listen(0, async () => {
-  try {
-    const port = (server.address() as any).port;
-
-    const res = await fetch('http://localhost:' + port + '/v1/media', {
-      headers: { 'Authorization': 'Bearer ' + apiKey },
-    });
-    console.log('Response status:', res.status);
-
-    // Wait for finish callback and async increment
-    await new Promise((r) => setTimeout(r, 1500));
-
-    const rows = await AppDataSource.query('SELECT * FROM "AccountQuotaUsage"');
-    console.log('AccountQuotaUsage rows:', JSON.stringify(rows, null, 2));
-
-    if (rows.length === 0) {
-      console.log('BUG CONFIRMED: finish callback did not increment quota');
-    } else {
-      console.log('OK: quota was incremented');
-    }
-  } finally {
-    // Clean up
-    await AppDataSource.query("DELETE FROM \"apikey\" WHERE \"name\" = 'quota-test-key'");
-    server.close();
-    await AppDataSource.destroy();
-  }
+// Mimics generated MediaRoutes
+const mediaRouter = express.Router();
+mediaRouter.get('/v1/media', (_req, res) => {
+  console.log('Handler B: sending response');
+  res.status(200).json({ items: [] });
 });
+
+router.use('/', mediaRouter);
+app.use('/', router);
+
+const server = http.createServer(app);
+await new Promise<void>((resolve) => server.listen(0, resolve));
+const port = (server.address() as any).port;
+
+const res = await fetch('http://localhost:' + port + '/v1/media');
+console.log('Response status:', res.status);
+
+await new Promise((r) => setTimeout(r, 500));
+
+console.log('finish fired:', finishFired);
+
+server.close();
+process.exit(finishFired ? 0 : 1);
