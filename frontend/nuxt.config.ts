@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { env } from './config/env';
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -32,16 +33,16 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/tailwind.css'],
   runtimeConfig: {
-    nadeshikoApiKey: process.env.NUXT_NADESHIKO_API_KEY,
-    backendInternalUrl: process.env.NUXT_BACKEND_INTERNAL_URL,
-    backendHostHeader: process.env.NUXT_BACKEND_HOST_HEADER,
-    mediaFilesPath: process.env.NUXT_MEDIA_FILES_PATH,
-    fallbackRateLimitWindowMs: Number(process.env.NUXT_FALLBACK_RATE_LIMIT_WINDOW_MS || 60000),
-    fallbackRateLimitMaxRequests: Number(process.env.NUXT_FALLBACK_RATE_LIMIT_MAX_REQUESTS || 300),
+    nadeshikoApiKey: env.NUXT_NADESHIKO_API_KEY,
+    backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
+    backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
+    mediaFilesPath: env.NUXT_MEDIA_FILES_PATH,
+    fallbackRateLimitWindowMs: env.NUXT_FALLBACK_RATE_LIMIT_WINDOW_MS,
+    fallbackRateLimitMaxRequests: env.NUXT_FALLBACK_RATE_LIMIT_MAX_REQUESTS,
     public: {
       appVersion: frontendPackageJson.version,
-      environment: process.env.NUXT_PUBLIC_ENVIRONMENT || 'prod',
-      sentryDsn: process.env.SENTRY_FRONTEND_DSN || '',
+      environment: env.NUXT_PUBLIC_ENVIRONMENT,
+      sentryDsn: env.SENTRY_FRONTEND_DSN || '',
     },
   },
   pages: true,

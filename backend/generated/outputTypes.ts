@@ -113,23 +113,6 @@ export const searchCollectionSegmentsQuerySchema = z.object({
   });
 export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;
 
-export const listUserActivityQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    activityType: schemas.s_ActivityType.optional(),
-    date: z.string().optional(),
-  });
-export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
-
-export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
-export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;
-
-export const getUserActivityHeatmapQuerySchema = z.object({ days: z.coerce.number().max(730).optional().default(365) });
-export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
-
-export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
-export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
-
 export const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),
@@ -233,3 +216,20 @@ export const listSegmentsQuerySchema = z.object({
     cursor: z.string().optional(),
   });
 export type ListSegmentsQueryOutput = z.output<typeof listSegmentsQuerySchema>;
+
+export const listUserActivityQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().max(100).optional().default(20),
+    activityType: schemas.s_ActivityType.optional(),
+    date: z.string().optional(),
+  });
+export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
+
+export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
+export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;
+
+export const getUserActivityHeatmapQuerySchema = z.object({ days: z.coerce.number().max(730).optional().default(365) });
+export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
+
+export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
+export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;

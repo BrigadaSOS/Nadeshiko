@@ -48,15 +48,22 @@ export async function seed() {
     await user.save();
     const collectionCount = await Collection.count({ where: { userId: user.id } });
     if (collectionCount === 0) {
-      await Collection.save([
-        { name: 'Favorites', type: CollectionType.USER, userId: user.id, visibility: CollectionVisibility.PRIVATE },
-        {
-          name: 'Anki Exports',
-          type: CollectionType.ANKI_EXPORT,
-          userId: user.id,
-          visibility: CollectionVisibility.PRIVATE,
-        },
-      ]);
+      await Collection.save(
+        [
+          Collection.create({
+            name: 'Favorites',
+            type: CollectionType.USER,
+            userId: user.id,
+            visibility: CollectionVisibility.PRIVATE,
+          }),
+          Collection.create({
+            name: 'Anki Exports',
+            type: CollectionType.ANKI_EXPORT,
+            userId: user.id,
+            visibility: CollectionVisibility.PRIVATE,
+          }),
+        ],
+      );
     }
     logger.info({ userId: user.id, email }, 'Admin user created');
   } else {
@@ -89,7 +96,8 @@ export async function seed() {
         "start",
         "prefix",
         "key",
-        "userId",
+        "referenceId",
+        "configId",
         "enabled",
         "rateLimitEnabled",
         "metadata",
@@ -97,20 +105,21 @@ export async function seed() {
         "createdAt",
         "updatedAt"
       )
-      VALUES ($1, $2, $3, $4, $5, true, false, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, 'default', true, false, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       ON CONFLICT ("key")
       DO UPDATE SET
         "name" = EXCLUDED."name",
         "start" = EXCLUDED."start",
         "prefix" = EXCLUDED."prefix",
-        "userId" = EXCLUDED."userId",
+        "referenceId" = EXCLUDED."referenceId",
+        "configId" = EXCLUDED."configId",
         "enabled" = true,
         "rateLimitEnabled" = false,
         "metadata" = EXCLUDED."metadata",
         "permissions" = EXCLUDED."permissions",
         "updatedAt" = CURRENT_TIMESTAMP
     `,
-    [SEEDED_MASTER_KEY_NAME, apiKey.slice(0, 6), keyPrefix, hashedApiKey, user.id, metadata, permissions],
+    [SEEDED_MASTER_KEY_NAME, apiKey.slice(0, 6), keyPrefix, hashedApiKey, String(user.id), metadata, permissions],
   );
 
   logger.info({ userId: user.id, keyName: SEEDED_MASTER_KEY_NAME }, 'Better Auth API key ensured');
