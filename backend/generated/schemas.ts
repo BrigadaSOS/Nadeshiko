@@ -289,6 +289,8 @@ export const s_Token = z.object({
   b: z.coerce.number(),
   e: z.coerce.number(),
   p: z.string(),
+  p2: z.string().optional(),
+  cf: z.string().optional(),
 });
 
 export const s_UpdateReportRequest = z.object({

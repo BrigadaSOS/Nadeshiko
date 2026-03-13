@@ -71,11 +71,13 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
 export const createCollection: CreateCollection = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
-  const collection = await Collection.save({
-    name: body.name,
-    userId: user.id,
-    visibility: body.visibility === undefined ? CollectionVisibility.PRIVATE : toCollectionVisibility(body.visibility),
-  });
+  const collection = await Collection.save(
+    Collection.create({
+      name: body.name,
+      userId: user.id,
+      visibility: body.visibility === undefined ? CollectionVisibility.PRIVATE : toCollectionVisibility(body.visibility),
+    }),
+  );
 
   return respond.with201().body(toCollectionDTO(collection));
 };
@@ -376,11 +378,13 @@ export const ensureDefaultCollections = async (userId: number): Promise<void> =>
   if (count > 0) return;
 
   await Collection.save(
-    DEFAULT_COLLECTIONS.map(({ name, type }) => ({
-      name,
-      type,
-      userId,
-      visibility: CollectionVisibility.PRIVATE,
-    })),
+    DEFAULT_COLLECTIONS.map(({ name, type }) =>
+      Collection.create({
+        name,
+        type,
+        userId,
+        visibility: CollectionVisibility.PRIVATE,
+      }),
+    ),
   );
 };

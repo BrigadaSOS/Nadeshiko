@@ -4,8 +4,6 @@ import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { buildSentenceMetaTags } from '~/utils/metaTags';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 
-const shortcutsModal = ref<{ open: () => void } | null>(null);
-
 const route = useRoute();
 
 const ogTitle = computed(() => {
@@ -303,22 +301,8 @@ useHead(metaTags);
             <div class="relative text-white">
                 <div class="pt-2">
                     <div class="md:max-w-[92%] mx-auto">
-                        <SearchModalKeyboardShortcuts ref="shortcutsModal" />
                         <SearchBaseInputSegment />
-                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData">
-                            <template #result-controls>
-                                <div class="flex items-center gap-3">
-                                    <SearchTranslationVisibilityPreferences />
-                                    <button
-                                        class="hidden lg:inline-flex rounded-md px-3 py-1 text-sm font-medium bg-neutral-800 text-neutral-500 border border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-                                        @click="shortcutsModal?.open()"
-                                        :title="$t('shortcuts.title')"
-                                    >
-                                        {{ $t('shortcuts.title') }}
-                                    </button>
-                                </div>
-                            </template>
-                        </SearchContainer>
+                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
                     </div>
                 </div>
             </div>

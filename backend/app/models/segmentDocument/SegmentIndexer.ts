@@ -260,13 +260,21 @@ export class SegmentIndexer {
     const sudachi = posAnalysis.sudachi;
     if (!Array.isArray(sudachi) || sudachi.length === 0) return undefined;
 
-    return sudachi.map((token: Record<string, unknown>) => ({
-      s: String(token.surface ?? ''),
-      d: String(token.dictionary_form ?? token.surface ?? ''),
-      r: String(token.reading ?? ''),
-      b: Number(token.begin ?? 0),
-      e: Number(token.end ?? 0),
-      p: Array.isArray(token.pos) ? String(token.pos[0] ?? '') : '',
-    }));
+    return sudachi.map((token: Record<string, unknown>) => {
+      const pos = Array.isArray(token.pos) ? token.pos : [];
+      const p2 = pos.length > 1 && pos[1] !== '*' ? String(pos[1]) : undefined;
+      const cf = pos.length > 5 && pos[5] !== '*' ? String(pos[5]) : undefined;
+      const slim: SlimToken = {
+        s: String(token.surface ?? ''),
+        d: String(token.dictionary_form ?? token.surface ?? ''),
+        r: String(token.reading ?? ''),
+        b: Number(token.begin ?? 0),
+        e: Number(token.end ?? 0),
+        p: String(pos[0] ?? ''),
+      };
+      if (p2) slim.p2 = p2;
+      if (cf) slim.cf = cf;
+      return slim;
+    });
   }
 }

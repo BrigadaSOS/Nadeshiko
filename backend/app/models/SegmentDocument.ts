@@ -37,6 +37,8 @@ export interface SlimToken {
   b: number;
   e: number;
   p: string;
+  p2?: string;
+  cf?: string;
 }
 
 export interface SegmentDocumentShape {

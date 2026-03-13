@@ -493,10 +493,10 @@ onBeforeRouteUpdate(async (to, from) => {
         </section>
     </div>
     <div v-else-if="initialError">
-        <div v-if="$slots['result-controls']" class="pb-3">
+        <div class="pb-3">
             <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] pb-3">
                 <div class="shrink-0">
-                    <slot name="result-controls" />
+                    <SearchResultControls />
                 </div>
             </div>
         </div>
@@ -546,12 +546,12 @@ onBeforeRouteUpdate(async (to, from) => {
                 <NuxtLink
                     v-if="collectionId"
                     to="/user/collections"
-                    class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                    :title="$t('searchContainer.backToCollections')"
+                    class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-white/10"
                 >
-                    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
                     </svg>
+                    {{ $t('searchContainer.backToCollections') }}
                 </NuxtLink>
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
@@ -567,8 +567,8 @@ onBeforeRouteUpdate(async (to, from) => {
                         </CommonTabsHeader>
                     </CommonTabsContainer>
                 </div>
-                <div v-if="$slots['result-controls']" class="shrink-0">
-                    <slot name="result-controls" />
+                <div class="shrink-0">
+                    <SearchResultControls />
                 </div>
             </div>
         </div>
@@ -581,21 +581,21 @@ onBeforeRouteUpdate(async (to, from) => {
                 </CommonTabsHeader>
             </CommonTabsContainer>
         </div>
-        <div v-else-if="collectionId || $slots['result-controls']" class="pb-3">
+        <div v-else class="pb-3">
             <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4">
                 <NuxtLink
                     v-if="collectionId"
                     to="/user/collections"
-                    class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                    :title="$t('searchContainer.backToCollections')"
+                    class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-white/10"
                 >
-                    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
                     </svg>
+                    {{ $t('searchContainer.backToCollections') }}
                 </NuxtLink>
                 <span v-if="collectionId && collectionName" class="text-white/70 font-medium text-sm truncate max-w-[20rem]">{{ collectionName }}</span>
-                <div v-if="$slots['result-controls']" class="shrink-0 ml-auto">
-                    <slot name="result-controls" />
+                <div class="shrink-0 ml-auto">
+                    <SearchResultControls />
                 </div>
             </div>
         </div>

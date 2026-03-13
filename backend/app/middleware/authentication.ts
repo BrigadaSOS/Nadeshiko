@@ -252,7 +252,7 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
     valid?: boolean;
     key?: {
       id?: string | number;
-      userId?: string | number;
+      referenceId?: string | number;
       permissions?: unknown;
       metadata?: unknown;
     } | null;
@@ -287,7 +287,7 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
     throw new AuthCredentialsInvalidError('Invalid API key.');
   }
 
-  const userId = Number(verification.key.userId);
+  const userId = Number(verification.key.referenceId);
   if (!Number.isInteger(userId) || userId <= 0) {
     throw new AuthCredentialsInvalidError('Invalid API key owner.');
   }
