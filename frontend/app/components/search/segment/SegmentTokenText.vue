@@ -5,6 +5,7 @@ type Props = {
   tokens: Token[];
   highlight?: string;
   content: string;
+  showHiragana?: boolean;
 };
 
 const props = defineProps<Props>();
@@ -20,10 +21,17 @@ interface EnrichedToken extends Token {
   reading: string;
   posJa: string;
   posEn: string;
+  posSubJa: string;
+  posSubEn: string;
+  conjFormJa: string;
+  conjFormEn: string;
+  auxMeanings: Array<{ ja: string; en: string }>;
 }
 
 const STEM_POS = new Set(['動詞', '形容詞']);
+const CONJ_POS = new Set(['動詞', '形容詞', '助動詞']);
 const HIRAGANA_RE = /^[\u3040-\u309F]+$/;
+const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF]/;
 
 function katakanaToHiragana(str: string): string {
   return str.replace(/[\u30A1-\u30F6]/g, (ch) =>
@@ -46,6 +54,54 @@ const POS_LABELS: Record<string, string> = {
   '記号': 'Symbol',
   '補助記号': 'Punctuation',
   '空白': 'Whitespace',
+};
+
+const POS_SUB_LABELS: Record<string, string> = {
+  '普通名詞': 'Common Noun',
+  '固有名詞': 'Proper Noun',
+  '数詞': 'Numeral',
+  '代名詞': 'Pronoun',
+  '非自立可能': 'Auxiliary-capable',
+  '格助詞': 'Case Particle',
+  '係助詞': 'Binding Particle',
+  '副助詞': 'Adverbial Particle',
+  '接続助詞': 'Conjunctive Particle',
+  '終助詞': 'Sentence-final Particle',
+  '準体助詞': 'Nominalizing Particle',
+};
+
+const CONJ_FORM_LABELS: Record<string, string> = {
+  '連用形': 'Continuative',
+  '終止形': 'Plain Form',
+  '連体形': 'Attributive',
+  '未然形': 'Irrealis',
+  '仮定形': 'Conditional',
+  '命令形': 'Imperative',
+  '意志推量形': 'Volitional',
+  '語幹': 'Stem',
+  '音便形': 'Euphonic',
+};
+
+const AUX_LABELS: Record<string, { ja: string; en: string }> = {
+  'れる': { ja: '受身/可能', en: 'Passive/Potential' },
+  'られる': { ja: '受身/可能', en: 'Passive/Potential' },
+  'せる': { ja: '使役', en: 'Causative' },
+  'させる': { ja: '使役', en: 'Causative' },
+  'ない': { ja: '否定', en: 'Negative' },
+  'ぬ': { ja: '否定', en: 'Negative' },
+  'た': { ja: '過去', en: 'Past' },
+  'て': { ja: 'て形', en: 'Te-form' },
+  'ます': { ja: '丁寧', en: 'Polite' },
+  'たい': { ja: '希望', en: 'Desiderative' },
+  'だ': { ja: '断定', en: 'Copula' },
+  'です': { ja: '丁寧', en: 'Polite Copula' },
+  'ば': { ja: '条件', en: 'Conditional' },
+  'ながら': { ja: '同時進行', en: 'While' },
+  'ので': { ja: '理由', en: 'Because' },
+  'そうだ': { ja: '様態/伝聞', en: 'Hearsay/Seems' },
+  'ようだ': { ja: '様態', en: 'Appears (like)' },
+  'らしい': { ja: '推定', en: 'Apparently' },
+  'べし': { ja: '当然/義務', en: 'Should/Must' },
 };
 
 const enrichedTokens = computed<EnrichedToken[]>(() => {
@@ -127,6 +183,28 @@ const enrichedTokens = computed<EnrichedToken[]>(() => {
     groupSizes.set(gid, (groupSizes.get(gid) ?? 0) + 1);
   }
 
+  // Collect aux/particle meanings per group (deduplicated by en label)
+  const groupAuxMeanings = new Map<number, Array<{ ja: string; en: string }>>();
+  for (const [idx, gid] of groupByIndex) {
+    const token = tokens[idx]!;
+    if (token.p === '助動詞' || token.p === '助詞') {
+      const label = AUX_LABELS[(token as Token & { d?: string }).d ?? ''];
+      if (label) {
+        const arr = groupAuxMeanings.get(gid) ?? [];
+        if (!arr.some(a => a.en === label.en)) {
+          arr.push(label);
+          groupAuxMeanings.set(gid, arr);
+        }
+      }
+    }
+  }
+
+  // Full compound reading (concatenate all token readings in group)
+  const groupReadingsKata = new Map<number, string>();
+  for (const [idx, gid] of groupByIndex) {
+    groupReadingsKata.set(gid, (groupReadingsKata.get(gid) ?? '') + tokens[idx]!.r);
+  }
+
   return tokens.map((token, idx) => {
     const range = matchRanges.find((r) => token.b < r.end && token.e > r.start);
     const gid = groupByIndex.get(idx);
@@ -135,8 +213,22 @@ const enrichedTokens = computed<EnrichedToken[]>(() => {
     const stemToken = stemIdx !== undefined ? tokens[stemIdx] : undefined;
 
     const dictForm = isMultiTokenGroup && stemToken ? stemToken.d : token.d;
-    const reading = isMultiTokenGroup && stemToken ? stemToken.r : token.r;
+    const reading = isMultiTokenGroup
+      ? katakanaToHiragana(groupReadingsKata.get(gid!) ?? stemToken?.r ?? token.r)
+      : katakanaToHiragana(token.r);
     const posForLabel = isMultiTokenGroup && stemToken ? stemToken.p : token.p;
+
+    const tokenForSub = isMultiTokenGroup && stemToken ? stemToken : token;
+    const p2 = (tokenForSub as Token & { p2?: string }).p2;
+    const posSubJa = p2 ?? '';
+    const posSubEn = posSubJa ? (POS_SUB_LABELS[posSubJa] ?? '') : '';
+
+    const cf = (token as Token & { cf?: string }).cf;
+    const cfBase = cf?.split('-')[0] ?? '';
+    const conjFormJa = !isMultiTokenGroup && CONJ_POS.has(token.p) && cfBase ? cfBase : '';
+    const conjFormEn = conjFormJa ? (CONJ_FORM_LABELS[conjFormJa] ?? '') : '';
+
+    const auxMeanings = isMultiTokenGroup ? (groupAuxMeanings.get(gid!) ?? []) : [];
 
     return {
       ...token,
@@ -144,9 +236,14 @@ const enrichedTokens = computed<EnrichedToken[]>(() => {
       searchText: isMultiTokenGroup ? groupSurfaces.get(gid!)! : token.d,
       groupId: isMultiTokenGroup ? gid! : null,
       dictForm,
-      reading: katakanaToHiragana(reading),
+      reading,
       posJa: posForLabel,
       posEn: POS_LABELS[posForLabel] ?? posForLabel,
+      posSubJa,
+      posSubEn,
+      conjFormJa,
+      conjFormEn,
+      auxMeanings,
     };
   });
 });
@@ -202,7 +299,7 @@ const posClass = (pos: string) => {
       @click="emit('token-click', token.searchText)"
       @mouseenter="onTokenEnter(token, $event)"
       @mouseleave="onTokenLeave"
-    >{{ token.s }}</span>
+    ><ruby v-if="showHiragana && token.reading && KANJI_RE.test(token.s)">{{ token.s }}<rt>{{ token.reading }}</rt></ruby><template v-else>{{ token.s }}</template></span>
 
     <Transition name="tooltip">
       <div
@@ -218,6 +315,23 @@ const posClass = (pos: string) => {
         <div class="token-tooltip__right">
           <span class="token-tooltip__pos-ja">{{ hoveredToken.posJa }}</span>
           <span class="token-tooltip__pos-en">{{ hoveredToken.posEn }}</span>
+          <template v-if="hoveredToken.posSubEn">
+            <span class="token-tooltip__pos-sub">
+              {{ hoveredToken.posSubJa }} · {{ hoveredToken.posSubEn }}
+            </span>
+          </template>
+          <template v-if="hoveredToken.auxMeanings.length > 0">
+            <div class="token-tooltip__meta-divider" />
+            <span v-for="aux in hoveredToken.auxMeanings" :key="aux.en" class="token-tooltip__conj">
+              {{ aux.ja }} · {{ aux.en }}
+            </span>
+          </template>
+          <template v-else-if="hoveredToken.conjFormEn">
+            <div class="token-tooltip__meta-divider" />
+            <span class="token-tooltip__conj">
+              {{ hoveredToken.conjFormJa }} · {{ hoveredToken.conjFormEn }}
+            </span>
+          </template>
         </div>
       </div>
     </Transition>
@@ -323,6 +437,23 @@ const posClass = (pos: string) => {
   color: rgb(115 115 115);
 }
 
+.token-tooltip__pos-sub {
+  font-size: 10px;
+  color: rgb(115 115 115);
+  margin-top: 1px;
+}
+
+.token-tooltip__meta-divider {
+  align-self: stretch;
+  height: 1px;
+  background: rgb(64 64 64);
+}
+
+.token-tooltip__conj {
+  font-size: 10px;
+  color: rgb(147 155 170);
+}
+
 .tooltip-enter-active {
   transition: opacity 0.12s ease;
 }
@@ -334,5 +465,13 @@ const posClass = (pos: string) => {
 .tooltip-enter-from,
 .tooltip-leave-to {
   opacity: 0;
+}
+
+ruby rt {
+  font-size: 0.55em;
+  color: rgb(163 163 163);
+  text-align: center;
+  line-height: 1;
+  user-select: none;
 }
 </style>

@@ -32,3 +32,11 @@ properties:
     type: string
     description: Primary part-of-speech tag
     example: "動詞"
+  p2:
+    type: string
+    description: POS subclass (UniDic pos[1])
+    example: "固有名詞"
+  cf:
+    type: string
+    description: Conjugation form (UniDic pos[5])
+    example: "連用形-一般"

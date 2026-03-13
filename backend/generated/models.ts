@@ -613,9 +613,11 @@ export type t_SeriesWithMedia = {
 
 export type t_Token = {
   b: number;
+  cf?: string;
   d: string;
   e: number;
   p: string;
+  p2?: string;
   r: string;
   s: string;
 };

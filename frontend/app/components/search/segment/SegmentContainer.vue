@@ -213,6 +213,8 @@ const route = useRoute();
 const labsStore = useLabsStore();
 const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
 
+const { showHiragana } = useHiraganaVisibility();
+
 const handleTokenSearch = (dictionaryForm: string) => {
   router.push({ path: `/search/${encodeURIComponent(dictionaryForm)}` });
 };
@@ -248,7 +250,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
 
     <div v-for="(result, index) in resultList" :key="result.segment.uuid"
       :id="result.segment.uuid"
-      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all  flex flex-col min-[650px]:flex-row py-2"
+      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
@@ -272,30 +274,31 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             w="w-3.5" h="h-3.5" size="14" />
           <span>{{ revealedContent.has(result.segment.uuid) ? $t('segment.contentRatingHide') : $t('segment.contentRatingShow') }}</span>
         </button>
-        <!-- Remove from collection button -->
-        <div v-if="collectionId" class="absolute top-2 z-10" :class="shouldBlur(result.segment.contentRating) ? 'right-24' : 'right-2'">
-          <button
-            v-if="confirmingRemoveId !== result.segment.id"
-            @click.stop="confirmRemove(result.segment.id)"
-            class="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md bg-black/50 hover:bg-red-600/80 text-white/70 hover:text-white"
-            :title="$t('accountSettings.collections.removeFromCollection')"
-          >
-            <UiBaseIcon :path="mdiClose" w="w-4" h="h-4" size="16" />
-          </button>
-          <div v-else class="flex items-center gap-1.5 bg-black/80 rounded-md px-2 py-1.5">
-            <span class="text-xs text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
-            <button
-              @click.stop="executeRemove(result.segment.id)"
-              class="px-2 py-0.5 rounded text-xs bg-red-600 hover:bg-red-500 text-white font-medium"
-            >{{ $t('accountSettings.collections.yes') }}</button>
-            <button
-              @click.stop="cancelRemove()"
-              class="px-2 py-0.5 rounded text-xs bg-neutral-600 hover:bg-neutral-500 text-white font-medium"
-            >{{ $t('accountSettings.collections.no') }}</button>
-          </div>
-        </div>
       </div>
       <!-- End Image -->
+
+      <!-- Remove from collection button -->
+      <div v-if="collectionId" class="absolute top-2 right-2 z-10">
+        <button
+          v-if="confirmingRemoveId !== result.segment.id"
+          @click.stop="confirmRemove(result.segment.id)"
+          class="opacity-0 group-hover:opacity-100 transition-opacity p-2 aspect-square flex items-center justify-center rounded-md bg-modal-background hover:bg-button-danger-main text-white/70 hover:text-white"
+          :title="$t('accountSettings.collections.removeFromCollection')"
+        >
+          <UiBaseIcon :path="mdiClose" w="w-5" h="h-5" size="20" />
+        </button>
+        <div v-else class="flex items-center gap-2 bg-modal-background rounded-md px-3 py-2">
+          <span class="text-sm text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
+          <button
+            @click.stop="executeRemove(result.segment.id)"
+            class="px-3 py-1.5 rounded text-sm bg-button-danger-main hover:bg-button-danger-hover text-white font-medium"
+          >{{ $t('accountSettings.collections.yes') }}</button>
+          <button
+            @click.stop="cancelRemove()"
+            class="px-3 py-1.5 rounded text-sm bg-neutral-600 hover:bg-neutral-500 text-white font-medium"
+          >{{ $t('accountSettings.collections.no') }}</button>
+        </div>
+      </div>
 
       <!-- Details -->
       <div class="w-full py-3 sm:py-2 px-4 rounded-e-lg text-white flex flex-col">
@@ -320,6 +323,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
                   :tokens="(result.segment.textJa as any).tokens"
                   :highlight="result.segment.textJa.highlight"
                   :content="result.segment.textJa.content"
+                  :show-hiragana="showHiragana"
                   class="leading-snug"
                   @token-click="handleTokenSearch"
                 />
