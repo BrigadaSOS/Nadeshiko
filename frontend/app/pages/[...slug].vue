@@ -6,10 +6,16 @@ const siteUrl = 'https://nadeshiko.co';
 const isBlogPost = computed(() => route.path.startsWith('/blog/'));
 
 async function fetchContent() {
+  const lang = locale.value.toLowerCase();
+  const collection = (`content_${lang}`) as keyof typeof import('@nuxt/content').Collections;
   try {
-    return await queryCollection('content').path(`/${locale.value.toLowerCase()}${route.path}`).first();
+    return await queryCollection(collection).path(route.path).first();
   } catch {
-    return await queryCollection('content').path(`/${route.path}`).first();
+    // Fallback to English
+    if (lang !== 'en') {
+      return await queryCollection('content_en').path(route.path).first();
+    }
+    return null;
   }
 }
 
@@ -220,12 +226,8 @@ defineOgImage({
   font-weight: 600;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
-  color: #d1d5db;
+  color: #ef5552;
   line-height: 1.4;
-  text-decoration: underline;
-  text-underline-offset: 0.5rem;
-  text-decoration-thickness: 4px;
-  text-decoration-color: #ef5552;
 }
 
 @media (min-width: 768px) {
@@ -239,12 +241,8 @@ defineOgImage({
   font-weight: 600;
   margin-top: 2rem;
   margin-bottom: 0.875rem;
-  color: #d1d5db;
+  color: #ef5552;
   line-height: 1.5;
-  text-decoration: underline;
-  text-underline-offset: 0.5rem;
-  text-decoration-thickness: 4px;
-  text-decoration-color: #ef5552;
 }
 
 /* Images */
@@ -290,11 +288,15 @@ defineOgImage({
 
 /* Links inside headings */
 .content-markdown :deep(h1 a),
-.content-markdown :deep(h2 a),
-.content-markdown :deep(h3 a),
-.content-markdown :deep(h4 a) {
+.content-markdown :deep(h2 a) {
   color: #d1d5db;
   border-bottom: 2px solid #ef5552;
+}
+
+.content-markdown :deep(h3 a),
+.content-markdown :deep(h4 a) {
+  color: inherit;
+  border-bottom: none;
 }
 
 .content-markdown :deep(h1 a:hover),
@@ -302,6 +304,24 @@ defineOgImage({
 .content-markdown :deep(h3 a:hover),
 .content-markdown :deep(h4 a:hover) {
   color: #f87171;
+}
+
+.content-markdown :deep(blockquote) {
+  border-left: 4px solid #ef5552;
+  background-color: rgba(239, 85, 82, 0.08);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.content-markdown :deep(blockquote p) {
+  margin-bottom: 0;
+  font-size: 1rem;
+  color: #e5e7eb;
+}
+
+.content-markdown :deep(blockquote strong) {
+  color: #ef5552;
 }
 
 /* Contributor card overrides */
