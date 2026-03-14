@@ -262,8 +262,11 @@ export class SegmentIndexer {
 
     return sudachi.map((token: Record<string, unknown>) => {
       const pos = Array.isArray(token.pos) ? token.pos : [];
-      const p2 = pos.length > 1 && pos[1] !== '*' ? String(pos[1]) : undefined;
-      const cf = pos.length > 5 && pos[5] !== '*' ? String(pos[5]) : undefined;
+      const meaningful = (v: unknown) => v !== undefined && v !== '*' && v !== '一般';
+      const p1 = pos.length > 1 && meaningful(pos[1]) ? String(pos[1]) : undefined;
+      const p2 = pos.length > 2 && meaningful(pos[2]) ? String(pos[2]) : undefined;
+      const p4 = pos.length > 4 && meaningful(pos[4]) ? String(pos[4]) : undefined;
+      const cf = pos.length > 5 && meaningful(pos[5]) ? String(pos[5]) : undefined;
       const slim: SlimToken = {
         s: String(token.surface ?? ''),
         d: String(token.dictionary_form ?? token.surface ?? ''),
@@ -272,7 +275,9 @@ export class SegmentIndexer {
         e: Number(token.end ?? 0),
         p: String(pos[0] ?? ''),
       };
+      if (p1) slim.p1 = p1;
       if (p2) slim.p2 = p2;
+      if (p4) slim.p4 = p4;
       if (cf) slim.cf = cf;
       return slim;
     });

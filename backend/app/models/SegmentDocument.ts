@@ -37,7 +37,9 @@ export interface SlimToken {
   b: number;
   e: number;
   p: string;
+  p1?: string;
   p2?: string;
+  p4?: string;
   cf?: string;
 }
 
@@ -286,6 +288,7 @@ export class SegmentDocument {
 
   static async findByIds(
     ids: number[],
+    options?: SearchResponseOptions,
   ): Promise<{ segments: SegmentOutput[]; includes: { media: Record<string, MediaOutput> } }> {
     if (ids.length === 0) return { segments: [], includes: { media: {} } };
 
@@ -296,7 +299,7 @@ export class SegmentDocument {
     });
 
     const mediaInfo = await Media.getMediaInfoMap();
-    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
+    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo, options);
     return { segments, includes: { media: mediaMap } };
   }
 
