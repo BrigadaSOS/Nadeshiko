@@ -16,7 +16,7 @@
     "test:watch": "vitest watch"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "1.5.0-dev.8461061",
+    "@brigadasos/nadeshiko-sdk": "1.5.1-dev.e889ab8",
     "@mdi/js": "^7.4.47",
     "@nuxt/content": "^3.11.0",
     "@nuxtjs/i18n": "^10.2.1",
