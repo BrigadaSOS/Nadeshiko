@@ -32,10 +32,18 @@ properties:
     type: string
     description: Primary part-of-speech tag
     example: "動詞"
+  p1:
+    type: string
+    description: POS subtype 1 (UniDic pos[1])
+    example: "固有名詞"
   p2:
     type: string
-    description: POS subclass (UniDic pos[1])
-    example: "固有名詞"
+    description: POS subtype 2 (UniDic pos[2])
+    example: "人名"
+  p4:
+    type: string
+    description: Conjugation type (UniDic pos[4])
+    example: "五段-カ行"
   cf:
     type: string
     description: Conjugation form (UniDic pos[5])

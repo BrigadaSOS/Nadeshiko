@@ -213,7 +213,6 @@ const route = useRoute();
 const labsStore = useLabsStore();
 const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
 
-const { showHiragana } = useHiraganaVisibility();
 
 const handleTokenSearch = (dictionaryForm: string) => {
   router.push({ path: `/search/${encodeURIComponent(dictionaryForm)}` });
@@ -322,8 +321,6 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
                   v-if="tokensEnabled && (result.segment.textJa as any).tokens"
                   :tokens="(result.segment.textJa as any).tokens"
                   :highlight="result.segment.textJa.highlight"
-                  :content="result.segment.textJa.content"
-                  :show-hiragana="showHiragana"
                   class="leading-snug"
                   @token-click="handleTokenSearch"
                 />
