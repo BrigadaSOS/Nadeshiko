@@ -70,6 +70,8 @@ export const requireApiKeyAuth = async (req: Request, _res: Response, next: Next
     await authenticateLegacyApiKey(req, apiKey);
   }
 
+  await enrichServiceKeyRequestWithSessionUser(req);
+
   next();
 };
 
@@ -217,6 +219,16 @@ async function attachAuthPayloadToRequest(
   authType: AuthType,
   apiKey?: { id?: string; kind?: ApiKeyKind; permissions: ApiPermission[] },
 ): Promise<void> {
+  const user = await loadActiveUser(userId);
+
+  req.user = user;
+  req.auth = {
+    type: authType,
+    ...(apiKey ? { apiKey } : {}),
+  };
+}
+
+async function loadActiveUser(userId: number): Promise<User> {
   let user = getCachedUser(userId);
   if (!user) {
     user = await User.findOne({ where: { id: userId }, relations: ['labEnrollments'] });
@@ -229,11 +241,39 @@ async function attachAuthPayloadToRequest(
     throw new AuthCredentialsInvalidError('User is invalid or inactive.');
   }
 
-  req.user = user;
-  req.auth = {
-    type: authType,
-    ...(apiKey ? { apiKey } : {}),
-  };
+  return user;
+}
+
+async function getSessionUserIdFromRequest(req: Request): Promise<number | null> {
+  const sessionData = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+    query: { disableCookieCache: true },
+  });
+
+  if (!sessionData?.user?.id) {
+    return null;
+  }
+
+  const userId = Number(sessionData.user.id);
+  return Number.isInteger(userId) && userId > 0 ? userId : null;
+}
+
+async function enrichServiceKeyRequestWithSessionUser(req: Request): Promise<void> {
+  const apiKey = req.auth?.apiKey;
+  if (req.auth?.type !== AuthType.API_KEY || apiKey?.kind !== ApiKeyKind.SERVICE) {
+    return;
+  }
+
+  try {
+    const sessionUserId = await getSessionUserIdFromRequest(req);
+    if (!sessionUserId) {
+      return;
+    }
+
+    req.user = await loadActiveUser(sessionUserId);
+  } catch (error) {
+    logger.debug({ err: error }, 'Ignoring session-user enrichment for service key request');
+  }
 }
 
 async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promise<void> {
