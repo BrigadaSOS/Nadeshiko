@@ -90,6 +90,8 @@ const contentRatingDescription = (category: string) => {
 
 const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLanguage', value);
 
+const { tooltipReadingMode, setTooltipReadingMode } = useTooltipReadingVisibility();
+
 const updateContentRatingPreference = async (category: string, value: string) => {
   savingPreferences.value = true;
   try {
@@ -451,6 +453,23 @@ const logoutCurrentUser = async () => {
           <option value="romaji">Romaji</option>
         </select>
       </div>
+      <div class="flex justify-between items-center mt-4">
+        <div>
+          <p class="text-white">Token Popup Reading</p>
+          <p class="text-gray-400 text-sm">How readings are shown in the token popup when hovering over Japanese text.</p>
+        </div>
+        <select
+          :value="tooltipReadingMode"
+          @change="setTooltipReadingMode(($event.target as HTMLSelectElement).value as any)"
+          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+        >
+          <option value="hiragana">Hiragana (ねがう)</option>
+          <option value="katakana">Katakana (ネガウ)</option>
+          <option value="romaji">Romaji (negau)</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </div>
+
       <div class="flex justify-between items-center mt-4">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.questionableContent') }}</p>

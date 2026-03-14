@@ -230,7 +230,9 @@
         "englishHidden": "English translations hidden",
         "spanishShown": "Spanish translations shown",
         "spanishSpoiler": "Spanish translations in spoiler mode",
-        "spanishHidden": "Spanish translations hidden"
+        "spanishHidden": "Spanish translations hidden",
+        "hiraganaShown": "Hiragana readings shown",
+        "hiraganaHidden": "Hiragana readings hidden"
       },
       "buttons": {
         "addToAnkiLast": "Add to Anki (Last added card)",

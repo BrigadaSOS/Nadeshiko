@@ -24,6 +24,7 @@ import { toCollectionDTO } from './mappers/collection.mapper';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { AccessDeniedError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
+import { isLabActive } from '@lib/labs';
 
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
   const user = assertUser(req);
@@ -71,11 +72,13 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
 export const createCollection: CreateCollection = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
-  const collection = await Collection.save({
-    name: body.name,
-    userId: user.id,
-    visibility: body.visibility === undefined ? CollectionVisibility.PRIVATE : toCollectionVisibility(body.visibility),
-  });
+  const collection = await Collection.save(
+    Collection.create({
+      name: body.name,
+      userId: user.id,
+      visibility: body.visibility === undefined ? CollectionVisibility.PRIVATE : toCollectionVisibility(body.visibility),
+    }),
+  );
 
   return respond.with201().body(toCollectionDTO(collection));
 };
@@ -109,7 +112,8 @@ export const getCollection: GetCollection = async ({ params, query }, respond, r
   }
 
   const segmentIds = segmentItems.map((item) => item.segmentId);
-  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
+  const tokensEnabled = isLabActive(user, 'interactive-tokens');
+  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds, { tokensEnabled });
 
   const resultById = new Map(searchResults.map((r) => [r.id, r]));
 
@@ -262,7 +266,8 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
   }
 
   const segmentIds = segmentItems.map((item) => item.segmentId);
-  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
+  const tokensEnabled = isLabActive(user, 'interactive-tokens');
+  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds, { tokensEnabled });
 
   // Preserve collection ordering
   const resultById = new Map(searchResults.map((r) => [r.id, r]));
@@ -376,11 +381,13 @@ export const ensureDefaultCollections = async (userId: number): Promise<void> =>
   if (count > 0) return;
 
   await Collection.save(
-    DEFAULT_COLLECTIONS.map(({ name, type }) => ({
-      name,
-      type,
-      userId,
-      visibility: CollectionVisibility.PRIVATE,
-    })),
+    DEFAULT_COLLECTIONS.map(({ name, type }) =>
+      Collection.create({
+        name,
+        type,
+        userId,
+        visibility: CollectionVisibility.PRIVATE,
+      }),
+    ),
   );
 };

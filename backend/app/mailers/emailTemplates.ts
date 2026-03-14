@@ -35,7 +35,7 @@ export async function buildAnnouncementEmail(
 }
 
 export async function buildVerifyNewEmailEmail(url: string): Promise<{ subject: string; html: string }> {
-  const subject = 'Verify your new email';
+  const subject = 'Nadeshiko: Verify your new email';
   const html = await renderTemplate('verify-new-email', {
     url,
     year: getCurrentYear(),
