@@ -4,39 +4,27 @@ interface BlogPost {
   title: string;
   description: string;
   date: string | Date | null;
-  author?: string;
-  excerpt?: string;
-  tags?: string[];
   image?: string;
   path?: string;
-  body?: any;
+  rawbody?: string;
 }
 
 const props = defineProps<{
   post: BlogPost;
 }>();
 
-// Extract slug from path if not directly provided
-const blogSlug = computed(() => {
-  if (props.post.slug) return props.post.slug;
+const blogPath = computed(() => {
   if (props.post.path) {
-    // Remove locale prefix, /blog/ prefix, and .md extension
-    return props.post.path
-      .replace(/^\/[a-z]{2}\//, '') // Remove locale prefix like /en/
-      .replace(/^blog\//, '') // Remove /blog/ prefix if present
-      .replace(/\.md$/, ''); // Remove .md extension
+    return props.post.path;
   }
-  return '';
+  return `/blog/${props.post.slug || ''}`;
 });
 
-// Format the date for display
 const formattedDate = computed(() => {
   const dateValue = props.post.date;
-
   if (!dateValue) return null;
 
   try {
-    // Handle object dates (empty objects from serialization)
     if (typeof dateValue === 'object' && !Array.isArray(dateValue) && dateValue !== null) {
       const keys = Object.keys(dateValue);
       if (keys.length === 0) return null;
@@ -55,88 +43,113 @@ const formattedDate = computed(() => {
   }
 });
 
-// Get content preview - first ~500 words from body
 const contentPreview = computed(() => {
-  // First, try to get content from the body
-  const body = props.post.body;
-  if (Array.isArray(body?.children)) {
-    // Extract text content from paragraph elements
-    const paragraphs = body.children
-      .filter((child: any) => child?.tag === 'p')
-      .map((child: any) => {
-        if (child.children && Array.isArray(child.children)) {
-          return child.children.map((c: any) => c.value || '').join('');
-        }
-        return '';
-      })
-      .filter((text: string) => text.trim().length > 0)
-      .join(' ');
+  if (!props.post.rawbody) return props.post.description || '';
 
-    // Limit to approximately 500 words
-    if (paragraphs) {
-      const words = paragraphs.split(/\s+/);
-      if (words.length > 500) {
-        return `${words.slice(0, 500).join(' ')}...`;
-      }
-      return paragraphs;
-    }
-  }
+  const lines = props.post.rawbody
+    .replace(/^---[\s\S]*?---\n*/m, '') // frontmatter
+    .split('\n')
+    .filter((line) => {
+      if (/^#{1,6}\s/.test(line)) return false; // headings
+      if (/^!\[/.test(line)) return false; // images
+      if (/^\s*$/.test(line)) return false; // blank lines
+      return true;
+    })
+    .slice(0, 10);
 
-  // Fallback to excerpt or description
-  return props.post.excerpt || props.post.description || '';
+  const md = lines.join('\n\n');
+
+  // Convert markdown to HTML
+  return md
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\[([^\]]*)\]\(([^)]*)\)/g, '<a href="$2">$1</a>')
+    .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
+    .split('\n\n')
+    .map((block) => {
+      if (block.includes('<li>')) return `<ul>${block}</ul>`;
+      return `<p>${block}</p>`;
+    })
+    .join('');
 });
 </script>
 
 <template>
   <article class="mb-12 pb-10 border-b border-gray-800 last:border-0 hover:border-gray-700 transition-colors duration-200">
-    <div class="flex flex-col">
+    <NuxtLink :to="blogPath" class="group block">
       <!-- Title -->
-      <NuxtLink :to="`/blog/${blogSlug}`" class="group block">
-        <h2 class="text-2xl font-bold text-white group-hover:text-red-400 transition-colors duration-200">
-          {{ post.title }}
-        </h2>
-      </NuxtLink>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mb-3 underline decoration-[#ef5552] decoration-4 underline-offset-8">
+        {{ post.title }}
+      </h2>
 
-      <!-- Meta info -->
-      <div class="flex items-center gap-4 text-sm mt-3 mb-5">
-        <span v-if="formattedDate" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-800/50 border border-gray-700">
-          <svg class="w-4 h-4 text-[#ef5552]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span class="text-gray-300">{{ formattedDate }}</span>
-        </span>
-        <span v-if="post.author" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-800/50 border border-gray-700">
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <span class="text-gray-300">{{ post.author }}</span>
-        </span>
-        <span v-if="post.tags && post.tags.length" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ef5552]/10 border border-[#ef5552]/30">
-          <svg class="w-4 h-4 text-[#ef5552]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-          </svg>
-          <span class="text-[#ef5552]">{{ post.tags[0] }}</span>
-          <span v-if="post.tags.length > 1" class="text-gray-400">+{{ post.tags.length - 1 }}</span>
-        </span>
+      <!-- Date -->
+      <span v-if="formattedDate" class="inline-flex items-center gap-1.5 text-sm text-[#ef5552] mt-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        {{ formattedDate }}
+      </span>
+
+      <!-- Image -->
+      <div v-if="post.image" class="mt-4 mb-5 overflow-hidden rounded-lg">
+        <img
+          :src="post.image"
+          :alt="post.title"
+          class="w-full rounded-lg group-hover:scale-105 transition-transform duration-300"
+        />
       </div>
 
       <!-- Content preview -->
-      <div class="max-w-none mb-5">
-        <p class="text-gray-300 leading-relaxed text-base whitespace-pre-wrap">
-          {{ contentPreview }}
-        </p>
+      <div class="relative max-w-none" :class="{ 'mt-5': !post.image }">
+        <div class="content-preview" v-html="contentPreview" />
+        <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#1d1d1d] to-transparent pointer-events-none" />
       </div>
 
-      <!-- Read more link -->
-      <NuxtLink
-        :to="`/blog/${blogSlug}`"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 group"
-      >
+      <!-- Read more -->
+      <span class="inline-flex items-center gap-2 text-base font-semibold text-red-400 group-hover:text-red-300 transition-colors duration-200 mt-4">
         <span>Read more</span>
-        <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-      </NuxtLink>
-    </div>
+      </span>
+    </NuxtLink>
   </article>
 </template>
+
+<style scoped>
+.content-preview {
+  max-height: 16rem;
+  overflow: hidden;
+}
+
+.content-preview :deep(p) {
+  font-size: 1.125rem;
+  color: #d1d5db;
+  margin-bottom: 1rem;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+
+.content-preview :deep(strong) {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+.content-preview :deep(a) {
+  color: #f87171;
+  text-decoration: none;
+}
+
+.content-preview :deep(ul) {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.content-preview :deep(li) {
+  font-size: 1.125rem;
+  color: #d1d5db;
+  line-height: 1.8;
+  margin-bottom: 0.25rem;
+}
+</style>

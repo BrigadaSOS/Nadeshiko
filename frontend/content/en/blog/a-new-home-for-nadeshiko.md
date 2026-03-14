@@ -1,61 +1,85 @@
 ---
-title: "A New Home for Nadeshiko"
-description: "We have moved Nadeshiko to a proper server. Here's what changed."
-date: 2026-03-01T00:00:00Z
-author: "Natsume"
-tags:
-  - announcement
-  - news
+title: "A new home for Nadeshiko 2.0"
+description: "A new server, a rebuilt platform, and the features that make this our biggest release yet."
+date: 2026-03-16T00:00:00Z
+image: /images/blog/orange-pi.jpg
 ---
 
-# A New Home for Nadeshiko
+# A new home for Nadeshiko 2.0
 
 ![The Orange Pi that hosted Nadeshiko](/images/blog/orange-pi.jpg)
-*"Rest in peace, little Orange Pi"*
 
-This little Orange Pi is where Nadeshiko has been running for the past year. Initially, it worked just fine. When this whole page was just a prototype and we had a few animes included. Now we have more than 1M segments, including audio and images. This is roughly >3M individual files, over ~200GB of media that we serve throughout this page.
+This image above is the server where Nadeshiko has been running for the past year: an Orange Pi with an SSD attached to it. Initially, it worked just fine, back when this whole page was just a prototype with only a few animes and some users from our Spanish community.
 
-And with that, the poor Orange Pi has reached it's limit. The SD card would die, small electricity fluctiations
+Now we have:
+- More than **1M unique sentences**
+- Over **3500 episodes** across **>200** different animes and j-dramas.
+- A total of **3M individual images and audio files**, adding up to more than **200GB** that we serve through this page.
 
-And the environment conditions weren't that much better. Running this in a home server meant that we were at mercy of the local ISP internet. And having hours (or even days) internet blackouts were sadly becomming a common thing out of our control.
 
-Not anymore. We have committed to give Nadeshiko the home it deserves.
+And with all that, the poor server has reached its limit. The SD card and SSD have already died a few times, causing the page to go down. And serving this from home, with all the electricity and internet fluctuations, doesn't help with stability. Sometimes these outages would last days, and that's where we started to worry about how much longer we could keep this setup going.
 
-The response from the Japanese learning community has been way beyond what we expected, being mentioned in places like Tatsumoto's guide, the TheMoeWay Discord, and other learner communities. We are incredibly grateful of everybody that spends their time recommending the page to other fellow Japanese learners that are finding whatever tools they can find to improve their learning. And that kind of support is something that we want to backup with a service that has proper foundations.
+But not anymore. We have committed to give Nadeshiko the home it deserves. Nadeshiko now runs on a **dedicated cloud server (VPS)**, which guarantees that the page will be virtually always up. And as an extra benefit, we get a beefier machine that runs the whole search engine at lower latency. Also, all media assets are now hosted and served through Cloudflare CDN, so no matter where you are, audio and images will load **fast**.
 
-Nadeshiko now runs on a dedicated cloud server (Hetzner) in Europe. No more outages or internet blackouts. And as a benefit, we get a more hefty machine that should run the whole search backend at a better and lower latency.
-In addition, all media assets are now hosted and served through Cloudflare CDN. So now no matter where you are, audios and images should load blazingly fast.
+The response from the Japanese learning community has been way beyond what we expected, being mentioned in places like Tatsumoto's guide, the TheMoeWay Discord, and other communities. We are incredibly grateful to everybody who spends their time recommending the page to other fellow Japanese learners. That kind of support is something we want to back up with a service that meets the standards you deserve.
 
-### New features
 
-But that is not all. Along migrating to a proper new server, we had a backlog of things we wanted to implement but never had the time to do.
+This infrastructure overhaul, together with everything we've built on top of it, is what makes this **Nadeshiko 2.0.**
 
-We shipped a lot of improvements with the recent 1.5.0 update:
-- **Upgraded Japanese parser**: Moved from Kuromoji to Sudachi for better word segmentation and accuracy.
-- **Sentence reporting**: Now logged users can report an incorrect sentence directly from the website so we can quickly review and fix it.
-- **NSFW content filter**: We had a lot of animes that wanted to include in Nadeshiko, but had "questionable" scenes (looking at you, [Monogatari](https://nadeshiko.co/search/sentence?media=15689&query=%E8%82%89%E4%BD%93)). So now we have added proper filter to blur/hide these segments so you stay in control.
-- **Hide media by preference**: We care about spoilers. If you have a specific anime that you don't want to see in Nadeshiko, now you can hide it from all search results from your user settings.
-- **Persistent user preferences**: Never lose again your Anki configuration. No we save save it along your account data.
-- **Toggle translations**: Hide English or Spanish translations, in case you prefer immersion or are not interested in a specific language.
-- **Sentence collections**: Create and organize your own collections of sentences for study.
+## What's new in 2.0
 
-- **Audio normalization**: all sentence audio is now leveled to a consistent volume.
-- **SEO improvements**: Nadeshiko pages are now properly indexed and shareable.
+Along with migrating to a proper server, we had a backlog of things we always wanted to implement but never had the time to do. This time, we put our ass to work and shipped all of them.
 
-### Your account and API keys are ready
+### Better Japanese Parser
 
-All existing accounts have been migrated to the new platform, and your API keys have already been created. You can log in and find them in your account settings right away.
+We moved from Kuromoji to Sudachi for better word segmentation and accuracy. This directly improves search quality and parsing of your search, so you will get more relevant results.
 
-If you still need access to the previous version, the old UI remains available at [old.nadeshiko.co](https://old.nadeshiko.co) until the end of April 2026. After that, it will be permanently shut down.
+### Sentence Collections
 
-### Revamped API and SDKs
+Now you can create as many collections of sentences as you like and share them with other users. Also, words that you export to Anki will be saved automatically so you can refer to them later.
 
-We also completely rebuilt the Nadeshiko API. It's already available to use ([link to API docs]). Official SDKs are coming later this week, and we'll do a separate post diving into the API.
+### Sentence Reporting
+
+If you find an incorrect sentence, you can now report it directly from the website so we can quickly review and fix it. We also have an automatic scan system that finds segments or media that have been imported incorrectly to Nadeshiko, so we can fix them before you even notice.
+
+### NSFW Content Filter
+
+We had a lot of anime we wanted to include in Nadeshiko but had "questionable" scenes (looking at you, [Monogatari](https://nadeshiko.co/search/sentence?media=15689&query=%E8%82%89%E4%BD%93)). Now we have a proper filter to blur and hide these segments, so you can decide whether to show, hide, or blur them.
+
+### Persistent User Preferences
+
+Your Anki configuration and all other settings are now saved with your account. No more losing them when you switch devices. Also, you can now customize your experience in Nadeshiko a lot more, like showing or hiding English/Spanish translations.
+
+### Activity tracking
+
+You can now opt in to save a history of the searches you do in Nadeshiko, as well as other actions like sharing specific sentences or playing audio, so you never lose a sentence again.
+
+### Audio Normalization
+
+All sentence audio is now leveled to a consistent volume. No more jumping between whisper-quiet dialogue and ear-shattering action scenes.
+
+### Media Preferences
+
+From your user settings, you can now hide any anime in your search results, to make sure you won't get spoiled on a specific show while using Nadeshiko.
+
+## About your account and API Keys
+
+All existing accounts and API Keys have been migrated to the new platform. You can log in and find them in your account settings right away.
+
+If you still need access to the previous version, the old server remains available at [old.nadeshiko.co](https://old.nadeshiko.co) until the end of April 2026. After that, **it will be permanently shut down.**
+
+> **IMPORTANT:** For plugins that still use the old API, you still need to create and manage the API key through the old website. We are working with the owners of external plugins to help them migrate to the Nadeshiko V2.0 as soon as possible, after which you can just use the API Keys from the new page.
 
 ## Thank You
 
-We really appreciate everyone who uses Nadeshiko. Seeing it recommended across the community is what keeps us motivated to make it better.
+We really want to thank everybody who uses Nadeshiko. Seeing it being loved so much across the community is what keeps us motivated to make it even better.
 
-Nadeshiko will always remain free and open-access. We want it to be a lasting resource for Japanese learners. We are covering server and maintenance costs from our own pockets because this is a tool we want to see live for a long time.
+Nadeshiko will **always remain free and open-access, no exception**. We are covering server and maintenance costs from our own pockets because this is a tool we want to see live for a long time.
 
-If you feel the same way and want to help keep Nadeshiko running, consider supporting the project on [Patreon](link).
+If you feel the same way and want to help keep Nadeshiko running, consider supporting the project on [Patreon](https://www.patreon.com/c/BrigadaSOS).
+
+In the following weeks, we will write more posts explaining the new features in more detail. If you wish to contact us to leave a comment, suggestion, bug report, or anything else, you can do so via:
+- **Email**: contact@nadeshiko.co
+- **Discord**: [Brigada SOS!団](https://discord.gg/ajWm26ADEj)
+
+Never stop studying!

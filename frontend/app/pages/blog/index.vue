@@ -11,37 +11,16 @@ const pageSize = 9;
 const { data: posts } = await useAsyncData(
   `blog-posts-${locale.value}-${page.value}`,
   async () => {
-    // Get all content
-    const allContent = await queryCollection('content').all();
+    const lang = locale.value.toLowerCase();
+    const blogCollection = `blog_${lang}` as keyof typeof import('@nuxt/content').Collections;
 
-    // Get English posts as the base
-    const englishPosts = allContent.filter((post: any) => post.path?.startsWith('/en/blog/'));
-
-    // Create a map of English posts by slug (filename)
-    const postsMap = new Map();
-    englishPosts.forEach((post: any) => {
-      const slug = post.path?.split('/').pop()?.replace('.md', '');
-      if (slug) {
-        postsMap.set(slug, post);
-      }
-    });
-
-    // If not English locale, get locale-specific posts and override
-    if (locale.value.toLowerCase() !== 'en') {
-      const blogPathPrefix = `/${locale.value.toLowerCase()}/blog/`;
-      const localePosts = allContent.filter((post: any) => post.path?.startsWith(blogPathPrefix));
-
-      localePosts.forEach((post: any) => {
-        const slug = post.path?.split('/').pop()?.replace('.md', '');
-        if (slug) {
-          postsMap.set(slug, post); // Override English version
-        }
-      });
+    // Get posts for the current locale, fallback to English
+    let allPosts = await queryCollection(blogCollection).all().catch(() => []);
+    if (allPosts.length === 0 && lang !== 'en') {
+      allPosts = await queryCollection('blog_en').all().catch(() => []);
     }
 
-    // Convert map to array and sort
-    const allPosts = Array.from(postsMap.values());
-    const sortedPosts = allPosts.sort((a: any, b: any) => {
+    const sortedPosts = [...allPosts].sort((a: any, b: any) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0;
       const dateB = b.date ? new Date(b.date).getTime() : 0;
       return dateB - dateA;

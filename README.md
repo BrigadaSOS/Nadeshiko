@@ -1,7 +1,7 @@
 # Nadeshiko
 
-[![Backend CI](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-check.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-check.yml)
-[![Frontend CI](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-check.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-check.yml)
+[![Backend Release](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-release.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-release.yml)
+[![Frontend Release](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-release.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-release.yml)
 [![npm](https://img.shields.io/npm/v/@brigadasos/nadeshiko-sdk)](https://www.npmjs.com/package/@brigadasos/nadeshiko-sdk)
 [![PyPI](https://img.shields.io/pypi/v/nadeshiko-sdk)](https://pypi.org/project/nadeshiko-sdk/)
 
@@ -61,11 +61,28 @@ bun run release:set-version 1.2.3
 bun run release:check-version
 ```
 
-Tag and push the release:
+Tag and push the backend release:
 
 ```bash
-git tag -a v1.2.3 -m "Release v1.2.3"
-git push origin v1.2.3
+git tag -a backend-v1.2.3 -m "Backend v1.2.3"
+git push origin backend-v1.2.3
+```
+
+Tag and push the frontend release:
+
+```bash
+git tag -a frontend-v1.2.3 -m "Frontend v1.2.3"
+git push origin frontend-v1.2.3
+```
+
+To release only one app version instead of both:
+
+```bash
+bun run release:set-version 1.2.3 --backend
+bun run release:check-version 1.2.3 --backend
+
+bun run release:set-version 1.2.3 --frontend
+bun run release:check-version 1.2.3 --frontend
 ```
 
 ## Projects Using Nadeshiko
