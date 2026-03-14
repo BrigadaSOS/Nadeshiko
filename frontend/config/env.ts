@@ -12,8 +12,8 @@ const requiredString = z.string().trim().min(1);
 
 const envSchema = z.object({
   NUXT_PUBLIC_ENVIRONMENT: z.enum(['local', 'dev', 'prod']).default('prod'),
-  NUXT_BACKEND_INTERNAL_URL: z.string().trim().url(),
-  NUXT_NADESHIKO_API_KEY: requiredString,
+  NUXT_BACKEND_INTERNAL_URL: z.string().trim().default(''),
+  NUXT_NADESHIKO_API_KEY: z.string().trim().default(''),
   NUXT_BACKEND_HOST_HEADER: optionalString,
   NUXT_MEDIA_FILES_PATH: optionalString,
   NUXT_FALLBACK_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
