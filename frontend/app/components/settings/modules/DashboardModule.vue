@@ -16,6 +16,7 @@ type DashboardData = {
     totalSearches: number;
     totalExports: number;
     totalPlays: number;
+    totalCollectionAdds: number;
     activeSearchers7d: number;
     topQueries7d: Array<{ query: string; count: number }>;
     dailyActivity30d: Array<{ date: string; count: number }>;
@@ -61,9 +62,22 @@ const statusBadgeClass = (status: string) => {
     : 'bg-red-500/20 text-red-400 border-red-600';
 };
 
-const formatNumber = (n: number) => {
-  return n.toLocaleString();
-};
+const formatNumber = (n: number) => n.toLocaleString();
+
+const formatDecimal = (n: number) => n.toFixed(1);
+
+const dailyActivityMax = computed(() =>
+  Math.max(1, ...(data.value?.activity.dailyActivity30d.map(d => d.count) ?? [1]))
+);
+
+const dailyActivityTotal = computed(() =>
+  data.value?.activity.dailyActivity30d.reduce((sum, d) => sum + d.count, 0) ?? 0
+);
+
+const dailyActivityPeakDay = computed(() => {
+  const days = data.value?.activity.dailyActivity30d ?? [];
+  return days.reduce((peak, d) => d.count > (peak?.count ?? -1) ? d : peak, days[0] ?? null);
+});
 </script>
 
 <template>
@@ -98,10 +112,16 @@ const formatNumber = (n: number) => {
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Episodes</div>
           <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.media.totalEpisodes) }}</div>
+          <div class="text-xs text-gray-500 mt-1">
+            {{ formatDecimal(data.media.totalMedia > 0 ? data.media.totalEpisodes / data.media.totalMedia : 0) }} avg per show
+          </div>
         </div>
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Total Segments</div>
           <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.media.totalSegments) }}</div>
+          <div class="text-xs text-gray-500 mt-1">
+            {{ formatDecimal(data.media.totalEpisodes > 0 ? data.media.totalSegments / data.media.totalEpisodes : 0) }} avg per episode
+          </div>
         </div>
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Characters</div>
@@ -136,6 +156,9 @@ const formatNumber = (n: number) => {
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Total Searches</div>
           <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.activity.totalSearches) }}</div>
+          <div class="text-xs text-gray-500 mt-1">
+            {{ formatDecimal(data.users.totalUsers > 0 ? data.activity.totalSearches / data.users.totalUsers : 0) }} per user
+          </div>
         </div>
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Anki Exports</div>
@@ -146,26 +169,54 @@ const formatNumber = (n: number) => {
           <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.activity.totalPlays) }}</div>
         </div>
         <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
+          <div class="text-sm text-gray-400">Collection Adds</div>
+          <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.activity.totalCollectionAdds) }}</div>
+        </div>
+        <div class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
           <div class="text-sm text-gray-400">Active Searchers (7d)</div>
           <div class="text-2xl font-bold text-white mt-1">{{ formatNumber(data.activity.activeSearchers7d) }}</div>
+          <div class="text-xs text-gray-500 mt-1">
+            of {{ formatNumber(data.users.totalUsers) }} total
+          </div>
         </div>
       </div>
 
       <!-- Daily Activity Chart -->
       <div v-if="data.activity.dailyActivity30d.length > 0" class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4 mb-4">
-        <div class="text-sm text-gray-400 mb-3">Daily Activity (30 days)</div>
-        <div class="flex items-end gap-px h-24">
-          <div
-            v-for="day in data.activity.dailyActivity30d"
-            :key="day.date"
-            :title="`${day.date}: ${day.count}`"
-            class="flex-1 bg-blue-500/70 rounded-t hover:bg-blue-400/90 transition-colors min-w-[4px]"
-            :style="{ height: `${Math.max(4, (day.count / Math.max(...data.activity.dailyActivity30d.map(d => d.count))) * 100)}%` }"
-          />
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm text-gray-400">Daily Activity (30 days)</div>
+          <div class="text-xs text-gray-500 space-x-3">
+            <span>Total: <span class="text-gray-300 font-mono">{{ formatNumber(dailyActivityTotal) }}</span></span>
+            <span>Peak: <span class="text-gray-300 font-mono">{{ formatNumber(dailyActivityMax) }}</span> on <span class="text-gray-300 font-mono">{{ dailyActivityPeakDay?.date }}</span></span>
+          </div>
         </div>
-        <div class="flex justify-between text-xs text-gray-500 mt-1">
-          <span>{{ data.activity.dailyActivity30d[0]?.date }}</span>
-          <span>{{ data.activity.dailyActivity30d[data.activity.dailyActivity30d.length - 1]?.date }}</span>
+        <div class="flex gap-2">
+          <div class="flex flex-col justify-between text-xs text-gray-600 text-right pb-0.5" style="min-width: 2rem">
+            <span>{{ formatNumber(dailyActivityMax) }}</span>
+            <span>{{ formatNumber(Math.round(dailyActivityMax / 2)) }}</span>
+            <span>0</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-end gap-px h-24">
+              <div
+                v-for="day in data.activity.dailyActivity30d"
+                :key="day.date"
+                class="flex-1 rounded-t transition-colors min-w-[4px] relative group"
+                :class="day.count === dailyActivityMax && day.count > 0 ? 'bg-blue-400/90' : 'bg-blue-500/70 hover:bg-blue-400/90'"
+                :style="{ height: `${Math.max(4, (day.count / dailyActivityMax) * 100)}%` }"
+              >
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-10 pointer-events-none">
+                  <div class="bg-neutral-900 border border-neutral-600 rounded px-2 py-1 text-xs text-white whitespace-nowrap shadow-lg">
+                    {{ day.date }}: <span class="font-semibold">{{ formatNumber(day.count) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-600 mt-1">
+              <span>{{ data.activity.dailyActivity30d[0]?.date }}</span>
+              <span>{{ data.activity.dailyActivity30d[data.activity.dailyActivity30d.length - 1]?.date }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
