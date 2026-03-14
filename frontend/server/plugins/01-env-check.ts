@@ -1,4 +1,8 @@
 export default defineNitroPlugin(() => {
+  if (import.meta.prerender) {
+    return;
+  }
+
   const config = useRuntimeConfig();
 
   const missing: string[] = [];
