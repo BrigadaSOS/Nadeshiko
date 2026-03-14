@@ -24,7 +24,9 @@ export class Collection extends BaseEntity {
 
   @BeforeInsert()
   generatePublicId() {
-    this.publicId = nanoid(12);
+    if (!this.publicId) {
+      this.publicId = nanoid(12);
+    }
   }
 
   @Column({ type: 'varchar' })

@@ -27,7 +27,7 @@ info:
     | Default      | 2500 requests   |
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
-  version: 1.5.1
+  version: 2.0.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -4342,6 +4342,22 @@ components:
           type: string
           description: Primary part-of-speech tag
           example: 動詞
+        p1:
+          type: string
+          description: POS subtype 1 (UniDic pos[1])
+          example: 固有名詞
+        p2:
+          type: string
+          description: POS subtype 2 (UniDic pos[2])
+          example: 人名
+        p4:
+          type: string
+          description: Conjugation type (UniDic pos[4])
+          example: 五段-カ行
+        cf:
+          type: string
+          description: Conjugation form (UniDic pos[5])
+          example: 連用形-一般
     Segment:
       type: object
       description: Segment with content, optional highlights, and media URLs

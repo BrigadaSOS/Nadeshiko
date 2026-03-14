@@ -167,7 +167,7 @@ export async function sendVerifyNewEmail(email: string, verificationUrl: string)
   });
 }
 
-export type TestEmailTemplate = 'welcome' | 'announcement';
+export type TestEmailTemplate = 'welcome' | 'announcement' | 'verify-new-email';
 
 /**
  * Sends a test email synchronously (bypassing the queue) and returns the Ethereal preview URL.
@@ -176,10 +176,16 @@ export type TestEmailTemplate = 'welcome' | 'announcement';
 export async function sendTestEmail(template: TestEmailTemplate, to: string): Promise<{ previewUrl: string | null }> {
   const username = 'TestUser';
 
-  const { subject, html } =
-    template === 'welcome'
-      ? await buildWelcomeEmail(username)
-      : await buildAnnouncementEmail(username, 'Test Announcement', 'This is a test announcement email.');
+  let subject: string;
+  let html: string;
+
+  if (template === 'welcome') {
+    ({ subject, html } = await buildWelcomeEmail(username));
+  } else if (template === 'verify-new-email') {
+    ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/verify?token=test-token'));
+  } else {
+    ({ subject, html } = await buildAnnouncementEmail(username, 'Test Announcement', 'This is a test announcement email.'));
+  }
 
   const fromEmail = config.SES_FROM_EMAIL;
   const fromName = config.SES_FROM_NAME;
