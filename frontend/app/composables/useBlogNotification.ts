@@ -16,8 +16,7 @@ export function useBlogNotification() {
     if (import.meta.server || !store.isLoggedIn) return;
 
     try {
-      const allContent = await queryCollection('content').all();
-      const blogPosts = allContent.filter((post: any) => post.path?.startsWith('/en/blog/'));
+      const blogPosts = await queryCollection('blog_en').all();
 
       if (blogPosts.length === 0) return;
 
