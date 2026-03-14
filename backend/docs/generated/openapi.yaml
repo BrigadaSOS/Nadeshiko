@@ -27,7 +27,7 @@ info:
     | Default      | 2500 requests   |
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
-  version: 1.5.1
+  version: 2.0.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
