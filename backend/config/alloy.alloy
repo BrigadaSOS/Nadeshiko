@@ -1,42 +1,24 @@
 // =============================================================================
-// OTLP receiver - accepts metrics and traces from application OTel SDKs
+// OTLP receiver - accepts traces from application OTel SDKs
+// (Metrics go directly to Prometheus via native OTLP ingestion)
 // =============================================================================
 
 otelcol.receiver.otlp "default" {
-  grpc {
-    endpoint = "0.0.0.0:4317"
-  }
   http {
     endpoint = "0.0.0.0:4318"
   }
   output {
-    metrics = [otelcol.processor.batch.default.input]
-    traces  = [otelcol.processor.batch.default.input]
+    traces = [otelcol.processor.batch.default.input]
   }
 }
 
 // =============================================================================
-// Batch processor - batches before export for efficiency
+// Batch processor - batches traces before export
 // =============================================================================
 
 otelcol.processor.batch "default" {
   output {
-    metrics = [otelcol.exporter.prometheus.default.input]
-    traces  = [otelcol.exporter.otlphttp.tempo.input]
-  }
-}
-
-// =============================================================================
-// Export metrics to Prometheus via remote_write
-// =============================================================================
-
-otelcol.exporter.prometheus "default" {
-  forward_to = [prometheus.remote_write.default.receiver]
-}
-
-prometheus.remote_write "default" {
-  endpoint {
-    url = "http://nadeshiko-backend-prod-prometheus:9090/api/v1/write"
+    traces = [otelcol.exporter.otlphttp.tempo.input]
   }
 }
 
@@ -50,6 +32,16 @@ otelcol.exporter.otlphttp "tempo" {
     tls {
       insecure = true
     }
+  }
+}
+
+// =============================================================================
+// Host metrics remote write to Prometheus
+// =============================================================================
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://nadeshiko-backend-prod-prometheus:9090/api/v1/write"
   }
 }
 
@@ -73,13 +65,21 @@ discovery.relabel "containers" {
     target_label  = "container"
   }
 
-  // Extract clean service name: /prefix-service-env-component-env-hash -> prefix-service-component
-  // /nadeshiko-backend-dev-web-dev-abc123... -> nadeshiko-backend-web
+  // Extract service name: /project-service-env-component-... -> project-service-env-component
+  // Web containers: /nadeshiko-backend-dev-web-dev-abc123 -> nadeshiko-backend-dev
+  // Accessories: /nadeshiko-backend-prod-postgres-... -> nadeshiko-backend-prod-postgres
   rule {
     source_labels = ["__meta_docker_container_name"]
     target_label  = "service_name"
-    regex         = "^/([^-.]+)-([^-]+)-[^-]+-([^-]+)-[^-]+-.*"
+    regex         = "^/([^-.]+)-([^-]+)-([^-]+)-web-.*"
     replacement   = "${1}-${2}-${3}"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "service_name"
+    regex         = "^/([^-.]+)-([^-]+)-([^-]+)-(?!web)([^-]+).*"
+    replacement   = "${1}-${2}-${3}-${4}"
   }
 }
 
@@ -136,4 +136,55 @@ loki.write "default" {
   endpoint {
     url = "http://nadeshiko-backend-prod-loki:3100/loki/api/v1/push"
   }
+}
+
+// Host metrics (replaces node-exporter)
+
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host"
+  filesystem {
+    mount_points_exclude = "^/(sys|proc|dev|host|etc)($$|/)"
+  }
+}
+
+discovery.relabel "host" {
+  targets = prometheus.exporter.unix.host.targets
+
+  rule {
+    target_label = "job"
+    replacement  = "node"
+  }
+
+  rule {
+    target_label = "instance"
+    replacement  = "nadeshiko-production"
+  }
+
+  rule {
+    target_label = "nodename"
+    replacement  = "nadeshiko-production"
+  }
+}
+
+prometheus.scrape "host" {
+  targets         = discovery.relabel.host.output
+  forward_to      = [prometheus.remote_write.default.receiver]
+  scrape_interval = "15s"
+}
+
+// Postgres metrics
+
+prometheus.exporter.postgres "default" {
+  data_source_names = [
+    "postgresql://" + sys.env("POSTGRES_USER") + ":" + sys.env("POSTGRES_PASSWORD") + "@nadeshiko-backend-prod-postgres:5432/postgres?sslmode=disable",
+  ]
+}
+
+prometheus.scrape "postgres" {
+  targets         = prometheus.exporter.postgres.default.targets
+  forward_to      = [prometheus.remote_write.default.receiver]
+  scrape_interval = "15s"
+  job_name        = "postgres"
 }

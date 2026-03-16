@@ -5,6 +5,16 @@ global:
     environment: "production"
     service: "nadeshiko"
 
+otlp:
+  keep_identifying_resource_attributes: true
+  promote_resource_attributes:
+    - service.instance.id
+    - service.name
+    - service.namespace
+    - service.version
+    - deployment.environment
+    - deployment.environment.name
+
 scrape_configs:
   - job_name: "prometheus"
     static_configs:
@@ -18,8 +28,3 @@ scrape_configs:
         labels:
           instance: "alloy"
 
-  - job_name: "node"
-    static_configs:
-      - targets: ["nadeshiko-backend-prod-node-exporter:9100"]
-        labels:
-          instance: "nadeshiko-production"

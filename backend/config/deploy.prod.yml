@@ -63,7 +63,8 @@ env:
     R2_BASE_URL: https://cdn.nadeshiko.co
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://nadeshiko-backend-prod-alloy:4318"
-    OTEL_SERVICE_NAME: nadeshiko-backend
+    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://nadeshiko-backend-prod-prometheus:9090/api/v1/otlp/v1/metrics"
+    OTEL_SERVICE_NAME: nadeshiko-backend-prod
 
 accessories:
   postgres:
@@ -116,6 +117,9 @@ accessories:
       --config.file=/etc/prometheus/prometheus.yml
       --storage.tsdb.path=/prometheus
       --web.enable-remote-write-receiver
+      --web.enable-otlp-receiver
+      --storage.tsdb.retention.time=30d
+      --storage.tsdb.retention.size=3GB
 
   grafana:
     image: grafana/grafana:latest
@@ -131,8 +135,6 @@ accessories:
       - nadeshiko-grafana-data:/var/lib/grafana
     files:
       - config/grafana-provisioning/datasources/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-      - config/grafana-provisioning/dashboards/dashboard-provider.yaml:/etc/grafana/provisioning/dashboards/dashboard-provider.yaml
-      - config/grafana-provisioning/dashboards/nadeshiko:/etc/grafana/provisioning/dashboards/nadeshiko
 
   loki:
     image: grafana/loki:3.4
@@ -158,27 +160,19 @@ accessories:
     image: grafana/alloy:v1.13.0
     host: nadeshiko-production
     port: 127.0.0.1:4318:4318
+    env:
+      secret:
+        - POSTGRES_USER:POSTGRES_ADMIN_USER
+        - POSTGRES_PASSWORD:POSTGRES_ADMIN_PASSWORD
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - nadeshiko-alloy-data:/var/lib/alloy
-    files:
-      - config/alloy.alloy:/etc/alloy/config.alloy
-    cmd: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
-    options:
-      user: "0"
-
-  node-exporter:
-    image: prom/node-exporter:latest
-    host: nadeshiko-production
-    cmd: >
-      --path.procfs=/host/proc
-      --path.sysfs=/host/sys
-      --path.rootfs=/host
-      --collector.filesystem.mount-points-exclude=^/\(sys\|proc\|dev\|host\|etc\)\($$\|/\)
-    volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/host:ro,rslave
+    files:
+      - config/alloy.alloy:/etc/alloy/config.alloy
+    cmd: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     options:
       user: "0"
 
