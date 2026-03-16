@@ -21,28 +21,3 @@ storage:
 compactor:
   compaction:
     block_retention: 72h
-
-metrics_generator:
-  registry:
-    external_labels:
-      source: tempo
-  storage:
-    path: /var/tempo/generator/wal
-    remote_write:
-      - url: http://nadeshiko-backend-prod-prometheus:9090/api/v1/write
-  traces_storage:
-    path: /var/tempo/generator/traces
-  processor:
-    service_graphs:
-      dimensions:
-        - service.namespace
-    span_metrics:
-      dimensions:
-        - service.namespace
-
-overrides:
-  defaults:
-    metrics_generator:
-      processors:
-        - service-graphs
-        - span-metrics
