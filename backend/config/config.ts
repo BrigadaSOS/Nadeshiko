@@ -55,6 +55,7 @@ const envSchema = z.object({
   SENTRY_BACKEND_DSN: optionalString,
 
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString,
+  OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: optionalString,
   OTEL_SERVICE_NAME: optionalString,
 
   LOG_LEVEL: optionalString,

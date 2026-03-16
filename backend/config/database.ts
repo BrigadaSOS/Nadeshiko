@@ -1,7 +1,8 @@
 import '@config/boot';
 import { DataSource } from 'typeorm';
-import { APP_ENTITIES, APP_SUBSCRIBERS, getDbLogging } from '@config/schema';
+import { APP_ENTITIES, APP_SUBSCRIBERS } from '@config/schema';
 import { getAppPostgresConfig } from '@config/postgresConfig';
+import { InstrumentedTypeOrmLogger } from '@app/middleware/dbInstrumentation';
 import { logger } from '@config/log';
 
 const postgres = getAppPostgresConfig();
@@ -17,7 +18,9 @@ export const AppDataSource = new DataSource({
   subscribers: APP_SUBSCRIBERS,
   migrations: ['./db/migrations/**/*.ts'],
   synchronize: false, // Use migrations instead!
-  logging: getDbLogging(),
+  logging: true,
+  maxQueryExecutionTime: 0,
+  logger: new InstrumentedTypeOrmLogger(),
   extra: {
     max: 20,
     min: 5,
