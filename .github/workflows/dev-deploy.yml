@@ -3,7 +3,7 @@ name: Dev Deploy
 on:
   push:
     branches:
-      - dev
+      - main
   workflow_dispatch:
 
 permissions:
