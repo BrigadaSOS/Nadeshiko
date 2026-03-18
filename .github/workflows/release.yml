@@ -2,8 +2,8 @@ name: "[Prod] Release"
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - production
 
 permissions:
   contents: write
@@ -33,9 +33,18 @@ jobs:
       - name: Install backend dependencies
         run: cd backend && bun install --frozen-lockfile
 
+      - name: Get latest release tag
+        id: get-tag
+        run: |
+          set -euo pipefail
+          RELEASE_TAG=$(git describe --tags --abbrev=0)
+          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          VERSION="${RELEASE_TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Validate release tag
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ steps.get-tag.outputs.tag }}
         run: |
           set -euo pipefail
           VERSION="${RELEASE_TAG#v}"
@@ -56,8 +65,8 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ steps.get-tag.outputs.tag }}
+          name: ${{ steps.get-tag.outputs.tag }}
           prerelease: false
           generate_release_notes: true
           files: backend/docs/generated/openapi-public.yaml
