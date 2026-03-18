@@ -1,10 +1,16 @@
-name: E2E Tests
+name: E2E Tests (Manual)
 
 on:
-  workflow_run:
-    workflows: ["Deploy Dev"]
-    types: [completed]
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL to test against'
+        required: true
+        default: 'https://dev.nadeshiko.co'
+        type: choice
+        options:
+          - https://dev.nadeshiko.co
+          - https://nadeshiko.co
 
 permissions:
   contents: read
@@ -12,7 +18,6 @@ permissions:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     timeout-minutes: 15
 
     steps:
@@ -33,7 +38,7 @@ jobs:
           cd frontend
           npx playwright test --config=e2e/playwright.config.ts
         env:
-          E2E_BASE_URL: https://dev.nadeshiko.co
+          E2E_BASE_URL: ${{ inputs.base_url }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
