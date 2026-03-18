@@ -440,7 +440,7 @@ const logoutCurrentUser = async () => {
       <div class="flex justify-between items-center">
         <div>
           <p class="text-white">Media Name Language</p>
-          <p class="text-gray-400 text-sm">Media names will appear in {{ mediaNameLanguageLabel }} when possible. Example: <span class="text-white/80 italic">{{ mediaNameExample }}</span></p>
+          <p class="text-gray-400 text-sm">Media names will appear in {{ mediaNameLanguageLabel }} when possible. Example: <span lang="ja" class="text-white/80 italic">{{ mediaNameExample }}</span></p>
         </div>
         <select
           :value="user_store.preferences?.mediaNameLanguage || 'english'"
@@ -501,7 +501,7 @@ const logoutCurrentUser = async () => {
             />
           </div>
           <div class="flex-1 px-4 py-3 flex flex-col justify-center gap-1.5">
-            <p class="text-white text-sm leading-snug">{{ previewSegment.segment.textJa.content }}</p>
+            <p lang="ja" class="text-white text-sm leading-snug">{{ previewSegment.segment.textJa.content }}</p>
             <p class="text-gray-400 text-xs leading-snug">{{ previewSegment.segment.textEn.content }}</p>
             <p class="text-gray-500 text-xs mt-1">{{ $t('accountSettings.account.contentRatingPreview') }}</p>
           </div>

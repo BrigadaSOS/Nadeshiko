@@ -1115,7 +1115,7 @@ export type t_SearchWordsRequestBodySchema = {
 };
 
 export type t_TrackUserActivityRequestBodySchema = {
-  activityType: 'SEARCH' | 'SEGMENT_PLAY' | 'SHARE';
+  activityType: 'SEARCH' | 'SEGMENT_PLAY' | 'SHARE' | 'ANKI_EXPORT';
   japaneseText?: string;
   mediaId?: number;
   mediaName?: string;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiCheckBold, mdiVideo, mdiImage, mdiVolumeHigh, mdiText, mdiPlus, mdiDelete } from '@mdi/js';
+import { mdiCheckBold, mdiVideo, mdiImage, mdiVolumeHigh, mdiText, mdiPlus, mdiDelete, mdiPencil } from '@mdi/js';
 import type { AnkiProfile } from '@/stores/anki';
 
 const { t } = useI18n();
@@ -19,8 +19,13 @@ const selectedDeck = ref('');
 const selectedModel = ref('');
 const modelKey = ref<string | null>(null);
 const ankiconnectAddress = ref('http://127.0.0.1:8765');
+const openBrowserOnExport = ref(true);
+const showNameModal = ref(false);
+const nameModalInput = ref('');
+const nameModalMode = ref<'create' | 'rename'>('create');
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+let suppressWatchers = false;
 
 const activeProfileId = computed(() => store.activeProfile?.id ?? null);
 
@@ -33,14 +38,21 @@ const loadFromActiveProfile = () => {
   fieldOptions.value = profile.fields?.map((f) => ({ ...f })) ?? [];
   modelKey.value = profile.key ?? null;
   ankiconnectAddress.value = profile.serverAddress ?? 'http://127.0.0.1:8765';
+  openBrowserOnExport.value = profile.openBrowserOnExport !== false;
 };
 
+let pendingSaveData: Partial<AnkiProfile> = {};
+
 const debouncedSave = (data: Partial<AnkiProfile>) => {
+  if (suppressWatchers) return;
+  Object.assign(pendingSaveData, data);
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
+    const toSave = { ...pendingSaveData };
+    pendingSaveData = {};
     isSaving.value = true;
     try {
-      await store.updateActiveProfile(data);
+      await store.updateActiveProfile(toSave);
     } catch (error) {
       console.error('[Anki] Failed to save profile:', error);
     } finally {
@@ -57,22 +69,55 @@ const setKeyValueField = (fieldName: string, value: string) => {
 };
 
 const switchProfile = async (profileId: string) => {
+  suppressWatchers = true;
   store.setActiveProfileId(profileId);
   loadFromActiveProfile();
+  await nextTick();
+  suppressWatchers = false;
   await fetchAndLoad();
 };
 
-const createNewProfile = async () => {
-  isSaving.value = true;
-  try {
-    const profile = await store.createProfile('New Profile');
-    store.setActiveProfileId(profile.id);
-    loadFromActiveProfile();
-    await fetchAndLoad();
-  } catch (error) {
-    console.error('[Anki] Failed to create profile:', error);
-  } finally {
-    isSaving.value = false;
+const openCreateModal = () => {
+  nameModalInput.value = '';
+  nameModalMode.value = 'create';
+  showNameModal.value = true;
+};
+
+const openRenameModal = () => {
+  nameModalInput.value = store.activeProfile?.name ?? '';
+  nameModalMode.value = 'rename';
+  showNameModal.value = true;
+};
+
+const confirmNameModal = async () => {
+  const trimmed = nameModalInput.value.trim();
+  if (!trimmed) return;
+  showNameModal.value = false;
+
+  if (nameModalMode.value === 'create') {
+    isSaving.value = true;
+    suppressWatchers = true;
+    try {
+      const profile = await store.createProfile(trimmed);
+      store.setActiveProfileId(profile.id);
+      loadFromActiveProfile();
+      await nextTick();
+      await fetchAndLoad();
+    } catch (error) {
+      console.error('[Anki] Failed to create profile:', error);
+    } finally {
+      suppressWatchers = false;
+      isSaving.value = false;
+    }
+  } else {
+    isSaving.value = true;
+    try {
+      await store.updateActiveProfile({ name: trimmed });
+    } catch (error) {
+      console.error('[Anki] Failed to rename profile:', error);
+    } finally {
+      isSaving.value = false;
+    }
   }
 };
 
@@ -81,15 +126,18 @@ const deleteCurrentProfile = async () => {
   if (!active) return;
 
   isSaving.value = true;
+  suppressWatchers = true;
   try {
     await store.deleteProfile(active.id);
     loadFromActiveProfile();
+    await nextTick();
     if (store.activeProfile) {
       await fetchAndLoad();
     }
   } catch (error) {
     console.error('[Anki] Failed to delete profile:', error);
   } finally {
+    suppressWatchers = false;
     isSaving.value = false;
   }
 };
@@ -99,8 +147,11 @@ onMounted(async () => {
   if (store.profiles.length === 0) {
     await store.createProfile('Default');
   }
-  loadFromActiveProfile();
   await fetchAndLoad();
+  suppressWatchers = true;
+  loadFromActiveProfile();
+  await nextTick();
+  suppressWatchers = false;
 });
 
 const fetchAndLoad = async () => {
@@ -123,6 +174,7 @@ const fetchAndLoad = async () => {
 };
 
 watch(selectedModel, async (newValue, oldValue) => {
+  if (suppressWatchers) return;
   if (newValue !== oldValue) {
     try {
       const data = await store.getAllModelFieldNames(newValue);
@@ -159,6 +211,10 @@ watch(
   { deep: true },
 );
 
+watch(openBrowserOnExport, (newValue) => {
+  debouncedSave({ openBrowserOnExport: newValue });
+});
+
 watch(ankiconnectAddress, (newValue) => {
   debouncedSave({ serverAddress: newValue });
   fetchAndLoad();
@@ -176,6 +232,14 @@ watch(ankiconnectAddress, (newValue) => {
           <input v-model="ankiconnectAddress"
             class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
           </input>
+        </div>
+
+        <div class="mt-4 flex items-center gap-3">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input v-model="openBrowserOnExport" type="checkbox" class="sr-only peer" />
+            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-button-danger-main transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+          </label>
+          <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.openBrowserOnExport') }}</span>
         </div>
 
         <div class="mt-4">
@@ -260,7 +324,15 @@ watch(ankiconnectAddress, (newValue) => {
           <button
             class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
             :disabled="isSaving"
-            @click="createNewProfile"
+            @click="openRenameModal"
+          >
+            <UiBaseIcon :path="mdiPencil" size="16" />
+            {{ $t('accountSettings.anki.renameProfile') }}
+          </button>
+          <button
+            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white rounded-lg bg-button-danger-main hover:bg-button-danger-hover transition-colors"
+            :disabled="isSaving"
+            @click="openCreateModal"
           >
             <UiBaseIcon :path="mdiPlus" size="16" />
             {{ $t('accountSettings.anki.newProfile') }}
@@ -276,7 +348,7 @@ watch(ankiconnectAddress, (newValue) => {
           </button>
         </div>
       </div>
-      <p v-if="isSaving" class="mt-2 text-sm text-gray-400">{{ $t('accountSettings.anki.saving') }}</p>
+      <p class="mt-2 text-sm text-gray-400 transition-opacity duration-200" :class="isSaving ? 'opacity-100' : 'opacity-0'">{{ $t('accountSettings.anki.saving') }}</p>
     </div>
 
     <template v-if="store.activeProfile">
@@ -324,7 +396,7 @@ watch(ankiconnectAddress, (newValue) => {
           </div>
         </div>
 
-        <div class="border rounded-lg overflow-hidden dark:border-modal-border">
+        <div class="border rounded-lg dark:border-modal-border">
           <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
             <thead>
               <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
@@ -357,8 +429,6 @@ watch(ankiconnectAddress, (newValue) => {
                             </template>
                             <template #content>
                               <SearchDropdownContent>
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{video}')"
-                                  :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
                                 <SearchDropdownItem @click="setKeyValueField(item.key, '{image}')"
                                   :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
                                 <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-audio}')"
@@ -418,5 +488,37 @@ watch(ankiconnectAddress, (newValue) => {
       </div>
 
     </template>
+
+    <Teleport to="body">
+      <div v-if="showNameModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showNameModal = false">
+        <div class="bg-neutral-800 rounded-lg p-6 w-full max-w-sm shadow-xl">
+          <h3 class="text-lg font-semibold text-white mb-4">
+            {{ nameModalMode === 'create' ? $t('accountSettings.anki.newProfile') : $t('accountSettings.anki.renameProfile') }}
+          </h3>
+          <input
+            v-model="nameModalInput"
+            type="text"
+            :placeholder="$t('accountSettings.anki.profileNamePlaceholder')"
+            class="w-full p-3 text-sm rounded-lg bg-input-background border-gray-600 text-white border focus:ring-gray-500 focus:border-gray-500"
+            @keydown.enter="confirmNameModal"
+          />
+          <div class="flex justify-end gap-2 mt-4">
+            <button
+              class="px-4 py-2 text-sm font-medium text-gray-300 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+              @click="showNameModal = false"
+            >
+              Cancel
+            </button>
+            <button
+              class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-red-500 hover:bg-red-600 transition-colors"
+              :disabled="!nameModalInput.trim()"
+              @click="confirmNameModal"
+            >
+              {{ nameModalMode === 'create' ? $t('accountSettings.anki.newProfile') : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

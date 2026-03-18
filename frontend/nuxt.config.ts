@@ -8,9 +8,6 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
 export default defineNuxtConfig({
   app: {
     head: {
-      htmlAttrs: {
-        lang: 'ja',
-      },
       meta: [
         {
           name: 'description',
