@@ -114,3 +114,35 @@ jobs:
           name: ${{ github.ref_name }}
           prerelease: false
           generate_release_notes: true
+
+  e2e:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          cd frontend
+          npm install @playwright/test
+          npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: |
+          cd frontend
+          npx playwright test --config=e2e/playwright.config.ts
+        env:
+          E2E_BASE_URL: https://nadeshiko.co
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-prod
+          path: frontend/playwright-report/
+          retention-days: 14
