@@ -14,7 +14,7 @@ info:
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
 
-  version: 2.0.1
+  version: 2.0.2
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -213,6 +213,7 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
+
 
 
 
