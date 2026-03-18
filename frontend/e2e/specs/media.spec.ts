@@ -36,13 +36,16 @@ test.describe('Media catalog', () => {
     const media = new MediaPage(page);
     await media.goto();
     await media.expectLoaded();
-    await page.waitForLoadState('networkidle');
+
 
     const initialCount = await media.getMediaCount();
 
-    await media.search('poppy');
-    // Debounce is 300ms, then URL updates via router.push
-    await expect(page).toHaveURL(/query=poppy/, { timeout: 10_000 });
+    // Read the first media's title and search for it, so the test is data-independent
+    const firstTitle = await media.mediaCards.first().locator('..').locator('..').locator('h3').first().textContent();
+    const searchTerm = firstTitle!.trim().split(' ')[0]!;
+
+    await media.search(searchTerm);
+    await expect(page).toHaveURL(/query=/, { timeout: 10_000 });
     await media.expectLoaded();
 
     const filteredCount = await media.getMediaCount();

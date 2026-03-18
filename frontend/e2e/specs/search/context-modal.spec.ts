@@ -8,7 +8,7 @@ test.describe('Context modal', () => {
     search = new SearchPage(page);
     await search.goto('彼女');
     await search.expectResultsVisible();
-    await page.waitForLoadState('networkidle');
+
   });
 
   test('clicking Context button opens the modal', async ({ page }) => {

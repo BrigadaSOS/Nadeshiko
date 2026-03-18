@@ -154,8 +154,7 @@ useDragScroll(mobileTabsRef);
 </script>
 
 <template>
-  <NuxtLayout>
-    <div class="w-11/12 mx-auto my-2 text-white min-h-screen">
+  <div class="w-11/12 mx-auto my-2 text-white min-h-screen">
       <div class="flex flex-col md:flex-row">
         <div class="hidden mx-auto md:block md:w-1/4 xl:w-3/12 md:min-w-[220px]">
           <nav aria-label="Tabs" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">
@@ -244,7 +243,6 @@ useDragScroll(mobileTabsRef);
         </div>
       </div>
     </div>
-  </NuxtLayout>
 </template>
 
 <style>

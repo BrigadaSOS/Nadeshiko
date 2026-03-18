@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures';
 test.describe('Language switching', () => {
   test('switching to Spanish updates UI text', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+
 
     // Open the language dropdown (the button in the nav with locale name)
     const langButton = page.locator('header').getByRole('button', { name: /English/i });
@@ -18,7 +18,7 @@ test.describe('Language switching', () => {
 
   test('switching to Japanese updates UI text', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+
 
     const langButton = page.locator('header').getByRole('button', { name: /English/i });
     await langButton.click();
@@ -29,7 +29,7 @@ test.describe('Language switching', () => {
 
   test('language preference persists across navigation', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+
 
     // Switch to Spanish
     const langButton = page.locator('header').getByRole('button', { name: /English/i });
@@ -51,7 +51,7 @@ test.describe('Language switching', () => {
 
     const card = page.locator('.group.flex.flex-col').first();
     await expect(card).toBeVisible({ timeout: 15_000 });
-    await page.waitForLoadState('networkidle');
+
 
     // Verify English text
     await expect(card.getByRole('button', { name: 'Copy' })).toBeVisible();

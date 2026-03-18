@@ -58,8 +58,7 @@ const {
 </script>
 
 <template>
-    <NuxtLayout>
-        <div class="mx-auto">
+    <div class="mx-auto">
             <div class="relative text-white">
                 <div class="pt-2">
                     <div class="md:max-w-[92%] mx-auto">
@@ -354,5 +353,4 @@ const {
                 </div>
             </div>
         </div>
-    </NuxtLayout>
 </template>
