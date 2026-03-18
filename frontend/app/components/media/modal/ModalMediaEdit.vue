@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { MediaUpdateRequest } from '@brigadasos/nadeshiko-sdk';
+
 const { t } = useI18n();
 
 const props = defineProps<{
@@ -104,13 +106,13 @@ const submitEdit = async () => {
   errorMessage.value = '';
 
   try {
-    const body: Record<string, unknown> = {
+    const body: MediaUpdateRequest = {
       nameJa: form.nameJa,
       nameRomaji: form.nameRomaji,
       nameEn: form.nameEn,
       airingFormat: form.airingFormat,
       airingStatus: form.airingStatus,
-      category: form.category,
+      category: form.category as MediaUpdateRequest['category'],
       genres: form.genres
         .split(',')
         .map((g) => g.trim())
@@ -133,7 +135,7 @@ const submitEdit = async () => {
 
     await sdk.updateMedia({
       path: { id: props.media.publicId },
-      body: body as any,
+      body,
     });
 
     const updatedMedia = {

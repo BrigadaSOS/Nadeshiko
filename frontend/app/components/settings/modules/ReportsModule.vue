@@ -73,7 +73,7 @@ const fetchAudits = async () => {
 const fetchRuns = async () => {
   try {
     const { data } = await sdk.listAdminMediaAuditRuns({ query: { take: 50 } });
-    runs.value = ((data as any)?.runs ?? []) as MediaAuditRun[];
+    runs.value = data?.runs ?? [];
   } catch {}
 };
 

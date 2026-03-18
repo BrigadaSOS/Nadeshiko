@@ -20,7 +20,7 @@
     "test:e2e:local": "E2E_BASE_URL=http://localhost:3000 playwright test --config=e2e/playwright.config.ts"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "2.0.1-internal.b0c27f3",
+    "@brigadasos/nadeshiko-sdk": "2.0.1-internal.d5d0c83",
     "@mdi/js": "^7.4.47",
     "@nuxt/content": "^3.11.0",
     "@nuxtjs/i18n": "^10.2.1",
@@ -33,6 +33,7 @@
     "@opentelemetry/sdk-node": "^0.213.0",
     "@pinia/nuxt": "^0.11.3",
     "@sentry/nuxt": "^10.40.0",
+    "better-sqlite3": "^12.8.0",
     "canvas-confetti": "^1.9.4",
     "nuxt-umami": "^3.2.1",
     "pinia": "^3.0.4",
