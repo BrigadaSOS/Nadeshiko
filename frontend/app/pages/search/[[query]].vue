@@ -96,10 +96,10 @@ const fetchSentenceData = async () => {
       filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
     }
 
-    const sortParam = route.query.sort;
+    const sortParam = route.query.sort ? String(route.query.sort).toUpperCase() : null;
     const sort =
       sortParam && sortParam !== 'NONE'
-        ? { mode: String(sortParam) as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
+        ? { mode: sortParam as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
         : undefined;
 
     const { data, response } = await sdk.search({

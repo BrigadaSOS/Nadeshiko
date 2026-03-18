@@ -223,7 +223,9 @@ export class SegmentIndexer {
   }
 
   private static createReindexQuery(): SelectQueryBuilder<Segment> {
-    return Segment.createQueryBuilder('segment').select(REINDEX_SEGMENT_SELECT_FIELDS.map((field) => `segment.${field}`));
+    return Segment.createQueryBuilder('segment').select(
+      REINDEX_SEGMENT_SELECT_FIELDS.map((field) => `segment.${field}`),
+    );
   }
 
   private static async reindexInPages(

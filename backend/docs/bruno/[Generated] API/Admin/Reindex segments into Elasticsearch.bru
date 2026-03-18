@@ -1,23 +1,29 @@
 meta {
-  name: Update a media audit config
+  name: Reindex segments into Elasticsearch
   type: http
-  seq: 74
+  seq: 62
 }
 
-patch {
-  url: {{baseUrl}}/v1/admin/media/audits/:name
+post {
+  url: {{baseUrl}}/v1/admin/reindex
   body: json
   auth: none
 }
 
-params:query {
-  name:
-}
-
 body:json {
   {
-    "threshold": {},
-    "enabled": false
+    "media": [
+      {
+        "mediaId": 5,
+        "episodes": [
+          1,
+          3
+        ]
+      },
+      {
+        "mediaId": 10
+      }
+    ]
   }
 }
 

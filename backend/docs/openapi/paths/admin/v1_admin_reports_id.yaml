@@ -3,12 +3,11 @@ patch:
     - Admin
   x-internal: true
   operationId: updateAdminReport
-  summary: Update a report
+  summary: Update report
   description: |
     Updates the status and/or admin notes of a report.
     Works for both USER and AUTO reports.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -26,7 +25,7 @@ patch:
           $ref: "../../components/requestBodies/UpdateReportRequest.yaml"
   responses:
     "200":
-      description: Report updated successfully
+      description: OK
       content:
         application/json:
           schema:
@@ -34,7 +33,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

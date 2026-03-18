@@ -3,7 +3,7 @@ post:
     - Admin
   x-internal: true
   operationId: triggerReindex
-  summary: Reindex database into Elasticsearch
+  summary: Reindex segments into Elasticsearch
   description: |
     Reindexes segments from the PostgreSQL database into Elasticsearch.
     Allows filtering by specific media entries and episodes.
@@ -13,7 +13,6 @@ post:
     - If `media` is provided, reindexes segments from those media entries
     - If a media item includes `episodes`, only those episodes are reindexed for that media
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   requestBody:
@@ -24,7 +23,7 @@ post:
           $ref: "../../components/requestBodies/ReindexRequest.yaml"
   responses:
     "200":
-      description: Reindex operation completed
+      description: OK
       content:
         application/json:
           schema:
@@ -32,7 +31,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

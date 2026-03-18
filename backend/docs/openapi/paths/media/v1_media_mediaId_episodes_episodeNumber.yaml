@@ -6,11 +6,8 @@ get:
   description: |
     Returns a specific episode by media ID and episode number.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -32,7 +29,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -51,11 +48,8 @@ patch:
   description: |
     Updates an existing episode. Only provided fields will be updated.
 
-    **Permissions:** `UPDATE_MEDIA`
-
   security:
     - ApiKey: [UPDATE_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -83,7 +77,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -98,15 +92,12 @@ delete:
     - Media
   operationId: deleteEpisode
   x-internal: true
-  summary: Delete an episode
+  summary: Delete episode
   description: |
     Soft-deletes an episode. Segments are not cascade deleted — this only hides the episode from results.
 
-    **Permissions:** `REMOVE_MEDIA`
-
   security:
     - ApiKey: [REMOVE_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -124,11 +115,11 @@ delete:
       example: 1
   responses:
     "204":
-      description: Episode successfully deleted
+      description: No Content
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

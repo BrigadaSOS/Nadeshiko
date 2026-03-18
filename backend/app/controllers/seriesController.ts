@@ -52,11 +52,13 @@ export const getSeries: GetSeries = async ({ params, query }, respond) => {
 };
 
 export const createSeries: CreateSeries = async ({ body }, respond) => {
-  const series = await Series.save({
-    nameJa: body.nameJa,
-    nameRomaji: body.nameRomaji,
-    nameEn: body.nameEn,
-  });
+  const series = await Series.save(
+    Series.create({
+      nameJa: body.nameJa,
+      nameRomaji: body.nameRomaji,
+      nameEn: body.nameEn,
+    }),
+  );
 
   return respond.with201().body(toSeriesDTO(series));
 };

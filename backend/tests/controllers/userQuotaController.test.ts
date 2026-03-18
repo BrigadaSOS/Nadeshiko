@@ -23,8 +23,8 @@ describe('GET /v1/user/quota', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       quotaUsed: 0,
-      quotaLimit: AccountQuotaUsage.DEFAULT_QUOTA_LIMIT,
-      quotaRemaining: AccountQuotaUsage.DEFAULT_QUOTA_LIMIT,
+      quotaLimit: fixtures.users.kevin.monthlyQuotaLimit,
+      quotaRemaining: fixtures.users.kevin.monthlyQuotaLimit,
     });
   });
 
@@ -41,8 +41,8 @@ describe('GET /v1/user/quota', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       quotaUsed: 42,
-      quotaLimit: AccountQuotaUsage.DEFAULT_QUOTA_LIMIT,
-      quotaRemaining: AccountQuotaUsage.DEFAULT_QUOTA_LIMIT - 42,
+      quotaLimit: fixtures.users.kevin.monthlyQuotaLimit,
+      quotaRemaining: fixtures.users.kevin.monthlyQuotaLimit - 42,
     });
   });
 

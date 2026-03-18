@@ -8,7 +8,6 @@ get:
     Returns daily activity counts for the authenticated user, grouped by date and activity type.
     Each day contains per-type counts that can be summed or filtered client-side.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -35,6 +34,6 @@ get:
                   $ref: "../../components/schemas/HeatmapDayCounts.yaml"
                 description: Map of YYYY-MM-DD date strings to per-type activity counts
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

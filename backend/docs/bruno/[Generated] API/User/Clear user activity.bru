@@ -1,13 +1,17 @@
 meta {
-  name: System health check
+  name: Clear user activity
   type: http
-  seq: 61
+  seq: 41
 }
 
-get {
-  url: {{baseUrl}}/v1/admin/health
+delete {
+  url: {{baseUrl}}/v1/user/activity
   body: none
   auth: none
+}
+
+params:query {
+  activityType:
 }
 
 settings {

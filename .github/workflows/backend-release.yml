@@ -1,4 +1,4 @@
-name: Backend Release
+name: Deploy Backend Prod
 
 on:
   push:

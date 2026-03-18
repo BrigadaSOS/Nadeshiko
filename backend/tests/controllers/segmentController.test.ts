@@ -77,14 +77,16 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
     await seedSegment(media.id, episode.episodeNumber, { position: 2 });
     await seedSegment(media.id, episode.episodeNumber, { position: 3 });
 
-    const page1 = await request(app).get(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments?take=2`);
+    const page1 = await request(app).get(
+      `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments?take=2`,
+    );
     expect(page1.status).toBe(200);
     expect(page1.body.segments).toHaveLength(2);
     expect(page1.body.pagination.hasMore).toBe(true);
     expect(page1.body.pagination.cursor).toEqual(expect.any(String));
 
     const page2 = await request(app).get(
-      `/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments?take=2&cursor=${page1.body.pagination.cursor}`,
+      `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments?take=2&cursor=${page1.body.pagination.cursor}`,
     );
     expect(page2.status).toBe(200);
     expect(page2.body.segments).toHaveLength(1);
@@ -96,7 +98,7 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments`);
+    const res = await request(app).get(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       segments: [],
@@ -108,7 +110,7 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes/999/segments`);
+    const res = await request(app).get(`/v1/media/${media.publicId}/episodes/999/segments`);
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
@@ -127,7 +129,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
       +1,
       async () => {
         const res = await request(app)
-          .post(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments`)
+          .post(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments`)
           .send({
             position,
             startTimeMs: 1500,
@@ -182,7 +184,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
     await MediaExternalId.save({ mediaId: media.id, source: ExternalSourceType.ANILIST, externalId: '99998' });
 
     const res = await request(app)
-      .post(`/v1/media/${media.id}/episodes/999/segments`)
+      .post(`/v1/media/${media.publicId}/episodes/999/segments`)
       .send({
         position: 1,
         startTimeMs: 0,
@@ -206,7 +208,7 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => {
     const segment = await seedSegment(media.id, episode.episodeNumber, { position: 5 });
 
     const res = await request(app).get(
-      `/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
+      `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
     );
 
     expect(res.status).toBe(200);
@@ -224,7 +226,7 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => {
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/999999`);
+    const res = await request(app).get(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/999999`);
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
@@ -242,7 +244,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
     });
 
     const res = await request(app)
-      .patch(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`)
+      .patch(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/${segment.id}`)
       .send({
         textJa: { content: '更新' },
         textEn: { content: 'updated-en', isMachineTranslated: false },
@@ -287,7 +289,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
     const episode = fixtures.episodes.pilot;
 
     const res = await request(app)
-      .patch(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/999999`)
+      .patch(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/999999`)
       .send({
         textJa: { content: 'nope' },
       });
@@ -303,7 +305,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
     const segment = await seedSegment(media.id, episode.episodeNumber, { contentJa: 'original' });
 
     const res = await request(app)
-      .patch(`/v1/media/${media.id + 999}/episodes/${episode.episodeNumber + 999}/segments/${segment.id}`)
+      .patch(`/v1/media/nonexistent-media/episodes/${episode.episodeNumber + 999}/segments/${segment.id}`)
       .send({
         textJa: { content: 'should-not-update' },
       });
@@ -328,7 +330,7 @@ describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () =>
       0,
       async () => {
         const res = await request(app).delete(
-          `/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
+          `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
         );
         expect(res.status).toBe(204);
       },
@@ -343,7 +345,9 @@ describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () =>
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
 
-    const res = await request(app).delete(`/v1/media/${media.id}/episodes/${episode.episodeNumber}/segments/999999`);
+    const res = await request(app).delete(
+      `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/999999`,
+    );
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });

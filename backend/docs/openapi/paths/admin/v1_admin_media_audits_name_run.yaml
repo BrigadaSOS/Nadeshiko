@@ -3,11 +3,10 @@ post:
     - Admin
   x-internal: true
   operationId: runAdminMediaAudit
-  summary: Run a media audit
+  summary: Run media audit
   description: |
     Triggers all enabled audits (or a specific one). Creates MediaAuditRun records and AUTO reports for any findings.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -25,13 +24,13 @@ post:
       description: Optional category filter
   responses:
     "200":
-      description: Audit run completed
+      description: OK
       content:
         application/json:
           schema:
             $ref: "../../components/schemas/RunAuditResponse.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

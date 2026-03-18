@@ -1,4 +1,5 @@
 get:
+  x-internal: true
   tags:
     - Media
   operationId: getSeiyuu
@@ -6,11 +7,8 @@ get:
   description: |
     Returns a voice actor (seiyuu) with all characters they voiced and their media appearances.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -29,7 +27,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

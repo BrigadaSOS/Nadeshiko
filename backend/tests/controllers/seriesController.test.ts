@@ -68,7 +68,7 @@ describe('GET /v1/media/series/:id', () => {
     const mediaA = fixtures.media.mediaA;
     const mediaB = fixtures.media.mediaB;
 
-    const res = await request(app).get(`/v1/media/series/${series.id}`);
+    const res = await request(app).get(`/v1/media/series/${series.publicId}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -111,7 +111,7 @@ describe('PATCH /v1/media/series/:id', () => {
     const fixtures = await loadFixtures(['singleSeries']);
     const series = fixtures.series.testSeries;
 
-    const res = await request(app).patch(`/v1/media/series/${series.id}`).send({ nameEn: 'New Name' });
+    const res = await request(app).patch(`/v1/media/series/${series.publicId}`).send({ nameEn: 'New Name' });
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ nameEn: 'New Name' });
@@ -133,7 +133,7 @@ describe('DELETE /v1/media/series/:id', () => {
     const fixtures = await loadFixtures(['singleSeries']);
     const series = fixtures.series.testSeries;
 
-    const res = await request(app).delete(`/v1/media/series/${series.id}`);
+    const res = await request(app).delete(`/v1/media/series/${series.publicId}`);
 
     expect(res.status).toBe(204);
 
@@ -155,8 +155,8 @@ describe('POST /v1/media/series/:id/media', () => {
     const series = fixtures.series.testSeries;
     const media = fixtures.media.testShow;
 
-    const res = await request(app).post(`/v1/media/series/${series.id}/media`).send({
-      mediaId: media.id,
+    const res = await request(app).post(`/v1/media/series/${series.publicId}/media`).send({
+      mediaId: media.publicId,
       position: 1,
     });
 
@@ -172,7 +172,7 @@ describe('POST /v1/media/series/:id/media', () => {
     const media = fixtures.media.testShow;
 
     const res = await request(app).post('/v1/media/series/999/media').send({
-      mediaId: media.id,
+      mediaId: media.publicId,
       position: 1,
     });
 
@@ -180,12 +180,12 @@ describe('POST /v1/media/series/:id/media', () => {
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('returns 404 when media does not exist (FK violation)', async () => {
+  it('returns 404 when media does not exist', async () => {
     const fixtures = await loadFixtures(['singleSeries']);
     const series = fixtures.series.testSeries;
 
-    const res = await request(app).post(`/v1/media/series/${series.id}/media`).send({
-      mediaId: 999,
+    const res = await request(app).post(`/v1/media/series/${series.publicId}/media`).send({
+      mediaId: 'nonexistent-public-id',
       position: 1,
     });
 
@@ -200,7 +200,9 @@ describe('PATCH /v1/media/series/:id/media/:mediaId', () => {
     const series = fixtures.series.testSeries;
     const media = fixtures.media.testShow;
 
-    const res = await request(app).patch(`/v1/media/series/${series.id}/media/${media.id}`).send({ position: 3 });
+    const res = await request(app)
+      .patch(`/v1/media/series/${series.publicId}/media/${media.publicId}`)
+      .send({ position: 3 });
 
     expect(res.status).toBe(204);
 
@@ -213,7 +215,9 @@ describe('PATCH /v1/media/series/:id/media/:mediaId', () => {
     const series = fixtures.series.testSeries;
     const media = fixtures.media.testShow;
 
-    const res = await request(app).patch(`/v1/media/series/${series.id}/media/${media.id}`).send({ position: 2 });
+    const res = await request(app)
+      .patch(`/v1/media/series/${series.publicId}/media/${media.publicId}`)
+      .send({ position: 2 });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
@@ -226,7 +230,7 @@ describe('DELETE /v1/media/series/:id/media/:mediaId', () => {
     const series = fixtures.series.testSeries;
     const media = fixtures.media.testShow;
 
-    const res = await request(app).delete(`/v1/media/series/${series.id}/media/${media.id}`);
+    const res = await request(app).delete(`/v1/media/series/${series.publicId}/media/${media.publicId}`);
 
     expect(res.status).toBe(204);
 
@@ -239,7 +243,7 @@ describe('DELETE /v1/media/series/:id/media/:mediaId', () => {
     const series = fixtures.series.testSeries;
     const media = fixtures.media.testShow;
 
-    const res = await request(app).delete(`/v1/media/series/${series.id}/media/${media.id}`);
+    const res = await request(app).delete(`/v1/media/series/${series.publicId}/media/${media.publicId}`);
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });

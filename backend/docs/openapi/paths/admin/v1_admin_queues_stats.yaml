@@ -7,17 +7,11 @@ get:
   description: |
     Returns statistics for all ES sync queues including pending and failed job counts.
 
-    **Use cases:**
-    - Monitor queue health
-    - Detect stuck jobs
-    - Check backlog size
-
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   responses:
     "200":
-      description: Queue statistics retrieved successfully
+      description: OK
       content:
         application/json:
           schema:
@@ -43,7 +37,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

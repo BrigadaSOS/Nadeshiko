@@ -7,18 +7,15 @@ get:
     Retrieves segments surrounding a specific segment within an episode.
     Returns segments both before and after the target, providing dialogue context for how a sentence is used.
 
-    **Permissions:** `UPDATE_MEDIA` (API key) or admin session
-
   security:
-    - ApiKey: [UPDATE_MEDIA]
-    - SessionCookie: [ADMIN]
+    - ApiKey: [READ_MEDIA]
   parameters:
     - name: uuid
       in: path
       required: true
       schema:
         type: string
-      description: Segment UUID or publicId
+      description: Segment publicId
       example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
     - name: take
       in: query

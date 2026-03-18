@@ -3,12 +3,11 @@ get:
     - Admin
   x-internal: true
   operationId: getAdminDashboard
-  summary: Admin dashboard statistics
+  summary: Get dashboard statistics
   description: |
     Returns at-a-glance statistics for the admin dashboard including media counts,
     user counts, and system health information.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   responses:
@@ -173,7 +172,7 @@ get:
                         failedCount:
                           type: integer
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

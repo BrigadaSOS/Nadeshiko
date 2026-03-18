@@ -3,11 +3,10 @@ delete:
     - User
   x-internal: true
   operationId: deleteUserActivityById
-  summary: Delete a single activity record
+  summary: Delete activity record
   description: |
     Deletes a single activity record by ID for the authenticated user.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -19,9 +18,9 @@ delete:
       description: Activity record ID
   responses:
     "204":
-      description: Activity deleted
+      description: No Content
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
     "500":

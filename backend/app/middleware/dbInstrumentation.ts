@@ -83,7 +83,7 @@ export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
   logQuerySlow(time: number, query: string, _parameters?: unknown[], _queryRunner?: QueryRunner): void {
     recordQuery(query, time, false);
 
-    if (time > 1000) {
+    if (time > config.DB_SLOW_QUERY_THRESHOLD_MS) {
       logger.warn({ query: query.slice(0, 300), durationMs: time }, 'Slow query');
     }
   }

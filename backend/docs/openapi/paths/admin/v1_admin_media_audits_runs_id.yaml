@@ -3,11 +3,10 @@ get:
     - Admin
   x-internal: true
   operationId: getAdminMediaAuditRun
-  summary: Get a specific audit run's details
+  summary: Get audit run details
   description: |
     Returns a specific media audit run record with its linked reports.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -35,7 +34,7 @@ get:
                 items:
                   $ref: "../../components/schemas/Report.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

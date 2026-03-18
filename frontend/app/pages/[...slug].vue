@@ -128,14 +128,6 @@ defineOgImage({
   }
 }
 
-@media (min-width: 768px) and (max-width: 1279px) {
-  .content-markdown :deep(.about-contributors-grid > .about-contributor-card:last-child:nth-child(odd)) {
-    grid-column: 1 / -1;
-    width: 100%;
-    max-width: calc(50% - 0.5rem);
-    justify-self: center;
-  }
-}
 
 @media (min-width: 1024px) {
   .content-markdown {
@@ -333,6 +325,15 @@ defineOgImage({
   font-size: 1rem;
   line-height: 1.5;
   margin-bottom: 0;
+}
+
+/* Contributor card: stacked layout when 3 cols are narrow (768px-949px) */
+@media (min-width: 768px) and (max-width: 949px) {
+  .content-markdown :deep(.about-contributor-card > .flex) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
 }
 
 /* Contributor boxes and grid styling */

@@ -12,7 +12,6 @@ get:
     - `es-sync-update` - Jobs to update existing segments
     - `es-sync-delete` - Jobs to delete segments
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -26,7 +25,7 @@ get:
       example: "es-sync-create"
   responses:
     "200":
-      description: Queue details retrieved successfully
+      description: OK
       content:
         application/json:
           schema:
@@ -124,7 +123,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

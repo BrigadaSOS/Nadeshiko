@@ -6,11 +6,8 @@ get:
   description: |
     Returns a single media entry by its ID with full metadata.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -37,7 +34,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -56,11 +53,8 @@ patch:
   description: |
     Updates an existing media entry. Only provided fields will be updated.
 
-    **Permissions:** `UPDATE_MEDIA`
-
   security:
     - ApiKey: [UPDATE_MEDIA]
-    - SessionCookie: [ADMIN]
   parameters:
     - name: id
       in: path
@@ -85,7 +79,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -100,15 +94,12 @@ delete:
     - Media
   operationId: deleteMedia
   x-internal: true
-  summary: Delete media (soft delete)
+  summary: Delete media
   description: |
     Soft-deletes a media entry by setting the `deletedAt` timestamp. The media remains in the database but is excluded from query results.
 
-    **Permissions:** `REMOVE_MEDIA`
-
   security:
     - ApiKey: [REMOVE_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -123,7 +114,7 @@ delete:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

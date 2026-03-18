@@ -13,7 +13,6 @@ properties:
       - AUTH_CREDENTIALS_REQUIRED
       - AUTH_CREDENTIALS_INVALID
       - AUTH_CREDENTIALS_EXPIRED
-      - EMAIL_NOT_VERIFIED
   title:
     type: string
     description: A short, human-readable summary of the problem

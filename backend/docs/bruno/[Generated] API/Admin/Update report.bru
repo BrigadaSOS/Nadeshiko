@@ -1,19 +1,24 @@
 meta {
-  name: Run a media audit
+  name: Update report
   type: http
-  seq: 75
+  seq: 72
 }
 
-post {
-  url: {{baseUrl}}/v1/admin/media/audits/:name/run?category=ANIME&category=JDRAMA
-  body: none
+patch {
+  url: {{baseUrl}}/v1/admin/reports/:id
+  body: json
   auth: none
 }
 
 params:query {
-  name:
-  category: ANIME
-  category: JDRAMA
+  id:
+}
+
+body:json {
+  {
+    "status": "ACCEPTED",
+    "adminNotes": "Confirmed wrong translation, will fix"
+  }
 }
 
 settings {

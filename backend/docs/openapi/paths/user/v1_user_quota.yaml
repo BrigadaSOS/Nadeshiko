@@ -7,7 +7,6 @@ get:
   description: |
     Returns the API quota usage for the current billing period.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   responses:
@@ -18,7 +17,7 @@ get:
           schema:
             $ref: "../../components/responses/UserQuotaResponse.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

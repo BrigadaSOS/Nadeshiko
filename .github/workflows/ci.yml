@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nadeshiko
+          POSTGRES_PASSWORD: nadeshiko
+          POSTGRES_DB: nadeshiko_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nadeshiko"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: cd backend && bun install --frozen-lockfile
+
+      - name: Lint
+        run: cd backend && bun run lint:code
+
+      - name: Setup test database
+        run: cd backend && bun run test:setup
+
+      - name: Test
+        run: cd backend && bun run test
