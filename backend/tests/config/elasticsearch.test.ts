@@ -34,9 +34,15 @@ vi.mock('@elastic/elasticsearch', () => {
   };
 });
 
-const logger = {
+const noop = vi.fn();
+const logger: Record<string, unknown> = {
+  trace: noop,
+  debug: noop,
   info: vi.fn(),
+  warn: noop,
   error: vi.fn(),
+  fatal: noop,
+  child: () => logger,
 };
 
 vi.mock('@config/log', () => ({

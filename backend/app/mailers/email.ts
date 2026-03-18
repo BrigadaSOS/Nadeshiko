@@ -184,7 +184,11 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
   } else if (template === 'verify-new-email') {
     ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/verify?token=test-token'));
   } else {
-    ({ subject, html } = await buildAnnouncementEmail(username, 'Test Announcement', 'This is a test announcement email.'));
+    ({ subject, html } = await buildAnnouncementEmail(
+      username,
+      'Test Announcement',
+      'This is a test announcement email.',
+    ));
   }
 
   const fromEmail = config.SES_FROM_EMAIL;

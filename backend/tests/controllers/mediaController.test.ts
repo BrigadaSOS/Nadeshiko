@@ -214,7 +214,7 @@ describe('GET /v1/media/:id', () => {
     const loaded = await loadFixtures(['seiyuuWithRoles']);
     const media = loaded.media.spyXFamily;
 
-    const res = await request(app).get(`/v1/media/${media.id}?include=media.characters`);
+    const res = await request(app).get(`/v1/media/${media.publicId}?include=media.characters`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: media.id,
@@ -238,7 +238,7 @@ describe('PATCH /v1/media/:id', () => {
     media.storage = SegmentStorage.LOCAL;
     await media.save();
 
-    const res = await request(app).patch(`/v1/media/${media.id}`).send({
+    const res = await request(app).patch(`/v1/media/${media.publicId}`).send({
       nameEn: 'Updated Name',
     });
 
@@ -259,7 +259,7 @@ describe('PATCH /v1/media/:id', () => {
     ]);
 
     const res = await request(app)
-      .patch(`/v1/media/${media.id}`)
+      .patch(`/v1/media/${media.publicId}`)
       .send({
         externalIds: {
           tvdb: 'new-tvdb',
@@ -303,9 +303,10 @@ describe('PATCH /v1/media/:id', () => {
       );
     expect(createRes.status).toBe(201);
     const mediaId = createRes.body.id as number;
+    const publicId = createRes.body.publicId as string;
     expect(await MediaCharacter.countBy({ mediaId })).toBe(1);
 
-    const res = await request(app).patch(`/v1/media/${mediaId}`).send({
+    const res = await request(app).patch(`/v1/media/${publicId}`).send({
       characters: [],
     });
 

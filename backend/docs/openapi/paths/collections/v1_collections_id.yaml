@@ -42,7 +42,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -95,7 +95,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -130,7 +130,7 @@ delete:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

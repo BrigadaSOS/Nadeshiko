@@ -12,11 +12,8 @@ post:
 
     The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
 
   requestBody:
     content:
@@ -42,7 +39,7 @@ post:
             InvalidJson:
               $ref: "../../components/examples/InvalidJson.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

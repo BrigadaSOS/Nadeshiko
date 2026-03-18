@@ -7,11 +7,8 @@ get:
   description: |
     Returns a paginated list of segments for a specific episode.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -50,7 +47,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -65,15 +62,12 @@ post:
     - Media
   operationId: createSegment
   x-internal: true
-  summary: Create new segment
+  summary: Create segment
   description: |
     Creates a new segment for a specific episode.
 
-    **Permissions:** `UPDATE_MEDIA`
-
   security:
     - ApiKey: [ADD_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -101,7 +95,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

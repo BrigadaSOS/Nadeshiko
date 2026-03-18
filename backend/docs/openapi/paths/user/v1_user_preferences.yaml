@@ -7,7 +7,6 @@ get:
   description: |
     Returns the authenticated user's full preferences object.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   responses:
@@ -18,7 +17,7 @@ get:
           schema:
             $ref: "../../components/schemas/UserPreferences.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
 
@@ -32,7 +31,6 @@ patch:
     Deep-merges a partial preferences update into the user's existing preferences.
     Only the provided keys are updated; all other keys are preserved.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   requestBody:
@@ -49,6 +47,6 @@ patch:
           schema:
             $ref: "../../components/schemas/UserPreferences.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

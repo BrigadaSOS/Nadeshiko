@@ -86,12 +86,7 @@ export const s_Error400 = z.object({
 });
 
 export const s_Error401 = z.object({
-  code: z.enum([
-    'AUTH_CREDENTIALS_REQUIRED',
-    'AUTH_CREDENTIALS_INVALID',
-    'AUTH_CREDENTIALS_EXPIRED',
-    'EMAIL_NOT_VERIFIED',
-  ]),
+  code: z.enum(['AUTH_CREDENTIALS_REQUIRED', 'AUTH_CREDENTIALS_INVALID', 'AUTH_CREDENTIALS_EXPIRED']),
   title: z.string(),
   detail: z.string(),
   type: z.string().optional(),

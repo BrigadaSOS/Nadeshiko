@@ -3,11 +3,10 @@ post:
     - User
   x-internal: true
   operationId: createUserReport
-  summary: Create a new report
+  summary: Create report
   description: |
-    Submit a report for a segment or media entry.
+    Submits a report for a segment or media entry.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   requestBody:
@@ -18,7 +17,7 @@ post:
           $ref: "../../components/requestBodies/CreateReportRequest.yaml"
   responses:
     "201":
-      description: Report created successfully
+      description: Created
       content:
         application/json:
           schema:
@@ -26,7 +25,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
     "500":

@@ -3,6 +3,9 @@ const { t } = useI18n();
 const { englishMode, spanishMode, cycleEnglishMode, cycleSpanishMode } = useTranslationVisibility();
 const { showHiragana, toggleHiragana } = useHiraganaVisibility();
 
+const labsStore = useLabsStore();
+const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
+
 type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
 const liveMessage = ref('');
@@ -63,6 +66,7 @@ const toggleSpanish = async () => {
     </button>
 
     <button
+      v-if="tokensEnabled"
       type="button"
       :aria-pressed="showHiragana"
       :title="showHiragana ? t('searchpage.main.translationPreferences.hiraganaShown') : t('searchpage.main.translationPreferences.hiraganaHidden')"

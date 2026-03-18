@@ -1,4 +1,4 @@
-name: Frontend Release
+name: Deploy Frontend Prod
 
 on:
   push:

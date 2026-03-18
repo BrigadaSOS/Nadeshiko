@@ -2,6 +2,8 @@
 const store = userStore();
 const isAuth = computed(() => store.isLoggedIn);
 const { hasNewPost } = useBlogNotification();
+const route = useRoute();
+const isOnBlog = computed(() => route.path.startsWith('/blog'));
 
 function openLoginModal() {
   window.NDOverlay?.open('#nd-vertically-centered-scrollable-loginsignup-modal');
@@ -9,8 +11,8 @@ function openLoginModal() {
 </script>
 <template>    
     <header
-        class="relative flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-xs py-3 lg:py-2 dark:bg-header-background">
-        <nav class="max-w-[92%] w-full mx-auto sm:flex sm:items-center sm:justify-between">
+        class="relative flex flex-wrap md:justify-start md:flex-nowrap w-full bg-white text-xs py-3 lg:py-2 dark:bg-header-background">
+        <nav class="max-w-[92%] w-full mx-auto md:flex md:items-center md:justify-between">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
                     <NuxtLink to="/"
@@ -20,7 +22,7 @@ function openLoginModal() {
                     </NuxtLink>
                 </div>
 
-                <div class="sm:hidden">
+                <div class="md:hidden">
                     <button type="button"
                         class="nd-collapse-toggle relative size-7 flex justify-center items-center gap-x-2 rounded-lg   bg-white text-gray-800  hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-transparent dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
                         id="nd-navbar-example-collapse" aria-expanded="false" aria-controls="nd-navbar-example"
@@ -43,10 +45,10 @@ function openLoginModal() {
                 </div>
             </div>
             <div id="nd-navbar-example"
-                class="hidden nd-collapse overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out basis-full grow sm:block sm:!overflow-visible"
+                class="hidden nd-collapse overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out basis-full grow md:block md:!overflow-visible"
                 aria-labelledby="nd-navbar-example-collapse">
-                <div class="flex flex-col  mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
-                    <div class="gap-6 flex flex-col sm:flex-row mr-auto">
+                <div class="flex flex-col  mt-5 md:flex-row md:items-center md:justify-end md:mt-0 md:ps-5">
+                    <div class="gap-6 flex flex-col md:flex-row mr-auto">
                         <NuxtLink to="/media"
                             class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                             {{ $t("navbar.buttons.media") }}
@@ -55,7 +57,7 @@ function openLoginModal() {
                             class="relative text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                             {{ $t("navbar.buttons.blog") }}
                             <span
-                              v-if="hasNewPost"
+                              v-if="hasNewPost && !isOnBlog"
                               class="absolute -top-0.5 -right-2 size-[5px] rounded-full bg-white"
                             />
                         </NuxtLink>
@@ -105,7 +107,7 @@ function openLoginModal() {
                             </SearchDropdownMainButton>
                         </template>
                         <template #content>
-                            <SearchDropdownContent>
+                            <SearchDropdownContent :header="$t('navbar.buttons.profile')">
                                 <NuxtLink v-if="isAuth" to="/user/settings" :prefetch="false">
                                     <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                 </NuxtLink>

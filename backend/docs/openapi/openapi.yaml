@@ -2,40 +2,27 @@ openapi: 3.1.0
 info:
   title: Nadeshiko API
   description: |
-    Welcome to the Nadeshiko API.
+    Thank you for using the Nadeshiko API! This API lets you search Japanese dialogue segments across anime and J-Drama, with translations and contextual metadata.
 
-    ## Getting Started
+    ### Authentication
+    All API requests require an API key passed as a Bearer token. You can register and generate your key on the [developer page](https://nadeshiko.co/user/developer), where you can also check your current usage.
 
-    Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
+    ### Rate Limit
+    Each API key is limited to **150 requests per minute**. Exceeding this limit will return a `429 Too Many Requests` response.
 
-    If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
-    Internal user/admin endpoints use session cookie authentication.
-    401 response components are scoped by auth mode:
-    - `UnauthorizedApiKey` for API key-only endpoints
-    - `UnauthorizedSession` for session-only endpoints
-    - `Unauthorized` for endpoints that accept either auth mode
-
-    ### Quotas and Limits
-    The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message:
-    > "Too many requests. Please try again later."
-
-    Additionally, each account has a monthly quota limit. Once the monthly quota is exceeded, further requests will receive the message:
-    > "API Key quota exceeded for this month."
-
-    | Account Type | Quota (Monthly) |
-    |--------------|-----------------|
-    | Default      | 2500 requests   |
-
-    To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
+    ### Quota
+    Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
+    To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
 
   version: 2.0.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
   license:
-    name: ISC
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
   x-logo:
-    url: https://nadeshiko.co/logo.webp
+    url: ./logo.png
     altText: Nadeshiko
     href: https://nadeshiko.co
 

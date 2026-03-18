@@ -19,7 +19,7 @@ interface PathItem {
   [method: string]: Operation;
 }
 
-const SKIPPED_OPERATIONS = new Set(['impersonateAdminUser', 'clearAdminImpersonation']);
+const SKIPPED_OPERATIONS = new Set(['impersonateAdminUser', 'clearAdminImpersonation', 'getAnnouncement']);
 const HTTP_METHODS = new Set(['get', 'post', 'patch', 'put', 'delete']);
 
 function loadSpec() {
@@ -126,16 +126,14 @@ describe('OpenAPI security definitions', () => {
     }
   });
 
-  it('all search routes require ApiKey READ_MEDIA or session', () => {
+  it('all search routes require ApiKey READ_MEDIA', () => {
     const searchOps = allOperations.filter((op) => op.path.startsWith('/v1/search'));
     expect(searchOps.length).toBeGreaterThan(0);
 
     for (const op of searchOps) {
-      expect(op.security).toHaveLength(2);
+      expect(op.security).toHaveLength(1);
       const apiKeyReq = op.security.find((s) => 'ApiKey' in s);
-      const sessionReq = op.security.find((s) => 'SessionCookie' in s);
       expect(apiKeyReq?.ApiKey).toEqual(['READ_MEDIA']);
-      expect(sessionReq?.SessionCookie).toEqual([]);
     }
   });
 });

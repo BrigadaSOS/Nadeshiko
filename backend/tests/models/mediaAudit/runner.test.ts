@@ -113,7 +113,7 @@ describe('buildReports', () => {
       },
     ];
 
-    const reports = buildReports(enriched, 99, 'emptyEpisodes');
+    const reports = buildReports(enriched, 99, 'lowSegmentEpisodes');
 
     expect(reports).toHaveLength(1);
     expect(reports[0]).toMatchObject({
@@ -137,11 +137,11 @@ describe('buildReports', () => {
       },
     ];
 
-    const reports = buildReports(enriched, 1, 'badSegmentRatio');
+    const reports = buildReports(enriched, 1, 'missingEpisodes');
 
     expect(reports[0].targetType).toBe(ReportTargetType.EPISODE);
     expect(reports[0].targetEpisodeNumber).toBe(3);
-    expect(reports[0].reason).toBe(ReportReason.BAD_SEGMENT_RATIO);
+    expect(reports[0].reason).toBe(ReportReason.MISSING_EPISODES_AUTO);
   });
 
   it('falls back to OTHER for unknown audit names', () => {
@@ -172,7 +172,7 @@ describe('getPreviousRunData', () => {
     await media.save();
 
     const run = MediaAuditRun.create({
-      auditName: 'emptyEpisodes',
+      auditName: 'lowSegmentEpisodes',
       category: null,
       resultCount: 1,
       thresholdUsed: { minSegments: 10 },
@@ -190,7 +190,7 @@ describe('getPreviousRunData', () => {
     report.status = ReportStatus.PENDING;
     await report.save();
 
-    const result = await getPreviousRunData('emptyEpisodes');
+    const result = await getPreviousRunData('lowSegmentEpisodes');
 
     expect(result).toBeDefined();
     expect(result?.get(`${media.id}:3`)).toEqual({ segmentCount: 2 });
@@ -198,7 +198,7 @@ describe('getPreviousRunData', () => {
 
   it('filters by category when provided', async () => {
     const run1 = MediaAuditRun.create({
-      auditName: 'emptyEpisodes',
+      auditName: 'lowSegmentEpisodes',
       category: 'ANIME',
       resultCount: 0,
       thresholdUsed: {},
@@ -206,14 +206,14 @@ describe('getPreviousRunData', () => {
     await run1.save();
 
     const run2 = MediaAuditRun.create({
-      auditName: 'emptyEpisodes',
+      auditName: 'lowSegmentEpisodes',
       category: 'JDRAMA',
       resultCount: 0,
       thresholdUsed: {},
     });
     await run2.save();
 
-    const result = await getPreviousRunData('emptyEpisodes', 'JDRAMA');
+    const result = await getPreviousRunData('lowSegmentEpisodes', 'JDRAMA');
 
     expect(result).toBeDefined();
     expect(result?.size).toBe(0);
@@ -223,8 +223,8 @@ describe('getPreviousRunData', () => {
 describe('runAllAuditsWithDeps', () => {
   beforeEach(async () => {
     const audit = new MediaAudit();
-    audit.name = 'emptyEpisodes';
-    audit.label = 'Empty Episodes';
+    audit.name = 'lowSegmentEpisodes';
+    audit.label = 'Low Segment Episodes';
     audit.description = 'Episodes with segment count below threshold';
     audit.targetType = MediaAuditTargetType.EPISODE;
     audit.threshold = { minSegments: 10 };
@@ -237,16 +237,16 @@ describe('runAllAuditsWithDeps', () => {
     await media.save();
     await Episode.create({ mediaId: media.id, episodeNumber: 1, segmentCount: 2 }).save();
 
-    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'emptyEpisodes');
+    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'lowSegmentEpisodes');
 
     expect(result.checksRun).toHaveLength(1);
-    expect(result.checksRun[0].auditName).toBe('emptyEpisodes');
+    expect(result.checksRun[0].auditName).toBe('lowSegmentEpisodes');
     expect(result.checksRun[0].resultCount).toBe(1);
     expect(result.totalReports).toBe(1);
 
     const run = await MediaAuditRun.findOne({ where: { id: result.checksRun[0].runId } });
     expect(run).toBeDefined();
-    expect(run?.auditName).toBe('emptyEpisodes');
+    expect(run?.auditName).toBe('lowSegmentEpisodes');
     expect(run?.resultCount).toBe(1);
 
     const reports = await Report.find({ where: { auditRunId: run?.id } });
@@ -270,7 +270,11 @@ describe('runAllAuditsWithDeps', () => {
     await drama.save();
     await Episode.create({ mediaId: drama.id, episodeNumber: 1, segmentCount: 2 }).save();
 
-    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, CategoryType.JDRAMA, 'emptyEpisodes');
+    const result = await runAllAuditsWithDeps(
+      { dataSource: TestDataSource },
+      CategoryType.JDRAMA,
+      'lowSegmentEpisodes',
+    );
 
     expect(result.category).toBe(CategoryType.JDRAMA);
     expect(result.checksRun[0].resultCount).toBe(1);
@@ -291,7 +295,7 @@ describe('runAllAuditsWithDeps', () => {
     await media.save();
     await Episode.create({ mediaId: media.id, episodeNumber: 1, segmentCount: 100 }).save();
 
-    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'emptyEpisodes');
+    const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'lowSegmentEpisodes');
 
     expect(result.checksRun[0].resultCount).toBe(0);
     const run = await MediaAuditRun.findOne({ where: { id: result.checksRun[0].runId } });

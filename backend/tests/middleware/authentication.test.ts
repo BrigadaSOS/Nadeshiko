@@ -113,7 +113,7 @@ describe('requireApiKeyAuth — legacy keys', () => {
     const res = await request(app).get('/test').set('Authorization', `Bearer ${plainKey}`);
 
     expect(res.status).toBe(401);
-    expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_EXPIRED' });
+    expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });
   });
 
   it('returns 401 when no Authorization header is present', async () => {
@@ -141,7 +141,7 @@ describe('requireApiKeyAuth — better-auth keys', () => {
       valid: true,
       key: {
         id: 'ba-key-1',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA', 'ADD_MEDIA'] },
         metadata: null,
       },
@@ -163,7 +163,7 @@ describe('requireApiKeyAuth — better-auth keys', () => {
       valid: true,
       key: {
         id: 'ba-service-session',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: { keyType: 'service' },
       },
@@ -191,7 +191,7 @@ describe('requireApiKeyAuth — better-auth keys', () => {
       valid: true,
       key: {
         id: 'ba-user-session',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: { keyType: 'user' },
       },
@@ -258,7 +258,7 @@ describe('requireApiKeyAuth — better-auth keys', () => {
       valid: true,
       key: {
         id: 'ba-service-1',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: { keyType: 'service' },
       },
@@ -374,7 +374,7 @@ describe('requireApiKeyAuth — better-auth keys', () => {
       valid: true,
       key: {
         id: 'ba-str-meta',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: '{"keyType":"service"}',
       },
@@ -391,7 +391,7 @@ describe('requireApiKeyAuth — better-auth keys', () => {
       valid: true,
       key: {
         id: 'ba-isservice',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: { isService: true },
       },
@@ -545,7 +545,7 @@ describe('user cache — expiry', () => {
       valid: true,
       key: {
         id: 'ba-cache-ttl-1',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: null,
       },
@@ -564,7 +564,7 @@ describe('user cache — expiry', () => {
       valid: true,
       key: {
         id: 'ba-cache-ttl-2',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: null,
       },
@@ -591,7 +591,7 @@ describe('user cache — expiry', () => {
       valid: true,
       key: {
         id: 'ba-apicache-ttl-1',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: null,
       },
@@ -610,7 +610,7 @@ describe('user cache — expiry', () => {
       valid: true,
       key: {
         id: 'ba-apicache-ttl-1',
-        userId: String(fixtures.users.kevin.id),
+        referenceId: String(fixtures.users.kevin.id),
         permissions: { api: ['READ_MEDIA'] },
         metadata: null,
       },

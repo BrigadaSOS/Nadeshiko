@@ -32,11 +32,13 @@ afterEach(() => {
 async function createTestCollection(
   overrides: Partial<{ name: string; userId: number; visibility: CollectionVisibility }> = {},
 ) {
-  return Collection.save({
-    name: overrides.name ?? 'Test Collection',
-    userId: overrides.userId ?? core.users.kevin.id,
-    visibility: overrides.visibility ?? CollectionVisibility.PRIVATE,
-  });
+  return Collection.save(
+    Collection.create({
+      name: overrides.name ?? 'Test Collection',
+      userId: overrides.userId ?? core.users.kevin.id,
+      visibility: overrides.visibility ?? CollectionVisibility.PRIVATE,
+    }),
+  );
 }
 
 async function createTestSegment(mediaId: number, uuid: string): Promise<Segment> {
@@ -67,6 +69,7 @@ function toSearchResultSegment(segment: Segment, overrides: Partial<Record<strin
     uuid: segment.uuid,
     publicId: segment.publicId,
     mediaId: segment.mediaId,
+    mediaPublicId: `media-pub-${segment.mediaId}`,
     episode: segment.episode,
     position: segment.position,
     contentRating: segment.contentRating,
@@ -180,7 +183,7 @@ describe('GET /v1/collections/:id', () => {
   it('returns collection details with empty segments array when no segments', async () => {
     const collection = await createTestCollection();
 
-    const res = await request(app).get(`/v1/collections/${collection.id}`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: collection.id,
@@ -202,7 +205,7 @@ describe('GET /v1/collections/:id', () => {
     });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).get(`/v1/collections/${collection.id}`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(403);
   });
 
@@ -213,7 +216,7 @@ describe('GET /v1/collections/:id', () => {
     });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).get(`/v1/collections/${collection.id}`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: collection.id,
@@ -246,9 +249,9 @@ describe('GET /v1/collections/:id', () => {
       includes: { media: {} },
     });
 
-    const res = await request(app).get(`/v1/collections/${collection.id}`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(200);
-    expect(findByIdsSpy).toHaveBeenCalledWith([seg1.id, seg2.id]);
+    expect(findByIdsSpy).toHaveBeenCalledWith([seg1.id, seg2.id], expect.any(Object));
     expect(res.body.totalCount).toBe(2);
     expect(res.body.segments).toHaveLength(1);
     expect(res.body.segments[0]).toMatchObject({
@@ -266,7 +269,7 @@ describe('PATCH /v1/collections/:id', () => {
   it('updates collection name', async () => {
     const collection = await createTestCollection();
 
-    const res = await request(app).patch(`/v1/collections/${collection.id}`).send({ name: 'Renamed' });
+    const res = await request(app).patch(`/v1/collections/${collection.publicId}`).send({ name: 'Renamed' });
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Renamed');
   });
@@ -274,7 +277,7 @@ describe('PATCH /v1/collections/:id', () => {
   it('updates collection visibility', async () => {
     const collection = await createTestCollection();
 
-    const res = await request(app).patch(`/v1/collections/${collection.id}`).send({ visibility: 'PUBLIC' });
+    const res = await request(app).patch(`/v1/collections/${collection.publicId}`).send({ visibility: 'PUBLIC' });
     expect(res.status).toBe(200);
     expect(res.body.visibility).toBe('PUBLIC');
   });
@@ -283,7 +286,7 @@ describe('PATCH /v1/collections/:id', () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).patch(`/v1/collections/${collection.id}`).send({ name: 'Hacked' });
+    const res = await request(app).patch(`/v1/collections/${collection.publicId}`).send({ name: 'Hacked' });
     expect(res.status).toBe(403);
   });
 
@@ -301,7 +304,7 @@ describe('DELETE /v1/collections/:id', () => {
       () => Collection.countBy({ userId: core.users.kevin.id }),
       -1,
       async () => {
-        const res = await request(app).delete(`/v1/collections/${collection.id}`);
+        const res = await request(app).delete(`/v1/collections/${collection.publicId}`);
         expect(res.status).toBe(204);
       },
     );
@@ -311,7 +314,7 @@ describe('DELETE /v1/collections/:id', () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).delete(`/v1/collections/${collection.id}`);
+    const res = await request(app).delete(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(403);
   });
 
@@ -331,7 +334,7 @@ describe('POST /v1/collections/:id/segments', () => {
       1,
       async () => {
         const res = await request(app)
-          .post(`/v1/collections/${collection.id}/segments`)
+          .post(`/v1/collections/${collection.publicId}/segments`)
           .send({ segmentId: segment.publicId });
         expect(res.status).toBe(204);
       },
@@ -342,13 +345,13 @@ describe('POST /v1/collections/:id/segments', () => {
     const collection = await createTestCollection();
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-idem-1');
 
-    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentId: segment.publicId });
+    await request(app).post(`/v1/collections/${collection.publicId}/segments`).send({ segmentId: segment.publicId });
 
     await assertNoDifference(
       () => CollectionSegment.countBy({ collectionId: collection.id }),
       async () => {
         const res = await request(app)
-          .post(`/v1/collections/${collection.id}/segments`)
+          .post(`/v1/collections/${collection.publicId}/segments`)
           .send({ segmentId: segment.publicId });
         expect(res.status).toBe(204);
       },
@@ -360,8 +363,8 @@ describe('POST /v1/collections/:id/segments', () => {
     const seg1 = await createTestSegment(fixtures.media.testShow.id, 'seg-pos-1');
     const seg2 = await createTestSegment(fixtures.media.testShow.id, 'seg-pos-2');
 
-    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentId: seg1.publicId });
-    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentId: seg2.publicId });
+    await request(app).post(`/v1/collections/${collection.publicId}/segments`).send({ segmentId: seg1.publicId });
+    await request(app).post(`/v1/collections/${collection.publicId}/segments`).send({ segmentId: seg2.publicId });
 
     const items = await CollectionSegment.find({
       where: { collectionId: collection.id },
@@ -379,7 +382,7 @@ describe('POST /v1/collections/:id/segments', () => {
     signInAs(app, core.users.regular);
 
     const res = await request(app)
-      .post(`/v1/collections/${collection.id}/segments`)
+      .post(`/v1/collections/${collection.publicId}/segments`)
       .send({ segmentId: segment.publicId });
     expect(res.status).toBe(403);
   });
@@ -389,10 +392,10 @@ describe('PATCH /v1/collections/:id/segments/:segmentId', () => {
   it('updates position', async () => {
     const collection = await createTestCollection();
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-upd-1');
-    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentId: segment.publicId });
+    await request(app).post(`/v1/collections/${collection.publicId}/segments`).send({ segmentId: segment.publicId });
 
     const res = await request(app)
-      .patch(`/v1/collections/${collection.id}/segments/${segment.id}`)
+      .patch(`/v1/collections/${collection.publicId}/segments/${segment.id}`)
       .send({ position: 42 });
     expect(res.status).toBe(204);
 
@@ -404,16 +407,16 @@ describe('PATCH /v1/collections/:id/segments/:segmentId', () => {
     const collection = await createTestCollection();
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-note-1');
     await request(app)
-      .post(`/v1/collections/${collection.id}/segments`)
+      .post(`/v1/collections/${collection.publicId}/segments`)
       .send({ segmentId: segment.publicId, note: 'initial' });
 
     // Set note
-    await request(app).patch(`/v1/collections/${collection.id}/segments/${segment.id}`).send({ note: 'updated' });
+    await request(app).patch(`/v1/collections/${collection.publicId}/segments/${segment.id}`).send({ note: 'updated' });
     let item = await CollectionSegment.findOneByOrFail({ collectionId: collection.id, segmentId: segment.id });
     expect(item.note).toBe('updated');
 
     // Clear note
-    await request(app).patch(`/v1/collections/${collection.id}/segments/${segment.id}`).send({ note: null });
+    await request(app).patch(`/v1/collections/${collection.publicId}/segments/${segment.id}`).send({ note: null });
     item = await CollectionSegment.findOneByOrFail({ collectionId: collection.id, segmentId: segment.id });
     expect(item.note).toBeNull();
   });
@@ -431,7 +434,7 @@ describe('PATCH /v1/collections/:id/segments/:segmentId', () => {
     signInAs(app, core.users.regular);
 
     const res = await request(app)
-      .patch(`/v1/collections/${collection.id}/segments/${segment.id}`)
+      .patch(`/v1/collections/${collection.publicId}/segments/${segment.id}`)
       .send({ position: 99 });
     expect(res.status).toBe(403);
   });
@@ -441,13 +444,13 @@ describe('DELETE /v1/collections/:id/segments/:segmentId', () => {
   it('removes segment and returns 204', async () => {
     const collection = await createTestCollection();
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-rm-1');
-    await request(app).post(`/v1/collections/${collection.id}/segments`).send({ segmentId: segment.publicId });
+    await request(app).post(`/v1/collections/${collection.publicId}/segments`).send({ segmentId: segment.publicId });
 
     await assertDifference(
       () => CollectionSegment.countBy({ collectionId: collection.id }),
       -1,
       async () => {
-        const res = await request(app).delete(`/v1/collections/${collection.id}/segments/${segment.id}`);
+        const res = await request(app).delete(`/v1/collections/${collection.publicId}/segments/${segment.id}`);
         expect(res.status).toBe(204);
       },
     );
@@ -472,7 +475,7 @@ describe('DELETE /v1/collections/:id/segments/:segmentId', () => {
     });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).delete(`/v1/collections/${collection.id}/segments/${segment.id}`);
+    const res = await request(app).delete(`/v1/collections/${collection.publicId}/segments/${segment.id}`);
     expect(res.status).toBe(403);
   });
 });
@@ -481,7 +484,7 @@ describe('GET /v1/collections/:id/search', () => {
   it('returns empty results for collection with no segments', async () => {
     const collection = await createTestCollection();
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/search`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/search`);
     expect(res.status).toBe(200);
     expect(res.body.segments).toEqual([]);
     expect(res.body.includes).toEqual({ media: {} });
@@ -513,7 +516,7 @@ describe('GET /v1/collections/:id/search', () => {
       includes: { media: {} },
     });
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/search?take=10`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/search?take=10`);
     expect(res.status).toBe(200);
     expect(res.body.segments).toHaveLength(1);
     expect(res.body.segments[0]).toMatchObject({ uuid: seg2.uuid });
@@ -529,7 +532,7 @@ describe('GET /v1/collections/:id/search', () => {
     });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/search`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/search`);
     expect(res.status).toBe(403);
   });
 
@@ -540,7 +543,7 @@ describe('GET /v1/collections/:id/search', () => {
     });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/search`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/search`);
     expect(res.status).toBe(200);
     expect(res.body.segments).toEqual([]);
   });
@@ -550,7 +553,7 @@ describe('GET /v1/collections/:id/stats', () => {
   it('returns empty results for collection with no segments', async () => {
     const collection = await createTestCollection();
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/stats`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/stats`);
     expect(res.status).toBe(200);
     expect(res.body.media).toEqual([]);
     expect(res.body.categories).toEqual([]);
@@ -578,17 +581,25 @@ describe('GET /v1/collections/:id/stats', () => {
 
     spyOn(SegmentDocument, 'findByIds').mockResolvedValueOnce({
       segments: [
-        toSearchResultSegment(seg1, { mediaId: 101, episode: 1 }),
-        toSearchResultSegment(seg2, { mediaId: 101, episode: 2 }),
-        toSearchResultSegment(seg2, { id: 99999, uuid: 'seg-stats-extra', mediaId: 202, episode: 1 }),
+        toSearchResultSegment(seg1, { mediaId: 101, mediaPublicId: 'pub-101', episode: 1 }),
+        toSearchResultSegment(seg2, { mediaId: 101, mediaPublicId: 'pub-101', episode: 2 }),
+        toSearchResultSegment(seg2, {
+          id: 99999,
+          uuid: 'seg-stats-extra',
+          mediaId: 202,
+          mediaPublicId: 'pub-202',
+          episode: 1,
+        }),
       ],
       includes: { media: {} },
     });
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/stats`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/stats`);
     expect(res.status).toBe(200);
     expect(res.body.includes).toEqual({ media: {} });
-    expect(res.body.media).toEqual([{ mediaId: 101, publicId: '', matchCount: 2, episodeHits: { '1': 1, '2': 1 } }]);
+    expect(res.body.media).toEqual([
+      { mediaId: 101, publicId: 'pub-101', matchCount: 2, episodeHits: { '1': 1, '2': 1 } },
+    ]);
     expect(res.body.categories).toEqual([{ category: 'ANIME', count: 2 }]);
   });
 
@@ -599,7 +610,7 @@ describe('GET /v1/collections/:id/stats', () => {
     });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/stats`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/stats`);
     expect(res.status).toBe(403);
   });
 
@@ -610,7 +621,7 @@ describe('GET /v1/collections/:id/stats', () => {
     });
     signInAs(app, core.users.regular);
 
-    const res = await request(app).get(`/v1/collections/${collection.id}/stats`);
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/stats`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       media: [],

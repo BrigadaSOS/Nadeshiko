@@ -6,13 +6,8 @@ delete:
   summary: Purge failed jobs from a queue
   description: |
     Permanently deletes all failed jobs from a queue.
-    This does **not** re-sync the affected segments — use the reindex endpoint for that.
+    This does **not** re-sync the affected segments -- use the reindex endpoint for that.
 
-    **Use cases:**
-    - Clean up old failed jobs after investigating
-    - Reset a queue after fixing the underlying issue
-
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -26,7 +21,7 @@ delete:
       example: "es-sync-create"
   responses:
     "200":
-      description: Failed jobs purged successfully
+      description: OK
       content:
         application/json:
           schema:
@@ -49,7 +44,7 @@ delete:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

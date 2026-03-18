@@ -60,8 +60,10 @@ beforeEach(() => {
 
 describe('GET /v1/admin/media/audits', () => {
   it('returns registry audits with DB overrides and latest run metadata', async () => {
-    const configuredAudit = auditRegistry[0];
-    const unconfiguredAudit = auditRegistry[1];
+    const configuredAudit = auditRegistry.find((a) => a.thresholdSchema.length > 0);
+    if (!configuredAudit) throw new Error('Expected at least one audit with thresholds');
+    const unconfiguredAudit = auditRegistry.find((a) => a.name !== configuredAudit.name);
+    if (!unconfiguredAudit) throw new Error('Expected at least two distinct audits');
 
     const configuredDefaults = toThresholdDefaults(configuredAudit.thresholdSchema);
     const configuredKey = configuredAudit.thresholdSchema[0]?.key;
@@ -401,7 +403,7 @@ describe('GET /v1/admin/media/audits/runs/:id', () => {
       auditRunId: run.id,
       target: {
         type: 'MEDIA',
-        mediaId: 1001,
+        mediaId: '',
       },
     });
     expect(res.body.reports[1]).toMatchObject({
@@ -409,7 +411,7 @@ describe('GET /v1/admin/media/audits/runs/:id', () => {
       auditRunId: run.id,
       target: {
         type: 'EPISODE',
-        mediaId: 1001,
+        mediaId: '',
         episodeNumber: 3,
       },
     });

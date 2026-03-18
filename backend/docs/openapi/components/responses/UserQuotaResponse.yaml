@@ -14,11 +14,11 @@ properties:
   quotaLimit:
     type: integer
     description: Maximum number of API requests allowed in the current billing period.
-    example: 2500
+    example: 5000
   quotaRemaining:
     type: integer
     description: Number of API requests remaining in the current billing period.
-    example: 2158
+    example: 4658
   periodYyyymm:
     type: integer
     description: Current billing period in YYYYMM format.

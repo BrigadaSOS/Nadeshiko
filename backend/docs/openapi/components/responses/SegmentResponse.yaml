@@ -1,4 +1,4 @@
-description: Single segment response
+description: OK
 content:
   application/json:
     schema:

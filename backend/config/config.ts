@@ -38,8 +38,8 @@ const envSchema = z.object({
   EMAIL_API_NADEDB: requiredString,
   API_KEY_MASTER: requiredString,
 
-  API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(300000),
-  API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(2000),
+  API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
+  API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(150),
 
   ID_OAUTH_GOOGLE: optionalString,
   SECRET_OAUTH_GOOGLE: optionalString,
@@ -57,6 +57,8 @@ const envSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString,
   OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: optionalString,
   OTEL_SERVICE_NAME: optionalString,
+
+  DB_SLOW_QUERY_THRESHOLD_MS: z.coerce.number().int().nonnegative().default(200),
 
   LOG_LEVEL: optionalString,
   DB_LOG_LEVEL: optionalString,

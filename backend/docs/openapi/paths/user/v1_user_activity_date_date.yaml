@@ -7,7 +7,6 @@ delete:
   description: |
     Deletes all activity records for the authenticated user on the given date.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -31,6 +30,6 @@ delete:
               deletedCount:
                 type: integer
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

@@ -7,11 +7,6 @@ post:
   description: |
     Re-enqueues all failed jobs from a specific queue for another attempt.
 
-    **Use cases:**
-    - Retry jobs that failed due to temporary Elasticsearch issues
-    - Recover from network blips
-
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -25,7 +20,7 @@ post:
       example: "es-sync-create"
   responses:
     "200":
-      description: Jobs queued for retry
+      description: OK
       content:
         application/json:
           schema:
@@ -48,7 +43,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

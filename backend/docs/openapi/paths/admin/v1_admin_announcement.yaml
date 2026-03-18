@@ -3,7 +3,7 @@ get:
     - Admin
   x-internal: true
   operationId: getAnnouncement
-  summary: Get the current announcement
+  summary: Get current announcement
   description: |
     Returns the current announcement if one is active. Public endpoint (no auth required).
   responses:
@@ -37,7 +37,7 @@ put:
     - Admin
   x-internal: true
   operationId: updateAnnouncement
-  summary: Create or update the announcement
+  summary: Create or update announcement
   description: |
     Upserts the site-wide announcement. Only one announcement exists at a time.
   security:
@@ -63,7 +63,7 @@ put:
               type: boolean
   responses:
     "200":
-      description: Announcement updated
+      description: OK
       content:
         application/json:
           schema:
@@ -83,7 +83,7 @@ put:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

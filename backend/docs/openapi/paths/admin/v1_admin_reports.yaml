@@ -8,7 +8,6 @@ get:
     Returns all reports with filtering and cursor pagination.
     Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -71,7 +70,7 @@ get:
           schema:
             $ref: "../../components/responses/AdminReportListResponse.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

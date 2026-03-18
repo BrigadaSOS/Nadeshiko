@@ -1,17 +1,24 @@
 meta {
-  name: Get a specific audit run's details
+  name: Update media audit config
   type: http
-  seq: 77
+  seq: 74
 }
 
-get {
-  url: {{baseUrl}}/v1/admin/media/audits/runs/:id
-  body: none
+patch {
+  url: {{baseUrl}}/v1/admin/media/audits/:name
+  body: json
   auth: none
 }
 
 params:query {
-  id:
+  name:
+}
+
+body:json {
+  {
+    "threshold": {},
+    "enabled": false
+  }
 }
 
 settings {

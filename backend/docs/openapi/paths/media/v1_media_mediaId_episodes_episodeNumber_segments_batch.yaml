@@ -3,16 +3,13 @@ post:
     - Media
   operationId: createSegmentsBatch
   x-internal: true
-  summary: Batch create segments for an episode
+  summary: Batch create segments
   description: |
     Creates multiple segments for a specific episode in a single request.
     Duplicate UUIDs are silently skipped.
 
-    **Permissions:** `ADD_MEDIA`
-
   security:
     - ApiKey: [ADD_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -40,7 +37,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

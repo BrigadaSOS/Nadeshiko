@@ -65,7 +65,7 @@ export class User extends BaseEntity {
   @Column({ name: 'role', type: 'enum', enum: UserRoleType, default: UserRoleType.USER })
   role!: UserRoleType;
 
-  @Column({ name: 'monthly_quota_limit', type: 'int', default: 2500 })
+  @Column({ name: 'monthly_quota_limit', type: 'int', default: 5000 })
   monthlyQuotaLimit!: number;
 
   @Column({ type: 'jsonb', default: '{}' })

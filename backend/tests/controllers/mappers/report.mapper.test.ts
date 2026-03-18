@@ -41,12 +41,13 @@ describe('report.mapper', () => {
         targetEpisodeNumber: 3,
         targetSegmentId: 101,
       }) as any,
+      { mediaPublicId: 'pub-20', segmentPublicId: 'pub-101' },
     );
 
     expect(dto.target).toEqual({
       type: 'SEGMENT',
-      mediaId: 20,
-      segmentId: 101,
+      mediaId: 'pub-20',
+      segmentId: 'pub-101',
       episodeNumber: 3,
     });
   });
@@ -58,11 +59,12 @@ describe('report.mapper', () => {
         targetMediaId: 55,
         targetEpisodeNumber: 12,
       }) as any,
+      { mediaPublicId: 'pub-55' },
     );
 
     expect(dto.target).toEqual({
       type: 'EPISODE',
-      mediaId: 55,
+      mediaId: 'pub-55',
       episodeNumber: 12,
     });
   });
@@ -75,20 +77,23 @@ describe('report.mapper', () => {
           targetMediaId: 55,
           targetEpisodeNumber: null,
         }) as any,
+        { mediaPublicId: 'pub-55' },
       ),
     ).toThrow('missing targetEpisodeNumber');
   });
 
   it('maps MEDIA target via default branch', () => {
-    const dto = toReportDTO(buildReport({ targetType: ReportTargetType.MEDIA, targetMediaId: 99 }) as any);
+    const dto = toReportDTO(buildReport({ targetType: ReportTargetType.MEDIA, targetMediaId: 99 }) as any, {
+      mediaPublicId: 'pub-99',
+    });
     expect(dto.target).toEqual({
       type: 'MEDIA',
-      mediaId: 99,
+      mediaId: 'pub-99',
     });
   });
 
   it('maps admin report with reporter fallback', () => {
-    const dto = toAdminReportDTO(buildReport({ user: null }) as any, 4);
+    const dto = toAdminReportDTO(buildReport({ user: null }) as any, 4, { mediaPublicId: 'pub-10' });
     expect(dto.reportCount).toBe(4);
     expect(dto.reporterName).toBe('System');
   });
@@ -97,10 +102,11 @@ describe('report.mapper', () => {
     const attrs = toReportCreateAttributes({
       userId: 17,
       resolvedSegmentId: 123,
+      resolvedMediaId: 55,
       body: {
         target: {
           type: 'SEGMENT',
-          mediaId: 55,
+          mediaId: 'pub-55',
           episodeNumber: 7,
           segmentId: 'seg-123',
         },
@@ -126,10 +132,11 @@ describe('report.mapper', () => {
     const attrs = toReportCreateAttributes({
       userId: 18,
       resolvedSegmentId: null,
+      resolvedMediaId: 42,
       body: {
         target: {
           type: 'MEDIA',
-          mediaId: 42,
+          mediaId: 'pub-42',
         },
         reason: 'OTHER',
       },
@@ -181,7 +188,7 @@ describe('report.mapper', () => {
     const two = buildReport({ id: 2, targetType: ReportTargetType.MEDIA, targetMediaId: 77 }) as any;
     const countMap = new Map([[toReportTargetCountKey(one), 5]]);
 
-    const list = toAdminReportListDTO([one, two], countMap);
+    const list = toAdminReportListDTO([one, two], countMap, { media: new Map([[77, 'pub-77']]), segments: new Map() });
     expect(list).toHaveLength(2);
     expect(list[0].reportCount).toBe(5);
     expect(list[1].reportCount).toBe(5);

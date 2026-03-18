@@ -7,7 +7,6 @@ patch:
   description: |
     Updates the status (and optionally admin notes) of multiple reports at once.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   requestBody:
@@ -18,7 +17,7 @@ patch:
           $ref: "../../components/requestBodies/BatchUpdateReportsRequest.yaml"
   responses:
     "200":
-      description: Reports updated successfully
+      description: OK
       content:
         application/json:
           schema:
@@ -32,7 +31,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

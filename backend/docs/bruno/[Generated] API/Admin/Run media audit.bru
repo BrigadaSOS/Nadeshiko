@@ -1,21 +1,19 @@
 meta {
-  name: Create a new report
+  name: Run media audit
   type: http
-  seq: 36
+  seq: 75
 }
 
 post {
-  url: {{baseUrl}}/v1/user/reports
-  body: json
+  url: {{baseUrl}}/v1/admin/media/audits/:name/run?category=ANIME&category=JDRAMA
+  body: none
   auth: none
 }
 
-body:json {
-  {
-    "target": "",
-    "reason": "WRONG_TRANSLATION",
-    "description": "The translation doesn't match the spoken Japanese"
-  }
+params:query {
+  name:
+  category: ANIME
+  category: JDRAMA
 }
 
 settings {

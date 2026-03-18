@@ -6,11 +6,8 @@ get:
   description: |
     Returns a paginated list of media series groupings.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: take
       in: query
@@ -41,7 +38,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":
@@ -58,11 +55,8 @@ post:
   description: |
     Creates a new media series grouping.
 
-    **Permissions:** `ADD_MEDIA`
-
   security:
     - ApiKey: [ADD_MEDIA]
-    - SessionCookie: []
   requestBody:
     required: true
     content:
@@ -96,7 +90,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

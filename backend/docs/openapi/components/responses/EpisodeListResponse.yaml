@@ -1,4 +1,4 @@
-description: Paginated list of episodes
+description: OK
 content:
   application/json:
     schema:

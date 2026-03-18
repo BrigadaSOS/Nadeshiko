@@ -1,4 +1,4 @@
-description: Paginated segment list response with internal fields
+description: OK
 content:
   application/json:
     schema:
