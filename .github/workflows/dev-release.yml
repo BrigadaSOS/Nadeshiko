@@ -1,4 +1,4 @@
-name: Deploy Dev
+name: "[Dev] Release"
 
 on:
   push:
@@ -238,14 +238,14 @@ jobs:
           bun run docs:bundle
           test -f docs/generated/openapi.yaml
 
-      - name: Dispatch TypeScript SDK dev release
+      - name: Dispatch TypeScript SDK internal release
         env:
           GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
         run: |
           set -euo pipefail
           gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
             -f event_type='backend_release' \
-            -f client_payload[release_channel]="dev" \
+            -f client_payload[release_channel]="internal" \
             -f client_payload[backend_sha]="${GITHUB_SHA}"
 
   dispatch-sdk-python:
@@ -270,12 +270,12 @@ jobs:
           bun run docs:bundle
           test -f docs/generated/openapi.yaml
 
-      - name: Dispatch Python SDK dev release
+      - name: Dispatch Python SDK internal release
         env:
           GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
         run: |
           set -euo pipefail
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
-            -f client_payload[release_channel]="dev" \
+            -f client_payload[release_channel]="internal" \
             -f client_payload[backend_sha]="${GITHUB_SHA}"

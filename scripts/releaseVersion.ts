@@ -32,12 +32,6 @@ function normalizeVersion(value: unknown, label: string): string {
   return version;
 }
 
-function parseMajorMinor(version: string): string {
-  const match = version.match(/^(\d+\.\d+)\./);
-  if (!match) fail(`Could not parse major.minor from "${version}"`);
-  return match[1]!;
-}
-
 function readPackageJson(path: string, label: string): PackageJson {
   try {
     return JSON.parse(readFileSync(path, 'utf8')) as PackageJson;
@@ -113,43 +107,29 @@ function writeOpenApiVersion(version: string): string {
   return previous;
 }
 
-type SetScope = 'all' | 'backend' | 'frontend';
-
-function runSet(versionInput: unknown, scope: SetScope): void {
+function runSet(versionInput: unknown): void {
   const version = normalizeVersion(versionInput, 'target version');
 
-  if (scope === 'all' || scope === 'backend') {
-    const previousBackendVersion = writePackageVersion(
-      BACKEND_PACKAGE_JSON_PATH,
-      'backend/package.json',
-      version,
-    );
-    const previousOpenApiVersion = writeOpenApiVersion(version);
-    console.log(`backend/package.json: ${previousBackendVersion} -> ${version}`);
-    console.log(`backend/docs/openapi/openapi.yaml: ${previousOpenApiVersion} -> ${version}`);
-  }
+  const previousBackendVersion = writePackageVersion(
+    BACKEND_PACKAGE_JSON_PATH,
+    'backend/package.json',
+    version,
+  );
+  const previousOpenApiVersion = writeOpenApiVersion(version);
+  console.log(`backend/package.json: ${previousBackendVersion} -> ${version}`);
+  console.log(`backend/docs/openapi/openapi.yaml: ${previousOpenApiVersion} -> ${version}`);
 
-  if (scope === 'all' || scope === 'frontend') {
-    const previousFrontendVersion = writePackageVersion(
-      FRONTEND_PACKAGE_JSON_PATH,
-      'frontend/package.json',
-      version,
-    );
-    console.log(`frontend/package.json: ${previousFrontendVersion} -> ${version}`);
-  }
+  const previousFrontendVersion = writePackageVersion(
+    FRONTEND_PACKAGE_JSON_PATH,
+    'frontend/package.json',
+    version,
+  );
+  console.log(`frontend/package.json: ${previousFrontendVersion} -> ${version}`);
 
-  if (scope === 'all') {
-    console.log(`Next: git commit + git tag -a backend-v${version} -m "Backend v${version}"`);
-  } else if (scope === 'backend') {
-    console.log(`Next: git commit + git tag -a backend-v${version} -m "Backend v${version}"`);
-  } else {
-    console.log(`Next: git commit + git tag -a frontend-v${version} -m "Frontend v${version}"`);
-  }
+  console.log(`Next: commit + jj tag v${version} && jj git push --remote origin`);
 }
 
-type CheckScope = 'all' | 'backend' | 'frontend';
-
-function runCheck(expectedInput: unknown | undefined, scope: CheckScope): void {
+function runCheck(expectedInput: unknown | undefined): void {
   const expected =
     expectedInput == null || String(expectedInput).trim() === ''
       ? undefined
@@ -160,7 +140,6 @@ function runCheck(expectedInput: unknown | undefined, scope: CheckScope): void {
   const openApiVersion = readOpenApiVersion();
   const generatedOpenApiVersion = readGeneratedOpenApiVersion();
 
-  // OpenAPI source and generated versions must always match backend exactly
   if (openApiVersion !== backendVersion) {
     fail(
       `backend/docs/openapi/openapi.yaml info.version (${openApiVersion}) does not match backend/package.json (${backendVersion})`,
@@ -169,41 +148,10 @@ function runCheck(expectedInput: unknown | undefined, scope: CheckScope): void {
 
   if (generatedOpenApiVersion !== backendVersion) {
     fail(
-      `backend/docs/generated/openapi.yaml info.version (${generatedOpenApiVersion}) does not match backend/package.json (${backendVersion}) — run generate:all`,
+      `backend/docs/generated/openapi.yaml info.version (${generatedOpenApiVersion}) does not match backend/package.json (${backendVersion}) -- run generate:all`,
     );
   }
 
-  if (scope === 'backend') {
-    // --backend: check expected version matches backend exactly
-    if (expected && backendVersion !== expected) {
-      fail(`backend/package.json version (${backendVersion}) does not match expected version (${expected})`);
-    }
-    // Only enforce major.minor match with frontend
-    if (parseMajorMinor(frontendVersion) !== parseMajorMinor(backendVersion)) {
-      fail(
-        `frontend major.minor (${parseMajorMinor(frontendVersion)}) does not match backend major.minor (${parseMajorMinor(backendVersion)})`,
-      );
-    }
-    console.log(`Backend version check OK: ${backendVersion}`);
-    return;
-  }
-
-  if (scope === 'frontend') {
-    // --frontend: check expected version matches frontend exactly
-    if (expected && frontendVersion !== expected) {
-      fail(`frontend/package.json version (${frontendVersion}) does not match expected version (${expected})`);
-    }
-    // Only enforce major.minor match with backend
-    if (parseMajorMinor(frontendVersion) !== parseMajorMinor(backendVersion)) {
-      fail(
-        `frontend major.minor (${parseMajorMinor(frontendVersion)}) does not match backend major.minor (${parseMajorMinor(backendVersion)})`,
-      );
-    }
-    console.log(`Frontend version check OK: ${frontendVersion}`);
-    return;
-  }
-
-  // scope === 'all': enforce major.minor match, exact match for expected
   if (expected) {
     if (backendVersion !== expected) {
       fail(`backend/package.json version (${backendVersion}) does not match expected version (${expected})`);
@@ -213,33 +161,19 @@ function runCheck(expectedInput: unknown | undefined, scope: CheckScope): void {
     }
   }
 
-  if (parseMajorMinor(frontendVersion) !== parseMajorMinor(backendVersion)) {
+  if (backendVersion !== frontendVersion) {
     fail(
-      `frontend major.minor (${parseMajorMinor(frontendVersion)}) does not match backend major.minor (${parseMajorMinor(backendVersion)})`,
+      `backend version (${backendVersion}) does not match frontend version (${frontendVersion})`,
     );
   }
 
-  console.log(`Version check OK: backend=${backendVersion}, frontend=${frontendVersion}`);
-}
-
-function parseScope(args: string[]): SetScope {
-  if (args.includes('--backend')) return 'backend';
-  if (args.includes('--frontend')) return 'frontend';
-  return 'all';
-}
-
-function stripFlags(args: string[]): string[] {
-  return args.filter((a) => a !== '--backend' && a !== '--frontend');
+  console.log(`Version check OK: ${backendVersion}`);
 }
 
 function printUsage(): void {
-  console.log('Usage: bun run scripts/releaseVersion.ts <set|check> [version] [--backend|--frontend]');
-  console.log('  set <version>              Update all version targets');
-  console.log('  set <version> --backend    Update backend/package.json and OpenAPI spec only');
-  console.log('  set <version> --frontend   Update frontend/package.json only');
-  console.log('  check [version]            Validate major.minor match across all targets');
-  console.log('  check [version] --backend  Validate backend version matches expected');
-  console.log('  check [version] --frontend Validate frontend version matches expected');
+  console.log('Usage: bun run scripts/releaseVersion.ts <set|check> [version]');
+  console.log('  set <version>    Update all version targets (backend, frontend, OpenAPI)');
+  console.log('  check [version]  Validate all versions match');
 }
 
 function main(): void {
@@ -251,18 +185,15 @@ function main(): void {
     process.exit(command ? 0 : 1);
   }
 
-  const scope = parseScope(rawArgs);
-  const positionalArgs = stripFlags(rawArgs.slice(1));
-
   if (command === 'set') {
-    const version = positionalArgs[0];
-    if (!version) fail('Missing version. Usage: bun run scripts/releaseVersion.ts set <version> [--backend|--frontend]');
-    runSet(version, scope);
+    const version = rawArgs[1];
+    if (!version) fail('Missing version. Usage: bun run scripts/releaseVersion.ts set <version>');
+    runSet(version);
     return;
   }
 
   if (command === 'check') {
-    runCheck(positionalArgs[0], scope);
+    runCheck(rawArgs[1]);
     return;
   }
 
