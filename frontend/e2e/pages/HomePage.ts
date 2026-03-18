@@ -22,8 +22,11 @@ export class HomePage {
   }
 
   async search(query: string) {
+    await this.expectLoaded();
+    await this.page.waitForLoadState('networkidle');
+    await this.searchInput.click();
     await this.searchInput.fill(query);
-    await this.searchButton.click();
+    await this.searchInput.press('Enter');
     await this.page.waitForURL(/\/search\//, { timeout: 10_000 });
   }
 

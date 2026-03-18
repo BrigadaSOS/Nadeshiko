@@ -71,7 +71,7 @@ function printFinalSummary(): void {
   console.log('');
   console.log('Admin credentials:');
   console.log(`  Email:    ${config.EMAIL_API_NADEDB}`);
-  console.log(`  API Key:  ${config.API_KEY_MASTER}`);
+  console.log(`  API Key:  ${config.API_KEY_MASTER.slice(0, 8)}...`);
   console.log('');
   console.log(`API will be available at: http://localhost:${config.PORT}`);
   console.log('');
