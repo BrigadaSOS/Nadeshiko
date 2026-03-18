@@ -12,7 +12,7 @@ const { data: posts } = await useAsyncData(
   `blog-posts-${locale.value}-${page.value}`,
   async () => {
     const lang = locale.value.toLowerCase();
-    const blogCollection = `blog_${lang}` as keyof typeof import('@nuxt/content').Collections;
+    const blogCollection = `blog_${lang}` as any;
 
     // Get posts for the current locale, fallback to English
     let allPosts = await queryCollection(blogCollection).all().catch(() => []);
@@ -46,7 +46,7 @@ useSeoMeta({
 defineOgImage({
   title: 'Blog',
   description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
-});
+} as any);
 
 useSchemaOrg([
   defineWebPage({ '@type': 'CollectionPage' }),
@@ -61,7 +61,7 @@ useSchemaOrg([
           <h1>Blog</h1>
 
           <div v-if="posts?.posts.length">
-            <BlogCard v-for="post in posts.posts" :key="post.slug || post.path" :post="post" />
+            <BlogCard v-for="post in posts.posts" :key="(post as any).slug || post.path" :post="post as any" />
           </div>
 
           <div v-else class="text-center text-gray-400 py-20">

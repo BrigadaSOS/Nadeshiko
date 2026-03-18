@@ -48,6 +48,7 @@ export const toMediaCharacterDTO = (mediaCharacter: MediaCharacter): t_MediaChar
 
 export const toMediaAutocompleteDTO = (media: Media): t_MediaAutocompleteItem => ({
   id: media.id,
+  publicId: media.publicId,
   nameJa: media.nameJa,
   nameRomaji: media.nameRomaji,
   nameEn: media.nameEn,

@@ -22,7 +22,7 @@ export interface AnkiProfile {
 }
 
 export interface HiddenMediaItem {
-  mediaId: number;
+  mediaPublicId: string;
   nameEn?: string;
   nameJa?: string;
   nameRomaji?: string;

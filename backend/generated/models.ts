@@ -277,6 +277,7 @@ export type t_MediaAutocompleteItem = {
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
+  publicId: string;
 };
 
 export type t_MediaAutocompleteResponse = {
@@ -678,7 +679,7 @@ export type t_UserPreferences = {
     suggestive?: 'show' | 'blur' | 'hide';
   };
   hiddenMedia?: {
-    mediaId: number;
+    mediaPublicId: string;
     nameEn?: string;
     nameJa?: string;
     nameRomaji?: string;
@@ -1322,7 +1323,7 @@ export type t_UpdateUserPreferencesRequestBodySchema = {
     suggestive?: 'show' | 'blur' | 'hide';
   };
   hiddenMedia?: {
-    mediaId: number;
+    mediaPublicId: string;
     nameEn?: string;
     nameJa?: string;
     nameRomaji?: string;

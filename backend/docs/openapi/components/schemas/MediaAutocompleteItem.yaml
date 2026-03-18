@@ -2,6 +2,7 @@ type: object
 description: Slim media item returned by autocomplete (names + cover only)
 required:
   - id
+  - publicId
   - nameJa
   - nameRomaji
   - nameEn
@@ -12,6 +13,10 @@ properties:
     type: integer
     description: Unique identifier for the media
     example: 7674
+  publicId:
+    type: string
+    description: Public identifier for the media
+    example: "abc123xyz"
   nameJa:
     type: string
     description: Original Japanese name of the media

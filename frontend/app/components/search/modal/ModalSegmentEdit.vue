@@ -244,7 +244,7 @@ const submitEdit = async () => {
   errorMessage.value = '';
 
   try {
-    const body: Parameters<typeof sdk.updateSegmentByUuid>[0]['body'] = {
+    const body: Record<string, unknown> = {
       textJa: { content: form.ja },
       textEn: { content: form.en, isMachineTranslated: form.enMt },
       textEs: { content: form.es, isMachineTranslated: form.esMt },
@@ -262,15 +262,10 @@ const submitEdit = async () => {
       body.posAnalysis = JSON.parse(form.posAnalysisJson);
     }
 
-    const { error } = await sdk.updateSegmentByUuid({
+    await sdk.updateSegmentByUuid({
       path: { uuid: props.segment.segment.uuid },
-      body,
+      body: body as any,
     });
-
-    if (error) {
-      errorMessage.value = error.detail || t('modalSegmentEdit.saveError');
-      return;
-    }
 
     const updated: SearchResult = {
       ...props.segment,

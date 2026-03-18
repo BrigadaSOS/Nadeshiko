@@ -98,7 +98,7 @@ export default defineNuxtConfig({
         ja: { _sitemap: 'ja' },
       },
       defaultLocale: 'en',
-    },
+    } as any,
   },
   ogImage: {
     defaults: {

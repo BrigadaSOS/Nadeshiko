@@ -328,7 +328,7 @@ export const s_UserPreferences = z.object({
   hiddenMedia: z
     .array(
       z.object({
-        mediaId: z.coerce.number(),
+        mediaPublicId: z.string(),
         nameEn: z.string().optional(),
         nameJa: z.string().optional(),
         nameRomaji: z.string().optional(),
@@ -377,6 +377,7 @@ export const s_EpisodeListResponse = z.object({ episodes: z.array(s_Episode), pa
 
 export const s_MediaAutocompleteItem = z.object({
   id: z.coerce.number(),
+  publicId: z.string(),
   nameJa: z.string(),
   nameRomaji: z.string(),
   nameEn: z.string(),
