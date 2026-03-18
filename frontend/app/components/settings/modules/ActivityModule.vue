@@ -368,12 +368,12 @@ const HEATMAP_PALETTES: Record<string, readonly string[]> = {
   ],
 };
 
-const activePalette = computed(() => HEATMAP_PALETTES[heatmapFilter.value ?? 'default'] ?? HEATMAP_PALETTES.default!);
+const activePalette = computed(() => HEATMAP_PALETTES[heatmapFilter.value ?? 'default'] ?? HEATMAP_PALETTES.default);
 
 const heatCellClass = (count: number): string => {
   const palette = activePalette.value;
   const level = count <= 0 ? 0 : count <= 1 ? 1 : count <= 3 ? 2 : count <= 6 ? 3 : 4;
-  return palette[level] ?? palette[0]!;
+  return palette[level] ?? palette[0] ?? '';
 };
 
 type HeatmapDay = {

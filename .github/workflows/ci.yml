@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -20,6 +21,8 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+            frontend:
+              - 'frontend/**'
 
   backend:
     needs: changes
@@ -60,3 +63,25 @@ jobs:
 
       - name: Test
         run: cd backend && bun run test
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: cd frontend && bun install --frozen-lockfile
+
+      - name: Lint
+        run: cd frontend && bun run lint
+
+      - name: Typecheck
+        run: cd frontend && bun run typecheck

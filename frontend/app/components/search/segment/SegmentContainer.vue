@@ -98,14 +98,16 @@ const handleKeydown = (event: KeyboardEvent) => {
     case 'KeyA':
       if (focusedIndex.value !== null) {
         event.preventDefault();
-        openAnkiModal(resultList.value[focusedIndex.value]!);
+        const result = resultList.value[focusedIndex.value];
+        if (result) openAnkiModal(result);
       }
       break;
 
     case 'KeyC':
       if (focusedIndex.value !== null) {
         event.preventDefault();
-        openModal(resultList.value[focusedIndex.value]!);
+        const result = resultList.value[focusedIndex.value];
+        if (result) openModal(result);
       }
       break;
   }
@@ -200,7 +202,8 @@ const onEditSuccess = (updated: SearchResult) => {
   const list = resultList.value;
   const idx = list.findIndex((r) => r.segment.uuid === updated.segment.uuid);
   if (idx !== -1) {
-    list[idx]!.segment = { ...updated.segment };
+    const item = list[idx];
+    if (item) item.segment = { ...updated.segment };
   }
 };
 

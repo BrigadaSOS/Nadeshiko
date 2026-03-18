@@ -161,14 +161,14 @@ describe('empty and single-token inputs', () => {
     const tokens: SlimToken[] = [t({ s: '猫', d: '猫', r: 'ネコ', b: 0, e: 1, p: '名詞', p1: '普通名詞' })];
     const enriched = enrichTokens(tokens);
     expect(enriched).toHaveLength(1);
-    expect(enriched[0]!.groupId).toBeNull();
-    expect(enriched[0]!.displaySurface).toBe('猫');
+    expect(enriched[0]?.groupId).toBeNull();
+    expect(enriched[0]?.displaySurface).toBe('猫');
   });
 
   it('standalone verb has no group (single-token groups are suppressed)', () => {
     const tokens: SlimToken[] = [t({ s: '食べる', d: '食べる', r: 'タベル', b: 0, e: 3, p: '動詞', cf: '終止形-一般' })];
     const enriched = enrichTokens(tokens);
-    expect(enriched[0]!.groupId).toBeNull();
+    expect(enriched[0]?.groupId).toBeNull();
   });
 });
 
@@ -267,36 +267,36 @@ describe('particle exclusion', () => {
     const visible = getVisibleTokens(SHITENAI_TOKENS);
     const noToken = visible.find((t) => t.s === 'の');
     expect(noToken).toBeDefined();
-    expect(noToken!.groupId).toBeNull();
+    expect(noToken?.groupId).toBeNull();
   });
 
   it('does not group verb + が (格助詞)', () => {
     const visible = getVisibleTokens(SOROTTARA_TOKENS);
     const gaToken = visible.find((t) => t.s === 'が');
     expect(gaToken).toBeDefined();
-    expect(gaToken!.groupId).toBeNull();
+    expect(gaToken?.groupId).toBeNull();
   });
 
   it('does not group verb + の (終助詞) after ある', () => {
     const visible = getVisibleTokens(KIKITAI_TOKENS);
     const noToken = visible.find((t) => t.s === 'の');
     expect(noToken).toBeDefined();
-    expect(noToken!.groupId).toBeNull();
+    expect(noToken?.groupId).toBeNull();
   });
 
   it('does not group verb + から (接続助詞 but clausal)', () => {
     const visible = getVisibleTokens(SUMASETE_KITA_TOKENS);
     const karaToken = visible.find((t) => t.s === 'から');
     expect(karaToken).toBeDefined();
-    expect(karaToken!.groupId).toBeNull();
+    expect(karaToken?.groupId).toBeNull();
   });
 
   it('does not group じゃない as a verb group (copula + adjective)', () => {
     const enriched = enrichTokens(HIKKAKARE_TOKENS);
     const ja = enriched.find((t) => t.s === 'じゃ');
     const nai = enriched.find((t) => t.s === 'ない' && t.p === '形容詞');
-    expect(ja!.groupId).toBeNull();
-    expect(nai!.groupId).toBeNull();
+    expect(ja?.groupId).toBeNull();
+    expect(nai?.groupId).toBeNull();
   });
 });
 
@@ -305,24 +305,24 @@ describe('stem properties', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '待っていた');
     expect(stem).toBeDefined();
-    expect(stem!.dictForm).toBe('待つ');
-    expect(stem!.posJa).toBe('動詞');
-    expect(stem!.posEn).toBe('Verb');
+    expect(stem?.dictForm).toBe('待つ');
+    expect(stem?.posJa).toBe('動詞');
+    expect(stem?.posEn).toBe('Verb');
   });
 
   it('uses stem dictionary form for causative group', () => {
     const enriched = enrichTokens(SUMASETE_KITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '済ませてきた');
     expect(stem).toBeDefined();
-    expect(stem!.dictForm).toBe('済む');
+    expect(stem?.dictForm).toBe('済む');
   });
 
   it('uses adjective stem for adj + ない group', () => {
     const enriched = enrichTokens(TSURAKUNAI_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem);
     expect(stem).toBeDefined();
-    expect(stem!.dictForm).toBe('つらい');
-    expect(stem!.posJa).toBe('形容詞');
+    expect(stem?.dictForm).toBe('つらい');
+    expect(stem?.posJa).toBe('形容詞');
   });
 });
 
@@ -330,13 +330,13 @@ describe('searchText', () => {
   it('uses dictionary form for standalone tokens', () => {
     const enriched = enrichTokens(YAKETA_TOKENS);
     const frypan = enriched.find((t) => t.s === 'フライパン');
-    expect(frypan!.searchText).toBe('フライパン');
+    expect(frypan?.searchText).toBe('フライパン');
   });
 
   it('uses stem dictionary form for grouped tokens', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '待っていた');
-    expect(stem!.searchText).toBe('待つ');
+    expect(stem?.searchText).toBe('待つ');
   });
 });
 
@@ -345,14 +345,14 @@ describe('非自立可能 verb at sentence start acts as stem', () => {
     const enriched = enrichTokens(ITE_KURETA_TOKENS);
     const iru = enriched.find((t) => t.s === '居');
     expect(iru).toBeDefined();
-    expect(iru!.isGroupStem).toBe(true);
+    expect(iru?.isGroupStem).toBe(true);
   });
 
   it('いい as standalone (non-group) adjective still works', () => {
     const enriched = enrichTokens(SUMASETE_KITA_TOKENS);
     const ii = enriched.find((t) => t.s === 'いい');
     expect(ii).toBeDefined();
-    expect(ii!.groupId).toBeNull();
+    expect(ii?.groupId).toBeNull();
   });
 });
 
@@ -360,15 +360,15 @@ describe('posSubJa suppression', () => {
   it('suppresses 非自立可能 in sub-POS display for grouped stems', () => {
     const enriched = enrichTokens(ITE_KURETA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '居てくれた');
-    expect(stem!.posSubJa).toBe('');
-    expect(stem!.posSubEn).toBe('');
+    expect(stem?.posSubJa).toBe('');
+    expect(stem?.posSubEn).toBe('');
   });
 
   it('shows sub-POS for non-非自立可能 tokens', () => {
     const enriched = enrichTokens(KIKITAI_TOKENS);
     const kazama = enriched.find((t) => t.s === '風間');
-    expect(kazama!.posSubJa).toBe('固有名詞');
-    expect(kazama!.posSubEn).toBe('Proper Noun');
+    expect(kazama?.posSubJa).toBe('固有名詞');
+    expect(kazama?.posSubEn).toBe('Proper Noun');
   });
 });
 
@@ -378,9 +378,9 @@ describe('highlight matching', () => {
     const enriched = enrichTokens(YAKETA_TOKENS, highlight);
     const yaketa = enriched.filter((t) => t.displaySurface === '焼けた');
     const stem = yaketa.find((t) => t.isGroupStem);
-    expect(stem!.matchType).toBe('match');
+    expect(stem?.matchType).toBe('match');
     const aux = yaketa.find((t) => !t.isGroupStem);
-    expect(aux!.matchType).toBe('compound');
+    expect(aux?.matchType).toBe('compound');
   });
 
   it('marks all group tokens as compound when stem matches', () => {
@@ -388,7 +388,7 @@ describe('highlight matching', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS, highlight);
     const group = enriched.filter((t) => t.displaySurface === '待っていた');
     const stem = group.find((t) => t.isGroupStem);
-    expect(stem!.matchType).toBe('match');
+    expect(stem?.matchType).toBe('match');
     const nonStems = group.filter((t) => !t.isGroupStem);
     for (const t of nonStems) {
       expect(t.matchType).toBe('compound');
@@ -399,7 +399,7 @@ describe('highlight matching', () => {
     const highlight = '<em>焼け</em>たフライパンに卵をおとして';
     const enriched = enrichTokens(YAKETA_TOKENS, highlight);
     const frypan = enriched.find((t) => t.s === 'フライパン');
-    expect(frypan!.matchType).toBe('none');
+    expect(frypan?.matchType).toBe('none');
   });
 
   it('all tokens are none when no highlight provided', () => {
@@ -414,43 +414,43 @@ describe('conjugation class (p4)', () => {
   it('shows godan class for 五段 verb: 待つ', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '待っていた');
-    expect(stem!.conjClassJa).toBe('五段');
-    expect(stem!.conjClassEn).toBe('Godan');
+    expect(stem?.conjClassJa).toBe('五段');
+    expect(stem?.conjClassEn).toBe('Godan');
   });
 
   it('shows ichidan class for 下一段 verb: 焼ける', () => {
     const enriched = enrichTokens(YAKETA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '焼けた');
-    expect(stem!.conjClassJa).toBe('下一段');
-    expect(stem!.conjClassEn).toBe('Ichidan (-eru)');
+    expect(stem?.conjClassJa).toBe('下一段');
+    expect(stem?.conjClassEn).toBe('Ichidan (-eru)');
   });
 
   it('shows i-adjective class for 形容詞', () => {
     const enriched = enrichTokens(TSURAKUNAI_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem);
-    expect(stem!.conjClassJa).toBe('形容詞');
-    expect(stem!.conjClassEn).toBe('I-adjective');
+    expect(stem?.conjClassJa).toBe('形容詞');
+    expect(stem?.conjClassEn).toBe('I-adjective');
   });
 
   it('shows irregular class for サ行変格 (する)', () => {
     const enriched = enrichTokens(SHITENAI_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === 'してない');
-    expect(stem!.conjClassJa).toBe('サ行変格');
-    expect(stem!.conjClassEn).toBe('Irregular (する)');
+    expect(stem?.conjClassJa).toBe('サ行変格');
+    expect(stem?.conjClassEn).toBe('Irregular (する)');
   });
 
   it('shows irregular class for カ行変格 (くる) — uses stem p4', () => {
     const enriched = enrichTokens(SUMASETE_KITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '済ませてきた');
-    expect(stem!.conjClassJa).toBe('五段');
-    expect(stem!.conjClassEn).toBe('Godan');
+    expect(stem?.conjClassJa).toBe('五段');
+    expect(stem?.conjClassEn).toBe('Godan');
   });
 
   it('no conjugation class for nouns or particles', () => {
     const enriched = enrichTokens(YAKETA_TOKENS);
     const frypan = enriched.find((t) => t.s === 'フライパン');
-    expect(frypan!.conjClassJa).toBe('');
-    expect(frypan!.conjClassEn).toBe('');
+    expect(frypan?.conjClassJa).toBe('');
+    expect(frypan?.conjClassEn).toBe('');
   });
 });
 
@@ -458,15 +458,15 @@ describe('conjugation form for standalone tokens', () => {
   it('shows conjugation form for standalone adjective: 若き → 連体形', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS);
     const wakaki = enriched.find((t) => t.s === '若き');
-    expect(wakaki!.conjFormJa).toBe('連体形');
-    expect(wakaki!.conjFormEn).toBe('Attributive');
+    expect(wakaki?.conjFormJa).toBe('連体形');
+    expect(wakaki?.conjFormEn).toBe('Attributive');
   });
 
   it('does not show conjugation form for grouped tokens', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '待っていた');
-    expect(stem!.conjFormJa).toBe('');
-    expect(stem!.conjFormEn).toBe('');
+    expect(stem?.conjFormJa).toBe('');
+    expect(stem?.conjFormEn).toBe('');
   });
 });
 
@@ -486,24 +486,24 @@ describe('reading generation', () => {
   it('concatenates group readings in hiragana', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '待っていた');
-    expect(stem!.reading).toBe('まっていた');
+    expect(stem?.reading).toBe('まっていた');
   });
 
   it('converts katakana to hiragana for standalone tokens', () => {
     const enriched = enrichTokens(YAKETA_TOKENS);
     const frypan = enriched.find((t) => t.s === 'フライパン');
-    expect(frypan!.reading).toBe('ふらいぱん');
+    expect(frypan?.reading).toBe('ふらいぱん');
   });
 
   it('dictReading is empty for compound groups (cannot derive dict form reading from surface reading)', () => {
     const enriched = enrichTokens(MATTEITA_TOKENS);
     const stem = enriched.find((t) => t.isGroupStem && t.displaySurface === '待っていた');
-    expect(stem!.dictReading).toBe('');
+    expect(stem?.dictReading).toBe('');
   });
 
   it('dictReading equals token reading for standalone tokens', () => {
     const enriched = enrichTokens(YAKETA_TOKENS);
     const frypan = enriched.find((t) => t.s === 'フライパン');
-    expect(frypan!.dictReading).toBe('ふらいぱん');
+    expect(frypan?.dictReading).toBe('ふらいぱん');
   });
 });

@@ -248,8 +248,8 @@ const metaTags = computed(() => {
       { name: 'twitter:card', content: 'summary_large_image' },
     ];
   } else if (mediaQueryParam.value && (initialSentenceData.value?.results?.length ?? 0) > 0) {
-    const firstResult = initialSentenceData.value!.results[0]!;
-    const animeName = mediaName(firstResult.media);
+    const firstResult = initialSentenceData.value?.results[0];
+    const animeName = firstResult ? mediaName(firstResult.media) : '';
     const mediaStats = initialStatsData.value?.media?.find((s) => s.publicId === mediaQueryParam.value);
 
     const filterEpisode = episodeNumberParam.value;
