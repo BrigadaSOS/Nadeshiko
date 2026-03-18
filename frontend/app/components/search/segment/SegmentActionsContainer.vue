@@ -30,11 +30,6 @@ type Props = {
   hideContextButton?: boolean;
 };
 
-type CollectionListResponse = {
-  collections: { id: number; name: string; type: string; userId: number; visibility: string }[];
-  pagination: { hasMore: boolean; cursor: number | null };
-};
-
 type CollectionOption = {
   id: string;
   name: string;

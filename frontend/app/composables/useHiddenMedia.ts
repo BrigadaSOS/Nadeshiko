@@ -1,10 +1,9 @@
+import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import type { MediaFilterItem } from '~/types/search';
 
-export type HiddenMediaItem = {
-  mediaPublicId: string;
-  nameEn?: string;
-  nameJa?: string;
-  nameRomaji?: string;
+type SdkHiddenMediaItem = NonNullable<UserPreferences['hiddenMedia']>[number];
+
+export type HiddenMediaItem = SdkHiddenMediaItem & {
   hiddenAt: string;
 };
 
@@ -63,7 +62,9 @@ export function useHiddenMedia() {
     try {
       const sdk = useNadeshikoSdk();
       await sdk.updateUserPreferences({
-        body: { hiddenMedia: nextItems } as any,
+        body: {
+          hiddenMedia: nextItems.map(({ hiddenAt: _, ...rest }) => rest),
+        },
       });
     } catch {
       // Revert on failure by re-fetching would be ideal, but keep optimistic update for now

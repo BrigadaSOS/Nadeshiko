@@ -108,7 +108,7 @@ const typeOptions = [
           placeholder="Write an announcement message..."
           class="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-400 resize-none"
         />
-        <p class="text-xs text-gray-500 mt-1 text-right">{{ form.message.length }}/500</p>
+        <p class="text-xs text-gray-500 mt-1 text-right">{{ form.message?.length ?? 0 }}/500</p>
       </div>
 
       <div>
@@ -152,7 +152,7 @@ const typeOptions = [
         </button>
       </div>
 
-      <div v-if="form.message.trim()" class="mt-2">
+      <div v-if="form.message?.trim()" class="mt-2">
         <label class="block text-sm text-gray-300 mb-1">Preview</label>
         <div class="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
           <div class="flex items-center gap-2 mb-1.5">
@@ -170,7 +170,7 @@ const typeOptions = [
 
     <div class="mt-4 flex gap-3">
       <button
-        :disabled="saving || !hasChanges || !form.message.trim()"
+        :disabled="saving || !hasChanges || !form.message?.trim()"
         class="px-4 py-2 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         @click="save"
       >
