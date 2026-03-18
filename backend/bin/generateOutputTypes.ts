@@ -331,6 +331,7 @@ function main() {
   const routeFiles = fs
     .readdirSync(ROUTES_DIR)
     .filter((f) => f.endsWith('.ts'))
+    .sort()
     .map((f) => analyzeRouteFile(path.join(ROUTES_DIR, f)));
 
   const totalInlineSchemas = routeFiles.reduce((sum, rf) => sum + rf.inlineQuerySchemas.length, 0);
