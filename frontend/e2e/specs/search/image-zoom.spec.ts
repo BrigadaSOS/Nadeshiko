@@ -8,7 +8,7 @@ test.describe('Image zoom', () => {
     search = new SearchPage(page);
     await search.goto('彼女');
     await search.expectResultsVisible();
-    await page.waitForLoadState('networkidle');
+
   });
 
   test('clicking a segment image opens fullscreen overlay', async ({ page }) => {

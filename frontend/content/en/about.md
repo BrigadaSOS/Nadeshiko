@@ -86,6 +86,6 @@ For information regarding copyright and DMCA, please see our [DMCA Policy](/dmca
 If you wish to contact us either to leave a comment, suggestion, contribution, or anything else, you can do so via:
 
 - **Email**: contact@nadeshiko.co
-- **Discord**: [Brigada SOS!団](https://discord.gg/ajWm26ADEj)
+- **Discord**: [Nadeshiko](https://discord.gg/c6yGwbXruq)
 
 This website is under the AGPL-3.0 License.

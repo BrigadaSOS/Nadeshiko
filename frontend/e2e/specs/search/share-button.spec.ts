@@ -9,7 +9,7 @@ test.describe('Share button', () => {
     const search = new SearchPage(page);
     await search.goto('彼女');
     await search.expectResultsVisible();
-    await page.waitForLoadState('networkidle');
+
 
     const card = search.segmentCards.first();
     const shareButton = card.locator('button[title="Share"]');

@@ -23,5 +23,5 @@ definePageMeta({
 </script>
 
 <template>
-  <NuxtLayout />
+  <div />
 </template>

@@ -8,7 +8,7 @@ test.describe('Keyboard navigation', () => {
     search = new SearchPage(page);
     await search.goto('学校');
     await search.expectResultsVisible();
-    await page.waitForLoadState('networkidle');
+
     // Blur the search input so keyboard events reach the segment handler
     await search.searchInput.blur();
   });

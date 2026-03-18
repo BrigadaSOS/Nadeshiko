@@ -54,8 +54,7 @@ useSchemaOrg([
 </script>
 
 <template>
-  <NuxtLayout>
-    <div class="min-h-screen">
+  <div class="min-h-screen">
       <!-- Content -->
       <div class="mx-auto max-w-6xl px-4 pt-2 pb-8 sm:pt-3 sm:pb-12">
         <div class="content-markdown">
@@ -75,7 +74,6 @@ useSchemaOrg([
         </div>
       </div>
     </div>
-  </NuxtLayout>
 </template>
 
 <style scoped>

@@ -10,7 +10,7 @@ test.describe('Blog', () => {
 
   test('displays blog posts or empty state', async ({ page }) => {
     await page.goto('/blog');
-    await page.waitForLoadState('networkidle');
+
 
     const emptyState = page.getByText('No blog posts available yet');
     const postLink = page.locator('a[href^="/blog/"]');

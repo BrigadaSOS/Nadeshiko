@@ -7,13 +7,16 @@ const isBlogPost = computed(() => route.path.startsWith('/blog/'));
 
 async function fetchContent() {
   const lang = locale.value.toLowerCase();
-  const collection = (`content_${lang}`) as keyof typeof import('@nuxt/content').Collections;
+  const isBlog = route.path.startsWith('/blog/');
+  const collectionPrefix = isBlog ? 'blog' : 'content';
+  const collection = (`${collectionPrefix}_${lang}`) as keyof typeof import('@nuxt/content').Collections;
   try {
     return await queryCollection(collection).path(route.path).first();
   } catch {
     // Fallback to English
     if (lang !== 'en') {
-      return await queryCollection('content_en').path(route.path).first();
+      const fallback = (`${collectionPrefix}_en`) as keyof typeof import('@nuxt/content').Collections;
+      return await queryCollection(fallback).path(route.path).first();
     }
     return null;
   }
@@ -34,7 +37,10 @@ const description = computed(() => data.value?.description || '');
 const canonicalUrl = computed(() => new URL(route.path || '/', siteUrl).toString());
 const contentDate = computed(() => {
   const raw = (data.value as Record<string, unknown> | null)?.date;
-  return typeof raw === 'string' && raw ? raw : null;
+  if (!raw) return null;
+  if (typeof raw === 'string') return raw;
+  if (raw instanceof Date) return raw.toISOString();
+  return null;
 });
 const contentAuthor = computed(() => {
   const raw = (data.value as Record<string, unknown> | null)?.author;
@@ -90,10 +96,18 @@ defineOgImage({
 </script>
 
 <template>
-  <NuxtLayout>
-    <div class="min-h-screen">
+  <div class="min-h-screen">
       <div v-if="data" class="mx-auto max-w-6xl px-4 pt-2 pb-8 sm:pt-3 sm:pb-12">
-        <div class="content-markdown">
+        <div class="content-markdown" :class="{ 'is-blog-post': isBlogPost }">
+          <template v-if="isBlogPost">
+            <h1 class="blog-title">{{ title }}</h1>
+            <time v-if="contentDate" class="blog-date" :datetime="contentDate">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {{ new Date(contentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
+            </time>
+          </template>
           <ContentRenderer :value="data">
             <template #empty>
               <p class="text-gray-400">{{ $t('contentPage.emptyMessage') }}</p>
@@ -114,7 +128,6 @@ defineOgImage({
         </div>
       </div>
     </div>
-  </NuxtLayout>
 </template>
 
 <style scoped>
@@ -186,6 +199,48 @@ defineOgImage({
 
 .content-markdown :deep(h1:first-child) {
   margin-top: 0;
+}
+
+.content-markdown.is-blog-post :deep(h1:not(.blog-title)) {
+  display: none;
+}
+
+.content-markdown .blog-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #f3f4f6;
+  line-height: 1.2;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.content-markdown .blog-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 4px;
+  background: #f87171;
+  border-radius: 2px;
+}
+
+@media (min-width: 768px) {
+  .content-markdown .blog-title {
+    font-size: 2.75rem;
+  }
+}
+
+.content-markdown .blog-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #ef5552;
+  font-size: 0.875rem;
+  padding-left: 1rem;
+  margin-bottom: 0;
 }
 
 @media (min-width: 768px) {

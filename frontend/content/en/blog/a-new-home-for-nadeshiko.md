@@ -80,6 +80,6 @@ If you feel the same way and want to help keep Nadeshiko running, consider suppo
 
 In the following weeks, we will write more posts explaining the new features in more detail. If you wish to contact us to leave a comment, suggestion, bug report, or anything else, you can do so via:
 - **Email**: contact@nadeshiko.co
-- **Discord**: [Brigada SOS!団](https://discord.gg/ajWm26ADEj)
+- **Discord**: [Nadeshiko](https://discord.gg/c6yGwbXruq)
 
 Never stop studying!
