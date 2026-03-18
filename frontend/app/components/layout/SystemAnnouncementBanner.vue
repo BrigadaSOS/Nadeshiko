@@ -9,8 +9,11 @@ const sdk = useNadeshikoSdk();
 
 const { data: announcement } = await useAsyncData('system-announcement', async () => {
   try {
-    const { data } = await sdk.getAnnouncement();
-    return (data ?? null) as AnnouncementData | null;
+    const { data, response } = await sdk.getAnnouncement();
+    if (response.status === 204 || !data || typeof data !== 'object' || !('active' in data)) {
+      return null;
+    }
+    return { message: data.message, type: data.type, active: data.active } as AnnouncementData;
   } catch {
     return null;
   }
