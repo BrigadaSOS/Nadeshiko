@@ -183,6 +183,39 @@ jobs:
           cd frontend
           kamal deploy -d dev --skip-push
 
+  e2e:
+    needs: [deploy-backend, deploy-frontend]
+    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          cd frontend
+          npm install @playwright/test
+          npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: |
+          cd frontend
+          npx playwright test --config=e2e/playwright.config.ts
+        env:
+          E2E_BASE_URL: https://dev.nadeshiko.co
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-dev
+          path: frontend/playwright-report/
+          retention-days: 14
+
   dispatch-sdk-ts:
     needs: changes
     if: needs.changes.outputs.openapi == 'true'
