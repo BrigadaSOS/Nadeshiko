@@ -1,7 +1,6 @@
 # Nadeshiko
 
-[![Backend Release](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-release.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/backend-release.yml)
-[![Frontend Release](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-release.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/frontend-release.yml)
+[![Release](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/release.yml/badge.svg)](https://github.com/BrigadaSOS/Nadeshiko/actions/workflows/release.yml)
 [![npm](https://img.shields.io/npm/v/@brigadasos/nadeshiko-sdk)](https://www.npmjs.com/package/@brigadasos/nadeshiko-sdk)
 [![PyPI](https://img.shields.io/pypi/v/nadeshiko-sdk)](https://pypi.org/project/nadeshiko-sdk/)
 
