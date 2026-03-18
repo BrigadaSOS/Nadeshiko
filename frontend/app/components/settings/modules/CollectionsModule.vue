@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiPlus, mdiEyeOutline, mdiEyeOffOutline } from '@mdi/js';
-
-type Collection = {
-  id: number;
-  publicId: string;
-  name: string;
-  type: 'USER' | 'ANKI_EXPORT';
-  visibility: 'PUBLIC' | 'PRIVATE';
-  segmentCount: number;
-  createdAt: string;
-  updatedAt: string;
-};
+import type { Collection } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
 

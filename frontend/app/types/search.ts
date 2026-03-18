@@ -1,24 +1,14 @@
 export type {
   SearchFilters,
   MediaFilterItem,
-  Category,
-  ContentRating,
   Segment,
   Media,
-  PaginationInfo,
-  MediaSearchStats,
   CategoryCount,
-  WordMatch,
-  WordMatchMedia,
   SearchResponse as SdkSearchResponse,
   SearchStatsResponse as SdkSearchStatsResponse,
   SearchMultipleResponse as SdkSearchMultipleResponse,
   SegmentContextResponse as SdkSegmentContextResponse,
   MediaListResponse as SdkMediaListResponse,
-  MediaAutocompleteResponse as SdkMediaAutocompleteResponse,
-  SearchRequest as SdkSearchRequest,
-  SearchStatsRequest as SdkSearchStatsRequest,
-  SearchMultipleRequest as SdkSearchMultipleRequest,
 } from '@brigadasos/nadeshiko-sdk';
 
 import type { Media, Segment, MediaSearchStats, PaginationInfo, WordMatchMedia } from '@brigadasos/nadeshiko-sdk';
@@ -55,10 +45,6 @@ export type MediaBrowseResponse = {
   readonly media: Media[];
   readonly cursor?: string | null;
   readonly hasMore: boolean;
-};
-
-export type MediaAutocompleteResponse = {
-  readonly media: Media[];
 };
 
 export type SegmentContextResponse = {

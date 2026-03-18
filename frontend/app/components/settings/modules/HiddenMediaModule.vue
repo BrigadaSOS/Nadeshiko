@@ -1,18 +1,8 @@
 <script setup lang="ts">
 import { mdiClose, mdiMagnify } from '@mdi/js';
 
+import type { MediaAutocompleteItem } from '@brigadasos/nadeshiko-sdk';
 import type { HiddenMediaItem } from '~/composables/useHiddenMedia';
-import type { SdkMediaAutocompleteResponse } from '~/types/search';
-
-type AutocompleteItem = {
-  id: number;
-  publicId: string;
-  nameEn: string;
-  nameJa: string;
-  nameRomaji: string;
-  coverUrl: string;
-  category: string;
-};
 
 type NamedMedia = {
   publicId?: string;
@@ -28,7 +18,7 @@ const { mediaName, language } = useMediaName();
 const { items: hiddenItems, toggleHideMedia, isMediaHidden } = useHiddenMedia();
 
 const hiddenMediaSearchQuery = ref('');
-const hiddenMediaSearchResults = ref<AutocompleteItem[]>([]);
+const hiddenMediaSearchResults = ref<MediaAutocompleteItem[]>([]);
 const searchLoading = ref(false);
 let hiddenMediaSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -84,7 +74,7 @@ const searchMediaToHide = (query: string) => {
       searchLoading.value = true;
       try {
         const response = await sdk.autocompleteMedia({ query: { query: trimmedQuery, take: SEARCH_MAX_RESULTS } });
-        hiddenMediaSearchResults.value = (response.data as SdkMediaAutocompleteResponse)?.media as AutocompleteItem[] ?? [];
+        hiddenMediaSearchResults.value = response.data?.media ?? [];
       } catch {
         hiddenMediaSearchResults.value = [];
       } finally {
@@ -102,7 +92,7 @@ onBeforeUnmount(() => {
   }
 });
 
-const toggleFromResult = async (result: AutocompleteItem) => {
+const toggleFromResult = async (result: MediaAutocompleteItem) => {
   await toggleHideMedia({ publicId: result.publicId, nameEn: result.nameEn, nameJa: result.nameJa, nameRomaji: result.nameRomaji });
 };
 

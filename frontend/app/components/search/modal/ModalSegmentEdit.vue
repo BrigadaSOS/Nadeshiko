@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SearchResult, Segment } from '~/types/search';
-import type { SegmentRevision } from '@brigadasos/nadeshiko-sdk';
+import type { SegmentRevision, SegmentUpdateRequest } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
 
@@ -244,12 +244,12 @@ const submitEdit = async () => {
   errorMessage.value = '';
 
   try {
-    const body: Record<string, unknown> = {
+    const body: SegmentUpdateRequest = {
       textJa: { content: form.ja },
       textEn: { content: form.en, isMachineTranslated: form.enMt },
       textEs: { content: form.es, isMachineTranslated: form.esMt },
-      status: form.status,
-      contentRating: form.contentRating,
+      status: form.status as SegmentUpdateRequest['status'],
+      contentRating: form.contentRating as SegmentUpdateRequest['contentRating'],
       position: form.position,
       startTimeMs: form.startTimeMs,
       endTimeMs: form.endTimeMs,
@@ -264,7 +264,7 @@ const submitEdit = async () => {
 
     await sdk.updateSegmentByUuid({
       path: { uuid: props.segment.segment.uuid },
-      body: body as any,
+      body,
     });
 
     const updated: SearchResult = {
