@@ -119,7 +119,7 @@ const loadCollections = async () => {
     collectionsLoaded.value = true;
 
     if (lastCollection.value) {
-      const stillValid = items.some((c) => c.id === lastCollection.value!.id);
+      const stillValid = items.some((c) => c.id === lastCollection.value?.id);
       if (!stillValid) {
         lastCollection.value = null;
         localStorage.removeItem(LAST_COLLECTION_KEY);
@@ -127,8 +127,8 @@ const loadCollections = async () => {
     }
 
     if (!lastCollection.value && items.length > 0) {
-      const defaultItem = items[0]!;
-      lastCollection.value = { id: defaultItem.id, name: defaultItem.name };
+      const defaultItem = items[0];
+      if (defaultItem) lastCollection.value = { id: defaultItem.id, name: defaultItem.name };
     }
   } catch (error) {
     console.error('Failed to load collections:', error);

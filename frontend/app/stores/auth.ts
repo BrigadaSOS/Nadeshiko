@@ -216,7 +216,7 @@ export const userStore = defineStore('user', {
           credentials: 'include',
           body: {
             newEmail,
-            callbackURL: window.location.origin + '/settings',
+            callbackURL: `${window.location.origin}/settings`,
           },
         });
         return { success: true };

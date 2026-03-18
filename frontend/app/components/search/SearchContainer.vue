@@ -127,7 +127,7 @@ const animeTabName = computed(() => {
 
   const singleResult = searchData.value?.results;
   if (singleResult?.length === 1 && !query.value) {
-    return mediaName(singleResult[0]!.media);
+    return mediaName(singleResult[0]?.media);
   }
 
   return t('searchContainer.categoryAll');

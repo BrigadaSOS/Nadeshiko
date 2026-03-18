@@ -8,8 +8,6 @@ const optionalString = z
     return trimmed ? trimmed : undefined;
   });
 
-const requiredString = z.string().trim().min(1);
-
 const envSchema = z.object({
   NUXT_PUBLIC_ENVIRONMENT: z.enum(['local', 'dev', 'prod']).default('prod'),
   NUXT_BACKEND_INTERNAL_URL: z.string().trim().default(''),

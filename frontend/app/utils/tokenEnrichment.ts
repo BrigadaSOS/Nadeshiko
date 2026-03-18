@@ -92,7 +92,7 @@ export function hiraganaToRomaji(str: string): string {
   let result = '';
   let i = 0;
   while (i < str.length) {
-    const ch = str[i]!;
+    const ch = str[i];
 
     // Small tsu (っ) — double the next consonant
     if (ch === 'っ') {
@@ -288,7 +288,8 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
   let inGroup = false;
 
   for (let idx = 0; idx < tokens.length; idx++) {
-    const token = tokens[idx]!;
+    const token = tokens[idx];
+    if (!token) continue;
     const isAuxCapable = STEM_POS.has(token.p) && token.p1 === '非自立可能';
 
     if (STEM_POS.has(token.p) && !(inGroup && isAuxCapable)) {
@@ -304,7 +305,8 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
       });
     } else if (inGroup && canContinueGroup(token)) {
       groupByIndex.set(idx, groupId);
-      const g = groups.get(groupId)!;
+      const g = groups.get(groupId);
+      if (!g) continue;
       g.surface += token.s;
       g.size++;
       g.readingKata += token.r;
@@ -325,9 +327,9 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
     const isMultiTokenGroup = group !== undefined && group.size > 1;
     const stemToken = group ? tokens[group.stemIdx] : undefined;
 
-    let matchType: 'match' | 'compound' | 'none' = baseMatchTypes[idx]!;
-    if (matchType === 'none' && isMultiTokenGroup && group!.stemIdx !== idx) {
-      if (baseMatchTypes[group!.stemIdx] === 'match') {
+    let matchType: 'match' | 'compound' | 'none' = baseMatchTypes[idx] ?? 'none';
+    if (matchType === 'none' && isMultiTokenGroup && group?.stemIdx !== idx) {
+      if (baseMatchTypes[group?.stemIdx] === 'match') {
         matchType = 'compound';
       }
     }
@@ -345,18 +347,18 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
     const isConjugatable = token.p === '動詞' || token.p === '形容詞' || token.p === '助動詞';
     const conjFormJa = !isMultiTokenGroup && isConjugatable && cfBase ? cfBase : '';
 
-    const isGroupStem = isMultiTokenGroup && group!.stemIdx === idx;
+    const isGroupStem = isMultiTokenGroup && group?.stemIdx === idx;
 
     return {
       ...token,
       matchType,
       searchText: isMultiTokenGroup && stemToken ? stemToken.d : token.d,
-      groupId: isMultiTokenGroup ? gid! : null,
+      groupId: isMultiTokenGroup ? gid ?? null : null,
       isGroupStem,
-      displaySurface: isMultiTokenGroup ? group!.surface : token.s,
+      displaySurface: isMultiTokenGroup ? group?.surface : token.s,
       dictForm: isMultiTokenGroup && stemToken ? stemToken.d : token.d,
       reading: isMultiTokenGroup
-        ? katakanaToHiragana(group!.readingKata)
+        ? katakanaToHiragana(group?.readingKata)
         : katakanaToHiragana(token.r),
       dictReading: isMultiTokenGroup ? '' : katakanaToHiragana(token.r),
       posJa: posForLabel,
@@ -367,7 +369,7 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
       conjClassEn: conjClassJa ? (CONJ_CLASS_LABELS[conjClassJa] ?? '') : '',
       conjFormJa,
       conjFormEn: conjFormJa ? (CONJ_FORM_LABELS[conjFormJa] ?? '') : '',
-      auxMeanings: isMultiTokenGroup ? group!.auxMeanings : [],
+      auxMeanings: isMultiTokenGroup ? group?.auxMeanings : [],
     };
   });
 }

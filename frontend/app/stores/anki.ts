@@ -70,18 +70,6 @@ interface NotesInfoResponse {
   error: string;
 }
 
-interface CollectionResponse {
-  id: number;
-  publicId: string;
-  name: string;
-  type: string;
-}
-
-type CollectionListResponse = {
-  collections: CollectionResponse[];
-  pagination: { hasMore: boolean; cursor: number | null };
-};
-
 import type { SearchResult } from '~/types/search';
 import { defineStore } from 'pinia';
 import { userStore } from '@/stores/auth';
