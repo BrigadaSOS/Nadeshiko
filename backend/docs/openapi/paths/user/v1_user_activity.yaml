@@ -81,6 +81,7 @@ post:
                 - SEARCH
                 - SEGMENT_PLAY
                 - SHARE
+                - ANKI_EXPORT
             segmentId:
               type: string
             mediaId:

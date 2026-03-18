@@ -109,6 +109,7 @@
       "noSettings": "No se han encontrado ajustes. Por favor, vaya a la página de ajustes y configure la extensión.",
       "miningCard": "Minando la carta...",
       "noCardToExport": "No hay carta de Anki para exportar. Por favor, añada una carta primero.",
+      "cardFoundInOtherDeck": "Se encontro la carta pero no en el mazo \"{deck}\". Verifica que Yomitan y Nadeshiko usen el mismo mazo.",
       "cardAdded": "La tarjeta ha sido añadida en Anki exitosamente",
       "cardAddError": "No se ha podido añadir la tarjeta en Anki. Error: {error}"
     }
@@ -434,8 +435,11 @@
       "noFieldsFound": "No se han encontrado campos",
       "noFieldsMessage": "Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect",
       "serverAddressLabel": "AnkiConnect server address",
+      "openBrowserOnExport": "Abrir el navegador de Anki al exportar una carta",
       "profile": "Perfil",
       "newProfile": "Nuevo",
+      "renameProfile": "Renombrar",
+      "profileNamePlaceholder": "Nombre del perfil",
       "deleteProfile": "Eliminar",
       "saving": "Guardando..."
     }

@@ -636,7 +636,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
   });
 
   const trackUserActivityRequestBodySchema = z.object({
-    activityType: z.enum(['SEARCH', 'SEGMENT_PLAY', 'SHARE']),
+    activityType: z.enum(['SEARCH', 'SEGMENT_PLAY', 'SHARE', 'ANKI_EXPORT']),
     segmentId: z.string().optional(),
     mediaId: z.coerce.number().optional(),
     mediaName: z.string().optional(),

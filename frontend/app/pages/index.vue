@@ -83,7 +83,7 @@ const {
                                         <ul class="list-disc ml-8 py-4 text-sm font-normal">
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
-                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
+                                                <NuxtLink lang="ja" class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
                                                     to="/search/彼女">彼女</NuxtLink>
                                             </li>
                                             <li class="mb-4">
@@ -95,13 +95,13 @@ const {
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:
-                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
+                                                <NuxtLink lang="ja" class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
                                                     :to="`/search/${encodeURIComponent('卒業 -みんな')}`">卒業 -みんな</NuxtLink>
                                             </li>
                                             <li class="">
                                                 {{ $t('home.nadeDbDescriptionExactSearch') }}:
                                                 <NuxtLink :to='`/search/${encodeURIComponent(`"食べられない"`)}`'
-                                                    class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors">"食べられない"
+                                                    lang="ja" class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors">"食べられない"
                                                 </NuxtLink>
                                             </li>
                                         </ul>
@@ -299,7 +299,7 @@ const {
 
                                                         <div
                                                             class="mt-2 text-center justify-center flex flex-col items-center">
-                                                            <h3 class="text-sm text-center font-semibold line-clamp-2">
+                                                            <h3 lang="ja" class="text-sm text-center font-semibold line-clamp-2">
                                                                 {{ mediaName(media_info) }}
                                                             </h3>
                                                         </div>

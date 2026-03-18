@@ -246,7 +246,7 @@ const submitReport = async () => {
           <!-- Japanese text -->
           <div v-if="segment.segment.textJa.content" class="flex gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem] mt-0.5">{{ t('modalSegmentEdit.japanese') }}</span>
-            <span class="text-white text-sm leading-relaxed">{{ segment.segment.textJa.content }}</span>
+            <span lang="ja" class="text-white text-sm leading-relaxed">{{ segment.segment.textJa.content }}</span>
           </div>
           <!-- English text -->
           <div v-if="segment.segment.textEn.content" class="flex gap-2 text-neutral-300">

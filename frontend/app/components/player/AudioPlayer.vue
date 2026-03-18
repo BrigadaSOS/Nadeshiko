@@ -307,7 +307,7 @@ const getAnimeImage = (result: any) => {
                     <div class="relative z-20 w-full flex justify-between items-start p-6 md:p-8">
                         <div class="flex flex-col gap-1 opacity-80">
                             <span class="text-xs font-bold tracking-widest uppercase text-white/60">Now Playing</span>
-                            <span class="text-sm font-semibold truncate max-w-[180px]">{{
+                            <span lang="ja" class="text-sm font-semibold truncate max-w-[180px]">{{
                                 mediaName(currentResult.media) }}</span>
                         </div>
 
@@ -334,6 +334,7 @@ const getAnimeImage = (result: any) => {
                                     class="flex flex-col items-center justify-center w-full min-h-0 py-12 transition-all duration-500">
                                     <p v-for="(sentence, index) in playlist" :key="sentence.segment.uuid"
                                         :id="`sentence-${sentence.segment.uuid}`"
+                                        lang="ja"
                                         :class="getSentenceStyle(index).classes" :style="getSentenceStyle(index).style"
                                         v-html="getJapaneseContent(sentence)"
                                         class="text-center cursor-default select-none max-w-4xl mx-auto px-4">
@@ -417,9 +418,9 @@ const getAnimeImage = (result: any) => {
                             :alt="`Cover art for ${mediaName(currentResult.media)}`"
                             class="w-12 h-12 object-cover rounded-lg shadow-sm" />
                         <div class="flex-grow min-w-0">
-                            <p class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentResult)">
+                            <p lang="ja" class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentResult)">
                             </p>
-                            <p class="text-xs text-gray-400 truncate">{{ mediaName(currentResult.media) }}</p>
+                            <p lang="ja" class="text-xs text-gray-400 truncate">{{ mediaName(currentResult.media) }}</p>
                         </div>
                     </div>
 

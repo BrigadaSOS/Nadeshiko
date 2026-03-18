@@ -672,7 +672,7 @@ onMounted(async () => {
                 {{ activity.searchQuery }}
               </a>
               <a
-                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE') && activity.segmentId && (activity.mediaName || activity.japaneseText)"
+                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE' || activity.activityType === 'ANKI_EXPORT') && activity.segmentId && (activity.mediaName || activity.japaneseText)"
                 :href="`/sentence/${activity.segmentId}`"
                 class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
               >

@@ -173,6 +173,7 @@ const handleSelectNote = (noteId: number) => {
                   </div>
                 </div>
                 <input :value="inputVal" @input="handleInput"
+                  lang="ja"
                   autocomplete="off"
                   class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
                   :placeholder="$t('modalAnkiNotes.searchPlaceholder')"></input>
@@ -199,7 +200,7 @@ const handleSelectNote = (noteId: number) => {
                             class="w-2/12 py-4 whitespace-nowrap text-base text-center px-2 font-medium text-gray-800 dark:text-gray-200">
                             {{ note.noteId }}
                           </td>
-                          <td
+                          <td lang="ja"
                             class="w-2/12 py-4 whitespace-nowrap text-base text-center px-2 font-medium text-gray-800 dark:text-gray-200">
                             {{ note.value }}
                           </td>

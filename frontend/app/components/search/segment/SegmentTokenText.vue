@@ -81,7 +81,7 @@ const tooltipReading = computed(() => {
 </script>
 
 <template>
-  <span class="token-text">
+  <span lang="ja" class="token-text">
     <template v-for="token in enrichedTokens" :key="token.b">
       <span
         v-if="token.groupId === null || token.isGroupStem"
