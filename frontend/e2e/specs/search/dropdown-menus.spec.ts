@@ -8,7 +8,7 @@ test.describe('Dropdown menus', () => {
     search = new SearchPage(page);
     await search.goto('彼女');
     await search.expectResultsVisible();
-    await page.waitForLoadState('networkidle');
+
   });
 
   test('Save dropdown opens and shows items', async ({ page }) => {

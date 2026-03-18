@@ -85,6 +85,6 @@
 ご意見、ご提案、ご協力、またはその他のお問い合わせは、以下の方法でご連絡ください。
 
 - **メール**: contact@nadeshiko.co
-- **Discord**: [Brigada SOS!団](https://discord.gg/ajWm26ADEj)
+- **Discord**: [Nadeshiko](https://discord.gg/c6yGwbXruq)
 
 このサイトは AGPL-3.0 ライセンスの下にあります。

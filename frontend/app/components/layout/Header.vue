@@ -73,7 +73,7 @@ function openLoginModal() {
                     <hr class="border-none my-1">
                     <div class="gap-2 flex flex-col sm:flex-row">
                         <div class="flex items-center">
-                        <a href="https://discord.gg/ajWm26ADEj"
+                        <a href="https://discord.gg/c6yGwbXruq"
                             class="mx-2 hidden lg:flex text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                             target="_blank" aria-label="Discord">
                             <svg class="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg"

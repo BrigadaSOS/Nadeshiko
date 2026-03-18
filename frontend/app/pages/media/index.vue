@@ -272,8 +272,7 @@ watch([searchQuery, filterCategory], () => {
 </script>
 
 <template>
-  <NuxtLayout>
-    <div class="min-h-screen max-w-[92%] mx-auto lg:max-w-[80%]  py-6">
+  <div class="min-h-screen max-w-[92%] mx-auto lg:max-w-[80%]  py-6">
       <div class="inline-flex justify-between items-center w-full mb-6">
         <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">
           {{ $t('animeList.fullListTitle') }}
@@ -514,5 +513,4 @@ watch([searchQuery, filterCategory], () => {
         @delete:success="onDeleteSuccess"
       />
     </div>
-  </NuxtLayout>
 </template>

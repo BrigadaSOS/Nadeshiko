@@ -8,7 +8,7 @@ test.describe('Translation visibility', () => {
     search = new SearchPage(page);
     await search.goto('彼女');
     await search.expectResultsVisible();
-    await page.waitForLoadState('networkidle');
+
   });
 
   test('EN and ES toggle buttons are visible', async () => {
