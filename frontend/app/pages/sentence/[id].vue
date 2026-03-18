@@ -24,27 +24,28 @@ const fetchSentenceData = async () => {
   }
 };
 
-const { data: initialSentenceData } = await useAsyncData(
-  `sentence-${id.value}`,
-  () => fetchSentenceData(),
-  { server: true, lazy: false },
-);
+const { data: initialSentenceData } = await useAsyncData(`sentence-${id.value}`, () => fetchSentenceData(), {
+  server: true,
+  lazy: false,
+});
 
 const initialStatsData = computed<SearchStatsResponse | null>(() => {
   const result = initialSentenceData.value?.results?.[0];
   if (!result) return null;
   return {
-    media: [{
-      mediaId: result.media.id,
-      publicId: result.media.publicId,
-      matchCount: 1,
-      episodeHits: {},
-      nameRomaji: result.media.nameRomaji,
-      nameEn: result.media.nameEn,
-      nameJa: result.media.nameJa,
-      category: result.media.category,
-      airingFormat: result.media.airingFormat,
-    }],
+    media: [
+      {
+        mediaId: result.media.id,
+        publicId: result.media.publicId,
+        matchCount: 1,
+        episodeHits: {},
+        nameRomaji: result.media.nameRomaji,
+        nameEn: result.media.nameEn,
+        nameJa: result.media.nameJa,
+        category: result.media.category,
+        airingFormat: result.media.airingFormat,
+      },
+    ],
     categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1 }],
   };
 });

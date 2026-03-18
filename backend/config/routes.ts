@@ -14,6 +14,14 @@ import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInva
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminHealth, getAdminDashboard, triggerReindex } from '@app/controllers/adminController';
 import {
+  getAdminDashboardOverview,
+  getAdminDashboardMedia,
+  getAdminDashboardActivity,
+  getAdminDashboardCollections,
+  getAdminDashboardApiKeys,
+  getAdminDashboardSystem,
+} from '@app/controllers/adminDashboardController';
+import {
   listAdminQueueStats,
   getAdminQueue,
   retryAdminQueueFailed,
@@ -166,6 +174,12 @@ const CollectionsRoutes = createCollectionsRouter({
 
 const AdminRoutes = createAdminRouter({
   getAdminDashboard,
+  getAdminDashboardOverview,
+  getAdminDashboardMedia,
+  getAdminDashboardActivity,
+  getAdminDashboardCollections,
+  getAdminDashboardApiKeys,
+  getAdminDashboardSystem,
   getAdminHealth,
   triggerReindex,
   listAdminQueueStats,

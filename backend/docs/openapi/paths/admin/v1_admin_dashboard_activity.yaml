@@ -1,0 +1,100 @@
+get:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: getAdminDashboardActivity
+  summary: Get activity analytics
+  description: |
+    Returns time-series activity data by type, top searches, export trends,
+    and most exported media.
+
+  security:
+    - SessionCookie: [ADMIN]
+  parameters:
+    - name: days
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Number of days for activity range (7, 30, or 90)
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - dailyActivityByType
+              - topSearches
+              - dailyExports
+              - topExportedMedia
+            properties:
+              dailyActivityByType:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - date
+                    - search
+                    - ankiExport
+                    - segmentPlay
+                    - share
+                  properties:
+                    date:
+                      type: string
+                    search:
+                      type: integer
+                    ankiExport:
+                      type: integer
+                    segmentPlay:
+                      type: integer
+                    share:
+                      type: integer
+              topSearches:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - query
+                    - count
+                  properties:
+                    query:
+                      type: string
+                    count:
+                      type: integer
+              dailyExports:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - date
+                    - count
+                  properties:
+                    date:
+                      type: string
+                    count:
+                      type: integer
+              topExportedMedia:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - mediaId
+                    - mediaName
+                    - count
+                  properties:
+                    mediaId:
+                      type: integer
+                    mediaName:
+                      type: string
+                    count:
+                      type: integer
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

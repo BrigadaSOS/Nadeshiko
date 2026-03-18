@@ -11,7 +11,7 @@ import packageJson from '../../package.json';
 
 const API_VERSION = packageJson.version;
 
-type ElasticsearchHealth = {
+export type ElasticsearchHealth = {
   status: 'connected' | 'disconnected';
   version: string | null;
   clusterName: string | null;
@@ -20,7 +20,7 @@ type ElasticsearchHealth = {
   documentCount: number | null;
 };
 
-type DatabaseHealth = {
+export type DatabaseHealth = {
   status: 'connected' | 'disconnected';
   version: string | null;
 };
@@ -68,7 +68,7 @@ export const triggerReindex: TriggerReindex = async ({ body }, respond) => {
   return respond.with200().body(result);
 };
 
-function resolveSystemStatus(esHealth: ElasticsearchHealth, dbHealth: DatabaseHealth): 'healthy' | 'degraded' {
+export function resolveSystemStatus(esHealth: ElasticsearchHealth, dbHealth: DatabaseHealth): 'healthy' | 'degraded' {
   return esHealth.status === 'connected' && dbHealth.status === 'connected' ? 'healthy' : 'degraded';
 }
 
@@ -79,7 +79,7 @@ function toReindexMediaItems(body: t_TriggerReindexRequestBodySchema | undefined
   }));
 }
 
-async function checkElasticsearch(): Promise<ElasticsearchHealth> {
+export async function checkElasticsearch(): Promise<ElasticsearchHealth> {
   try {
     const [info, health, count] = await Promise.all([
       esClient.info(),
@@ -107,7 +107,7 @@ async function checkElasticsearch(): Promise<ElasticsearchHealth> {
   }
 }
 
-async function checkDatabase(): Promise<DatabaseHealth> {
+export async function checkDatabase(): Promise<DatabaseHealth> {
   try {
     const result = await AppDataSource.query('SELECT version()');
 
@@ -166,7 +166,7 @@ async function getUserStats() {
   };
 }
 
-async function queryCount(sql: string): Promise<number> {
+export async function queryCount(sql: string): Promise<number> {
   const result = await AppDataSource.query(sql);
   const count = Number(result[0]?.count ?? 0);
   return Number.isFinite(count) ? count : 0;
@@ -220,7 +220,10 @@ async function getActivityStats() {
   };
 }
 
-function fillDailyRange(days: number, countsByDate: Map<string, number>): Array<{ date: string; count: number }> {
+export function fillDailyRange(
+  days: number,
+  countsByDate: Map<string, number>,
+): Array<{ date: string; count: number }> {
   const result: Array<{ date: string; count: number }> = [];
   const today = new Date();
 

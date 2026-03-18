@@ -93,9 +93,8 @@ const searchData = computed(() => {
   const allMedia = statsPayload?.media || ([] as ResolvedMediaStats[]);
   const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.publicId)) : allMedia;
 
-  const categories = hidden.size > 0
-    ? recomputeCategories(filteredMedia)
-    : statsPayload?.categories || ([] as ResolvedCategoryCount[]);
+  const categories =
+    hidden.size > 0 ? recomputeCategories(filteredMedia) : statsPayload?.categories || ([] as ResolvedCategoryCount[]);
 
   return {
     results: sentencePayload?.results || [],
@@ -302,7 +301,13 @@ const fetchSentences = async () => {
       });
       response = data ? resolveSearchResponse(data) : null;
 
-      if (isInitialSearch && query.value && query.value !== lastTrackedQuery.value && import.meta.client && userStore().isLoggedIn) {
+      if (
+        isInitialSearch &&
+        query.value &&
+        query.value !== lastTrackedQuery.value &&
+        import.meta.client &&
+        userStore().isLoggedIn
+      ) {
         lastTrackedQuery.value = query.value;
         sdk.trackUserActivity({ body: { activityType: 'SEARCH', searchQuery: query.value } }).catch(() => {});
       }

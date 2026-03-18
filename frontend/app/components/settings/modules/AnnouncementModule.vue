@@ -14,16 +14,20 @@ const form = reactive<AnnouncementData>({
   active: false,
 });
 
-const { data: existing } = await useAsyncData('settings-admin-announcement', async () => {
-  try {
-    const { data } = await sdk.getAnnouncement();
-    return (data ?? null) as AnnouncementData | null;
-  } catch {
-    return null;
-  }
-}, {
-  default: () => null,
-});
+const { data: existing } = await useAsyncData(
+  'settings-admin-announcement',
+  async () => {
+    try {
+      const { data } = await sdk.getAnnouncement();
+      return (data ?? null) as AnnouncementData | null;
+    } catch {
+      return null;
+    }
+  },
+  {
+    default: () => null,
+  },
+);
 
 if (existing.value) {
   form.message = existing.value.message;
@@ -86,8 +90,6 @@ const typeOptions = [
   { value: 'warning', label: 'Warning', color: 'bg-amber-500' },
   { value: 'maintenance', label: 'Maintenance', color: 'bg-blue-500' },
 ] as const;
-
-
 </script>
 
 <template>

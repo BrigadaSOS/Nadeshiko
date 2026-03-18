@@ -93,11 +93,21 @@ onBeforeUnmount(() => {
 });
 
 const toggleFromResult = async (result: MediaAutocompleteItem) => {
-  await toggleHideMedia({ publicId: result.publicId, nameEn: result.nameEn, nameJa: result.nameJa, nameRomaji: result.nameRomaji });
+  await toggleHideMedia({
+    publicId: result.publicId,
+    nameEn: result.nameEn,
+    nameJa: result.nameJa,
+    nameRomaji: result.nameRomaji,
+  });
 };
 
 const unhide = async (item: HiddenMediaItem) => {
-  await toggleHideMedia({ publicId: item.mediaPublicId, nameEn: item.nameEn, nameJa: item.nameJa, nameRomaji: item.nameRomaji });
+  await toggleHideMedia({
+    publicId: item.mediaPublicId,
+    nameEn: item.nameEn,
+    nameJa: item.nameJa,
+    nameRomaji: item.nameRomaji,
+  });
 };
 </script>
 

@@ -16,9 +16,7 @@ defineOgImage({
   description: 'Browse anime, J-dramas, and audiobooks available on Nadeshiko.',
 });
 
-useSchemaOrg([
-  defineWebPage({ '@type': 'CollectionPage' }),
-]);
+useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 
 const sdk = useNadeshikoSdk();
 const router = useRouter();

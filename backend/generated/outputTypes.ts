@@ -94,6 +94,12 @@ export type SeriesWithMediaOutput = z.output<typeof schemas.s_SeriesWithMedia>;
 // Inline query schemas and their output types
 // ============================================
 
+export const getAdminDashboardOverviewQuerySchema = z.object({ days: z.string().optional() });
+export type GetAdminDashboardOverviewQueryOutput = z.output<typeof getAdminDashboardOverviewQuerySchema>;
+
+export const getAdminDashboardActivityQuerySchema = z.object({ days: z.string().optional() });
+export type GetAdminDashboardActivityQueryOutput = z.output<typeof getAdminDashboardActivityQuerySchema>;
+
 export const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),

@@ -20,4 +20,3 @@ const envSchema = z.object({
 });
 
 export const env: Readonly<z.infer<typeof envSchema>> = Object.freeze(envSchema.parse(process.env));
-

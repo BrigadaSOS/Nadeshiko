@@ -104,12 +104,7 @@ export default defineNuxtConfig({
     defaults: {
       component: 'OgImageDefault',
     },
-    fonts: [
-      'Space+Grotesk:400',
-      'Space+Grotesk:700',
-      'Noto+Sans+JP:400',
-      'Noto+Sans+JP:700',
-    ],
+    fonts: ['Space+Grotesk:400', 'Space+Grotesk:700', 'Noto+Sans+JP:400', 'Noto+Sans+JP:700'],
   },
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',

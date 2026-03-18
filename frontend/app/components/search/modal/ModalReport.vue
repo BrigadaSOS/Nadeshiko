@@ -106,9 +106,10 @@ const submitReport = async () => {
 
   try {
     const sdk = useNadeshikoSdk();
-    const target = tab.value === 'SEGMENT' && props.target?.type === 'SEGMENT'
-      ? props.target
-      : { type: 'MEDIA' as const, mediaId: props.target?.mediaId };
+    const target =
+      tab.value === 'SEGMENT' && props.target?.type === 'SEGMENT'
+        ? props.target
+        : { type: 'MEDIA' as const, mediaId: props.target?.mediaId };
     await sdk.createUserReport({
       body: {
         target,

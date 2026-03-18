@@ -216,7 +216,6 @@ const route = useRoute();
 const labsStore = useLabsStore();
 const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
 
-
 const handleTokenSearch = (dictionaryForm: string) => {
   router.push({ path: `/search/${encodeURIComponent(dictionaryForm)}` });
 };
