@@ -292,8 +292,8 @@ const fetchSentences = async () => {
           query: query.value ? { search: query.value } : undefined,
           take: 30,
           sort:
-            sort.value && sort.value !== 'NONE'
-              ? { mode: sort.value as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
+            sort.value && sort.value.toUpperCase() !== 'NONE'
+              ? { mode: sort.value.toUpperCase() as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
               : undefined,
           cursor: cursor.value || undefined,
           filters,

@@ -122,7 +122,7 @@ export type t_Error400 = {
 };
 
 export type t_Error401 = {
-  code: 'AUTH_CREDENTIALS_REQUIRED' | 'AUTH_CREDENTIALS_INVALID' | 'AUTH_CREDENTIALS_EXPIRED' | 'EMAIL_NOT_VERIFIED';
+  code: 'AUTH_CREDENTIALS_REQUIRED' | 'AUTH_CREDENTIALS_INVALID' | 'AUTH_CREDENTIALS_EXPIRED';
   detail: string;
   errors?: {
     [key: string]: string | undefined;

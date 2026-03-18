@@ -77,7 +77,7 @@ describe('GET /v1/user/export', () => {
     await UserActivity.save({
       userId: fixtures.users.kevin.id,
       activityType: ActivityType.ANKI_EXPORT,
-      segmentId: 999,
+      segmentId: '999',
     });
 
     const res = await request(app).get('/v1/user/export');
@@ -85,7 +85,7 @@ describe('GET /v1/user/export', () => {
     expect(res.status).toBe(200);
     expect(res.body.activity).toEqualUnordered([
       expect.objectContaining({ activityType: 'SEARCH', searchQuery: '猫' }),
-      expect.objectContaining({ activityType: 'ANKI_EXPORT', segmentId: 999 }),
+      expect.objectContaining({ activityType: 'ANKI_EXPORT', segmentId: '999' }),
     ]);
   });
 
@@ -94,11 +94,13 @@ describe('GET /v1/user/export', () => {
     const media = mediaFixtures.media.testShow;
     const segA = await createTestSegment(media.id);
     const segB = await createTestSegment(media.id);
-    const collection = await Collection.save({
-      name: 'My Favorites',
-      userId: fixtures.users.kevin.id,
-      visibility: CollectionVisibility.PRIVATE,
-    });
+    const collection = await Collection.save(
+      Collection.create({
+        name: 'My Favorites',
+        userId: fixtures.users.kevin.id,
+        visibility: CollectionVisibility.PRIVATE,
+      }),
+    );
 
     await CollectionSegment.save({
       collectionId: collection.id,
@@ -141,7 +143,7 @@ describe('GET /v1/user/export', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      reports: [{ reason: 'WRONG_METADATA', target: { type: 'MEDIA', mediaId: media.id } }],
+      reports: [{ reason: 'WRONG_METADATA', target: { type: 'MEDIA', mediaId: media.publicId } }],
     });
     expect(res.body.reports).toHaveLength(1);
   });
@@ -208,11 +210,13 @@ describe('GET /v1/user/export', () => {
       activityType: ActivityType.SEARCH,
       searchQuery: 'david search',
     });
-    await Collection.save({
-      name: 'David Collection',
-      userId: fixtures.users.david.id,
-      visibility: CollectionVisibility.PRIVATE,
-    });
+    await Collection.save(
+      Collection.create({
+        name: 'David Collection',
+        userId: fixtures.users.david.id,
+        visibility: CollectionVisibility.PRIVATE,
+      }),
+    );
     const mediaFixtures = await loadFixtures(['singleMedia']);
     const media = mediaFixtures.media.testShow;
     await Report.save({

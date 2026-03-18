@@ -3,11 +3,10 @@ patch:
     - Admin
   x-internal: true
   operationId: updateAdminMediaAudit
-  summary: Update a media audit config
+  summary: Update media audit config
   description: |
     Updates the threshold values or enabled status of an audit.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -33,7 +32,7 @@ patch:
               description: Enable or disable this audit
   responses:
     "200":
-      description: Audit updated successfully
+      description: OK
       content:
         application/json:
           schema:
@@ -41,7 +40,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

@@ -3,11 +3,10 @@ get:
     - User
   x-internal: true
   operationId: listUserActivity
-  summary: Get user activity history
+  summary: List user activity
   description: |
     Returns the authenticated user's activity history with cursor-based pagination.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -52,7 +51,7 @@ get:
               pagination:
                 $ref: "../../components/schemas/OpaqueCursorPagination.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
 
@@ -65,7 +64,6 @@ post:
   description: |
     Records a user activity event (e.g. segment play). Fire-and-forget — always returns 204.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   requestBody:
@@ -95,11 +93,11 @@ post:
               type: string
   responses:
     "204":
-      description: Activity tracked
+      description: No Content
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
 
@@ -108,11 +106,10 @@ delete:
     - User
   x-internal: true
   operationId: deleteUserActivity
-  summary: Clear user activity history
+  summary: Clear user activity
   description: |
     Deletes the authenticated user's activity history. Optionally filter by activity type.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -134,6 +131,6 @@ delete:
               deletedCount:
                 type: integer
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

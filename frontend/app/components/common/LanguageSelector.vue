@@ -25,7 +25,7 @@ const availableLocales = computed(() => {
       </SearchDropdownMainButton>
     </template>
     <template #content>
-      <SearchDropdownContent>
+      <SearchDropdownContent :header="$t('navbar.buttons.language')">
         <SearchDropdownItem @click="setLocale(locale.code)" v-for="locale in availableLocales" :key="locale.code"
           :text="locale.name" />
       </SearchDropdownContent>

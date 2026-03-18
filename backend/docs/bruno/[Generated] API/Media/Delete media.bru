@@ -1,18 +1,17 @@
 meta {
-  name: Delete an episode
+  name: Delete media
   type: http
-  seq: 28
+  seq: 23
 }
 
 delete {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber
+  url: {{baseUrl}}/v1/media/:id
   body: none
   auth: bearer
 }
 
 params:query {
-  mediaId:
-  episodeNumber:
+  id:
 }
 
 auth:bearer {

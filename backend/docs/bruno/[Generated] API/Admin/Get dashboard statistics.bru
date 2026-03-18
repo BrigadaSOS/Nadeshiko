@@ -1,21 +1,13 @@
 meta {
-  name: Create or update the announcement
+  name: Get dashboard statistics
   type: http
-  seq: 79
+  seq: 60
 }
 
-put {
-  url: {{baseUrl}}/v1/admin/announcement
-  body: json
+get {
+  url: {{baseUrl}}/v1/admin/dashboard
+  body: none
   auth: none
-}
-
-body:json {
-  {
-    "message": "",
-    "type": "",
-    "active": false
-  }
 }
 
 settings {

@@ -2,39 +2,26 @@ openapi: 3.1.0
 info:
   title: Nadeshiko API
   description: |
-    Welcome to the Nadeshiko API.
+    Thank you for using the Nadeshiko API! This API lets you search Japanese dialogue segments across anime and J-Drama, with translations and contextual metadata.
 
-    ## Getting Started
+    ### Authentication
+    All API requests require an API key passed as a Bearer token. You can register and generate your key on the [developer page](https://nadeshiko.co/user/developer), where you can also check your current usage.
 
-    Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
+    ### Rate Limit
+    Each API key is limited to **150 requests per minute**. Exceeding this limit will return a `429 Too Many Requests` response.
 
-    If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
-    Internal user/admin endpoints use session cookie authentication.
-    401 response components are scoped by auth mode:
-    - `UnauthorizedApiKey` for API key-only endpoints
-    - `UnauthorizedSession` for session-only endpoints
-    - `Unauthorized` for endpoints that accept either auth mode
-
-    ### Quotas and Limits
-    The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message:
-    > "Too many requests. Please try again later."
-
-    Additionally, each account has a monthly quota limit. Once the monthly quota is exceeded, further requests will receive the message:
-    > "API Key quota exceeded for this month."
-
-    | Account Type | Quota (Monthly) |
-    |--------------|-----------------|
-    | Default      | 2500 requests   |
-
-    To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
+    ### Quota
+    Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
+    To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
   version: 2.0.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
   license:
-    name: ISC
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
   x-logo:
-    url: https://nadeshiko.co/logo.webp
+    url: ./logo.png
     altText: Nadeshiko
     href: https://nadeshiko.co
 servers:
@@ -73,12 +60,9 @@ paths:
         | **Kanji** (`食べる`, `彼女`) | Searches content and base form (dictionary form). Ignores matches by reading (homophones). |
         | **Kana** (`たべる`, `かのじょ`) | Standard search across content, base form, and reading form |
         | **English/Spanish** | Direct translation search |
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -103,7 +87,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -124,12 +108,9 @@ paths:
         - `categories` powers category tabs below the search bar.
 
         The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -154,7 +135,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -171,17 +152,9 @@ paths:
         Searches for multiple words simultaneously and aggregates results by media.
 
         Unlike the main search endpoint, this returns a summary of matches per media rather than individual segments.
-
-        **Use Cases**
-        - Vocabulary discovery across media library
-        - Finding anime/dramas that use specific words
-        - Comparing word usage across different titles
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -212,7 +185,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -228,12 +201,9 @@ paths:
       description: |
         Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
         Supports filtering by category and text search.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -281,7 +251,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -293,25 +263,21 @@ paths:
       tags:
         - Media
       operationId: getSegmentByUuid
-      summary: Get segment by UUID or publicId
+      summary: Get segment by publicId
       description: |
-        Returns a specific segment by its UUID or publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+        Returns a specific segment by its publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
         Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
-
-        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - ApiKey:
-            - UPDATE_MEDIA
-        - SessionCookie:
-            - ADMIN
+            - READ_MEDIA
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID or publicId
+          description: Segment publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: include
           in: query
@@ -353,20 +319,16 @@ paths:
       description: |
         Retrieves segments surrounding a specific segment within an episode.
         Returns segments both before and after the target, providing dialogue context for how a sentence is used.
-
-        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - ApiKey:
-            - UPDATE_MEDIA
-        - SessionCookie:
-            - ADMIN
+            - READ_MEDIA
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID or publicId
+          description: Segment publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: take
           in: query
@@ -426,12 +388,9 @@ paths:
       summary: List all series
       description: |
         Returns a paginated list of media series groupings.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -462,7 +421,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -477,12 +436,9 @@ paths:
       summary: Get series details
       description: |
         Returns a series with all media entries sorted by position.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -509,89 +465,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/characters/{id}:
-    get:
-      tags:
-        - Media
-      operationId: getCharacter
-      summary: Get character details
-      description: |
-        Returns a character with their voice actors (seiyuu) and all media appearances.
-
-        **Permissions:** `READ_MEDIA`
-      security:
-        - ApiKey:
-            - READ_MEDIA
-        - SessionCookie: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Character ID
-          schema:
-            type: integer
-            example: 1
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CharacterWithMedia'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/media/seiyuu/{id}:
-    get:
-      tags:
-        - Media
-      operationId: getSeiyuu
-      summary: Get seiyuu details
-      description: |
-        Returns a voice actor (seiyuu) with all characters they voiced and their media appearances.
-
-        **Permissions:** `READ_MEDIA`
-      security:
-        - ApiKey:
-            - READ_MEDIA
-        - SessionCookie: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Internal seiyuu ID
-          schema:
-            type: integer
-            example: 1
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SeiyuuWithRoles'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -608,12 +482,9 @@ paths:
       summary: Get single media
       description: |
         Returns a single media entry by its ID with full metadata.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -640,7 +511,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -657,12 +528,9 @@ paths:
       summary: List episodes for a media
       description: |
         Returns a paginated list of episodes for a specific media.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -694,7 +562,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -711,12 +579,9 @@ paths:
       summary: Get single episode
       description: |
         Returns a specific episode by media ID and episode number.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -738,7 +603,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -755,12 +620,9 @@ paths:
       summary: Get single segment
       description: |
         Returns a specific segment by its ID within the media/episode hierarchy.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
@@ -789,7 +651,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1491,7 +1353,6 @@ components:
             - AUTH_CREDENTIALS_REQUIRED
             - AUTH_CREDENTIALS_INVALID
             - AUTH_CREDENTIALS_EXPIRED
-            - EMAIL_NOT_VERIFIED
         title:
           type: string
           description: A short, human-readable summary of the problem
@@ -2035,121 +1896,6 @@ components:
                 example: 1
               media:
                 $ref: '#/components/schemas/Media'
-    Character:
-      type: object
-      description: Anime character
-      required:
-        - id
-        - publicId
-        - externalIds
-        - nameJa
-        - nameEn
-        - imageUrl
-      properties:
-        id:
-          type: integer
-          description: Internal character ID
-          example: 1
-        publicId:
-          type: string
-          description: Public identifier for the character (use this in public URLs)
-          example: V1StGXR8_Z5d
-        externalIds:
-          $ref: '#/components/schemas/ExternalId'
-        nameJa:
-          type: string
-          description: Japanese name of the character
-          example: 真城最高
-        nameEn:
-          type: string
-          description: English name of the character
-          example: Moritaka Mashiro
-        imageUrl:
-          type: string
-          format: uri
-          description: Character image URL
-          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
-    CharacterWithMedia:
-      description: Character with voice actor and all media appearances
-      allOf:
-        - $ref: '#/components/schemas/Character'
-        - type: object
-          required:
-            - seiyuu
-            - mediaAppearances
-          properties:
-            seiyuu:
-              $ref: '#/components/schemas/Seiyuu'
-            mediaAppearances:
-              type: array
-              description: All media this character appears in
-              items:
-                type: object
-                required:
-                  - media
-                  - role
-                properties:
-                  media:
-                    $ref: '#/components/schemas/Media'
-                  role:
-                    type: string
-                    enum:
-                      - MAIN
-                      - SUPPORTING
-                      - BACKGROUND
-                    description: Character role in this media
-                    example: MAIN
-    SeiyuuWithRoles:
-      type: object
-      description: Seiyuu details with optional character appearances
-      required:
-        - id
-        - externalIds
-        - nameJa
-        - nameEn
-        - imageUrl
-        - characters
-      properties:
-        id:
-          type: integer
-          description: AniList staff ID
-          example: 95991
-        externalIds:
-          $ref: '#/components/schemas/ExternalId'
-        nameJa:
-          type: string
-          description: Japanese name of the voice actor
-          example: 阿部敦
-        nameEn:
-          type: string
-          description: English name of the voice actor
-          example: Atsushi Abe
-        imageUrl:
-          type: string
-          format: uri
-          description: Profile image URL
-          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
-        characters:
-          type: array
-          description: Characters voiced by this seiyuu with their media appearances
-          items:
-            allOf:
-              - $ref: '#/components/schemas/Character'
-              - type: object
-                required:
-                  - media
-                  - role
-                properties:
-                  media:
-                    $ref: '#/components/schemas/Media'
-                  role:
-                    type: string
-                    enum:
-                      - MAIN
-                      - SUPPORTING
-                      - BACKGROUND
-                    description: Character role in this media
-                    example: MAIN
     Episode:
       type: object
       required:
@@ -2314,8 +2060,8 @@ components:
         instance: trace-id-placeholder
         status: 404
   responses:
-    UnauthorizedApiKey:
-      description: Unauthorized (API key)
+    Unauthorized:
+      description: Unauthorized
       content:
         application/json:
           schema:
@@ -2368,24 +2114,11 @@ components:
             InvalidJson:
               $ref: '#/components/examples/InvalidJson'
     SegmentInternalResponse:
-      description: Single segment response with internal fields
+      description: OK
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/SegmentInternal'
-    Unauthorized:
-      description: Unauthorized (API key or session)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error401'
-          examples:
-            AuthCredentialsRequired:
-              $ref: '#/components/examples/AuthCredentialsRequired'
-            AuthCredentialsInvalid:
-              $ref: '#/components/examples/AuthCredentialsInvalid'
-            AuthCredentialsExpired:
-              $ref: '#/components/examples/AuthCredentialsExpired'
     NotFound:
       description: Not Found
       content:
@@ -2396,19 +2129,19 @@ components:
             NotFound:
               $ref: '#/components/examples/NotFound'
     EpisodeListResponse:
-      description: Paginated list of episodes
+      description: OK
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/EpisodeListResponse'
     EpisodeResponse:
-      description: Single episode response
+      description: OK
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Episode'
     SegmentResponse:
-      description: Single segment response
+      description: OK
       content:
         application/json:
           schema:

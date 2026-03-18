@@ -100,7 +100,7 @@ describe('POST /v1/user/activity', () => {
       async () => {
         const res = await request(app).post('/v1/user/activity').send({
           activityType: 'SEGMENT_PLAY',
-          segmentId: 123,
+          segmentId: '123',
           mediaId: 1,
           mediaName: 'Test Anime',
           japaneseText: 'テスト',
@@ -119,7 +119,7 @@ describe('POST /v1/user/activity', () => {
       async () => {
         const res = await request(app).post('/v1/user/activity').send({
           activityType: 'SHARE',
-          segmentId: 456,
+          segmentId: '456',
           mediaId: 1,
           mediaName: 'Test Anime',
           japaneseText: 'テスト',
@@ -132,7 +132,7 @@ describe('POST /v1/user/activity', () => {
 
   it('rejects activity types not in the allowed enum with 400', async () => {
     const res = await request(app).post('/v1/user/activity').send({
-      activityType: 'SEARCH',
+      activityType: 'INVALID_TYPE',
     });
     expect(res.status).toBe(400);
   });

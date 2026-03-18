@@ -7,7 +7,6 @@ get:
   description: |
     Returns past media audit runs with summary stats. Supports filtering by audit name and cursor pagination.
 
-    **Permissions:** `ADD_MEDIA`
   security:
     - SessionCookie: [ADMIN]
   parameters:
@@ -46,7 +45,7 @@ get:
               pagination:
                 $ref: "../../components/schemas/OpaqueCursorPagination.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

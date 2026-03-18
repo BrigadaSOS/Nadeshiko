@@ -8,7 +8,6 @@ get:
     Returns aggregate statistics about the authenticated user's activity:
     total searches, exports, plays, and top media.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -56,6 +55,6 @@ get:
                     count:
                       type: integer
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

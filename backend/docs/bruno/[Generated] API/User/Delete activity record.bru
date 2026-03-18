@@ -1,13 +1,17 @@
 meta {
-  name: Admin dashboard statistics
+  name: Delete activity record
   type: http
-  seq: 60
+  seq: 45
 }
 
-get {
-  url: {{baseUrl}}/v1/admin/dashboard
+delete {
+  url: {{baseUrl}}/v1/user/activity/:id
   body: none
   auth: none
+}
+
+params:query {
+  id:
 }
 
 settings {

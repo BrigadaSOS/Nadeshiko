@@ -12,6 +12,7 @@ import {
   mdiFormatListBulletedSquare,
   mdiViewDashboardOutline,
   mdiShieldCrownOutline,
+  mdiBullhornOutline,
 } from '@mdi/js';
 import { useDragScroll } from '~/composables/useDragScroll';
 
@@ -34,6 +35,9 @@ const SettingsDashboardModule = defineAsyncComponent(
   () => import('../../components/settings/modules/DashboardModule.vue'),
 );
 const SettingsReportsModule = defineAsyncComponent(() => import('../../components/settings/modules/ReportsModule.vue'));
+const SettingsAnnouncementModule = defineAsyncComponent(
+  () => import('../../components/settings/modules/AnnouncementModule.vue'),
+);
 
 const { t } = useI18n();
 const route = useRoute();
@@ -59,6 +63,7 @@ const tabsAdvanced = computed(() => [
 const tabsAdmin = computed(() => [
   { name: 'Dashboard', icon: mdiViewDashboardOutline, route: '/user/admin/dashboard', requiresAuth: true },
   { name: 'Reports', icon: mdiShieldCrownOutline, route: '/user/admin/reports', requiresAuth: true },
+  { name: 'Announcement', icon: mdiBullhornOutline, route: '/user/admin/announcement', requiresAuth: true },
 ]);
 
 const allTabs = computed(() => [
@@ -71,6 +76,7 @@ const activeTabRoute = computed(() => {
   const path = route.path;
   if (path.startsWith('/user/admin/dashboard')) return '/user/admin/dashboard';
   if (path.startsWith('/user/admin/reports')) return '/user/admin/reports';
+  if (path.startsWith('/user/admin/announcement')) return '/user/admin/announcement';
   if (
     path === '/user' ||
     path.startsWith('/user/settings') ||
@@ -104,7 +110,7 @@ definePageMeta({
       '/user/developer',
       '/user/labs',
     ];
-    const adminAllowed = ['/user/admin/dashboard', '/user/admin/reports'];
+    const adminAllowed = ['/user/admin/dashboard', '/user/admin/reports', '/user/admin/announcement'];
 
     if (store.isLoggedIn) {
       if (to.path === '/user') {
@@ -234,6 +240,7 @@ useDragScroll(mobileTabsRef);
           <SettingsLabsModule v-if="activeTabRoute === '/user/labs'" />
           <SettingsDashboardModule v-if="activeTabRoute === '/user/admin/dashboard'" />
           <SettingsReportsModule v-if="activeTabRoute === '/user/admin/reports'" />
+          <SettingsAnnouncementModule v-if="activeTabRoute === '/user/admin/announcement'" />
         </div>
       </div>
     </div>

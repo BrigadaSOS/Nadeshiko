@@ -4,7 +4,7 @@
 
 ## 貢献とクレジット
 
-<div class="about-contributors-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="about-contributors-grid grid grid-cols-1 md:grid-cols-3 gap-4">
   <div class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
     <div class="flex items-start gap-4 p-4 border-b dark:border-neutral-700">
       <img

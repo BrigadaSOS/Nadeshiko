@@ -1,23 +1,20 @@
 meta {
-  name: Update a report
+  name: Create or update announcement
   type: http
-  seq: 72
+  seq: 79
 }
 
-patch {
-  url: {{baseUrl}}/v1/admin/reports/:id
+put {
+  url: {{baseUrl}}/v1/admin/announcement
   body: json
   auth: none
 }
 
-params:query {
-  id:
-}
-
 body:json {
   {
-    "status": "ACCEPTED",
-    "adminNotes": "Confirmed wrong translation, will fix"
+    "message": "",
+    "type": "",
+    "active": false
   }
 }
 

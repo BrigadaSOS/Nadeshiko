@@ -48,22 +48,20 @@ export async function seed() {
     await user.save();
     const collectionCount = await Collection.count({ where: { userId: user.id } });
     if (collectionCount === 0) {
-      await Collection.save(
-        [
-          Collection.create({
-            name: 'Favorites',
-            type: CollectionType.USER,
-            userId: user.id,
-            visibility: CollectionVisibility.PRIVATE,
-          }),
-          Collection.create({
-            name: 'Anki Exports',
-            type: CollectionType.ANKI_EXPORT,
-            userId: user.id,
-            visibility: CollectionVisibility.PRIVATE,
-          }),
-        ],
-      );
+      await Collection.save([
+        Collection.create({
+          name: 'Favorites',
+          type: CollectionType.USER,
+          userId: user.id,
+          visibility: CollectionVisibility.PRIVATE,
+        }),
+        Collection.create({
+          name: 'Anki Exports',
+          type: CollectionType.ANKI_EXPORT,
+          userId: user.id,
+          visibility: CollectionVisibility.PRIVATE,
+        }),
+      ]);
     }
     logger.info({ userId: user.id, email }, 'Admin user created');
   } else {

@@ -1,6 +1,7 @@
 # Generated build and log files
 node_modules
 .env
+!.env.test
 prod
 logs
 *.log

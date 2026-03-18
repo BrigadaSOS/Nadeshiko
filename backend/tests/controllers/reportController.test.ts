@@ -94,9 +94,9 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'MEDIA',
-          mediaId: media.id,
+          mediaId: media.publicId,
         },
-        reason: 'WRONG_METADATA',
+        reason: 'OTHER',
         description: 'metadata mismatch',
       });
 
@@ -105,9 +105,9 @@ describe('POST /v1/user/reports', () => {
       source: 'USER',
       target: {
         type: 'MEDIA',
-        mediaId: media.id,
+        mediaId: media.publicId,
       },
-      reason: 'WRONG_METADATA',
+      reason: 'OTHER',
       description: 'metadata mismatch',
       status: 'PENDING',
       userId: core.users.regular.id,
@@ -130,7 +130,7 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: media.id,
+          mediaId: media.publicId,
           episodeNumber: episode.episodeNumber,
           segmentId: segment.publicId,
         },
@@ -143,9 +143,9 @@ describe('POST /v1/user/reports', () => {
       source: 'USER',
       target: {
         type: 'SEGMENT',
-        mediaId: media.id,
+        mediaId: media.publicId,
         episodeNumber: episode.episodeNumber,
-        segmentId: segment.id,
+        segmentId: segment.publicId,
       },
       reason: 'WRONG_TRANSLATION',
       status: 'PENDING',
@@ -163,9 +163,9 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'MEDIA',
-          mediaId: 999999,
+          mediaId: 'nonexistent',
         },
-        reason: 'WRONG_METADATA',
+        reason: 'OTHER',
       });
 
     expect(res.status).toBe(404);
@@ -181,7 +181,7 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: media.id,
+          mediaId: media.publicId,
           segmentId: 'missing-segment',
         },
         reason: 'WRONG_TRANSLATION',
@@ -204,7 +204,7 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: wrongMedia.id,
+          mediaId: wrongMedia.publicId,
           segmentId: segment.publicId,
         },
         reason: 'WRONG_TRANSLATION',
@@ -225,7 +225,7 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: media.id,
+          mediaId: media.publicId,
           episodeNumber: episode.episodeNumber + 1,
           segmentId: segment.publicId,
         },
@@ -294,9 +294,9 @@ describe('GET /v1/admin/reports', () => {
       source: 'AUTO',
       target: {
         type: 'SEGMENT',
-        mediaId: media.id,
+        mediaId: media.publicId,
         episodeNumber: episode.episodeNumber,
-        segmentId: seg1.id,
+        segmentId: seg1.publicId,
       },
       status: 'CONCERN',
       auditRunId: auditRun.id,
@@ -308,10 +308,13 @@ describe('GET /v1/admin/reports', () => {
 
 describe('PATCH /v1/admin/reports/:id', () => {
   it('updates report status and admin notes', async () => {
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
+
     const report = (await Report.save({
       source: ReportSource.USER,
       targetType: ReportTargetType.MEDIA,
-      targetMediaId: 1,
+      targetMediaId: media.id,
       reason: ReportReason.OTHER,
       status: ReportStatus.PENDING,
       userId: core.users.regular.id,

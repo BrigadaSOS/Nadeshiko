@@ -8,16 +8,8 @@ post:
 
     Unlike the main search endpoint, this returns a summary of matches per media rather than individual segments.
 
-    **Use Cases**
-    - Vocabulary discovery across media library
-    - Finding anime/dramas that use specific words
-    - Comparing word usage across different titles
-
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
 
   requestBody:
     required: true
@@ -47,7 +39,7 @@ post:
             InvalidJson:
               $ref: "../../components/examples/InvalidJson.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

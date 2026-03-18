@@ -7,11 +7,8 @@ get:
     Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
     Supports filtering by category and text search.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: take
       in: query
@@ -57,7 +54,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":
@@ -70,15 +67,12 @@ post:
     - Media
   operationId: createMedia
   x-internal: true
-  summary: Create new media
+  summary: Create media
   description: |
     Creates a new media entry in the database.
 
-    **Permissions:** `ADD_MEDIA`
-
   security:
     - ApiKey: [ADD_MEDIA]
-    - SessionCookie: []
   requestBody:
     required: true
     content:
@@ -95,7 +89,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "409":

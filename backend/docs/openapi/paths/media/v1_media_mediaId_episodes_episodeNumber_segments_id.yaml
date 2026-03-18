@@ -6,11 +6,8 @@ get:
   description: |
     Returns a specific segment by its ID within the media/episode hierarchy.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -39,7 +36,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -58,11 +55,8 @@ patch:
   description: |
     Updates an existing segment. Only provided fields will be updated.
 
-    **Permissions:** `UPDATE_MEDIA`
-
   security:
     - ApiKey: [UPDATE_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -97,7 +91,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -116,11 +110,8 @@ delete:
   description: |
     Soft-deletes a segment by setting its status to DELETED.
 
-    **Permissions:** `REMOVE_MEDIA`
-
   security:
     - ApiKey: [REMOVE_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -145,11 +136,11 @@ delete:
       example: 12345
   responses:
     "204":
-      description: Segment successfully deleted
+      description: No Content
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

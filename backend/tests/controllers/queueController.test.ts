@@ -56,8 +56,10 @@ describe('GET /v1/admin/queues/stats', () => {
       { queue: 'es-sync-create', stuckCount: 2, failedCount: 0 },
       { queue: 'es-sync-update', stuckCount: 2, failedCount: 0 },
       { queue: 'es-sync-delete', stuckCount: 2, failedCount: 0 },
+      { queue: 'email-send', stuckCount: 2, failedCount: 0 },
+      { queue: 'activity-retention-cleanup', stuckCount: 2, failedCount: 0 },
     ]);
-    expect(mockGetQueueStats).toHaveBeenCalledTimes(3);
+    expect(mockGetQueueStats).toHaveBeenCalledTimes(5);
   });
 });
 

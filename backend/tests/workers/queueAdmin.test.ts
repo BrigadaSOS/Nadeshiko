@@ -7,7 +7,7 @@ import {
   purgeFailedJobs,
   retryFailedJobs,
 } from '@app/workers/queueAdmin';
-import { ES_SYNC_QUEUES } from '@app/workers/queueNames';
+import { ALL_QUEUES } from '@app/workers/queueNames';
 
 describe('queueAdmin', () => {
   let getQueueStats: ReturnType<typeof vi.fn>;
@@ -44,14 +44,16 @@ describe('queueAdmin', () => {
     } as any);
   });
 
-  it('returns stuck-job stats for all ES sync queues', async () => {
+  it('returns stuck-job stats for all queues', async () => {
     const stats = await getStuckJobs();
 
-    expect(getQueueStats).toHaveBeenCalledTimes(ES_SYNC_QUEUES.length);
+    expect(getQueueStats).toHaveBeenCalledTimes(ALL_QUEUES.length);
     expect(stats).toEqual([
       { queue: 'es-sync-create', queued: 2, active: 3, failed: 0, completed: 0 },
       { queue: 'es-sync-update', queued: 2, active: 3, failed: 0, completed: 0 },
       { queue: 'es-sync-delete', queued: 2, active: 3, failed: 0, completed: 0 },
+      { queue: 'email-send', queued: 2, active: 3, failed: 0, completed: 0 },
+      { queue: 'activity-retention-cleanup', queued: 2, active: 3, failed: 0, completed: 0 },
     ]);
   });
 

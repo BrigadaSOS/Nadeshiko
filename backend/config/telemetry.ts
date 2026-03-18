@@ -25,8 +25,7 @@ export function initTelemetry() {
   });
 
   const traceUrl = `${config.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces`;
-  const metricsUrl = config.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
-    || `${config.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/metrics`;
+  const metricsUrl = config.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT || `${config.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/metrics`;
 
   tracerProvider = new NodeTracerProvider({
     resource,

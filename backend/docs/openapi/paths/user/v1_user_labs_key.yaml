@@ -8,7 +8,6 @@ post:
     Opts the authenticated user into a lab feature. The user must be eligible
     for the lab (correct role, in allowlist or rollout percentage).
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -20,9 +19,9 @@ post:
       description: Lab feature key
   responses:
     "204":
-      description: Enrolled successfully
+      description: No Content
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
     "500":
@@ -37,7 +36,6 @@ delete:
   description: |
     Opts the authenticated user out of a lab feature.
 
-    **Permissions:** Session authentication (cookie-based).
   security:
     - SessionCookie: []
   parameters:
@@ -49,9 +47,9 @@ delete:
       description: Lab feature key
   responses:
     "204":
-      description: Unenrolled successfully
+      description: No Content
     "401":
-      $ref: "../../components/responses/UnauthorizedSession.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
     "500":

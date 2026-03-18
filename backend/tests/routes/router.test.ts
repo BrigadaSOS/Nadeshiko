@@ -103,6 +103,8 @@ const ADMIN_SESSION_ROUTES: RouteEntry[] = [
   { method: 'delete', path: '/v1/admin/queues/test-queue/purge' },
   { method: 'get', path: '/v1/admin/reports' },
   { method: 'patch', path: '/v1/admin/reports/1' },
+  { method: 'patch', path: '/v1/admin/reports/batch' },
+  { method: 'put', path: '/v1/admin/announcement' },
   { method: 'get', path: '/v1/admin/media/audits' },
   { method: 'patch', path: '/v1/admin/media/audits/test-name' },
   { method: 'post', path: '/v1/admin/media/audits/test-name/run' },
@@ -136,17 +138,18 @@ const API_KEY_OR_SESSION_ROUTES: { method: Method; path: string; permission: str
   { method: 'delete', path: '/v1/media/1/episodes/1', permission: 'REMOVE_MEDIA' },
   { method: 'get', path: '/v1/media/1/episodes/1/segments', permission: 'READ_MEDIA' },
   { method: 'post', path: '/v1/media/1/episodes/1/segments', permission: 'ADD_MEDIA' },
+  { method: 'post', path: '/v1/media/1/episodes/1/segments/batch', permission: 'ADD_MEDIA' },
   { method: 'get', path: '/v1/media/1/episodes/1/segments/1', permission: 'READ_MEDIA' },
   { method: 'patch', path: '/v1/media/1/episodes/1/segments/1', permission: 'UPDATE_MEDIA' },
   { method: 'delete', path: '/v1/media/1/episodes/1/segments/1', permission: 'REMOVE_MEDIA' },
-];
-
-const ADMIN_API_KEY_OR_ADMIN_SESSION_ROUTES: { method: Method; path: string; permission: string }[] = [
-  { method: 'get', path: '/v1/media/segments/test-uuid', permission: 'UPDATE_MEDIA' },
+  { method: 'get', path: '/v1/media/segments/test-uuid', permission: 'READ_MEDIA' },
   { method: 'patch', path: '/v1/media/segments/test-uuid', permission: 'UPDATE_MEDIA' },
-  { method: 'get', path: '/v1/media/segments/test-uuid/context', permission: 'UPDATE_MEDIA' },
+  { method: 'get', path: '/v1/media/segments/test-uuid/context', permission: 'READ_MEDIA' },
+  { method: 'get', path: '/v1/media/segments/test-uuid/revisions', permission: 'READ_MEDIA' },
   { method: 'patch', path: '/v1/media/1', permission: 'UPDATE_MEDIA' },
 ];
+
+const ADMIN_API_KEY_OR_ADMIN_SESSION_ROUTES: { method: Method; path: string; permission: string }[] = [];
 
 describe('route auth wiring', () => {
   describe('session-only routes (requireSession)', () => {
@@ -292,7 +295,7 @@ describe('route auth wiring', () => {
       API_KEY_OR_SESSION_ROUTES.length +
       ADMIN_API_KEY_OR_ADMIN_SESSION_ROUTES.length;
 
-    expect(expectedTotal).toBe(72);
+    expect(expectedTotal).toBe(76);
   });
 });
 
@@ -319,7 +322,7 @@ function mockBetterAuthApiKey(userId: number, permissions: string[]): string {
     valid: true,
     key: {
       id: 'ba-test-key',
-      userId: String(userId),
+      referenceId: String(userId),
       permissions: { api: permissions },
       metadata: null,
     },

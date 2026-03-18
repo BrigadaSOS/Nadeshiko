@@ -76,7 +76,8 @@ export const createCollection: CreateCollection = async ({ body }, respond, req)
     Collection.create({
       name: body.name,
       userId: user.id,
-      visibility: body.visibility === undefined ? CollectionVisibility.PRIVATE : toCollectionVisibility(body.visibility),
+      visibility:
+        body.visibility === undefined ? CollectionVisibility.PRIVATE : toCollectionVisibility(body.visibility),
     }),
   );
 

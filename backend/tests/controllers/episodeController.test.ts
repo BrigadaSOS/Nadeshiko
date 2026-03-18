@@ -23,7 +23,7 @@ describe('GET /v1/media/:mediaId/episodes', () => {
     const fixtures = await loadFixtures(['mediaWithTwoEpisodes']);
     const media = fixtures.media.episodicShow;
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes`);
+    const res = await request(app).get(`/v1/media/${media.publicId}/episodes`);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -37,7 +37,7 @@ describe('GET /v1/media/:mediaId/episodes', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes`);
+    const res = await request(app).get(`/v1/media/${media.publicId}/episodes`);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -57,7 +57,7 @@ describe('GET /v1/media/:mediaId/episodes', () => {
     const fixtures = await loadFixtures(['mediaWithThreeEpisodes']);
     const media = fixtures.media.episodicShow;
 
-    const page1 = await request(app).get(`/v1/media/${media.id}/episodes?take=2`);
+    const page1 = await request(app).get(`/v1/media/${media.publicId}/episodes?take=2`);
 
     expect(page1.status).toBe(200);
     expect(page1.body.episodes).toHaveLength(2);
@@ -65,7 +65,7 @@ describe('GET /v1/media/:mediaId/episodes', () => {
     expect(page1.body.pagination.cursor).toEqual(expect.any(String));
 
     const page2 = await request(app).get(
-      `/v1/media/${media.id}/episodes?take=2&cursor=${page1.body.pagination.cursor}`,
+      `/v1/media/${media.publicId}/episodes?take=2&cursor=${page1.body.pagination.cursor}`,
     );
     expect(page2.status).toBe(200);
     expect(page2.body.episodes).toHaveLength(1);
@@ -83,7 +83,7 @@ describe('POST /v1/media/:mediaId/episodes', () => {
       +1,
       async () => {
         const res = await request(app)
-          .post(`/v1/media/${media.id}/episodes`)
+          .post(`/v1/media/${media.publicId}/episodes`)
           .send({ episodeNumber: 1, titleEn: 'The Beginning' });
 
         expect(res.status).toBe(201);
@@ -100,7 +100,7 @@ describe('POST /v1/media/:mediaId/episodes', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).post(`/v1/media/${media.id}/episodes`).send({
+    const res = await request(app).post(`/v1/media/${media.publicId}/episodes`).send({
       episodeNumber: 5,
       titleEn: 'The Storm',
       titleRomaji: 'Arashi',
@@ -136,13 +136,13 @@ describe('POST /v1/media/:mediaId/episodes', () => {
     const media = fixtures.media.testShow;
 
     const res = await request(app)
-      .post(`/v1/media/${media.id}/episodes`)
+      .post(`/v1/media/${media.publicId}/episodes`)
       .send({ episodeNumber: 1, airedAt: '2024-06-01T00:00:00.000Z' })
       .expect(201);
 
     expect(res.body).toMatchObject({ airedAt: '2024-06-01T00:00:00.000Z' });
 
-    const getRes = await request(app).get(`/v1/media/${media.id}/episodes/1`);
+    const getRes = await request(app).get(`/v1/media/${media.publicId}/episodes/1`);
     expect(getRes.status).toBe(200);
     expect(getRes.body).toMatchObject({ airedAt: '2024-06-01T00:00:00.000Z' });
   });
@@ -154,7 +154,7 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber', () => {
     const media = fixtures.media.testShow;
     const thirdOne = fixtures.episodes.thirdOne;
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes/${thirdOne.episodeNumber}`);
+    const res = await request(app).get(`/v1/media/${media.publicId}/episodes/${thirdOne.episodeNumber}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -168,7 +168,7 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).get(`/v1/media/${media.id}/episodes/999`);
+    const res = await request(app).get(`/v1/media/${media.publicId}/episodes/999`);
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
@@ -186,7 +186,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber', () => {
       { from: 'Pilot', to: 'New Title' },
       async () => {
         const res = await request(app)
-          .patch(`/v1/media/${media.id}/episodes/${pilot.episodeNumber}`)
+          .patch(`/v1/media/${media.publicId}/episodes/${pilot.episodeNumber}`)
           .send({ titleEn: 'New Title' });
         expect(res.status).toBe(200);
         expect(res.body).toMatchObject({ titleEn: 'New Title' });
@@ -198,7 +198,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber', () => {
     const fixtures = await loadFixtures(['singleMedia']);
     const media = fixtures.media.testShow;
 
-    const res = await request(app).patch(`/v1/media/${media.id}/episodes/999`).send({ titleEn: 'Nope' });
+    const res = await request(app).patch(`/v1/media/${media.publicId}/episodes/999`).send({ titleEn: 'Nope' });
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });

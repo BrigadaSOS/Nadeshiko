@@ -55,6 +55,10 @@ describe('userExport.mapper', () => {
       ] as any,
       [buildCollection()] as any,
       [buildReport()] as any,
+      {
+        media: new Map([[9, 'media-pub-9']]),
+        segments: new Map(),
+      },
     );
 
     expect(dto.profile).toEqual({

@@ -1,17 +1,13 @@
 meta {
-  name: Delete a single activity record
+  name: Check system health
   type: http
-  seq: 45
+  seq: 61
 }
 
-delete {
-  url: {{baseUrl}}/v1/user/activity/:id
+get {
+  url: {{baseUrl}}/v1/admin/health
   body: none
   auth: none
-}
-
-params:query {
-  id:
 }
 
 settings {

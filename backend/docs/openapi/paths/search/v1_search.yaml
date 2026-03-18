@@ -23,11 +23,8 @@ post:
     | **Kana** (`たべる`, `かのじょ`) | Standard search across content, base form, and reading form |
     | **English/Spanish** | Direct translation search |
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
 
   requestBody:
     content:
@@ -53,7 +50,7 @@ post:
             InvalidJson:
               $ref: "../../components/examples/InvalidJson.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "429":

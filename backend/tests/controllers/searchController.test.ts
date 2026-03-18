@@ -1,14 +1,12 @@
-import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'bun:test';
 import * as schemas from 'generated/schemas';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { SegmentDocument } from '@app/models/SegmentDocument';
-import { UserActivity, ActivityType } from '@app/models/UserActivity';
 import { assertMatchesSchema } from '../helpers/openapiContract';
 
 let mockSearch: Mock<typeof SegmentDocument.search>;
 let mockSearchStats: Mock<typeof SegmentDocument.searchStats>;
 let mockWordsMatched: Mock<typeof SegmentDocument.wordsMatched>;
-let mockTrackForUser: Mock<typeof UserActivity.trackForUser>;
 
 function buildMediaRecord(id: number) {
   return {
@@ -55,19 +53,22 @@ beforeAll(() => {
   mockSearch = vi.spyOn(SegmentDocument, 'search') as any;
   mockSearchStats = vi.spyOn(SegmentDocument, 'searchStats') as any;
   mockWordsMatched = vi.spyOn(SegmentDocument, 'wordsMatched') as any;
-  mockTrackForUser = vi.spyOn(UserActivity, 'trackForUser') as any;
+});
+
+afterAll(() => {
+  mockSearch.mockRestore();
+  mockSearchStats.mockRestore();
+  mockWordsMatched.mockRestore();
 });
 
 beforeEach(() => {
   mockSearch.mockReset();
   mockSearchStats.mockReset();
   mockWordsMatched.mockReset();
-  mockTrackForUser.mockReset();
-  mockTrackForUser.mockResolvedValue(undefined);
 });
 
 describe('search controller', () => {
-  it('returns search results and tracks initial searches', async () => {
+  it('returns search results', async () => {
     mockSearch.mockResolvedValue({
       segments: [],
       includes: { media: { 1: buildMediaRecord(1) } },
@@ -90,13 +91,10 @@ describe('search controller', () => {
     expect(res.status).toBe(200);
     expect((res.body as any).includes.media['1']).toMatchObject({ id: 1 });
     expect(mockSearch).toHaveBeenCalledTimes(1);
-    expect(mockTrackForUser).toHaveBeenCalledWith(expect.objectContaining({ id: 1001 }), ActivityType.SEARCH, {
-      searchQuery: '猫',
-    });
     assertMatchesSchema(schemas.s_SearchResponse, res.body, 'search() 200');
   });
 
-  it('does not track paginated requests and strips includes when include is empty', async () => {
+  it('does not include media when include is empty', async () => {
     mockSearch.mockResolvedValue({
       segments: [],
       includes: { media: { 2: buildMediaRecord(2) } },
@@ -119,56 +117,6 @@ describe('search controller', () => {
 
     expect(res.status).toBe(200);
     expect((res.body as any).includes).toEqual({ media: {} });
-    expect(mockTrackForUser).not.toHaveBeenCalled();
-  });
-
-  it('does not track when user is missing', async () => {
-    mockSearch.mockResolvedValue({
-      segments: [],
-      includes: { media: { 3: buildMediaRecord(3) } },
-      pagination: { hasMore: false, cursor: null, estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
-    });
-
-    const res = await invoke(
-      search as any,
-      {
-        body: {
-          query: { search: '鳥', exactMatch: false },
-          filters: { status: ['ACTIVE'], category: ['ANIME'] },
-          include: ['media'],
-          take: 10,
-        },
-      } as any,
-      { user: undefined } as any,
-    );
-
-    expect(res.status).toBe(200);
-    expect(mockTrackForUser).not.toHaveBeenCalled();
-  });
-
-  it('silently swallows tracking errors', async () => {
-    mockTrackForUser.mockRejectedValue(new Error('tracking failed'));
-    mockSearch.mockResolvedValue({
-      segments: [],
-      includes: { media: {} },
-      pagination: { hasMore: false, cursor: null, estimatedTotalHits: 0, estimatedTotalHitsRelation: 'EXACT' },
-    });
-
-    const res = await invoke(
-      search as any,
-      {
-        body: {
-          query: { search: '猫', exactMatch: false },
-          filters: { status: ['ACTIVE'], category: ['ANIME'] },
-          include: ['media'],
-          take: 10,
-        },
-      } as any,
-      { user: { id: 1001, preferences: {} } } as any,
-    );
-
-    expect(res.status).toBe(200);
-    expect(mockTrackForUser).toHaveBeenCalledTimes(1);
   });
 
   it('search stats strips includes by default', async () => {

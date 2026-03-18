@@ -1,20 +1,17 @@
 meta {
-  name: Get user activity history
+  name: Get audit run details
   type: http
-  seq: 39
+  seq: 77
 }
 
 get {
-  url: {{baseUrl}}/v1/user/activity?take=20
+  url: {{baseUrl}}/v1/admin/media/audits/runs/:id
   body: none
   auth: none
 }
 
 params:query {
-  cursor:
-  take: 20
-  activityType:
-  date:
+  id:
 }
 
 settings {

@@ -6,11 +6,8 @@ get:
   description: |
     Returns a paginated list of episodes for a specific media.
 
-    **Permissions:** `READ_MEDIA`
-
   security:
     - ApiKey: [READ_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -42,7 +39,7 @@ get:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -57,15 +54,12 @@ post:
   x-internal: true
   tags:
     - Media
-  summary: Create new episode
+  summary: Create episode
   description: |
     Creates a new episode for a specific media.
 
-    **Permissions:** `ADD_MEDIA`
-
   security:
     - ApiKey: [ADD_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: mediaId
       in: path
@@ -86,7 +80,7 @@ post:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":

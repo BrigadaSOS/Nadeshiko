@@ -1,4 +1,4 @@
-description: Single episode response
+description: OK
 content:
   application/json:
     schema:

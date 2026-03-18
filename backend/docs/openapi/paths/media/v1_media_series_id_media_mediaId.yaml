@@ -7,11 +7,8 @@ patch:
   description: |
     Updates the position of a media entry in a series.
 
-    **Permissions:** `UPDATE_MEDIA`
-
   security:
     - ApiKey: [UPDATE_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -46,7 +43,7 @@ patch:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
@@ -65,11 +62,8 @@ delete:
   description: |
     Removes a media entry from a series.
 
-    **Permissions:** `REMOVE_MEDIA`
-
   security:
     - ApiKey: [REMOVE_MEDIA]
-    - SessionCookie: []
   parameters:
     - name: id
       in: path
@@ -91,7 +85,7 @@ delete:
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
-      $ref: "../../components/responses/UnauthorizedApiKey.yaml"
+      $ref: "../../components/responses/Unauthorized.yaml"
     "403":
       $ref: "../../components/responses/Forbidden.yaml"
     "404":
