@@ -316,7 +316,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
 
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
-              <h3 class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
+              <h3 lang="ja" class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
                 <SearchSegmentTokenText
                   v-if="tokensEnabled && (result.segment.textJa as any).tokens"
                   :tokens="(result.segment.textJa as any).tokens"
@@ -412,7 +412,8 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
               <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
                 <button
                   @click="filterByMedia(result.media.publicId)"
-                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  class="hover:text-white hover:underline transition-colors cursor-pointer"
+                  lang="ja">
                   {{ mediaName(result.media) }}
                 </button>
                 &bull;

@@ -12,6 +12,7 @@ interface AnkiNote {
 interface IAnkiState {
   availableDecks: string[];
   availableModels: string[];
+  activeProfileId: string | null;
 }
 
 interface IField {
@@ -27,6 +28,7 @@ export interface AnkiProfile {
   fields: IField[];
   key?: string;
   serverAddress: string;
+  openBrowserOnExport?: boolean;
 }
 
 interface PermissionResponse {
@@ -103,18 +105,17 @@ export const ankiStore = defineStore('anki', {
   state: (): IAnkiState => ({
     availableDecks: [],
     availableModels: [],
+    activeProfileId: import.meta.client ? localStorage.getItem('anki-active-profile') : null,
   }),
   getters: {
     profiles(): AnkiProfile[] {
       return userStore().preferences?.ankiProfiles ?? [];
     },
     activeProfile(): AnkiProfile | null {
-      if (!import.meta.client) return null;
       const profiles = this.profiles;
       if (profiles.length === 0) return null;
-      const activeId = localStorage.getItem('anki-active-profile');
-      if (activeId) {
-        const found = profiles.find((p: AnkiProfile) => p.id === activeId);
+      if (this.activeProfileId) {
+        const found = profiles.find((p: AnkiProfile) => p.id === this.activeProfileId);
         if (found) return found;
       }
       return profiles[0] ?? null;
@@ -147,11 +148,12 @@ export const ankiStore = defineStore('anki', {
     async deleteProfile(id: string) {
       const updated = this.profiles.filter((p: AnkiProfile) => p.id !== id);
       await this.saveProfiles(updated);
-      if (import.meta.client) {
-        const activeId = localStorage.getItem('anki-active-profile');
-        if (activeId === id) {
-          if (updated.length > 0 && updated[0]) {
-            localStorage.setItem('anki-active-profile', updated[0].id);
+      if (this.activeProfileId === id) {
+        const newId = updated.length > 0 && updated[0] ? updated[0].id : null;
+        this.activeProfileId = newId;
+        if (import.meta.client) {
+          if (newId) {
+            localStorage.setItem('anki-active-profile', newId);
           } else {
             localStorage.removeItem('anki-active-profile');
           }
@@ -160,8 +162,10 @@ export const ankiStore = defineStore('anki', {
     },
 
     setActiveProfileId(id: string) {
-      if (!import.meta.client) return;
-      localStorage.setItem('anki-active-profile', id);
+      this.activeProfileId = id;
+      if (import.meta.client) {
+        localStorage.setItem('anki-active-profile', id);
+      }
     },
 
     async executeAction(action: string, params = {}) {
@@ -323,7 +327,16 @@ export const ankiStore = defineStore('anki', {
     async addResultToAnki(sentence: SearchResult, id?: number) {
       if (!import.meta.client) return;
       const { $i18n } = useNuxtApp();
-      const { mediaName } = useMediaName();
+      const locale = $i18n.locale.value;
+      const user = userStore();
+      const mediaLang = user.isLoggedIn && user.preferences?.mediaNameLanguage
+        ? user.preferences.mediaNameLanguage
+        : (locale === 'ja' ? 'japanese' : 'english');
+      const mediaName = (media: { nameEn: string; nameJa: string; nameRomaji: string }) => {
+        if (mediaLang === 'japanese') return media.nameJa || media.nameEn;
+        if (mediaLang === 'romaji') return media.nameRomaji || media.nameEn;
+        return media.nameEn;
+      };
 
       const profile = this.activeProfile;
       if (!profile) {
@@ -350,7 +363,13 @@ export const ankiStore = defineStore('anki', {
           const latestCard = noteIDs.reduce((a: number, b: number) => Math.max(a, b), -1);
 
           if (!latestCard || latestCard === -1) {
-            useToastError($i18n.t('anki.toast.noCardToExport'));
+            const globalQuery = `"note:${profile.model}" added:2 is:new`;
+            const globalResponse = (await this.executeAction('findNotes', { query: globalQuery })) as FindNotesResponse;
+            if (globalResponse.result && globalResponse.result.length > 0) {
+              useToastError($i18n.t('anki.toast.cardFoundInOtherDeck', { deck: profile.deck }));
+            } else {
+              useToastError($i18n.t('anki.toast.noCardToExport'));
+            }
             return;
           }
 
@@ -359,30 +378,46 @@ export const ankiStore = defineStore('anki', {
 
         const infoResponse = await this.executeAction('notesInfo', { notes: [cardID] });
         const infoCard = infoResponse.result;
-        const imageRequest = this.executeAction('storeMediaFile', {
-          filename: `${sentence.segment.uuid}.webp`,
-          url: sentence.segment.urls.imageUrl,
-        });
 
-        let audioRequest;
-        if (sentence.blobAudioUrl && sentence.blobAudio) {
-          const blob64 = await blobToBase64(sentence.blobAudio);
-          const raw = blob64.substring(blob64.indexOf(',') + 1);
+        const needsImage = profile.fields.some((f) => f.value?.includes('{image}'));
+        const needsAudio = profile.fields.some((f) => f.value?.includes('{sentence-audio}'));
 
-          audioRequest = this.executeAction('storeMediaFile', {
-            filename: `${sentence.segment.uuid}.wav`,
-            data: raw,
-          });
-        } else {
-          audioRequest = this.executeAction('storeMediaFile', {
-            filename: `${sentence.segment.uuid}.mp3`,
-            url: sentence.segment.urls.audioUrl,
-          });
+        let imageResult: any = null;
+        let audioResult: any = null;
+
+        const mediaRequests: Promise<any>[] = [];
+
+        if (needsImage) {
+          const req = this.executeAction('storeMediaFile', {
+            filename: `${sentence.segment.uuid}.webp`,
+            url: sentence.segment.urls.imageUrl,
+          }).then((r) => { imageResult = r; });
+          mediaRequests.push(req);
         }
 
-        const [imageResult, audioResult] = await Promise.all([imageRequest, audioRequest]);
+        if (needsAudio) {
+          let req;
+          if (sentence.blobAudioUrl && sentence.blobAudio) {
+            const blob64 = await blobToBase64(sentence.blobAudio);
+            const raw = blob64.substring(blob64.indexOf(',') + 1);
+            req = this.executeAction('storeMediaFile', {
+              filename: `${sentence.segment.uuid}.wav`,
+              data: raw,
+            });
+          } else {
+            req = this.executeAction('storeMediaFile', {
+              filename: `${sentence.segment.uuid}.mp3`,
+              url: sentence.segment.urls.audioUrl,
+            });
+          }
+          mediaRequests.push(req.then((r) => { audioResult = r; }));
+        }
 
-        await this.guiBrowse('nid:1 nid:2');
+        await Promise.all(mediaRequests);
+
+        if (profile.openBrowserOnExport !== false) {
+          await this.guiBrowse('nid:1 nid:2');
+        }
 
         const allowedFields = [
           'sentence-jp',
@@ -427,17 +462,24 @@ export const ankiStore = defineStore('anki', {
                   );
                   break;
                 case 'image':
-                  fieldsNew[field.key] = field.value.replace(`{${key}}`, `<img src="${imageResult.result}">`);
+                  if (imageResult?.result) {
+                    fieldsNew[field.key] = field.value.replace(`{${key}}`, `<img src="${imageResult.result}">`);
+                  }
                   break;
                 case 'sentence-audio':
-                  fieldsNew[field.key] = field.value.replace(`{${key}}`, `[sound:${audioResult.result}]`);
+                  if (audioResult?.result) {
+                    fieldsNew[field.key] = field.value.replace(`{${key}}`, `[sound:${audioResult.result}]`);
+                  }
                   break;
-                case 'sentence-info':
-                  fieldsNew[field.key] = field.value.replace(
-                    `{${key}}`,
-                    `${mediaName(sentence.media)}・Episode ${sentence.segment.episode}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}`,
-                  );
+                case 'sentence-info': {
+                  const isMovie = sentence.media.airingFormat === 'MOVIE';
+                  const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
+                  const sentenceUrl = `${window.location.origin}/sentence/${sentence.segment.publicId}`;
+                  const info = `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}`
+                    + `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`;
+                  fieldsNew[field.key] = field.value.replace(`{${key}}`, info);
                   break;
+                }
               }
             }
           }
@@ -456,8 +498,23 @@ export const ankiStore = defineStore('anki', {
           },
         });
 
-        await this.guiBrowse(`nid:${noteInfo.noteId}`);
+        if (profile.openBrowserOnExport !== false) {
+          await this.guiBrowse(`nid:${noteInfo.noteId}`);
+        }
         await this.addSegmentToAnkiExportsCollection(sentence);
+
+        if (user.isLoggedIn) {
+          const sdk = useNadeshikoSdk();
+          sdk.trackUserActivity({
+            body: {
+              activityType: 'ANKI_EXPORT',
+              segmentId: sentence.segment.publicId,
+              mediaId: sentence.media.id,
+              mediaName: mediaName(sentence.media),
+              japaneseText: sentence.segment.textJa.content,
+            },
+          }).catch(() => {});
+        }
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {

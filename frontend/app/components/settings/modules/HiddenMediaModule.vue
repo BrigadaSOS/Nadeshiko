@@ -147,10 +147,10 @@ const unhide = async (item: HiddenMediaItem) => {
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
           <tr v-for="result in hiddenMediaSearchResults" :key="result.id">
-            <td class="py-3 text-sm text-gray-100 max-w-[18rem]">
+            <td lang="ja" class="py-3 text-sm text-gray-100 max-w-[18rem]">
               <p class="font-medium truncate">{{ displayMediaName(result) }}</p>
             </td>
-            <td class="py-3 text-xs text-gray-400 max-w-[24rem]">
+            <td lang="ja" class="py-3 text-xs text-gray-400 max-w-[24rem]">
               <p class="truncate">{{ secondaryMediaNames(result) || '-' }}</p>
             </td>
             <td class="py-3 text-sm text-right">
@@ -190,10 +190,10 @@ const unhide = async (item: HiddenMediaItem) => {
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
           <tr v-for="item in hiddenMediaItems" :key="item.mediaId">
-            <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
+            <td lang="ja" class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <p class="font-medium truncate">{{ displayMediaName(item) }}</p>
             </td>
-            <td class="py-3 text-xs text-gray-400 max-w-[24rem]">
+            <td lang="ja" class="py-3 text-xs text-gray-400 max-w-[24rem]">
               <p class="truncate">{{ secondaryMediaNames(item) || '-' }}</p>
             </td>
             <td class="py-3 text-sm text-right">

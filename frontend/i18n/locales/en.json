@@ -109,6 +109,7 @@
       "noSettings": "No settings found. Please go to settings page and configure the extension.",
       "miningCard": "Mining the card...",
       "noCardToExport": "No Anki card to export to. Please add a card first.",
+      "cardFoundInOtherDeck": "Card found but not in deck \"{deck}\". Check that Yomitan and Nadeshiko are using the same deck.",
       "cardAdded": "Card has been successfully added to Anki",
       "cardAddError": "Could not add card to Anki. Error: {error}"
     }
@@ -434,8 +435,11 @@
       "noFieldsFound": "No fields found",
       "noFieldsMessage": "Please try again or check your AnkiConnect connection",
       "serverAddressLabel": "AnkiConnect server address",
+      "openBrowserOnExport": "Open Anki browser when exporting a card",
       "profile": "Profile",
       "newProfile": "New",
+      "renameProfile": "Rename",
+      "profileNamePlaceholder": "Profile name",
       "deleteProfile": "Delete",
       "saving": "Saving..."
     }

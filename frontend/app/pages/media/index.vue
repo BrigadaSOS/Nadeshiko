@@ -363,7 +363,7 @@ watch([searchQuery, filterCategory], () => {
             </button>
           </div>
           <NuxtLink :to="`/search?media=${mediaInfo.publicId}`" class="mt-2 text-center justify-center flex flex-col items-center">
-            <h3 class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
+            <h3 lang="ja" class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
               {{ mediaName(mediaInfo) }}
             </h3>
           </NuxtLink>
@@ -424,7 +424,7 @@ watch([searchQuery, filterCategory], () => {
 
             <div class="relative flex-auto p-6 z-10 flex flex-col sm:self-stretch">
               <div class="flex flex-wrap">
-                <h1 class="flex-auto text-xl font-semibold dark:text-gray-50">
+                <h1 lang="ja" class="flex-auto text-xl font-semibold dark:text-gray-50">
                   {{ mediaName(mediaInfo) }}
                 </h1>
                 <div
@@ -433,6 +433,7 @@ watch([searchQuery, filterCategory], () => {
                   {{ $t('searchContainer.categoryAnime') }}
                 </div>
                 <div
+                  lang="ja"
                   class="flex-none w-full mt-2 text-sm font-medium text-gray-500 dark:text-gray-300"
                 >
                   {{ secondaryMediaNames(mediaInfo) }}
