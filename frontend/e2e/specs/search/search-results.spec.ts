@@ -1,5 +1,5 @@
-import { test, expect } from '../fixtures';
-import { SearchPage } from '../pages/SearchPage';
+import { test, expect } from '../../fixtures';
+import { SearchPage } from '../../pages/SearchPage';
 
 test.describe('Search', () => {
   test('returns results for a Japanese query', async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe('Search', () => {
 
   test('returns results for a Spanish query', async ({ page }) => {
     const search = new SearchPage(page);
-    await search.goto('escuela');
+    await search.goto('Yo');
     await search.expectResultsVisible();
   });
 

@@ -1,5 +1,13 @@
 <script setup lang="ts">
-const stripTags = (text: string) => text.replace(/<[^>]*>/g, '');
+const stripTags = (text: string) => {
+  let result = text;
+  let previous;
+  do {
+    previous = result;
+    result = result.replace(/<[^>]*>/g, '');
+  } while (result !== previous);
+  return result;
+};
 
 type ActivityItem = {
   id: number;

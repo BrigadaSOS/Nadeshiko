@@ -8,6 +8,8 @@ export class SearchPage {
   readonly segmentCards: Locator;
   readonly segmentImages: Locator;
   readonly endOfResults: Locator;
+  readonly enToggle: Locator;
+  readonly esToggle: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -16,7 +18,9 @@ export class SearchPage {
     this.categoryTabs = page.locator('.search-tabs-row');
     this.segmentCards = page.locator('.group.flex.flex-col');
     this.segmentImages = page.locator('img[alt^="Screenshot for"]');
-    this.endOfResults = page.getByText('End of results', { exact: false });
+    this.endOfResults = page.getByText("You've reached the end", { exact: false });
+    this.enToggle = page.getByRole('button', { name: 'EN', exact: true });
+    this.esToggle = page.getByRole('button', { name: 'ES', exact: true });
   }
 
   async goto(query?: string) {
@@ -50,5 +54,18 @@ export class SearchPage {
 
   getResultCount() {
     return this.segmentCards.count();
+  }
+
+  translationBadges(lang: 'EN' | 'ES') {
+    return this.segmentCards.first().locator(`span:text-is("${lang}")`).first();
+  }
+
+  translationText(lang: 'EN' | 'ES') {
+    return this.segmentCards
+      .first()
+      .locator('li')
+      .filter({ has: this.page.locator(`span:text-is("${lang}")`) })
+      .locator('.group\\/translation span')
+      .first();
   }
 }
