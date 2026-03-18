@@ -5181,6 +5181,7 @@ components:
       description: Slim media item returned by autocomplete (names + cover only)
       required:
         - id
+        - publicId
         - nameJa
         - nameRomaji
         - nameEn
@@ -5191,6 +5192,10 @@ components:
           type: integer
           description: Unique identifier for the media
           example: 7674
+        publicId:
+          type: string
+          description: Public identifier for the media
+          example: abc123xyz
         nameJa:
           type: string
           description: Original Japanese name of the media
@@ -6308,10 +6313,11 @@ components:
           items:
             type: object
             required:
-              - mediaId
+              - mediaPublicId
             properties:
-              mediaId:
-                type: integer
+              mediaPublicId:
+                type: string
+                description: Public identifier of the hidden media
               nameEn:
                 type: string
               nameJa:

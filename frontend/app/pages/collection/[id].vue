@@ -97,7 +97,7 @@ const ogCollectionTitle = computed(() => {
 defineOgImage({
   title: ogCollectionTitle,
   description: 'Browse this collection on Nadeshiko.',
-});
+} as any);
 
 useSchemaOrg([
   defineWebPage({ '@type': 'CollectionPage' }),

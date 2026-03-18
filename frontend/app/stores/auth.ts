@@ -86,14 +86,9 @@ export const userStore = defineStore('user', {
 
       try {
         const sdk = useNadeshikoSdk();
-        const { error } = await sdk.impersonateAdminUser({
+        await sdk.impersonateAdminUser({
           body: { userId },
         });
-
-        if (error) {
-          useToastError($i18n.t('modalauth.labels.errorlogin400'));
-          return;
-        }
 
         await this.getBasicInfo();
         if (this.isLoggedIn) {

@@ -6,6 +6,7 @@ import type { SdkMediaAutocompleteResponse } from '~/types/search';
 
 type AutocompleteItem = {
   id: number;
+  publicId: string;
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
@@ -14,8 +15,8 @@ type AutocompleteItem = {
 };
 
 type NamedMedia = {
-  mediaId?: number;
-  id?: number;
+  publicId?: string;
+  mediaPublicId?: string;
   nameEn?: string;
   nameJa?: string;
   nameRomaji?: string;
@@ -44,7 +45,7 @@ const displayMediaName = (media: NamedMedia): string => {
   if (preferred) {
     return preferred;
   }
-  return `Media #${media.mediaId ?? media.id ?? '-'}`;
+  return `Media #${media.publicId ?? media.mediaPublicId ?? '-'}`;
 };
 
 const secondaryMediaNames = (media: NamedMedia): string => {
@@ -83,7 +84,7 @@ const searchMediaToHide = (query: string) => {
       searchLoading.value = true;
       try {
         const response = await sdk.autocompleteMedia({ query: { query: trimmedQuery, take: SEARCH_MAX_RESULTS } });
-        hiddenMediaSearchResults.value = (response.data as SdkMediaAutocompleteResponse)?.media ?? [];
+        hiddenMediaSearchResults.value = (response.data as SdkMediaAutocompleteResponse)?.media as AutocompleteItem[] ?? [];
       } catch {
         hiddenMediaSearchResults.value = [];
       } finally {
@@ -102,11 +103,11 @@ onBeforeUnmount(() => {
 });
 
 const toggleFromResult = async (result: AutocompleteItem) => {
-  await toggleHideMedia(result);
+  await toggleHideMedia({ publicId: result.publicId, nameEn: result.nameEn, nameJa: result.nameJa, nameRomaji: result.nameRomaji });
 };
 
 const unhide = async (item: HiddenMediaItem) => {
-  await toggleHideMedia({ id: item.mediaId, nameEn: item.nameEn, nameJa: item.nameJa, nameRomaji: item.nameRomaji });
+  await toggleHideMedia({ publicId: item.mediaPublicId, nameEn: item.nameEn, nameJa: item.nameJa, nameRomaji: item.nameRomaji });
 };
 </script>
 
@@ -156,10 +157,10 @@ const unhide = async (item: HiddenMediaItem) => {
             <td class="py-3 text-sm text-right">
               <button
                 class="text-sm font-medium py-1 px-3 rounded disabled:opacity-50"
-                :class="isMediaHidden(result.id) ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30' : 'bg-button-danger-main text-white hover:bg-button-danger-hover'"
+                :class="isMediaHidden(result.publicId) ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30' : 'bg-button-danger-main text-white hover:bg-button-danger-hover'"
                 @click="toggleFromResult(result)"
               >
-                {{ isMediaHidden(result.id) ? t('searchpage.main.buttons.unhideMedia') : t('searchpage.main.buttons.hideMedia') }}
+                {{ isMediaHidden(result.publicId) ? t('searchpage.main.buttons.unhideMedia') : t('searchpage.main.buttons.hideMedia') }}
               </button>
             </td>
           </tr>
@@ -189,7 +190,7 @@ const unhide = async (item: HiddenMediaItem) => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="item in hiddenMediaItems" :key="item.mediaId">
+          <tr v-for="item in hiddenMediaItems" :key="item.mediaPublicId">
             <td lang="ja" class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <p class="font-medium truncate">{{ displayMediaName(item) }}</p>
             </td>

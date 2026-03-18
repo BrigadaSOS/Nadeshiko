@@ -123,6 +123,7 @@ const submitCreate = async () => {
         id: data.id,
         publicId: data.publicId,
         name: data.name,
+        type: data.type,
         visibility: data.visibility as 'PUBLIC' | 'PRIVATE',
         segmentCount: 0,
         createdAt: data.createdAt,

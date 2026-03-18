@@ -63,10 +63,11 @@ properties:
     description: Media hidden from search results by the user
     items:
       type: object
-      required: [mediaId]
+      required: [mediaPublicId]
       properties:
-        mediaId:
-          type: integer
+        mediaPublicId:
+          type: string
+          description: Public identifier of the hidden media
         nameEn:
           type: string
         nameJa:
