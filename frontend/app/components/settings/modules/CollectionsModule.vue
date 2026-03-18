@@ -84,7 +84,8 @@ const submitRename = async () => {
     const target = renameTarget.value;
     if (!target) return;
     const idx = collections.value.findIndex((c) => c.publicId === target.publicId);
-    if (idx !== -1) collections.value[idx]!.name = renameValue.value.trim();
+    const item = collections.value[idx];
+    if (item) item.name = renameValue.value.trim();
 
     useToastSuccess(t('accountSettings.collections.renamed'));
     renameTarget.value = null;
@@ -160,8 +161,9 @@ const submitToggleVisibility = async () => {
       body: { visibility: newVisibility },
     });
 
-    const idx = collections.value.findIndex((c) => c.publicId === visibilityTarget.value!.publicId);
-    if (idx !== -1) collections.value[idx]!.visibility = newVisibility;
+    const idx = collections.value.findIndex((c) => c.publicId === visibilityTarget.value?.publicId);
+    const item = collections.value[idx];
+    if (item) item.visibility = newVisibility;
 
     useToastSuccess(t('accountSettings.collections.visibilityChanged'));
     visibilityTarget.value = null;
@@ -190,7 +192,7 @@ const submitDelete = async () => {
       path: { id: deleteTarget.value.publicId },
     });
 
-    collections.value = collections.value.filter((c) => c.publicId !== deleteTarget.value!.publicId);
+    collections.value = collections.value.filter((c) => c.publicId !== deleteTarget.value?.publicId);
 
     useToastSuccess(t('accountSettings.collections.deleted'));
     deleteTarget.value = null;

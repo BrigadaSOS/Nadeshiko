@@ -19,7 +19,8 @@ export function useNadeshikoSdk(): NadeshikoClient {
 }
 
 function useSSRSdk(): NadeshikoClient {
-  const event = useRequestEvent()!;
+  const event = useRequestEvent();
+  if (!event) throw new Error('useRequestEvent() returned undefined during SSR');
   const config = useRuntimeConfig();
   const baseUrl = String(config.backendInternalUrl || '');
   const hostHeader = String(config.backendHostHeader || '');
