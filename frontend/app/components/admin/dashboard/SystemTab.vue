@@ -1,27 +1,15 @@
 <script setup lang="ts">
-type SystemData = {
-  status: 'healthy' | 'degraded';
-  app: { version: string };
-  elasticsearch: {
-    status: 'connected' | 'disconnected';
-    version: string | null;
-    clusterName: string | null;
-    clusterStatus: string | null;
-    indexName: string | null;
-    documentCount: number | null;
-    indexSizeBytes: number | null;
-  };
-  database: {
-    status: 'connected' | 'disconnected';
-    version: string | null;
-  };
-  queues: Array<{ queue: string; stuckCount: number; failedCount: number }>;
-};
+import type { GetAdminDashboardSystemResponse } from '@brigadasos/nadeshiko-sdk';
 
-const { data, status, refresh } = useLazyAsyncData('admin-system', () => $fetch<SystemData>('/v1/admin/dashboard/system'), {
-  default: () => null as SystemData | null,
-  server: false,
-});
+const sdk = useNadeshikoSdk();
+const { data, status, refresh } = useLazyAsyncData(
+  'admin-system',
+  async () => {
+    const { data } = await sdk.getAdminDashboardSystem();
+    return data ?? null;
+  },
+  { default: () => null as GetAdminDashboardSystemResponse | null, server: false },
+);
 
 const statusBadgeClass = (status: string) => {
   return status === 'connected' || status === 'healthy' || status === 'green'
@@ -31,7 +19,7 @@ const statusBadgeClass = (status: string) => {
 
 const fmt = (n: number) => n.toLocaleString();
 
-function formatBytes(bytes: number | null): string {
+function formatBytes(bytes: number | undefined): string {
   if (bytes == null) return '-';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
