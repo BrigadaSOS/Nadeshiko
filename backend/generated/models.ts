@@ -890,6 +890,14 @@ export type t_EnrollUserLabParamSchema = {
   key: string;
 };
 
+export type t_GetAdminDashboardActivityQuerySchema = {
+  days?: string;
+};
+
+export type t_GetAdminDashboardOverviewQuerySchema = {
+  days?: string;
+};
+
 export type t_GetAdminMediaAuditRunParamSchema = {
   id: number;
 };

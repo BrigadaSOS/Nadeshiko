@@ -149,7 +149,10 @@ watch(
 
     isLoadingInternal.value = true;
     try {
-      const { data } = await sdk.getSegmentByUuid({ path: { uuid: seg.segment.uuid }, query: { include: ['ratingAnalysis', 'posAnalysis', 'hashedId', 'storage', 'storageBasePath'] } });
+      const { data } = await sdk.getSegmentByUuid({
+        path: { uuid: seg.segment.uuid },
+        query: { include: ['ratingAnalysis', 'posAnalysis', 'hashedId', 'storage', 'storageBasePath'] },
+      });
       lastRatingAnalysis = data?.ratingAnalysis ?? null;
       lastPosAnalysis = data?.posAnalysis ?? null;
       internalHashedId.value = data?.hashedId ?? null;

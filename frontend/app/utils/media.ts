@@ -194,15 +194,17 @@ export async function getSharingURL(params: {
     const user = userStore();
     if (user.isLoggedIn) {
       const sdk = useNadeshikoSdk();
-      sdk.trackUserActivity({
-        body: {
-          activityType: 'SHARE',
-          segmentId: params.publicId,
-          mediaId: params.mediaId,
-          mediaName: params.mediaName,
-          japaneseText: params.japaneseText,
-        },
-      }).catch(() => {});
+      sdk
+        .trackUserActivity({
+          body: {
+            activityType: 'SHARE',
+            segmentId: params.publicId,
+            mediaId: params.mediaId,
+            mediaName: params.mediaName,
+            japaneseText: params.japaneseText,
+          },
+        })
+        .catch(() => {});
     }
   } catch (_error) {
     const message = $i18n.t('searchpage.main.labels.errorcopiedsharingurl');

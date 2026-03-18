@@ -36,10 +36,7 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
 };
 
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
-  const [keysRaw, quotaRes] = await Promise.all([
-    fetchApiKeyList(),
-    sdk.getUserQuota().catch(() => ({ data: null })),
-  ]);
+  const [keysRaw, quotaRes] = await Promise.all([fetchApiKeyList(), sdk.getUserQuota().catch(() => ({ data: null }))]);
 
   const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey).filter((k) => k.isActive);
   const q = (quotaRes.data ?? {}) as Record<string, unknown>;

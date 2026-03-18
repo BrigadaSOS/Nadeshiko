@@ -7,25 +7,32 @@ type AnnouncementData = {
 
 const sdk = useNadeshikoSdk();
 
-const { data: announcement } = await useAsyncData('system-announcement', async () => {
-  try {
-    const { data, response } = await sdk.getAnnouncement();
-    if (response.status === 204 || !data || typeof data !== 'object' || !('active' in data)) {
+const { data: announcement } = await useAsyncData(
+  'system-announcement',
+  async () => {
+    try {
+      const { data, response } = await sdk.getAnnouncement();
+      if (response.status === 204 || !data || typeof data !== 'object' || !('active' in data)) {
+        return null;
+      }
+      return { message: data.message, type: data.type, active: data.active } as AnnouncementData;
+    } catch {
       return null;
     }
-    return { message: data.message, type: data.type, active: data.active } as AnnouncementData;
-  } catch {
-    return null;
-  }
-}, {
-  default: () => null,
-});
+  },
+  {
+    default: () => null,
+  },
+);
 
 const typeLabel = computed(() => {
   switch (announcement.value?.type) {
-    case 'warning': return 'Important Notice';
-    case 'maintenance': return 'Maintenance Notice';
-    default: return 'Notice';
+    case 'warning':
+      return 'Important Notice';
+    case 'maintenance':
+      return 'Maintenance Notice';
+    default:
+      return 'Notice';
   }
 });
 </script>

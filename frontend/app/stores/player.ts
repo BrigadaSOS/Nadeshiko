@@ -64,15 +64,17 @@ export const usePlayerStore = defineStore('player', {
             const user = userStore();
             if (user.isLoggedIn) {
               const sdk = useNadeshikoSdk();
-              sdk.trackUserActivity({
-                body: {
-                  activityType: 'SEGMENT_PLAY',
-                  segmentId: this.currentResult?.segment.publicId,
-                  mediaId: this.currentResult?.media.id,
-                  mediaName: this.currentResult?.media.nameRomaji,
-                  japaneseText: this.currentResult?.segment.textJa.content,
-                },
-              }).catch(() => {});
+              sdk
+                .trackUserActivity({
+                  body: {
+                    activityType: 'SEGMENT_PLAY',
+                    segmentId: this.currentResult?.segment.publicId,
+                    mediaId: this.currentResult?.media.id,
+                    mediaName: this.currentResult?.media.nameRomaji,
+                    japaneseText: this.currentResult?.segment.textJa.content,
+                  },
+                })
+                .catch(() => {});
             }
           })
           .catch((error) => {

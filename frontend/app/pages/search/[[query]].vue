@@ -13,7 +13,8 @@ const ogTitle = computed(() => {
 
 defineOgImage({
   title: ogTitle,
-  description: 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+  description:
+    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
 } as any);
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();

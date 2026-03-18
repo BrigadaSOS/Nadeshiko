@@ -5,12 +5,16 @@ const labsStore = useLabsStore();
 const togglingKey = ref<string | null>(null);
 const sdk = useNadeshikoSdk();
 
-const { data: featuresData } = await useAsyncData('settings-labs-features', async () => {
-  const { data } = await sdk.listUserLabs().catch(() => ({ data: null }));
-  return (data ?? []) as typeof labsStore.features;
-}, {
-  default: () => [],
-});
+const { data: featuresData } = await useAsyncData(
+  'settings-labs-features',
+  async () => {
+    const { data } = await sdk.listUserLabs().catch(() => ({ data: null }));
+    return (data ?? []) as typeof labsStore.features;
+  },
+  {
+    default: () => [],
+  },
+);
 
 labsStore.features = featuresData.value;
 labsStore.loaded = true;

@@ -22,6 +22,8 @@ import type {
   t_Error404,
   t_Error429,
   t_Error500,
+  t_GetAdminDashboardActivityQuerySchema,
+  t_GetAdminDashboardOverviewQuerySchema,
   t_GetAdminMediaAuditRunParamSchema,
   t_GetAdminQueueParamSchema,
   t_ImpersonateAdminUserRequestBodySchema,
@@ -45,7 +47,7 @@ import type {
   t_UpdateAdminReportRequestBodySchema,
   t_UpdateAnnouncementRequestBodySchema,
 } from '../models.ts';
-import type { BatchUpdateReportsRequestOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { BatchUpdateReportsRequestOutput, GetAdminDashboardActivityQueryOutput, GetAdminDashboardOverviewQueryOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
@@ -128,6 +130,239 @@ export type GetAdminDashboardResponder = {
 export type GetAdminDashboard = (
   params: Params<void, void, void, void>,
   respond: GetAdminDashboardResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminDashboardOverviewResponder = {
+  with200(): ExpressRuntimeResponse<{
+    activity: {
+      activeSearchers7d: number;
+      dailyActivity: {
+        count: number;
+        date: string;
+      }[];
+      totalExports: number;
+      totalPlays: number;
+      totalSearches: number;
+      totalShares: number;
+    };
+    media: {
+      totalCharacters: number;
+      totalEpisodes: number;
+      totalMedia: number;
+      totalSegments: number;
+      totalSeiyuu: number;
+    };
+    users: {
+      recentlyActiveCount: number;
+      recentlyRegisteredCount: number;
+      totalUsers: number;
+    };
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminDashboardOverview = (
+  params: Params<void, GetAdminDashboardOverviewQueryOutput, void, void>,
+  respond: GetAdminDashboardOverviewResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminDashboardMediaResponder = {
+  with200(): ExpressRuntimeResponse<{
+    byCategory: {
+      count: number;
+      label: string;
+    }[];
+    byFormat: {
+      count: number;
+      label: string;
+    }[];
+    byGenre: {
+      count: number;
+      label: string;
+    }[];
+    byStatus: {
+      count: number;
+      label: string;
+    }[];
+    byStudio: {
+      count: number;
+      label: string;
+    }[];
+    segmentsByContentRating: {
+      count: number;
+      label: string;
+    }[];
+    segmentsByStatus: {
+      count: number;
+      label: string;
+    }[];
+    topMediaByExports: {
+      count: number;
+      mediaId: number;
+      mediaName: string;
+    }[];
+    topMediaByPlays: {
+      count: number;
+      mediaId: number;
+      mediaName: string;
+    }[];
+    topMediaBySearches: {
+      count: number;
+      mediaId: number;
+      mediaName: string;
+    }[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminDashboardMedia = (
+  params: Params<void, void, void, void>,
+  respond: GetAdminDashboardMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminDashboardActivityResponder = {
+  with200(): ExpressRuntimeResponse<{
+    dailyActivityByType: {
+      ankiExport: number;
+      date: string;
+      search: number;
+      segmentPlay: number;
+      share: number;
+    }[];
+    dailyExports: {
+      count: number;
+      date: string;
+    }[];
+    topExportedMedia: {
+      count: number;
+      mediaId: number;
+      mediaName: string;
+    }[];
+    topSearches: {
+      count: number;
+      query: string;
+    }[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminDashboardActivity = (
+  params: Params<void, GetAdminDashboardActivityQueryOutput, void, void>,
+  respond: GetAdminDashboardActivityResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminDashboardCollectionsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    averageSize: number;
+    byTypeAndVisibility: {
+      count: number;
+      type: string;
+      visibility: string;
+    }[];
+    topCollections: {
+      id: number;
+      name: string;
+      segmentCount: number;
+      type: string;
+      visibility: string;
+    }[];
+    totalCollections: number;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminDashboardCollections = (
+  params: Params<void, void, void, void>,
+  respond: GetAdminDashboardCollectionsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminDashboardApiKeysResponder = {
+  with200(): ExpressRuntimeResponse<{
+    keys: {
+      email?: string | null;
+      hint?: string | null;
+      id: number;
+      isActive: boolean;
+      name?: string | null;
+      requestCount: number;
+      username?: string | null;
+    }[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminDashboardApiKeys = (
+  params: Params<void, void, void, void>,
+  respond: GetAdminDashboardApiKeysResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminDashboardSystemResponder = {
+  with200(): ExpressRuntimeResponse<{
+    app: {
+      version: string;
+    };
+    database: {
+      status: 'connected' | 'disconnected';
+      version?: string | null;
+    };
+    elasticsearch: {
+      clusterName?: string | null;
+      clusterStatus?: string | null;
+      documentCount?: number | null;
+      indexName?: string | null;
+      indexSizeBytes?: number | null;
+      status: 'connected' | 'disconnected';
+      version?: string | null;
+    };
+    queues: {
+      failedCount: number;
+      queue: string;
+      stuckCount: number;
+    }[];
+    status: 'healthy' | 'degraded';
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminDashboardSystem = (
+  params: Params<void, void, void, void>,
+  respond: GetAdminDashboardSystemResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -541,6 +776,12 @@ export type UpdateAnnouncement = (
 
 export type AdminImplementation = {
   getAdminDashboard: GetAdminDashboard;
+  getAdminDashboardOverview: GetAdminDashboardOverview;
+  getAdminDashboardMedia: GetAdminDashboardMedia;
+  getAdminDashboardActivity: GetAdminDashboardActivity;
+  getAdminDashboardCollections: GetAdminDashboardCollections;
+  getAdminDashboardApiKeys: GetAdminDashboardApiKeys;
+  getAdminDashboardSystem: GetAdminDashboardSystem;
   getAdminHealth: GetAdminHealth;
   triggerReindex: TriggerReindex;
   listAdminQueueStats: ListAdminQueueStats;
@@ -717,6 +958,656 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       if (body !== undefined) {
         res.json(getAdminDashboardResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminDashboardOverviewQuerySchema = z.object({ days: z.string().optional() });
+
+  const getAdminDashboardOverviewResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          media: z.object({
+            totalMedia: z.coerce.number(),
+            totalEpisodes: z.coerce.number(),
+            totalSegments: z.coerce.number(),
+            totalCharacters: z.coerce.number(),
+            totalSeiyuu: z.coerce.number(),
+          }),
+          users: z.object({
+            totalUsers: z.coerce.number(),
+            recentlyRegisteredCount: z.coerce.number(),
+            recentlyActiveCount: z.coerce.number(),
+          }),
+          activity: z.object({
+            totalSearches: z.coerce.number(),
+            totalExports: z.coerce.number(),
+            totalPlays: z.coerce.number(),
+            totalShares: z.coerce.number(),
+            activeSearchers7d: z.coerce.number(),
+            dailyActivity: z.array(z.object({ date: z.string(), count: z.coerce.number() })),
+          }),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminDashboardOverview
+  router.get(`/v1/admin/dashboard/overview`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(getAdminDashboardOverviewQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            activity: {
+              activeSearchers7d: number;
+              dailyActivity: {
+                count: number;
+                date: string;
+              }[];
+              totalExports: number;
+              totalPlays: number;
+              totalSearches: number;
+              totalShares: number;
+            };
+            media: {
+              totalCharacters: number;
+              totalEpisodes: number;
+              totalMedia: number;
+              totalSegments: number;
+              totalSeiyuu: number;
+            };
+            users: {
+              recentlyActiveCount: number;
+              recentlyRegisteredCount: number;
+              totalUsers: number;
+            };
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getAdminDashboardOverview(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAdminDashboardOverviewResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminDashboardMediaResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          byCategory: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
+          byFormat: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
+          byStatus: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
+          byGenre: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
+          byStudio: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
+          segmentsByContentRating: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
+          segmentsByStatus: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
+          topMediaByPlays: z.array(
+            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
+          ),
+          topMediaBySearches: z.array(
+            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
+          ),
+          topMediaByExports: z.array(
+            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
+          ),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminDashboardMedia
+  router.get(`/v1/admin/dashboard/media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            byCategory: {
+              count: number;
+              label: string;
+            }[];
+            byFormat: {
+              count: number;
+              label: string;
+            }[];
+            byGenre: {
+              count: number;
+              label: string;
+            }[];
+            byStatus: {
+              count: number;
+              label: string;
+            }[];
+            byStudio: {
+              count: number;
+              label: string;
+            }[];
+            segmentsByContentRating: {
+              count: number;
+              label: string;
+            }[];
+            segmentsByStatus: {
+              count: number;
+              label: string;
+            }[];
+            topMediaByExports: {
+              count: number;
+              mediaId: number;
+              mediaName: string;
+            }[];
+            topMediaByPlays: {
+              count: number;
+              mediaId: number;
+              mediaName: string;
+            }[];
+            topMediaBySearches: {
+              count: number;
+              mediaId: number;
+              mediaName: string;
+            }[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getAdminDashboardMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAdminDashboardMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminDashboardActivityQuerySchema = z.object({ days: z.string().optional() });
+
+  const getAdminDashboardActivityResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          dailyActivityByType: z.array(
+            z.object({
+              date: z.string(),
+              search: z.coerce.number(),
+              ankiExport: z.coerce.number(),
+              segmentPlay: z.coerce.number(),
+              share: z.coerce.number(),
+            }),
+          ),
+          topSearches: z.array(z.object({ query: z.string(), count: z.coerce.number() })),
+          dailyExports: z.array(z.object({ date: z.string(), count: z.coerce.number() })),
+          topExportedMedia: z.array(
+            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
+          ),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminDashboardActivity
+  router.get(`/v1/admin/dashboard/activity`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(getAdminDashboardActivityQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            dailyActivityByType: {
+              ankiExport: number;
+              date: string;
+              search: number;
+              segmentPlay: number;
+              share: number;
+            }[];
+            dailyExports: {
+              count: number;
+              date: string;
+            }[];
+            topExportedMedia: {
+              count: number;
+              mediaId: number;
+              mediaName: string;
+            }[];
+            topSearches: {
+              count: number;
+              query: string;
+            }[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getAdminDashboardActivity(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAdminDashboardActivityResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminDashboardCollectionsResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          totalCollections: z.coerce.number(),
+          byTypeAndVisibility: z.array(
+            z.object({ type: z.string(), visibility: z.string(), count: z.coerce.number() }),
+          ),
+          averageSize: z.coerce.number(),
+          topCollections: z.array(
+            z.object({
+              id: z.coerce.number(),
+              name: z.string(),
+              type: z.string(),
+              visibility: z.string(),
+              segmentCount: z.coerce.number(),
+            }),
+          ),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminDashboardCollections
+  router.get(`/v1/admin/dashboard/collections`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            averageSize: number;
+            byTypeAndVisibility: {
+              count: number;
+              type: string;
+              visibility: string;
+            }[];
+            topCollections: {
+              id: number;
+              name: string;
+              segmentCount: number;
+              type: string;
+              visibility: string;
+            }[];
+            totalCollections: number;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation
+        .getAdminDashboardCollections(input, responder, req, res, next)
+        .catch((err) => {
+          throw ExpressRuntimeError.HandlerError(err);
+        });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAdminDashboardCollectionsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminDashboardApiKeysResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          keys: z.array(
+            z.object({
+              id: z.coerce.number(),
+              name: z.string().nullable().optional(),
+              hint: z.string().nullable().optional(),
+              isActive: PermissiveBoolean,
+              username: z.string().nullable().optional(),
+              email: z.string().nullable().optional(),
+              requestCount: z.coerce.number(),
+            }),
+          ),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminDashboardApiKeys
+  router.get(`/v1/admin/dashboard/api-keys`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            keys: {
+              email?: string | null;
+              hint?: string | null;
+              id: number;
+              isActive: boolean;
+              name?: string | null;
+              requestCount: number;
+              username?: string | null;
+            }[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getAdminDashboardApiKeys(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAdminDashboardApiKeysResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminDashboardSystemResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          status: z.enum(['healthy', 'degraded']),
+          app: z.object({ version: z.string() }),
+          elasticsearch: z.object({
+            status: z.enum(['connected', 'disconnected']),
+            version: z.string().nullable().optional(),
+            clusterName: z.string().nullable().optional(),
+            clusterStatus: z.string().nullable().optional(),
+            indexName: z.string().nullable().optional(),
+            documentCount: z.coerce.number().nullable().optional(),
+            indexSizeBytes: z.coerce.number().nullable().optional(),
+          }),
+          database: z.object({
+            status: z.enum(['connected', 'disconnected']),
+            version: z.string().nullable().optional(),
+          }),
+          queues: z.array(
+            z.object({ queue: z.string(), stuckCount: z.coerce.number(), failedCount: z.coerce.number() }),
+          ),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminDashboardSystem
+  router.get(`/v1/admin/dashboard/system`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            app: {
+              version: string;
+            };
+            database: {
+              status: 'connected' | 'disconnected';
+              version?: string | null;
+            };
+            elasticsearch: {
+              clusterName?: string | null;
+              clusterStatus?: string | null;
+              documentCount?: number | null;
+              indexName?: string | null;
+              indexSizeBytes?: number | null;
+              status: 'connected' | 'disconnected';
+              version?: string | null;
+            };
+            queues: {
+              failedCount: number;
+              queue: string;
+              stuckCount: number;
+            }[];
+            status: 'healthy' | 'degraded';
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.getAdminDashboardSystem(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(getAdminDashboardSystemResponseBodyValidator(status, body));
       } else {
         res.end();
       }
