@@ -1,28 +1,18 @@
 <script setup lang="ts">
+import type { GetAdminDashboardActivityResponse } from '@brigadasos/nadeshiko-sdk';
 import { Line, Bar } from 'vue-chartjs';
 import { CHART_COLORS } from '~/utils/chartColors';
 
-type DailyByType = {
-  date: string;
-  search: number;
-  ankiExport: number;
-  segmentPlay: number;
-  share: number;
-};
-
-type ActivityData = {
-  dailyActivityByType: DailyByType[];
-  topSearches: Array<{ query: string; count: number }>;
-  dailyExports: Array<{ date: string; count: number }>;
-  topExportedMedia: Array<{ mediaId: number; mediaName: string; count: number }>;
-};
-
 const props = defineProps<{ days: number }>();
 
+const sdk = useNadeshikoSdk();
 const { data, status, refresh } = useLazyAsyncData(
   'admin-activity',
-  () => $fetch<ActivityData>('/v1/admin/dashboard/activity', { query: { days: props.days } }),
-  { default: () => null as ActivityData | null, watch: [() => props.days], server: false },
+  async () => {
+    const { data } = await sdk.getAdminDashboardActivity({ query: { days: String(props.days) } });
+    return data ?? null;
+  },
+  { default: () => null as GetAdminDashboardActivityResponse | null, watch: [() => props.days], server: false },
 );
 
 const stackedChartData = computed(() => {

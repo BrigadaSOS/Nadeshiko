@@ -1,20 +1,14 @@
 <script setup lang="ts">
-type ApiKeysData = {
-  keys: Array<{
-    id: number;
-    name: string | null;
-    hint: string | null;
-    isActive: boolean;
-    username: string | null;
-    email: string | null;
-    requestCount: number;
-  }>;
-};
+import type { GetAdminDashboardApiKeysResponse } from '@brigadasos/nadeshiko-sdk';
 
+const sdk = useNadeshikoSdk();
 const { data, status, refresh } = useLazyAsyncData(
   'admin-api-keys',
-  () => $fetch<ApiKeysData>('/v1/admin/dashboard/api-keys'),
-  { default: () => null as ApiKeysData | null, server: false },
+  async () => {
+    const { data } = await sdk.getAdminDashboardApiKeys();
+    return data ?? null;
+  },
+  { default: () => null as GetAdminDashboardApiKeysResponse | null, server: false },
 );
 
 const fmt = (n: number) => n.toLocaleString();
