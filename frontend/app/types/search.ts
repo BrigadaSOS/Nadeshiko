@@ -29,7 +29,8 @@ export type SearchResponse = {
 };
 
 /** MediaSearchStats enriched with media metadata from includes. */
-export type ResolvedMediaStats = MediaSearchStats & Pick<Media, 'nameRomaji' | 'nameEn' | 'nameJa' | 'category' | 'airingFormat'>;
+export type ResolvedMediaStats = MediaSearchStats &
+  Pick<Media, 'nameRomaji' | 'nameEn' | 'nameJa' | 'category' | 'airingFormat'>;
 
 export type ResolvedCategoryCount = {
   category: 'ANIME' | 'JDRAMA';

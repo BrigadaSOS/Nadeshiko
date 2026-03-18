@@ -1,16 +1,17 @@
 <script setup lang="ts">
-defineOptions({ inheritAttrs: false })
+defineOptions({ inheritAttrs: false });
 
 withDefaults(
   defineProps<{
-    title?: string
-    description?: string
+    title?: string;
+    description?: string;
   }>(),
   {
     title: 'Nadeshiko',
-    description: 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+    description:
+      'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
   },
-)
+);
 </script>
 
 <template>

@@ -99,9 +99,7 @@ defineOgImage({
   description: 'Browse this collection on Nadeshiko.',
 } as any);
 
-useSchemaOrg([
-  defineWebPage({ '@type': 'CollectionPage' }),
-]);
+useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 </script>
 
 <template>

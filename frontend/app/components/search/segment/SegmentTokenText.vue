@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import type { Token } from '@brigadasos/nadeshiko-sdk';
-import { enrichTokens, hiraganaToKatakana, hiraganaToRomaji, type SlimToken, type EnrichedToken } from '~/utils/tokenEnrichment';
+import {
+  enrichTokens,
+  hiraganaToKatakana,
+  hiraganaToRomaji,
+  type SlimToken,
+  type EnrichedToken,
+} from '~/utils/tokenEnrichment';
 
 type Props = {
   tokens: Token[];
@@ -57,12 +63,12 @@ const onTokenLeave = () => {
 };
 
 const POS_CLASS: Record<string, string> = {
-  '動詞': 'token--verb',
-  '名詞': 'token--noun',
-  '形容詞': 'token--adjective',
-  '副詞': 'token--adverb',
-  '助詞': 'token--particle',
-  '助動詞': 'token--auxiliary',
+  動詞: 'token--verb',
+  名詞: 'token--noun',
+  形容詞: 'token--adjective',
+  副詞: 'token--adverb',
+  助詞: 'token--particle',
+  助動詞: 'token--auxiliary',
 };
 
 const { tooltipReadingMode } = useTooltipReadingVisibility();
@@ -72,10 +78,14 @@ const tooltipReading = computed(() => {
   if (!hoveredToken.value?.dictReading) return '';
   const reading = hoveredToken.value.dictReading;
   switch (tooltipReadingMode.value) {
-    case 'katakana': return hiraganaToKatakana(reading);
-    case 'romaji': return hiraganaToRomaji(reading);
-    case 'hidden': return '';
-    default: return reading;
+    case 'katakana':
+      return hiraganaToKatakana(reading);
+    case 'romaji':
+      return hiraganaToRomaji(reading);
+    case 'hidden':
+      return '';
+    default:
+      return reading;
   }
 });
 </script>

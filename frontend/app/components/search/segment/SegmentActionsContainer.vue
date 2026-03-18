@@ -107,9 +107,7 @@ const loadCollections = async () => {
   try {
     const { data } = await sdk.listCollections({ query: { take: 100 } });
     const allItems = data?.collections ?? [];
-    const items = allItems
-      .filter((c) => c.type !== 'ANKI_EXPORT')
-      .map((c) => ({ id: c.publicId, name: c.name }));
+    const items = allItems.filter((c) => c.type !== 'ANKI_EXPORT').map((c) => ({ id: c.publicId, name: c.name }));
     collections.value = items;
     collectionsLoaded.value = true;
 

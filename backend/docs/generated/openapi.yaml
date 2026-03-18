@@ -2836,6 +2836,616 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/overview:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardOverview
+      summary: Get dashboard overview statistics
+      description: |
+        Returns key metrics and daily activity for the admin dashboard overview tab.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Number of days for daily activity range (7, 30, or 90)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - media
+                  - users
+                  - activity
+                properties:
+                  media:
+                    type: object
+                    required:
+                      - totalMedia
+                      - totalEpisodes
+                      - totalSegments
+                      - totalCharacters
+                      - totalSeiyuu
+                    properties:
+                      totalMedia:
+                        type: integer
+                      totalEpisodes:
+                        type: integer
+                      totalSegments:
+                        type: integer
+                      totalCharacters:
+                        type: integer
+                      totalSeiyuu:
+                        type: integer
+                  users:
+                    type: object
+                    required:
+                      - totalUsers
+                      - recentlyRegisteredCount
+                      - recentlyActiveCount
+                    properties:
+                      totalUsers:
+                        type: integer
+                      recentlyRegisteredCount:
+                        type: integer
+                        description: Users registered in the last 30 days
+                      recentlyActiveCount:
+                        type: integer
+                        description: Users active in the last 30 days
+                  activity:
+                    type: object
+                    required:
+                      - totalSearches
+                      - totalExports
+                      - totalPlays
+                      - totalShares
+                      - activeSearchers7d
+                      - dailyActivity
+                    properties:
+                      totalSearches:
+                        type: integer
+                      totalExports:
+                        type: integer
+                      totalPlays:
+                        type: integer
+                      totalShares:
+                        type: integer
+                      activeSearchers7d:
+                        type: integer
+                        description: Unique users who searched in the last 7 days
+                      dailyActivity:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - date
+                            - count
+                          properties:
+                            date:
+                              type: string
+                            count:
+                              type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/media:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardMedia
+      summary: Get media breakdown statistics
+      description: |
+        Returns media breakdowns by category, format, status, genre, studio,
+        segment content ratings, segment statuses, and top media by interaction.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - byCategory
+                  - byFormat
+                  - byStatus
+                  - byGenre
+                  - byStudio
+                  - segmentsByContentRating
+                  - segmentsByStatus
+                  - topMediaByPlays
+                  - topMediaBySearches
+                  - topMediaByExports
+                properties:
+                  byCategory:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byFormat:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byStatus:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byGenre:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byStudio:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  segmentsByContentRating:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  segmentsByStatus:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  topMediaByPlays:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+                  topMediaBySearches:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+                  topMediaByExports:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/activity:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardActivity
+      summary: Get activity analytics
+      description: |
+        Returns time-series activity data by type, top searches, export trends,
+        and most exported media.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Number of days for activity range (7, 30, or 90)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - dailyActivityByType
+                  - topSearches
+                  - dailyExports
+                  - topExportedMedia
+                properties:
+                  dailyActivityByType:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - date
+                        - search
+                        - ankiExport
+                        - segmentPlay
+                        - share
+                      properties:
+                        date:
+                          type: string
+                        search:
+                          type: integer
+                        ankiExport:
+                          type: integer
+                        segmentPlay:
+                          type: integer
+                        share:
+                          type: integer
+                  topSearches:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - query
+                        - count
+                      properties:
+                        query:
+                          type: string
+                        count:
+                          type: integer
+                  dailyExports:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - date
+                        - count
+                      properties:
+                        date:
+                          type: string
+                        count:
+                          type: integer
+                  topExportedMedia:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/collections:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardCollections
+      summary: Get collection statistics
+      description: |
+        Returns collection statistics by type and visibility, average collection size,
+        and top collections by segment count.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalCollections
+                  - byTypeAndVisibility
+                  - averageSize
+                  - topCollections
+                properties:
+                  totalCollections:
+                    type: integer
+                  byTypeAndVisibility:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - visibility
+                        - count
+                      properties:
+                        type:
+                          type: string
+                        visibility:
+                          type: string
+                        count:
+                          type: integer
+                  averageSize:
+                    type: number
+                  topCollections:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - type
+                        - visibility
+                        - segmentCount
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        visibility:
+                          type: string
+                        segmentCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/api-keys:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardApiKeys
+      summary: Get API key usage statistics
+      description: |
+        Returns all API keys with their current quota usage for the current billing period.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - keys
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - isActive
+                        - requestCount
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                          nullable: true
+                        hint:
+                          type: string
+                          nullable: true
+                        isActive:
+                          type: boolean
+                        username:
+                          type: string
+                          nullable: true
+                        email:
+                          type: string
+                          nullable: true
+                        requestCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/system:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardSystem
+      summary: Get real-time system health
+      description: |
+        Returns real-time system health including Elasticsearch and database status,
+        queue statistics, and index size.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - app
+                  - elasticsearch
+                  - database
+                  - queues
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - healthy
+                      - degraded
+                  app:
+                    type: object
+                    required:
+                      - version
+                    properties:
+                      version:
+                        type: string
+                  elasticsearch:
+                    type: object
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - connected
+                          - disconnected
+                      version:
+                        type: string
+                        nullable: true
+                      clusterName:
+                        type: string
+                        nullable: true
+                      clusterStatus:
+                        type: string
+                        nullable: true
+                      indexName:
+                        type: string
+                        nullable: true
+                      documentCount:
+                        type: integer
+                        nullable: true
+                      indexSizeBytes:
+                        type: integer
+                        nullable: true
+                  database:
+                    type: object
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - connected
+                          - disconnected
+                      version:
+                        type: string
+                        nullable: true
+                  queues:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - queue
+                        - stuckCount
+                        - failedCount
+                      properties:
+                        queue:
+                          type: string
+                        stuckCount:
+                          type: integer
+                        failedCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/admin/health:
     get:
       tags:

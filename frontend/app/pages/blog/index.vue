@@ -15,9 +15,13 @@ const { data: posts } = await useAsyncData(
     const blogCollection = `blog_${lang}` as any;
 
     // Get posts for the current locale, fallback to English
-    let allPosts = await queryCollection(blogCollection).all().catch(() => []);
+    let allPosts = await queryCollection(blogCollection)
+      .all()
+      .catch(() => []);
     if (allPosts.length === 0 && lang !== 'en') {
-      allPosts = await queryCollection('blog_en').all().catch(() => []);
+      allPosts = await queryCollection('blog_en')
+        .all()
+        .catch(() => []);
     }
 
     const sortedPosts = [...allPosts].sort((a: any, b: any) => {
@@ -48,9 +52,7 @@ defineOgImage({
   description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
 } as any);
 
-useSchemaOrg([
-  defineWebPage({ '@type': 'CollectionPage' }),
-]);
+useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 </script>
 
 <template>

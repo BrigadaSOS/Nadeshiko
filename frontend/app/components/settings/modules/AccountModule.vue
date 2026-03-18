@@ -75,7 +75,8 @@ const mediaNameExample = computed(() => {
 // Content rating preview segment
 const PREVIEW_SEGMENT_UUID = 'fIFFrAgVtMZ0';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
-  sdk.getSegmentContext({ path: { uuid: PREVIEW_SEGMENT_UUID }, query: { take: 1 } })
+  sdk
+    .getSegmentContext({ path: { uuid: PREVIEW_SEGMENT_UUID }, query: { take: 1 } })
     .then((r) => (r.data ? resolveContextResponse(r.data) : null))
     .catch(() => null),
 );

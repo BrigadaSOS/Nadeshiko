@@ -266,9 +266,7 @@ export const ankiStore = defineStore('anki', {
         const sdk = useNadeshikoSdk();
         const { data: listData } = await sdk.listCollections({ query: { take: 100 } });
 
-        const existing = (listData?.collections ?? []).find(
-          (collection) => collection.type === 'ANKI_EXPORT',
-        );
+        const existing = (listData?.collections ?? []).find((collection) => collection.type === 'ANKI_EXPORT');
         if (existing) return existing.publicId;
 
         const { data: created } = await sdk.createCollection({
@@ -317,9 +315,12 @@ export const ankiStore = defineStore('anki', {
       const { $i18n } = useNuxtApp();
       const locale = $i18n.locale.value;
       const user = userStore();
-      const mediaLang = user.isLoggedIn && user.preferences?.mediaNameLanguage
-        ? user.preferences.mediaNameLanguage
-        : (locale === 'ja' ? 'japanese' : 'english');
+      const mediaLang =
+        user.isLoggedIn && user.preferences?.mediaNameLanguage
+          ? user.preferences.mediaNameLanguage
+          : locale === 'ja'
+            ? 'japanese'
+            : 'english';
       const mediaName = (media: { nameEn: string; nameJa: string; nameRomaji: string }) => {
         if (mediaLang === 'japanese') return media.nameJa || media.nameEn;
         if (mediaLang === 'romaji') return media.nameRomaji || media.nameEn;
@@ -379,7 +380,9 @@ export const ankiStore = defineStore('anki', {
           const req = this.executeAction('storeMediaFile', {
             filename: `${sentence.segment.uuid}.webp`,
             url: sentence.segment.urls.imageUrl,
-          }).then((r) => { imageResult = r; });
+          }).then((r) => {
+            imageResult = r;
+          });
           mediaRequests.push(req);
         }
 
@@ -398,7 +401,11 @@ export const ankiStore = defineStore('anki', {
               url: sentence.segment.urls.audioUrl,
             });
           }
-          mediaRequests.push(req.then((r) => { audioResult = r; }));
+          mediaRequests.push(
+            req.then((r) => {
+              audioResult = r;
+            }),
+          );
         }
 
         await Promise.all(mediaRequests);
@@ -463,8 +470,9 @@ export const ankiStore = defineStore('anki', {
                   const isMovie = sentence.media.airingFormat === 'MOVIE';
                   const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
                   const sentenceUrl = `${window.location.origin}/sentence/${sentence.segment.publicId}`;
-                  const info = `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}`
-                    + `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`;
+                  const info =
+                    `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
+                    `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`;
                   fieldsNew[field.key] = field.value.replace(`{${key}}`, info);
                   break;
                 }
@@ -493,15 +501,17 @@ export const ankiStore = defineStore('anki', {
 
         if (user.isLoggedIn) {
           const sdk = useNadeshikoSdk();
-          sdk.trackUserActivity({
-            body: {
-              activityType: 'ANKI_EXPORT',
-              segmentId: sentence.segment.publicId,
-              mediaId: sentence.media.id,
-              mediaName: mediaName(sentence.media),
-              japaneseText: sentence.segment.textJa.content,
-            },
-          }).catch(() => {});
+          sdk
+            .trackUserActivity({
+              body: {
+                activityType: 'ANKI_EXPORT',
+                segmentId: sentence.segment.publicId,
+                mediaId: sentence.media.id,
+                mediaName: mediaName(sentence.media),
+                japaneseText: sentence.segment.textJa.content,
+              },
+            })
+            .catch(() => {});
         }
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));

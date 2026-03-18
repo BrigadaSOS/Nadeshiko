@@ -138,7 +138,9 @@ const fetchTrackingState = async () => {
 
 const fetchStats = async () => {
   const since = sinceForRange(statsRange.value);
-  const { data } = await sdk.getUserActivityStats({ query: since ? { since } : undefined }).catch(() => ({ data: null }));
+  const { data } = await sdk
+    .getUserActivityStats({ query: since ? { since } : undefined })
+    .catch(() => ({ data: null }));
   stats.value = (data ?? null) as ActivityStats | null;
 };
 
@@ -279,7 +281,8 @@ const activityTypeClass = (type: string) => {
 const activityTypeMutedClass = (type: string) => {
   const classes: Record<string, string> = {
     SEARCH: 'border-red-400/20 bg-red-500/5 text-red-300/60 hover:text-red-200 hover:bg-red-500/10',
-    SEGMENT_PLAY: 'border-emerald-400/20 bg-emerald-500/5 text-emerald-300/60 hover:text-emerald-200 hover:bg-emerald-500/10',
+    SEGMENT_PLAY:
+      'border-emerald-400/20 bg-emerald-500/5 text-emerald-300/60 hover:text-emerald-200 hover:bg-emerald-500/10',
     ANKI_EXPORT: 'border-blue-400/20 bg-blue-500/5 text-blue-300/60 hover:text-blue-200 hover:bg-blue-500/10',
     SHARE: 'border-purple-400/20 bg-purple-500/5 text-purple-300/60 hover:text-purple-200 hover:bg-purple-500/10',
   };

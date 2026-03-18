@@ -1,0 +1,168 @@
+get:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: getAdminDashboardMedia
+  summary: Get media breakdown statistics
+  description: |
+    Returns media breakdowns by category, format, status, genre, studio,
+    segment content ratings, segment statuses, and top media by interaction.
+
+  security:
+    - SessionCookie: [ADMIN]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - byCategory
+              - byFormat
+              - byStatus
+              - byGenre
+              - byStudio
+              - segmentsByContentRating
+              - segmentsByStatus
+              - topMediaByPlays
+              - topMediaBySearches
+              - topMediaByExports
+            properties:
+              byCategory:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - count
+                  properties:
+                    label:
+                      type: string
+                    count:
+                      type: integer
+              byFormat:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - count
+                  properties:
+                    label:
+                      type: string
+                    count:
+                      type: integer
+              byStatus:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - count
+                  properties:
+                    label:
+                      type: string
+                    count:
+                      type: integer
+              byGenre:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - count
+                  properties:
+                    label:
+                      type: string
+                    count:
+                      type: integer
+              byStudio:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - count
+                  properties:
+                    label:
+                      type: string
+                    count:
+                      type: integer
+              segmentsByContentRating:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - count
+                  properties:
+                    label:
+                      type: string
+                    count:
+                      type: integer
+              segmentsByStatus:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - count
+                  properties:
+                    label:
+                      type: string
+                    count:
+                      type: integer
+              topMediaByPlays:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - mediaId
+                    - mediaName
+                    - count
+                  properties:
+                    mediaId:
+                      type: integer
+                    mediaName:
+                      type: string
+                    count:
+                      type: integer
+              topMediaBySearches:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - mediaId
+                    - mediaName
+                    - count
+                  properties:
+                    mediaId:
+                      type: integer
+                    mediaName:
+                      type: string
+                    count:
+                      type: integer
+              topMediaByExports:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - mediaId
+                    - mediaName
+                    - count
+                  properties:
+                    mediaId:
+                      type: integer
+                    mediaName:
+                      type: string
+                    count:
+                      type: integer
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

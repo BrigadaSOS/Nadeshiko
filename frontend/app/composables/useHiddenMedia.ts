@@ -33,7 +33,12 @@ export function useHiddenMedia() {
     return items.value.some((item) => item.mediaPublicId === mediaPublicId);
   };
 
-  const toggleHideMedia = async (media: { publicId: string; nameEn?: string; nameJa?: string; nameRomaji?: string }) => {
+  const toggleHideMedia = async (media: {
+    publicId: string;
+    nameEn?: string;
+    nameJa?: string;
+    nameRomaji?: string;
+  }) => {
     if (!user.isLoggedIn) return;
 
     const existing = items.value.findIndex((item) => item.mediaPublicId === media.publicId);

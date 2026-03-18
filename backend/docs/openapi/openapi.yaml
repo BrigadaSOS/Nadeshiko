@@ -153,6 +153,18 @@ paths:
   # Admin endpoints
   "/v1/admin/dashboard":
     $ref: "./paths/admin/v1_admin_dashboard.yaml"
+  "/v1/admin/dashboard/overview":
+    $ref: "./paths/admin/v1_admin_dashboard_overview.yaml"
+  "/v1/admin/dashboard/media":
+    $ref: "./paths/admin/v1_admin_dashboard_media.yaml"
+  "/v1/admin/dashboard/activity":
+    $ref: "./paths/admin/v1_admin_dashboard_activity.yaml"
+  "/v1/admin/dashboard/collections":
+    $ref: "./paths/admin/v1_admin_dashboard_collections.yaml"
+  "/v1/admin/dashboard/api-keys":
+    $ref: "./paths/admin/v1_admin_dashboard_api_keys.yaml"
+  "/v1/admin/dashboard/system":
+    $ref: "./paths/admin/v1_admin_dashboard_system.yaml"
   "/v1/admin/health":
     $ref: "./paths/admin/v1_admin_health.yaml"
   "/v1/admin/reindex":

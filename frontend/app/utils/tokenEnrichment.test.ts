@@ -122,7 +122,17 @@ const ITE_KURETA_TOKENS: SlimToken[] = [
   t({ s: 'が', d: 'が', r: 'ガ', b: 3, e: 4, p: '助詞', p1: '格助詞' }),
   t({ s: '居', d: '居る', r: 'イ', b: 4, e: 5, p: '動詞', p1: '非自立可能', cf: '連用形-一般', p4: '上一段-ア行' }),
   t({ s: 'て', d: 'て', r: 'テ', b: 5, e: 6, p: '助詞', p1: '接続助詞' }),
-  t({ s: 'くれ', d: 'くれる', r: 'クレ', b: 6, e: 8, p: '動詞', p1: '非自立可能', cf: '連用形-一般', p4: '下一段-ラ行' }),
+  t({
+    s: 'くれ',
+    d: 'くれる',
+    r: 'クレ',
+    b: 6,
+    e: 8,
+    p: '動詞',
+    p1: '非自立可能',
+    cf: '連用形-一般',
+    p4: '下一段-ラ行',
+  }),
   t({ s: 'た', d: 'た', r: 'タ', b: 8, e: 9, p: '助動詞', cf: '連体形-一般', p4: '助動詞-タ' }),
   t({ s: '方', d: '方', r: 'ホウ', b: 9, e: 10, p: '名詞', p1: '普通名詞' }),
   t({ s: 'が', d: 'が', r: 'ガ', b: 10, e: 11, p: '助詞', p1: '格助詞' }),
@@ -137,7 +147,17 @@ const ITE_KURETA_TOKENS: SlimToken[] = [
 const KITE_MORAU_TOKENS: SlimToken[] = [
   t({ s: '来', d: '来る', r: 'キ', b: 16, e: 17, p: '動詞', p1: '非自立可能', cf: '連用形-一般', p4: 'カ行変格' }),
   t({ s: 'て', d: 'て', r: 'テ', b: 17, e: 18, p: '助詞', p1: '接続助詞' }),
-  t({ s: 'もらう', d: 'もらう', r: 'モラウ', b: 18, e: 21, p: '動詞', p1: '非自立可能', cf: '連体形-一般', p4: '五段-ワア行' }),
+  t({
+    s: 'もらう',
+    d: 'もらう',
+    r: 'モラウ',
+    b: 18,
+    e: 21,
+    p: '動詞',
+    p1: '非自立可能',
+    cf: '連体形-一般',
+    p4: '五段-ワア行',
+  }),
 ];
 
 function getVisibleTokens(tokens: SlimToken[], highlight?: string) {
@@ -166,7 +186,9 @@ describe('empty and single-token inputs', () => {
   });
 
   it('standalone verb has no group (single-token groups are suppressed)', () => {
-    const tokens: SlimToken[] = [t({ s: '食べる', d: '食べる', r: 'タベル', b: 0, e: 3, p: '動詞', cf: '終止形-一般' })];
+    const tokens: SlimToken[] = [
+      t({ s: '食べる', d: '食べる', r: 'タベル', b: 0, e: 3, p: '動詞', cf: '終止形-一般' }),
+    ];
     const enriched = enrichTokens(tokens);
     expect(enriched[0]?.groupId).toBeNull();
   });
@@ -178,22 +200,22 @@ describe('token grouping', () => {
     const surfaces = visible.map((t) => t.displaySurface);
     expect(surfaces).toEqual(['焼けた', 'フライパン', 'に', '卵', 'を', 'おとして']);
     expect(auxLabelsEn(YAKETA_TOKENS)).toEqual({
-      '焼けた': ['Past'],
-      'おとして': ['Te-form'],
+      焼けた: ['Past'],
+      おとして: ['Te-form'],
     });
   });
 
   it('groups verb + たら (conditional past): そろったら', () => {
     const visible = getVisibleTokens(SOROTTARA_TOKENS);
     expect(visible.map((t) => t.displaySurface)).toEqual(['みんな', 'が', 'そろったら']);
-    expect(auxLabelsEn(SOROTTARA_TOKENS)).toEqual({ 'そろったら': ['Past'] });
+    expect(auxLabelsEn(SOROTTARA_TOKENS)).toEqual({ そろったら: ['Past'] });
   });
 
   it('groups verb + て + いる + た (full ている + past): 待っていた', () => {
     const visible = getVisibleTokens(MATTEITA_TOKENS);
     expect(visible.map((t) => t.displaySurface)).toEqual(['若き', '哲学', '学徒', 'よ', '待っていた']);
     expect(auxLabelsEn(MATTEITA_TOKENS)).toEqual({
-      '待っていた': ['Te-form', 'Progressive', 'Past'],
+      待っていた: ['Te-form', 'Progressive', 'Past'],
     });
   });
 
@@ -201,7 +223,7 @@ describe('token grouping', () => {
     const visible = getVisibleTokens(OKITEMASHITA_TOKENS);
     expect(visible.map((t) => t.displaySurface)).toEqual(['おはようございます', '空', '起きてました']);
     expect(auxLabelsEn(OKITEMASHITA_TOKENS)).toEqual({
-      '起きてました': ['Progressive', 'Polite', 'Past'],
+      起きてました: ['Progressive', 'Polite', 'Past'],
     });
   });
 
@@ -209,7 +231,7 @@ describe('token grouping', () => {
     const visible = getVisibleTokens(SUMASETE_KITA_TOKENS);
     expect(visible.map((t) => t.displaySurface)).toEqual(['いい', 'よ', '済ませてきた', 'から']);
     expect(auxLabelsEn(SUMASETE_KITA_TOKENS)).toEqual({
-      '済ませてきた': ['Causative', 'Te-form', 'Gradual change', 'Past'],
+      済ませてきた: ['Causative', 'Te-form', 'Gradual change', 'Past'],
     });
   });
 
@@ -217,7 +239,7 @@ describe('token grouping', () => {
     const visible = getVisibleTokens(SHITENAI_TOKENS);
     expect(visible.map((t) => t.displaySurface)).toEqual(['お', '掃除', 'してない', 'の', 'かしら']);
     expect(auxLabelsEn(SHITENAI_TOKENS)).toEqual({
-      'してない': ['Progressive', 'Negative'],
+      してない: ['Progressive', 'Negative'],
     });
   });
 
@@ -237,7 +259,7 @@ describe('token grouping', () => {
   it('groups adjective + ない (adjective negation): つらくない', () => {
     const visible = getVisibleTokens(TSURAKUNAI_TOKENS);
     expect(visible.map((t) => t.displaySurface)).toEqual(['つらくない']);
-    expect(auxLabelsEn(TSURAKUNAI_TOKENS)).toEqual({ 'つらくない': ['Negative'] });
+    expect(auxLabelsEn(TSURAKUNAI_TOKENS)).toEqual({ つらくない: ['Negative'] });
   });
 
   it('groups subsidiary verb chain: 居てくれた', () => {
@@ -257,7 +279,7 @@ describe('token grouping', () => {
     const visible = getVisibleTokens(KITE_MORAU_TOKENS);
     expect(visible.map((t) => t.displaySurface)).toEqual(['来てもらう']);
     expect(auxLabelsEn(KITE_MORAU_TOKENS)).toEqual({
-      '来てもらう': ['Te-form', 'Receive favor'],
+      来てもらう: ['Te-form', 'Receive favor'],
     });
   });
 });
