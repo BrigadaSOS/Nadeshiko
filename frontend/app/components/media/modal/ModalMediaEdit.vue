@@ -131,15 +131,10 @@ const submitEdit = async () => {
       body.externalIds = externalIds;
     }
 
-    const { error } = await sdk.updateMedia({
+    await sdk.updateMedia({
       path: { id: props.media.publicId },
       body: body as any,
     });
-
-    if (error) {
-      errorMessage.value = (error as any).detail || t('modalMediaEdit.saveError');
-      return;
-    }
 
     const updatedMedia = {
       ...props.media,
@@ -182,14 +177,9 @@ const submitDelete = async () => {
   errorMessage.value = '';
 
   try {
-    const { error } = await sdk.deleteMedia({
+    await sdk.deleteMedia({
       path: { id: props.media.publicId },
     });
-
-    if (error) {
-      errorMessage.value = (error as any).detail || t('modalMediaEdit.deleteError');
-      return;
-    }
 
     emit('delete:success', props.media.id);
     useToastSuccess(t('modalMediaEdit.deleteSuccess'));

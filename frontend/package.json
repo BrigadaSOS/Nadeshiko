@@ -20,7 +20,7 @@
     "test:e2e:local": "E2E_BASE_URL=http://localhost:3000 playwright test --config=e2e/playwright.config.ts"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "1.5.1-dev.e889ab8",
+    "@brigadasos/nadeshiko-sdk": "2.0.1-internal.b0c27f3",
     "@mdi/js": "^7.4.47",
     "@nuxt/content": "^3.11.0",
     "@nuxtjs/i18n": "^10.2.1",

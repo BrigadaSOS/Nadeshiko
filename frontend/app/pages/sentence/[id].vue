@@ -43,6 +43,7 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
       nameEn: result.media.nameEn,
       nameJa: result.media.nameJa,
       category: result.media.category,
+      airingFormat: result.media.airingFormat,
     }],
     categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1 }],
   };
@@ -52,7 +53,7 @@ const metaTags = computed(() => {
   const defaultDescription =
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
 
-  const tags = {
+  const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
     title: 'Nadeshiko: Japanese Sentence Search Engine',
     meta: [
       { name: 'description', content: defaultDescription },

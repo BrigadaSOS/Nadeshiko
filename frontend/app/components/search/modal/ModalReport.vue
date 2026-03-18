@@ -109,18 +109,13 @@ const submitReport = async () => {
     const target = tab.value === 'SEGMENT' && props.target?.type === 'SEGMENT'
       ? props.target
       : { type: 'MEDIA' as const, mediaId: props.target!.mediaId };
-    const { error } = await sdk.createUserReport({
+    await sdk.createUserReport({
       body: {
         target,
         reason: form.reason as CreateReportRequest['reason'],
         description: form.description || undefined,
       },
     });
-
-    if (error) {
-      errorMessage.value = error.detail || t('reports.submitError');
-      return;
-    }
 
     useToastSuccess(t('reports.submitSuccess'));
     closeModal();

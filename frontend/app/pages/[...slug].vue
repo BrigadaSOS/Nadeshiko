@@ -9,13 +9,13 @@ async function fetchContent() {
   const lang = locale.value.toLowerCase();
   const isBlog = route.path.startsWith('/blog/');
   const collectionPrefix = isBlog ? 'blog' : 'content';
-  const collection = (`${collectionPrefix}_${lang}`) as keyof typeof import('@nuxt/content').Collections;
+  const collection = `${collectionPrefix}_${lang}` as any;
   try {
     return await queryCollection(collection).path(route.path).first();
   } catch {
     // Fallback to English
     if (lang !== 'en') {
-      const fallback = (`${collectionPrefix}_en`) as keyof typeof import('@nuxt/content').Collections;
+      const fallback = `${collectionPrefix}_en` as any;
       return await queryCollection(fallback).path(route.path).first();
     }
     return null;
@@ -92,7 +92,7 @@ useHead(() => ({
 defineOgImage({
   title: title,
   description: description,
-});
+} as any);
 </script>
 
 <template>
