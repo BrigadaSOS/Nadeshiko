@@ -1,18 +1,16 @@
 <script setup lang="ts">
+import type { GetAdminDashboardCollectionsResponse } from '@brigadasos/nadeshiko-sdk';
 import { Doughnut } from 'vue-chartjs';
 import { CHART_COLORS, CHART_COLORS_ALPHA } from '~/utils/chartColors';
 
-type CollectionsData = {
-  totalCollections: number;
-  byTypeAndVisibility: Array<{ type: string; visibility: string; count: number }>;
-  averageSize: number;
-  topCollections: Array<{ id: number; name: string; type: string; visibility: string; segmentCount: number }>;
-};
-
+const sdk = useNadeshikoSdk();
 const { data, status, refresh } = useLazyAsyncData(
   'admin-collections',
-  () => $fetch<CollectionsData>('/v1/admin/dashboard/collections'),
-  { default: () => null as CollectionsData | null, server: false },
+  async () => {
+    const { data } = await sdk.getAdminDashboardCollections();
+    return data ?? null;
+  },
+  { default: () => null as GetAdminDashboardCollectionsResponse | null, server: false },
 );
 
 const doughnutData = computed(() => {

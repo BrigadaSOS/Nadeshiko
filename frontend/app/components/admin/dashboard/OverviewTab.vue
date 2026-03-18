@@ -1,36 +1,18 @@
 <script setup lang="ts">
+import type { GetAdminDashboardOverviewResponse } from '@brigadasos/nadeshiko-sdk';
 import { Bar } from 'vue-chartjs';
 import { CHART_COLORS } from '~/utils/chartColors';
 
-type OverviewData = {
-  media: {
-    totalMedia: number;
-    totalEpisodes: number;
-    totalSegments: number;
-    totalCharacters: number;
-    totalSeiyuu: number;
-  };
-  users: {
-    totalUsers: number;
-    recentlyRegisteredCount: number;
-    recentlyActiveCount: number;
-  };
-  activity: {
-    totalSearches: number;
-    totalExports: number;
-    totalPlays: number;
-    totalShares: number;
-    activeSearchers7d: number;
-    dailyActivity: Array<{ date: string; count: number }>;
-  };
-};
-
 const props = defineProps<{ days: number }>();
 
+const sdk = useNadeshikoSdk();
 const { data, status, refresh } = useLazyAsyncData(
   'admin-overview',
-  () => $fetch<OverviewData>('/v1/admin/dashboard/overview', { query: { days: props.days } }),
-  { default: () => null as OverviewData | null, watch: [() => props.days], server: false },
+  async () => {
+    const { data } = await sdk.getAdminDashboardOverview({ query: { days: String(props.days) } });
+    return data ?? null;
+  },
+  { default: () => null as GetAdminDashboardOverviewResponse | null, watch: [() => props.days], server: false },
 );
 
 const fmt = (n: number) => n.toLocaleString();

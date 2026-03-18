@@ -1,29 +1,19 @@
 <script setup lang="ts">
+import type { GetAdminDashboardMediaResponse } from '@brigadasos/nadeshiko-sdk';
 import { Bar, Doughnut } from 'vue-chartjs';
 import { CHART_COLORS, CHART_COLORS_ALPHA } from '~/utils/chartColors';
 
-type LabelCount = { label: string; count: number };
-type MediaItem = { mediaId: number; mediaName: string; count: number };
+const sdk = useNadeshikoSdk();
+const { data, status, refresh } = useLazyAsyncData(
+  'admin-media',
+  async () => {
+    const { data } = await sdk.getAdminDashboardMedia();
+    return data ?? null;
+  },
+  { default: () => null as GetAdminDashboardMediaResponse | null, server: false },
+);
 
-type MediaData = {
-  byCategory: LabelCount[];
-  byFormat: LabelCount[];
-  byStatus: LabelCount[];
-  byGenre: LabelCount[];
-  byStudio: LabelCount[];
-  segmentsByContentRating: LabelCount[];
-  segmentsByStatus: LabelCount[];
-  topMediaByPlays: MediaItem[];
-  topMediaBySearches: MediaItem[];
-  topMediaByExports: MediaItem[];
-};
-
-const { data, status, refresh } = useLazyAsyncData('admin-media', () => $fetch<MediaData>('/v1/admin/dashboard/media'), {
-  default: () => null as MediaData | null,
-  server: false,
-});
-
-function makeDoughnutData(items: LabelCount[]) {
+function makeDoughnutData(items: Array<{ label: string; count: number }>) {
   return {
     labels: items.map((i) => i.label),
     datasets: [
@@ -37,7 +27,7 @@ function makeDoughnutData(items: LabelCount[]) {
   };
 }
 
-function makeBarData(items: LabelCount[]) {
+function makeBarData(items: Array<{ label: string; count: number }>) {
   return {
     labels: items.map((i) => i.label),
     datasets: [
