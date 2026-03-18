@@ -13,7 +13,11 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest run",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
+    "test:e2e:dev": "E2E_BASE_URL=https://dev.nadeshiko.co playwright test --config=e2e/playwright.config.ts",
+    "test:e2e:prod": "E2E_BASE_URL=https://nadeshiko.co playwright test --config=e2e/playwright.config.ts",
+    "test:e2e:local": "E2E_BASE_URL=http://localhost:3000 playwright test --config=e2e/playwright.config.ts"
   },
   "dependencies": {
     "@brigadasos/nadeshiko-sdk": "1.5.1-dev.e889ab8",

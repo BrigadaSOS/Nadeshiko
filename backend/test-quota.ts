@@ -17,7 +17,7 @@ const keyRes = await (auth.api as any).createApiKey({
   _context: { userId: String(user!.id) },
 });
 const apiKey = keyRes?.key;
-console.log('Created key:', apiKey ? apiKey.slice(0, 20) + '...' : 'FAILED');
+console.log('Created key:', apiKey ? `${apiKey.slice(0, 8)}...` : 'FAILED');
 
 if (!apiKey) {
   await AppDataSource.destroy();
