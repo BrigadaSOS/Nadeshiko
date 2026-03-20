@@ -547,7 +547,7 @@ onBeforeRouteUpdate(async (to, from) => {
     <div v-else class="flex-1 mx-auto">
         <!-- Tabs -->
         <div class="pb-3" v-if="searchData?.categories?.length > 0">
-            <div class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21]">
+            <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21]">
                 <NuxtLink
                     v-if="collectionId"
                     to="/user/collections"

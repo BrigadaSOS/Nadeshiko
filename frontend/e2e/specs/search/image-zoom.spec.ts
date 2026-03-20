@@ -15,10 +15,10 @@ test.describe('Image zoom', () => {
     const image = search.segmentImages.first();
     await image.click();
 
-    const overlay = page.locator('.ampliada');
+    const overlay = page.getByTestId('image-zoom-overlay');
     await expect(overlay).toBeVisible({ timeout: 5_000 });
 
-    const zoomedImage = overlay.locator('img');
+    const zoomedImage = overlay.getByTestId('zoomed-image');
     await expect(zoomedImage).toBeVisible();
   });
 
@@ -26,7 +26,7 @@ test.describe('Image zoom', () => {
     const image = search.segmentImages.first();
     await image.click();
 
-    const overlay = page.locator('.ampliada');
+    const overlay = page.getByTestId('image-zoom-overlay');
     await expect(overlay).toBeVisible({ timeout: 5_000 });
 
     await overlay.click();
@@ -37,7 +37,7 @@ test.describe('Image zoom', () => {
     const image = search.segmentImages.first();
     await image.click();
 
-    const overlay = page.locator('.ampliada');
+    const overlay = page.getByTestId('image-zoom-overlay');
     await expect(overlay).toBeVisible({ timeout: 5_000 });
 
     await page.keyboard.press('Escape');

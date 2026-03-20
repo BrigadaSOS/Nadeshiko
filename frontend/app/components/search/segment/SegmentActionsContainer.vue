@@ -160,7 +160,7 @@ const openCollectionsPage = async () => {
 };
 </script>
 <template>
-  <SearchDropdownContainer :class="['mr-2 my-1 text-xs', { 'hidden min-[1250px]:inline-flex': !user.isLoggedIn }]" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer data-testid="save-dropdown" :class="['mr-2 my-1 text-xs', { 'hidden min-[1250px]:inline-flex': !user.isLoggedIn }]" dropdownId="nd-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header" @click="loadCollections">
         <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
@@ -261,7 +261,7 @@ const openCollectionsPage = async () => {
     </template>
   </SearchDropdownContainer>
 
-  <SearchDropdownContainer class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer data-testid="download-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiTrayArrowDown" />
@@ -287,7 +287,7 @@ const openCollectionsPage = async () => {
     </template>
   </SearchDropdownContainer>
 
-  <SearchDropdownContainer class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer data-testid="copy-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiContentCopy" />
@@ -322,6 +322,7 @@ const openCollectionsPage = async () => {
   </UiButtonPrimaryAction>
 
   <UiButtonPrimaryAction
+    data-testid="share-button"
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
     @click="getSharingURL({ publicId: content.segment.publicId, mediaId: content.media.id, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
@@ -329,7 +330,7 @@ const openCollectionsPage = async () => {
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>
 
-  <SearchDropdownContainer class="mr-2 my-1" dropdownId="nd-dropdown-with-header"
+  <SearchDropdownContainer data-testid="more-dropdown" class="mr-2 my-1" dropdownId="nd-dropdown-with-header"
     dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">

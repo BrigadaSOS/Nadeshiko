@@ -13,11 +13,11 @@ export class SearchPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.searchInput = page.locator('#sentence-search-input');
-    this.searchButton = page.locator('button').filter({ has: page.locator('circle') }).first();
-    this.categoryTabs = page.locator('.search-tabs-row');
-    this.segmentCards = page.locator('.group.flex.flex-col');
-    this.segmentImages = page.locator('img[alt^="Screenshot for"]');
+    this.searchInput = page.getByTestId('search-input');
+    this.searchButton = page.getByTestId('search-button');
+    this.categoryTabs = page.getByTestId('search-category-tabs');
+    this.segmentCards = page.getByTestId('segment-card');
+    this.segmentImages = page.getByTestId('segment-image');
     this.endOfResults = page.getByText("You've reached the end", { exact: false });
     this.enToggle = page.getByRole('button', { name: 'EN', exact: true });
     this.esToggle = page.getByRole('button', { name: 'ES', exact: true });
@@ -57,15 +57,13 @@ export class SearchPage {
   }
 
   translationBadges(lang: 'EN' | 'ES') {
-    return this.segmentCards.first().locator(`span:text-is("${lang}")`).first();
+    return this.segmentCards.first().getByTestId(`translation-badge-${lang}`).first();
   }
 
   translationText(lang: 'EN' | 'ES') {
     return this.segmentCards
       .first()
-      .locator('li')
-      .filter({ has: this.page.locator(`span:text-is("${lang}")`) })
-      .locator('.group\\/translation span')
-      .first();
+      .getByTestId(`translation-row-${lang}`)
+      .getByTestId('translation-content');
   }
 }

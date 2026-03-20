@@ -251,6 +251,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
 
     <div v-for="(result, index) in resultList" :key="result.segment.uuid"
       :id="result.segment.uuid"
+      data-testid="segment-card"
       class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
@@ -259,7 +260,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
       }">
       <!-- Image -->
       <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
-        <img loading="lazy" :src="result.segment.urls.imageUrl"
+        <img loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
           @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid)) && zoomImage(result.segment.urls.imageUrl)"
           class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent mx-auto max-w-2xl min-[650px]:max-w-none"
@@ -307,7 +308,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button -->
-            <button @click="playerStore.setPlaylist(resultList, index)"
+            <button data-testid="audio-play-button" @click="playerStore.setPlaylist(resultList, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
               <UiBaseIcon v-if="!(isPlaying && currentResult && currentResult.segment.uuid === result.segment.uuid)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
@@ -318,7 +319,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
 
             <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto">
-              <h3 lang="ja" class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
+              <h3 lang="ja" data-testid="segment-japanese-text" class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
                 <SearchSegmentTokenText
                   v-if="tokensEnabled && (result.segment.textJa as any).tokens"
                   :tokens="(result.segment.textJa as any).tokens"
@@ -360,16 +361,18 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
           <div v-if="segmentLangRows.length > 0" class="mt-1 pb-2 flex-1 flex items-center">
             <!-- Spanish and English Sentences -->
             <ul class="m-0 w-full list-none text-gray-400 space-y-1.5">
-              <li class="text-base xxl:text-lg xxm:text-2xl flex items-center gap-2 transition-opacity duration-200"
+              <li :data-testid="`translation-row-${segmentLanguageLabel[row.lang]}`"
+                class="text-base xxl:text-lg xxm:text-2xl flex items-center gap-2 transition-opacity duration-200"
                 v-for="row in segmentLangRows"
                 :key="row.lang">
                 <span
+                  :data-testid="`translation-badge-${segmentLanguageLabel[row.lang]}`"
                   class="inline-flex w-9 items-center justify-center rounded-md border border-neutral-600/80 bg-neutral-700/60 px-2.5 py-1.5 text-[11px] font-semibold leading-none tracking-wide transition-all duration-200"
                   :class="row.isSpoiler ? 'text-neutral-300/80' : 'text-neutral-200'">
                   {{ segmentLanguageLabel[row.lang] }}
                 </span>
-                <div class="group/translation min-w-0 flex-1">
-                  <span class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
+                <div data-testid="translation-text" class="group/translation min-w-0 flex-1">
+                  <span data-testid="translation-content" class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
                     :class="row.isSpoiler
                       ? 'bg-neutral-700/85 text-transparent group-hover/translation:bg-transparent group-hover/translation:text-gray-400'
                       : 'bg-transparent text-gray-400'"
@@ -411,8 +414,9 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             <!-- Fifth Row -->
             <!-- Media details  -->
             <div class="justify-left">
-              <p class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
+              <p data-testid="segment-media-info" class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
                 <button
+                  data-testid="segment-media-name"
                   @click="filterByMedia(result.media.publicId)"
                   class="hover:text-white hover:underline transition-colors cursor-pointer"
                   lang="ja">

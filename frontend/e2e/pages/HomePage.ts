@@ -11,10 +11,10 @@ export class HomePage {
   constructor(page: Page) {
     this.page = page;
     this.heading = page.getByRole('heading', { name: 'Nadeshiko', exact: true });
-    this.searchInput = page.locator('#sentence-search-input');
-    this.searchButton = page.locator('button').filter({ has: page.locator('circle') }).first();
-    this.mediaCards = page.locator('.grid a[href^="/search?media="]');
-    this.statsSection = page.locator('.title-font');
+    this.searchInput = page.getByTestId('search-input');
+    this.searchButton = page.getByTestId('search-button');
+    this.mediaCards = page.getByTestId('media-card');
+    this.statsSection = page.getByTestId('stats-section');
   }
 
   async goto() {
@@ -39,6 +39,6 @@ export class HomePage {
   }
 
   async expectStatsVisible() {
-    await expect(this.statsSection.first()).toBeVisible({ timeout: 10_000 });
+    await expect(this.statsSection).toBeVisible({ timeout: 10_000 });
   }
 }

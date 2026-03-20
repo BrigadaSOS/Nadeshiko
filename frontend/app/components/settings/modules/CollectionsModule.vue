@@ -203,6 +203,7 @@ const submitDelete = async () => {
         <button
           type="button"
           class="flex items-center gap-1.5 py-1.5 px-3 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+          data-testid="create-collection-button"
           @click="openCreate"
         >
           <UiBaseIcon :path="mdiPlus" size="16" />
@@ -225,7 +226,7 @@ const submitDelete = async () => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="collection in collections" :key="collection.publicId">
+          <tr v-for="collection in collections" :key="collection.publicId" data-testid="collection-row">
             <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <NuxtLink
                 :to="`/collection/${collection.publicId}`"
@@ -257,6 +258,7 @@ const submitDelete = async () => {
               <div class="nd-collection-actions relative inline-block">
                 <button
                   type="button"
+                  data-testid="collection-menu-toggle"
                   class="p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
                   @click="toggleMenu(collection.publicId)"
                 >
@@ -277,6 +279,7 @@ const submitDelete = async () => {
                   >
                     <button
                       type="button"
+                      data-testid="collection-rename-action"
                       class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                       @click="openRename(collection)"
                     >
@@ -296,6 +299,7 @@ const submitDelete = async () => {
                     <button
                       v-if="collection.type !== 'ANKI_EXPORT'"
                       type="button"
+                      data-testid="collection-delete-action"
                       class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
                       @click="openDelete(collection)"
                     >
@@ -353,6 +357,7 @@ const submitDelete = async () => {
               </button>
               <button
                 type="button"
+                data-testid="collection-rename-submit"
                 :disabled="isRenaming || !renameValue.trim()"
                 class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
                 @click="submitRename"
@@ -411,6 +416,7 @@ const submitDelete = async () => {
               </button>
               <button
                 type="button"
+                data-testid="collection-create-submit"
                 :disabled="isCreating || !createName.trim()"
                 class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
                 @click="submitCreate"
@@ -513,6 +519,7 @@ const submitDelete = async () => {
               </button>
               <button
                 type="button"
+                data-testid="collection-delete-submit"
                 :disabled="isDeleting"
                 class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
                 @click="submitDelete"

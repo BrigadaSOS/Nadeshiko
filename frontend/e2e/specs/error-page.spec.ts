@@ -4,8 +4,9 @@ test.describe('Error page', () => {
   test('404 shows custom error page with status code', async ({ page }) => {
     await page.goto('/this-page-does-not-exist-at-all');
 
-    const statusCode = page.locator('h2').filter({ hasText: '404' });
+    const statusCode = page.getByTestId('error-status-code');
     await expect(statusCode).toBeVisible({ timeout: 10_000 });
+    await expect(statusCode).toHaveText('404');
   });
 
   test('404 shows "Page Not Found" message', async ({ page }) => {
@@ -18,7 +19,7 @@ test.describe('Error page', () => {
   test('404 shows the error illustration', async ({ page }) => {
     await page.goto('/this-page-does-not-exist-at-all');
 
-    const image = page.locator('img[alt="Not found"]');
+    const image = page.getByTestId('error-image');
     await expect(image).toBeVisible({ timeout: 10_000 });
   });
 

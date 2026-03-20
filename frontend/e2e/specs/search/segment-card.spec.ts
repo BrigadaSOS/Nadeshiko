@@ -11,19 +11,19 @@ test.describe('Segment card', () => {
   });
 
   test('displays Japanese text', async ({ page }) => {
-    const japaneseText = search.segmentCards.first().locator('h3');
+    const japaneseText = search.segmentCards.first().getByTestId('segment-japanese-text');
     await expect(japaneseText).toBeVisible();
     await expect(japaneseText).not.toBeEmpty();
   });
 
   test('displays EN and ES translations', async ({ page }) => {
     const card = search.segmentCards.first();
-    await expect(card.locator('span:text-is("EN")')).toBeVisible();
-    await expect(card.locator('span:text-is("ES")')).toBeVisible();
+    await expect(card.getByTestId('translation-badge-EN')).toBeVisible();
+    await expect(card.getByTestId('translation-badge-ES')).toBeVisible();
   });
 
   test('displays media name and episode info', async ({ page }) => {
-    const mediaInfo = search.segmentCards.first().locator('p.text-white\\/50');
+    const mediaInfo = search.segmentCards.first().getByTestId('segment-media-info');
     await expect(mediaInfo).toBeVisible();
     await expect(mediaInfo).not.toBeEmpty();
   });
@@ -38,12 +38,12 @@ test.describe('Segment card', () => {
   });
 
   test('displays a screenshot image', async ({ page }) => {
-    const image = search.segmentCards.first().locator('img[alt^="Screenshot for"]');
+    const image = search.segmentCards.first().getByTestId('segment-image');
     await expect(image).toBeVisible();
   });
 
   test('displays an audio play button', async ({ page }) => {
-    const audioButton = search.segmentCards.first().locator('button').first();
+    const audioButton = search.segmentCards.first().getByTestId('audio-play-button');
     await expect(audioButton).toBeVisible();
   });
 });

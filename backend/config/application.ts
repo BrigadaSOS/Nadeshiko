@@ -1,4 +1,5 @@
 import express, { type Application, type ErrorRequestHandler, type RequestHandler } from 'express';
+import helmet from 'helmet';
 import * as Sentry from '@sentry/node';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { NotFoundError } from '@app/errors';
@@ -41,6 +42,14 @@ export function configureMiddleware(app: Application): Application {
   // Trust X-Forwarded-* headers from reverse proxy (nginx, Cloudflare, etc.)
   // Required for rate limiting and accurate client IP detection
   app.set('trust proxy', 1);
+
+  app.use(
+    helmet({
+      // The backend is a JSON API -- no HTML pages to frame or inject into.
+      // These defaults are fine; CSP is not needed for pure API responses.
+      contentSecurityPolicy: false,
+    }),
+  );
 
   app.use(requestIdMiddleware);
 

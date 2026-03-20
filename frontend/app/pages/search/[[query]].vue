@@ -8,7 +8,7 @@ const route = useRoute();
 
 const ogTitle = computed(() => {
   const q = route.params.query ? decodeURIComponent(String(route.params.query)) : String(route.query.query || '');
-  return q ? `Search: ${q} | Nadeshiko` : 'Search | Nadeshiko';
+  return q ? `Search: ${q}` : 'Search';
 });
 
 defineOgImage({
@@ -197,10 +197,10 @@ const metaTags = computed(() => {
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
 
   const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
-    title: 'Nadeshiko: Japanese Sentence Search Engine',
+    title: 'Search',
     meta: [
       { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: 'Nadeshiko' },
+      { property: 'og:title', content: 'Search' },
       { property: 'og:description', content: defaultDescription },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
@@ -220,7 +220,7 @@ const metaTags = computed(() => {
     const totalResults = pagination?.estimatedTotalHits || stats?.reduce((sum, s) => sum + (s.count ?? 0), 0) || 0;
     const isLowerBound = pagination?.estimatedTotalHitsRelation === 'LOWER_BOUND';
 
-    const title = `Search: ${q} | Nadeshiko`;
+    const title = `Search: ${q}`;
     let description =
       totalResults > 0
         ? `${isLowerBound ? 'At least ' : ''}${totalResults.toLocaleString()} results found`
@@ -262,7 +262,7 @@ const metaTags = computed(() => {
       totalResults = episodeHits[filterEpisode] || 0;
     }
 
-    const title = `${animeName} | Nadeshiko`;
+    const title = animeName;
     let description = `${totalResults.toLocaleString()} sentences`;
 
     if (episodeHits && Object.keys(episodeHits).length > 0) {

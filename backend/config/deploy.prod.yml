@@ -62,14 +62,14 @@ env:
 
     R2_BASE_URL: https://cdn.nadeshiko.co
 
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://nadeshiko-backend-prod-alloy:4318"
-    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://nadeshiko-backend-prod-prometheus:9090/api/v1/otlp/v1/metrics"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://monitoring:4318"
+    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://monitoring:9090/api/v1/otlp/v1/metrics"
     OTEL_SERVICE_NAME: nadeshiko-backend-prod
 
 accessories:
   postgres:
     image: postgres:17
-    host: nadeshiko-production
+    host: nadeshiko
     port: 127.0.0.1:5432:5432
     env:
       secret:
@@ -82,7 +82,7 @@ accessories:
 
   elasticsearch:
     image: ghcr.io/davafons/nadeshiko-elasticsearch:8.17.10
-    host: nadeshiko-production
+    host: nadeshiko
     port: 127.0.0.1:9200:9200
     env:
       secret:
@@ -105,81 +105,10 @@ accessories:
         - nofile=65536:65536
         - memlock=-1:-1
 
-  prometheus:
-    image: prom/prometheus:latest
-    host: nadeshiko-production
-    port: 127.0.0.1:9091:9090
-    volumes:
-      - nadeshiko-prometheus-data:/prometheus
-    files:
-      - config/prometheus.yaml:/etc/prometheus/prometheus.yml
-    cmd: >
-      --config.file=/etc/prometheus/prometheus.yml
-      --storage.tsdb.path=/prometheus
-      --web.enable-remote-write-receiver
-      --web.enable-otlp-receiver
-      --storage.tsdb.retention.time=30d
-      --storage.tsdb.retention.size=3GB
-
-  grafana:
-    image: grafana/grafana:latest
-    host: nadeshiko-production
-    port: 127.0.0.1:3000:3000
-    env:
-      clear:
-        GF_SERVER_ROOT_URL: "https://grafana.davafons.cc"
-        GF_SECURITY_ADMIN_USER: admin
-      secret:
-        - GF_SECURITY_ADMIN_PASSWORD
-    volumes:
-      - nadeshiko-grafana-data:/var/lib/grafana
-    files:
-      - config/grafana-provisioning/datasources/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-
-  loki:
-    image: grafana/loki:3.4
-    host: nadeshiko-production
-    port: 127.0.0.1:3100:3100
-    volumes:
-      - nadeshiko-loki-data:/loki
-    files:
-      - config/loki.yaml:/etc/loki/config.yaml
-    cmd: -config.file=/etc/loki/config.yaml
-
-  tempo:
-    image: grafana/tempo:2.6.0
-    host: nadeshiko-production
-    port: 127.0.0.1:3200:3200
-    volumes:
-      - nadeshiko-tempo-data:/var/tempo
-    files:
-      - config/tempo.yaml:/etc/tempo/config.yaml
-    cmd: -config.file=/etc/tempo/config.yaml
-
-  alloy:
-    image: grafana/alloy:v1.13.0
-    host: nadeshiko-production
-    port: 127.0.0.1:4318:4318
-    env:
-      secret:
-        - POSTGRES_USER:POSTGRES_ADMIN_USER
-        - POSTGRES_PASSWORD:POSTGRES_ADMIN_PASSWORD
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - nadeshiko-alloy-data:/var/lib/alloy
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/host:ro,rslave
-    files:
-      - config/alloy.alloy:/etc/alloy/config.alloy
-    cmd: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
-    options:
-      user: "0"
-
   kibana:
     image: docker.elastic.co/kibana/kibana:8.17.10
-    host: nadeshiko-production
-    port: 127.0.0.1:5601:5601
+    host: nadeshiko
+    port: 100.114.126.96:5601:5601
     env:
       secret:
         - ELASTICSEARCH_SERVICEACCOUNTTOKEN:KIBANA_SERVICE_ACCOUNT_TOKEN
@@ -190,8 +119,8 @@ accessories:
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    host: nadeshiko-production
-    port: 127.0.0.1:5050:5050
+    host: nadeshiko
+    port: 100.114.126.96:5050:5050
     env:
       secret:
         - PGADMIN_DEFAULT_EMAIL
@@ -201,17 +130,9 @@ accessories:
     volumes:
       - nadeshiko-pgadmin-data:/var/lib/pgadmin
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    host: nadeshiko-production
-    cmd: tunnel run
-    env:
-      secret:
-        - TUNNEL_TOKEN:CLOUDFLARE_TUNNEL_TOKEN
-
   pg-backup:
     image: kartoza/pg-backup:17-3.5
-    host: nadeshiko-production
+    host: nadeshiko
     env:
       clear:
         CRON_SCHEDULE: "0 2 * * *"

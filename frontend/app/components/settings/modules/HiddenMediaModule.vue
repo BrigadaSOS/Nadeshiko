@@ -125,6 +125,7 @@ const unhide = async (item: HiddenMediaItem) => {
       <input
         v-model="hiddenMediaSearchQuery"
         type="text"
+        data-testid="hidden-media-search-input"
         :placeholder="t('accountSettings.account.hiddenMediaSearchPlaceholder')"
         class="w-full pl-9 pr-10 py-2 bg-neutral-800 text-white border border-white/10 rounded-lg text-sm focus:ring-gray-500 focus:border-gray-500"
       />
@@ -147,7 +148,7 @@ const unhide = async (item: HiddenMediaItem) => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="result in hiddenMediaSearchResults" :key="result.id">
+          <tr v-for="result in hiddenMediaSearchResults" :key="result.id" data-testid="hidden-media-search-result">
             <td lang="ja" class="py-3 text-sm text-gray-100 max-w-[18rem]">
               <p class="font-medium truncate">{{ displayMediaName(result) }}</p>
             </td>
@@ -190,7 +191,7 @@ const unhide = async (item: HiddenMediaItem) => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="item in hiddenMediaItems" :key="item.mediaPublicId">
+          <tr v-for="item in hiddenMediaItems" :key="item.mediaPublicId" data-testid="hidden-media-item">
             <td lang="ja" class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <p class="font-medium truncate">{{ displayMediaName(item) }}</p>
             </td>

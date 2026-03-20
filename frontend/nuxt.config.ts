@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { env } from './config/env';
 
+const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
+const UMAMI_ORIGIN = 'https://cloud.umami.is';
+const SENTRY_INGEST = 'https://*.ingest.sentry.io';
+
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
 };
@@ -55,10 +59,34 @@ export default defineNuxtConfig({
     'nuxt-umami',
     '@sentry/nuxt/module',
     '@nuxtjs/critters',
+    'nuxt-security',
   ],
+  security: {
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'script-src': ["'self'", "'unsafe-inline'", UMAMI_ORIGIN],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
+        'font-src': ["'self'"],
+        'connect-src': ["'self'", UMAMI_ORIGIN, SENTRY_INGEST],
+        'media-src': ["'self'", 'blob:', CDN_ORIGIN],
+        'object-src': ["'none'"],
+        'frame-ancestors': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+      },
+      // COEP disabled: cross-origin media from cdn.nadeshiko.co lacks CORP headers
+      crossOriginEmbedderPolicy: false,
+    },
+    rateLimiter: false,
+    xssValidator: false,
+    requestSizeLimiter: false,
+    corsHandler: false,
+  },
   umami: {
     id: '98441c04-c8f9-4882-93c8-0215535b02f1',
-    host: 'https://cloud.umami.is',
+    host: UMAMI_ORIGIN,
     autoTrack: true,
   },
   site: {
