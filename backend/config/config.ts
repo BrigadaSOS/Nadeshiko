@@ -46,6 +46,8 @@ const envSchema = z.object({
   DISCORD_CLIENT_ID: optionalString,
   DISCORD_CLIENT_SECRET: optionalString,
 
+  E2E_USER_PASSWORD: optionalString,
+
   SES_AWS_REGION: optionalString,
   SES_AWS_ACCESS_KEY_ID: optionalString,
   SES_AWS_SECRET_ACCESS_KEY: optionalString,

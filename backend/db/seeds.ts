@@ -1,5 +1,6 @@
 import { User, ApiPermission, UserRoleType, Collection, CollectionType, CollectionVisibility } from '@app/models';
 import { AppDataSource } from '@config/database';
+import { auth } from '@config/auth';
 import { config } from '@config/config';
 import { getAppEnvironment } from '@config/environment';
 import { logger } from '@config/log';
@@ -122,5 +123,37 @@ export async function seed() {
 
   logger.info({ userId: user.id, keyName: SEEDED_MASTER_KEY_NAME }, 'Better Auth API key ensured');
 
+  await seedE2ETestUsers();
+
   logger.info('Seed completed successfully');
+}
+
+const E2E_TEST_USERS = [
+  { username: 'e2e-user', email: 'e2e-user@nadeshiko.co', passwordEnvKey: 'E2E_USER_PASSWORD' },
+] as const;
+
+async function seedE2ETestUsers() {
+  for (const testUser of E2E_TEST_USERS) {
+    const password = config[testUser.passwordEnvKey];
+    if (!password) {
+      logger.info({ email: testUser.email }, 'E2E password env var not set, skipping test user');
+      continue;
+    }
+
+    const existing = await User.findOne({ where: { email: testUser.email } });
+    if (existing) {
+      logger.info({ email: testUser.email }, 'E2E test user already exists');
+      continue;
+    }
+
+    await auth.api.signUpEmail({
+      body: {
+        name: testUser.username,
+        email: testUser.email,
+        password,
+      },
+    });
+
+    logger.info({ email: testUser.email }, 'E2E test user seeded');
+  }
 }

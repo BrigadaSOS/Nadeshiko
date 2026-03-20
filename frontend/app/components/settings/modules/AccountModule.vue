@@ -313,14 +313,14 @@ const logoutCurrentUser = async () => {
       <div class="flex justify-between items-center">
         <div>
           <p class="text-gray-400">{{ $t('accountSettings.account.usernameLabel') }}</p>
-          <p class="text-white font-semibold">{{ user_store.userName || $t('accountSettings.account.notAvailable') }}</p>
+          <p data-testid="account-username" class="text-white font-semibold">{{ user_store.userName || $t('accountSettings.account.notAvailable') }}</p>
         </div>
       </div>
       <div class="flex justify-between items-center mt-3">
         <div class="flex-1">
           <p class="text-gray-400">{{ $t('accountSettings.account.emailLabel') }}</p>
           <template v-if="!editingEmail">
-            <p class="text-white font-semibold">{{ user_store.userEmail || $t('accountSettings.account.notAvailable') }}</p>
+            <p data-testid="account-email" class="text-white font-semibold">{{ user_store.userEmail || $t('accountSettings.account.notAvailable') }}</p>
           </template>
           <template v-else>
             <div class="flex items-center gap-2 mt-1">
