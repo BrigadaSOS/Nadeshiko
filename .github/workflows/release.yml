@@ -71,6 +71,12 @@ jobs:
           generate_release_notes: true
           files: backend/docs/generated/openapi-public.yaml
 
+      - name: Fetch build secrets from AWS SSM
+        run: |
+          SENTRY_AUTH_TOKEN=$(aws ssm get-parameter --name "/nadeshiko/prod/SENTRY_AUTH_TOKEN" --with-decryption --query 'Parameter.Value' --output text)
+          echo "::add-mask::${SENTRY_AUTH_TOKEN}"
+          echo "SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}" >> "$GITHUB_ENV"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -92,7 +98,7 @@ jobs:
           labels: |
             service=nadeshiko-backend-prod
           secrets: |
-            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_AUTH_TOKEN=${{ env.SENTRY_AUTH_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -222,8 +228,21 @@ jobs:
     needs: release-frontend
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: prod
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          aws-region: eu-north-1
+
+      - name: Fetch E2E secrets from AWS SSM
+        run: |
+          E2E_USER_PASSWORD=$(aws ssm get-parameter --name "/nadeshiko/prod/E2E_USER_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
+          echo "::add-mask::${E2E_USER_PASSWORD}"
+          echo "E2E_USER_PASSWORD=${E2E_USER_PASSWORD}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
