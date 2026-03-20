@@ -88,7 +88,7 @@ const scrollToElement = (id: string) => {
           </svg>
         </button>
       </div>
-      <div class="flex-grow overflow-y-auto p-6">
+      <div class="flex-grow overflow-y-auto p-6 scrollbar-dark">
         <template v-if="contextData">
           <SearchSegmentContainer :searchData="contextData" :isLoading="isLoading"
             :highlightedPosition="highlightedPosition" :hideContextButton="true" class="w-full h-full" />

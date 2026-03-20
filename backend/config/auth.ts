@@ -38,6 +38,9 @@ const DISABLED_PATHS = [
   '/refresh-token',
   '/get-access-token',
   '/account-info',
+  '/sign-up/email',
+  '/reset-password',
+  '/forget-password',
 ];
 
 type BetterAuthOptions = Parameters<typeof betterAuth>[0];
@@ -182,7 +185,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       },
     },
     emailAndPassword: {
-      enabled: false,
+      enabled: true,
     },
     socialProviders,
     user: {

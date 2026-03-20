@@ -108,6 +108,23 @@
     scrollbar-width: none; /* Firefox */
   }
 
+  .dark .scrollbar-dark {
+    scrollbar-color: #555 transparent;
+  }
+
+  .dark .scrollbar-dark::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .dark .scrollbar-dark::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dark .scrollbar-dark::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+  }
+
   body {
     font-family: system-ui;
     text-rendering: optimizeLegibility;
