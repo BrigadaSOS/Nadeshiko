@@ -16,10 +16,10 @@ test.describe('About page', () => {
   });
 
   test('displays contributor cards', async ({ page }) => {
-    const contributorsGrid = page.locator('.about-contributors-grid');
+    const contributorsGrid = page.getByTestId('contributors-grid');
     await expect(contributorsGrid).toBeVisible({ timeout: 10_000 });
 
-    const cards = contributorsGrid.locator('.about-contributor-card');
+    const cards = contributorsGrid.getByTestId('contributor-card');
     const count = await cards.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });

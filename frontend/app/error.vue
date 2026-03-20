@@ -21,11 +21,12 @@ const handleError = () => clearError({ redirect: '/' });
     <div class="flex min-h-[70vh] flex-col items-center justify-center px-4">
       <div class="flex flex-col items-center max-w-lg mx-auto text-center">
         <img
+          data-testid="error-image"
           class="mb-6"
           src="/assets/no-results.gif"
           alt="Not found"
         >
-        <h2 class="font-bold text-red-400 text-3xl">
+        <h2 data-testid="error-status-code" class="font-bold text-red-400 text-3xl">
           {{ error.statusCode }}
         </h2>
         <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">

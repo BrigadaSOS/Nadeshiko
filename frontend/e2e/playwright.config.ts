@@ -12,6 +12,7 @@ if (!BASE_URL) {
 
 export default defineConfig({
   testDir: './specs',
+  globalTeardown: './global-teardown.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

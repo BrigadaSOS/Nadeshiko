@@ -9,7 +9,7 @@ test.describe('Search URL filters', () => {
 
 
     // Get media name and click to filter
-    const mediaLink = search.segmentCards.first().locator('p.text-white\\/50 button').first();
+    const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     const mediaName = (await mediaLink.textContent())!.trim();
     await mediaLink.click();
     await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
@@ -23,7 +23,7 @@ test.describe('Search URL filters', () => {
     await search.expectResultsVisible();
 
     // All results should be from the same media
-    const firstMediaLink = search.segmentCards.first().locator('p.text-white\\/50 button').first();
+    const firstMediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     await expect(firstMediaLink).toContainText(mediaName);
   });
 
@@ -36,7 +36,7 @@ test.describe('Search URL filters', () => {
     const unfilteredCount = await search.getResultCount();
 
     // Click media name to filter
-    const mediaLink = search.segmentCards.first().locator('p.text-white\\/50 button').first();
+    const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     await mediaLink.click();
     await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
 
@@ -54,7 +54,7 @@ test.describe('Search URL filters', () => {
 
 
     // Get a media ID by clicking the media name
-    const mediaLink = search.segmentCards.first().locator('p.text-white\\/50 button').first();
+    const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     await mediaLink.click();
     await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
 

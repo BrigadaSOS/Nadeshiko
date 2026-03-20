@@ -21,6 +21,14 @@ const renameKeyId = ref<string | null>(null);
 const renameKeyName = ref('');
 
 const fetchApiKeyList = async (): Promise<unknown[]> => {
+  const unwrap = (data: unknown): unknown[] => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object' && 'apiKeys' in data && Array.isArray((data as Record<string, unknown>).apiKeys)) {
+      return (data as Record<string, unknown>).apiKeys as unknown[];
+    }
+    return [];
+  };
+
   if (import.meta.server) {
     const event = useRequestEvent();
     if (!event) return [];
@@ -30,15 +38,18 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
     if (config.backendHostHeader) {
       headers.host = String(config.backendHostHeader);
     }
-    return await $fetch<unknown[]>(`${config.backendInternalUrl}/v1/auth/api-key/list`, { headers }).catch(() => []);
+    return unwrap(await $fetch(`${config.backendInternalUrl}/v1/auth/api-key/list`, { headers }).catch(() => []));
   }
-  return await $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []);
+  return unwrap(await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []));
 };
 
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
   const [keysRaw, quotaRes] = await Promise.all([fetchApiKeyList(), sdk.getUserQuota().catch(() => ({ data: null }))]);
 
-  const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey).filter((k) => k.isActive);
+  const keys = (Array.isArray(keysRaw) ? keysRaw : [])
+    .map(normalizeApiKey)
+    .filter((k) => k.isActive)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const q = (quotaRes.data ?? {}) as Record<string, unknown>;
   return {
     keys,
@@ -218,13 +229,13 @@ const formatDate = (value?: string) => {
             </div>
             <div class="ml-auto">
                 <button
-                    class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" @click="openCreateModal">
+                    class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" data-testid="add-api-key-button" @click="openCreateModal">
                     <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
                     {{ $t('accountSettings.developer.addApiKey') }}
                 </button>
             </div>
         </div>
-        <div v-if="generatedApiKey" role="alert"
+        <div v-if="generatedApiKey" role="alert" data-testid="api-key-created-alert"
             class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
             <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
                 <UiBaseIcon :path="mdiCheckBold" size="20" />
@@ -235,7 +246,7 @@ const formatDate = (value?: string) => {
                 </p>
             </div>
 
-        <div v-if="deactivatedApiKey" role="alert"
+        <div v-if="deactivatedApiKey" role="alert" data-testid="api-key-deactivated-alert"
             class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
             <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
                 <UiBaseIcon :path="mdiCheckBold" size="20" />
@@ -259,7 +270,7 @@ const formatDate = (value?: string) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-white/20">
-                        <tr class="divide-x divide-gray-200 dark:divide-white/20"
+                        <tr class="divide-x divide-gray-200 dark:divide-white/20" data-testid="api-key-row"
                             v-for="(item, index) in fieldOptions.keys">
                             <td
                                 class="w-2/12 py-4 whitespace-nowrap text-base text-center px-2 font-medium text-gray-800 dark:text-gray-200">
@@ -267,7 +278,7 @@ const formatDate = (value?: string) => {
                             </td>
                             <td
                                 class="w-2/12 py-4 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
-                                {{ item.hint }}
+                                {{ item.hint }}•••
                             </td>
                             <td
                                 class="w-4/12 py-4 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
@@ -300,7 +311,7 @@ const formatDate = (value?: string) => {
                                 class="w-2/12 py-4 align-middle whitespace-nowrap text-base px-2 font-medium text-gray-800 dark:text-gray-200 ">
                                 <div class="flex justify-center items-center h-full">
                                     <div class="nd-dropdown relative mb-2 mx-auto">
-                                        <button id="nd-dropdown-with-title" type="button"
+                                        <button id="nd-dropdown-with-title" type="button" data-testid="dropdown-toggle"
                                             class="border-transparent dark:hover:bg-sgrayhover nd-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-lg border font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
                                             <svg class="nd-dropdown-open:rotate-180 w-5 h-5 rotate-180 fill-white text-gray-300"
                                                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -391,7 +402,7 @@ const formatDate = (value?: string) => {
     </div>
 
     <!-- Create API Key Modal -->
-    <div id="nd-vertically-centered-scrollable-createapikey-modal"
+    <div id="nd-vertically-centered-scrollable-createapikey-modal" data-testid="create-apikey-modal"
         class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
         @click="handleCreateBackdropClick">
         <div
@@ -452,6 +463,7 @@ const formatDate = (value?: string) => {
                 >
                     <button
                         type="button"
+                        data-testid="create-apikey-submit"
                         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         @click="confirmCreateApiKey"
                         :disabled="!modalKeyName || isLoading"
@@ -464,7 +476,7 @@ const formatDate = (value?: string) => {
     </div>
 
     <!-- Rename API Key Modal -->
-    <div id="nd-vertically-centered-scrollable-renameapikey-modal"
+    <div id="nd-vertically-centered-scrollable-renameapikey-modal" data-testid="rename-apikey-modal"
         class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
         @click="handleRenameBackdropClick">
         <div
@@ -510,6 +522,7 @@ const formatDate = (value?: string) => {
                 >
                     <button
                         type="button"
+                        data-testid="rename-apikey-submit"
                         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         @click="confirmRenameApiKey"
                         :disabled="!renameKeyName || isLoading"

@@ -362,7 +362,7 @@ const logoutCurrentUser = async () => {
   </div>
 
   <!-- Sessions Card -->
-  <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
+  <div data-testid="sessions-card" class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
     <div class="flex flex-wrap items-center gap-2 justify-between">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">Sessions</h3>
       <div class="flex flex-wrap gap-2">
@@ -406,7 +406,7 @@ const logoutCurrentUser = async () => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="session in sessionRows" :key="session.token" :class="{ 'bg-white/5': isCurrentSession(session.token) }">
+          <tr v-for="session in sessionRows" :key="session.token" :data-testid="isCurrentSession(session.token) ? 'session-row-current' : 'session-row'" :class="{ 'bg-white/5': isCurrentSession(session.token) }">
             <td class="py-3 text-sm text-gray-200">
               {{ formatUserAgent(session.userAgent) }}
               <span v-if="isCurrentSession(session.token)" class="ml-2 inline-flex items-center rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">

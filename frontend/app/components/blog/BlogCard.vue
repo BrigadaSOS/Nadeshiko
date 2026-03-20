@@ -75,7 +75,7 @@ const contentPreview = computed(() => {
 </script>
 
 <template>
-  <article class="mb-12 pb-10 border-b border-gray-800 last:border-0 hover:border-gray-700 transition-colors duration-200">
+  <article data-testid="blog-post" class="mb-12 pb-10 border-b border-gray-800 last:border-0 hover:border-gray-700 transition-colors duration-200">
     <NuxtLink :to="blogPath" class="group block">
       <!-- Title -->
       <h2 class="text-3xl sm:text-4xl font-bold text-white mb-3 underline decoration-[#ef5552] decoration-4 underline-offset-8">

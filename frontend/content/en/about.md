@@ -5,8 +5,8 @@
 
 ## Contribution and Attribution
 
-<div class="about-contributors-grid grid grid-cols-1 md:grid-cols-3 gap-4">
-  <div class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
+<div data-testid="contributors-grid" class="about-contributors-grid grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div data-testid="contributor-card" class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
     <div class="flex items-start gap-4 p-4 border-b dark:border-neutral-700">
       <img
         class="w-32 h-32 rounded-lg object-cover flex-shrink-0"
@@ -28,7 +28,7 @@
     </div>
   </div>
 
-  <div class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
+  <div data-testid="contributor-card" class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
     <div class="flex items-start gap-4 p-4 border-b dark:border-neutral-700">
       <img
         class="w-32 h-32 rounded-lg object-cover flex-shrink-0"
@@ -50,7 +50,7 @@
     </div>
   </div>
 
-  <div class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
+  <div data-testid="contributor-card" class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
     <div class="flex items-start gap-4 p-4 border-b dark:border-neutral-700">
       <img
         class="w-32 h-32 rounded-lg object-cover flex-shrink-0"

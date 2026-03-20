@@ -146,7 +146,9 @@ export function downloadAudioOrImage(url: string | URL | Request, filename: stri
 export function zoomImage(url: string) {
   const ampliada = document.createElement('div');
   ampliada.className = 'ampliada';
+  ampliada.dataset.testid = 'image-zoom-overlay';
   const imgAmpliada = document.createElement('img');
+  imgAmpliada.dataset.testid = 'zoomed-image';
   imgAmpliada.src = url;
   ampliada.appendChild(imgAmpliada);
   document.body.appendChild(ampliada);

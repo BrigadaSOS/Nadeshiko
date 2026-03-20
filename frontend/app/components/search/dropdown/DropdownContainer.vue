@@ -1,7 +1,8 @@
 <template>
-    <div class="nd-dropdown relative inline-flex">
+    <div data-testid="dropdown" class="nd-dropdown relative inline-flex">
         <slot></slot>
         <div
+            data-testid="dropdown-menu"
             :class="dropdownContainerClass"
             :aria-labelledby="resolvedDropdownId"
         >

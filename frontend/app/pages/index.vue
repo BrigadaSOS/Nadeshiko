@@ -160,7 +160,7 @@ const {
 
                                     <div class="mb-5 border-b border-white/10" />
 
-                                    <div class="flex gap-4 text-center">
+                                    <div data-testid="stats-section" class="flex gap-4 text-center">
                                         <div class="md:w-1/3 sm:w-1/3 w-full">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
@@ -285,6 +285,7 @@ const {
                                                         v-for="(media_info, index) in filteredRecentMedia"
                                                         :key="media_info.id"
                                                         :to="`/search?media=${media_info.publicId}`"
+                                                        data-testid="media-card"
                                                         class="w-full relative">
                                                         <div class="w-full">
                                                             <div

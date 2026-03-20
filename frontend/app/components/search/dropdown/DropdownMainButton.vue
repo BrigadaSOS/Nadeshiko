@@ -1,5 +1,6 @@
 <template>
     <button
+        data-testid="dropdown-toggle"
         :id="resolvedDropdownId"
         type="button"
         :class="dropdownButtonClass"

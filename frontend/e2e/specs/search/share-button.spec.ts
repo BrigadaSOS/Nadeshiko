@@ -12,7 +12,7 @@ test.describe('Share button', () => {
 
 
     const card = search.segmentCards.first();
-    const shareButton = card.locator('button[title="Share"]');
+    const shareButton = card.getByTestId('share-button');
     await shareButton.click();
 
     // Verify a toast notification appears

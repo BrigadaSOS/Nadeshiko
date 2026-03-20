@@ -5,7 +5,7 @@ test.describe('Mobile viewport', () => {
   test('hamburger menu is visible on mobile', async ({ page }) => {
     await page.goto('/');
 
-    const hamburger = page.locator('#nd-navbar-example-collapse');
+    const hamburger = page.getByTestId('hamburger-menu');
     await expect(hamburger).toBeVisible({ timeout: 10_000 });
   });
 
@@ -13,7 +13,7 @@ test.describe('Mobile viewport', () => {
     await page.goto('/');
 
     // The nav container should be hidden by default on mobile
-    const navMenu = page.locator('#nd-navbar-example');
+    const navMenu = page.getByTestId('nav-menu');
     await expect(navMenu).not.toBeVisible();
   });
 
@@ -21,25 +21,25 @@ test.describe('Mobile viewport', () => {
     await page.goto('/');
 
 
-    const hamburger = page.locator('#nd-navbar-example-collapse');
+    const hamburger = page.getByTestId('hamburger-menu');
     await hamburger.click();
 
-    const navMenu = page.locator('#nd-navbar-example');
+    const navMenu = page.getByTestId('nav-menu');
     await expect(navMenu).toBeVisible({ timeout: 5_000 });
 
     // Nav links should now be visible
-    await expect(page.locator('#nd-navbar-example').getByRole('link', { name: 'Media' })).toBeVisible();
-    await expect(page.locator('#nd-navbar-example').getByRole('link', { name: 'About' })).toBeVisible();
+    await expect(navMenu.getByRole('link', { name: 'Media' })).toBeVisible();
+    await expect(navMenu.getByRole('link', { name: 'About' })).toBeVisible();
   });
 
   test('mobile nav links navigate correctly', async ({ page }) => {
     await page.goto('/');
 
 
-    const hamburger = page.locator('#nd-navbar-example-collapse');
+    const hamburger = page.getByTestId('hamburger-menu');
     await hamburger.click();
 
-    const navMenu = page.locator('#nd-navbar-example');
+    const navMenu = page.getByTestId('nav-menu');
     await expect(navMenu).toBeVisible({ timeout: 5_000 });
 
     await navMenu.getByRole('link', { name: 'Media' }).click();
@@ -62,7 +62,7 @@ test.describe('Mobile viewport', () => {
     const heading = page.getByRole('heading', { name: 'Nadeshiko', exact: true });
     await expect(heading).toBeVisible({ timeout: 10_000 });
 
-    const searchInput = page.locator('#sentence-search-input');
+    const searchInput = page.getByTestId('search-input');
     await expect(searchInput).toBeVisible();
   });
 
@@ -70,7 +70,7 @@ test.describe('Mobile viewport', () => {
     await page.goto('/');
 
 
-    const searchInput = page.locator('#sentence-search-input');
+    const searchInput = page.getByTestId('search-input');
     await searchInput.click();
     await searchInput.fill('学校');
     await searchInput.press('Enter');

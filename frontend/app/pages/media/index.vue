@@ -3,8 +3,8 @@ import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight, mdiPencilOutline, 
 import { userStore } from '@/stores/auth';
 
 useSeoMeta({
-  title: 'Browse Media | Nadeshiko',
-  ogTitle: 'Browse Media | Nadeshiko',
+  title: 'Browse Media',
+  ogTitle: 'Browse Media',
   description:
     'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
   ogDescription:
@@ -12,7 +12,7 @@ useSeoMeta({
 });
 
 defineOgImage({
-  title: 'Browse Media | Nadeshiko',
+  title: 'Browse Media',
   description: 'Browse anime, J-dramas, and audiobooks available on Nadeshiko.',
 });
 
@@ -278,6 +278,7 @@ watch([searchQuery, filterCategory], () => {
       </div>
       <input
         v-model="query"
+        data-testid="media-search-input"
         class="block p-2.5 mb-4 w-full text-sm text-gray-900 rounded-lg border border-gray-300 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white"
         :placeholder="$t('searchpage.main.labels.searchmain')"
       />
@@ -317,16 +318,17 @@ watch([searchQuery, filterCategory], () => {
           </template>
         </SearchDropdownContainer>
         <div class="ml-auto gap-2 flex">
-          <UiButtonPrimaryAction @click="setGridView">
+          <UiButtonPrimaryAction data-testid="grid-view-button" @click="setGridView">
             <UiBaseIcon :path="mdiGrid" />
           </UiButtonPrimaryAction>
-          <UiButtonPrimaryAction @click="setListView">
+          <UiButtonPrimaryAction data-testid="list-view-button" @click="setListView">
             <UiBaseIcon :path="mdiFormatListBulletedSquare" />
           </UiButtonPrimaryAction>
         </div>
       </div>
       <div
         v-if="currentView === 'grid'"
+        data-testid="media-grid"
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5 xl:gap-6"
       >
         <!-- Loading Placeholder for Grid (initial load) -->
@@ -340,12 +342,13 @@ watch([searchQuery, filterCategory], () => {
           v-if="!loading || filteredMedia.length > 0"
           v-for="(mediaInfo, index) in filteredMedia"
           :key="mediaInfo.id"
+          data-testid="media-card-container"
           class="flex flex-col items-center"
         >
           <div
             class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
-            <NuxtLink :to="`/search?media=${mediaInfo.publicId}`">
+            <NuxtLink data-testid="media-card" :to="`/search?media=${mediaInfo.publicId}`">
               <img
                 :src="mediaInfo.coverUrl"
                 :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
@@ -361,7 +364,7 @@ watch([searchQuery, filterCategory], () => {
             </button>
           </div>
           <NuxtLink :to="`/search?media=${mediaInfo.publicId}`" class="mt-2 text-center justify-center flex flex-col items-center">
-            <h3 lang="ja" class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
+            <h3 lang="ja" data-testid="media-card-title" class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
               {{ mediaName(mediaInfo) }}
             </h3>
           </NuxtLink>
@@ -397,6 +400,7 @@ watch([searchQuery, filterCategory], () => {
           v-if="filteredMedia.length > 0"
           v-for="(mediaInfo, index) in filteredMedia"
           :key="mediaInfo.id"
+          data-testid="media-list-item"
           class="w-full relative mb-4"
         >
           <div

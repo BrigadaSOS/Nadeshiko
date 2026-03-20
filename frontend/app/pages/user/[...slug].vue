@@ -229,7 +229,7 @@ useDragScroll(mobileTabsRef);
           </nav>
         </div>
 
-        <div class="flex-grow md:pl-6 overflow-y-auto my-2 md:mx-auto min-w-0">
+        <div class="flex-grow md:pl-6 my-2 md:mx-auto min-w-0">
           <SettingsAccountModule v-if="activeTabRoute === '/user/settings'" />
           <SettingsAnkiModule v-if="activeTabRoute === '/user/sync'" />
           <SettingsCollectionsModule v-if="activeTabRoute === '/user/collections'" />

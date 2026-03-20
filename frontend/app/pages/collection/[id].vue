@@ -74,7 +74,7 @@ const { data: collectionDetails } = await useAsyncData(
 
 const metaTags = computed(() => {
   const name = collectionDetails.value?.name ?? 'Collection';
-  const title = `${name} | Nadeshiko`;
+  const title = name;
   const description = `Browse the "${name}" collection on Nadeshiko`;
   return {
     title,
@@ -91,7 +91,7 @@ useHead(metaTags);
 
 const ogCollectionTitle = computed(() => {
   const name = collectionDetails.value?.name ?? 'Collection';
-  return `${name} | Nadeshiko`;
+  return name;
 });
 
 defineOgImage({

@@ -25,6 +25,7 @@ function openLoginModal() {
                 <div class="md:hidden">
                     <button type="button"
                         class="nd-collapse-toggle relative size-7 flex justify-center items-center gap-x-2 rounded-lg   bg-white text-gray-800  hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-transparent dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
+                        data-testid="hamburger-menu"
                         id="nd-navbar-example-collapse" aria-expanded="false" aria-controls="nd-navbar-example"
                         aria-label="Toggle navigation" data-nd-collapse="#nd-navbar-example">
                         <svg class="nd-collapse-open:hidden shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
@@ -44,7 +45,7 @@ function openLoginModal() {
                     </button>
                 </div>
             </div>
-            <div id="nd-navbar-example"
+            <div id="nd-navbar-example" data-testid="nav-menu"
                 class="hidden nd-collapse overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out basis-full grow md:block md:!overflow-visible"
                 aria-labelledby="nd-navbar-example-collapse">
                 <div class="flex flex-col  mt-5 md:flex-row md:items-center md:justify-end md:mt-0 md:ps-5">
@@ -97,7 +98,7 @@ function openLoginModal() {
                         </a>
                     </div>
                     <CommonLanguageSelector />
-                    <SearchDropdownContainer dropdownId="nd-dropdown-profile"
+                    <SearchDropdownContainer data-testid="profile-dropdown" dropdownId="nd-dropdown-profile"
                         dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
                         <template #default>
                             <SearchDropdownMainButton
@@ -108,19 +109,19 @@ function openLoginModal() {
                         </template>
                         <template #content>
                             <SearchDropdownContent :header="$t('navbar.buttons.profile')">
-                                <NuxtLink v-if="isAuth" to="/user/settings" :prefetch="false">
+                                <NuxtLink v-if="isAuth" to="/user/settings" data-testid="nav-settings" :prefetch="false">
                                     <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                 </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/sync" :prefetch="false">
+                                <NuxtLink v-if="isAuth" to="/user/sync" data-testid="nav-anki" :prefetch="false">
                                     <SearchDropdownItem text="Anki" />
                                 </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/collections" :prefetch="false">
+                                <NuxtLink v-if="isAuth" to="/user/collections" data-testid="nav-collections" :prefetch="false">
                                     <SearchDropdownItem text="Collections" />
                                 </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/activity" :prefetch="false">
+                                <NuxtLink v-if="isAuth" to="/user/activity" data-testid="nav-activity" :prefetch="false">
                                     <SearchDropdownItem text="Activity" />
                                 </NuxtLink>
-                                <SearchDropdownItem v-if="!isAuth || isAuth == null" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
+                                <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
                             </SearchDropdownContent>
                         </template>
                     </SearchDropdownContainer>
