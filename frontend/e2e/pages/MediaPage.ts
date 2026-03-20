@@ -9,16 +9,20 @@ export class MediaPage {
   readonly listViewButton: Locator;
   readonly listItems: Locator;
   readonly heading: Locator;
+  readonly mediaGrid: Locator;
+  readonly mediaCardContainers: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.mediaCards = page.locator('.grid a[href*="/search?media="]');
-    this.searchInput = page.locator('input[placeholder="Search a title here..."]');
-    this.categoryDropdown = page.locator('.nd-dropdown-toggle').first();
-    this.gridViewButton = page.locator('button').filter({ has: page.locator('path[d*="M3,11H11V3H3"]') });
-    this.listViewButton = page.locator('button').filter({ has: page.locator('path[d*="M3,4H7V8H3"]') });
-    this.listItems = page.locator('.tab-content .relative.mb-4');
+    this.mediaCards = page.getByTestId('media-card');
+    this.searchInput = page.getByTestId('media-search-input');
+    this.categoryDropdown = page.getByTestId('dropdown-toggle').first();
+    this.gridViewButton = page.getByTestId('grid-view-button');
+    this.listViewButton = page.getByTestId('list-view-button');
+    this.listItems = page.getByTestId('media-list-item');
     this.heading = page.getByRole('heading', { level: 1 });
+    this.mediaGrid = page.getByTestId('media-grid');
+    this.mediaCardContainers = page.getByTestId('media-card-container');
   }
 
   async goto(query?: Record<string, string>) {

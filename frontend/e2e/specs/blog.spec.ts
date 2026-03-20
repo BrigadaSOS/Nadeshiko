@@ -13,7 +13,7 @@ test.describe('Blog', () => {
 
 
     const emptyState = page.getByText('No blog posts available yet');
-    const postLink = page.locator('a[href^="/blog/"]');
+    const postLink = page.getByTestId('blog-post');
     await expect(postLink.first().or(emptyState)).toBeVisible({ timeout: 10_000 });
   });
 });

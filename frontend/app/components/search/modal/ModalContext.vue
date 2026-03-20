@@ -67,17 +67,17 @@ const scrollToElement = (id: string) => {
 </script>
 
 <template>
-  <div id="nd-vertically-centered-scrollable-context"
+  <div id="nd-vertically-centered-scrollable-context" data-testid="context-modal"
     class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/60 hidden w-full h-full flex items-center justify-center fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
     <div
       class="w-full max-w-7xl mx-auto h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
       :style="{ maxHeight: showPlayer ? '85vh' : '95vh', marginBottom: showPlayer ? '5rem' : '0' }">
       <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
-        <h3 class="font-bold text-gray-800 dark:text-white">
+        <h3 data-testid="context-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('searchpage.modalcontext.labels.context') }} - {{
             contextData?.results?.[0]?.media ? mediaName(contextData.results[0].media) : '' }}
         </h3>
-        <button type="button"
+        <button type="button" data-testid="context-modal-close"
           class="nd-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
           data-nd-overlay="#nd-vertically-centered-scrollable-context">
           <span class="sr-only">{{ t('modalContext.closeSrOnly') }}</span>

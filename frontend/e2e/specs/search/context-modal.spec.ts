@@ -15,7 +15,7 @@ test.describe('Context modal', () => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.locator('#nd-vertically-centered-scrollable-context');
+    const modal = page.getByTestId('context-modal');
     await expect(modal).toBeVisible({ timeout: 10_000 });
   });
 
@@ -23,11 +23,11 @@ test.describe('Context modal', () => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.locator('#nd-vertically-centered-scrollable-context');
+    const modal = page.getByTestId('context-modal');
     await expect(modal).toBeVisible({ timeout: 10_000 });
 
     // The modal renders segment cards using SearchSegmentContainer
-    const modalCards = modal.locator('.group.flex.flex-col');
+    const modalCards = modal.getByTestId('segment-card');
     await expect(modalCards.first()).toBeVisible({ timeout: 10_000 });
 
     const cardCount = await modalCards.count();
@@ -38,10 +38,10 @@ test.describe('Context modal', () => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.locator('#nd-vertically-centered-scrollable-context');
+    const modal = page.getByTestId('context-modal');
     await expect(modal).toBeVisible({ timeout: 10_000 });
 
-    const title = modal.locator('h3').first();
+    const title = modal.getByTestId('context-modal-title');
     await expect(title).toBeVisible();
     await expect(title).not.toBeEmpty();
   });
@@ -50,10 +50,10 @@ test.describe('Context modal', () => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.locator('#nd-vertically-centered-scrollable-context').first();
+    const modal = page.getByTestId('context-modal');
     await expect(modal).toBeVisible({ timeout: 10_000 });
 
-    const closeButton = modal.locator('button[data-nd-overlay="#nd-vertically-centered-scrollable-context"]');
+    const closeButton = modal.getByTestId('context-modal-close');
     await closeButton.click();
 
     await expect(modal).not.toBeVisible();

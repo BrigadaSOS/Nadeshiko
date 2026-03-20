@@ -5,7 +5,7 @@ type MetaTags = { title: string; meta: MetaTag[] };
 
 export function buildSentenceMetaTags(result: SearchResult, mediaNameFn: (media: Media) => string): MetaTags {
   const mediaInfo = `Episode ${result.segment.episode}`;
-  const title = `${mediaNameFn(result.media)} | Nadeshiko`;
+  const title = mediaNameFn(result.media);
   const description = `「${result.segment.textJa.content}」 - ${mediaInfo}`;
 
   const meta: MetaTag[] = [

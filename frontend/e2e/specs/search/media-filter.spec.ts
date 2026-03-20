@@ -8,7 +8,7 @@ test.describe('Media filter', () => {
     await search.expectResultsVisible();
 
 
-    const mediaLink = search.segmentCards.first().locator('p.text-white\\/50 button').first();
+    const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     await mediaLink.click();
 
     await expect(page).toHaveURL(/media=/, { timeout: 10_000 });

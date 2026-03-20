@@ -25,9 +25,8 @@ test.describe('Media catalog', () => {
     await media.goto();
     await media.expectLoaded();
 
-    // Title is in a sibling NuxtLink next to the cover image link
-    const firstCardContainer = media.mediaCards.first().locator('..').locator('..');
-    const title = firstCardContainer.locator('h3').first();
+    const firstCardContainer = media.mediaCardContainers.first();
+    const title = firstCardContainer.getByTestId('media-card-title');
     await expect(title).toBeVisible();
     await expect(title).not.toBeEmpty();
   });
@@ -41,7 +40,7 @@ test.describe('Media catalog', () => {
     const initialCount = await media.getMediaCount();
 
     // Read the first media's title and search for it, so the test is data-independent
-    const firstTitle = await media.mediaCards.first().locator('..').locator('..').locator('h3').first().textContent();
+    const firstTitle = await media.mediaCardContainers.first().getByTestId('media-card-title').textContent();
     const searchTerm = firstTitle!.trim().split(' ')[0]!;
 
     await media.search(searchTerm);
@@ -76,7 +75,6 @@ test.describe('Media catalog', () => {
     await media.goto();
     await media.expectLoaded();
 
-    const grid = page.locator('.grid.grid-cols-2');
-    await expect(grid).toBeVisible();
+    await expect(media.mediaGrid).toBeVisible();
   });
 });

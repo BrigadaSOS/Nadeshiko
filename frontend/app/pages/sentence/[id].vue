@@ -55,10 +55,10 @@ const metaTags = computed(() => {
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
 
   const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
-    title: 'Nadeshiko: Japanese Sentence Search Engine',
+    title: 'Sentence',
     meta: [
       { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: 'Nadeshiko' },
+      { property: 'og:title', content: 'Sentence' },
       { property: 'og:description', content: defaultDescription },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
