@@ -12,7 +12,7 @@ builder:
 
 proxy:
   ssl: true
-  host: new.nadeshiko.co
+  host: nadeshiko.co
   app_port: 3000
   forward_headers: true
 
