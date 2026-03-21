@@ -53,7 +53,7 @@ env:
   clear:
     ENVIRONMENT: prod
     PORT: 80
-    BASE_URL: https://new.nadeshiko.co
+    BASE_URL: https://nadeshiko.co
 
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432

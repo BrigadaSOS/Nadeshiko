@@ -3,7 +3,7 @@ import { env } from './config/env';
 
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const UMAMI_ORIGIN = 'https://cloud.umami.is';
-const SENTRY_INGEST = 'https://*.ingest.sentry.io';
+const SENTRY_INGEST = 'https://*.ingest.de.sentry.io';
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -65,11 +65,12 @@ export default defineNuxtConfig({
     headers: {
       contentSecurityPolicy: {
         'default-src': ["'self'"],
-        'script-src': ["'self'", "'unsafe-inline'", UMAMI_ORIGIN],
+        'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
         'font-src': ["'self'"],
         'connect-src': ["'self'", UMAMI_ORIGIN, SENTRY_INGEST],
+        'worker-src': ["'self'", 'blob:'],
         'media-src': ["'self'", 'blob:', CDN_ORIGIN],
         'object-src': ["'none'"],
         'frame-ancestors': ["'none'"],
