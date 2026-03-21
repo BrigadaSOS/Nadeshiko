@@ -8,6 +8,7 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /reports
 Disallow: /reports/
+Allow: /api/v1/docs
 Disallow: /api/
 Disallow: /v1/
 
