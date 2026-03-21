@@ -48,6 +48,7 @@ env:
     - SES_FROM_NAME
 
     - SENTRY_BACKEND_DSN
+    - E2E_USER_PASSWORD
 
   clear:
     ENVIRONMENT: prod
