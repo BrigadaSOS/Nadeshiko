@@ -88,7 +88,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git commit -am "Bump docker tag (manual deploy)"
+        git diff --quiet && echo "No changes to commit" || git commit -am "Bump docker tag (manual deploy)"
 
     - name: Push changes to production
       uses: ad-m/github-push-action@master
