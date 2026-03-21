@@ -314,7 +314,7 @@
         "fieldLoadError": "モデルのフィールド名の読み込みエラー:",
         "troubleshootingTips": {
           "ankiRunning": "Ankiが起動中でAnkiconnectアドオンがインストールされていることを確認してください",
-          "webCors": "AnkiConnectのwebCorsOriginList設定に'https://nadeshiko.co'が含まれていることを確認してください",
+          "webCors": "AnkiConnectのwebCorsOriginList設定に'https://old.nadeshiko.co'が含まれていることを確認してください",
           "adBlock": "このドメインに対するAdBlock拡張機能を無効にしてください"
         },
         "ankiConfig": "Anki設定",

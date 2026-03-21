@@ -8,7 +8,7 @@ info:
 
     Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
     
-    If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
+    If you haven't generated an API key yet, you can do so on your [account page](https://old.nadeshiko.co/settings/api), API section.
 
     ### Quotas and Limits
     The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message: 
@@ -21,7 +21,7 @@ info:
     |--------------|-----------------|
     | Normal User  | 5000 requests   |
 
-    To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
+    To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://old.nadeshiko.co/about).
 
   version: 1.0.0
   contact:

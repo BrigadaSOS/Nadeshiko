@@ -314,7 +314,7 @@
       "fieldLoadError": "Error loading model field names:",
       "troubleshootingTips": {
         "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
-        "webCors": "Make sure 'https://nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
+        "webCors": "Make sure 'https://old.nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
         "adBlock": "Disable any AdBlock extensions for this domain"
       },
       "ankiConfig": "Anki Configuration",

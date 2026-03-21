@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-const allowedOrigins = process.env.ALLOWED_WEBSITE_URLS ? process.env.ALLOWED_WEBSITE_URLS.split(',') : [];
+const envOrigins = process.env.ALLOWED_WEBSITE_URLS ? process.env.ALLOWED_WEBSITE_URLS.split(',') : [];
+const allowedOrigins = [...new Set([...envOrigins, 'https://old.nadeshiko.co'])];
 
 export const corsMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const origin: string | undefined = req.headers.origin;

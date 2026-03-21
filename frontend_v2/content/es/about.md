@@ -151,7 +151,7 @@
 
 ## Créditos y Fuentes de Datos
 
-Este sitio hace uso de materiales y referencias que son propiedad intelectual de sus respectivos autores y poseedores de derechos. [Consulte aquí](https://nadeshiko.co/search/media) para obtener el listado de contenido utilizado como sus respectivos autores.
+Este sitio hace uso de materiales y referencias que son propiedad intelectual de sus respectivos autores y poseedores de derechos. [Consulte aquí](https://old.nadeshiko.co/search/media) para obtener el listado de contenido utilizado como sus respectivos autores.
 <br/><br/>
 Para obtener información sobre derechos de autor y DMCA, consulte nuestra [Política DMCA](/dmca).
 

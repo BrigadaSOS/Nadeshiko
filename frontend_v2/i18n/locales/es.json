@@ -314,7 +314,7 @@
       "fieldLoadError": "Error al cargar nombres de campos del modelo:",
       "troubleshootingTips": {
         "ankiRunning": "Verifique que la aplicación de Anki este abierta y el addon Ankiconnect instalado",
-        "webCors": "Verifique que 'https://nadeshiko.co' este en el webCorsOriginList de las configuraciones de AnkiConnect",
+        "webCors": "Verifique que 'https://old.nadeshiko.co' este en el webCorsOriginList de las configuraciones de AnkiConnect",
         "adBlock": "Deshabilite cualquier Adblock que tenga instalado en su navegador para este dominio"
       },
       "ankiConfig": "Configuración Anki",

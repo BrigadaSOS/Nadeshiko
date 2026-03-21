@@ -140,7 +140,7 @@
 
 ## Credits and Data Sources
 
-This site uses materials and references that are the intellectual property of their respective authors and rights holders. [See here](https://nadeshiko.co/search/media) for the list of content used as well as their respective authors.
+This site uses materials and references that are the intellectual property of their respective authors and rights holders. [See here](https://old.nadeshiko.co/search/media) for the list of content used as well as their respective authors.
 <br/><br/>
 For information regarding copyright and DMCA, please see our [DMCA Policy](/dmca).
 
