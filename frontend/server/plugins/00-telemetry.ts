@@ -26,7 +26,8 @@ export default defineNitroPlugin((nitroApp) => {
     span.end();
   });
 
-  nitroApp.hooks.hook('error', (error, { event }) => {
+  nitroApp.hooks.hook('error', (error, ctx) => {
+    const event = ctx?.event;
     const span = event?.context?._otelSpan as Span | undefined;
     if (!span) return;
 
