@@ -1,4 +1,4 @@
-{
+export default {
   "navbar": {
     "buttons": {
       "home": "ホーム",

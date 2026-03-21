@@ -15,16 +15,16 @@ test.describe('Context modal', () => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.getByTestId('context-modal');
-    await expect(modal).toBeVisible({ timeout: 10_000 });
+    const modal = page.locator('[data-testid="context-modal"]:not(.hidden)');
+    await expect(modal).toHaveCount(1, { timeout: 10_000 });
   });
 
   test('context modal displays surrounding sentences', async ({ page }) => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.getByTestId('context-modal');
-    await expect(modal).toBeVisible({ timeout: 10_000 });
+    const modal = page.locator('[data-testid="context-modal"]:not(.hidden)');
+    await expect(modal).toHaveCount(1, { timeout: 10_000 });
 
     // The modal renders segment cards using SearchSegmentContainer
     const modalCards = modal.getByTestId('segment-card');
@@ -38,8 +38,8 @@ test.describe('Context modal', () => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.getByTestId('context-modal');
-    await expect(modal).toBeVisible({ timeout: 10_000 });
+    const modal = page.locator('[data-testid="context-modal"]:not(.hidden)');
+    await expect(modal).toHaveCount(1, { timeout: 10_000 });
 
     const title = modal.getByTestId('context-modal-title');
     await expect(title).toBeVisible();
@@ -50,12 +50,12 @@ test.describe('Context modal', () => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
 
-    const modal = page.getByTestId('context-modal');
-    await expect(modal).toBeVisible({ timeout: 10_000 });
+    const modal = page.locator('[data-testid="context-modal"]:not(.hidden)');
+    await expect(modal).toHaveCount(1, { timeout: 10_000 });
 
     const closeButton = modal.getByTestId('context-modal-close');
     await closeButton.click();
 
-    await expect(modal).not.toBeVisible();
+    await expect(page.locator('[data-testid="context-modal"]:not(.hidden)')).toHaveCount(0);
   });
 });

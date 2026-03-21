@@ -150,19 +150,19 @@ export default defineNuxtConfig({
       {
         code: 'en',
         iso: 'en-US',
-        file: 'en.json',
+        file: 'en.ts',
         name: 'English',
       },
       {
         code: 'es',
         iso: 'es-US',
-        file: 'es.json',
+        file: 'es.ts',
         name: 'Spanish',
       },
       {
         code: 'ja',
         iso: 'ja',
-        file: 'ja.json',
+        file: 'ja.ts',
         name: 'Japanese',
       },
     ],
