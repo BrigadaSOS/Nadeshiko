@@ -1,5 +1,4 @@
 import { getQuery, createError } from 'h3';
-import { getContentPage, getBlogPost } from '../../utils/content';
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug') || '';

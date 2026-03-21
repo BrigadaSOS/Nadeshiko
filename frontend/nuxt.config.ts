@@ -117,14 +117,11 @@ export default defineNuxtConfig({
     sitemap: 'https://nadeshiko.co/sitemap.xml',
   },
   sitemap: {
-    urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media', '/api/v1/docs', '/docs/api/index.html', '/blog', '/blog/a-new-home-for-nadeshiko'],
+    urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media', '/api/v1/docs', '/docs/api/index.html', '/blog'],
     autoI18n: false,
   },
   ogImage: {
-    defaults: {
-      component: 'OgImageDefault',
-    },
-    fonts: ['Space+Grotesk:400', 'Space+Grotesk:700', 'Noto+Sans+JP:400', 'Noto+Sans+JP:700'],
+    enabled: false,
   },
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',
@@ -167,9 +164,6 @@ export default defineNuxtConfig({
       redirectOn: 'root',
     },
   },
-  experimental: {
-    emitRouteChunkError: 'automatic',
-  },
   compatibilityDate: '2024-07-28',
   build: {
     transpile: ['vue-toastification'],
@@ -210,12 +204,6 @@ export default defineNuxtConfig({
       headers: {
         'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    },
-    '/__og-image__/**': {
-      headers: {
-        'CDN-Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
-        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
       },
     },
     '/favicon.ico': {

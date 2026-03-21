@@ -11,8 +11,6 @@ useSeoMeta({
     'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
 });
 
-defineOgImage(false);
-
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 
 const sdk = useNadeshikoSdk();

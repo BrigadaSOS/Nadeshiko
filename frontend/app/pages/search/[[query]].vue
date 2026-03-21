@@ -6,7 +6,6 @@ import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 
 const route = useRoute();
 
-defineOgImage(false);
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
