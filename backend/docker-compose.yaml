@@ -11,20 +11,6 @@ services:
     ports:
       - ${POSTGRES_PORT}:5432
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: nadeshiko-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@pgadmin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_LISTEN_PORT: 80
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    volumes:
-      - nadeshiko_pgadmin:/var/lib/pgadmin
-    ports:
-      - 15400:80
-    depends_on:
-      - postgres
 
   elasticsearch:
     build:
@@ -46,22 +32,7 @@ services:
     volumes:
       - nadeshiko_elasticsearch_data:/usr/share/elasticsearch/data
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.17.10
-    container_name: nadeshiko-kibana
-    ports:
-      - 5601:5601
-    volumes:
-      - nadeshiko_kibana_data:/usr/share/kibana/config
-    environment:
-      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
-    restart: always
-    depends_on:
-      - elasticsearch
-
 
 volumes:
   nadeshiko_db:
-  nadeshiko_pgadmin:
   nadeshiko_elasticsearch_data:
-  nadeshiko_kibana_data:
