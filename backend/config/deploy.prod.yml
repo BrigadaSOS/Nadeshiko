@@ -70,7 +70,7 @@ accessories:
   postgres:
     image: postgres:17
     host: nadeshiko
-    port: 127.0.0.1:5432:5432
+    port: "100.114.126.96:5432:5432"
     env:
       secret:
         # Shared instance bootstrap/admin credentials.
@@ -83,7 +83,7 @@ accessories:
   elasticsearch:
     image: ghcr.io/davafons/nadeshiko-elasticsearch:8.17.10
     host: nadeshiko
-    port: 127.0.0.1:9200:9200
+    port: "100.114.126.96:9200:9200"
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
@@ -104,31 +104,6 @@ accessories:
       ulimit:
         - nofile=65536:65536
         - memlock=-1:-1
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.17.10
-    host: nadeshiko
-    port: 100.114.126.96:5601:5601
-    env:
-      secret:
-        - ELASTICSEARCH_SERVICEACCOUNTTOKEN:KIBANA_SERVICE_ACCOUNT_TOKEN
-      clear:
-        ELASTICSEARCH_HOSTS: "http://nadeshiko-backend-prod-elasticsearch:9200"
-    volumes:
-      - nadeshiko-kibana-data:/usr/share/kibana/config
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    host: nadeshiko
-    port: 100.114.126.96:5050:5050
-    env:
-      secret:
-        - PGADMIN_DEFAULT_EMAIL
-        - PGADMIN_DEFAULT_PASSWORD
-      clear:
-        PGADMIN_LISTEN_PORT: "5050"
-    volumes:
-      - nadeshiko-pgadmin-data:/var/lib/pgadmin
 
   pg-backup:
     image: kartoza/pg-backup:17-3.5
