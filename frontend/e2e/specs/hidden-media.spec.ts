@@ -54,7 +54,6 @@ test.describe('Hidden Media', () => {
     await hiddenMedia.expectLoaded();
 
     await hiddenMedia.searchInput.fill('xyznonexistentmedia12345');
-    await authenticatedPage.waitForTimeout(500);
     await expect(hiddenMedia.searchResults).toHaveCount(0);
   });
 });

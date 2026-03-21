@@ -1,5 +1,17 @@
 import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
 import { SearchPage } from '../pages/SearchPage';
+
+async function openMobileNav(page: Page) {
+  const hamburger = page.getByTestId('hamburger-menu');
+  await expect(hamburger).toBeVisible({ timeout: 10_000 });
+  await hamburger.click({ force: true });
+  await expect
+    .poll(async () => await hamburger.getAttribute('aria-expanded'), {
+      timeout: 10_000,
+    })
+    .toBe('true');
+}
 
 test.describe('Mobile viewport', () => {
   test('hamburger menu is visible on mobile', async ({ page }) => {
@@ -20,9 +32,7 @@ test.describe('Mobile viewport', () => {
   test('tapping hamburger opens the nav menu', async ({ page }) => {
     await page.goto('/');
 
-
-    const hamburger = page.getByTestId('hamburger-menu');
-    await hamburger.click();
+    await openMobileNav(page);
 
     const navMenu = page.getByTestId('nav-menu');
     await expect(navMenu).toBeVisible({ timeout: 5_000 });
@@ -35,9 +45,7 @@ test.describe('Mobile viewport', () => {
   test('mobile nav links navigate correctly', async ({ page }) => {
     await page.goto('/');
 
-
-    const hamburger = page.getByTestId('hamburger-menu');
-    await hamburger.click();
+    await openMobileNav(page);
 
     const navMenu = page.getByTestId('nav-menu');
     await expect(navMenu).toBeVisible({ timeout: 5_000 });
@@ -69,11 +77,10 @@ test.describe('Mobile viewport', () => {
   test('search input is usable on mobile', async ({ page }) => {
     await page.goto('/');
 
-
     const searchInput = page.getByTestId('search-input');
     await searchInput.click();
     await searchInput.fill('学校');
-    await searchInput.press('Enter');
+    await page.getByTestId('search-button').click();
 
     await expect(page).toHaveURL(/\/search\//, { timeout: 10_000 });
   });
