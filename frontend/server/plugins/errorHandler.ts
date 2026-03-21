@@ -56,7 +56,8 @@ export default defineNitroPlugin((nitroApp) => {
   });
 
   // Log all responses (including errors)
-  nitroApp.hooks.hook('afterResponse', (event, { body }) => {
+  nitroApp.hooks.hook('afterResponse', (event, response) => {
+    const body = response?.body;
     const req = event.node.req;
     const res = event.node.res;
     const url = req.url || 'unknown';
@@ -86,7 +87,8 @@ export default defineNitroPlugin((nitroApp) => {
   });
 
   // Log unhandled errors
-  nitroApp.hooks.hook('error', (error, { event }) => {
+  nitroApp.hooks.hook('error', (error, ctx) => {
+    const event = ctx?.event;
     const context = event?.context;
     const url = event?.node?.req?.url || 'unknown';
     const method = event?.node?.req?.method || 'UNKNOWN';
@@ -97,7 +99,7 @@ export default defineNitroPlugin((nitroApp) => {
         type: 'error',
         method,
         url,
-        req: getRedactedRequestPayload(event),
+        req: event ? getRedactedRequestPayload(event) : undefined,
         requestId: context?.requestId,
         stack: error.stack,
       },
