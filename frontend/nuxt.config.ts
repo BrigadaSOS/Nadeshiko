@@ -69,7 +69,7 @@ export default defineNuxtConfig({
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
         'font-src': ["'self'"],
-        'connect-src': ["'self'", UMAMI_ORIGIN, SENTRY_INGEST, 'http://127.0.0.1:*', 'http://localhost:*'],
+        'connect-src': ["'self'", CDN_ORIGIN, UMAMI_ORIGIN, SENTRY_INGEST, 'http://127.0.0.1:*', 'http://localhost:*'],
         'worker-src': ["'self'", 'blob:'],
         'media-src': ["'self'", 'blob:', CDN_ORIGIN],
         'object-src': ["'none'"],
