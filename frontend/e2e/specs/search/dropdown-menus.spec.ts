@@ -13,7 +13,7 @@ test.describe('Dropdown menus', () => {
 
   test('Save dropdown opens and shows items', async ({ page }) => {
     const card = search.segmentCards.first();
-    const dropdown = card.getByTestId('save-dropdown');
+    const dropdown = card.getByTestId('download-dropdown');
     await dropdown.getByTestId('dropdown-toggle').click();
 
     await expect(dropdown).toHaveClass(/nd-dropdown-open/);
