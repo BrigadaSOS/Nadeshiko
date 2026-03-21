@@ -16,13 +16,13 @@ export function useBlogNotification() {
     if (import.meta.server || !store.isLoggedIn) return;
 
     try {
-      const blogPosts = await queryCollection('blog_en').all();
+      const blogPosts = await $fetch('/api/blog/posts', { query: { locale: 'en' } });
 
       if (blogPosts.length === 0) return;
 
       let latestDate = 0;
       for (const post of blogPosts) {
-        const d = (post as any).date;
+        const d = post.date;
         if (d) {
           const ts = new Date(d).getTime();
           if (ts > latestDate) latestDate = ts;

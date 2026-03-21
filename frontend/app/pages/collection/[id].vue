@@ -89,15 +89,7 @@ const metaTags = computed(() => {
 
 useHead(metaTags);
 
-const ogCollectionTitle = computed(() => {
-  const name = collectionDetails.value?.name ?? 'Collection';
-  return name;
-});
-
-defineOgImage({
-  title: ogCollectionTitle,
-  description: 'Browse this collection on Nadeshiko.',
-} as any);
+defineOgImage(false);
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 </script>

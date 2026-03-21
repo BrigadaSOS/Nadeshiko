@@ -12,31 +12,18 @@ const { data: posts } = await useAsyncData(
   `blog-posts-${locale.value}-${page.value}`,
   async () => {
     const lang = locale.value.toLowerCase();
-    const blogCollection = `blog_${lang}` as any;
 
-    // Get posts for the current locale, fallback to English
-    let allPosts = await queryCollection(blogCollection)
-      .all()
-      .catch(() => []);
-    if (allPosts.length === 0 && lang !== 'en') {
-      allPosts = await queryCollection('blog_en')
-        .all()
-        .catch(() => []);
-    }
-
-    const sortedPosts = [...allPosts].sort((a: any, b: any) => {
-      const dateA = a.date ? new Date(a.date).getTime() : 0;
-      const dateB = b.date ? new Date(b.date).getTime() : 0;
-      return dateB - dateA;
-    });
+    const allPosts = await $fetch('/api/blog/posts', {
+      query: { locale: lang },
+    }).catch(() => [] as any[]);
 
     const start = (page.value - 1) * pageSize;
     const end = start + pageSize;
 
     return {
-      posts: sortedPosts.slice(start, end),
-      total: sortedPosts.length,
-      totalPages: Math.ceil(sortedPosts.length / pageSize),
+      posts: allPosts.slice(start, end),
+      total: allPosts.length,
+      totalPages: Math.ceil(allPosts.length / pageSize),
     };
   },
   { watch: [page, locale] },
@@ -47,10 +34,7 @@ useSeoMeta({
   description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
 });
 
-defineOgImage({
-  title: 'Blog',
-  description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
-} as any);
+defineOgImage(false);
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 </script>

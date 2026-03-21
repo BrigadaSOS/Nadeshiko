@@ -1,5 +1,3 @@
-::terms-and-conditions
-
 # Terms and Conditions
 
 **Last updated: January 19, 2026**
