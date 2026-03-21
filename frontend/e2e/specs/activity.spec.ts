@@ -1,5 +1,21 @@
 import { test, expect } from '../auth';
 import { ActivityPage } from '../pages/ActivityPage';
+import type { Page } from '@playwright/test';
+
+async function waitForActivity(page: Page, activityType: 'SEGMENT_PLAY' | 'SHARE') {
+  await expect
+    .poll(async () => {
+      const response = await page.request.get('/v1/user/activity?take=20');
+      if (!response.ok()) return false;
+
+      const data = (await response.json()) as { activities?: Array<{ activityType?: string }> };
+      return (data.activities ?? []).some((activity) => activity.activityType === activityType);
+    }, {
+      timeout: 15_000,
+      intervals: [500, 1_000, 2_000],
+    })
+    .toBe(true);
+}
 
 test.describe('Activity', () => {
   test('displays activity overview with stats', async ({ authenticatedPage }) => {
@@ -36,7 +52,7 @@ test.describe('Activity', () => {
     const playButton = authenticatedPage.getByTestId('audio-play-button').first();
     await expect(playButton).toBeVisible({ timeout: 10_000 });
     await playButton.click();
-    await authenticatedPage.waitForTimeout(1000);
+    await waitForActivity(authenticatedPage, 'SEGMENT_PLAY');
 
     // Check activity history shows an Audio Play entry
     const activity = new ActivityPage(authenticatedPage);
@@ -62,7 +78,7 @@ test.describe('Activity', () => {
     const shareButton = authenticatedPage.getByTestId('share-button').first();
     await expect(shareButton).toBeVisible({ timeout: 10_000 });
     await shareButton.click();
-    await authenticatedPage.waitForTimeout(1000);
+    await waitForActivity(authenticatedPage, 'SHARE');
 
     // Check activity history shows a Share entry
     const activity = new ActivityPage(authenticatedPage);

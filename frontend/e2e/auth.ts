@@ -1,7 +1,8 @@
 import { test as base } from './fixtures';
 import type { Page } from '@playwright/test';
+import { getE2EBaseUrl } from './env';
 
-const E2E_BASE_URL = process.env.E2E_BASE_URL || process.env.BASE_URL || '';
+const E2E_BASE_URL = getE2EBaseUrl();
 const E2E_USER_EMAIL = 'e2e-user@nadeshiko.co';
 const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD || '';
 

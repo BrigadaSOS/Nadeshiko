@@ -109,36 +109,22 @@ const updateContentRatingPreference = async (category: string, value: string) =>
   }
 };
 
-// SSR-compatible sessions fetch
-const {
-  data: sessionsData,
-  status,
-  refresh,
-} = await useAsyncData('account-sessions', async () => {
-  if (import.meta.server) {
-    const event = useRequestEvent();
-    if (!event) return [];
-    const config = useRuntimeConfig();
-    const cookieHeader = getRequestHeader(event, 'cookie');
-    const headers: Record<string, string> = { cookie: cookieHeader || '' };
-    if (config.backendHostHeader) {
-      headers.host = String(config.backendHostHeader);
-    }
-    const baseUrl = config.backendInternalUrl;
+const sessionsData = ref<UserSession[]>([]);
+const sessionsLoading = ref(false);
+const sessionRows = computed(() => sessionsData.value);
 
-    const raw = await $fetch<unknown[]>(`${baseUrl}/v1/auth/list-sessions`, { headers }).catch(() => []);
-    return Array.isArray(raw) ? (raw as UserSession[]) : [];
+const refreshSessions = async () => {
+  sessionsLoading.value = true;
+  try {
+    sessionsData.value = await user_store.listSessions();
+  } finally {
+    sessionsLoading.value = false;
   }
+};
 
-  // Client-side
-  const raw = await $fetch<unknown[]>('/v1/auth/list-sessions', { method: 'GET', credentials: 'include' }).catch(
-    () => [],
-  );
-  return Array.isArray(raw) ? (raw as UserSession[]) : [];
+onMounted(() => {
+  void refreshSessions();
 });
-
-const sessionRows = computed(() => sessionsData.value ?? []);
-const sessionsLoading = computed(() => status.value === 'pending');
 
 const formatDate = (value?: string | null) => {
   if (!value) return '-';
@@ -204,7 +190,7 @@ const revokeSingleSession = async (token?: string) => {
     }
 
     if (user_store.isLoggedIn) {
-      await refresh();
+      await refreshSessions();
     }
   } finally {
     sessionsActionLoading.value = false;
@@ -223,7 +209,7 @@ const revokeOtherUserSessions = async () => {
       return;
     }
 
-    await refresh();
+    await refreshSessions();
   } finally {
     sessionsActionLoading.value = false;
   }
@@ -369,7 +355,7 @@ const logoutCurrentUser = async () => {
         <button
           class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
-          @click="refresh()"
+          @click="refreshSessions()"
         >
           Refresh
         </button>
@@ -393,7 +379,7 @@ const logoutCurrentUser = async () => {
     <div class="border-b pt-4 border-white/10" />
 
     <p v-if="sessionsError" class="mt-4 text-red-300">{{ sessionsError }}</p>
-    <p v-if="sessionsLoading" class="mt-4 text-gray-300">Loading sessions...</p>
+    <p v-if="sessionsLoading" data-testid="sessions-loading" class="mt-4 text-gray-300">Loading sessions...</p>
 
     <div v-else class="mt-4 overflow-x-auto">
       <table v-if="sessionRows.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
@@ -429,7 +415,7 @@ const logoutCurrentUser = async () => {
         </tbody>
       </table>
 
-      <p v-else class="text-gray-300">No active sessions found.</p>
+      <p v-else data-testid="sessions-empty-state" class="text-gray-300">No active sessions found.</p>
     </div>
   </div>
 

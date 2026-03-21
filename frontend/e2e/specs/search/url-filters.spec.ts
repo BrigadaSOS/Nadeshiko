@@ -1,6 +1,22 @@
 import { test, expect } from '../../fixtures';
 import { SearchPage } from '../../pages/SearchPage';
 
+async function clickFirstMediaFilter(search: SearchPage) {
+  const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
+  await mediaLink.scrollIntoViewIfNeeded();
+  await mediaLink.click({ force: true });
+  await expect
+    .poll(() => {
+      const url = new URL(search.page.url());
+      return url.searchParams.get('media');
+    }, {
+      timeout: 10_000,
+    })
+    .not.toBeNull();
+
+  return new URL(search.page.url()).searchParams.get('media')!;
+}
+
 test.describe('Search URL filters', () => {
   test('media filter via URL restricts results to that media', async ({ page }) => {
     const search = new SearchPage(page);
@@ -11,13 +27,9 @@ test.describe('Search URL filters', () => {
     // Get media name and click to filter
     const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     const mediaName = (await mediaLink.textContent())!.trim();
-    await mediaLink.click();
-    await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
+    const mediaId = await clickFirstMediaFilter(search);
 
     // Extract the media ID from the URL
-    const url = new URL(page.url());
-    const mediaId = url.searchParams.get('media')!;
-
     // Navigate directly with query + media filter
     await page.goto(`/search/学校?media=${mediaId}`);
     await search.expectResultsVisible();
@@ -36,9 +48,7 @@ test.describe('Search URL filters', () => {
     const unfilteredCount = await search.getResultCount();
 
     // Click media name to filter
-    const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
-    await mediaLink.click();
-    await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
+    await clickFirstMediaFilter(search);
 
     await search.expectResultsVisible();
     const filteredCount = await search.getResultCount();
@@ -54,12 +64,7 @@ test.describe('Search URL filters', () => {
 
 
     // Get a media ID by clicking the media name
-    const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
-    await mediaLink.click();
-    await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
-
-    const url = new URL(page.url());
-    const mediaId = url.searchParams.get('media')!;
+    const mediaId = await clickFirstMediaFilter(search);
 
     // Navigate with only media filter (no query)
     await page.goto(`/search?media=${mediaId}`);

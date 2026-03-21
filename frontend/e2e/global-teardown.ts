@@ -2,10 +2,11 @@ import { chromium } from '@playwright/test';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
+import { getE2EBaseUrl } from './env';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../backend/.env') });
 
-const BASE_URL = process.env.E2E_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
+const BASE_URL = getE2EBaseUrl('http://localhost:3000');
 const E2E_USER_EMAIL = 'e2e-user@nadeshiko.co';
 const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD || '';
 
