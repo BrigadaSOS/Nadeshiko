@@ -1,11 +1,11 @@
 meta {
-  name: Get custom session data
+  name: Redirects the user to the callback URL with the token
   type: http
-  seq: 95
+  seq: 99
 }
 
 get {
-  url: {{baseUrl}}/v1/auth/get-session
+  url: {{baseUrl}}/v1/auth/reset-password/:token
   body: none
   auth: none
 }
