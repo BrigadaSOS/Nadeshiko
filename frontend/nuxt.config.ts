@@ -119,15 +119,7 @@ export default defineNuxtConfig({
   },
   sitemap: {
     urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media'],
-    strictNuxtContentPaths: true,
-    autoI18n: {
-      locales: {
-        en: { _sitemap: 'en' },
-        es: { _sitemap: 'es' },
-        ja: { _sitemap: 'ja' },
-      },
-      defaultLocale: 'en',
-    } as any,
+    autoI18n: false,
   },
   ogImage: {
     defaults: {
