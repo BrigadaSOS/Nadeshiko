@@ -103,11 +103,22 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
+        uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
+          ping: nadeshiko
+
+      - name: Configure SSH over Tailscale
+        run: |
+          mkdir -p ~/.ssh
+          cat >> ~/.ssh/config <<'EOF'
+          Host nadeshiko
+            ProxyCommand tailscale nc %h %p
+          EOF
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/config
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -135,7 +146,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          ssh-keyscan -H $(grep -oP '(?<=ssh )[\w.-]+' backend/config/deploy.prod.yml || true) >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
           cd backend
           kamal deploy -d prod --skip-push
 
@@ -188,11 +199,22 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
+        uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
+          ping: nadeshiko
+
+      - name: Configure SSH over Tailscale
+        run: |
+          mkdir -p ~/.ssh
+          cat >> ~/.ssh/config <<'EOF'
+          Host nadeshiko
+            ProxyCommand tailscale nc %h %p
+          EOF
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/config
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -220,7 +242,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          ssh-keyscan -H $(grep -oP '(?<=ssh )[\w.-]+' frontend/config/deploy.prod.yml || true) >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
           cd frontend
           kamal deploy -d prod --skip-push
 
