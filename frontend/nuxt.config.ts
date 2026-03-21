@@ -100,7 +100,7 @@ export default defineNuxtConfig({
     groups: [
       {
         userAgent: '*',
-        allow: ['/', '/search', '/media', '/sentence'],
+        allow: ['/', '/search', '/media', '/sentence', '/api/v1/docs', '/docs/'],
         disallow: [
           '/settings',
           '/settings/',
@@ -118,7 +118,7 @@ export default defineNuxtConfig({
     sitemap: 'https://nadeshiko.co/sitemap.xml',
   },
   sitemap: {
-    urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media'],
+    urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media', '/api/v1/docs', '/docs/api/index.html'],
     autoI18n: false,
   },
   ogImage: {
