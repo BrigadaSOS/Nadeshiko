@@ -13,9 +13,10 @@ export const authenticate = (options: { jwt?: boolean; apiKey?: boolean }) => {
   return async (req: any, res: Response, next: NextFunction): Promise<void> => {
     const apiKey = req.headers['x-api-key'];
     const authToken = req.headers.authorization;
-    const allowedUrls = process.env.ALLOWED_WEBSITE_URLS?.split(',');
+    const envUrls = process.env.ALLOWED_WEBSITE_URLS?.split(',') ?? [];
+    const allowedUrls = [...new Set([...envUrls, 'https://old.nadeshiko.co'])];
 
-    if (!allowedUrls) {
+    if (allowedUrls.length === 0) {
       throw new Unauthorized('No allowed URLs specified in the environment file.');
     }
 

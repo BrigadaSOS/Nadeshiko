@@ -143,7 +143,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git commit -am "Bump docker tag"
+        git diff --quiet && echo "No changes to commit" || git commit -am "Bump docker tag"
 
     - if: ${{ needs.check.outputs.branch == 'development' }}
       name: Push changes to development
