@@ -106,9 +106,6 @@ jobs:
           gem build kamal.gemspec
           gem install kamal-*.gem
 
-      - uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Prepare secrets for CI
         run: |
@@ -193,9 +190,6 @@ jobs:
           gem build kamal.gemspec
           gem install kamal-*.gem
 
-      - uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Prepare secrets for CI
         run: |
