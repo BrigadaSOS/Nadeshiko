@@ -11,7 +11,7 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     export SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null)" && \
     ./node_modules/.bin/sentry-cli sourcemaps inject ./prod && \
     ./node_modules/.bin/sentry-cli sourcemaps upload \
-      --org david-afonso \
+      --org davafons \
       --project nadeshiko-backend \
       ./prod && \
     rm -f ./prod/*.map
