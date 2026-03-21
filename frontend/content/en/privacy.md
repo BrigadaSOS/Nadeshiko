@@ -1,5 +1,3 @@
-::privacy
-
 # Privacy Policy
 **Last updated: January 19, 2026**
 

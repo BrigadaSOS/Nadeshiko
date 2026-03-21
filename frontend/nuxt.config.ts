@@ -53,7 +53,6 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxtjs/i18n',
     '@nuxtjs/seo',
-    '@nuxt/content',
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
     'nuxt-umami',
@@ -118,7 +117,7 @@ export default defineNuxtConfig({
     sitemap: 'https://nadeshiko.co/sitemap.xml',
   },
   sitemap: {
-    urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media', '/api/v1/docs', '/docs/api/index.html'],
+    urls: ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media', '/api/v1/docs', '/docs/api/index.html', '/blog', '/blog/a-new-home-for-nadeshiko'],
     autoI18n: false,
   },
   ogImage: {
@@ -167,6 +166,9 @@ export default defineNuxtConfig({
       cookieKey: 'i18n_redirected',
       redirectOn: 'root',
     },
+  },
+  experimental: {
+    emitRouteChunkError: 'automatic',
   },
   compatibilityDate: '2024-07-28',
   build: {
@@ -266,6 +268,12 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'bun',
+    serverAssets: [
+      {
+        baseName: 'content',
+        dir: '../content',
+      },
+    ],
     rollupConfig: {
       onwarn(warning, defaultHandler) {
         if (warning.code === 'THIS_IS_UNDEFINED' || warning.code === 'CIRCULAR_DEPENDENCY') return;

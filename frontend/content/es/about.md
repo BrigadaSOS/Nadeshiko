@@ -1,5 +1,3 @@
-::about
-
 # About
 
 ## Contribución y Atribución
