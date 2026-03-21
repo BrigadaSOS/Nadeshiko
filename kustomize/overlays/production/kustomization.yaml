@@ -9,7 +9,7 @@ namespace: nadeshiko
 images:
 - name: brigadasos-db
   newName: ghcr.io/brigadasos/nadeshiko
-  newTag: prod-ca694a9
+  newTag: prod-1fc47a0
 - name: nadedb
   newName: ghcr.io/brigadasos/nadedb
   newTag: v0.9.1-5
