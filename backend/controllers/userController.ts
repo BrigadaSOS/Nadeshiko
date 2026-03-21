@@ -16,13 +16,13 @@ import { OAuth2Client } from 'google-auth-library';
 const client = new OAuth2Client({
   clientId: process.env.ID_OAUTH_GOOGLE,
   clientSecret: process.env.SECRET_OAUTH_GOOGLE,
-  redirectUri: process.env.URI_ALLOWED_GOOGLE,
+  redirectUri: 'https://old.nadeshiko.co',
 });
 
 const clientDiscord = new DiscordOauth2({
   clientId: process.env.DISCORD_CLIENT_ID,
   clientSecret: process.env.DISCORD_CLIENT_SECRET,
-  redirectUri: process.env.DISCORD_REDIRECT_URI,
+  redirectUri: 'https://old.nadeshiko.co',
 });
 
 interface GoogleUserInfo {
@@ -341,7 +341,7 @@ export const loginGoogle = async (req: Request, res: Response) => {
 
 export const getDiscordAuthUrl = (_req: Request, res: Response) => {
   const clientId = process.env.DISCORD_CLIENT_ID;
-  const redirectUri = encodeURIComponent(process.env.DISCORD_REDIRECT_URI || '');
+  const redirectUri = encodeURIComponent('https://old.nadeshiko.co');
   const scope = encodeURIComponent('identify email');
   const responseType = 'code';
 
