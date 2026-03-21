@@ -34,8 +34,6 @@ useSeoMeta({
   description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
 });
 
-defineOgImage(false);
-
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 </script>
 

@@ -80,7 +80,6 @@ useHead(() => ({
   meta: [{ name: 'description', content: description.value }],
 }));
 
-defineOgImage(false);
 </script>
 
 <template>
