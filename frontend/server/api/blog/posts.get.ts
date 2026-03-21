@@ -1,5 +1,4 @@
 import { getQuery } from 'h3';
-import { getBlogPosts } from '../../utils/content';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);

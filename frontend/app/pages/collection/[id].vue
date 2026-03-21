@@ -89,8 +89,6 @@ const metaTags = computed(() => {
 
 useHead(metaTags);
 
-defineOgImage(false);
-
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 </script>
 

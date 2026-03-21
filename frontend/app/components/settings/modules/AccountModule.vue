@@ -9,6 +9,7 @@ import { resolveContextResponse } from '~/utils/resolvers';
 const { t } = useI18n();
 
 const user_store = userStore();
+const labsStore = useLabsStore();
 const sdk = useNadeshikoSdk();
 
 const sessionsActionLoading = ref(false);
@@ -440,7 +441,7 @@ const logoutCurrentUser = async () => {
           <option value="romaji">Romaji</option>
         </select>
       </div>
-      <div class="flex justify-between items-center mt-4">
+      <div v-if="labsStore.isFeatureEnabled('interactive-tokens')" class="flex justify-between items-center mt-4">
         <div>
           <p class="text-white">Token Popup Reading</p>
           <p class="text-gray-400 text-sm">How readings are shown in the token popup when hovering over Japanese text.</p>
