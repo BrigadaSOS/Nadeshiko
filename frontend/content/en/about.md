@@ -1,6 +1,3 @@
-
-::about
-
 # About
 
 ## Contribution and Attribution

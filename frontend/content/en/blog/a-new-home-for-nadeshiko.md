@@ -44,7 +44,7 @@ If you find an incorrect sentence, you can now report it directly from the websi
 
 ### NSFW Content Filter
 
-We had a lot of anime we wanted to include in Nadeshiko but had "questionable" scenes (looking at you, [Monogatari](https://nadeshiko.co/search/sentence?media=15689&query=%E8%82%89%E4%BD%93)). Now we have a proper filter to blur and hide these segments, so you can decide whether to show, hide, or blur them.
+We had a lot of anime we wanted to include in Nadeshiko but had "questionable" scenes (looking at you, Monogatari). Now we have a proper filter to blur and hide these segments, so you can decide whether to show, hide, or blur them.
 
 ### Persistent User Preferences
 

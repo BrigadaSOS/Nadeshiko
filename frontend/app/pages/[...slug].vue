@@ -5,26 +5,17 @@ const siteUrl = 'https://nadeshiko.co';
 
 const isBlogPost = computed(() => route.path.startsWith('/blog/'));
 
-async function fetchContent() {
-  const lang = locale.value.toLowerCase();
-  const isBlog = route.path.startsWith('/blog/');
-  const collectionPrefix = isBlog ? 'blog' : 'content';
-  const collection = `${collectionPrefix}_${lang}` as any;
-  try {
-    return await queryCollection(collection).path(route.path).first();
-  } catch {
-    // Fallback to English
-    if (lang !== 'en') {
-      const fallback = `${collectionPrefix}_en` as any;
-      return await queryCollection(fallback).path(route.path).first();
-    }
-    return null;
-  }
-}
+const slug = computed(() => {
+  const raw = route.path.replace(/^\//, '').replace(/\/$/, '');
+  return raw || 'index';
+});
 
 const { data } = await useAsyncData(
   () => `content-${locale.value}-${route.path}`,
-  () => fetchContent(),
+  () =>
+    $fetch(`/api/content/${slug.value}`, {
+      query: { locale: locale.value.toLowerCase() },
+    }).catch(() => null),
   { watch: [() => route.path, locale] },
 );
 
@@ -36,14 +27,14 @@ const title = computed(() => data.value?.title || 'Nadeshiko');
 const description = computed(() => data.value?.description || '');
 const canonicalUrl = computed(() => new URL(route.path || '/', siteUrl).toString());
 const contentDate = computed(() => {
-  const raw = (data.value as Record<string, unknown> | null)?.date;
+  const raw = data.value?.date ?? data.value?.meta?.date;
   if (!raw) return null;
   if (typeof raw === 'string') return raw;
   if (raw instanceof Date) return raw.toISOString();
   return null;
 });
 const contentAuthor = computed(() => {
-  const raw = (data.value as Record<string, unknown> | null)?.author;
+  const raw = data.value?.author ?? data.value?.meta?.author;
   return typeof raw === 'string' && raw ? raw : null;
 });
 
@@ -89,10 +80,7 @@ useHead(() => ({
   meta: [{ name: 'description', content: description.value }],
 }));
 
-defineOgImage({
-  title: title,
-  description: description,
-} as any);
+defineOgImage(false);
 </script>
 
 <template>
@@ -108,11 +96,7 @@ defineOgImage({
               {{ new Date(contentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
             </time>
           </template>
-          <ContentRenderer :value="data">
-            <template #empty>
-              <p class="text-gray-400">{{ $t('contentPage.emptyMessage') }}</p>
-            </template>
-          </ContentRenderer>
+          <div v-html="data.html" />
 
           <div v-if="isBlogPost" class="mt-10 pt-6 border-t border-gray-800">
             <NuxtLink

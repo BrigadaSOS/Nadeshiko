@@ -73,7 +73,7 @@ const mediaNameExample = computed(() => {
 });
 
 // Content rating preview segment
-const PREVIEW_SEGMENT_UUID = 'fIFFrAgVtMZ0';
+const PREVIEW_SEGMENT_UUID = 'skU_sjEmsvrE';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
   sdk
     .getSegmentContext({ path: { uuid: PREVIEW_SEGMENT_UUID }, query: { take: 1 } })

@@ -43,7 +43,7 @@ Si encuentras una frase incorrecta, ahora puedes reportarla directamente desde l
 
 ### Filtro de contenido NSFW
 
-Teníamos muchos animes que queríamos incluir en Nadeshiko pero tenían escenas "cuestionables" (te estamos mirando, [Monogatari](https://nadeshiko.co/search/sentence?media=15689&query=%E8%82%89%E4%BD%93)). Ahora tenemos un filtro adecuado donde puedes decidir si mostrar, ocultar o difuminar estos segmentos.
+Teníamos muchos animes que queríamos incluir en Nadeshiko pero tenían escenas "cuestionables" (te estamos mirando, Monogatari). Ahora tenemos un filtro adecuado donde puedes decidir si mostrar, ocultar o difuminar estos segmentos.
 
 ### Preferencias de usuario persistentes
 

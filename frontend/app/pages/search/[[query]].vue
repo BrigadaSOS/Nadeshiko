@@ -6,16 +6,7 @@ import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 
 const route = useRoute();
 
-const ogTitle = computed(() => {
-  const q = route.params.query ? decodeURIComponent(String(route.params.query)) : String(route.query.query || '');
-  return q ? `Search: ${q}` : 'Search';
-});
-
-defineOgImage({
-  title: ogTitle,
-  description:
-    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
-} as any);
+defineOgImage(false);
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
@@ -274,19 +265,12 @@ const metaTags = computed(() => {
       }
     }
 
-    const thumbnail = firstResult.media?.coverUrl || firstResult.segment.urls.imageUrl;
-
     tags.title = title;
     tags.meta = [
       { name: 'description', content: description },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
-      { property: 'og:image', content: thumbnail },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: description },
-      { name: 'twitter:image', content: thumbnail },
     ];
   }
 

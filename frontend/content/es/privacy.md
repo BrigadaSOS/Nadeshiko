@@ -1,6 +1,3 @@
-
-::privacidad
-
 # Política de Privacidad
 **Última actualización: 19 de enero de 2026**
 

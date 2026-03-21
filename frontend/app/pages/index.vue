@@ -10,11 +10,7 @@ useSeoMeta({
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
 });
 
-defineOgImage({
-  title: 'Nadeshiko',
-  description:
-    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
-});
+defineOgImage(false);
 
 useSchemaOrg([
   defineWebSite({

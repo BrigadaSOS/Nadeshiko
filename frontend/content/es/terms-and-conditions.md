@@ -1,6 +1,3 @@
-
-::terminos-y-condiciones
-
 # Términos y Condiciones
 
 **Última actualización: 19 de enero de 2026**
