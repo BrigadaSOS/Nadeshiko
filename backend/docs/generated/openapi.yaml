@@ -13,7 +13,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.0.2
+  version: 2.0.3
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
