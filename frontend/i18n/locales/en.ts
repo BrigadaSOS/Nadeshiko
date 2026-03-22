@@ -233,8 +233,9 @@ export default {
         "spanishShown": "Spanish translations shown",
         "spanishSpoiler": "Spanish translations in spoiler mode",
         "spanishHidden": "Spanish translations hidden",
-        "hiraganaShown": "Hiragana readings shown",
-        "hiraganaHidden": "Hiragana readings hidden"
+        "furiganaShown": "Furigana (Reading) shown",
+        "furiganaSpoiler": "Furigana (Reading) shown on hover",
+        "furiganaHidden": "Furigana (Reading) hidden"
       },
       "buttons": {
         "addToAnkiLast": "Add to Anki (Last added card)",

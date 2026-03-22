@@ -98,4 +98,12 @@ em {
     font-style: normal;
     color: #df848d;
 }
+
+mark {
+    background: none;
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+    color: #df848d;
+    opacity: 0.7;
+}
 </style>

@@ -1,5 +1,17 @@
+export type FuriganaVisibilityMode = 'show' | 'spoiler' | 'hidden';
+
 const COOKIE_NAME = 'nd_hiragana';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+
+function isValidMode(value: unknown): value is FuriganaVisibilityMode {
+  return value === 'show' || value === 'spoiler' || value === 'hidden';
+}
+
+function nextMode(current: FuriganaVisibilityMode): FuriganaVisibilityMode {
+  if (current === 'show') return 'spoiler';
+  if (current === 'spoiler') return 'hidden';
+  return 'show';
+}
 
 export function useHiraganaVisibility() {
   const cookie = useCookie<string | null>(COOKIE_NAME, {
@@ -10,16 +22,18 @@ export function useHiraganaVisibility() {
     decode: String,
   });
 
-  const showHiragana = useState<boolean>('hiragana-visibility', () => cookie.value === 'show');
+  const furiganaMode = useState<FuriganaVisibilityMode>('hiragana-visibility', () => {
+    return isValidMode(cookie.value) ? cookie.value : 'show';
+  });
 
   if (import.meta.server) {
-    showHiragana.value = cookie.value === 'show';
+    furiganaMode.value = isValidMode(cookie.value) ? cookie.value : 'show';
   }
 
-  const toggleHiragana = () => {
-    showHiragana.value = !showHiragana.value;
-    cookie.value = showHiragana.value ? 'show' : null;
+  const cycleFuriganaMode = () => {
+    furiganaMode.value = nextMode(furiganaMode.value);
+    cookie.value = furiganaMode.value === 'show' ? null : furiganaMode.value;
   };
 
-  return { showHiragana, toggleHiragana };
+  return { furiganaMode, cycleFuriganaMode };
 }

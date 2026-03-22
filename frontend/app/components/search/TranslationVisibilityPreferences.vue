@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { t } = useI18n();
 const { englishMode, spanishMode, cycleEnglishMode, cycleSpanishMode } = useTranslationVisibility();
-const { showHiragana, toggleHiragana } = useHiraganaVisibility();
+const { furiganaMode, cycleFuriganaMode } = useHiraganaVisibility();
 
 const labsStore = useLabsStore();
 const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
@@ -39,6 +39,21 @@ const toggleSpanish = async () => {
   await cycleSpanishMode();
   liveMessage.value = modeTitle('spanish', spanishMode.value);
 };
+
+const furiganaTitle = computed(() => {
+  if (furiganaMode.value === 'show') {
+    return t('searchpage.main.translationPreferences.furiganaShown');
+  }
+  if (furiganaMode.value === 'spoiler') {
+    return t('searchpage.main.translationPreferences.furiganaSpoiler');
+  }
+  return t('searchpage.main.translationPreferences.furiganaHidden');
+});
+
+const toggleFurigana = () => {
+  cycleFuriganaMode();
+  liveMessage.value = furiganaTitle.value;
+};
 </script>
 
 <template>
@@ -68,15 +83,13 @@ const toggleSpanish = async () => {
     <button
       v-if="tokensEnabled"
       type="button"
-      :aria-pressed="showHiragana"
-      :title="showHiragana ? t('searchpage.main.translationPreferences.hiraganaShown') : t('searchpage.main.translationPreferences.hiraganaHidden')"
+      :aria-pressed="furiganaMode !== 'hidden'"
+      :title="furiganaTitle"
       class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-      :class="showHiragana
-        ? 'bg-neutral-800 text-neutral-500 border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50'
-        : 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30'"
-      @click="toggleHiragana"
+      :class="modeButtonClass(furiganaMode)"
+      @click="toggleFurigana"
     >
-      ひ
+      ふ
     </button>
 
 

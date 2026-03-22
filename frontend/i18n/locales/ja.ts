@@ -232,8 +232,9 @@ export default {
         "spanishShown": "スペイン語翻訳を表示しました",
         "spanishSpoiler": "スペイン語翻訳をスポイラーモードにしました",
         "spanishHidden": "スペイン語翻訳を非表示にしました",
-        "hiraganaShown": "ひらがな読みを表示しました",
-        "hiraganaHidden": "ひらがな読みを非表示にしました"
+        "furiganaShown": "ふりがな（読み）を表示しました",
+        "furiganaSpoiler": "ふりがな（読み）をホバーで表示にしました",
+        "furiganaHidden": "ふりがな（読み）を非表示にしました"
       },
       "buttons": {
         "addToAnkiLast": "Ankiに追加（最後に追加したカード）",
