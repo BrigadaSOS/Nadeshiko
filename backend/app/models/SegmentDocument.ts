@@ -18,7 +18,7 @@ import type {
 import type { t_ReindexResponse } from 'generated/models';
 
 import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQuery';
-import { SegmentResponse, type SearchResponseOptions } from './segmentDocument/SegmentResponse';
+import { SegmentResponse } from './segmentDocument/SegmentResponse';
 import { SegmentIndexer } from './segmentDocument/SegmentIndexer';
 import { withSafeQueryFallback } from './segmentDocument/errors';
 
@@ -84,7 +84,6 @@ export class SegmentDocument {
   static async search(
     request: SearchRequestInput,
     parserMode: QueryParserMode = 'strict',
-    options?: SearchResponseOptions,
   ): Promise<SearchResponseOutput> {
     const filters: SearchFiltersOutput = request.filters ?? { status: ['ACTIVE'], category: ['ANIME', 'JDRAMA'] };
     const sl = filters.segmentLengthChars;
@@ -148,9 +147,9 @@ export class SegmentDocument {
     return withSafeQueryFallback(
       async () => {
         const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
-        return SegmentResponse.buildSearch(esResult, mediaResult, options);
+        return SegmentResponse.buildSearch(esResult, mediaResult);
       },
-      () => SegmentDocument.search(request, 'safe', options),
+      () => SegmentDocument.search(request, 'safe'),
       {
         parserMode,
         hasQuery,
@@ -288,7 +287,6 @@ export class SegmentDocument {
 
   static async findByIds(
     ids: number[],
-    options?: SearchResponseOptions,
   ): Promise<{ segments: SegmentOutput[]; includes: { media: Record<string, MediaOutput> } }> {
     if (ids.length === 0) return { segments: [], includes: { media: {} } };
 
@@ -299,7 +297,7 @@ export class SegmentDocument {
     });
 
     const mediaInfo = await Media.getMediaInfoMap();
-    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo, options);
+    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
     return { segments, includes: { media: mediaMap } };
   }
 

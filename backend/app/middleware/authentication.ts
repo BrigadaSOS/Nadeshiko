@@ -70,8 +70,6 @@ export const requireApiKeyAuth = async (req: Request, _res: Response, next: Next
     await authenticateLegacyApiKey(req, apiKey);
   }
 
-  await enrichServiceKeyRequestWithSessionUser(req);
-
   next();
 };
 
@@ -242,38 +240,6 @@ async function loadActiveUser(userId: number): Promise<User> {
   }
 
   return user;
-}
-
-async function getSessionUserIdFromRequest(req: Request): Promise<number | null> {
-  const sessionData = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-    query: { disableCookieCache: true },
-  });
-
-  if (!sessionData?.user?.id) {
-    return null;
-  }
-
-  const userId = Number(sessionData.user.id);
-  return Number.isInteger(userId) && userId > 0 ? userId : null;
-}
-
-async function enrichServiceKeyRequestWithSessionUser(req: Request): Promise<void> {
-  const apiKey = req.auth?.apiKey;
-  if (req.auth?.type !== AuthType.API_KEY || apiKey?.kind !== ApiKeyKind.SERVICE) {
-    return;
-  }
-
-  try {
-    const sessionUserId = await getSessionUserIdFromRequest(req);
-    if (!sessionUserId) {
-      return;
-    }
-
-    req.user = await loadActiveUser(sessionUserId);
-  } catch (error) {
-    logger.debug({ err: error }, 'Ignoring session-user enrichment for service key request');
-  }
 }
 
 async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promise<void> {

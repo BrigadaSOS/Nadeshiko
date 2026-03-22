@@ -158,62 +158,6 @@ describe('requireApiKeyAuth — better-auth keys', () => {
     });
   });
 
-  it('uses the session user as request context for trusted service keys', async () => {
-    mockVerifyApiKey.mockResolvedValue({
-      valid: true,
-      key: {
-        id: 'ba-service-session',
-        referenceId: String(fixtures.users.kevin.id),
-        permissions: { api: ['READ_MEDIA'] },
-        metadata: { keyType: 'service' },
-      },
-    });
-    mockGetSession.mockResolvedValue({
-      user: { id: String(fixtures.users.david.id) },
-    });
-
-    const app = createApiKeyApp();
-    const res = await request(app)
-      .get('/test')
-      .set('Authorization', 'Bearer nade_service_session')
-      .set('Cookie', 'nadeshiko.session_token=test-session');
-
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      userId: fixtures.users.david.id,
-      authType: 'api-key',
-      permissions: ['READ_MEDIA'],
-    });
-  });
-
-  it('keeps the API key owner as request context for non-service keys even when a session is present', async () => {
-    mockVerifyApiKey.mockResolvedValue({
-      valid: true,
-      key: {
-        id: 'ba-user-session',
-        referenceId: String(fixtures.users.kevin.id),
-        permissions: { api: ['READ_MEDIA'] },
-        metadata: { keyType: 'user' },
-      },
-    });
-    mockGetSession.mockResolvedValue({
-      user: { id: String(fixtures.users.david.id) },
-    });
-
-    const app = createApiKeyApp();
-    const res = await request(app)
-      .get('/test')
-      .set('Authorization', 'Bearer nade_user_session')
-      .set('Cookie', 'nadeshiko.session_token=test-session');
-
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      userId: fixtures.users.kevin.id,
-      authType: 'api-key',
-      permissions: ['READ_MEDIA'],
-    });
-  });
-
   it('returns 401 when better-auth reports invalid key', async () => {
     mockVerifyApiKey.mockResolvedValue({
       valid: false,
