@@ -110,8 +110,8 @@ function buildEnhancedHighlight(
   }
 
   for (const range of compoundRanges) {
-    tagInsertions.push({ pos: range.start, tag: '<mark>', priority: 3 });
-    tagInsertions.push({ pos: range.end, tag: '</mark>', priority: 1 });
+    tagInsertions.push({ pos: range.start, tag: '<span class="highlight-tail">', priority: 3 });
+    tagInsertions.push({ pos: range.end, tag: '</span>', priority: 1 });
   }
 
   tagInsertions.sort((a, b) => a.pos - b.pos || a.priority - b.priority);
