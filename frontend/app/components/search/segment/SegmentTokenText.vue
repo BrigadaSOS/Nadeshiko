@@ -4,6 +4,7 @@ import {
   enrichTokens,
   hiraganaToKatakana,
   hiraganaToRomaji,
+  segmentFurigana,
   type SlimToken,
   type EnrichedToken,
 } from '~/utils/tokenEnrichment';
@@ -17,8 +18,6 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   'token-click': [dictionaryForm: string];
 }>();
-
-const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF]/;
 
 const enrichedTokens = computed<EnrichedToken[]>(() => {
   return enrichTokens(props.tokens as SlimToken[], props.highlight);
@@ -72,7 +71,7 @@ const POS_CLASS: Record<string, string> = {
 };
 
 const { tooltipReadingMode } = useTooltipReadingVisibility();
-const { showHiragana } = useHiraganaVisibility();
+const { furiganaMode } = useHiraganaVisibility();
 
 const tooltipReading = computed(() => {
   if (!hoveredToken.value?.dictReading) return '';
@@ -106,7 +105,7 @@ const tooltipReading = computed(() => {
         @click="emit('token-click', token.searchText)"
         @mouseenter="onTokenEnter(token, $event)"
         @mouseleave="onTokenLeave"
-      ><ruby v-if="showHiragana && KANJI_RE.test(token.displaySurface)">{{ token.displaySurface }}<rt>{{ token.reading }}</rt></ruby><template v-else>{{ token.displaySurface }}</template></span>
+      ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in segmentFurigana(token.displaySurface, token.reading)" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
     <Transition name="tooltip">
@@ -269,5 +268,14 @@ ruby rt {
   text-align: center;
   line-height: 1;
   user-select: none;
+}
+
+.furigana--spoiler rt {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.token:hover .furigana--spoiler rt {
+  opacity: 1;
 }
 </style>

@@ -233,8 +233,9 @@ export default {
         "spanishShown": "Traducciones en español visibles",
         "spanishSpoiler": "Traducciones en español en modo spoiler",
         "spanishHidden": "Traducciones en español ocultas",
-        "hiraganaShown": "Lecturas en hiragana visibles",
-        "hiraganaHidden": "Lecturas en hiragana ocultas"
+        "furiganaShown": "Furigana (Lectura) visible",
+        "furiganaSpoiler": "Furigana (Lectura) visible al pasar el cursor",
+        "furiganaHidden": "Furigana (Lectura) oculta"
       },
       "buttons": {
         "addToAnkiLast": "Añadir a Anki (Ultima carta añadida)",

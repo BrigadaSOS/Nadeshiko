@@ -39,6 +39,78 @@ interface GroupData {
   auxMeanings: Array<{ ja: string; en: string }>;
 }
 
+const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF]/;
+
+export interface FuriganaSegment {
+  text: string;
+  reading: string;
+}
+
+export function segmentFurigana(surface: string, reading: string): FuriganaSegment[] {
+  if (!KANJI_RE.test(surface)) return [{ text: surface, reading: '' }];
+
+  const parts: Array<{ text: string; isKanji: boolean }> = [];
+  let current = '';
+  let currentIsKanji = KANJI_RE.test(surface[0] ?? '');
+
+  for (const ch of surface) {
+    const isKanji = KANJI_RE.test(ch);
+    if (isKanji !== currentIsKanji) {
+      if (current) parts.push({ text: current, isKanji: currentIsKanji });
+      current = ch;
+      currentIsKanji = isKanji;
+    } else {
+      current += ch;
+    }
+  }
+  if (current) parts.push({ text: current, isKanji: currentIsKanji });
+
+  if (parts.length === 1) {
+    return [{ text: surface, reading: parts[0]!.isKanji ? reading : '' }];
+  }
+
+  const segments: FuriganaSegment[] = [];
+  let readingPos = 0;
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i]!;
+
+    if (!part.isKanji) {
+      const kanaReading = katakanaToHiragana(part.text);
+      const idx = reading.indexOf(kanaReading, readingPos);
+      if (idx >= readingPos && idx <= readingPos + 10) {
+        if (idx > readingPos && i > 0) {
+          const prev = segments[segments.length - 1];
+          if (prev && prev.reading) {
+            prev.reading += reading.slice(readingPos, idx);
+          }
+        }
+        segments.push({ text: part.text, reading: '' });
+        readingPos = idx + kanaReading.length;
+      } else {
+        segments.push({ text: part.text, reading: '' });
+      }
+    } else {
+      let kanjiReading = '';
+      const nextNonKanji = parts[i + 1];
+      if (nextNonKanji && !nextNonKanji.isKanji) {
+        const kanaReading = katakanaToHiragana(nextNonKanji.text);
+        const idx = reading.indexOf(kanaReading, readingPos);
+        if (idx > readingPos) {
+          kanjiReading = reading.slice(readingPos, idx);
+          readingPos = idx;
+        }
+      } else if (i === parts.length - 1) {
+        kanjiReading = reading.slice(readingPos);
+        readingPos = reading.length;
+      }
+      segments.push({ text: part.text, reading: kanjiReading });
+    }
+  }
+
+  return segments;
+}
+
 const STEM_POS = new Set(['動詞', '形容詞']);
 const MORPHO_CONJ_PARTICLES = new Set(['て', 'で', 'ちゃ']);
 
