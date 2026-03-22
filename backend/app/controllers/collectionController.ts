@@ -24,7 +24,6 @@ import { toCollectionDTO } from './mappers/collection.mapper';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { AccessDeniedError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
-import { isLabActive } from '@lib/labs';
 
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
   const user = assertUser(req);
@@ -113,8 +112,7 @@ export const getCollection: GetCollection = async ({ params, query }, respond, r
   }
 
   const segmentIds = segmentItems.map((item) => item.segmentId);
-  const tokensEnabled = isLabActive(user, 'interactive-tokens');
-  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds, { tokensEnabled });
+  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
 
   const resultById = new Map(searchResults.map((r) => [r.id, r]));
 
@@ -267,8 +265,7 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
   }
 
   const segmentIds = segmentItems.map((item) => item.segmentId);
-  const tokensEnabled = isLabActive(user, 'interactive-tokens');
-  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds, { tokensEnabled });
+  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
 
   // Preserve collection ordering
   const resultById = new Map(searchResults.map((r) => [r.id, r]));

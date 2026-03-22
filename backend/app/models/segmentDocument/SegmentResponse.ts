@@ -25,17 +25,12 @@ type HighlightMap = Record<string, string[]>;
 type TermsBucket = { key?: string | number; doc_count?: number } & Record<string, unknown>;
 type TermsAggregation = { buckets?: TermsBucket[] };
 
-export interface SearchResponseOptions {
-  tokensEnabled?: boolean;
-}
-
 export class SegmentResponse {
   static buildSearch(
     esResponse: estypes.SearchResponse,
     mediaInfoResponse: MediaInfoMap,
-    options?: SearchResponseOptions,
   ): SearchResponseOutput {
-    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse, options);
+    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse);
 
     let cursor: string | undefined;
     const hits = esResponse.hits.hits as SegmentSearchHit[];
@@ -54,7 +49,6 @@ export class SegmentResponse {
   static buildSearchResultSegments(
     esResponse: estypes.SearchResponse,
     mediaInfoResponse: MediaInfoMap,
-    options?: SearchResponseOptions,
   ): { segments: SegmentOutput[]; mediaMap: Record<string, MediaOutput> } {
     const mediaMap: Record<string, MediaOutput> = {};
     const hits = esResponse.hits.hits as SegmentSearchHit[];
@@ -104,7 +98,7 @@ export class SegmentResponse {
         const textEnHighlight = highlight.textEn?.[0];
         const textEsHighlight = highlight.textEs?.[0];
 
-        const tokens: SlimToken[] | undefined = options?.tokensEnabled ? (data.tokens ?? undefined) : undefined;
+        const tokens: SlimToken[] | undefined = data.tokens ?? undefined;
         const enhancedHighlight =
           tokens && textJaHighlight ? enhanceHighlight(textJaHighlight, tokens) : textJaHighlight;
 
