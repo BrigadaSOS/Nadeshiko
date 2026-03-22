@@ -299,8 +299,7 @@ em {
     color: #df848d;
 }
 
-mark {
-    background: none;
+.highlight-tail {
     text-decoration: underline dotted;
     text-underline-offset: 0.2em;
     color: #df848d;

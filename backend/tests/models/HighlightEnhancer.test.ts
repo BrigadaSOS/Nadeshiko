@@ -28,7 +28,7 @@ describe('enhanceHighlight', () => {
     ];
     const highlight = '今日は<em>食べ</em>ました';
     const result = enhanceHighlight(highlight, tokens);
-    expect(result).toBe('今日は<em>食べ</em><mark>ました</mark>');
+    expect(result).toBe('今日は<em>食べ</em><span class="highlight-tail">ました</span>');
   });
 
   it('extends verb highlight across multiple auxiliaries', () => {
@@ -40,7 +40,7 @@ describe('enhanceHighlight', () => {
     ];
     const highlight = '<em>食べ</em>られました';
     const result = enhanceHighlight(highlight, tokens);
-    expect(result).toBe('<em>食べ</em><mark>られました</mark>');
+    expect(result).toBe('<em>食べ</em><span class="highlight-tail">られました</span>');
   });
 
   it('does not extend when next token is a particle', () => {
@@ -64,7 +64,7 @@ describe('enhanceHighlight', () => {
     ];
     const highlight = '<em>言わ</em>れたこと';
     const result = enhanceHighlight(highlight, tokens);
-    expect(result).toBe('<em>言わ</em><mark>れた</mark>こと');
+    expect(result).toBe('<em>言わ</em><span class="highlight-tail">れた</span>こと');
   });
 
   it('handles no compound extension needed', () => {
@@ -87,7 +87,7 @@ describe('enhanceHighlight', () => {
     ];
     const highlight = '<em>食べ</em>たり<em>飲ん</em>だり';
     const result = enhanceHighlight(highlight, tokens);
-    expect(result).toBe('<em>食べ</em><mark>たり</mark><em>飲ん</em><mark>だり</mark>');
+    expect(result).toBe('<em>食べ</em><span class="highlight-tail">たり</span><em>飲ん</em><span class="highlight-tail">だり</span>');
   });
 
   it('handles empty highlight string', () => {

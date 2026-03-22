@@ -131,7 +131,7 @@ describe('SegmentResponse', () => {
       const { segments } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
 
       expect(segments).toHaveLength(1);
-      expect(segments[0].textJa.highlight).toBe('<em>食べ</em><mark>ました</mark>');
+      expect(segments[0].textJa.highlight).toBe('<em>食べ</em><span class="highlight-tail">ました</span>');
       expect(segments[0].textJa.tokens).toEqual(tokens);
     });
 
