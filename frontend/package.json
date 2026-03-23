@@ -33,7 +33,7 @@
     "@pinia/nuxt": "^0.11.3",
     "@sentry/nuxt": "^10.40.0",
     "gray-matter": "^4.0.3",
-    "marked": "^15.0.0",
+    "marked": "^17.0.5",
     "canvas-confetti": "^1.9.4",
     "chart.js": "^4.5.1",
     "nuxt-security": "^2.5.1",
