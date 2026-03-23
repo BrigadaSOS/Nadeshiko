@@ -94,7 +94,7 @@
     "@types/request-ip": "^0.0.41",
     "@types/supertest": "7.2.0",
     "@usebruno/cli": "^3.0.2",
-    "@usebruno/converters": "0.17.1",
+    "@usebruno/converters": "0.18.0",
     "cloc": "^2.6.0-cloc",
     "js-yaml": "^4.1.1",
     "supertest": "^7.2.2",
