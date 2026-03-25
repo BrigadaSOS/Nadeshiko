@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { getRequestHeader } from 'h3';
 import { mdiPlus, mdiCheckBold, mdiPencilOutline } from '@mdi/js';
 
 import type { ApiKeyListItem } from '@/stores/api';
@@ -29,17 +28,6 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
     return [];
   };
 
-  if (import.meta.server) {
-    const event = useRequestEvent();
-    if (!event) return [];
-    const config = useRuntimeConfig();
-    const cookieHeader = getRequestHeader(event, 'cookie');
-    const headers: Record<string, string> = { cookie: cookieHeader || '' };
-    if (config.backendHostHeader) {
-      headers.host = String(config.backendHostHeader);
-    }
-    return unwrap(await $fetch(`${config.backendInternalUrl}/v1/auth/api-key/list`, { headers }).catch(() => []));
-  }
   return unwrap(await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []));
 };
 
@@ -55,17 +43,17 @@ const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer
     keys,
     quota: {
       quotaUsed: Number(q.quotaUsed ?? 0),
-      quotaLimit: Number(q.quotaLimit ?? 2500),
+      quotaLimit: Number(q.quotaLimit ?? 5000),
       quotaRemaining: Number(q.quotaRemaining ?? 0),
     },
   };
-});
+}, { server: false });
 
 const fieldOptions = computed(
   () =>
     apiData.value ?? {
       keys: [] as ApiKeyListItem[],
-      quota: { quotaUsed: 0, quotaLimit: 2500, quotaRemaining: 2500 },
+      quota: { quotaUsed: 0, quotaLimit: 5000, quotaRemaining: 5000 },
     },
 );
 
