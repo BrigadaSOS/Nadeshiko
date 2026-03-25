@@ -35,6 +35,10 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
     return;
   }
 
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+
   switch (event.code) {
     case 'Space':
       event.preventDefault();
