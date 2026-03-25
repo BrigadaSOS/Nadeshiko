@@ -64,6 +64,10 @@ const handleKeydown = (event: KeyboardEvent) => {
     return;
   }
 
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+
   const len = resultList.value.length;
   if (len === 0) return;
 
