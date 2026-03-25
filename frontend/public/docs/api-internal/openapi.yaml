@@ -24,7 +24,7 @@ info:
 
     | Account Type | Quota (Monthly) |
     |--------------|-----------------|
-    | Default      | 2500 requests   |
+    | Default      | 5000 requests   |
 
     To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
   version: 1.5.0

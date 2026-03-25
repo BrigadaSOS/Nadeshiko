@@ -83,7 +83,7 @@ export const apiStore = defineStore('api', {
         const quotaData = quotaResult.data;
         const quota: QuotaInfo = {
           quotaUsed: quotaData?.quotaUsed ?? 0,
-          quotaLimit: quotaData?.quotaLimit ?? 2500,
+          quotaLimit: quotaData?.quotaLimit ?? 5000,
           quotaRemaining: quotaData?.quotaRemaining ?? 0,
         };
 
@@ -94,8 +94,8 @@ export const apiStore = defineStore('api', {
           keys: [],
           quota: {
             quotaUsed: 0,
-            quotaLimit: 2500,
-            quotaRemaining: 2500,
+            quotaLimit: 5000,
+            quotaRemaining: 5000,
           },
         };
       }
