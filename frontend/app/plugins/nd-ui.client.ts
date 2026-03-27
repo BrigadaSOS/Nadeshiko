@@ -299,6 +299,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   document.addEventListener('click', clickHandler);
   document.addEventListener('keydown', keydownHandler);
+  document.documentElement.classList.add('nd-ui-ready');
 
   nuxtApp.hook('page:finish', () => {
     closeAllOverlays();

@@ -11,7 +11,8 @@ export default {
       "settings": "Ajustes",
       "blog": "Blog",
       "media": "Media",
-      "language": "Idioma"
+      "language": "Idioma",
+      "logout": "Cerrar sesión"
     }
   },
   "home": {
@@ -314,6 +315,7 @@ export default {
       "addApiKey": "Añadir llave API",
       "keyCreated": "Llave creada",
       "keyCreatedMessage": "Guarda la llave, no se volverá a mostrar.",
+      "copyApiKey": "Copiar llave API",
       "keyDeactivated": "Llave desactivada",
       "noKeysFound": "No se han encontrado llaves API",
       "noKeysMessage": "¡Crea una nueva para tus aplicaciones o proyectos!",

@@ -108,7 +108,7 @@ const typeOptions = [
           maxlength="500"
           rows="3"
           placeholder="Write an announcement message..."
-          class="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-400 resize-none"
+          class="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-input-focus-ring resize-none"
         />
         <p class="text-xs text-gray-500 mt-1 text-right">{{ form.message?.length ?? 0 }}/500</p>
       </div>

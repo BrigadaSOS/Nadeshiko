@@ -154,7 +154,13 @@ async function prepare(): Promise<void> {
     logger.info('No pending migrations');
   }
   await setupPgBoss();
-  await setupElasticsearchUserAndRole();
+
+  if (config.ELASTICSEARCH_ADMIN_PASSWORD) {
+    await setupElasticsearchUserAndRole();
+  } else {
+    logger.info('ELASTICSEARCH_ADMIN_PASSWORD not set, skipping Elasticsearch admin setup');
+  }
+
   logger.info('Prepare complete');
 }
 
@@ -210,7 +216,11 @@ async function main(): Promise<void> {
         await reset();
         break;
       case 'prepare':
-        await bootstrapPostgresWithOptions();
+        if (config.POSTGRES_ADMIN_PASSWORD) {
+          await bootstrapPostgresWithOptions();
+        } else {
+          logger.info('POSTGRES_ADMIN_PASSWORD not set, skipping PostgreSQL bootstrap');
+        }
         await AppDataSource.initialize();
         await prepare();
         break;

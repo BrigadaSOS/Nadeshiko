@@ -16,9 +16,8 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
       ./prod && \
     rm -f ./prod/*.map
 
-FROM oven/bun:1 AS release
+FROM oven/bun:1 AS toolbox
 WORKDIR /app
-COPY --from=build /app/prod ./prod
 COPY --from=build /app/bin ./bin
 COPY --from=build /app/app ./app
 COPY --from=build /app/config ./config
@@ -27,7 +26,13 @@ COPY --from=build /app/lib ./lib
 COPY --from=build /app/generated ./generated
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY package.json bun.lock ./
-RUN bun install --production --frozen-lockfile
+RUN bun install --frozen-lockfile
+ENTRYPOINT []
+CMD ["sleep", "infinity"]
+
+FROM oven/bun:1 AS release
+WORKDIR /app
+COPY --from=build /app/prod ./prod
 
 ENTRYPOINT []
-CMD ["bun", "run", "start"]
+CMD ["bun", "./prod/main.js"]

@@ -35,13 +35,14 @@ export default {
             main: 'var(--button-color-primary)',
             hover: 'var(--button-color-hover-primary)',
           },
-          danger: {
-            main: 'var(--button-color-danger)',
-            hover: 'var(--button-color-danger-hover)',
+          accent: {
+            main: 'var(--button-color-accent)',
+            hover: 'var(--button-color-accent-hover)',
           },
         },
         input: {
           background: 'var(--input-background)',
+          'focus-ring': 'var(--input-focus-ring)',
         },
         card: {
           background: 'var(--card-background)',

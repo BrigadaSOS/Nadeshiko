@@ -81,7 +81,7 @@ onBeforeUnmount(() => {
         <label for="sentence-search-input" class="block text-sm text-gray-700 font-medium dark:text-white"><span
             class="sr-only">Search anything!</span></label>
         <input id="sentence-search-input" data-testid="search-input" :autofocus="!isMobile" v-model="query" @keydown.enter="navigateSearchSentence"
-          class="dark:focus:ring-gray-500 border py-3 dark:focus:border-gray-500 h-full pl-4 pr-4 md:pr-32 block w-full border-transparent rounded-lg focus:outline-none dark:bg-input-background dark:border-neutral-600 dark:text-white/80 dark:placeholder-neutral-500"
+          class="dark:focus:ring-input-focus-ring border py-3 dark:focus:border-input-focus-ring h-full pl-4 pr-4 md:pr-32 block w-full border-transparent rounded-lg focus:outline-none dark:bg-input-background dark:border-neutral-600 dark:text-white/80 dark:placeholder-neutral-500"
           placeholder="Search anything!" />
         <div class="absolute inset-y-0 end-3 flex items-center pointer-events-none">
           <span

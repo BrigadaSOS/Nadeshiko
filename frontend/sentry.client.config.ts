@@ -6,7 +6,7 @@ if (config.public.sentryDsn) {
   Sentry.init({
     dsn: config.public.sentryDsn,
     environment: config.public.environment,
-    integrations: [Sentry.replayIntegration()],
+    integrations: [Sentry.replayIntegration(), Sentry.browserTracingIntegration()],
     tracesSampleRate: 1.0,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,

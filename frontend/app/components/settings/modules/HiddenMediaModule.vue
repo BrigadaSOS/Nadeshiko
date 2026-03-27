@@ -127,7 +127,7 @@ const unhide = async (item: HiddenMediaItem) => {
         type="text"
         data-testid="hidden-media-search-input"
         :placeholder="t('accountSettings.account.hiddenMediaSearchPlaceholder')"
-        class="w-full pl-9 pr-10 py-2 bg-neutral-800 text-white border border-white/10 rounded-lg text-sm focus:ring-gray-500 focus:border-gray-500"
+        class="w-full pl-9 pr-10 py-2 bg-neutral-800 text-white border border-white/10 rounded-lg text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
       />
       <button
         v-if="hiddenMediaSearchQuery"
@@ -158,7 +158,7 @@ const unhide = async (item: HiddenMediaItem) => {
             <td class="py-3 text-sm text-right">
               <button
                 class="text-sm font-medium py-1 px-3 rounded disabled:opacity-50"
-                :class="isMediaHidden(result.publicId) ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30' : 'bg-button-danger-main text-white hover:bg-button-danger-hover'"
+                :class="isMediaHidden(result.publicId) ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30' : 'bg-button-accent-main text-white hover:bg-button-accent-hover'"
                 @click="toggleFromResult(result)"
               >
                 {{ isMediaHidden(result.publicId) ? t('searchpage.main.buttons.unhideMedia') : t('searchpage.main.buttons.hideMedia') }}
@@ -200,7 +200,7 @@ const unhide = async (item: HiddenMediaItem) => {
             </td>
             <td class="py-3 text-sm text-right">
               <button
-                class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-1 px-3 rounded"
+                class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-1 px-3 rounded"
                 @click="unhide(item)"
               >
                 {{ t('searchpage.main.buttons.unhideMedia') }}

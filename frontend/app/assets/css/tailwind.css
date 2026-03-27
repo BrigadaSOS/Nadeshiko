@@ -46,6 +46,28 @@
   transform: translateY(0);
 }
 
+html:not(.nd-ui-ready) .nd-dropdown:focus-within > .nd-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+html:not(.nd-ui-ready) .nd-dropdown:focus-within .nd-dropdown-toggle svg {
+  transform: rotate(180deg);
+}
+
+
+.nd-sidebar-link {
+  border-left: 3px solid transparent;
+}
+
+.nd-sidebar-link.router-link-active {
+  border-left-color: var(--button-color-accent, #ef5552);
+  background-color: rgba(239, 85, 82, 0.08);
+  color: var(--button-color-accent, #ef5552);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 300ms ease;
@@ -88,10 +110,12 @@
     --footer-background: #1f1f1f;
     --button-color-primary: #2c2c2c;
     --button-color-hover-primary: #333333;
-    --button-color-danger: #ef5552;
-    --button-color-danger-hover: #c74f4d;
+    --button-color-accent: #ef5552;
+    --button-color-accent-hover: #c74f4d;
     --input-background: #2f2f2f;
     --card-background: #252526;
+
+    --input-focus-ring: rgba(255, 255, 255, 0.5);
 
     --modal-background: #1b1b1b;
     --modal-border: #2f2f2f;

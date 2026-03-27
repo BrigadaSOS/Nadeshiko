@@ -11,7 +11,8 @@ export default {
       "settings": "設定",
       "blog": "ブログ",
       "media": "メディア",
-      "language": "言語"
+      "language": "言語",
+      "logout": "ログアウト"
     }
   },
   "home": {
@@ -313,6 +314,7 @@ export default {
       "addApiKey": "APIキーを追加",
       "keyCreated": "キー作成完了",
       "keyCreatedMessage": "このキーを保存してください。再度表示されません。",
+      "copyApiKey": "APIキーをコピー",
       "keyDeactivated": "キー無効化完了",
       "noKeysFound": "APIキーが見つかりません",
       "noKeysMessage": "アプリやプロジェクト用に新しいキーを作成しましょう！",
