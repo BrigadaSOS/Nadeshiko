@@ -16,14 +16,5 @@ ssh:
   user: docker
 
 aliases:
-  bootstrap: app exec --interactive --reuse "bun run setup"
-  console: app exec --interactive --reuse "bash"
+  toolbox-console: accessory exec toolbox -i --cmd "bash"
   logs: app logs -f
-  db-setup: app exec --interactive --reuse "bun run db:setup"
-  db-migrate: app exec --interactive --reuse "bun run db:migrate"
-  db-prepare: app exec --interactive --reuse "bun run db:prepare"
-  db-seed: app exec --interactive --reuse "bun run db:seed"
-  db-rollback: app exec --interactive --reuse "bun run db:rollback"
-  es-status: app exec --interactive --reuse "bun run es:status"
-  es-reindex: app exec --interactive --reuse "bun run es:reindex"
-  routes: app exec --reuse "bun run routes"

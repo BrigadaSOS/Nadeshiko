@@ -11,7 +11,8 @@ export default {
       "settings": "Settings",
       "blog": "Blog",
       "media": "Media",
-      "language": "Language"
+      "language": "Language",
+      "logout": "Logout"
     }
   },
   "home": {
@@ -314,6 +315,7 @@ export default {
       "addApiKey": "Add API Key",
       "keyCreated": "Key created",
       "keyCreatedMessage": "Save this key, it won't be shown again.",
+      "copyApiKey": "Copy API key",
       "keyDeactivated": "Key deactivated",
       "noKeysFound": "No API keys found",
       "noKeysMessage": "Create a new one for your apps or projects!",

@@ -151,6 +151,20 @@ definePageMeta({
 
 const mobileTabsRef = ref<HTMLElement | null>(null);
 useDragScroll(mobileTabsRef);
+
+function scrollActiveTabIntoView() {
+  nextTick(() => {
+    const container = mobileTabsRef.value;
+    if (!container) return;
+    const activeBtn = container.querySelector<HTMLElement>('.border-red-500');
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+  });
+}
+
+onMounted(scrollActiveTabIntoView);
+watch(activeTabRoute, scrollActiveTabIntoView);
 </script>
 
 <template>

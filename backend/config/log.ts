@@ -79,10 +79,12 @@ const baseOptions: pino.LoggerOptions = {
     'res.body.user.email',
     'res.body.user.username',
 
-    // Sentence content in response body (search results)
+    // Verbose content in response body (search results)
     'res.body.sentences',
     'res.body.mediaStatistics',
     'res.body.categoryStatistics',
+    'res.body.posAnalysis',
+    'res.body.revisions',
   ],
 
   formatters: {
@@ -145,6 +147,7 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
         // Parse string to object so pino redact paths work properly
         if (raw.responseBody !== undefined) {
           serialized.body = typeof raw.responseBody === 'string' ? safeParseJson(raw.responseBody) : raw.responseBody;
+
         }
         return serialized;
       },

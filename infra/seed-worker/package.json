@@ -1,0 +1,13 @@
+{
+  "name": "nadeshiko-seed-worker",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "upload-seed": "wrangler r2 object put nadeshiko-seed/seed.dump --file"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250320.0",
+    "wrangler": "^4.0.0"
+  }
+}

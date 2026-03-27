@@ -17,7 +17,8 @@
     "test:e2e": "playwright test --config=e2e/playwright.config.ts",
     "test:e2e:dev": "bash scripts/run-e2e-remote.sh dev",
     "test:e2e:prod": "bash scripts/run-e2e-remote.sh prod",
-    "test:e2e:local": "E2E_BASE_URL=http://localhost:3000 playwright test --config=e2e/playwright.config.ts"
+    "test:e2e:local": "E2E_BASE_URL=http://localhost:3000 playwright test --config=e2e/playwright.config.ts",
+    "setup": "bun run bin/setup.ts"
   },
   "dependencies": {
     "@brigadasos/nadeshiko-sdk": "2.0.1-internal.5a1af3c",

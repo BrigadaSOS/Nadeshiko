@@ -62,7 +62,7 @@ const toggleFurigana = () => {
       type="button"
       :aria-pressed="englishMode !== 'hidden'"
       :title="modeTitle('english', englishMode)"
-      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus-ring"
       :class="modeButtonClass(englishMode)"
       @click="toggleEnglish"
     >
@@ -73,7 +73,7 @@ const toggleFurigana = () => {
       type="button"
       :aria-pressed="spanishMode !== 'hidden'"
       :title="modeTitle('spanish', spanishMode)"
-      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus-ring"
       :class="modeButtonClass(spanishMode)"
       @click="toggleSpanish"
     >
@@ -85,7 +85,7 @@ const toggleFurigana = () => {
       type="button"
       :aria-pressed="furiganaMode !== 'hidden'"
       :title="furiganaTitle"
-      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus-ring"
       :class="modeButtonClass(furiganaMode)"
       @click="toggleFurigana"
     >

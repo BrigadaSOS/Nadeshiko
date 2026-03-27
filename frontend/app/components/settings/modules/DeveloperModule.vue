@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiPlus, mdiCheckBold, mdiPencilOutline } from '@mdi/js';
+import { mdiPlus, mdiCheckBold, mdiPencilOutline, mdiContentCopy } from '@mdi/js';
 
 import type { ApiKeyListItem } from '@/stores/api';
 import { normalizeApiKey } from '@/stores/api';
@@ -11,6 +11,14 @@ const isError = ref(false);
 const isSuccess = ref(false);
 const generatedApiKey = ref<string | null>(null);
 const deactivatedApiKey = ref(false);
+const apiKeyCopied = ref(false);
+
+async function copyApiKey() {
+    if (!generatedApiKey.value) return;
+    await navigator.clipboard.writeText(generatedApiKey.value);
+    apiKeyCopied.value = true;
+    setTimeout(() => apiKeyCopied.value = false, 2000);
+}
 
 // Create modal state
 const modalKeyName = ref('');
@@ -217,7 +225,7 @@ const formatDate = (value?: string) => {
             </div>
             <div class="ml-auto">
                 <button
-                    class="bg-button-primary-main hover:bg-button-primary-hover text-white font-bold py-2 px-4 rounded" data-testid="add-api-key-button" @click="openCreateModal">
+                    class="bg-button-accent-main hover:bg-button-accent-hover text-white font-bold py-2 px-4 rounded transition-colors" data-testid="add-api-key-button" @click="openCreateModal">
                     <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
                     {{ $t('accountSettings.developer.addApiKey') }}
                 </button>
@@ -227,12 +235,24 @@ const formatDate = (value?: string) => {
             class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
             <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
                 <UiBaseIcon :path="mdiCheckBold" size="20" />
-                <strong class="block font-medium">{{ $t('accountSettings.developer.keyCreated') }}: {{ generatedApiKey}}</strong>
+                <strong class="block font-medium">{{ $t('accountSettings.developer.keyCreated') }}</strong>
             </div>
-                <p class="mt-2 text-sm text-green-700 dark:text-green-200">
-                  {{$t('accountSettings.developer.keyCreatedMessage', { key: generatedApiKey }) }}
-                </p>
+            <div class="mt-2 flex items-center gap-2">
+                <code class="block flex-1 overflow-x-auto rounded bg-green-100 dark:bg-green-950 px-3 py-2 font-mono text-sm text-green-800 dark:text-green-200 whitespace-nowrap">{{ generatedApiKey }}</code>
+                <button
+                    type="button"
+                    class="shrink-0 rounded p-1.5 text-green-700 hover:bg-green-200 dark:text-green-200 dark:hover:bg-green-800 transition-colors"
+                    :title="$t('accountSettings.developer.copyApiKey')"
+                    @click="copyApiKey"
+                >
+                    <UiBaseIcon :path="mdiContentCopy" size="18" />
+                </button>
             </div>
+            <p v-if="apiKeyCopied" class="mt-1 text-xs text-green-700 dark:text-green-300">Copied!</p>
+            <p class="mt-2 text-sm text-green-700 dark:text-green-200">
+                {{$t('accountSettings.developer.keyCreatedMessage', { key: generatedApiKey }) }}
+            </p>
+        </div>
 
         <div v-if="deactivatedApiKey" role="alert" data-testid="api-key-deactivated-alert"
             class="rounded border-s-4 mt-2 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
@@ -399,6 +419,7 @@ const formatDate = (value?: string) => {
         >
             <div
                 class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
+                @click.stop
             >
                 <div
                     class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
@@ -431,7 +452,6 @@ const formatDate = (value?: string) => {
                 </div>
                 <div class="overflow-y-auto p-4">
                     <div class="flex flex-col gap-4">
-                        <!-- Name input -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {{ $t('accountSettings.developer.createApiKeyModal.nameLabel') }}
@@ -439,11 +459,11 @@ const formatDate = (value?: string) => {
                             <input
                                 v-model="modalKeyName"
                                 type="text"
-                                class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-modal-input dark:border-white/5 dark:text-white"
+                                class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:bg-modal-input dark:border-white/5 dark:text-white"
                                 :placeholder="$t('accountSettings.developer.createApiKeyModal.namePlaceholder')"
+                                @keydown.enter="confirmCreateApiKey"
                             />
                         </div>
-
                     </div>
                 </div>
                 <div
@@ -452,9 +472,9 @@ const formatDate = (value?: string) => {
                     <button
                         type="button"
                         data-testid="create-apikey-submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        @click="confirmCreateApiKey"
+                        class="px-4 py-2 text-sm font-medium text-white bg-button-accent-main rounded-lg hover:bg-button-accent-hover focus:outline-none focus:ring-2 focus:ring-input-focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
                         :disabled="!modalKeyName || isLoading"
+                        @click="confirmCreateApiKey"
                     >
                         {{ $t('accountSettings.developer.createApiKeyModal.create') }}
                     </button>
@@ -473,6 +493,7 @@ const formatDate = (value?: string) => {
         >
             <div
                 class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
+                @click.stop
             >
                 <div
                     class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
@@ -499,8 +520,9 @@ const formatDate = (value?: string) => {
                             <input
                                 v-model="renameKeyName"
                                 type="text"
-                                class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-modal-input dark:border-white/5 dark:text-white"
+                                class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:bg-modal-input dark:border-white/5 dark:text-white"
                                 :placeholder="$t('accountSettings.developer.renameApiKeyModal.namePlaceholder')"
+                                @keydown.enter="confirmRenameApiKey"
                             />
                         </div>
                     </div>
@@ -511,9 +533,9 @@ const formatDate = (value?: string) => {
                     <button
                         type="button"
                         data-testid="rename-apikey-submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        @click="confirmRenameApiKey"
+                        class="px-4 py-2 text-sm font-medium text-white bg-button-accent-main rounded-lg hover:bg-button-accent-hover focus:outline-none focus:ring-2 focus:ring-input-focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
                         :disabled="!renameKeyName || isLoading"
+                        @click="confirmRenameApiKey"
                     >
                         {{ $t('accountSettings.developer.renameApiKeyModal.save') }}
                     </button>

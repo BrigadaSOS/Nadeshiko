@@ -471,14 +471,14 @@ watch([searchQuery, filterCategory], () => {
                     :href="`https://anilist.co/anime/${mediaInfo.externalIds.anilist}`"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-red-500 dark:border-white dark:placeholder-gray-400 dark:text-white"
+                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-input-focus-ring dark:border-white dark:placeholder-gray-400 dark:text-white"
                   >
                     <div>{{ $t('animeList.anilistButton') }}</div>
                   </a>
 
                   <NuxtLink
                     :to="`/search?media=${mediaInfo.publicId}`"
-                    class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-red-500 dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
+                    class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-input-focus-ring dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
                   >
                     <div>{{ $t('animeList.vocabularyButton') }}</div>
                     <UiBaseIcon
