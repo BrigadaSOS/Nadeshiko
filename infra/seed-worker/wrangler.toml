@@ -1,0 +1,10 @@
+name = "nadeshiko-seed"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[r2_buckets]]
+binding = "SEED_BUCKET"
+bucket_name = "nadeshiko-seed"
+
+[vars]
+SEED_FILE = "seed.dump"

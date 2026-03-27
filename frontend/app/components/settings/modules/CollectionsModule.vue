@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiPlus, mdiEyeOutline, mdiEyeOffOutline } from '@mdi/js';
+import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiEyeOutline, mdiEyeOffOutline } from '@mdi/js';
 import type { Collection } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
@@ -202,12 +202,11 @@ const submitDelete = async () => {
         <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ collections.length }} collections</p>
         <button
           type="button"
-          class="flex items-center gap-1.5 py-1.5 px-3 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+          class="flex items-center gap-1.5 py-2 px-4 text-sm font-bold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover transition-colors"
           data-testid="create-collection-button"
           @click="openCreate"
         >
-          <UiBaseIcon :path="mdiPlus" size="16" />
-          <span class="hidden sm:inline">{{ t('accountSettings.collections.createButton') }}</span>
+          {{ t('accountSettings.collections.createButton') }}
         </button>
       </div>
     </div>
@@ -342,7 +341,7 @@ const submitDelete = async () => {
                 v-model="renameValue"
                 type="text"
                 maxlength="100"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
                 @keydown.enter="submitRename"
                 @keydown.escape="renameTarget = null"
               />
@@ -359,7 +358,7 @@ const submitDelete = async () => {
                 type="button"
                 data-testid="collection-rename-submit"
                 :disabled="isRenaming || !renameValue.trim()"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
                 @click="submitRename"
               >
                 <span
@@ -401,7 +400,7 @@ const submitDelete = async () => {
                 type="text"
                 maxlength="100"
                 :placeholder="t('accountSettings.collections.namePlaceholder')"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
                 @keydown.enter="submitCreate"
                 @keydown.escape="showCreateModal = false"
               />
@@ -418,7 +417,7 @@ const submitDelete = async () => {
                 type="button"
                 data-testid="collection-create-submit"
                 :disabled="isCreating || !createName.trim()"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
                 @click="submitCreate"
               >
                 <span
@@ -470,7 +469,7 @@ const submitDelete = async () => {
               <button
                 type="button"
                 :disabled="isTogglingVisibility"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
                 @click="submitToggleVisibility"
               >
                 <span
@@ -521,7 +520,7 @@ const submitDelete = async () => {
                 type="button"
                 data-testid="collection-delete-submit"
                 :disabled="isDeleting"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
+                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
                 @click="submitDelete"
               >
                 <span

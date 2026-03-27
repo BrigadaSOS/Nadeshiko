@@ -288,7 +288,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
         <button
           v-if="confirmingRemoveId !== result.segment.id"
           @click.stop="confirmRemove(result.segment.id)"
-          class="opacity-0 group-hover:opacity-100 transition-opacity p-2 aspect-square flex items-center justify-center rounded-md bg-modal-background hover:bg-button-danger-main text-white/70 hover:text-white"
+          class="opacity-0 group-hover:opacity-100 transition-opacity p-2 aspect-square flex items-center justify-center rounded-md bg-modal-background hover:bg-button-accent-main text-white/70 hover:text-white"
           :title="$t('accountSettings.collections.removeFromCollection')"
         >
           <UiBaseIcon :path="mdiClose" w="w-5" h="h-5" size="20" />
@@ -297,7 +297,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
           <span class="text-sm text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
           <button
             @click.stop="executeRemove(result.segment.id)"
-            class="px-3 py-1.5 rounded text-sm bg-button-danger-main hover:bg-button-danger-hover text-white font-medium"
+            class="px-3 py-1.5 rounded text-sm bg-button-accent-main hover:bg-button-accent-hover text-white font-medium"
           >{{ $t('accountSettings.collections.yes') }}</button>
           <button
             @click.stop="cancelRemove()"

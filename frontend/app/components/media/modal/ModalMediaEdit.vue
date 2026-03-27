@@ -266,7 +266,7 @@ const submitDelete = async () => {
               v-model="form.nameJa"
               lang="ja"
               type="text"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
           </div>
           <div>
@@ -274,7 +274,7 @@ const submitDelete = async () => {
             <input
               v-model="form.nameRomaji"
               type="text"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
           </div>
           <div>
@@ -282,7 +282,7 @@ const submitDelete = async () => {
             <input
               v-model="form.nameEn"
               type="text"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
           </div>
         </div>
@@ -292,7 +292,7 @@ const submitDelete = async () => {
           <input
             v-model="form.studio"
             type="text"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
           />
         </div>
 
@@ -302,7 +302,7 @@ const submitDelete = async () => {
             v-model="form.genres"
             type="text"
             :placeholder="t('modalMediaEdit.genresPlaceholder')"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
           />
         </div>
 
@@ -357,7 +357,7 @@ const submitDelete = async () => {
             <input
               v-model="form.startDate"
               type="date"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
           </div>
           <div>
@@ -365,7 +365,7 @@ const submitDelete = async () => {
             <input
               v-model="form.endDate"
               type="date"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
           </div>
           <div>
@@ -389,7 +389,7 @@ const submitDelete = async () => {
               type="number"
               min="1900"
               max="2100"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
           </div>
         </div>
@@ -403,7 +403,7 @@ const submitDelete = async () => {
                 v-model="form.anilistId"
                 type="text"
                 placeholder="e.g. 21459"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
               />
             </div>
             <div>
@@ -412,7 +412,7 @@ const submitDelete = async () => {
                 v-model="form.imdbId"
                 type="text"
                 placeholder="e.g. tt1234567"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
               />
             </div>
             <div>
@@ -421,7 +421,7 @@ const submitDelete = async () => {
                 v-model="form.tvdbId"
                 type="text"
                 placeholder="e.g. 12345"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
               />
             </div>
             <div>
@@ -430,7 +430,7 @@ const submitDelete = async () => {
                 v-model="form.tmdbId"
                 type="text"
                 placeholder="e.g. 90955"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
               />
             </div>
           </div>
@@ -484,7 +484,7 @@ const submitDelete = async () => {
           <button
             type="button"
             :disabled="isSubmitting"
-            class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
+            class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
             @click="submitEdit"
           >
             <span

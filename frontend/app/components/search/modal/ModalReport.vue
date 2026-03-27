@@ -69,7 +69,7 @@ const reasonPillClasses = (reason: string) => {
     'px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 cursor-pointer';
   if (form.reason !== reason)
     return `${base} border border-neutral-600 text-neutral-400 hover:border-neutral-400 hover:text-neutral-300`;
-  return `${base} bg-button-danger-main text-white border border-transparent focus:ring-button-danger-main`;
+  return `${base} bg-button-accent-main text-white border border-transparent focus:ring-input-focus-ring`;
 };
 
 const contentRatingBadgeClasses: Record<string, string> = {
@@ -309,7 +309,7 @@ const submitReport = async () => {
             maxlength="1000"
             rows="3"
             :placeholder="t('reports.descriptionPlaceholder')"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
           />
         </div>
       </div>
@@ -326,7 +326,7 @@ const submitReport = async () => {
         <button
           type="button"
           :disabled="isSubmitting || !form.reason"
-          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
+          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="submitReport"
         >
           <span

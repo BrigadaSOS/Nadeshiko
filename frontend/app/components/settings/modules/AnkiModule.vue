@@ -230,14 +230,14 @@ watch(ankiconnectAddress, (newValue) => {
         <div class="mt-4">
           <label class="block text-sm mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
           <input v-model="ankiconnectAddress"
-            class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
+            class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
           </input>
         </div>
 
         <div class="mt-4 flex items-center gap-3">
           <label class="relative inline-flex items-center cursor-pointer">
             <input v-model="openBrowserOnExport" type="checkbox" class="sr-only peer" />
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-button-danger-main transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-button-accent-main transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
           </label>
           <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.openBrowserOnExport') }}</span>
         </div>
@@ -313,7 +313,7 @@ watch(ankiconnectAddress, (newValue) => {
       <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <select
           :value="activeProfileId"
-          class="flex-grow w-full sm:w-auto resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500"
+          class="flex-grow w-full sm:w-auto resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring"
           @change="switchProfile(($event.target as HTMLSelectElement).value)"
         >
           <option v-for="profile in store.profiles" :key="profile.id" :value="profile.id">
@@ -330,7 +330,7 @@ watch(ankiconnectAddress, (newValue) => {
             {{ $t('accountSettings.anki.renameProfile') }}
           </button>
           <button
-            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white rounded-lg bg-button-danger-main hover:bg-button-danger-hover transition-colors"
+            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white rounded-lg bg-button-accent-main hover:bg-button-accent-hover transition-colors"
             :disabled="isSaving"
             @click="openCreateModal"
           >
@@ -361,7 +361,7 @@ watch(ankiconnectAddress, (newValue) => {
             <div class="flex-grow">
               <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
               <select v-model="selectedDeck"
-                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
+                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
                 <option value="">{{ $t('accountSettings.anki.selectDeck') }}</option>
                 <option v-for="(option, index) in deckOptions" :key="index" :value="option">
                   {{ option }}
@@ -371,7 +371,7 @@ watch(ankiconnectAddress, (newValue) => {
             <div class="flex-grow">
               <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
               <select v-model="selectedModel"
-                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
+                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
                 <option value="">{{ $t('accountSettings.anki.selectModel') }}</option>
                 <option v-for="(option, index) in modelOptions" :key="index" :value="option">
                   {{ option }}
@@ -386,7 +386,7 @@ watch(ankiconnectAddress, (newValue) => {
             <div class="flex-grow">
               <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
               <select v-model="modelKey"
-                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-gray-500 dark:focus:border-gray-500">
+                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
                 <option :value="null">{{ $t('accountSettings.anki.selectKeyField') }}</option>
                 <option v-for="(option, index) in fieldOptions" :key="index" :value="option.key">
                   {{ option.key }}
@@ -499,7 +499,7 @@ watch(ankiconnectAddress, (newValue) => {
             v-model="nameModalInput"
             type="text"
             :placeholder="$t('accountSettings.anki.profileNamePlaceholder')"
-            class="w-full p-3 text-sm rounded-lg bg-input-background border-gray-600 text-white border focus:ring-gray-500 focus:border-gray-500"
+            class="w-full p-3 text-sm rounded-lg bg-input-background border-gray-600 text-white border focus:ring-input-focus-ring focus:border-input-focus-ring"
             @keydown.enter="confirmNameModal"
           />
           <div class="flex justify-end gap-2 mt-4">

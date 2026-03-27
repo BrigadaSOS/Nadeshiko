@@ -487,7 +487,7 @@ const submitEdit = async () => {
               lang="ja"
               :maxlength="TEXT_MAX_LENGTH"
               rows="2"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
             <div class="text-right text-xs mt-0.5" :class="charCountColor(form.ja.length)">
               {{ form.ja.length }}/{{ TEXT_MAX_LENGTH }}
@@ -502,7 +502,7 @@ const submitEdit = async () => {
               </label>
               <label class="toggle-switch">
                 <input v-model="form.enMt" type="checkbox" class="sr-only peer" />
-                <span class="toggle-track peer-checked:bg-button-danger-main peer-focus-visible:ring-2 peer-focus-visible:ring-button-danger-main" />
+                <span class="toggle-track peer-checked:bg-button-accent-main peer-focus-visible:ring-2 peer-focus-visible:ring-input-focus-ring" />
                 <span class="ml-2 text-xs text-neutral-400">{{ t('modalSegmentEdit.machineTranslated') }}</span>
               </label>
             </div>
@@ -510,7 +510,7 @@ const submitEdit = async () => {
               v-model="form.en"
               :maxlength="TEXT_MAX_LENGTH"
               rows="2"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
             <div class="text-right text-xs mt-0.5" :class="charCountColor(form.en.length)">
               {{ form.en.length }}/{{ TEXT_MAX_LENGTH }}
@@ -525,7 +525,7 @@ const submitEdit = async () => {
               </label>
               <label class="toggle-switch">
                 <input v-model="form.esMt" type="checkbox" class="sr-only peer" />
-                <span class="toggle-track peer-checked:bg-button-danger-main peer-focus-visible:ring-2 peer-focus-visible:ring-button-danger-main" />
+                <span class="toggle-track peer-checked:bg-button-accent-main peer-focus-visible:ring-2 peer-focus-visible:ring-input-focus-ring" />
                 <span class="ml-2 text-xs text-neutral-400">{{ t('modalSegmentEdit.machineTranslated') }}</span>
               </label>
             </div>
@@ -533,7 +533,7 @@ const submitEdit = async () => {
               v-model="form.es"
               :maxlength="TEXT_MAX_LENGTH"
               rows="2"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
             />
             <div class="text-right text-xs mt-0.5" :class="charCountColor(form.es.length)">
               {{ form.es.length }}/{{ TEXT_MAX_LENGTH }}
@@ -552,7 +552,7 @@ const submitEdit = async () => {
                   v-model.number="form.position"
                   type="number"
                   min="0"
-                  class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
                 />
               </div>
               <div>
@@ -561,7 +561,7 @@ const submitEdit = async () => {
                   v-model.number="form.startTimeMs"
                   type="number"
                   min="0"
-                  class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
                 />
               </div>
               <div>
@@ -570,7 +570,7 @@ const submitEdit = async () => {
                   v-model.number="form.endTimeMs"
                   type="number"
                   min="0"
-                  class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
                 />
               </div>
             </div>
@@ -624,7 +624,7 @@ const submitEdit = async () => {
             <textarea
               v-model="form.ratingAnalysisJson"
               rows="6"
-              class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
               :class="jsonErrors.ratingAnalysis ? 'border-red-500' : 'border-neutral-600'"
               @blur="validateJson(form.ratingAnalysisJson, 'ratingAnalysis')"
             />
@@ -643,7 +643,7 @@ const submitEdit = async () => {
             <textarea
               v-model="form.posAnalysisJson"
               rows="6"
-              class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
               :class="jsonErrors.posAnalysis ? 'border-red-500' : 'border-neutral-600'"
               @blur="validateJson(form.posAnalysisJson, 'posAnalysis')"
             />
@@ -710,7 +710,7 @@ const submitEdit = async () => {
         <button
           type="button"
           :disabled="isSubmitting"
-          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-danger-main text-white hover:bg-button-danger-hover disabled:opacity-50 disabled:pointer-events-none"
+          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="submitEdit"
         >
           <span

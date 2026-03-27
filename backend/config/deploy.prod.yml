@@ -7,7 +7,7 @@ builder:
 
 servers:
   web:
-    cmd: sh -c 'bun run db:prepare && bun run start'
+    cmd: bun run start
 
 proxy:
   ssl: true
@@ -27,13 +27,9 @@ env:
     - POSTGRES_USER
     - POSTGRES_PASSWORD
     - POSTGRES_DB
-    - POSTGRES_ADMIN_USER
-    - POSTGRES_ADMIN_PASSWORD
 
     - ELASTICSEARCH_USER
     - ELASTICSEARCH_PASSWORD
-    - ELASTICSEARCH_ADMIN_USER
-    - ELASTICSEARCH_ADMIN_PASSWORD
 
     - DISCORD_CLIENT_ID
     - DISCORD_CLIENT_SECRET
@@ -111,6 +107,38 @@ accessories:
       ulimit:
         - nofile=65536:65536
         - memlock=-1:-1
+
+  toolbox:
+    image: brigadasos/nadeshiko-backend-prod:toolbox
+    host: nadeshiko
+    cmd: "sleep infinity"
+    env:
+      secret:
+        - POSTGRES_USER
+        - POSTGRES_PASSWORD
+        - POSTGRES_DB
+        - POSTGRES_ADMIN_USER
+        - POSTGRES_ADMIN_PASSWORD
+
+        - ELASTICSEARCH_USER
+        - ELASTICSEARCH_PASSWORD
+        - ELASTICSEARCH_ADMIN_USER
+        - ELASTICSEARCH_ADMIN_PASSWORD
+
+        - EMAIL_API_NADEDB
+        - USERNAME_API_NADEDB
+        - UUID_NAMESPACE
+        - API_KEY_MASTER
+        - BETTER_AUTH_SECRET
+        - E2E_USER_PASSWORD
+      clear:
+        ENVIRONMENT: prod
+        BASE_URL: https://nadeshiko.co
+        POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
+        POSTGRES_PORT: 5432
+        ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
+        ELASTICSEARCH_INDEX: nadedb_prod
+        R2_BASE_URL: https://cdn.nadeshiko.co
 
   pg-backup:
     image: kartoza/pg-backup:17-3.5

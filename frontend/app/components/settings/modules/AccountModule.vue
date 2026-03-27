@@ -288,7 +288,7 @@ const logoutCurrentUser = async () => {
     <div class="flex items-center justify-between gap-2">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.infoTitle') }}</h3>
       <button
-        class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+        class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
         :disabled="loggingOut"
         @click="logoutCurrentUser"
       >
@@ -315,7 +315,7 @@ const logoutCurrentUser = async () => {
                 v-model="newEmail"
                 type="email"
                 :placeholder="$t('accountSettings.account.changeEmailPlaceholder')"
-                class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500 flex-1"
+                class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring flex-1"
                 :disabled="changingEmail"
                 @keyup.enter="requestEmailChange"
               />
@@ -368,7 +368,7 @@ const logoutCurrentUser = async () => {
           Log Out Other Devices
         </button>
         <button
-          class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeAllUserSessions"
         >
@@ -405,7 +405,7 @@ const logoutCurrentUser = async () => {
             <td class="py-3 text-sm text-right">
               <button
                 v-if="!isCurrentSession(session.token)"
-                class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-1 px-3 rounded disabled:opacity-50"
+                class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-1 px-3 rounded disabled:opacity-50"
                 :disabled="sessionsActionLoading"
                 @click="revokeSingleSession(session.token)"
               >
@@ -434,7 +434,7 @@ const logoutCurrentUser = async () => {
           :value="user_store.preferences?.mediaNameLanguage || 'english'"
           @change="updateMediaNameLanguage(($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
-          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
           <option value="english">English</option>
           <option value="japanese">Japanese</option>
@@ -449,7 +449,7 @@ const logoutCurrentUser = async () => {
         <select
           :value="tooltipReadingMode"
           @change="setTooltipReadingMode(($event.target as HTMLSelectElement).value as any)"
-          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
           <option value="hiragana">Hiragana (ねがう)</option>
           <option value="katakana">Katakana (ネガウ)</option>
@@ -467,7 +467,7 @@ const logoutCurrentUser = async () => {
           :value="user_store.preferences?.contentRatingPreferences?.questionable || 'blur'"
           @change="updateContentRatingPreference('questionable', ($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
-          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
           <option value="show">{{ $t('accountSettings.account.contentRatingShow') }}</option>
           <option value="blur">{{ $t('accountSettings.account.contentRatingBlur') }}</option>
@@ -521,7 +521,7 @@ const logoutCurrentUser = async () => {
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
-          class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="deletingAccount"
           @click="deleteCurrentAccount"
         >

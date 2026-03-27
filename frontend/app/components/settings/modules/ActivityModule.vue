@@ -748,7 +748,7 @@ onMounted(async () => {
           <p class="text-gray-400 text-sm">Permanently delete all activity data from your account.</p>
         </div>
         <button
-          class="bg-button-danger-main hover:bg-button-danger-hover text-white text-sm font-medium py-1.5 px-3 rounded disabled:opacity-50"
+          class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-1.5 px-3 rounded disabled:opacity-50"
           :disabled="clearingHistory"
           @click="clearHistory"
         >

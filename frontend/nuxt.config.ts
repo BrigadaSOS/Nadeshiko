@@ -13,6 +13,11 @@ export default defineNuxtConfig({
   devServer: {
     host: '0.0.0.0',
   },
+  vite: {
+    server: {
+      allowedHosts: true,
+    },
+  },
   app: {
     head: {
       meta: [
