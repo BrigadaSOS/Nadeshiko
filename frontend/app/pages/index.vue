@@ -56,7 +56,7 @@ const {
     <div class="mx-auto">
             <div class="relative text-white">
                 <div class="pt-2">
-                    <div class="md:max-w-[92%] mx-auto">
+                    <div class="px-4 md:px-0 md:max-w-[92%] mx-auto">
                         <LayoutSystemAnnouncementBanner />
                         <SearchBaseInputSegment />
                         <div class="py-2 xl:py-4">

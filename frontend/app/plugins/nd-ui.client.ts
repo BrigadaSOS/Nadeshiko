@@ -22,6 +22,8 @@ function resolveTarget(target: OverlayTarget): HTMLElement | null {
   return document.querySelector<HTMLElement>(target);
 }
 
+const DISPLAY_CLASSES = new Set(['hidden', 'block', 'inline', 'inline-block', 'flex', 'inline-flex', 'grid', 'none']);
+
 function applyPrefixedStateClasses(root: HTMLElement, prefix: string, enabled: boolean) {
   const nodes = [root, ...Array.from(root.querySelectorAll<HTMLElement>('[class]'))];
 
@@ -33,9 +35,21 @@ function applyPrefixedStateClasses(root: HTMLElement, prefix: string, enabled: b
       if (!runtimeClass) continue;
 
       if (enabled) {
+        if (DISPLAY_CLASSES.has(runtimeClass)) {
+          for (const dc of DISPLAY_CLASSES) {
+            if (dc !== runtimeClass && node.classList.contains(dc)) {
+              node.dataset.ndRestoredDisplay = dc;
+              node.classList.remove(dc);
+            }
+          }
+        }
         node.classList.add(runtimeClass);
       } else {
         node.classList.remove(runtimeClass);
+        if (DISPLAY_CLASSES.has(runtimeClass) && node.dataset.ndRestoredDisplay) {
+          node.classList.add(node.dataset.ndRestoredDisplay);
+          delete node.dataset.ndRestoredDisplay;
+        }
       }
     }
   }
@@ -199,6 +213,12 @@ function toggleCollapse(trigger: HTMLElement) {
   applyPrefixedStateClasses(trigger, 'nd-collapse-open', !isOpen);
 }
 
+function closeAllCollapses() {
+  for (const trigger of document.querySelectorAll<HTMLElement>('[data-nd-collapse][aria-expanded="true"]')) {
+    toggleCollapse(trigger);
+  }
+}
+
 export default defineNuxtPlugin((nuxtApp) => {
   window.NDOverlay = {
     open: openOverlay,
@@ -283,5 +303,6 @@ export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.hook('page:finish', () => {
     closeAllOverlays();
     closeAllDropdowns();
+    closeAllCollapses();
   });
 });

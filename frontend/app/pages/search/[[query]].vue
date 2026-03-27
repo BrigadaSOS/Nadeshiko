@@ -284,7 +284,9 @@ useHead(metaTags);
             <div class="relative text-white">
                 <div class="pt-2">
                     <div class="md:max-w-[92%] mx-auto">
-                        <SearchBaseInputSegment />
+                        <div class="px-4 md:px-0">
+                            <SearchBaseInputSegment />
+                        </div>
                         <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
                     </div>
                 </div>

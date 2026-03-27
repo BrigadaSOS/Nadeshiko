@@ -1,4 +1,6 @@
 <script setup>
+import { mdiAccountCircleOutline } from '@mdi/js';
+
 const store = userStore();
 const isAuth = computed(() => store.isLoggedIn);
 const { hasNewPost } = useBlogNotification();
@@ -12,7 +14,7 @@ function openLoginModal() {
 <template>    
     <header
         class="relative flex flex-wrap md:justify-start md:flex-nowrap w-full bg-white text-xs py-3 lg:py-2 dark:bg-header-background">
-        <nav class="max-w-[92%] w-full mx-auto md:flex md:items-center md:justify-between">
+        <nav class="px-4 md:px-0 md:max-w-[92%] w-full mx-auto md:flex md:items-center md:justify-between">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
                     <NuxtLink to="/"
@@ -29,14 +31,14 @@ function openLoginModal() {
                         id="nd-navbar-example-collapse" aria-expanded="false" aria-controls="nd-navbar-example"
                         aria-label="Toggle navigation" data-nd-collapse="#nd-navbar-example">
                         <svg class="nd-collapse-open:hidden shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
-                            width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                            width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="3" x2="21" y1="6" y2="6" />
-                            <line x1="3" x2="21" y1="12" y2="12" />
-                            <line x1="3" x2="21" y1="18" y2="18" />
+                            <line x1="4" x2="20" y1="6" y2="6" />
+                            <line x1="4" x2="20" y1="12" y2="12" />
+                            <line x1="4" x2="20" y1="18" y2="18" />
                         </svg>
                         <svg class="nd-collapse-open:block hidden shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
-                            width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                            width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M18 6 6 18" />
                             <path d="m6 6 12 12" />
@@ -102,8 +104,9 @@ function openLoginModal() {
                         dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
                         <template #default>
                             <SearchDropdownMainButton
-                                dropdownButtonClass="nd-dropdown-toggle py-2.5 px-4 inline-flex  w-full items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
+                                dropdownButtonClass="nd-dropdown-toggle py-2 px-4 inline-flex w-full items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg border hover:bg-black/5 hover:border-white/70 transition-all text-gray-800 disabled:opacity-50 disabled:pointer-events-none dark:text-white"
                                 dropdownId="nd-dropdown-profile">
+                                <UiBaseIcon :path="mdiAccountCircleOutline" />
                                 {{ $t("navbar.buttons.profile") }}
                             </SearchDropdownMainButton>
                         </template>
