@@ -499,7 +499,7 @@ onBeforeRouteUpdate(async (to, from) => {
     </div>
     <div v-else-if="initialError">
         <div class="pb-3">
-            <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] pb-3">
+            <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] pb-3 px-4 md:px-0">
                 <div class="shrink-0">
                     <SearchResultControls />
                 </div>
@@ -547,7 +547,7 @@ onBeforeRouteUpdate(async (to, from) => {
     <div v-else class="flex-1 mx-auto">
         <!-- Tabs -->
         <div class="pb-3" v-if="searchData?.categories?.length > 0">
-            <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21]">
+            <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21] px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
                     to="/user/collections"
@@ -587,7 +587,7 @@ onBeforeRouteUpdate(async (to, from) => {
             </CommonTabsContainer>
         </div>
         <div v-else class="pb-3">
-            <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4">
+            <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
                     to="/user/collections"
