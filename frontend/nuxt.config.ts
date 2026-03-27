@@ -10,6 +10,9 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
 };
 
 export default defineNuxtConfig({
+  devServer: {
+    host: '0.0.0.0',
+  },
   app: {
     head: {
       meta: [
@@ -61,24 +64,26 @@ export default defineNuxtConfig({
     'nuxt-security',
   ],
   security: {
-    headers: {
-      contentSecurityPolicy: {
-        'default-src': ["'self'"],
-        'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN],
-        'style-src': ["'self'", "'unsafe-inline'"],
-        'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
-        'font-src': ["'self'"],
-        'connect-src': ["'self'", CDN_ORIGIN, UMAMI_ORIGIN, SENTRY_INGEST, 'http://127.0.0.1:*', 'http://localhost:*'],
-        'worker-src': ["'self'", 'blob:'],
-        'media-src': ["'self'", 'blob:', CDN_ORIGIN],
-        'object-src': ["'none'"],
-        'frame-ancestors': ["'none'"],
-        'base-uri': ["'self'"],
-        'form-action': ["'self'"],
-      },
-      // COEP disabled: cross-origin media from cdn.nadeshiko.co lacks CORP headers
-      crossOriginEmbedderPolicy: false,
-    },
+    headers: process.env.NODE_ENV === 'development'
+      ? false
+      : {
+          contentSecurityPolicy: {
+            'default-src': ["'self'"],
+            'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN],
+            'style-src': ["'self'", "'unsafe-inline'"],
+            'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
+            'font-src': ["'self'"],
+            'connect-src': ["'self'", CDN_ORIGIN, UMAMI_ORIGIN, SENTRY_INGEST, 'http://127.0.0.1:*', 'http://localhost:*'],
+            'worker-src': ["'self'", 'blob:'],
+            'media-src': ["'self'", 'blob:', CDN_ORIGIN],
+            'object-src': ["'none'"],
+            'frame-ancestors': ["'none'"],
+            'base-uri': ["'self'"],
+            'form-action': ["'self'"],
+          },
+          // COEP disabled: cross-origin media from cdn.nadeshiko.co lacks CORP headers
+          crossOriginEmbedderPolicy: false,
+        },
     rateLimiter: false,
     xssValidator: false,
     requestSizeLimiter: false,

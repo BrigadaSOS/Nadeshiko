@@ -245,7 +245,7 @@ const formatDate = (value?: string) => {
         <div class="border-b pt-4 border-white/10" />
 
         <div class="mt-6">
-            <div class="border rounded-lg dark:border-modal-border">
+            <div class="border rounded-lg dark:border-modal-border overflow-x-auto">
                 <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
                     <thead>
                         <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
