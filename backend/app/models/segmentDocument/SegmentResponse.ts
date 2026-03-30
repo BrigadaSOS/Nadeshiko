@@ -26,10 +26,7 @@ type TermsBucket = { key?: string | number; doc_count?: number } & Record<string
 type TermsAggregation = { buckets?: TermsBucket[] };
 
 export class SegmentResponse {
-  static buildSearch(
-    esResponse: estypes.SearchResponse,
-    mediaInfoResponse: MediaInfoMap,
-  ): SearchResponseOutput {
+  static buildSearch(esResponse: estypes.SearchResponse, mediaInfoResponse: MediaInfoMap): SearchResponseOutput {
     const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse);
 
     let cursor: string | undefined;

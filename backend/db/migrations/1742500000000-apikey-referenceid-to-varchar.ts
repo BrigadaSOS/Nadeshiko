@@ -11,11 +11,15 @@ export class ApikeyReferenceidToVarchar1742500000000 implements MigrationInterfa
     // Drop the FK since varchar cannot reference integer; better-auth
     // manages the relationship at the application level.
     await queryRunner.query(`ALTER TABLE "apikey" DROP CONSTRAINT IF EXISTS "apikey_user_fkey"`);
-    await queryRunner.query(`ALTER TABLE "apikey" ALTER COLUMN "referenceId" TYPE varchar USING "referenceId"::varchar`);
+    await queryRunner.query(
+      `ALTER TABLE "apikey" ALTER COLUMN "referenceId" TYPE varchar USING "referenceId"::varchar`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "apikey" ALTER COLUMN "referenceId" TYPE integer USING "referenceId"::integer`);
+    await queryRunner.query(
+      `ALTER TABLE "apikey" ALTER COLUMN "referenceId" TYPE integer USING "referenceId"::integer`,
+    );
     await queryRunner.query(`
       ALTER TABLE "apikey"
         ADD CONSTRAINT "apikey_user_fkey"

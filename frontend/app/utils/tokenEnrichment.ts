@@ -66,14 +66,15 @@ export function segmentFurigana(surface: string, reading: string): FuriganaSegme
   if (current) parts.push({ text: current, isKanji: currentIsKanji });
 
   if (parts.length === 1) {
-    return [{ text: surface, reading: parts[0]!.isKanji ? reading : '' }];
+    return [{ text: surface, reading: parts[0]?.isKanji ? reading : '' }];
   }
 
   const segments: FuriganaSegment[] = [];
   let readingPos = 0;
 
   for (let i = 0; i < parts.length; i++) {
-    const part = parts[i]!;
+    const part = parts[i];
+    if (!part) continue;
 
     if (!part.isKanji) {
       const kanaReading = katakanaToHiragana(part.text);
@@ -81,7 +82,7 @@ export function segmentFurigana(surface: string, reading: string): FuriganaSegme
       if (idx >= readingPos && idx <= readingPos + 10) {
         if (idx > readingPos && i > 0) {
           const prev = segments[segments.length - 1];
-          if (prev && prev.reading) {
+          if (prev?.reading) {
             prev.reading += reading.slice(readingPos, idx);
           }
         }
@@ -263,15 +264,17 @@ export function hiraganaToRomaji(str: string): string {
 
     // Digraph (2-char combination)
     const digraph = str.slice(i, i + 2);
-    if (ROMAJI_DIGRAPHS[digraph]) {
-      result += ROMAJI_DIGRAPHS[digraph];
+    const digraphRomaji = ROMAJI_DIGRAPHS[digraph];
+    if (digraphRomaji) {
+      result += digraphRomaji;
       i += 2;
       continue;
     }
 
     // Monograph
-    if (ROMAJI_MONOGRAPHS[ch]) {
-      result += ROMAJI_MONOGRAPHS[ch];
+    const monoRomaji = ch ? ROMAJI_MONOGRAPHS[ch] : undefined;
+    if (monoRomaji) {
+      result += monoRomaji;
       i++;
       continue;
     }

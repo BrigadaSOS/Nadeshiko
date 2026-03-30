@@ -87,7 +87,9 @@ describe('enhanceHighlight', () => {
     ];
     const highlight = '<em>食べ</em>たり<em>飲ん</em>だり';
     const result = enhanceHighlight(highlight, tokens);
-    expect(result).toBe('<em>食べ</em><span class="highlight-tail">たり</span><em>飲ん</em><span class="highlight-tail">だり</span>');
+    expect(result).toBe(
+      '<em>食べ</em><span class="highlight-tail">たり</span><em>飲ん</em><span class="highlight-tail">だり</span>',
+    );
   });
 
   it('handles empty highlight string', () => {

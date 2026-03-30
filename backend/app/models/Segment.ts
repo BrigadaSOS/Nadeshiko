@@ -23,6 +23,10 @@ export interface RatingAnalysisData {
   tags?: Record<string, number>;
 }
 
+// Typed as `object` to avoid TypeORM's _QueryDeepPartialEntity recursion issue with JSONB columns.
+// Actual shape: { sudachi?: Array<{surface, dictionary_form, reading, begin, end, pos}>, unidic?: Array<...>, _tokenizer_*: string }
+export type PosAnalysisData = object;
+
 export enum SegmentStorage {
   LOCAL = 'LOCAL',
   R2 = 'R2',
@@ -84,7 +88,7 @@ export class Segment extends BaseEntity {
   ratingAnalysis!: RatingAnalysisData;
 
   @Column({ name: 'pos_analysis', type: 'jsonb' })
-  posAnalysis!: Record<string, unknown>;
+  posAnalysis!: PosAnalysisData;
 
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;

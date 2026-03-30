@@ -95,9 +95,7 @@ function makeEsResponse(hits: estypes.SearchHit<SegmentDocumentShape>[]): estype
 describe('SegmentResponse', () => {
   describe('buildSearchResultSegments', () => {
     it('includes tokens in textJa when present in source', () => {
-      const tokens = [
-        token('テスト', 'テスト', 0, 3, '名詞'),
-      ];
+      const tokens = [token('テスト', 'テスト', 0, 3, '名詞')];
       const hit = makeEsHit('1', { tokens });
       const esResponse = makeEsResponse([hit]);
       const mediaInfo = makeMediaInfoMap(1);
@@ -120,10 +118,7 @@ describe('SegmentResponse', () => {
     });
 
     it('uses tokens for enhanced highlighting when both tokens and highlight are present', () => {
-      const tokens = [
-        token('食べ', '食べる', 0, 2, '動詞'),
-        token('ました', 'ます', 2, 5, '助動詞'),
-      ];
+      const tokens = [token('食べ', '食べる', 0, 2, '動詞'), token('ました', 'ます', 2, 5, '助動詞')];
       const hit = makeEsHit('1', { textJa: '食べました', tokens }, { textJa: ['<em>食べ</em>ました'] });
       const esResponse = makeEsResponse([hit]);
       const mediaInfo = makeMediaInfoMap(1);
