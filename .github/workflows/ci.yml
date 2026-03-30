@@ -58,6 +58,9 @@ jobs:
       - name: Lint
         run: cd backend && bun run lint:code
 
+      - name: Typecheck
+        run: cd backend && bun run typecheck
+
       - name: Setup test database
         run: cd backend && bun run test:setup
 
