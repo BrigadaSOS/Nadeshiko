@@ -582,8 +582,16 @@ export default {
     labels: {
       successfullogin: 'Inicio de sesión exitoso!',
       logout: 'Se ha cerrado la sesión.',
+      banneduser: 'Tu cuenta ha sido suspendida. Por favor contacta a soporte.',
       errorlogin400: 'Por favor, revisa tu correo/contraseña e intenta de nuevo.',
       closeSrOnly: 'Cerrar',
+    },
+    magiclink: {
+      label: 'O inicia sesión con tu email',
+      placeholder: 'Correo electrónico',
+      send: 'Enviar enlace',
+      sent: 'Revisa tu correo para el enlace de inicio de sesión.',
+      retry: 'Intentar con otro correo',
     },
   },
   shortcuts: {

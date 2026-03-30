@@ -15,8 +15,7 @@ export const test = base.extend({
     // Wrap page.goto to automatically wait for hydration after navigation
     const originalGoto = page.goto.bind(page);
     page.goto = async (url, options) => {
-      const response = await originalGoto(url, options);
-      await page.waitForLoadState('domcontentloaded');
+      const response = await originalGoto(url, { waitUntil: 'domcontentloaded', ...options });
       await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});
       await page.waitForFunction(
         () => {

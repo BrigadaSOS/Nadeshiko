@@ -2,7 +2,12 @@ import nodemailer from 'nodemailer';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { config } from '@config/config';
 import { logger } from '@config/log';
-import { buildWelcomeEmail, buildAnnouncementEmail, buildVerifyNewEmailEmail } from './emailTemplates';
+import {
+  buildWelcomeEmail,
+  buildAnnouncementEmail,
+  buildVerifyNewEmailEmail,
+  buildMagicLinkEmail,
+} from './emailTemplates';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
@@ -157,17 +162,17 @@ export async function sendAnnouncementEmail(
   );
 }
 
-export async function sendVerifyNewEmail(email: string, verificationUrl: string): Promise<void> {
-  const { subject, html } = await buildVerifyNewEmailEmail(verificationUrl);
-
-  await sendEmailJob({
-    to: email,
-    subject,
-    html,
-  });
+export async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
+  const { subject, html } = await buildMagicLinkEmail(url);
+  await sendEmail({ to: email, subject, html });
 }
 
-export type TestEmailTemplate = 'welcome' | 'announcement' | 'verify-new-email';
+export async function sendVerifyNewEmail(email: string, verificationUrl: string): Promise<void> {
+  const { subject, html } = await buildVerifyNewEmailEmail(verificationUrl);
+  await sendEmail({ to: email, subject, html });
+}
+
+export type TestEmailTemplate = 'welcome' | 'announcement' | 'verify-new-email' | 'magic-link';
 
 /**
  * Sends a test email synchronously (bypassing the queue) and returns the Ethereal preview URL.
@@ -183,6 +188,8 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     ({ subject, html } = await buildWelcomeEmail(username));
   } else if (template === 'verify-new-email') {
     ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/verify?token=test-token'));
+  } else if (template === 'magic-link') {
+    ({ subject, html } = await buildMagicLinkEmail(`${config.BASE_URL}/v1/auth/magic-link/verify?token=test-token`));
   } else {
     ({ subject, html } = await buildAnnouncementEmail(
       username,

@@ -29,9 +29,13 @@ export default defineNuxtConfig({
           content:
             'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
         },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { name: 'twitter:card', content: 'summary_large_image' },
       ],
       link: [
-        { rel: 'icon', type: 'image/png', href: '/logo-og.png' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
       ],
     },
@@ -112,7 +116,7 @@ export default defineNuxtConfig({
   },
   site: {
     url: 'https://nadeshiko.co',
-    name: 'Nadeshiko: Japanese Sentence Search Engine',
+    name: 'Nadeshiko',
     description:
       'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
   },
@@ -257,6 +261,12 @@ export default defineNuxtConfig({
       },
     },
     '/logo.webp': {
+      headers: {
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/og-social.png': {
       headers: {
         'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',

@@ -1,0 +1,23 @@
+meta {
+  name: List user sessions
+  type: http
+  seq: 89
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/admin/list-user-sessions
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

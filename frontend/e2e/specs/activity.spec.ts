@@ -44,7 +44,7 @@ test.describe('Activity', () => {
     await authenticatedPage.goto('/search');
     const searchInput = authenticatedPage.getByTestId('search-input');
     await expect(searchInput).toBeVisible({ timeout: 10_000 });
-    await searchInput.fill('お鍋');
+    await searchInput.fill('ギター');
     await searchInput.press('Enter');
     await authenticatedPage.waitForLoadState('networkidle');
 
@@ -70,7 +70,7 @@ test.describe('Activity', () => {
     await authenticatedPage.goto('/search');
     const searchInput = authenticatedPage.getByTestId('search-input');
     await expect(searchInput).toBeVisible({ timeout: 10_000 });
-    await searchInput.fill('お鍋');
+    await searchInput.fill('ギター');
     await searchInput.press('Enter');
     await authenticatedPage.waitForLoadState('networkidle');
 

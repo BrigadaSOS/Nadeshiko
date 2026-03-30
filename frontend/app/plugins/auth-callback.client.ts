@@ -3,28 +3,42 @@ export default defineNuxtPlugin(() => {
   const { $i18n } = useNuxtApp();
   const route = useRoute();
 
-  // Check if we're returning from an OAuth callback
   if (import.meta.client) {
     const hasOAuthError = route.query.error;
     const isOAuthCallback = hasOAuthError || route.query.code || route.query.state;
+    const isMagicLinkCallback = route.query.magic_callback === '1';
 
-    if (isOAuthCallback) {
-      // Give the auth callback time to complete
+    if (isMagicLinkCallback) {
+      const router = useRouter();
+      const isBanned = route.query.error === 'banned';
+      router.replace({ query: {} });
+
+      setTimeout(async () => {
+        if (isBanned) {
+          useToastError($i18n.t('modalauth.labels.banneduser'));
+          return;
+        }
+        if (!store.isLoggedIn) {
+          await store.getBasicInfo();
+        }
+        if (store.isLoggedIn) {
+          useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
+        }
+      }, 200);
+    } else if (isOAuthCallback) {
       setTimeout(async () => {
         const wasLoggedIn = store.isLoggedIn;
 
-        // Refresh auth state
         await store.getBasicInfo();
 
-        // Show appropriate notification
+        const router = useRouter();
+
         if (store.isLoggedIn && !wasLoggedIn) {
           useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
-
-          // Clean up URL parameters
-          const router = useRouter();
           router.replace({ query: {} });
         } else if (hasOAuthError) {
           useToastError($i18n.t('modalauth.labels.errorlogin400'));
+          router.replace({ query: {} });
         }
       }, 500);
     }

@@ -61,7 +61,7 @@ env:
 
 accessories:
   toolbox:
-    image: brigadasos/nadeshiko-backend-dev:toolbox
+    image: ghcr.io/brigadasos/nadeshiko-toolbox:latest
     host: nadeshiko
     cmd: "sleep infinity"
     env:
@@ -85,9 +85,12 @@ accessories:
         - E2E_USER_PASSWORD
       clear:
         ENVIRONMENT: dev
+        PORT: 80
         BASE_URL: https://dev.nadeshiko.co
         POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
         POSTGRES_PORT: 5432
         ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
         ELASTICSEARCH_INDEX: nadedb_dev
         R2_BASE_URL: https://cdn.nadeshiko.co
+        SES_FROM_EMAIL: "noreply@nadeshiko.co"
+        SES_FROM_NAME: "Nadeshiko"

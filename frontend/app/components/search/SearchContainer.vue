@@ -446,12 +446,12 @@ if (props.initialSentenceData) {
 }
 
 onMounted(async () => {
-  if (props.initialSentenceData === undefined) {
+  if (props.initialSentenceData == null) {
     resetSentencePagination();
     await fetchSentences();
   }
 
-  if (props.initialStatsData === undefined) {
+  if (props.initialStatsData == null) {
     fetchStats();
   }
 });

@@ -16,5 +16,5 @@ ssh:
   user: docker
 
 aliases:
-  toolbox-console: accessory exec toolbox -i --cmd "bash"
+  toolbox-console: accessory exec toolbox -i "bash"
   logs: app logs -f

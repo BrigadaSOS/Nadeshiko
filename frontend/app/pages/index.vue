@@ -8,6 +8,8 @@ useSeoMeta({
   ogTitle: 'Nadeshiko: Japanese Sentence Search Engine',
   ogDescription:
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+  ogImage: `${useRequestURL().origin}/logo-og.png`,
+  twitterCard: 'summary_large_image',
 });
 
 useSchemaOrg([

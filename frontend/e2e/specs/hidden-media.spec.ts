@@ -13,8 +13,8 @@ test.describe('Hidden Media', () => {
     await hiddenMedia.goto();
     await hiddenMedia.expectLoaded();
 
-    await hiddenMedia.searchMedia('Poppy');
-    await expect(hiddenMedia.searchResultByName('Poppy Hill').first()).toBeVisible();
+    await hiddenMedia.searchMedia('Death');
+    await expect(hiddenMedia.searchResultByName('Death Note').first()).toBeVisible();
   });
 
   test('hides and unhides media', async ({ authenticatedPage }) => {
@@ -23,20 +23,20 @@ test.describe('Hidden Media', () => {
     await hiddenMedia.expectLoaded();
 
     // Search and hide
-    await hiddenMedia.searchMedia('Poppy');
-    const searchRow = hiddenMedia.searchResultByName('Poppy Hill');
+    await hiddenMedia.searchMedia('Death');
+    const searchRow = hiddenMedia.searchResultByName('Death Note');
     await expect(searchRow).toBeVisible();
     await hiddenMedia.hideMedia(searchRow);
 
     // Verify it appears in the hidden list
-    await expect(hiddenMedia.hiddenItemByName('Poppy Hill')).toBeVisible({ timeout: 10_000 });
+    await expect(hiddenMedia.hiddenItemByName('Death Note')).toBeVisible({ timeout: 10_000 });
 
     // Unhide from the list
-    const hiddenRow = hiddenMedia.hiddenItemByName('Poppy Hill');
+    const hiddenRow = hiddenMedia.hiddenItemByName('Death Note');
     await hiddenMedia.unhideFromList(hiddenRow);
 
     // Verify it's removed from the hidden list
-    await expect(hiddenMedia.hiddenItemByName('Poppy Hill')).not.toBeVisible({ timeout: 10_000 });
+    await expect(hiddenMedia.hiddenItemByName('Death Note')).not.toBeVisible({ timeout: 10_000 });
   });
 
   test('shows empty state when no media is hidden', async ({ authenticatedPage }) => {
