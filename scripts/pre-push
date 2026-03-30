@@ -1,23 +1,25 @@
 #!/bin/sh
 
 # Block pushes to main that fail lint or typecheck.
-
-remote="$1"
-
-pushing_to_main=false
-while read local_ref local_oid remote_ref remote_oid; do
-  case "$remote_ref" in
-    refs/heads/main) pushing_to_main=true ;;
-  esac
-done
-
-if [ "$pushing_to_main" = false ]; then
-  exit 0
-fi
-
-echo "Pushing to main -- running lint and typecheck..."
+# Can also be run directly: ./scripts/pre-push
 
 cd "$(git rev-parse --show-toplevel)" || exit 1
+
+# When called by git as a hook, stdin has push info. Skip non-main pushes.
+if [ -p /dev/stdin ]; then
+  pushing_to_main=false
+  while read local_ref local_oid remote_ref remote_oid; do
+    case "$remote_ref" in
+      refs/heads/main) pushing_to_main=true ;;
+    esac
+  done
+
+  if [ "$pushing_to_main" = false ]; then
+    exit 0
+  fi
+fi
+
+echo "Running lint and typecheck..."
 
 echo "=> Backend: lint"
 (cd backend && bun run lint:code) || { echo "Backend lint failed"; exit 1; }

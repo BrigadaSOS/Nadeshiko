@@ -147,7 +147,6 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
         // Parse string to object so pino redact paths work properly
         if (raw.responseBody !== undefined) {
           serialized.body = typeof raw.responseBody === 'string' ? safeParseJson(raw.responseBody) : raw.responseBody;
-
         }
         return serialized;
       },

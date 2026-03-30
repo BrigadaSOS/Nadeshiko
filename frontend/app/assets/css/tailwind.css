@@ -57,7 +57,6 @@ html:not(.nd-ui-ready) .nd-dropdown:focus-within .nd-dropdown-toggle svg {
   transform: rotate(180deg);
 }
 
-
 .nd-sidebar-link {
   border-left: 3px solid transparent;
 }

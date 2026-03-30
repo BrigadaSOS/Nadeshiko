@@ -1,6 +1,6 @@
 import { client, INDEX_NAME } from '@config/elasticsearch';
 import { logger } from '@config/log';
-import { Media, Segment } from '@app/models';
+import { Media, Segment, type PosAnalysisData } from '@app/models';
 import { In, type SelectQueryBuilder } from 'typeorm';
 import type { t_ReindexResponse } from 'generated/models';
 import type { SegmentDocumentShape, SlimToken, ReindexMediaItem } from '../SegmentDocument';
@@ -282,10 +282,11 @@ export class SegmentIndexer {
     };
   }
 
-  private static extractSlimTokens(posAnalysis: Record<string, unknown> | null): SlimToken[] | undefined {
+  private static extractSlimTokens(posAnalysis: PosAnalysisData | null): SlimToken[] | undefined {
     if (!posAnalysis) return undefined;
 
-    const sudachi = posAnalysis.sudachi;
+    const data = posAnalysis as Record<string, unknown>;
+    const sudachi = data.sudachi;
     if (!Array.isArray(sudachi) || sudachi.length === 0) return undefined;
 
     return sudachi.map((token: Record<string, unknown>) => {
