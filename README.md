@@ -16,41 +16,9 @@ Nadeshiko is an online sentence search engine designed to display content from a
 - **Downloadable Content**: Download any content for offline study and reference.
 - **Public API:** Integrate our database and search features into your own applications.
 
-## Development
-### Prerequisites
-- `bun` (see `.tool-versions`)
-- Docker and Docker Compose
+## Contributing
 
-### Quick start
-```bash
-# Start local services (Postgres/Elasticsearch/Kibana)
-cd backend && docker compose up -d
-
-# Install dependencies
-cd ..
-bun install --cwd backend
-bun install --cwd frontend
-
-# Create env files
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-
-# Prepare backend data
-bun run --cwd backend setup
-
-# Run apps
-bun run dev:backend
-bun run dev:frontend
-```
-
-### Common root commands
-```bash
-bun run lint
-bun run typecheck
-bun run build
-bun run check
-bun run docs:verify
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, available commands, and how to submit changes.
 
 ## Release Versioning
 From the repository root:
