@@ -5,10 +5,6 @@ builder:
   secrets:
     - SENTRY_AUTH_TOKEN
 
-servers:
-  web:
-    cmd: bun run start
-
 proxy:
   ssl: true
   host: api-dev.nadeshiko.co
