@@ -256,7 +256,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
     <div v-for="(result, index) in resultList" :key="result.segment.uuid"
       :id="result.segment.uuid"
       data-testid="segment-card"
-      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative"
+      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
@@ -322,8 +322,8 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             </button>
 
             <!-- Japanese Sentence -->
-            <div class="flex flex-1 relative items-start justify-start my-auto">
-              <h3 lang="ja" data-testid="segment-japanese-text" class="ml-2 text-xl xxl:text-lg leading-snug flex flex-wrap items-center gap-2">
+            <div class="flex flex-1 relative items-start justify-start my-auto gap-2">
+              <h3 lang="ja" data-testid="segment-japanese-text" class="ml-2 text-xl xxl:text-lg leading-snug">
                 <SearchSegmentTokenText
                   v-if="tokensEnabled && (result.segment.textJa as any).tokens"
                   :tokens="(result.segment.textJa as any).tokens"
@@ -335,29 +335,28 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
                   ? result.segment.textJa.highlight
                   : result.segment.textJa.content
                   "></span>
-                <!-- Content Rating Badge -->
-                <span v-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
-                  class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-orange-700/50 bg-orange-100 px-2.5 py-1.5 text-[11px] font-semibold leading-none text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 whitespace-nowrap align-middle ml-2">
-                  <span>{{ $t('segment.nsfwTag') }}</span>
-                  <span
-                    class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
-                    role="tooltip">
-                    {{ $t('segment.contentRatingDescription.SENSITIVE') }}
-                    <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
-                  </span>
-                </span>
-                <span v-else-if="result.segment.contentRating?.toUpperCase() === 'EXPLICIT'"
-                  class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-red-700/50 bg-red-100 px-2.5 py-1.5 text-[11px] font-semibold leading-none text-red-800 dark:bg-red-900/40 dark:text-red-300 whitespace-nowrap align-middle ml-2">
-                  <span>{{ $t('segment.nsfwTag') }}</span>
-                  <span
-                    class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
-                    role="tooltip">
-                    {{ $t('segment.contentRatingDescription.SENSITIVE') }}
-                    <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
-                  </span>
-                </span>
               </h3>
-
+              <!-- Content Rating Badge -->
+              <span v-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
+                class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-orange-700/50 bg-orange-100 px-2.5 py-1.5 font-semibold leading-none text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 whitespace-nowrap shrink-0 self-center yomitan-ignore">
+                <span class="text-[11px]">{{ $t('segment.nsfwTag') }}</span>
+                <span
+                  class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
+                  role="tooltip">
+                  {{ $t('segment.contentRatingDescription.SENSITIVE') }}
+                  <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
+                </span>
+              </span>
+              <span v-else-if="result.segment.contentRating?.toUpperCase() === 'EXPLICIT'"
+                class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-red-700/50 bg-red-100 px-2.5 py-1.5 font-semibold leading-none text-red-800 dark:bg-red-900/40 dark:text-red-300 whitespace-nowrap shrink-0 self-center yomitan-ignore">
+                <span class="text-[11px]">{{ $t('segment.nsfwTag') }}</span>
+                <span
+                  class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
+                  role="tooltip">
+                  {{ $t('segment.contentRatingDescription.SENSITIVE') }}
+                  <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
+                </span>
+              </span>
             </div>
             <!-- End Japanese Sentence -->
           </div>

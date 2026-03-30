@@ -9,6 +9,33 @@
   .bg-sgrayhover {
     background-color: #333333;
   }
+  /*
+   * Prevents Yomitan's text scanner (DOMTextScanner) from entering this element.
+   *
+   * How it works:
+   *   Yomitan checks `getComputedStyle(el).fontSize <= 0` in `isStyleVisible()`.
+   *   Elements that fail this check are marked non-enterable, so the scanner
+   *   skips them and all their children entirely. This is a hard boundary,
+   *   independent of the user's Yomitan configuration (terminateAtNewlines,
+   *   terminationCharacters, scanExtent, etc.).
+   *
+   * How to use:
+   *   1. Add `yomitan-ignore` to the element you want the scanner to skip.
+   *   2. Since font-size is inherited, every child that renders text MUST have
+   *      an explicit font-size class (text-xs, text-sm, text-base, text-lg, etc.)
+   *      or it will inherit 0px and become invisible.
+   *   3. Tailwind's text-* classes use `rem`, so they are not affected by the
+   *      parent's font-size: 0. However, any `em`-based sizing in children
+   *      will resolve to 0 unless a closer ancestor sets an explicit font-size.
+   *   4. If the element already has a text-* class (e.g. text-xs on <header>),
+   *      move that class to the first child instead to avoid conflicting with
+   *      yomitan-ignore.
+   *
+   * Reference: yomidevs/yomitan ext/js/dom/dom-text-scanner.js — getElementSeekInfo()
+   */
+  .yomitan-ignore {
+    font-size: 0px;
+  }
 }
 
 /* Overlay (modal/offcanvas) transitions — the nd-overlay-open: prefix classes

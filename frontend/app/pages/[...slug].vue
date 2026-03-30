@@ -27,14 +27,16 @@ const title = computed(() => data.value?.title || 'Nadeshiko');
 const description = computed(() => data.value?.description || '');
 const canonicalUrl = computed(() => new URL(route.path || '/', siteUrl).toString());
 const contentDate = computed(() => {
-  const raw = data.value?.date ?? data.value?.meta?.date;
+  const d = data.value as Record<string, any> | null;
+  const raw = d?.date ?? d?.meta?.date;
   if (!raw) return null;
   if (typeof raw === 'string') return raw;
   if (raw instanceof Date) return raw.toISOString();
   return null;
 });
 const contentAuthor = computed(() => {
-  const raw = data.value?.author ?? data.value?.meta?.author;
+  const d = data.value as Record<string, any> | null;
+  const raw = d?.author ?? d?.meta?.author;
   return typeof raw === 'string' && raw ? raw : null;
 });
 

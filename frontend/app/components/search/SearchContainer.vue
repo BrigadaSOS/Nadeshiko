@@ -126,7 +126,8 @@ const animeTabName = computed(() => {
 
   const singleResult = searchData.value?.results;
   if (singleResult?.length === 1 && !query.value) {
-    return mediaName(singleResult[0]?.media);
+    const media = singleResult[0]?.media;
+    if (media) return mediaName(media);
   }
 
   return t('searchContainer.categoryAll');
@@ -546,7 +547,7 @@ onBeforeRouteUpdate(async (to, from) => {
     </div>
     <div v-else class="flex-1 mx-auto">
         <!-- Tabs -->
-        <div class="pb-3" v-if="searchData?.categories?.length > 0">
+        <div class="pb-3 yomitan-ignore" v-if="searchData?.categories?.length > 0">
             <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21] px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
@@ -577,7 +578,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
         </div>
-        <div v-else-if="isLoading && !searchData?.results?.length || !searchData" class="w-full pb-4  animate-pulse">
+        <div v-else-if="isLoading && !searchData?.results?.length || !searchData" class="w-full pb-4  animate-pulse yomitan-ignore">
             <CommonTabsContainer>
                 <CommonTabsHeader>
                     <div v-for="i in 3" :key="i" class="flex  flex-row space-x-10 gap-10 py-5">
@@ -586,7 +587,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </CommonTabsHeader>
             </CommonTabsContainer>
         </div>
-        <div v-else class="pb-3">
+        <div v-else class="pb-3 yomitan-ignore">
             <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
@@ -609,20 +610,20 @@ onBeforeRouteUpdate(async (to, from) => {
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" :collectionId="collectionId" @remove-from-collection="handleRemoveFromCollection" />
                 <CommonInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults && !isLoading" />
-                <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8">
+                <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8 yomitan-ignore">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">
                         <UiBaseIcon :path="mdiRefresh" />
                         {{ $t('searchContainer.loadMore') }}
                     </UiButtonPrimaryAction>
                 </div>
-                <div v-if="endOfResults && !hasMoreResults && searchData?.results?.length > 0" class="text-center mt-4 mb-8">
-                    <p class="text-gray-500 dark:text-gray-400">
+                <div v-if="endOfResults && !hasMoreResults && searchData?.results?.length > 0" class="text-center mt-4 mb-8 yomitan-ignore">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
                         {{ $t('searchContainer.endOfResults') }}
                     </p>
                 </div>
             </div>
             <!-- Filters -->
-            <div v-if="searchData?.media?.length > 0 || isLoading" class="2xl:min-w-[18rem] 2xl:max-w-[18rem]">
+            <div v-if="searchData?.media?.length > 0 || isLoading" class="2xl:min-w-[18rem] 2xl:max-w-[18rem] yomitan-ignore">
                 <div v-if="searchData?.media?.length > 0" class="p-2 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
