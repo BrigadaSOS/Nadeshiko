@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/characters/:id
+  url: {{baseUrl}}/v1/media/characters/:id?id=1
   body: none
   auth: bearer
 }
 
 params:query {
-  id:
+  id: 1
 }
 
 auth:bearer {

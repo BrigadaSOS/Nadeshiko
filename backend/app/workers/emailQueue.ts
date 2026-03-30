@@ -19,8 +19,7 @@ export async function sendEmailJob(data: EmailJobData, dedupeKey?: string): Prom
     let jobId: string | null;
 
     if (dedupeKey) {
-      // Use sendDebounced with 0 seconds to ensure only one email per dedupeKey.
-      jobId = await boss.sendDebounced(EMAIL_SEND_QUEUE, data, null, 0, dedupeKey);
+      jobId = await boss.send(EMAIL_SEND_QUEUE, data, { singletonKey: dedupeKey });
       logger.info(`Enqueued email job ${jobId} with dedupe key ${dedupeKey} to ${data.to}`);
     } else {
       jobId = await boss.send(EMAIL_SEND_QUEUE, data);

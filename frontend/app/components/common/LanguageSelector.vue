@@ -3,6 +3,13 @@ import { mdiTranslate } from '@mdi/js';
 
 import { useI18n } from 'vue-i18n';
 
+const props = defineProps({
+  testId: {
+    type: String,
+    default: 'language-selector',
+  },
+});
+
 const { locale, locales, setLocale } = useI18n();
 
 function getLocaleName(code) {
@@ -15,7 +22,7 @@ const availableLocales = computed(() => {
 });
 </script>
 <template>
-  <SearchDropdownContainer data-testid="language-selector" dropdownId="nd-dropdown-language"
+  <SearchDropdownContainer :data-testid="props.testId" dropdownId="nd-dropdown-language"
     dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
     <template #default>
       <SearchDropdownMainButton

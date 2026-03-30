@@ -5,13 +5,13 @@ meta {
 }
 
 patch {
-  url: {{baseUrl}}/v1/media/segments/:uuid
+  url: {{baseUrl}}/v1/media/segments/:uuid?uuid=3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
   body: json
   auth: bearer
 }
 
 params:query {
-  uuid:
+  uuid: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
 }
 
 auth:bearer {

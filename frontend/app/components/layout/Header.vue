@@ -151,6 +151,7 @@ async function submitSidebarSearch() {
     </header>
 
     <div id="nd-nav-sidebar"
+        data-testid="nav-menu"
         class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 nd-overlay-open:translate-x-0 hidden translate-x-full fixed top-0 end-0 transition-all duration-300 transform h-full max-w-xs w-full z-[80] bg-white border-s dark:bg-neutral-800 dark:border-neutral-700 md:hidden"
         role="dialog" tabindex="-1" aria-label="Navigation menu">
 
@@ -209,28 +210,28 @@ async function submitSidebarSearch() {
 
             <div class="border-t dark:border-neutral-700 py-2">
                 <template v-if="isAuth">
-                    <NuxtLink to="/user/settings" data-testid="nav-settings"
+                    <NuxtLink to="/user/settings"
                         class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                         <UiBaseIcon :path="mdiCogOutline" :size="18" />
                         {{ $t('navbar.buttons.settings') }}
                     </NuxtLink>
-                    <NuxtLink to="/user/sync" data-testid="nav-anki"
+                    <NuxtLink to="/user/sync"
                         class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                         <UiBaseIcon :path="mdiSync" :size="18" />
                         Anki
                     </NuxtLink>
-                    <NuxtLink to="/user/collections" data-testid="nav-collections"
+                    <NuxtLink to="/user/collections"
                         class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                         <UiBaseIcon :path="mdiFormatListBulletedSquare" :size="18" />
                         Collections
                     </NuxtLink>
-                    <NuxtLink to="/user/activity" data-testid="nav-activity"
+                    <NuxtLink to="/user/activity"
                         class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                         <UiBaseIcon :path="mdiHistory" :size="18" />
                         Activity
                     </NuxtLink>
                 </template>
-                <button v-if="!isAuth" data-testid="nav-login" @click="openLoginModal"
+                <button v-if="!isAuth" @click="openLoginModal"
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 w-full text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiLogin" :size="18" />
                     {{ $t('navbar.buttons.login') }}
@@ -268,7 +269,7 @@ async function submitSidebarSearch() {
                             </svg>
                         </a>
                     </div>
-                    <CommonLanguageSelector />
+                    <CommonLanguageSelector test-id="language-selector-mobile" />
                 </div>
             </div>
         </div>

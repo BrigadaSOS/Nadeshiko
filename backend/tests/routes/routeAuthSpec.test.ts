@@ -19,7 +19,7 @@ interface PathItem {
   [method: string]: Operation;
 }
 
-const SKIPPED_OPERATIONS = new Set(['impersonateAdminUser', 'clearAdminImpersonation', 'getAnnouncement']);
+const SKIPPED_OPERATIONS = new Set(['getAnnouncement']);
 const HTTP_METHODS = new Set(['get', 'post', 'patch', 'put', 'delete']);
 
 function loadSpec() {

@@ -2,39 +2,26 @@ openapi: 3.1.0
 info:
   title: Nadeshiko API
   description: |
-    Welcome to the Nadeshiko API.
+    Thank you for using the Nadeshiko API! This API lets you search Japanese dialogue segments across anime and J-Drama, with translations and contextual metadata.
 
-    ## Getting Started
+    ### Authentication
+    All API requests require an API key passed as a Bearer token. You can register and generate your key on the [developer page](https://nadeshiko.co/user/developer), where you can also check your current usage.
 
-    Nadeshiko uses API keys to grant access to the API. Authentication is performed using the Authorization header. Please note that you must be registered on Nadeshiko to generate an API key. If you haven't registered yet, please do so.
+    ### Rate Limit
+    Each API key is limited to **150 requests per minute**. Exceeding this limit will return a `429 Too Many Requests` response.
 
-    If you haven't generated an API key yet, you can do so on your [account page](https://nadeshiko.co/settings/api), API section.
-    Internal user/admin endpoints use session cookie authentication.
-    401 response components are scoped by auth mode:
-    - `UnauthorizedApiKey` for API key-only endpoints
-    - `UnauthorizedSession` for session-only endpoints
-    - `Unauthorized` for endpoints that accept either auth mode
-
-    ### Quotas and Limits
-    The API has a rate limit to ensure fair usage. Each API key is subject to a rate limit of 2000 requests per 5 minutes. Exceeding this limit will result in a temporary block with the following message:
-    > "Too many requests. Please try again later."
-
-    Additionally, each account has a monthly quota limit. Once the monthly quota is exceeded, further requests will receive the message:
-    > "API Key quota exceeded for this month."
-
-    | Account Type | Quota (Monthly) |
-    |--------------|-----------------|
-    | Default      | 5000 requests   |
-
-    To increase your quota, please contact the Nadeshiko team. For more information, refer to the [contact page](https://nadeshiko.co/about).
-  version: 1.5.0
+    ### Quota
+    Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
+    To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
+  version: 2.0.4
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
   license:
-    name: ISC
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
   x-logo:
-    url: https://nadeshiko.co/logo.webp
+    url: ./logo.png
     altText: Nadeshiko
     href: https://nadeshiko.co
 servers:
@@ -85,12 +72,9 @@ paths:
         | **Kanji** (`食べる`, `彼女`) | Searches content and base form (dictionary form). Ignores matches by reading (homophones). |
         | **Kana** (`たべる`, `かのじょ`) | Standard search across content, base form, and reading form |
         | **English/Spanish** | Direct translation search |
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -115,7 +99,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -136,12 +120,9 @@ paths:
         - `categories` powers category tabs below the search bar.
 
         The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       requestBody:
         content:
           application/json:
@@ -166,7 +147,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -183,17 +164,9 @@ paths:
         Searches for multiple words simultaneously and aggregates results by media.
 
         Unlike the main search endpoint, this returns a summary of matches per media rather than individual segments.
-
-        **Use Cases**
-        - Vocabulary discovery across media library
-        - Finding anime/dramas that use specific words
-        - Comparing word usage across different titles
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -224,7 +197,7 @@ paths:
                 InvalidJson:
                   $ref: '#/components/examples/InvalidJson'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -240,12 +213,9 @@ paths:
       description: |
         Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
         Supports filtering by category and text search.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -293,7 +263,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -305,15 +275,12 @@ paths:
         - Media
       operationId: createMedia
       x-internal: true
-      summary: Create new media
+      summary: Create media
       description: |
         Creates a new media entry in the database.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - ApiKey:
             - ADD_MEDIA
-        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -330,7 +297,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
@@ -350,12 +317,9 @@ paths:
         Returns a short list of media matching a name prefix or substring.
         Results are ranked by exact match, then prefix match, then contains match,
         and further sorted by name length.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: query
           in: query
@@ -393,7 +357,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -405,25 +369,21 @@ paths:
       tags:
         - Media
       operationId: getSegmentByUuid
-      summary: Get segment by UUID or publicId
+      summary: Get segment by publicId
       description: |
-        Returns a specific segment by its UUID or publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
+        Returns a specific segment by its publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
 
         Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
-
-        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - ApiKey:
-            - UPDATE_MEDIA
-        - SessionCookie:
-            - ADMIN
+            - READ_MEDIA
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID or publicId
+          description: Segment publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: include
           in: query
@@ -461,24 +421,19 @@ paths:
       x-internal: true
       tags:
         - Media
-      summary: Update segment by UUID or publicId
+      summary: Update segment by publicId
       description: |
-        Updates an existing segment identified by its UUID or publicId. Performs the lookup internally,
-        then applies the update. Only provided fields will be updated.
-
-        **Permissions:** `UPDATE_MEDIA`
+        Updates an existing segment identified by its publicId. Only provided fields will be updated.
       security:
         - ApiKey:
             - UPDATE_MEDIA
-        - SessionCookie:
-            - ADMIN
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID or publicId
+          description: Segment publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       requestBody:
         required: true
@@ -510,20 +465,16 @@ paths:
       description: |
         Retrieves segments surrounding a specific segment within an episode.
         Returns segments both before and after the target, providing dialogue context for how a sentence is used.
-
-        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
       security:
         - ApiKey:
-            - UPDATE_MEDIA
-        - SessionCookie:
-            - ADMIN
+            - READ_MEDIA
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID or publicId
+          description: Segment publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         - name: take
           in: query
@@ -583,21 +534,17 @@ paths:
         - Media
       summary: List segment revision history
       description: |
-        Returns the revision history for a segment identified by UUID, ordered by most recent first.
-
-        **Permissions:** `UPDATE_MEDIA` (API key) or admin session
+        Returns the revision history for a segment, ordered by most recent first.
       security:
         - ApiKey:
-            - UPDATE_MEDIA
-        - SessionCookie:
-            - ADMIN
+            - READ_MEDIA
       parameters:
         - name: uuid
           in: path
           required: true
           schema:
             type: string
-          description: Segment UUID or publicId
+          description: Segment publicId
           example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       responses:
         '200':
@@ -622,12 +569,9 @@ paths:
       summary: List all series
       description: |
         Returns a paginated list of media series groupings.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: take
           in: query
@@ -658,7 +602,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -673,12 +617,9 @@ paths:
       summary: Create series
       description: |
         Creates a new media series grouping.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - ApiKey:
             - ADD_MEDIA
-        - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -712,7 +653,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -727,20 +668,17 @@ paths:
       summary: Get series details
       description: |
         Returns a series with all media entries sorted by position.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
         - name: include
           in: query
           description: Resources to expand in the series response
@@ -759,7 +697,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -776,20 +714,17 @@ paths:
       summary: Update series metadata
       description: |
         Updates series localized names.
-
-        **Permissions:** `UPDATE_MEDIA`
       security:
         - ApiKey:
             - UPDATE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -819,7 +754,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -836,27 +771,24 @@ paths:
       summary: Delete series
       description: |
         Deletes a series and all its media associations.
-
-        **Permissions:** `REMOVE_MEDIA`
       security:
         - ApiKey:
             - REMOVE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '204':
           description: No Content
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -874,20 +806,17 @@ paths:
       summary: Add media to series
       description: |
         Adds a media entry to a series at a specific position.
-
-        **Permissions:** `UPDATE_MEDIA`
       security:
         - ApiKey:
             - ADD_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -899,9 +828,9 @@ paths:
                 - position
               properties:
                 mediaId:
-                  type: integer
-                  description: Media ID to add
-                  example: 42
+                  type: string
+                  description: Media public ID to add
+                  example: abc123def456
                 position:
                   type: integer
                   description: Position in the series (1-indexed)
@@ -912,7 +841,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -930,27 +859,24 @@ paths:
       summary: Update media position in series
       description: |
         Updates the position of a media entry in a series.
-
-        **Permissions:** `UPDATE_MEDIA`
       security:
         - ApiKey:
             - UPDATE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
         - name: mediaId
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 42
+            type: string
+            example: abc123def456
       requestBody:
         required: true
         content:
@@ -970,7 +896,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -987,34 +913,31 @@ paths:
       summary: Remove media from series
       description: |
         Removes a media entry from a series.
-
-        **Permissions:** `REMOVE_MEDIA`
       security:
         - ApiKey:
             - REMOVE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Series ID
+          description: Series public ID
           schema:
-            type: integer
-            example: 1
+            type: string
+            example: V1StGXR8_Z5d
         - name: mediaId
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 42
+            type: string
+            example: abc123def456
       responses:
         '204':
           description: No Content
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1025,23 +948,21 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/media/characters/{id}:
     get:
+      x-internal: true
       tags:
         - Media
       operationId: getCharacter
       summary: Get character details
       description: |
         Returns a character with their voice actors (seiyuu) and all media appearances.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Internal character ID
+          description: Character ID
           schema:
             type: integer
             example: 1
@@ -1055,7 +976,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1066,18 +987,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /v1/media/seiyuu/{id}:
     get:
+      x-internal: true
       tags:
         - Media
       operationId: getSeiyuu
       summary: Get seiyuu details
       description: |
         Returns a voice actor (seiyuu) with all characters they voiced and their media appearances.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
@@ -1096,7 +1015,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1113,20 +1032,17 @@ paths:
       summary: Get single media
       description: |
         Returns a single media entry by its ID with full metadata.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 7674
+            type: string
+            example: V1StGXR8_Z5d
         - name: include
           in: query
           description: Resources to expand in the media response
@@ -1145,7 +1061,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1162,21 +1078,17 @@ paths:
       summary: Update media
       description: |
         Updates an existing media entry. Only provided fields will be updated.
-
-        **Permissions:** `UPDATE_MEDIA`
       security:
         - ApiKey:
             - UPDATE_MEDIA
-        - SessionCookie:
-            - ADMIN
       parameters:
         - name: id
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 7674
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -1193,7 +1105,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1207,30 +1119,27 @@ paths:
         - Media
       operationId: deleteMedia
       x-internal: true
-      summary: Delete media (soft delete)
+      summary: Delete media
       description: |
         Soft-deletes a media entry by setting the `deletedAt` timestamp. The media remains in the database but is excluded from query results.
-
-        **Permissions:** `REMOVE_MEDIA`
       security:
         - ApiKey:
             - REMOVE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: id
           in: path
           required: true
-          description: Media ID
+          description: Media public ID
           schema:
-            type: integer
-            example: 7674
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '204':
           description: No Content
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1247,20 +1156,17 @@ paths:
       summary: List episodes for a media
       description: |
         Returns a paginated list of episodes for a specific media.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: take
           in: query
           required: false
@@ -1284,7 +1190,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1298,23 +1204,20 @@ paths:
       x-internal: true
       tags:
         - Media
-      summary: Create new episode
+      summary: Create episode
       description: |
         Creates a new episode for a specific media.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - ApiKey:
             - ADD_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -1327,7 +1230,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1346,20 +1249,17 @@ paths:
       summary: Get single episode
       description: |
         Returns a specific episode by media ID and episode number.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1373,7 +1273,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1390,20 +1290,17 @@ paths:
       summary: Update episode
       description: |
         Updates an existing episode. Only provided fields will be updated.
-
-        **Permissions:** `UPDATE_MEDIA`
       security:
         - ApiKey:
             - UPDATE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1423,7 +1320,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1437,23 +1334,20 @@ paths:
         - Media
       operationId: deleteEpisode
       x-internal: true
-      summary: Delete an episode
+      summary: Delete episode
       description: |
         Soft-deletes an episode. Segments are not cascade deleted — this only hides the episode from results.
-
-        **Permissions:** `REMOVE_MEDIA`
       security:
         - ApiKey:
             - REMOVE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1463,11 +1357,11 @@ paths:
           example: 1
       responses:
         '204':
-          description: Episode successfully deleted
+          description: No Content
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1485,20 +1379,17 @@ paths:
       summary: List segments for an episode
       description: |
         Returns a paginated list of segments for a specific episode.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1529,7 +1420,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1543,23 +1434,20 @@ paths:
         - Media
       operationId: createSegment
       x-internal: true
-      summary: Create new segment
+      summary: Create segment
       description: |
         Creates a new segment for a specific episode.
-
-        **Permissions:** `UPDATE_MEDIA`
       security:
         - ApiKey:
             - ADD_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1579,7 +1467,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1596,24 +1484,21 @@ paths:
         - Media
       operationId: createSegmentsBatch
       x-internal: true
-      summary: Batch create segments for an episode
+      summary: Batch create segments
       description: |
         Creates multiple segments for a specific episode in a single request.
         Duplicate UUIDs are silently skipped.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - ApiKey:
             - ADD_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1633,7 +1518,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1650,20 +1535,17 @@ paths:
       summary: Get single segment
       description: |
         Returns a specific segment by its ID within the media/episode hierarchy.
-
-        **Permissions:** `READ_MEDIA`
       security:
         - ApiKey:
             - READ_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1684,7 +1566,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1701,20 +1583,17 @@ paths:
       summary: Update segment
       description: |
         Updates an existing segment. Only provided fields will be updated.
-
-        **Permissions:** `UPDATE_MEDIA`
       security:
         - ApiKey:
             - UPDATE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1741,7 +1620,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1758,20 +1637,17 @@ paths:
       summary: Delete segment
       description: |
         Soft-deletes a segment by setting its status to DELETED.
-
-        **Permissions:** `REMOVE_MEDIA`
       security:
         - ApiKey:
             - REMOVE_MEDIA
-        - SessionCookie: []
       parameters:
         - name: mediaId
           in: path
           required: true
           schema:
-            type: integer
-          description: ID of the media
-          example: 7674
+            type: string
+          description: Public ID of the media
+          example: V1StGXR8_Z5d
         - name: episodeNumber
           in: path
           required: true
@@ -1788,11 +1664,11 @@ paths:
           example: 12345
       responses:
         '204':
-          description: Segment successfully deleted
+          description: No Content
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedApiKey'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -1810,8 +1686,6 @@ paths:
       summary: Get current monthly API quota
       description: |
         Returns the API quota usage for the current billing period.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       responses:
@@ -1822,7 +1696,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserQuotaResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -1835,11 +1709,9 @@ paths:
         - User
       x-internal: true
       operationId: createUserReport
-      summary: Create a new report
+      summary: Create report
       description: |
-        Submit a report for a segment or media entry.
-
-        **Permissions:** Session authentication (cookie-based).
+        Submits a report for a segment or media entry.
       security:
         - SessionCookie: []
       requestBody:
@@ -1850,7 +1722,7 @@ paths:
               $ref: '#/components/schemas/CreateReportRequest'
       responses:
         '201':
-          description: Report created successfully
+          description: Created
           content:
             application/json:
               schema:
@@ -1858,7 +1730,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -1872,8 +1744,6 @@ paths:
       summary: Get user preferences
       description: |
         Returns the authenticated user's full preferences object.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       responses:
@@ -1884,7 +1754,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserPreferences'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
@@ -1896,8 +1766,6 @@ paths:
       description: |
         Deep-merges a partial preferences update into the user's existing preferences.
         Only the provided keys are updated; all other keys are preserved.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       requestBody:
@@ -1914,7 +1782,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserPreferences'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity:
@@ -1923,11 +1791,9 @@ paths:
         - User
       x-internal: true
       operationId: listUserActivity
-      summary: Get user activity history
+      summary: List user activity
       description: |
         Returns the authenticated user's activity history with cursor-based pagination.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -1972,7 +1838,7 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/OpaqueCursorPagination'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
@@ -1983,8 +1849,6 @@ paths:
       summary: Track user activity
       description: |
         Records a user activity event (e.g. segment play). Fire-and-forget — always returns 204.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       requestBody:
@@ -1999,23 +1863,27 @@ paths:
                 activityType:
                   type: string
                   enum:
+                    - SEARCH
                     - SEGMENT_PLAY
                     - SHARE
+                    - ANKI_EXPORT
                 segmentId:
-                  type: integer
+                  type: string
                 mediaId:
                   type: integer
                 mediaName:
                   type: string
                 japaneseText:
                   type: string
+                searchQuery:
+                  type: string
       responses:
         '204':
-          description: Activity tracked
+          description: No Content
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -2023,11 +1891,9 @@ paths:
         - User
       x-internal: true
       operationId: deleteUserActivity
-      summary: Clear user activity history
+      summary: Clear user activity
       description: |
         Deletes the authenticated user's activity history. Optionally filter by activity type.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -2049,7 +1915,7 @@ paths:
                   deletedCount:
                     type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/heatmap:
@@ -2062,8 +1928,6 @@ paths:
       description: |
         Returns daily activity counts for the authenticated user, grouped by date and activity type.
         Each day contains per-type counts that can be summed or filtered client-side.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -2090,7 +1954,7 @@ paths:
                       $ref: '#/components/schemas/HeatmapDayCounts'
                     description: Map of YYYY-MM-DD date strings to per-type activity counts
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/stats:
@@ -2103,8 +1967,6 @@ paths:
       description: |
         Returns aggregate statistics about the authenticated user's activity:
         total searches, exports, plays, and top media.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -2152,7 +2014,7 @@ paths:
                         count:
                           type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/date/{date}:
@@ -2164,8 +2026,6 @@ paths:
       summary: Delete all activity for a specific date
       description: |
         Deletes all activity records for the authenticated user on the given date.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -2189,7 +2049,7 @@ paths:
                   deletedCount:
                     type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/{id}:
@@ -2198,11 +2058,9 @@ paths:
         - User
       x-internal: true
       operationId: deleteUserActivityById
-      summary: Delete a single activity record
+      summary: Delete activity record
       description: |
         Deletes a single activity record by ID for the authenticated user.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -2214,9 +2072,9 @@ paths:
           description: Activity record ID
       responses:
         '204':
-          description: Activity deleted
+          description: No Content
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -2231,8 +2089,6 @@ paths:
       description: |
         Returns a full JSON export of all user-related data for GDPR data portability.
         Includes profile, preferences, activity history, collections, and reports.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       responses:
@@ -2243,7 +2099,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserExportResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/labs:
@@ -2257,8 +2113,6 @@ paths:
         Returns all available lab features merged with the authenticated user's
         opt-in status. Features gated by role are excluded if the user lacks
         the required role.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       responses:
@@ -2271,7 +2125,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/UserLabFeature'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/labs/{key}:
@@ -2284,8 +2138,6 @@ paths:
       description: |
         Opts the authenticated user into a lab feature. The user must be eligible
         for the lab (correct role, in allowlist or rollout percentage).
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -2297,9 +2149,9 @@ paths:
           description: Lab feature key
       responses:
         '204':
-          description: Enrolled successfully
+          description: No Content
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -2312,8 +2164,6 @@ paths:
       summary: Unenroll from a lab feature
       description: |
         Opts the authenticated user out of a lab feature.
-
-        **Permissions:** Session authentication (cookie-based).
       security:
         - SessionCookie: []
       parameters:
@@ -2325,9 +2175,9 @@ paths:
           description: Lab feature key
       responses:
         '204':
-          description: Unenrolled successfully
+          description: No Content
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -2378,7 +2228,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2411,7 +2261,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2433,10 +2283,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: cursor
           in: query
           description: Opaque pagination cursor token for paginated segments
@@ -2462,7 +2312,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2485,10 +2335,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -2515,7 +2365,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2538,17 +2388,17 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '204':
           description: No Content
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2572,10 +2422,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -2599,7 +2449,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2623,10 +2473,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: segmentId
           in: path
           required: true
@@ -2656,7 +2506,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2679,10 +2529,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: segmentId
           in: path
           required: true
@@ -2696,7 +2546,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2721,10 +2571,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
         - name: cursor
           in: query
           description: Opaque cursor token for pagination
@@ -2750,7 +2600,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2775,10 +2625,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Collection ID
+          description: Collection public ID
           schema:
-            type: integer
-            example: 123
+            type: string
+            example: V1StGXR8_Z5d
       responses:
         '200':
           description: OK
@@ -2789,7 +2639,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2804,12 +2654,10 @@ paths:
         - Admin
       x-internal: true
       operationId: getAdminDashboard
-      summary: Admin dashboard statistics
+      summary: Get dashboard statistics
       description: |
         Returns at-a-glance statistics for the admin dashboard including media counts,
         user counts, and system health information.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -2981,7 +2829,617 @@ paths:
                             failedCount:
                               type: integer
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/overview:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardOverview
+      summary: Get dashboard overview statistics
+      description: |
+        Returns key metrics and daily activity for the admin dashboard overview tab.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Number of days for daily activity range (7, 30, or 90)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - media
+                  - users
+                  - activity
+                properties:
+                  media:
+                    type: object
+                    required:
+                      - totalMedia
+                      - totalEpisodes
+                      - totalSegments
+                      - totalCharacters
+                      - totalSeiyuu
+                    properties:
+                      totalMedia:
+                        type: integer
+                      totalEpisodes:
+                        type: integer
+                      totalSegments:
+                        type: integer
+                      totalCharacters:
+                        type: integer
+                      totalSeiyuu:
+                        type: integer
+                  users:
+                    type: object
+                    required:
+                      - totalUsers
+                      - recentlyRegisteredCount
+                      - recentlyActiveCount
+                    properties:
+                      totalUsers:
+                        type: integer
+                      recentlyRegisteredCount:
+                        type: integer
+                        description: Users registered in the last 30 days
+                      recentlyActiveCount:
+                        type: integer
+                        description: Users active in the last 30 days
+                  activity:
+                    type: object
+                    required:
+                      - totalSearches
+                      - totalExports
+                      - totalPlays
+                      - totalShares
+                      - activeSearchers7d
+                      - dailyActivity
+                    properties:
+                      totalSearches:
+                        type: integer
+                      totalExports:
+                        type: integer
+                      totalPlays:
+                        type: integer
+                      totalShares:
+                        type: integer
+                      activeSearchers7d:
+                        type: integer
+                        description: Unique users who searched in the last 7 days
+                      dailyActivity:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - date
+                            - count
+                          properties:
+                            date:
+                              type: string
+                            count:
+                              type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/media:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardMedia
+      summary: Get media breakdown statistics
+      description: |
+        Returns media breakdowns by category, format, status, genre, studio,
+        segment content ratings, segment statuses, and top media by interaction.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - byCategory
+                  - byFormat
+                  - byStatus
+                  - byGenre
+                  - byStudio
+                  - segmentsByContentRating
+                  - segmentsByStatus
+                  - topMediaByPlays
+                  - topMediaBySearches
+                  - topMediaByExports
+                properties:
+                  byCategory:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byFormat:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byStatus:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byGenre:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  byStudio:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  segmentsByContentRating:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  segmentsByStatus:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - count
+                      properties:
+                        label:
+                          type: string
+                        count:
+                          type: integer
+                  topMediaByPlays:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+                  topMediaBySearches:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+                  topMediaByExports:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/activity:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardActivity
+      summary: Get activity analytics
+      description: |
+        Returns time-series activity data by type, top searches, export trends,
+        and most exported media.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Number of days for activity range (7, 30, or 90)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - dailyActivityByType
+                  - topSearches
+                  - dailyExports
+                  - topExportedMedia
+                properties:
+                  dailyActivityByType:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - date
+                        - search
+                        - ankiExport
+                        - segmentPlay
+                        - share
+                      properties:
+                        date:
+                          type: string
+                        search:
+                          type: integer
+                        ankiExport:
+                          type: integer
+                        segmentPlay:
+                          type: integer
+                        share:
+                          type: integer
+                  topSearches:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - query
+                        - count
+                      properties:
+                        query:
+                          type: string
+                        count:
+                          type: integer
+                  dailyExports:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - date
+                        - count
+                      properties:
+                        date:
+                          type: string
+                        count:
+                          type: integer
+                  topExportedMedia:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - mediaId
+                        - mediaName
+                        - count
+                      properties:
+                        mediaId:
+                          type: integer
+                        mediaName:
+                          type: string
+                        count:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/collections:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardCollections
+      summary: Get collection statistics
+      description: |
+        Returns collection statistics by type and visibility, average collection size,
+        and top collections by segment count.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalCollections
+                  - byTypeAndVisibility
+                  - averageSize
+                  - topCollections
+                properties:
+                  totalCollections:
+                    type: integer
+                  byTypeAndVisibility:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - visibility
+                        - count
+                      properties:
+                        type:
+                          type: string
+                        visibility:
+                          type: string
+                        count:
+                          type: integer
+                  averageSize:
+                    type: number
+                  topCollections:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - type
+                        - visibility
+                        - segmentCount
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        visibility:
+                          type: string
+                        segmentCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/api-keys:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardApiKeys
+      summary: Get API key usage statistics
+      description: |
+        Returns all API keys with their current quota usage for the current billing period.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - keys
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - isActive
+                        - requestCount
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                          nullable: true
+                        hint:
+                          type: string
+                          nullable: true
+                        isActive:
+                          type: boolean
+                        username:
+                          type: string
+                          nullable: true
+                        email:
+                          type: string
+                          nullable: true
+                        requestCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/dashboard/system:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminDashboardSystem
+      summary: Get real-time system health
+      description: |
+        Returns real-time system health including Elasticsearch and database status,
+        queue statistics, and index size.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - app
+                  - elasticsearch
+                  - database
+                  - queues
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - healthy
+                      - degraded
+                  app:
+                    type: object
+                    required:
+                      - version
+                    properties:
+                      version:
+                        type: string
+                  elasticsearch:
+                    type: object
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - connected
+                          - disconnected
+                      version:
+                        type: string
+                        nullable: true
+                      clusterName:
+                        type: string
+                        nullable: true
+                      clusterStatus:
+                        type: string
+                        nullable: true
+                      indexName:
+                        type: string
+                        nullable: true
+                      documentCount:
+                        type: integer
+                        nullable: true
+                      indexSizeBytes:
+                        type: integer
+                        nullable: true
+                  database:
+                    type: object
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - connected
+                          - disconnected
+                      version:
+                        type: string
+                        nullable: true
+                  queues:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - queue
+                        - stuckCount
+                        - failedCount
+                      properties:
+                        queue:
+                          type: string
+                        stuckCount:
+                          type: integer
+                        failedCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -2994,12 +3452,10 @@ paths:
         - Admin
       x-internal: true
       operationId: getAdminHealth
-      summary: System health check
+      summary: Check system health
       description: |
         Returns connectivity status and version information for all backend subsystems
         (Elasticsearch, PostgreSQL, application).
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3070,7 +3526,7 @@ paths:
                         type: string
                         nullable: true
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3083,7 +3539,7 @@ paths:
         - Admin
       x-internal: true
       operationId: triggerReindex
-      summary: Reindex database into Elasticsearch
+      summary: Reindex segments into Elasticsearch
       description: |
         Reindexes segments from the PostgreSQL database into Elasticsearch.
         Allows filtering by specific media entries and episodes.
@@ -3092,8 +3548,6 @@ paths:
         - If no filters provided, reindexes all segments
         - If `media` is provided, reindexes segments from those media entries
         - If a media item includes `episodes`, only those episodes are reindexed for that media
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3105,7 +3559,7 @@ paths:
               $ref: '#/components/schemas/ReindexRequest'
       responses:
         '200':
-          description: Reindex operation completed
+          description: OK
           content:
             application/json:
               schema:
@@ -3113,7 +3567,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3129,19 +3583,12 @@ paths:
       summary: Get queue statistics
       description: |
         Returns statistics for all ES sync queues including pending and failed job counts.
-
-        **Use cases:**
-        - Monitor queue health
-        - Detect stuck jobs
-        - Check backlog size
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
       responses:
         '200':
-          description: Queue statistics retrieved successfully
+          description: OK
           content:
             application/json:
               schema:
@@ -3167,7 +3614,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3188,8 +3635,6 @@ paths:
         - `es-sync-create` - Jobs to create new segments in Elasticsearch
         - `es-sync-update` - Jobs to update existing segments
         - `es-sync-delete` - Jobs to delete segments
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3207,7 +3652,7 @@ paths:
           example: es-sync-create
       responses:
         '200':
-          description: Queue details retrieved successfully
+          description: OK
           content:
             application/json:
               schema:
@@ -3309,7 +3754,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3327,13 +3772,6 @@ paths:
       summary: Get failed jobs from a queue
       description: |
         Returns jobs that have exceeded their retry limit and permanently failed.
-
-        **Use cases:**
-        - Identify segments that failed to sync to Elasticsearch
-        - Debug persistent sync issues
-        - Decide whether to retry or purge failed jobs
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3351,7 +3789,7 @@ paths:
           example: es-sync-create
       responses:
         '200':
-          description: Failed jobs retrieved successfully
+          description: OK
           content:
             application/json:
               schema:
@@ -3381,7 +3819,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3397,12 +3835,6 @@ paths:
       summary: Retry failed jobs from a queue
       description: |
         Re-enqueues all failed jobs from a specific queue for another attempt.
-
-        **Use cases:**
-        - Retry jobs that failed due to temporary Elasticsearch issues
-        - Recover from network blips
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3420,7 +3852,7 @@ paths:
           example: es-sync-create
       responses:
         '200':
-          description: Jobs queued for retry
+          description: OK
           content:
             application/json:
               schema:
@@ -3443,7 +3875,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3459,13 +3891,7 @@ paths:
       summary: Purge failed jobs from a queue
       description: |
         Permanently deletes all failed jobs from a queue.
-        This does **not** re-sync the affected segments — use the reindex endpoint for that.
-
-        **Use cases:**
-        - Clean up old failed jobs after investigating
-        - Reset a queue after fixing the underlying issue
-
-        **Permissions:** `ADD_MEDIA`
+        This does **not** re-sync the affected segments -- use the reindex endpoint for that.
       security:
         - SessionCookie:
             - ADMIN
@@ -3483,7 +3909,7 @@ paths:
           example: es-sync-create
       responses:
         '200':
-          description: Failed jobs purged successfully
+          description: OK
           content:
             application/json:
               schema:
@@ -3506,94 +3932,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/impersonation:
-    post:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: impersonateAdminUser
-      summary: Start admin impersonation
-      description: |
-        Creates an impersonation session for the target user.
-        This endpoint is only available in local environment.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-              properties:
-                userId:
-                  type: integer
-                  minimum: 1
-                  description: User ID to impersonate
-      responses:
-        '200':
-          description: Impersonation session created
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - message
-                  - user
-                properties:
-                  message:
-                    type: string
-                  user:
-                    type: object
-                    required:
-                      - id
-                      - username
-                      - email
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      email:
-                        type: string
-                        format: email
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: clearAdminImpersonation
-      summary: Clear admin impersonation
-      description: |
-        Clears the current impersonation session and related cookies.
-        This endpoint is only available in local environment.
-      responses:
-        '200':
-          description: Impersonation session cleared
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - message
-                properties:
-                  message:
-                    type: string
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3610,8 +3949,6 @@ paths:
       description: |
         Returns all reports with filtering and cursor pagination.
         Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3632,14 +3969,8 @@ paths:
           in: query
           schema:
             type: string
-            enum:
-              - PENDING
-              - CONCERN
-              - ACCEPTED
-              - REJECTED
-              - RESOLVED
-              - IGNORED
-          description: Filter by report status
+          description: |
+            Filter by report status. Accepts a single value or comma-separated list (e.g. "PENDING,ACCEPTED"). Valid values: PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED.
         - name: source
           in: query
           schema:
@@ -3685,7 +4016,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminReportListResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/reports/batch:
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: batchUpdateAdminReports
+      summary: Batch update reports
+      description: |
+        Updates the status (and optionally admin notes) of multiple reports at once.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateReportsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - updated
+                properties:
+                  updated:
+                    type: integer
+                    description: Number of reports updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3698,12 +4070,10 @@ paths:
         - Admin
       x-internal: true
       operationId: updateAdminReport
-      summary: Update a report
+      summary: Update report
       description: |
         Updates the status and/or admin notes of a report.
         Works for both USER and AUTO reports.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3722,7 +4092,7 @@ paths:
               $ref: '#/components/schemas/UpdateReportRequest'
       responses:
         '200':
-          description: Report updated successfully
+          description: OK
           content:
             application/json:
               schema:
@@ -3730,7 +4100,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3748,8 +4118,6 @@ paths:
       summary: List all media audits
       description: |
         Returns all audit definitions with current config, threshold schema, and latest run info.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3763,7 +4131,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/MediaAudit'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3776,11 +4144,9 @@ paths:
         - Admin
       x-internal: true
       operationId: updateAdminMediaAudit
-      summary: Update a media audit config
+      summary: Update media audit config
       description: |
         Updates the threshold values or enabled status of an audit.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3807,7 +4173,7 @@ paths:
                   description: Enable or disable this audit
       responses:
         '200':
-          description: Audit updated successfully
+          description: OK
           content:
             application/json:
               schema:
@@ -3815,7 +4181,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3830,11 +4196,9 @@ paths:
         - Admin
       x-internal: true
       operationId: runAdminMediaAudit
-      summary: Run a media audit
+      summary: Run media audit
       description: |
         Triggers all enabled audits (or a specific one). Creates MediaAuditRun records and AUTO reports for any findings.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3855,13 +4219,13 @@ paths:
           description: Optional category filter
       responses:
         '200':
-          description: Audit run completed
+          description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RunAuditResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -3879,8 +4243,6 @@ paths:
       summary: List past audit runs
       description: |
         Returns past media audit runs with summary stats. Supports filtering by audit name and cursor pagination.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3920,7 +4282,7 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/OpaqueCursorPagination'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
@@ -3933,11 +4295,9 @@ paths:
         - Admin
       x-internal: true
       operationId: getAdminMediaAuditRun
-      summary: Get a specific audit run's details
+      summary: Get audit run details
       description: |
         Returns a specific media audit run record with its linked reports.
-
-        **Permissions:** `ADD_MEDIA`
       security:
         - SessionCookie:
             - ADMIN
@@ -3966,11 +4326,113 @@ paths:
                     items:
                       $ref: '#/components/schemas/Report'
         '401':
-          $ref: '#/components/responses/UnauthorizedSession'
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/announcement:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAnnouncement
+      summary: Get current announcement
+      description: |
+        Returns the current announcement if one is active. Public endpoint (no auth required).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - type
+                  - active
+                properties:
+                  message:
+                    type: string
+                  type:
+                    type: string
+                    enum:
+                      - info
+                      - warning
+                      - maintenance
+                  active:
+                    type: boolean
+        '204':
+          description: No announcement set
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: updateAnnouncement
+      summary: Create or update announcement
+      description: |
+        Upserts the site-wide announcement. Only one announcement exists at a time.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+                - type
+                - active
+              properties:
+                message:
+                  type: string
+                  maxLength: 500
+                type:
+                  type: string
+                  enum:
+                    - info
+                    - warning
+                    - maintenance
+                active:
+                  type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - type
+                  - active
+                properties:
+                  message:
+                    type: string
+                  type:
+                    type: string
+                    enum:
+                      - info
+                      - warning
+                      - maintenance
+                  active:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -3995,9 +4457,9 @@ components:
         - mediaId
       properties:
         mediaId:
-          type: integer
-          description: Media ID to filter
-          example: 123
+          type: string
+          description: Media identifier (publicId or AniList external ID)
+          example: abc123xyz
         episodes:
           type: array
           description: Specific episodes (omit for all episodes)
@@ -4165,6 +4627,57 @@ components:
             $ref: '#/components/schemas/IncludeExpansion'
           default:
             - media
+    Token:
+      type: object
+      description: Morphological token from Japanese text analysis
+      required:
+        - s
+        - d
+        - r
+        - b
+        - e
+        - p
+      properties:
+        s:
+          type: string
+          description: Surface form (the text as it appears in the sentence)
+          example: 食べ
+        d:
+          type: string
+          description: Dictionary form (base/lemma form for search)
+          example: 食べる
+        r:
+          type: string
+          description: Reading in katakana
+          example: タベ
+        b:
+          type: integer
+          description: Begin character offset in textJa.content
+          example: 3
+        e:
+          type: integer
+          description: End character offset in textJa.content
+          example: 5
+        p:
+          type: string
+          description: Primary part-of-speech tag
+          example: 動詞
+        p1:
+          type: string
+          description: POS subtype 1 (UniDic pos[1])
+          example: 固有名詞
+        p2:
+          type: string
+          description: POS subtype 2 (UniDic pos[2])
+          example: 人名
+        p4:
+          type: string
+          description: Conjugation type (UniDic pos[4])
+          example: 五段-カ行
+        cf:
+          type: string
+          description: Conjugation form (UniDic pos[5])
+          example: 連用形-一般
     Segment:
       type: object
       description: Segment with content, optional highlights, and media URLs
@@ -4179,6 +4692,7 @@ components:
         - contentRating
         - episode
         - mediaId
+        - mediaPublicId
         - textJa
         - textEn
         - textEs
@@ -4229,6 +4743,10 @@ components:
           type: integer
           description: Media ID this segment belongs to
           example: 7674
+        mediaPublicId:
+          type: string
+          description: Public ID of the media this segment belongs to
+          example: V1StGXR8_Z5d
         textJa:
           type: object
           required:
@@ -4242,6 +4760,11 @@ components:
             highlight:
               type: string
               description: Japanese content with search terms highlighted
+            tokens:
+              type: array
+              description: Morphological tokens for interactive display (Labs feature)
+              items:
+                $ref: '#/components/schemas/Token'
         textEn:
           type: object
           required:
@@ -4314,6 +4837,10 @@ components:
           type: string
           description: TVDB ID
           example: '12345'
+        tmdb:
+          type: string
+          description: TMDB ID
+          example: '90955'
     Seiyuu:
       type: object
       description: Japanese voice actor (seiyuu)
@@ -4405,7 +4932,6 @@ components:
         - category
         - segmentCount
         - episodeCount
-        - studio
         - seasonName
         - seasonYear
       properties:
@@ -4482,6 +5008,7 @@ components:
           example: 25
         studio:
           type: string
+          nullable: true
           description: Animation studio that produced the media
           example: J.C.STAFF
         seasonName:
@@ -4545,7 +5072,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by media publicId
         pagination:
           $ref: '#/components/schemas/PaginationInfo'
     Error400:
@@ -4603,7 +5130,6 @@ components:
             - AUTH_CREDENTIALS_REQUIRED
             - AUTH_CREDENTIALS_INVALID
             - AUTH_CREDENTIALS_EXPIRED
-            - EMAIL_NOT_VERIFIED
         title:
           type: string
           description: A short, human-readable summary of the problem
@@ -4768,6 +5294,7 @@ components:
       description: Search hit statistics for a single media
       required:
         - mediaId
+        - publicId
         - matchCount
         - episodeHits
       properties:
@@ -4775,6 +5302,10 @@ components:
           type: integer
           description: Media identifier (look up full details in includes.media)
           example: 110316
+        publicId:
+          type: string
+          description: Public identifier for use in URLs and filters
+          example: abc123xyz
         matchCount:
           type: integer
           description: Number of matching segments found in this media
@@ -4825,7 +5356,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by media publicId
     SearchMultipleRequest:
       type: object
       properties:
@@ -4944,6 +5475,7 @@ components:
       required:
         - media
         - pagination
+        - stats
       properties:
         media:
           type: array
@@ -4951,6 +5483,22 @@ components:
             $ref: '#/components/schemas/Media'
         pagination:
           $ref: '#/components/schemas/OpaqueCursorPagination'
+        stats:
+          type: object
+          required:
+            - totalMedia
+            - totalSegments
+            - totalEpisodes
+          properties:
+            totalMedia:
+              type: integer
+              description: Total number of media across all pages
+            totalSegments:
+              type: integer
+              description: Total number of non-deleted segments
+            totalEpisodes:
+              type: integer
+              description: Total number of episodes
     CharacterInput:
       type: object
       description: Character data for creating/updating media
@@ -5023,7 +5571,6 @@ components:
         - category
         - version
         - hashSalt
-        - studio
         - seasonName
         - seasonYear
       properties:
@@ -5157,6 +5704,7 @@ components:
       description: Slim media item returned by autocomplete (names + cover only)
       required:
         - id
+        - publicId
         - nameJa
         - nameRomaji
         - nameEn
@@ -5167,6 +5715,10 @@ components:
           type: integer
           description: Unique identifier for the media
           example: 7674
+        publicId:
+          type: string
+          description: Public identifier for the media
+          example: abc123xyz
         nameJa:
           type: string
           description: Original Japanese name of the media
@@ -5400,6 +5952,7 @@ components:
       description: Ordered media series grouping
       required:
         - id
+        - publicId
         - nameJa
         - nameRomaji
         - nameEn
@@ -5408,6 +5961,10 @@ components:
           type: integer
           description: Series ID
           example: 1
+        publicId:
+          type: string
+          description: Public identifier for the series
+          example: V1StGXR8_Z5d
         nameJa:
           type: string
           description: Japanese name of the series
@@ -5941,11 +6498,11 @@ components:
         quotaLimit:
           type: integer
           description: Maximum number of API requests allowed in the current billing period.
-          example: 2500
+          example: 5000
         quotaRemaining:
           type: integer
           description: Number of API requests remaining in the current billing period.
-          example: 2158
+          example: 4658
         periodYyyymm:
           type: integer
           description: Current billing period in YYYYMM format.
@@ -5973,10 +6530,10 @@ components:
           description: Report target type
           example: MEDIA
         mediaId:
-          type: integer
-          description: Media ID this report targets
-          example: 42
-    ReportTargetSegment:
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
+    ReportTargetSegmentInput:
       type: object
       required:
         - type
@@ -5990,9 +6547,9 @@ components:
           description: Report target type
           example: SEGMENT
         mediaId:
-          type: integer
-          description: Media ID this report targets
-          example: 42
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
         episodeNumber:
           type: integer
           description: Episode number containing the segment
@@ -6004,12 +6561,12 @@ components:
     UserReportTarget:
       oneOf:
         - $ref: '#/components/schemas/ReportTargetMedia'
-        - $ref: '#/components/schemas/ReportTargetSegment'
+        - $ref: '#/components/schemas/ReportTargetSegmentInput'
       discriminator:
         propertyName: type
         mapping:
           MEDIA: '#/components/schemas/ReportTargetMedia'
-          SEGMENT: '#/components/schemas/ReportTargetSegment'
+          SEGMENT: '#/components/schemas/ReportTargetSegmentInput'
     CreateReportRequest:
       type: object
       required:
@@ -6024,11 +6581,15 @@ components:
             - WRONG_TRANSLATION
             - WRONG_TIMING
             - WRONG_AUDIO
+            - WRONG_JAPANESE_TEXT
+            - LOW_QUALITY_AUDIO
             - NSFW_NOT_TAGGED
             - DUPLICATE_SEGMENT
-            - WRONG_METADATA
+            - WRONG_TITLE
+            - DUPLICATE_MEDIA
+            - WRONG_EPISODE_NUMBER
+            - IMAGE_ISSUE
             - MISSING_EPISODES
-            - WRONG_COVER_IMAGE
             - INAPPROPRIATE_CONTENT
             - OTHER
           description: Reason for the report
@@ -6052,13 +6613,39 @@ components:
           description: Report target type
           example: EPISODE
         mediaId:
-          type: integer
-          description: Media ID this report targets
-          example: 42
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
         episodeNumber:
           type: integer
           description: Episode number this report targets
           example: 5
+    ReportTargetSegment:
+      type: object
+      required:
+        - type
+        - mediaId
+        - segmentId
+      properties:
+        type:
+          type: string
+          enum:
+            - SEGMENT
+          description: Report target type
+          example: SEGMENT
+        mediaId:
+          type: string
+          description: Public ID of the media this report targets
+          example: V1StGXR8_Z5d
+        episodeNumber:
+          type: integer
+          description: Episode number containing the segment
+          example: 5
+        segmentId:
+          type: string
+          nullable: true
+          description: Segment public ID or UUID
+          example: abc123xyz
     ReportTarget:
       oneOf:
         - $ref: '#/components/schemas/ReportTargetMedia'
@@ -6109,11 +6696,17 @@ components:
             - WRONG_TRANSLATION
             - WRONG_TIMING
             - WRONG_AUDIO
+            - WRONG_JAPANESE_TEXT
+            - LOW_QUALITY_AUDIO
             - NSFW_NOT_TAGGED
             - DUPLICATE_SEGMENT
             - WRONG_METADATA
             - MISSING_EPISODES
             - WRONG_COVER_IMAGE
+            - WRONG_TITLE
+            - DUPLICATE_MEDIA
+            - WRONG_EPISODE_NUMBER
+            - IMAGE_ISSUE
             - INAPPROPRIATE_CONTENT
             - OTHER
             - LOW_SEGMENT_MEDIA
@@ -6243,10 +6836,11 @@ components:
           items:
             type: object
             required:
-              - mediaId
+              - mediaPublicId
             properties:
-              mediaId:
-                type: integer
+              mediaPublicId:
+                type: string
+                description: Public identifier of the hidden media
               nameEn:
                 type: string
               nameJa:
@@ -6278,7 +6872,7 @@ components:
         activityType:
           $ref: '#/components/schemas/ActivityType'
         segmentId:
-          type: integer
+          type: string
           nullable: true
         mediaId:
           type: integer
@@ -6312,6 +6906,7 @@ components:
       description: User segment collection
       required:
         - id
+        - publicId
         - name
         - type
         - visibility
@@ -6323,6 +6918,10 @@ components:
           type: integer
           description: Collection ID
           example: 123
+        publicId:
+          type: string
+          description: Public identifier for the collection
+          example: V1StGXR8_Z5d
         name:
           type: string
           description: Name of the collection
@@ -6412,23 +7011,19 @@ components:
       required:
         - key
         - active
-        - userControllable
       properties:
         key:
           type: string
           description: Unique identifier for the feature
         name:
           type: string
-          description: Human-readable feature name (only present for labs)
+          description: Human-readable feature name
         description:
           type: string
-          description: Description of what the feature does (only present for labs)
+          description: Description of what the feature does
         active:
           type: boolean
           description: Whether this feature is currently active for the user
-        userControllable:
-          type: boolean
-          description: Whether the user can toggle this feature (lab=true, flag=false)
     CollectionListResponse:
       type: object
       description: Paginated collection list response
@@ -6653,6 +7248,38 @@ components:
             $ref: '#/components/schemas/AdminReport'
         pagination:
           $ref: '#/components/schemas/OpaqueCursorPagination'
+    BatchUpdateReportsRequest:
+      type: object
+      required:
+        - ids
+        - status
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+          maxItems: 100
+          description: Report IDs to update
+          example:
+            - 1
+            - 2
+            - 3
+        status:
+          type: string
+          enum:
+            - PENDING
+            - CONCERN
+            - ACCEPTED
+            - REJECTED
+            - RESOLVED
+            - IGNORED
+          description: New status for all selected reports
+          example: IGNORED
+        adminNotes:
+          type: string
+          maxLength: 1000
+          description: Optional admin notes to set on all selected reports
     UpdateReportRequest:
       type: object
       properties:
@@ -6948,8 +7575,8 @@ components:
         instance: trace-id-placeholder
         status: 404
   responses:
-    UnauthorizedApiKey:
-      description: Unauthorized (API key)
+    Unauthorized:
+      description: Unauthorized
       content:
         application/json:
           schema:
@@ -7013,24 +7640,11 @@ components:
             DuplicateKey:
               $ref: '#/components/examples/DuplicateKey'
     SegmentInternalResponse:
-      description: Single segment response with internal fields
+      description: OK
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/SegmentInternal'
-    Unauthorized:
-      description: Unauthorized (API key or session)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error401'
-          examples:
-            AuthCredentialsRequired:
-              $ref: '#/components/examples/AuthCredentialsRequired'
-            AuthCredentialsInvalid:
-              $ref: '#/components/examples/AuthCredentialsInvalid'
-            AuthCredentialsExpired:
-              $ref: '#/components/examples/AuthCredentialsExpired'
     NotFound:
       description: Not Found
       content:
@@ -7041,7 +7655,7 @@ components:
             NotFound:
               $ref: '#/components/examples/NotFound'
     SegmentRevisionListResponse:
-      description: List of segment revisions
+      description: OK
       content:
         application/json:
           schema:
@@ -7054,19 +7668,19 @@ components:
                 items:
                   $ref: '#/components/schemas/SegmentRevision'
     EpisodeListResponse:
-      description: Paginated list of episodes
+      description: OK
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/EpisodeListResponse'
     EpisodeResponse:
-      description: Single episode response
+      description: OK
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Episode'
     SegmentListResponse:
-      description: Paginated segment list response
+      description: OK
       content:
         application/json:
           schema:
@@ -7083,7 +7697,7 @@ components:
               pagination:
                 $ref: '#/components/schemas/OpaqueCursorPagination'
     SegmentBatchCreateResponse:
-      description: Batch segment creation result
+      description: Created
       content:
         application/json:
           schema:
@@ -7101,21 +7715,8 @@ components:
                 description: Number of segments skipped due to duplicate UUIDs
                 example: 15
     SegmentResponse:
-      description: Single segment response
+      description: OK
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Segment'
-    UnauthorizedSession:
-      description: Unauthorized (session)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error401'
-          examples:
-            AuthCredentialsRequired:
-              $ref: '#/components/examples/AuthCredentialsRequired'
-            AuthCredentialsInvalid:
-              $ref: '#/components/examples/AuthCredentialsInvalid'
-            AuthCredentialsExpired:
-              $ref: '#/components/examples/AuthCredentialsExpired'

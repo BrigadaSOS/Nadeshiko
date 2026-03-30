@@ -4,6 +4,7 @@
 <template>
   <div class="flex dark bg-background flex-col min-h-screen overflow-x-clip">
     <AuthModalLoginSignUp />
+    <LayoutImpersonationBanner />
     <LayoutAnnouncementBanner />
     <LayoutHeader />
     <main class="flex-grow pb-20">

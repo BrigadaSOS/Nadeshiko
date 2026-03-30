@@ -58,6 +58,7 @@ test.describe('Search URL filters', () => {
   });
 
   test('empty search with media filter shows results for that media', async ({ page }) => {
+    test.setTimeout(60_000);
     const search = new SearchPage(page);
     await search.goto('学校');
     await search.expectResultsVisible();

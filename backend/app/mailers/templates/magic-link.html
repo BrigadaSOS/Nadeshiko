@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Nadeshiko Login Link</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.5;
+        color: #1a1a1a;
+        margin: 0;
+        padding: 32px 16px;
+        background-color: #111827;
+      }
+      .wrapper {
+        max-width: 460px;
+        margin: 0 auto;
+      }
+      .card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+      .card-header {
+        background-color: #ef5552;
+        padding: 24px 32px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .card-header img {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+      }
+      .card-header span {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+      }
+      .card-body {
+        padding: 28px 32px 24px;
+        text-align: center;
+      }
+      .card-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 12px;
+        letter-spacing: -0.02em;
+        text-align: left;
+      }
+      .card-text {
+        font-size: 15px;
+        color: #4b5563;
+        margin: 0 0 24px;
+        text-align: left;
+      }
+      .btn-login {
+        display: inline-block;
+        background-color: #ef5552;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 32px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .expiry-note {
+        margin-top: 20px;
+        font-size: 13px;
+        color: #9ca3af;
+        line-height: 1.5;
+        text-align: left;
+      }
+      .card-footer {
+        background-color: #f9fafb;
+        border-top: 1px solid #f0f0f0;
+        padding: 14px 32px;
+        font-size: 12px;
+        color: #9ca3af;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="card">
+        <div class="card-header">
+          <img src="{{logoUrl}}" alt="Nadeshiko" />
+          <span>Nadeshiko</span>
+        </div>
+
+        <div class="card-body">
+          <p class="card-title">Your sign-in link</p>
+          <p class="card-text">Click the button below to sign in to Nadeshiko.</p>
+
+          <a href="{{url}}" class="btn-login">Sign in to Nadeshiko</a>
+
+          <p class="expiry-note">This link expires in 15 minutes and can only be used once.</p>
+          <p class="expiry-note">If you did not request this, you can safely ignore this email. For any concerns, contact us at <a href="mailto:support@nadeshiko.co" style="color: #ef5552; text-decoration: none;">support@nadeshiko.co</a>.</p>
+        </div>
+
+        <div class="card-footer">
+          &copy; {{year}} Nadeshiko
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

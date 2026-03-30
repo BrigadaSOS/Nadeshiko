@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/segments/:uuid?include=ratingAnalysis&include=posAnalysis&include=hashedId&include=storageBasePath&include=storage
+  url: {{baseUrl}}/v1/media/segments/:uuid?uuid=3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e&include=ratingAnalysis&include=posAnalysis&include=hashedId&include=storageBasePath&include=storage
   body: none
   auth: bearer
 }
 
 params:query {
-  uuid:
+  uuid: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
   include: ratingAnalysis
   include: posAnalysis
   include: hashedId

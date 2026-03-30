@@ -578,8 +578,16 @@ export default {
     labels: {
       successfullogin: 'Succesful login!',
       logout: 'You are now logged out.',
+      banneduser: 'Your account has been suspended. Please contact support.',
       errorlogin400: 'Please check your email/password and try again.',
       closeSrOnly: 'Close',
+    },
+    magiclink: {
+      label: 'Or sign in with your email',
+      placeholder: 'Enter your email',
+      send: 'Send link',
+      sent: 'Check your email for a sign-in link.',
+      retry: 'Try a different email',
     },
   },
   shortcuts: {

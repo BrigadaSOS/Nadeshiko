@@ -125,6 +125,20 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
         // pino-http wraps the request, so we need to access req.raw for the Express request
         const rawReq = req.raw || req;
         const serialized = pino.stdSerializers.req(req);
+        // Strip sensitive query params from the logged URL
+        if (serialized.url) {
+          try {
+            const parsed = new URL(serialized.url, 'http://localhost');
+            for (const param of ['token', 'access_token', 'refresh_token', 'api_key', 'apiKey', 'code']) {
+              if (parsed.searchParams.has(param)) {
+                parsed.searchParams.set(param, '[Redacted]');
+              }
+            }
+            serialized.url = `${parsed.pathname}${parsed.search}`;
+          } catch {
+            // leave url as-is if parsing fails
+          }
+        }
         // Include requestId if available
         if ((rawReq as any).requestId) {
           (serialized as any).requestId = (rawReq as any).requestId;

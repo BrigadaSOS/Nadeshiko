@@ -240,7 +240,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
 <template>
   <div v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
 
-    <SearchModalContext :sentence="selectedResult" />
+    <SearchModalContext v-if="!hideContextButton" :sentence="selectedResult" />
 
     <SearchModalAnkiNotes :sentence="searchNoteResult"
       :onClick="(result: SearchResult, id: number) => ankiStore().addSentenceToAnki(result, id)" />

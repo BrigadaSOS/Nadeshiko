@@ -5,6 +5,7 @@ const tabs = [
   { key: 'activity', label: 'Activity' },
   { key: 'collections', label: 'Collections' },
   { key: 'api-keys', label: 'API Keys' },
+  { key: 'users', label: 'Users' },
   { key: 'system', label: 'System' },
 ] as const;
 
@@ -61,6 +62,7 @@ const refreshActiveTab = async () => {
       <AdminDashboardActivityTab v-else-if="activeTab === 'activity'" ref="activeTabRef" :days="dateRange" />
       <AdminDashboardCollectionsTab v-else-if="activeTab === 'collections'" ref="activeTabRef" />
       <AdminDashboardApiKeysTab v-else-if="activeTab === 'api-keys'" ref="activeTabRef" />
+      <AdminDashboardUsersTab v-else-if="activeTab === 'users'" ref="activeTabRef" />
       <AdminDashboardSystemTab v-else-if="activeTab === 'system'" ref="activeTabRef" />
     </KeepAlive>
   </div>

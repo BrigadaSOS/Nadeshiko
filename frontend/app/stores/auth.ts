@@ -21,7 +21,40 @@ function defaultAuthState() {
     userInfo: { role: 'USER' as UserRole },
     activeSessions: [] as UserSession[],
     preferences: {} as Record<string, any>,
+    isImpersonating: false,
+    impersonatedUsername: null as string | null,
   };
+}
+
+const IMPERSONATION_BACKUP_KEYS = ['labs', 'anki-active-profile', 'nd-last-collection'] as const;
+const IMPERSONATION_BACKUP_SESSION_KEY = '_nade_impersonation_backup';
+
+function backupAndClearImpersonationState() {
+  if (!import.meta.client) return;
+  const backup: Record<string, string | null> = {};
+  for (const key of IMPERSONATION_BACKUP_KEYS) {
+    backup[key] = localStorage.getItem(key);
+    localStorage.removeItem(key);
+  }
+  sessionStorage.setItem(IMPERSONATION_BACKUP_SESSION_KEY, JSON.stringify(backup));
+}
+
+function restoreImpersonationStateBackup() {
+  if (!import.meta.client) return;
+  const raw = sessionStorage.getItem(IMPERSONATION_BACKUP_SESSION_KEY);
+  if (!raw) return;
+  try {
+    const backup = JSON.parse(raw) as Record<string, string | null>;
+    for (const key of IMPERSONATION_BACKUP_KEYS) {
+      if (backup[key] !== null && backup[key] !== undefined) {
+        localStorage.setItem(key, backup[key] as string);
+      } else {
+        localStorage.removeItem(key);
+      }
+    }
+  } finally {
+    sessionStorage.removeItem(IMPERSONATION_BACKUP_SESSION_KEY);
+  }
 }
 
 export const userStore = defineStore('user', {
@@ -81,30 +114,56 @@ export const userStore = defineStore('user', {
       await this.loginWithProvider('discord');
     },
 
-    async impersonateDevUser(userId: number) {
+    async sendMagicLink(email: string): Promise<boolean> {
+      try {
+        const base = import.meta.client ? window.location.pathname : '/';
+        const callbackURL = `${base}${base.includes('?') ? '&' : '?'}magic_callback=1`;
+        await $fetch('/v1/auth/sign-in/magic-link', {
+          method: 'POST',
+          credentials: 'include',
+          body: { email, callbackURL },
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    async impersonateUser(userId: number) {
       const { $i18n } = useNuxtApp();
 
       try {
-        const sdk = useNadeshikoSdk();
-        await sdk.impersonateAdminUser({
-          body: { userId },
+        backupAndClearImpersonationState();
+        await $fetch('/v1/auth/admin/impersonate-user', {
+          method: 'POST',
+          credentials: 'include',
+          body: { userId: String(userId) },
         });
-
         await this.getBasicInfo();
+        await useLabsStore().fetchFeatures();
         if (this.isLoggedIn) {
           useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
         }
       } catch {
+        restoreImpersonationStateBackup();
         useToastError($i18n.t('modalauth.labels.errorlogin400'));
       }
     },
 
-    async clearDevImpersonation() {
+    async stopImpersonating() {
       try {
-        const sdk = useNadeshikoSdk();
-        await sdk.clearAdminImpersonation();
-      } finally {
+        await $fetch('/v1/auth/admin/stop-impersonating', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        restoreImpersonationStateBackup();
+        await this.getBasicInfo();
+        await useLabsStore().fetchFeatures();
+      } catch {
+        restoreImpersonationStateBackup();
         this.resetAuthState();
+      } finally {
+        window.location.href = '/';
       }
     },
 
@@ -136,6 +195,7 @@ export const userStore = defineStore('user', {
           return;
         }
 
+        const impersonating = !!response?.session?.impersonatedBy;
         this.$patch({
           isLoggedIn: true,
           userName: sessionUser?.name ?? null,
@@ -143,6 +203,8 @@ export const userStore = defineStore('user', {
           currentSessionToken: response?.session?.token ?? null,
           userInfo: { role: sessionUser?.role ?? 'USER' },
           preferences: sessionUser?.preferences ?? {},
+          isImpersonating: impersonating,
+          impersonatedUsername: impersonating ? (sessionUser?.name ?? null) : null,
         });
       } catch {
         this.resetAuthState();

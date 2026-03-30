@@ -5,14 +5,14 @@ meta {
 }
 
 delete {
-  url: {{baseUrl}}/v1/media/series/:id/media/:mediaId
+  url: {{baseUrl}}/v1/media/series/:id/media/:mediaId?id=V1StGXR8_Z5d&mediaId=abc123def456
   body: none
   auth: bearer
 }
 
 params:query {
-  id:
-  mediaId:
+  id: V1StGXR8_Z5d
+  mediaId: abc123def456
 }
 
 auth:bearer {

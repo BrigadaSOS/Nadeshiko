@@ -988,10 +988,6 @@ export type t_GetUserActivityStatsQuerySchema = {
   since?: string;
 };
 
-export type t_ImpersonateAdminUserRequestBodySchema = {
-  userId: number;
-};
-
 export type t_ListAdminMediaAuditRunsQuerySchema = {
   auditName?: string;
   cursor?: string;

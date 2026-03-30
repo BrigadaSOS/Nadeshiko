@@ -5,15 +5,15 @@ meta {
 }
 
 patch {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id?mediaId=V1StGXR8_Z5d&episodeNumber=1&id=12345
   body: json
   auth: bearer
 }
 
 params:query {
-  mediaId:
-  episodeNumber:
-  id:
+  mediaId: V1StGXR8_Z5d
+  episodeNumber: 1
+  id: 12345
 }
 
 auth:bearer {

@@ -43,6 +43,7 @@
       }
       .card-body {
         padding: 28px 32px 24px;
+        text-align: center;
       }
       .card-title {
         font-size: 20px;
@@ -50,11 +51,13 @@
         color: #111827;
         margin: 0 0 12px;
         letter-spacing: -0.02em;
+        text-align: left;
       }
       .card-text {
         font-size: 15px;
         color: #4b5563;
         margin: 0 0 24px;
+        text-align: left;
       }
       .btn-verify {
         display: inline-block;
@@ -72,6 +75,7 @@
         font-size: 13px;
         color: #9ca3af;
         line-height: 1.5;
+        text-align: left;
       }
       .card-footer {
         background-color: #f9fafb;
@@ -87,7 +91,7 @@
     <div class="wrapper">
       <div class="card">
         <div class="card-header">
-          <img src="https://nadeshiko.co/logo.webp" alt="Nadeshiko" />
+          <img src="{{logoUrl}}" alt="Nadeshiko" />
           <span>Nadeshiko</span>
         </div>
 
@@ -97,7 +101,8 @@
 
           <a href="{{url}}" class="btn-verify">Verify Email</a>
 
-          <p class="expiry-note">This link expires in 1 hour. Your email address has <strong>not</strong> been changed yet — nothing will happen unless you click the button above. If you did not request this, your account is safe and no action is needed. If you have concerns, contact us at <a href="mailto:support@nadeshiko.co" style="color: #ef5552; text-decoration: none;">support@nadeshiko.co</a>.</p>
+          <p class="expiry-note">This link expires in 1 hour. Your email address has <strong>not</strong> been changed yet. Nothing will happen unless you click the button above.</p>
+          <p class="expiry-note">If you did not request this, your account is safe and no action is needed. For any concerns, contact us at <a href="mailto:support@nadeshiko.co" style="color: #ef5552; text-decoration: none;">support@nadeshiko.co</a>.</p>
         </div>
 
         <div class="card-footer">
