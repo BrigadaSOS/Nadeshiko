@@ -37,7 +37,7 @@ function parseMarkdown(raw: string): { frontmatter: Record<string, unknown>; htm
 export async function getContentPage(locale: string, slug: string): Promise<ContentPage | null> {
   const cacheKey = `${locale}:${slug}`;
   if (pageCache.has(cacheKey)) {
-    return pageCache.get(cacheKey)!;
+    return pageCache.get(cacheKey) ?? null;
   }
 
   const storage = useStorage('assets:content');
@@ -62,7 +62,7 @@ export async function getContentPage(locale: string, slug: string): Promise<Cont
 
 export async function getBlogPosts(locale: string): Promise<BlogPost[]> {
   if (blogCache.has(locale)) {
-    return blogCache.get(locale)!;
+    return blogCache.get(locale) ?? [];
   }
 
   const storage = useStorage('assets:content');

@@ -79,7 +79,6 @@ useHead(() => ({
   title: title.value,
   meta: [{ name: 'description', content: description.value }],
 }));
-
 </script>
 
 <template>

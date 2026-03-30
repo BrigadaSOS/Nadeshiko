@@ -238,10 +238,11 @@ async function createSegmentRevision(
   snapshot: Record<string, unknown>,
   userId: number,
 ): Promise<void> {
-  const { max } = await SegmentRevision.createQueryBuilder('r')
+  const row = await SegmentRevision.createQueryBuilder('r')
     .select('COALESCE(MAX(r.revision_number), 0)', 'max')
     .where('r.segment_id = :segmentId', { segmentId })
     .getRawOne<{ max: number }>();
+  const max = row?.max ?? 0;
 
   const revision = SegmentRevision.create({
     segmentId,
