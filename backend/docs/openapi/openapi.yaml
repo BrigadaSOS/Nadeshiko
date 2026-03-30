@@ -179,8 +179,6 @@ paths:
     $ref: "./paths/admin/v1_admin_queues__queueName__retry.yaml"
   "/v1/admin/queues/{queueName}/purge":
     $ref: "./paths/admin/v1_admin_queues__queueName__purge.yaml"
-  "/v1/admin/impersonation":
-    $ref: "./paths/admin/v1_admin_impersonation.yaml"
   "/v1/admin/reports":
     $ref: "./paths/admin/v1_admin_reports.yaml"
   "/v1/admin/reports/batch":

@@ -5,16 +5,16 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments?take=50
+  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments?mediaId=V1StGXR8_Z5d&episodeNumber=1&take=50&cursor=1000
   body: none
   auth: bearer
 }
 
 params:query {
-  mediaId:
-  episodeNumber:
+  mediaId: V1StGXR8_Z5d
+  episodeNumber: 1
   take: 50
-  cursor:
+  cursor: 1000
 }
 
 auth:bearer {

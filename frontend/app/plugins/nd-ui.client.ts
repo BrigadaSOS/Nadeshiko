@@ -97,6 +97,12 @@ function openOverlay(target: OverlayTarget) {
   overlay.setAttribute('tabindex', '-1');
   createBackdrop(overlay);
 
+  if (overlay.id) {
+    for (const trigger of document.querySelectorAll<HTMLElement>(`[data-nd-overlay="#${overlay.id}"]`)) {
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+  }
+
   if (overlay.classList.contains('translate-x-full')) {
     overlay.dataset.ndRestoreTranslateX = '1';
     overlay.classList.remove('translate-x-full');
@@ -133,6 +139,12 @@ function closeOverlay(target: OverlayTarget) {
 
   if (!hasOpenOverlays()) {
     document.body.style.overflow = '';
+  }
+
+  if (overlay.id) {
+    for (const trigger of document.querySelectorAll<HTMLElement>(`[data-nd-overlay="#${overlay.id}"]`)) {
+      trigger.setAttribute('aria-expanded', 'false');
+    }
   }
 }
 

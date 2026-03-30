@@ -77,9 +77,15 @@ const schemaOrgDefs = computed(() => {
 
 useSchemaOrg(schemaOrgDefs);
 
+const requestOrigin = useRequestURL().origin;
+
 useHead(() => ({
   title: title.value,
-  meta: [{ name: 'description', content: description.value }],
+  meta: [
+    { name: 'description', content: description.value },
+    { property: 'og:image', content: `${requestOrigin}/logo-og.png` },
+    { name: 'twitter:card', content: 'summary_large_image' },
+  ],
 }));
 </script>
 
@@ -221,7 +227,7 @@ useHead(() => ({
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  color: #ef5552;
+  color: #fe333f;
   font-size: 0.875rem;
   padding-left: 1rem;
   margin-bottom: 0;
@@ -243,7 +249,7 @@ useHead(() => ({
   text-decoration: underline;
   text-underline-offset: 0.5rem;
   text-decoration-thickness: 4px;
-  text-decoration-color: #ef5552;
+  text-decoration-color: #fe333f;
 }
 
 @media (min-width: 768px) {
@@ -257,7 +263,7 @@ useHead(() => ({
   font-weight: 600;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
-  color: #ef5552;
+  color: #fe333f;
   line-height: 1.4;
 }
 
@@ -272,7 +278,7 @@ useHead(() => ({
   font-weight: 600;
   margin-top: 2rem;
   margin-bottom: 0.875rem;
-  color: #ef5552;
+  color: #fe333f;
   line-height: 1.5;
 }
 
@@ -321,7 +327,7 @@ useHead(() => ({
 .content-markdown :deep(h1 a),
 .content-markdown :deep(h2 a) {
   color: #d1d5db;
-  border-bottom: 2px solid #ef5552;
+  border-bottom: 2px solid #fe333f;
 }
 
 .content-markdown :deep(h3 a),
@@ -338,7 +344,7 @@ useHead(() => ({
 }
 
 .content-markdown :deep(blockquote) {
-  border-left: 4px solid #ef5552;
+  border-left: 4px solid #fe333f;
   background-color: rgba(239, 85, 82, 0.08);
   padding: 1rem 1.25rem;
   margin: 1.5rem 0;
@@ -352,7 +358,7 @@ useHead(() => ({
 }
 
 .content-markdown :deep(blockquote strong) {
-  color: #ef5552;
+  color: #fe333f;
 }
 
 /* Contributor card overrides */

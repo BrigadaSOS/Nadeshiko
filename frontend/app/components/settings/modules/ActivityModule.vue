@@ -440,7 +440,7 @@ watch(activityTypeFilter, () => {
 });
 
 onMounted(async () => {
-  await fetchTrackingState();
+  await Promise.all([fetchTrackingState(), fetchStats(), fetchActivity()]);
 });
 </script>
 

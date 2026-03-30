@@ -1,0 +1,23 @@
+meta {
+  name: Revoke a user session
+  type: http
+  seq: 92
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/admin/revoke-user-session
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

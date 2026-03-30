@@ -572,8 +572,16 @@ export default {
     labels: {
       successfullogin: 'ログイン成功！',
       logout: 'ログアウトしました。',
+      banneduser: 'アカウントが停止されています。サポートにお問い合わせください。',
       errorlogin400: 'メールアドレス/パスワードを確認して再試行してください。',
       closeSrOnly: '閉じる',
+    },
+    magiclink: {
+      label: 'またはメールアドレスでログイン',
+      placeholder: 'メールアドレス',
+      send: 'リンクを送信',
+      sent: 'ログインリンクをメールで送信しました。',
+      retry: '別のメールアドレスで試す',
     },
   },
   shortcuts: {

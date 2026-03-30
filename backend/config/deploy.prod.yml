@@ -105,7 +105,7 @@ accessories:
         - memlock=-1:-1
 
   toolbox:
-    image: brigadasos/nadeshiko-backend-prod:toolbox
+    image: ghcr.io/brigadasos/nadeshiko-toolbox:latest
     host: nadeshiko
     cmd: "sleep infinity"
     env:
@@ -129,12 +129,15 @@ accessories:
         - E2E_USER_PASSWORD
       clear:
         ENVIRONMENT: prod
+        PORT: 80
         BASE_URL: https://nadeshiko.co
         POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
         POSTGRES_PORT: 5432
         ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
         ELASTICSEARCH_INDEX: nadedb_prod
         R2_BASE_URL: https://cdn.nadeshiko.co
+        SES_FROM_EMAIL: "noreply@nadeshiko.co"
+        SES_FROM_NAME: "Nadeshiko"
 
   pg-backup:
     image: kartoza/pg-backup:17-3.5

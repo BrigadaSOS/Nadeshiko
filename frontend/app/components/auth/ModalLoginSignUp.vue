@@ -2,9 +2,10 @@
 import { mdiGoogle } from '@mdi/js';
 
 const store = userStore();
-const runtimeConfig = useRuntimeConfig();
-const isLocalEnv = computed(() => runtimeConfig.public.environment === 'local');
-const devUserId = ref('');
+const { $i18n } = useNuxtApp();
+const magicLinkEmail = ref('');
+const magicLinkSent = ref(false);
+const magicLinkLoading = ref(false);
 
 watch(
   () => store.isLoggedIn,
@@ -24,19 +25,34 @@ const handleDiscordLogin = async () => {
   await store.loginDiscord();
 };
 
-const handleDevImpersonation = async () => {
-  const userId = Number(devUserId.value);
-  if (!Number.isInteger(userId) || userId <= 0) {
-    useToastError('User ID must be a positive integer.');
-    return;
+const handleMagicLink = async () => {
+  if (!magicLinkEmail.value.trim()) return;
+  magicLinkLoading.value = true;
+  const sent = await store.sendMagicLink(magicLinkEmail.value.trim());
+  magicLinkLoading.value = false;
+  if (sent) {
+    magicLinkSent.value = true;
+  } else {
+    useToastError($i18n.t('modalauth.labels.errorlogin400'));
   }
-  await store.impersonateDevUser(userId);
 };
 
-const handleDevClear = async () => {
-  await store.clearDevImpersonation();
-  useToastSuccess('Development impersonation cleared.');
-};
+function resetMagicLinkState() {
+  magicLinkSent.value = false;
+  magicLinkEmail.value = '';
+}
+
+onMounted(() => {
+  const modal = document.getElementById('nd-vertically-centered-scrollable-loginsignup-modal');
+  if (!modal) return;
+  const observer = new MutationObserver(() => {
+    if (modal.classList.contains('hidden')) {
+      resetMagicLinkState();
+    }
+  });
+  observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+  onUnmounted(() => observer.disconnect());
+});
 </script>
 
 <template>
@@ -84,29 +100,29 @@ const handleDevClear = async () => {
             {{ $t('modalauth.buttons.discord') }}
           </UiButtonPrimaryAction>
 
-          <div v-if="isLocalEnv" class="pt-4 border-t border-white/10 mt-4 space-y-2">
-            <p class="text-sm text-gray-400">Development Impersonation</p>
-            <input
-              v-model="devUserId"
-              type="number"
-              min="1"
-              placeholder="User ID"
-              class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 dark:bg-modal-input dark:border-white/5 dark:text-gray-300"
-            />
-            <div class="flex gap-2">
+          <div class="pt-4 border-t border-white/10 mt-4 space-y-2">
+            <p class="text-sm text-gray-400">{{ $t('modalauth.magiclink.label') }}</p>
+            <div v-if="!magicLinkSent" class="flex gap-2">
+              <input
+                v-model="magicLinkEmail"
+                type="email"
+                :disabled="magicLinkLoading"
+                :placeholder="$t('modalauth.magiclink.placeholder')"
+                class="block p-2.5 flex-1 text-sm text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:bg-modal-input dark:border-white/5 dark:text-gray-300 disabled:opacity-50"
+                @keyup.enter="handleMagicLink"
+              />
               <UiButtonPrimaryAction
-                @click="handleDevImpersonation"
-                class="py-2 w-full px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-blue-600 text-white hover:bg-blue-700"
+                :disabled="magicLinkLoading"
+                @click="handleMagicLink"
+                class="py-2 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-sgray text-white hover:bg-sgray2 disabled:opacity-50"
               >
-                Login As User
-              </UiButtonPrimaryAction>
-              <UiButtonPrimaryAction
-                @click="handleDevClear"
-                class="py-2 w-full px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-sgray text-white hover:bg-sgray2"
-              >
-                Clear
+                {{ $t('modalauth.magiclink.send') }}
               </UiButtonPrimaryAction>
             </div>
+            <p v-else class="text-sm text-green-400">
+              {{ $t('modalauth.magiclink.sent') }}
+              <button class="ml-2 underline text-gray-400 hover:text-gray-300" @click="magicLinkSent = false">{{ $t('modalauth.magiclink.retry') }}</button>
+            </p>
           </div>
         </div>
       </div>

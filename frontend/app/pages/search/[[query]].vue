@@ -182,6 +182,8 @@ const { data: initialStatsData } = await useAsyncData(statsCacheKey.value, () =>
   watch: [],
 });
 
+const requestOrigin = useRequestURL().origin;
+
 const metaTags = computed(() => {
   const defaultDescription =
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
@@ -270,6 +272,8 @@ const metaTags = computed(() => {
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
+      { property: 'og:image', content: `${requestOrigin}/logo-og.png` },
+      { name: 'twitter:card', content: 'summary_large_image' },
     ];
   }
 

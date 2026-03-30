@@ -26,7 +26,6 @@ import type {
   t_GetAdminDashboardOverviewQuerySchema,
   t_GetAdminMediaAuditRunParamSchema,
   t_GetAdminQueueParamSchema,
-  t_ImpersonateAdminUserRequestBodySchema,
   t_ListAdminMediaAuditRunsQuerySchema,
   t_ListAdminQueueFailedParamSchema,
   t_ListAdminReportsQuerySchema,
@@ -550,47 +549,6 @@ export type PurgeAdminQueueFailed = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type ImpersonateAdminUserResponder = {
-  with200(): ExpressRuntimeResponse<{
-    message: string;
-    user: {
-      email: string;
-      id: number;
-      username: string;
-    };
-  }>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ImpersonateAdminUser = (
-  params: Params<void, void, t_ImpersonateAdminUserRequestBodySchema, void>,
-  respond: ImpersonateAdminUserResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ClearAdminImpersonationResponder = {
-  with200(): ExpressRuntimeResponse<{
-    message: string;
-  }>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ClearAdminImpersonation = (
-  params: Params<void, void, void, void>,
-  respond: ClearAdminImpersonationResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
 export type ListAdminReportsResponder = {
   with200(): ExpressRuntimeResponse<t_AdminReportListResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -789,8 +747,6 @@ export type AdminImplementation = {
   listAdminQueueFailed: ListAdminQueueFailed;
   retryAdminQueueFailed: RetryAdminQueueFailed;
   purgeAdminQueueFailed: PurgeAdminQueueFailed;
-  impersonateAdminUser: ImpersonateAdminUser;
-  clearAdminImpersonation: ClearAdminImpersonation;
   listAdminReports: ListAdminReports;
   batchUpdateAdminReports: BatchUpdateAdminReports;
   updateAdminReport: UpdateAdminReport;
@@ -2228,153 +2184,6 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       if (body !== undefined) {
         res.json(purgeAdminQueueFailedResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const impersonateAdminUserRequestBodySchema = z.object({ userId: z.coerce.number().min(1) });
-
-  const impersonateAdminUserResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          message: z.string(),
-          user: z.object({ id: z.coerce.number(), username: z.string(), email: z.email() }),
-        }),
-      ],
-      ['400', s_Error400],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // impersonateAdminUser
-  router.post(`/v1/admin/impersonation`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(impersonateAdminUserRequestBodySchema, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            message: string;
-            user: {
-              email: string;
-              id: number;
-              username: string;
-            };
-          }>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.impersonateAdminUser(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(impersonateAdminUserResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const clearAdminImpersonationResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ message: z.string() })],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // clearAdminImpersonation
-  router.delete(`/v1/admin/impersonation`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            message: string;
-          }>(200);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.clearAdminImpersonation(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(clearAdminImpersonationResponseBodyValidator(status, body));
       } else {
         res.end();
       }

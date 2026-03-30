@@ -25,6 +25,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
         }).catch(() => null);
 
         if (response?.user) {
+          const impersonating = !!response.session?.impersonatedBy;
           store.$patch({
             isLoggedIn: true,
             userName: response.user.name ?? null,
@@ -32,6 +33,8 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             currentSessionToken: response.session?.token ?? null,
             userInfo: { role: response.user.role ?? 'USER' },
             preferences: response.user.preferences ?? {},
+            isImpersonating: impersonating,
+            impersonatedUsername: impersonating ? (response.user.name ?? null) : null,
           });
         } else {
           store.resetAuthState();

@@ -2,11 +2,11 @@ import { ApiPermission, User, UserRoleType } from '@app/models';
 import { config, type AppConfig } from '@config/config';
 import { isProdEnvironment } from '@config/environment';
 import { getAppPostgresConfig } from '@config/postgresConfig';
-import { sendWelcomeEmail, sendVerifyNewEmail } from '@app/mailers/email';
+import { sendWelcomeEmail, sendVerifyNewEmail, sendMagicLinkEmail } from '@app/mailers/email';
 import { ensureDefaultCollections } from '@app/controllers/collectionController';
 import { betterAuth } from 'better-auth';
 import { apiKey } from '@better-auth/api-key';
-import { customSession } from 'better-auth/plugins';
+import { admin, createAccessControl, customSession, magicLink } from 'better-auth/plugins';
 import { Pool } from 'pg';
 import { logger } from '@config/log';
 
@@ -43,6 +43,35 @@ const DISABLED_PATHS = [
   '/forget-password',
 ];
 
+const magicLinkCooldown = new Map<number, number>();
+const MAGIC_LINK_COOLDOWN_MS = 14 * 60 * 1000;
+
+const adminAc = createAccessControl({
+  user: [
+    'create',
+    'list',
+    'set-role',
+    'ban',
+    'impersonate',
+    'impersonate-admins',
+    'delete',
+    'set-password',
+    'get',
+    'update',
+  ],
+  session: ['list', 'revoke', 'delete'],
+});
+
+const pluginRoles = {
+  [UserRoleType.ADMIN]: adminAc.newRole({
+    user: ['create', 'list', 'set-role', 'ban', 'impersonate', 'delete', 'set-password', 'get', 'update'],
+    session: ['list', 'revoke', 'delete'],
+  }),
+  [UserRoleType.MOD]: adminAc.newRole({ user: [], session: [] }),
+  [UserRoleType.USER]: adminAc.newRole({ user: [], session: [] }),
+  [UserRoleType.PATREON]: adminAc.newRole({ user: [], session: [] }),
+};
+
 type BetterAuthOptions = Parameters<typeof betterAuth>[0];
 type BetterAuthSessionUser = {
   id: string | number;
@@ -69,6 +98,7 @@ export interface BuildAuthOptionsDependencies {
   findUserById?: FindUserById;
   sendWelcomeEmailFn?: typeof sendWelcomeEmail;
   sendVerifyNewEmailFn?: typeof sendVerifyNewEmail;
+  sendMagicLinkEmailFn?: typeof sendMagicLinkEmail;
   onWelcomeEmailError?: WelcomeEmailErrorLogger;
   ensureDefaultCollectionsFn?: typeof ensureDefaultCollections;
 }
@@ -166,6 +196,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
   const findUserById = dependencies.findUserById || defaultFindUserById;
   const sendWelcomeEmailFn = dependencies.sendWelcomeEmailFn || sendWelcomeEmail;
   const sendVerifyNewEmailFn = dependencies.sendVerifyNewEmailFn || sendVerifyNewEmail;
+  const sendMagicLinkEmailFn = dependencies.sendMagicLinkEmailFn || sendMagicLinkEmail;
   const onWelcomeEmailError = dependencies.onWelcomeEmailError || defaultWelcomeEmailErrorLogger;
   const ensureDefaultCollectionsFn = dependencies.ensureDefaultCollectionsFn || ensureDefaultCollections;
 
@@ -248,6 +279,41 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       },
     },
     plugins: [
+      admin({
+        defaultRole: UserRoleType.USER,
+        adminRoles: [UserRoleType.ADMIN],
+        impersonationSessionDuration: 30 * 60,
+        ac: adminAc,
+        roles: pluginRoles,
+        schema: {
+          session: {
+            fields: { impersonatedBy: 'impersonated_by' },
+          },
+          user: {
+            fields: {
+              banned: 'banned',
+              banReason: 'ban_reason',
+              banExpires: 'ban_expires',
+            },
+          },
+        },
+      }),
+      magicLink({
+        expiresIn: 15 * 60,
+        allowedAttempts: 3,
+        rateLimit: { window: 5 * 60, max: 3 },
+        sendMagicLink: async ({ email, url }) => {
+          const existingUser = await User.findOne({ where: { email } });
+          if (existingUser) {
+            const lastSent = magicLinkCooldown.get(existingUser.id);
+            if (lastSent && Date.now() - lastSent < MAGIC_LINK_COOLDOWN_MS) {
+              return;
+            }
+            magicLinkCooldown.set(existingUser.id, Date.now());
+          }
+          await sendMagicLinkEmailFn(email, url);
+        },
+      }),
       apiKey({
         apiKeyHeaders: 'authorization',
         defaultPrefix: 'nade_',
@@ -269,13 +335,43 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       }),
     ],
     databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const userId = Number(session.userId);
+            if (!Number.isInteger(userId) || userId <= 0) return;
+
+            const user = await findUserById(userId);
+            if (user?.role !== UserRoleType.ADMIN) return;
+
+            return {
+              data: {
+                ...session,
+                expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
+              },
+            };
+          },
+        },
+        delete: {
+          after: async (session) => {
+            const userId = Number(session.userId);
+            if (Number.isInteger(userId) && userId > 0) {
+              magicLinkCooldown.delete(userId);
+            }
+          },
+        },
+      },
       user: {
         create: {
           before: async (user) => {
-            // Provider-only auth: trust provider-sourced emails as verified.
+            const name = (
+              user.name?.trim() ||
+              (user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'user' : 'user')
+            ).slice(0, 30);
             return {
               data: {
                 ...user,
+                name,
                 emailVerified: true,
               },
             };

@@ -7,9 +7,8 @@ import express, {
 } from 'express';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from '@config/auth';
-import { AccessDeniedError } from '@app/errors';
+import { requireSession, enforceAdminAccess } from '@app/middleware/routePolicies';
 import { routeAuth } from 'generated/routeAuth';
-import { isLocalEnvironment } from '@config/environment';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminHealth, getAdminDashboard, triggerReindex } from '@app/controllers/adminController';
@@ -20,6 +19,7 @@ import {
   getAdminDashboardCollections,
   getAdminDashboardApiKeys,
   getAdminDashboardSystem,
+  getAdminUsersWithProviders,
 } from '@app/controllers/adminDashboardController';
 import {
   listAdminQueueStats,
@@ -28,7 +28,6 @@ import {
   listAdminQueueFailed,
   purgeAdminQueueFailed,
 } from '@app/controllers/queueController';
-import { impersonateAdminUser, clearAdminImpersonation } from '@app/controllers/devAuthController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
 import {
   listMedia,
@@ -119,6 +118,29 @@ export const noCache = (_req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+const magicLinkBanRedirect: RequestHandler = (req, res, next) => {
+  const originalEnd = res.end.bind(res);
+  (res.end as any) = (chunk?: any, encoding?: any, callback?: any) => {
+    if (res.statusCode === 403 && chunk) {
+      try {
+        const str = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk);
+        const body = JSON.parse(str);
+        if (body?.code === 'BANNED_USER') {
+          const callbackURL = (req.query.callbackURL as string) || '/';
+          const sep = callbackURL.includes('?') ? '&' : '?';
+          res.end = originalEnd;
+          res.statusCode = 302;
+          res.removeHeader('Content-Type');
+          res.setHeader('Location', `${callbackURL}${sep}error=banned`);
+          return originalEnd.call(res, '');
+        }
+      } catch {}
+    }
+    return originalEnd.call(res, chunk, encoding, callback);
+  };
+  next();
+};
+
 const SearchRoutes = createSearchRouter({
   search,
   getSearchStats,
@@ -195,8 +217,6 @@ const AdminRoutes = createAdminRouter({
   runAdminMediaAudit,
   listAdminMediaAuditRuns,
   getAdminMediaAuditRun,
-  impersonateAdminUser,
-  clearAdminImpersonation,
   getAnnouncement,
   updateAnnouncement,
 });
@@ -219,17 +239,7 @@ const UserRoutes = createUserRouter({
   unenrollUserLab,
 });
 
-const requireLocalEnvironmentOnly: RequestHandler = (_req, _res, next) => {
-  if (!isLocalEnvironment()) {
-    throw new AccessDeniedError('Development impersonation is only available in local environment.');
-  }
-
-  next();
-};
-
 const router = express.Router();
-
-router.use('/v1/admin/impersonation', requireLocalEnvironmentOnly);
 
 for (const { method, path, middleware } of routeAuth) {
   router[method as 'get' | 'post' | 'patch' | 'put' | 'delete'](path, middleware);
@@ -241,6 +251,8 @@ router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
 
+router.get('/v1/admin/users-with-providers', requireSession(enforceAdminAccess), getAdminUsersWithProviders);
+
 export function mountRoutes(app: Application): Application {
   app.get('/up', (_req, res) => res.status(200).send('OK'));
 
@@ -248,6 +260,13 @@ export function mountRoutes(app: Application): Application {
     throw new Error('Sentry test error');
   });
 
+  app.all(
+    '/v1/auth/magic-link/verify',
+    noCache,
+    magicLinkBanRedirect,
+    invalidateAuthCachesAfterMutation,
+    toNodeHandler(auth),
+  );
   app.all('/v1/auth', noCache, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
   app.all('/v1/auth/*splat', noCache, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
   app.use('/', router);
