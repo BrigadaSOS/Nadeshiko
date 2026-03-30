@@ -3,7 +3,7 @@ const config = useRuntimeConfig();
 </script>
 
 <template>
-  <footer class="bg-white dark:bg-footer-background">
+  <footer class="bg-white dark:bg-footer-background yomitan-ignore">
     <div class="max-w-[92%] px-6 py-4 md:py-6 mx-auto">
       <div class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <p class="text-sm text-gray-500 dark:text-gray-300 whitespace-nowrap">

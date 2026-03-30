@@ -1,7 +1,7 @@
 <template>
   <li
     @click="handleClick"
-    class="py-4 px-5 relative inline-flex items-center gap-2.5 cursor-pointer shrink-0"
+    class="py-4 px-5 relative inline-flex items-center gap-2.5 cursor-pointer shrink-0 text-base"
     :class="isActive
       ? 'font-bold text-[rgb(251,120,120)] after:content-[\'\'] after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-[#d74e67] after:z-[1]'
       : ''"
