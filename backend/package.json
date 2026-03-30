@@ -57,7 +57,7 @@
     "@opentelemetry/exporter-trace-otlp-http": "0.213.0",
     "@opentelemetry/resources": "^2.5.0",
     "@opentelemetry/sdk-metrics": "^2.5.0",
-    "@opentelemetry/sdk-node": "0.213.0",
+    "@opentelemetry/sdk-node": "0.214.0",
     "@sentry/node": "^10.40.0",
     "backend": "file:",
     "better-auth": "^1.4.18",
