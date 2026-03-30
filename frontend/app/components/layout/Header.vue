@@ -40,8 +40,8 @@ async function submitSidebarSearch() {
 </script>
 <template>
     <header
-        class="relative flex flex-wrap md:justify-start md:flex-nowrap w-full bg-white text-xs py-3 lg:py-2 dark:bg-header-background">
-        <nav class="px-4 md:px-0 md:max-w-[92%] w-full mx-auto md:flex md:items-center md:justify-between">
+        class="relative flex flex-wrap md:justify-start md:flex-nowrap w-full bg-white py-3 lg:py-2 dark:bg-header-background yomitan-ignore">
+        <nav class="px-4 md:px-0 md:max-w-[92%] w-full mx-auto md:flex md:items-center md:justify-between text-xs">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
                     <NuxtLink to="/"
