@@ -5,7 +5,7 @@ import { trace } from '@opentelemetry/api';
 import { config } from '@config/config';
 
 const normalizedEnvironment = (config.ENVIRONMENT || '').trim().toLowerCase();
-const isDevelopment = normalizedEnvironment === 'local' || normalizedEnvironment === 'dev';
+const isDevelopment = normalizedEnvironment === 'local' || normalizedEnvironment === 'development';
 
 export function shouldUsePrettyLogsForEntrypoint(entrypointArg?: string): boolean {
   const entrypoint = basename(entrypointArg ?? process.argv[1] ?? '');

@@ -6,18 +6,18 @@ describe('getAppEnvironment', () => {
     expect(getAppEnvironment('local')).toBe('local');
   });
 
-  test('returns "dev" for dev', () => {
-    expect(getAppEnvironment('dev')).toBe('dev');
+  test('returns "development" for development', () => {
+    expect(getAppEnvironment('development')).toBe('development');
   });
 
-  test('returns "prod" for prod', () => {
-    expect(getAppEnvironment('prod')).toBe('prod');
+  test('returns "production" for production', () => {
+    expect(getAppEnvironment('production')).toBe('production');
   });
 
   test('normalizes whitespace and casing', () => {
     expect(getAppEnvironment('  LOCAL  ')).toBe('local');
-    expect(getAppEnvironment('DEV')).toBe('dev');
-    expect(getAppEnvironment(' Prod ')).toBe('prod');
+    expect(getAppEnvironment('DEVELOPMENT')).toBe('development');
+    expect(getAppEnvironment(' Production ')).toBe('production');
   });
 
   test('throws for invalid values', () => {
@@ -30,16 +30,16 @@ describe('getAppEnvironment', () => {
 describe('environment helpers', () => {
   test('isLocalEnvironment', () => {
     expect(isLocalEnvironment('local')).toBe(true);
-    expect(isLocalEnvironment('dev')).toBe(false);
+    expect(isLocalEnvironment('development')).toBe(false);
   });
 
   test('isDevEnvironment', () => {
-    expect(isDevEnvironment('dev')).toBe(true);
+    expect(isDevEnvironment('development')).toBe(true);
     expect(isDevEnvironment('local')).toBe(false);
   });
 
   test('isProdEnvironment', () => {
-    expect(isProdEnvironment('prod')).toBe(true);
+    expect(isProdEnvironment('production')).toBe(true);
     expect(isProdEnvironment('local')).toBe(false);
   });
 });

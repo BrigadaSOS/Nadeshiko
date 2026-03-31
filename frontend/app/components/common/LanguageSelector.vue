@@ -8,6 +8,10 @@ const props = defineProps({
     type: String,
     default: 'language-selector',
   },
+  dropUp: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const { locale, locales, setLocale } = useI18n();
@@ -20,10 +24,15 @@ function getLocaleName(code) {
 const availableLocales = computed(() => {
   return locales.value;
 });
+
+const dropdownContainerClass = computed(() => {
+  const position = props.dropUp ? 'bottom-full mb-1' : 'top-full mt-1';
+  return `nd-dropdown-menu absolute ${position} right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 dark:bg-neutral-800 border-none rounded-lg`;
+});
 </script>
 <template>
   <SearchDropdownContainer :data-testid="props.testId" dropdownId="nd-dropdown-language"
-    dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
+    :dropdownContainerClass="dropdownContainerClass">
     <template #default>
       <SearchDropdownMainButton
         dropdownButtonClass="nd-dropdown-toggle py-2 px-4 w-full inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"

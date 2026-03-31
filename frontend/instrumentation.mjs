@@ -9,7 +9,7 @@ if (endpoint) {
   const resource = resourceFromAttributes({
     'service.name': process.env.OTEL_SERVICE_NAME || 'nadeshiko-frontend',
     'service.version': process.env.npm_package_version || '0.0.0',
-    'deployment.environment': process.env.NODE_ENV || 'development',
+    'deployment.environment': process.env.NUXT_PUBLIC_ENVIRONMENT || 'production',
   });
 
   const sdk = new NodeSDK({
