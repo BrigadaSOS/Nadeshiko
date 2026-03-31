@@ -45,7 +45,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
 
   if (!region || !accessKeyId || !secretAccessKey) {
     throw new Error(
-      'SES configuration is required in dev/prod. Set SES_AWS_REGION, SES_AWS_ACCESS_KEY_ID, and SES_AWS_SECRET_ACCESS_KEY.',
+      'SES configuration is required in development/production. Set SES_AWS_REGION, SES_AWS_ACCESS_KEY_ID, and SES_AWS_SECRET_ACCESS_KEY.',
     );
   }
 

@@ -43,7 +43,7 @@ env:
     - E2E_USER_PASSWORD
 
   clear:
-    ENVIRONMENT: dev
+    ENVIRONMENT: development
     PORT: 80
     BASE_URL: https://dev.nadeshiko.co
 
@@ -84,7 +84,7 @@ accessories:
         - BETTER_AUTH_SECRET
         - E2E_USER_PASSWORD
       clear:
-        ENVIRONMENT: dev
+        ENVIRONMENT: development
         PORT: 80
         BASE_URL: https://dev.nadeshiko.co
         POSTGRES_HOST: "nadeshiko-backend-prod-postgres"

@@ -157,7 +157,7 @@ defineExpose({ refresh });
         No users found.
       </div>
 
-      <div v-else class="rounded-lg border border-neutral-700 bg-neutral-800/50 overflow-hidden">
+      <div v-else class="rounded-lg border border-neutral-700 bg-neutral-800/50 overflow-visible">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-neutral-700 text-left text-gray-400">

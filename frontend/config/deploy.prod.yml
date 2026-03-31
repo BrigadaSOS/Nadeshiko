@@ -3,7 +3,7 @@ image: brigadasos/nadeshiko-frontend-prod
 
 builder:
   args:
-    NUXT_PUBLIC_ENVIRONMENT: prod
+    NUXT_PUBLIC_ENVIRONMENT: production
     SENTRY_ORG: davafons
     SENTRY_PROJECT: nadeshiko-frontend
   secrets:
@@ -22,7 +22,8 @@ env:
     - SENTRY_FRONTEND_DSN
 
   clear:
-    NODE_ENV: prod 
+    NUXT_PUBLIC_ENVIRONMENT: production
+    NODE_ENV: production
     NUXT_BACKEND_INTERNAL_URL: https://api.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info

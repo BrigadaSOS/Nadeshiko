@@ -269,7 +269,7 @@ async function submitSidebarSearch() {
                             </svg>
                         </a>
                     </div>
-                    <CommonLanguageSelector test-id="language-selector-mobile" />
+                    <CommonLanguageSelector test-id="language-selector-mobile" drop-up />
                 </div>
             </div>
         </div>
