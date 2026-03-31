@@ -8,7 +8,7 @@ useSeoMeta({
   ogTitle: 'Nadeshiko: Japanese Sentence Search Engine',
   ogDescription:
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
-  ogImage: `${useRequestURL().origin}/logo-og.png`,
+  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
 });
 
@@ -335,12 +335,12 @@ const {
                                 <div class="md:flex-1 mx-2 flex items-center justify-end space-x-4">
                                     <div class="mt-5 w-auto bg-white p-1 rounded-md">
                                         <a href="https://github.com/BrigadaSOS/Nadeshiko">
-                                            <img class="h-10 object-contain" src="/github.png" alt="GitHub" height="48" loading="lazy" />
+                                            <img class="h-10 object-contain" src="/github-c80c5ec0.png" alt="GitHub" height="48" loading="lazy" />
                                         </a>
                                     </div>
                                     <div class="mt-5 w-auto">
                                         <a href="https://patreon.com/BrigadaSOS">
-                                            <img class="h-12 object-contain rounded-md" src="/patreon.png"
+                                            <img class="h-12 object-contain rounded-md" src="/patreon-0c68395a.png"
                                                 alt="Become a Patron" height="48" loading="lazy" />
                                         </a>
                                     </div>

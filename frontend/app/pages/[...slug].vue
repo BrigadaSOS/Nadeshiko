@@ -83,7 +83,7 @@ useHead(() => ({
   title: title.value,
   meta: [
     { name: 'description', content: description.value },
-    { property: 'og:image', content: `${requestOrigin}/logo-og.png` },
+    { property: 'og:image', content: `${requestOrigin}/logo-og-5bc76788.png` },
     { name: 'twitter:card', content: 'summary_large_image' },
   ],
 }));
