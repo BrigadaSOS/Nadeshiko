@@ -83,7 +83,7 @@ describe('resolveDefaultApiPermissions', () => {
 });
 
 describe('enrichSessionUser', () => {
-  it('adds role and preferences from database user', async () => {
+  it('adds role from database user', async () => {
     const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN, preferences: { locale: 'ja' } }) as any);
     const user = await enrichSessionUser({ id: '9', email: 'u@test.local' }, findUserById as any);
 
@@ -91,19 +91,19 @@ describe('enrichSessionUser', () => {
     expect(user).toMatchObject({
       id: '9',
       role: UserRoleType.ADMIN,
-      preferences: { locale: 'ja' },
     });
+    expect(user).not.toHaveProperty('preferences');
   });
 
-  it('falls back to USER role and empty preferences when DB user is missing', async () => {
+  it('falls back to USER role when DB user is missing', async () => {
     const findUserById = vi.fn(async () => null);
     const user = await enrichSessionUser({ id: '10' }, findUserById as any);
 
     expect(user).toMatchObject({
       id: '10',
       role: UserRoleType.USER,
-      preferences: {},
     });
+    expect(user).not.toHaveProperty('preferences');
   });
 });
 

@@ -202,10 +202,14 @@ export const userStore = defineStore('user', {
           userEmail: sessionUser?.email ?? null,
           currentSessionToken: response?.session?.token ?? null,
           userInfo: { role: sessionUser?.role ?? 'USER' },
-          preferences: sessionUser?.preferences ?? {},
           isImpersonating: impersonating,
           impersonatedUsername: impersonating ? (sessionUser?.name ?? null) : null,
         });
+
+        this.preferences = await $fetch<Record<string, any>>('/v1/user/preferences', {
+          method: 'GET',
+          credentials: 'include',
+        }).catch(() => ({}));
       } catch {
         this.resetAuthState();
       }
