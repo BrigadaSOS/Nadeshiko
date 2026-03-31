@@ -52,7 +52,7 @@ export class Collection extends BaseEntity {
   })
   visibility!: CollectionVisibility;
 
-  @ManyToOne('User')
+  @ManyToOne('User', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: User;
 

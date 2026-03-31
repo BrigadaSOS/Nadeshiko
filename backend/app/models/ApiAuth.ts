@@ -23,7 +23,7 @@ export class ApiAuth extends BaseEntity {
   @Column({ name: 'user_id', type: 'int', nullable: true })
   userId?: number;
 
-  @ManyToOne('User', 'apiAuth')
+  @ManyToOne('User', 'apiAuth', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user?: User;
 

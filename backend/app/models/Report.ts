@@ -99,7 +99,7 @@ export class Report extends BaseEntity {
   @Column({ name: 'user_id', type: 'int', nullable: true })
   userId?: number | null;
 
-  @ManyToOne('User')
+  @ManyToOne('User', { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user?: User | null;
 

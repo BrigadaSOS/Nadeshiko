@@ -35,6 +35,7 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
 FROM oven/bun:1 AS release
 WORKDIR /app
 COPY --from=sentry /app/prod ./prod
+COPY --from=build /app/app/mailers/templates ./app/mailers/templates
 
 ENTRYPOINT []
 CMD ["bun", "./prod/main.js"]
