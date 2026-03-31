@@ -15,6 +15,7 @@ const sdk = useNadeshikoSdk();
 const sessionsActionLoading = ref(false);
 const sessionsError = ref('');
 const deletingAccount = ref(false);
+const deleteAccountError = ref('');
 const loggingOut = ref(false);
 const exportingData = ref(false);
 const savingPreferences = ref(false);
@@ -257,11 +258,11 @@ const deleteCurrentAccount = async () => {
   if (!confirm('This action permanently deletes your account. Continue?')) return;
 
   deletingAccount.value = true;
-  sessionsError.value = '';
+  deleteAccountError.value = '';
   try {
     const success = await user_store.deleteAccount();
     if (!success) {
-      sessionsError.value = 'Unable to delete account. You may need to sign in again and retry.';
+      deleteAccountError.value = 'Unable to delete account. You may need to sign in again and retry.';
       return;
     }
 
@@ -528,6 +529,7 @@ const logoutCurrentUser = async () => {
           {{ deletingAccount ? 'Deleting...' : 'Delete account' }}
         </button>
       </div>
+      <p v-if="deleteAccountError" class="text-red-300 text-sm mt-2">{{ deleteAccountError }}</p>
     </div>
   </div>
 </template>

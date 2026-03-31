@@ -104,6 +104,10 @@ accessories:
         - nofile=65536:65536
         - memlock=-1:-1
 
+  # Rebuild with:
+  #   docker build --target toolbox -t ghcr.io/brigadasos/nadeshiko-toolbox:latest .
+  #   docker push ghcr.io/brigadasos/nadeshiko-toolbox:latest
+  #   kamal accessory reboot toolbox -d prod
   toolbox:
     image: ghcr.io/brigadasos/nadeshiko-toolbox:latest
     host: nadeshiko
