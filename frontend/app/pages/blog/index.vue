@@ -34,7 +34,7 @@ useSeoMeta({
   ogTitle: 'Nadeshiko Blog',
   description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
   ogDescription: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
-  ogImage: `${useRequestURL().origin}/logo-og.png`,
+  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
 });
 
