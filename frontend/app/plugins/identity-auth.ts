@@ -32,10 +32,15 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             userEmail: response.user.email ?? null,
             currentSessionToken: response.session?.token ?? null,
             userInfo: { role: response.user.role ?? 'USER' },
-            preferences: response.user.preferences ?? {},
             isImpersonating: impersonating,
             impersonatedUsername: impersonating ? (response.user.name ?? null) : null,
           });
+
+          const prefsUrl = `${config.backendInternalUrl}/v1/user/preferences`;
+          store.preferences = await $fetch<Record<string, any>>(prefsUrl, {
+            method: 'GET',
+            headers,
+          }).catch(() => ({}));
         } else {
           store.resetAuthState();
         }

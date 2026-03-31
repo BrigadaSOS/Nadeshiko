@@ -169,7 +169,6 @@ export async function enrichSessionUser(user: BetterAuthSessionUser, findUserByI
   return {
     ...user,
     role: dbUser?.role ?? UserRoleType.USER,
-    preferences: dbUser?.preferences ?? {},
   };
 }
 
