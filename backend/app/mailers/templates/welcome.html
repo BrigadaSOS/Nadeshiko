@@ -7,75 +7,104 @@
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        line-height: 1.6;
-        color: #333;
+        line-height: 1.5;
+        color: #1a1a1a;
         margin: 0;
-        padding: 20px;
-        background-color: #f4f4f4;
+        padding: 32px 16px;
+        background-color: #f0f1f3;
       }
       .wrapper {
-        max-width: 480px;
+        max-width: 552px;
         margin: 0 auto;
       }
-      .container {
+      .card {
         background-color: #ffffff;
-        border-radius: 8px;
-        padding: 36px 32px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        text-align: center;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
-      .header img {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        vertical-align: middle;
+      .card-header {
+        background-color: #ef5552;
+        padding: 20px 32px;
       }
-      .header span {
-        font-size: 22px;
+      .card-header table {
+        border-collapse: collapse;
+      }
+      .card-header img {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        display: block;
+      }
+      .card-header-title {
+        font-size: 18px;
         font-weight: 700;
-        color: #ef5552;
-        vertical-align: middle;
-        margin-left: 8px;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+        padding-left: 14px;
       }
-      .body-text {
-        text-align: left;
-        margin-top: 24px;
+      .card-body {
+        padding: 28px 32px 24px;
+      }
+      .card-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 12px;
+        letter-spacing: -0.02em;
+      }
+      .card-text {
+        font-size: 15px;
+        color: #4b5563;
+        margin: 0 0 16px;
       }
       .features {
         background-color: #f9f9f9;
         padding: 16px 20px;
-        border-radius: 5px;
+        border-radius: 8px;
         margin: 16px 0;
-        text-align: left;
       }
       .features ul {
         margin: 0;
         padding-left: 20px;
+        color: #4b5563;
+        font-size: 15px;
       }
       .features li {
         margin-bottom: 8px;
       }
-      .footer {
-        margin-top: 28px;
-        padding-top: 16px;
-        border-top: 1px solid #e0e0e0;
+      .btn-wrapper {
+        text-align: center;
+        margin: 24px 0 8px;
+      }
+      .hint-text {
         font-size: 13px;
-        color: #999;
+        color: #9ca3af;
+        margin: 16px 0 0;
+      }
+      .card-footer {
+        background-color: #f9fafb;
+        border-top: 1px solid #f0f0f0;
+        padding: 14px 32px;
+        font-size: 12px;
+        color: #9ca3af;
         text-align: center;
       }
     </style>
   </head>
   <body>
     <div class="wrapper">
-      <div class="container">
-        <div class="header">
-          <img src="{{logoUrl}}" alt="Nadeshiko" />
-          <span>Nadeshiko</span>
+      <div class="card">
+        <div class="card-header">
+          <table role="presentation"><tr>
+            <td style="vertical-align: middle;"><img src="{{logoUrl}}" alt="Nadeshiko" /></td>
+            <td style="vertical-align: middle;" class="card-header-title">Nadeshiko</td>
+          </tr></table>
         </div>
 
-        <div class="body-text">
-          <p>Hey <strong>{{username}}</strong>,</p>
-          <p>Thanks for signing up! Here's a quick look at what you can do:</p>
+        <div class="card-body">
+          <p class="card-title">Welcome, {{username}}!</p>
+          <p class="card-text">Thanks for signing up. Here's a quick look at what you can do:</p>
 
           <div class="features">
             <ul>
@@ -86,19 +115,19 @@
             </ul>
           </div>
 
-          <p>Our database contains millions of example sentences. The easiest way to get started is to just search for a word or phrase you're curious about.</p>
+          <p class="card-text">Our database contains millions of example sentences. The easiest way to get started is to just search for a word or phrase you're curious about.</p>
+
+          <div class="btn-wrapper">
+            <a href="{{baseUrl}}" style="display: inline-block; background-color: #ef5552; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
+              <span style="color: #ffffff;">Start Searching</span>
+            </a>
+          </div>
+
+          <p class="hint-text">Have questions or feedback? Reach us at <a href="mailto:support@nadeshiko.co" style="color: #ef5552; text-decoration: none;">support@nadeshiko.co</a>.</p>
         </div>
 
-        <p>
-          <a href="{{baseUrl}}" style="display: inline-block; background-color: #ef5552; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 5px; font-weight: bold;">Start Searching</a>
-        </p>
-
-        <p style="font-size: 13px; color: #999; text-align: left;">
-          Have questions or feedback? Reach us at <a href="mailto:support@nadeshiko.co" style="color: #ef5552; text-decoration: none;">support@nadeshiko.co</a>.
-        </p>
-
-        <div class="footer">
-          <p>&copy; {{year}} Nadeshiko</p>
+        <div class="card-footer">
+          &copy; {{year}} Nadeshiko
         </div>
       </div>
     </div>
