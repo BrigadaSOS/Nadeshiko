@@ -83,7 +83,7 @@ const metaTags = computed(() => {
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
-      { property: 'og:image', content: `${useRequestURL().origin}/logo-og.png` },
+      { property: 'og:image', content: `${useRequestURL().origin}/logo-og-5bc76788.png` },
       { name: 'twitter:card', content: 'summary_large_image' },
     ],
   };

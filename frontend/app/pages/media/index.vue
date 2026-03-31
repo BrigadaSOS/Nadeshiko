@@ -9,7 +9,7 @@ useSeoMeta({
     'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
   ogDescription:
     'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
-  ogImage: `${useRequestURL().origin}/logo-og.png`,
+  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
 });
 

@@ -54,7 +54,7 @@ for row in range(-1, math.ceil(H / row_gap) + 2):
 img = Image.alpha_composite(img, pattern_layer)
 
 # --- Logo ---
-logo_src = Image.open(Path(__file__).parent.parent / "public/logo.webp").convert("RGBA")
+logo_src = Image.open(Path(__file__).parent.parent / "public/logo-38d6e06a.webp").convert("RGBA")
 logo_size = 380
 logo = logo_src.resize((logo_size, logo_size), Image.LANCZOS)
 
@@ -116,6 +116,6 @@ img.putalpha(content_mask)
 white = Image.new("RGBA", (W, H), (255, 255, 255, 255))
 img = Image.alpha_composite(white, img)
 
-out_path = Path(__file__).parent.parent / "public/logo-og.png"
+out_path = Path(__file__).parent.parent / "public/logo-og-5bc76788.png"
 img.convert("RGB").save(out_path, "PNG", optimize=True)
 print(f"Saved: {out_path}  ({logo_size}px logo, title_y={title_y}, sub_y={sub_y})")

@@ -1,6 +1,6 @@
 <script setup>
 const { origin } = useRequestURL();
-const ogImage = `${origin}/logo-og.png`;
+const ogImage = `${origin}/logo-og-5bc76788.png`;
 
 useHead({
   meta: [

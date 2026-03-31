@@ -242,40 +242,34 @@ export default defineNuxtConfig({
         'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
       },
     },
-    '/github.png': {
+    '/github-c80c5ec0.png': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
-    '/patreon.png': {
+    '/patreon-0c68395a.png': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
-    '/logo-og.png': {
+    '/logo-og-5bc76788.png': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
-    '/logo.webp': {
+    '/logo-38d6e06a.webp': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-      },
-    },
-    '/og-social.png': {
-      headers: {
-        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     '/github/**': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
   },
