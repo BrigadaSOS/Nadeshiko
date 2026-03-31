@@ -46,7 +46,7 @@ async function submitSidebarSearch() {
                 <div class="flex mr-7">
                     <NuxtLink to="/"
                         class="text-lg inline-flex items-center text-center align-middle font-semibold text-white">
-                        <img format="ico" src="/favicon.ico" class="h-8 mr-3 rounded-semi" alt="Nadeshiko Logo" />
+                        <img src="/logo-38d6e06a.webp" class="h-8 mr-3 rounded-semi" alt="Nadeshiko Logo" />
                         Nadeshiko
                     </NuxtLink>
                 </div>
@@ -157,7 +157,7 @@ async function submitSidebarSearch() {
 
         <div class="flex items-center justify-between py-3 px-4 border-b dark:border-neutral-700">
             <NuxtLink to="/" class="inline-flex items-center font-semibold text-gray-800 dark:text-white">
-                <img src="/favicon.ico" class="h-7 mr-2.5 rounded-semi" alt="Nadeshiko Logo" />
+                <img src="/logo-38d6e06a.webp" class="h-7 mr-2.5 rounded-semi" alt="Nadeshiko Logo" />
                 Nadeshiko
             </NuxtLink>
             <button type="button"
