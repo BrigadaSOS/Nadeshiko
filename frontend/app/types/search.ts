@@ -2,7 +2,6 @@ export type {
   SearchFilters,
   MediaFilterItem,
   Segment,
-  Media,
   CategoryCount,
   SearchResponse as SdkSearchResponse,
   SearchStatsResponse as SdkSearchStatsResponse,
@@ -11,7 +10,16 @@ export type {
   MediaListResponse as SdkMediaListResponse,
 } from '@brigadasos/nadeshiko-sdk';
 
-import type { Media, Segment, MediaSearchStats, PaginationInfo, WordMatchMedia } from '@brigadasos/nadeshiko-sdk';
+import type {
+  Media as SdkMedia,
+  Segment,
+  MediaSearchStats,
+  PaginationInfo,
+  WordMatchMedia,
+} from '@brigadasos/nadeshiko-sdk';
+
+/** SDK Media extended with slug (added before SDK is republished). */
+export type Media = SdkMedia & { slug: string };
 
 /** A search result with includes resolved (segment joined with its media). */
 export type SearchResult = {
@@ -30,7 +38,7 @@ export type SearchResponse = {
 
 /** MediaSearchStats enriched with media metadata from includes. */
 export type ResolvedMediaStats = MediaSearchStats &
-  Pick<Media, 'nameRomaji' | 'nameEn' | 'nameJa' | 'category' | 'airingFormat'>;
+  Pick<Media, 'nameRomaji' | 'nameEn' | 'nameJa' | 'category' | 'airingFormat' | 'slug'>;
 
 export type ResolvedCategoryCount = {
   category: 'ANIME' | 'JDRAMA';

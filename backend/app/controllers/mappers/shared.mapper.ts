@@ -49,6 +49,7 @@ export const toMediaCharacterDTO = (mediaCharacter: MediaCharacter): t_MediaChar
 export const toMediaAutocompleteDTO = (media: Media): t_MediaAutocompleteItem => ({
   id: media.id,
   publicId: media.publicId,
+  slug: media.slug,
   nameJa: media.nameJa,
   nameRomaji: media.nameRomaji,
   nameEn: media.nameEn,
@@ -68,6 +69,7 @@ const toDateString = (date: Date | string): string => {
 export const toMediaBaseDTO = (media: Media): t_Media => ({
   id: media.id,
   publicId: media.publicId,
+  slug: media.slug,
   externalIds: toExternalIdsMap(media.externalIds),
   nameJa: media.nameJa,
   nameRomaji: media.nameRomaji,

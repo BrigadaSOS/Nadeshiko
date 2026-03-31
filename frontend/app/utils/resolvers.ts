@@ -35,6 +35,7 @@ const EMPTY_MEDIA: Media = {
   segmentCount: 0,
   episodeCount: 0,
   studio: '',
+  slug: '',
   seasonName: '',
   seasonYear: 0,
 };
@@ -49,7 +50,7 @@ function resolveSearchResult(segment: Segment, mediaMap: Record<string, Media>):
 }
 
 export function resolveSearchResponse(raw: SdkSearchResponse): SearchResponse {
-  const mediaMap = raw.includes?.media ?? {};
+  const mediaMap = (raw.includes?.media ?? {}) as Record<string, Media>;
   return {
     results: raw.segments?.map((s) => resolveSearchResult(s, mediaMap)) ?? [],
     pagination: raw.pagination,
@@ -57,14 +58,14 @@ export function resolveSearchResponse(raw: SdkSearchResponse): SearchResponse {
 }
 
 export function resolveContextResponse(raw: SdkSegmentContextResponse): SegmentContextResponse {
-  const mediaMap = raw.includes?.media ?? {};
+  const mediaMap = (raw.includes?.media ?? {}) as Record<string, Media>;
   return {
     segments: raw.segments?.map((s) => resolveSearchResult(s, mediaMap)) ?? [],
   };
 }
 
 export function resolveStatsResponse(raw: SdkSearchStatsResponse): SearchStatsResponse {
-  const mediaMap = raw.includes?.media ?? {};
+  const mediaMap = (raw.includes?.media ?? {}) as Record<string, Media>;
 
   const media: ResolvedMediaStats[] =
     raw.media?.map((stat) => {
@@ -76,6 +77,7 @@ export function resolveStatsResponse(raw: SdkSearchStatsResponse): SearchStatsRe
         nameJa: included?.nameJa ?? '',
         category: included?.category ?? 'ANIME',
         airingFormat: included?.airingFormat ?? '',
+        slug: included?.slug ?? '',
       };
     }) ?? [];
 
@@ -104,7 +106,7 @@ export function resolveWordsResponse(raw: SdkSearchMultipleResponse): MultiSearc
 
 export function resolveMediaBrowseResponse(raw: SdkMediaListResponse): MediaBrowseResponse {
   return {
-    media: raw.media ?? [],
+    media: (raw.media ?? []) as Media[],
     cursor: raw.pagination?.cursor ?? null,
     hasMore: raw.pagination?.hasMore ?? false,
   };

@@ -5,6 +5,7 @@ import {
   mdiMovieOpenOutline,
   mdiNewspaperVariantOutline,
   mdiInformationOutline,
+  mdiChartBar,
   mdiApi,
   mdiCogOutline,
   mdiSync,
@@ -41,7 +42,7 @@ async function submitSidebarSearch() {
 <template>
     <header
         class="relative flex flex-wrap md:justify-start md:flex-nowrap w-full bg-white py-3 lg:py-2 dark:bg-header-background yomitan-ignore">
-        <nav class="px-4 md:px-0 md:max-w-[92%] w-full mx-auto md:flex md:items-center md:justify-between text-xs">
+        <nav class="px-4 md:px-0 md:max-w-[90%] w-full mx-auto md:flex md:items-center md:justify-between text-xs">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
                     <NuxtLink to="/"
@@ -81,6 +82,10 @@ async function submitSidebarSearch() {
                           v-if="hasNewPost && !isOnBlog"
                           class="absolute -top-0.5 -right-2 size-[5px] rounded-full bg-white"
                         />
+                    </NuxtLink>
+                    <NuxtLink to="/stats"
+                        class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
+                        {{ $t("navbar.buttons.stats") }}
                     </NuxtLink>
                     <NuxtLink to="/about"
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
@@ -142,6 +147,8 @@ async function submitSidebarSearch() {
                                     <SearchDropdownItem text="Activity" />
                                 </NuxtLink>
                                 <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
+                                <hr v-if="isAuth" class="my-1 border-neutral-700" />
+                                <SearchDropdownItem v-if="isAuth" data-testid="nav-logout" @click="logout" :text="$t('navbar.buttons.logout')" />
                             </SearchDropdownContent>
                         </template>
                     </SearchDropdownContainer>
@@ -195,6 +202,11 @@ async function submitSidebarSearch() {
                       v-if="hasNewPost && !isOnBlog"
                       class="size-1.5 rounded-full bg-header-background"
                     />
+                </NuxtLink>
+                <NuxtLink to="/stats"
+                    class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                    <UiBaseIcon :path="mdiChartBar" :size="18" />
+                    {{ $t("navbar.buttons.stats") }}
                 </NuxtLink>
                 <NuxtLink to="/about"
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">

@@ -58,7 +58,7 @@ const {
     <div class="mx-auto">
             <div class="relative text-white">
                 <div class="pt-2">
-                    <div class="px-4 md:px-0 md:max-w-[92%] mx-auto">
+                    <div class="px-4 md:px-0 md:max-w-[90%] mx-auto">
                         <LayoutSystemAnnouncementBanner />
                         <SearchBaseInputSegment />
                         <div class="py-2 xl:py-4">
@@ -320,7 +320,7 @@ const {
                         </div>
                     </div>
                 </div>
-                <div class="pb-8 px-4 md:px-0 md:max-w-[92%] mx-auto">
+                <div class="pb-8 px-4 md:px-0 md:max-w-[90%] mx-auto">
                     <div class="rounded-lg p-6 dark:text-white/80 dark:bg-card-background relative">
                         <section class="py-2">
                             <div class="flex mb-2 flex-col md:flex-row justify-top">

@@ -3,6 +3,7 @@ description: Media entry with full metadata
 required:
   - id
   - publicId
+  - slug
   - externalIds
   - nameJa
   - nameRomaji
@@ -27,6 +28,10 @@ properties:
     type: string
     description: Public identifier for the media (use this in public URLs)
     example: "V1StGXR8_Z5d"
+  slug:
+    type: string
+    description: URL-friendly slug for the media
+    example: "bakuman"
   externalIds:
     $ref: "./ExternalId.yaml"
   nameJa:

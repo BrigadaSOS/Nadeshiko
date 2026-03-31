@@ -106,11 +106,13 @@ import {
   listAdminMediaAuditRuns,
   getAdminMediaAuditRun,
 } from '@app/controllers/mediaAuditController';
+import { getStatsOverview, getCoveredWords, triggerCoveredWordsUpdate } from '@app/controllers/statsController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
 import { createRouter as createCollectionsRouter } from 'generated/routes/collections';
 import { createRouter as createAdminRouter } from 'generated/routes/admin';
 import { createRouter as createUserRouter } from 'generated/routes/user';
+import { createRouter as createStatsRouter } from 'generated/routes/stats';
 
 export const noCache = (_req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -221,6 +223,12 @@ const AdminRoutes = createAdminRouter({
   updateAnnouncement,
 });
 
+const StatsRoutes = createStatsRouter({
+  getStatsOverview,
+  getCoveredWords,
+  triggerCoveredWordsUpdate,
+});
+
 const UserRoutes = createUserRouter({
   getUserQuota,
   createUserReport,
@@ -246,6 +254,7 @@ for (const { method, path, middleware } of routeAuth) {
 }
 
 router.use('/', SearchRoutes);
+router.use('/', StatsRoutes);
 router.use('/', MediaRoutes);
 router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
@@ -273,4 +282,4 @@ export function mountRoutes(app: Application): Application {
   return app;
 }
 
-export { router, MediaRoutes, SearchRoutes, CollectionsRoutes, AdminRoutes, UserRoutes };
+export { router, MediaRoutes, SearchRoutes, StatsRoutes, CollectionsRoutes, AdminRoutes, UserRoutes };

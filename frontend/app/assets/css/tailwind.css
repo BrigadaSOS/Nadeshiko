@@ -36,6 +36,14 @@
   .yomitan-ignore {
     font-size: 0px;
   }
+
+  .nd-accent-bg-faint {
+    background-color: color-mix(in srgb, var(--button-color-accent) 10%, transparent);
+  }
+
+  .nd-accent-bg-muted {
+    background-color: color-mix(in srgb, var(--button-color-accent) 50%, transparent);
+  }
 }
 
 /* Overlay (modal/offcanvas) transitions — the nd-overlay-open: prefix classes

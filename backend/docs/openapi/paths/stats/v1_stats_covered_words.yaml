@@ -1,0 +1,91 @@
+get:
+  tags:
+    - Stats
+  operationId: getCoveredWords
+  summary: List words with coverage information
+  description: |
+    Returns a paginated list of words from the frequency list within a given
+    tier, with optional filtering by coverage status.
+
+  security: []
+
+  parameters:
+    - name: tier
+      in: query
+      required: true
+      description: Frequency tier (max rank) to query
+      schema:
+        type: integer
+        minimum: 1
+    - name: minRank
+      in: query
+      description: Minimum rank (exclusive). Use to query a slice, e.g. minRank=1000&tier=2000 for ranks 1001-2000.
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    - name: filter
+      in: query
+      description: Filter by coverage status
+      schema:
+        type: string
+        enum: [all, covered, uncovered]
+        default: all
+    - name: cursor
+      in: query
+      description: Rank to start from (exclusive) for pagination within the slice.
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    - name: take
+      in: query
+      description: Number of results per page
+      schema:
+        type: integer
+        default: 200
+        minimum: 1
+        maximum: 1000
+
+  responses:
+    "200":
+      description: Paginated list of words
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - words
+              - nextCursor
+              - tierStats
+            properties:
+              words:
+                type: array
+                items:
+                  $ref: "../../components/schemas/CoveredWord.yaml"
+              nextCursor:
+                type: integer
+                nullable: true
+                description: Rank cursor for the next page, or null if this is the last page
+              tierStats:
+                type: object
+                description: Tier-level word counts (cached)
+                required:
+                  - total
+                  - covered
+                  - uncovered
+                properties:
+                  total:
+                    type: integer
+                  covered:
+                    type: integer
+                  uncovered:
+                    type: integer
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Error500.yaml"

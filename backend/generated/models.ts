@@ -91,6 +91,12 @@ export type t_CollectionWithSegments = {
 
 export type t_ContentRating = 'SAFE' | 'SUGGESTIVE' | 'QUESTIONABLE' | 'EXPLICIT';
 
+export type t_CoveredWord = {
+  matchCount: number;
+  rank: number;
+  word: string;
+};
+
 export type t_Episode = {
   airedAt?: string | null;
   description?: string | null;
@@ -228,6 +234,7 @@ export type t_Media = {
   seasonName: string;
   seasonYear: number;
   segmentCount: number;
+  slug: string;
   startDate: string;
   studio?: string | null;
 };
@@ -278,6 +285,7 @@ export type t_MediaAutocompleteItem = {
   nameJa: string;
   nameRomaji: string;
   publicId: string;
+  slug: string;
 };
 
 export type t_MediaAutocompleteResponse = {
@@ -701,6 +709,13 @@ export type t_UserQuotaResponse = {
 
 export type t_UserReportTarget = t_ReportTargetMedia | t_ReportTargetSegmentInput;
 
+export type t_WordCoverageTier = {
+  covered: number;
+  percentage: number;
+  tier: number;
+  total: number;
+};
+
 export type t_WordMatch = {
   isMatch: boolean;
   matchCount: number;
@@ -923,6 +938,14 @@ export type t_GetCollectionStatsParamSchema = {
   id: string;
 };
 
+export type t_GetCoveredWordsQuerySchema = {
+  cursor?: number;
+  filter?: 'all' | 'covered' | 'uncovered';
+  minRank?: number;
+  take?: number;
+  tier: number;
+};
+
 export type t_GetEpisodeParamSchema = {
   episodeNumber: number;
   mediaId: string;
@@ -1126,6 +1149,11 @@ export type t_TrackUserActivityRequestBodySchema = {
   mediaName?: string;
   searchQuery?: string;
   segmentId?: string;
+};
+
+export type t_TriggerCoveredWordsUpdateRequestBodySchema = {
+  maxRank?: number;
+  onlyUncovered?: boolean;
 };
 
 export type t_TriggerReindexRequestBodySchema = {

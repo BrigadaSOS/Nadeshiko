@@ -255,16 +255,19 @@ const metaTags = computed(() => {
     }
 
     const title = animeName;
-    let description = `${totalResults.toLocaleString()} sentences`;
+    let description = `${totalResults.toLocaleString()} Japanese sentences from ${animeName} with English and Spanish translations`;
 
     if (episodeHits && Object.keys(episodeHits).length > 0) {
       const episodeCount = Object.keys(episodeHits).length;
       if (filterEpisode) {
-        description = `${totalResults.toLocaleString()} sentences, episode ${filterEpisode}`;
+        description = `${totalResults.toLocaleString()} Japanese sentences from ${animeName} episode ${filterEpisode} with English and Spanish translations`;
       } else {
         description += ` across ${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
       }
     }
+
+    const coverUrl = firstResult?.media?.coverUrl;
+    const ogImage = coverUrl || `${requestOrigin}/logo-og-5bc76788.png`;
 
     tags.title = title;
     tags.meta = [
@@ -272,8 +275,11 @@ const metaTags = computed(() => {
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
-      { property: 'og:image', content: `${requestOrigin}/logo-og-5bc76788.png` },
+      { property: 'og:image', content: ogImage },
       { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: description },
+      { name: 'twitter:image', content: ogImage },
     ];
   }
 
@@ -281,13 +287,19 @@ const metaTags = computed(() => {
 });
 
 useHead(metaTags);
+
+const schemaOrgType = computed(() => {
+  if (mediaQueryParam.value) return 'CollectionPage';
+  return 'SearchResultsPage';
+});
+useSchemaOrg([defineWebPage({ '@type': schemaOrgType })]);
 </script>
 
 <template>
     <div class="mx-auto">
             <div class="relative text-white">
                 <div class="pt-2">
-                    <div class="md:max-w-[92%] mx-auto">
+                    <div class="md:max-w-[70%] mx-auto">
                         <div class="px-4 md:px-0">
                             <SearchBaseInputSegment />
                         </div>

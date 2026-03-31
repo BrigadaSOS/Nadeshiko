@@ -1,0 +1,30 @@
+meta {
+  name: Trigger word coverage update
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/stats/covered-words/update
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "maxRank": 100000,
+    "onlyUncovered": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}
