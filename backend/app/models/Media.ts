@@ -38,6 +38,9 @@ export class Media extends BaseEntity {
   @Column({ name: 'public_id', type: 'varchar', unique: true })
   publicId!: string;
 
+  @Column({ name: 'slug', type: 'varchar', unique: true })
+  slug!: string;
+
   @BeforeInsert()
   generatePublicId() {
     this.publicId = nanoid(12);
@@ -89,6 +92,24 @@ export class Media extends BaseEntity {
 
   @Column({ name: 'num_segments', type: 'int', default: 0 })
   segmentCount!: number;
+
+  @Column({ name: 'episode_count', type: 'int', default: 0 })
+  episodeCount!: number;
+
+  @Column({ name: 'dialogue_duration_ms', type: 'bigint', default: 0 })
+  dialogueDurationMs!: number;
+
+  @Column({ name: 'en_human_count', type: 'int', default: 0 })
+  enHumanCount!: number;
+
+  @Column({ name: 'en_machine_count', type: 'int', default: 0 })
+  enMachineCount!: number;
+
+  @Column({ name: 'es_human_count', type: 'int', default: 0 })
+  esHumanCount!: number;
+
+  @Column({ name: 'es_machine_count', type: 'int', default: 0 })
+  esMachineCount!: number;
 
   @Column({ type: 'varchar' })
   version!: string;
@@ -258,6 +279,7 @@ export class Media extends BaseEntity {
     return {
       mediaId: media.id,
       publicId: media.publicId,
+      slug: media.slug,
       category: media.category, // "ANIME", "JDRAMA"
       categoryName: media.category, // Same as category - for backwards compatibility
       createdAt: media.createdAt.toISOString(),
@@ -274,7 +296,7 @@ export class Media extends BaseEntity {
       endDate: media.endDate as string | undefined, // YYYY-MM-DD format
       version: media.version,
       segmentCount: media.segmentCount,
-      episodeCount: media.episodes?.length ?? 0,
+      episodeCount: media.episodeCount,
       studio: media.studio,
       seasonName: media.seasonName,
       seasonYear: media.seasonYear,

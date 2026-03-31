@@ -19,6 +19,7 @@ export const toMediaSummary = (media: Media): t_Media => {
   return {
     id: media.id,
     publicId: media.publicId,
+    slug: media.slug,
     externalIds: toExternalIdsMap(media.externalIds),
     nameJa: media.nameJa,
     nameRomaji: media.nameRomaji,

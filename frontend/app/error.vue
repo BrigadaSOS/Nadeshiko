@@ -11,7 +11,13 @@ const pageTitle = computed(() => {
   return `${msg} | Nadeshiko`;
 });
 
-useHead({ title: pageTitle });
+useHead({
+  title: pageTitle,
+  meta: [
+    { name: 'description', content: 'The page you are looking for could not be found.' },
+    { name: 'robots', content: 'noindex' },
+  ],
+});
 
 const handleError = () => clearError({ redirect: '/' });
 </script>

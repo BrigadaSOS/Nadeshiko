@@ -1,0 +1,25 @@
+type: object
+description: Coverage statistics for a frequency tier
+required:
+  - tier
+  - covered
+  - total
+  - percentage
+properties:
+  tier:
+    type: integer
+    description: The frequency tier (e.g. 1000 means top 1000 words)
+    example: 5000
+  covered:
+    type: integer
+    description: Number of words with at least one match in the corpus
+    example: 4823
+  total:
+    type: integer
+    description: Total number of words in this tier
+    example: 5000
+  percentage:
+    type: number
+    format: float
+    description: Coverage percentage
+    example: 96.5

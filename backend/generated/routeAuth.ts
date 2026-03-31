@@ -13,6 +13,7 @@ export const routeAuth: RouteAuth[] = [
   { method: 'post', path: '/v1/search', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
   { method: 'post', path: '/v1/search/stats', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
   { method: 'post', path: '/v1/search/words', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
+  { method: 'post', path: '/v1/stats/covered-words/update', middleware: requireSession(enforceAdminAccess) },
   { method: 'get', path: '/v1/media', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
   { method: 'post', path: '/v1/media', middleware: requireAuth(enforceApiKeyScope(ApiPermission.ADD_MEDIA)) },
   { method: 'get', path: '/v1/media/autocomplete', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },

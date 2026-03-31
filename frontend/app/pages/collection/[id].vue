@@ -98,7 +98,7 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
   <div class="mx-auto">
       <div class="relative text-white">
         <div class="pt-2">
-          <div class="md:max-w-[92%] mx-auto">
+          <div class="md:max-w-[70%] mx-auto">
             <SearchBaseInputSegment />
             <SearchContainer
               :initial-sentence-data="initialSentenceData"

@@ -44,7 +44,7 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 <template>
   <div class="min-h-screen">
       <!-- Content -->
-      <div class="mx-auto max-w-6xl px-4 pt-2 pb-8 sm:pt-3 sm:pb-12">
+      <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
         <div class="content-markdown">
           <h1>Blog</h1>
 
@@ -66,26 +66,14 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 
 <style scoped>
 .content-markdown {
-  padding: 1.25rem 2.5rem 2.5rem 2.5rem;
-}
-
-@media (min-width: 640px) {
-  .content-markdown {
-    padding: 1.75rem 3.5rem 3.5rem 3.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .content-markdown {
-    padding: 2rem 4rem 4rem 4rem;
-  }
+  padding: 0;
 }
 
 .content-markdown :deep(h1) {
   font-size: 2.5rem;
   font-weight: 800;
-  margin-top: 3rem;
-  margin-bottom: 1.75rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
   color: white;
   line-height: 1.2;
   position: relative;
@@ -99,7 +87,7 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
   top: 0.25rem;
   bottom: 0.25rem;
   width: 4px;
-  background: linear-gradient(to bottom, #ef5552, #ef5552aa);
+  background: var(--button-color-accent);
   border-radius: 2px;
 }
 

@@ -1,0 +1,19 @@
+type: object
+description: A word from the frequency list with coverage information
+required:
+  - rank
+  - word
+  - matchCount
+properties:
+  rank:
+    type: integer
+    description: Frequency rank
+    example: 32
+  word:
+    type: string
+    description: The Japanese word
+    example: "彼女"
+  matchCount:
+    type: integer
+    description: Number of matching sentences in the corpus
+    example: 1542

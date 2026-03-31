@@ -2,11 +2,16 @@ type: object
 description: Summary information about a media entry for browse/list views
 required:
   - id
+  - slug
 properties:
   id:
     type: integer
     description: Unique identifier for the media
     example: 110316
+  slug:
+    type: string
+    description: URL-friendly slug for the media
+    example: "steins-gate"
   externalIds:
     $ref: "./ExternalId.yaml"
   category:

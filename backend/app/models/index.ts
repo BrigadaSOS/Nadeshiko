@@ -40,3 +40,6 @@ export { UserActivity, ActivityType } from './UserActivity';
 // Announcements
 export { Announcement } from './Announcement';
 export type { AnnouncementType } from './Announcement';
+
+// Word frequency
+export { WordFrequency } from './WordFrequency';

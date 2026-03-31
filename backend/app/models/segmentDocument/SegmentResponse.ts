@@ -138,6 +138,7 @@ export class SegmentResponse {
     return {
       id: mediaId,
       publicId: mediaInfo.publicId,
+      slug: mediaInfo.slug,
       externalIds: mediaInfo.externalIds,
       nameJa: mediaInfo.nameJa,
       nameRomaji: mediaInfo.nameRomaji,

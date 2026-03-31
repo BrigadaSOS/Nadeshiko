@@ -41,6 +41,8 @@ export const s_CollectionRequests = z.object({
 
 export const s_ContentRating = z.enum(['SAFE', 'SUGGESTIVE', 'QUESTIONABLE', 'EXPLICIT']);
 
+export const s_CoveredWord = z.object({ rank: z.coerce.number(), word: z.string(), matchCount: z.coerce.number() });
+
 export const s_Episode = z.object({
   mediaId: z.coerce.number(),
   episodeNumber: z.coerce.number(),
@@ -346,6 +348,13 @@ export const s_UserQuotaResponse = z.object({
   periodEnd: z.iso.datetime({ offset: true }),
 });
 
+export const s_WordCoverageTier = z.object({
+  tier: z.coerce.number(),
+  covered: z.coerce.number(),
+  total: z.coerce.number(),
+  percentage: z.coerce.number(),
+});
+
 export const s_WordMatchMedia = z.object({ mediaId: z.coerce.number(), matchCount: z.coerce.number() });
 
 export const s_CategoryCount = z.object({ category: s_Category, count: z.coerce.number() });
@@ -378,6 +387,7 @@ export const s_EpisodeListResponse = z.object({ episodes: z.array(s_Episode), pa
 export const s_MediaAutocompleteItem = z.object({
   id: z.coerce.number(),
   publicId: z.string(),
+  slug: z.string(),
   nameJa: z.string(),
   nameRomaji: z.string(),
   nameEn: z.string(),
@@ -671,6 +681,7 @@ export const s_AdminReport = s_Report.merge(z.object({ reportCount: z.coerce.num
 export const s_Media = z.object({
   id: z.coerce.number(),
   publicId: z.string(),
+  slug: z.string(),
   externalIds: s_ExternalId,
   nameJa: z.string(),
   nameRomaji: z.string(),

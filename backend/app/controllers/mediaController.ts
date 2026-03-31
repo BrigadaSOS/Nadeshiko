@@ -9,6 +9,7 @@ import type {
 } from 'generated/routes/media';
 import type { ListMediaQueryOutput } from 'generated/outputTypes';
 import type { t_CharacterInput, t_ExternalId } from 'generated/models';
+import type { DeepPartial } from 'typeorm';
 import { CategoryType, Media, MediaCharacter, MediaExternalId, MediaInclude, Segment } from '@app/models';
 import { Character } from '@app/models/Character';
 import { Seiyuu } from '@app/models/Seiyuu';
@@ -27,6 +28,7 @@ import { decodeOffsetCursor, encodeOffsetCursor } from '@lib/cursor';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
 import { InvalidRequestError } from '@app/errors';
+import { slugify, hasJapaneseChars } from '@lib/utils/slug';
 
 export const listMedia: ListMedia = async ({ query }, respond) => {
   if (query.query) {
@@ -127,7 +129,11 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
 }
 
 export const createMedia: CreateMedia = async ({ body }, respond) => {
-  const media = await Media.create(toMediaCreateAttributes(body)).save();
+  const attrs = toMediaCreateAttributes(body);
+  const romajiName = String(attrs.nameRomaji || '');
+  const slugSource = romajiName && !hasJapaneseChars(romajiName) ? romajiName : String(attrs.nameEn || '');
+  const slug = await resolveUniqueSlug(slugSource);
+  const media = await Media.create({ ...attrs, slug } as DeepPartial<Media>).save();
 
   if (body.characters?.length) {
     media.characters = await replaceMediaCharacters(media.id, body.characters);
@@ -145,7 +151,7 @@ export const getMedia: GetMedia = async ({ params, query }, respond) => {
   });
 
   const media = await Media.findOneOrFail({
-    where: { publicId: params.id },
+    where: [{ publicId: params.id }, { slug: params.id }],
     relations: mediaRelations,
   });
 
@@ -155,6 +161,12 @@ export const getMedia: GetMedia = async ({ params, query }, respond) => {
 export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.id } });
   const patch = toMediaUpdatePatch(body);
+
+  if (body.nameRomaji !== undefined || body.nameEn !== undefined) {
+    const romaji = body.nameRomaji ?? media.nameRomaji;
+    const slugSource = romaji && !hasJapaneseChars(romaji) ? romaji : (body.nameEn ?? media.nameEn);
+    patch.slug = await resolveUniqueSlug(slugSource, media.id);
+  }
 
   Media.merge(media, patch);
 
@@ -244,6 +256,30 @@ export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, re
 };
 
 const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
+
+async function resolveUniqueSlug(name: string, excludeMediaId?: number): Promise<string> {
+  const baseSlug = slugify(name);
+
+  const qb = Media.createQueryBuilder('media')
+    .select('media.slug')
+    .where('media.slug = :exact OR media.slug ~ :pattern', {
+      exact: baseSlug,
+      pattern: `^${baseSlug}-\\d+$`,
+    });
+
+  if (excludeMediaId !== undefined) {
+    qb.andWhere('media.id != :id', { id: excludeMediaId });
+  }
+
+  const existing = await qb.getMany();
+  const slugSet = new Set(existing.map((m) => m.slug));
+
+  if (!slugSet.has(baseSlug)) return baseSlug;
+
+  let counter = 2;
+  while (slugSet.has(`${baseSlug}-${counter}`)) counter++;
+  return `${baseSlug}-${counter}`;
+}
 
 async function replaceMediaExternalIds(mediaId: number, externalIds: t_ExternalId): Promise<MediaExternalId[]> {
   await MediaExternalId.delete({ mediaId });

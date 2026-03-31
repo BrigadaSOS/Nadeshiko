@@ -151,6 +151,7 @@ export default defineNuxtConfig({
       '/api/v1/docs',
       '/docs/api/index.html',
       '/blog',
+      '/stats',
     ],
     autoI18n: false,
   },
