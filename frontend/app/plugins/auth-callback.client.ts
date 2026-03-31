@@ -4,43 +4,30 @@ export default defineNuxtPlugin(() => {
   const route = useRoute();
 
   if (import.meta.client) {
-    const hasOAuthError = route.query.error;
-    const isOAuthCallback = hasOAuthError || route.query.code || route.query.state;
+    const isOAuthCallback = route.query.error || route.query.code || route.query.state;
     const isMagicLinkCallback = route.query.magic_callback === '1';
 
-    if (isMagicLinkCallback) {
-      const router = useRouter();
-      const isBanned = route.query.error === 'banned';
-      router.replace({ query: {} });
+    if (!isOAuthCallback && !isMagicLinkCallback) return;
 
-      setTimeout(async () => {
-        if (isBanned) {
-          useToastError($i18n.t('modalauth.labels.banneduser'));
-          return;
-        }
-        if (!store.isLoggedIn) {
-          await store.getBasicInfo();
-        }
-        if (store.isLoggedIn) {
-          useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
-        }
-      }, 200);
-    } else if (isOAuthCallback) {
-      setTimeout(async () => {
-        const wasLoggedIn = store.isLoggedIn;
+    const router = useRouter();
+    router.replace({ query: {} });
 
+    setTimeout(async () => {
+      if (route.query.error === 'banned') {
+        useToastError($i18n.t('modalauth.labels.banneduser'));
+        return;
+      }
+      if (route.query.error) {
+        useToastError($i18n.t('modalauth.labels.errorlogin400'));
+        return;
+      }
+
+      if (!store.isLoggedIn) {
         await store.getBasicInfo();
-
-        const router = useRouter();
-
-        if (store.isLoggedIn && !wasLoggedIn) {
-          useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
-          router.replace({ query: {} });
-        } else if (hasOAuthError) {
-          useToastError($i18n.t('modalauth.labels.errorlogin400'));
-          router.replace({ query: {} });
-        }
-      }, 500);
-    }
+      }
+      if (store.isLoggedIn) {
+        useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
+      }
+    }, 200);
   }
 });
