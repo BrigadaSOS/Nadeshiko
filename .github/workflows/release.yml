@@ -191,7 +191,7 @@ jobs:
           labels: |
             service=nadeshiko-frontend-prod
           build-args: |
-            NUXT_PUBLIC_ENVIRONMENT=prod
+            NUXT_PUBLIC_ENVIRONMENT=production
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
