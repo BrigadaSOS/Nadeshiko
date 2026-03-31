@@ -8,7 +8,7 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 # When called by git as a hook, stdin has push info. Skip non-main pushes.
 if [ -p /dev/stdin ]; then
   pushing_to_main=false
-  while read local_ref local_oid remote_ref remote_oid; do
+  while read -r local_ref local_oid remote_ref remote_oid; do
     case "$remote_ref" in
       refs/heads/main) pushing_to_main=true ;;
     esac

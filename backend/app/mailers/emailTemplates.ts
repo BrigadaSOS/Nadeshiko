@@ -3,7 +3,7 @@ import path from 'path';
 import { config } from '@config/config';
 
 function getLogoUrl(): string {
-  return `${config.BASE_URL}/logo.webp`;
+  return `${config.BASE_URL}/logo-38d6e06a.webp`;
 }
 
 export async function buildWelcomeEmail(username: string): Promise<{
