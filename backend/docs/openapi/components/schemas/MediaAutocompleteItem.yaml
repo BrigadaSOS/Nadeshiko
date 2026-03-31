@@ -3,6 +3,7 @@ description: Slim media item returned by autocomplete (names + cover only)
 required:
   - id
   - publicId
+  - slug
   - nameJa
   - nameRomaji
   - nameEn
@@ -17,6 +18,10 @@ properties:
     type: string
     description: Public identifier for the media
     example: "abc123xyz"
+  slug:
+    type: string
+    description: URL-friendly slug for the media
+    example: "bakuman"
   nameJa:
     type: string
     description: Original Japanese name of the media

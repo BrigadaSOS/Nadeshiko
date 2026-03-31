@@ -27,8 +27,8 @@ function getTargetUrl(event: H3Event): string {
 function shouldInjectApiKey(method: string, pathname: string): boolean {
   const normalizedMethod = method.toUpperCase();
 
-  // Public read endpoints under /v1/media.
-  if (normalizedMethod === 'GET' && pathname.startsWith('/v1/media')) {
+  // Public read endpoints under /v1/media and /v1/stats.
+  if (normalizedMethod === 'GET' && (pathname.startsWith('/v1/media') || pathname.startsWith('/v1/stats'))) {
     return true;
   }
 

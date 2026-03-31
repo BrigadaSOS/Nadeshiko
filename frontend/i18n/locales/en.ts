@@ -10,6 +10,7 @@ export default {
       terms: 'Terms and Conditions',
       settings: 'Settings',
       blog: 'Blog',
+      stats: 'Stats',
       media: 'Media',
       language: 'Language',
       logout: 'Logout',

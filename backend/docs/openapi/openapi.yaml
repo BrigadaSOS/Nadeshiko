@@ -49,6 +49,10 @@ tags:
     description: |
       User endpoints for account data including quota, preferences, activity history, reports, and data export.
 
+  - name: Stats
+    description: |
+      Public statistics endpoints for corpus coverage and word frequency data.
+
   - name: Collections
     x-internal: true
     description: |
@@ -62,6 +66,13 @@ paths:
     $ref: "./paths/search/v1_search_stats.yaml"
   "/v1/search/words":
     $ref: "./paths/search/v1_search_words.yaml"
+  # Stats endpoints
+  "/v1/stats/overview":
+    $ref: "./paths/stats/v1_stats_overview.yaml"
+  "/v1/stats/covered-words":
+    $ref: "./paths/stats/v1_stats_covered_words.yaml"
+  "/v1/stats/covered-words/update":
+    $ref: "./paths/stats/v1_stats_covered_words_update.yaml"
   # Media endpoints
   "/v1/media":
     $ref: "./paths/media/v1_media.yaml"

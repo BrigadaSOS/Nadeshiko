@@ -91,7 +91,7 @@ useHead(() => ({
 
 <template>
   <div class="min-h-screen">
-      <div v-if="data" class="mx-auto max-w-6xl px-4 pt-2 pb-8 sm:pt-3 sm:pb-12">
+      <div v-if="data" class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
         <div class="content-markdown" :class="{ 'is-blog-post': isBlogPost }">
           <template v-if="isBlogPost">
             <h1 class="blog-title">{{ title }}</h1>
@@ -122,20 +122,7 @@ useHead(() => ({
 
 <style scoped>
 .content-markdown {
-  padding: 1.25rem 0.5rem 2.5rem 0.5rem;
-}
-
-@media (min-width: 640px) {
-  .content-markdown {
-    padding: 1.75rem 2.5rem 3.5rem 2.5rem;
-  }
-}
-
-
-@media (min-width: 1024px) {
-  .content-markdown {
-    padding: 2rem 4rem 4rem 4rem;
-  }
+  padding: 0;
 }
 
 /* Lists */
@@ -154,7 +141,7 @@ useHead(() => ({
 }
 
 .content-markdown :deep(li::marker) {
-  color: #f87171;
+  color: var(--button-color-accent);
   font-weight: 600;
 }
 
@@ -168,8 +155,8 @@ useHead(() => ({
 .content-markdown :deep(h1) {
   font-size: 2.5rem;
   font-weight: 800;
-  margin-top: 3rem;
-  margin-bottom: 1.75rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
   color: #f3f4f6;
   line-height: 1.2;
   position: relative;
@@ -183,7 +170,7 @@ useHead(() => ({
   top: 0.25rem;
   bottom: 0.25rem;
   width: 4px;
-  background: #f87171;
+  background: var(--button-color-accent);
   border-radius: 2px;
 }
 
@@ -213,7 +200,7 @@ useHead(() => ({
   top: 0.25rem;
   bottom: 0.25rem;
   width: 4px;
-  background: #f87171;
+  background: var(--button-color-accent);
   border-radius: 2px;
 }
 
@@ -227,7 +214,7 @@ useHead(() => ({
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  color: #fe333f;
+  color: var(--button-color-accent);
   font-size: 0.875rem;
   padding-left: 1rem;
   margin-bottom: 0;
@@ -242,14 +229,14 @@ useHead(() => ({
 .content-markdown :deep(h2) {
   font-size: 2rem;
   font-weight: 700;
-  margin-top: 2rem;
+  margin-top: 0.5rem;
   margin-bottom: 1.25rem;
   color: #d1d5db;
   line-height: 1.3;
   text-decoration: underline;
   text-underline-offset: 0.5rem;
   text-decoration-thickness: 4px;
-  text-decoration-color: #fe333f;
+  text-decoration-color: var(--button-color-accent);
 }
 
 @media (min-width: 768px) {
@@ -263,7 +250,7 @@ useHead(() => ({
   font-weight: 600;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
-  color: #fe333f;
+  color: var(--button-color-accent);
   line-height: 1.4;
 }
 
@@ -278,16 +265,22 @@ useHead(() => ({
   font-weight: 600;
   margin-top: 2rem;
   margin-bottom: 0.875rem;
-  color: #fe333f;
+  color: var(--button-color-accent);
   line-height: 1.5;
 }
 
 /* Images */
+.content-markdown :deep(p:has(> img)) {
+  display: flex;
+  justify-content: center;
+}
+
 .content-markdown :deep(img) {
-  display: block;
   max-width: 100%;
-  margin: 2rem auto 0.5rem;
+  max-height: 40rem;
+  margin: 1rem 0 0.5rem;
   border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .content-markdown :deep(img + em),
@@ -311,7 +304,7 @@ useHead(() => ({
 
 /* Links */
 .content-markdown :deep(a) {
-  color: #f87171;
+  color: var(--button-color-accent);
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -320,14 +313,14 @@ useHead(() => ({
 
 .content-markdown :deep(a:hover) {
   color: #fca5a5;
-  border-bottom-color: #f87171;
+  border-bottom-color: var(--button-color-accent);
 }
 
 /* Links inside headings */
 .content-markdown :deep(h1 a),
 .content-markdown :deep(h2 a) {
   color: #d1d5db;
-  border-bottom: 2px solid #fe333f;
+  border-bottom: 2px solid var(--button-color-accent);
 }
 
 .content-markdown :deep(h3 a),
@@ -340,12 +333,12 @@ useHead(() => ({
 .content-markdown :deep(h2 a:hover),
 .content-markdown :deep(h3 a:hover),
 .content-markdown :deep(h4 a:hover) {
-  color: #f87171;
+  color: var(--button-color-accent);
 }
 
 .content-markdown :deep(blockquote) {
-  border-left: 4px solid #fe333f;
-  background-color: rgba(239, 85, 82, 0.08);
+  border-left: 4px solid var(--button-color-accent);
+  background-color: color-mix(in srgb, var(--button-color-accent) 8%, transparent);
   padding: 1rem 1.25rem;
   margin: 1.5rem 0;
   border-radius: 0 0.5rem 0.5rem 0;
@@ -358,7 +351,7 @@ useHead(() => ({
 }
 
 .content-markdown :deep(blockquote strong) {
-  color: #fe333f;
+  color: var(--button-color-accent);
 }
 
 /* Contributor card overrides */

@@ -10,6 +10,7 @@ export default {
       terms: '利用規約',
       settings: '設定',
       blog: 'ブログ',
+      stats: 'Stats',
       media: 'メディア',
       language: '言語',
       logout: 'ログアウト',

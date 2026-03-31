@@ -225,6 +225,47 @@ export class SegmentDocument {
     );
   }
 
+  static async wordsCoverageCount(
+    words: string[],
+    filters?: SearchFiltersOutput,
+    parserMode: QueryParserMode = 'strict',
+  ): Promise<Map<string, number>> {
+    const { filter, must_not } = filters
+      ? SegmentQuery.buildCommonFilters(filters)
+      : { filter: [] as estypes.QueryDslQueryContainer[], must_not: [] as estypes.QueryDslQueryContainer[] };
+
+    const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
+      const baseQuery = SegmentQuery.buildMultiLanguage(word, false, parserMode, filters?.languages?.exclude);
+      return [
+        {},
+        {
+          size: 0,
+          track_total_hits: true,
+          query: { bool: { must: [baseQuery], filter, must_not } },
+        },
+      ];
+    });
+
+    return withSafeQueryFallback(
+      async () => {
+        const esResponse = await client.msearch({ index: INDEX_NAME, searches });
+        const result = new Map<string, number>();
+        for (let i = 0; i < words.length; i++) {
+          const response = esResponse.responses[i] as estypes.SearchResponseBody;
+          const total = response.hits?.total as estypes.SearchTotalHits | undefined;
+          result.set(words[i], total?.value ?? 0);
+        }
+        return result;
+      },
+      () => SegmentDocument.wordsCoverageCount(words, filters, 'safe'),
+      {
+        parserMode,
+        warnContext: { wordsCount: words.length },
+        warnMessage: 'Invalid query syntax in coverage count; retrying with safe query parser',
+      },
+    );
+  }
+
   static async surroundingSegments(request: QuerySurroundingSegmentsRequest): Promise<SegmentContextResponseOutput> {
     const contextSearches: estypes.MsearchRequestItem[] = [
       {},

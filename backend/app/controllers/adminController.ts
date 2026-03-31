@@ -5,6 +5,8 @@ import { toAdminQueueStatsDTO } from '@app/controllers/mappers/queue.mapper';
 import { Cache } from '@lib/cache';
 import { client as esClient, INDEX_NAME } from '@config/elasticsearch';
 import { SegmentDocument, type ReindexMediaItem } from '@app/models/SegmentDocument';
+import { updateWordCoverage } from '@app/services/wordCoverageService';
+import { logger } from '@config/log';
 import { AppDataSource } from '@config/database';
 import { UserActivity } from '@app/models/UserActivity';
 import packageJson from '../../package.json';
@@ -64,6 +66,10 @@ export const getAdminDashboard: GetAdminDashboard = async (_params, respond) => 
 export const triggerReindex: TriggerReindex = async ({ body }, respond) => {
   const result = await SegmentDocument.reindex(toReindexMediaItems(body));
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
+
+  updateWordCoverage({ onlyUncovered: true }).catch((err) =>
+    logger.error({ err }, 'Word coverage update after reindex failed'),
+  );
 
   return respond.with200().body(result);
 };

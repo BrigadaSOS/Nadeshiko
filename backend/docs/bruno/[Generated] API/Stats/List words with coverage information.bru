@@ -1,0 +1,24 @@
+meta {
+  name: List words with coverage information
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/v1/stats/covered-words?filter=all&take=200
+  body: none
+  auth: none
+}
+
+params:query {
+  tier:
+  minRank:
+  filter: all
+  cursor:
+  take: 200
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

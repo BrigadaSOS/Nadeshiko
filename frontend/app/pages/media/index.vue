@@ -267,9 +267,9 @@ watch([searchQuery, filterCategory], () => {
 </script>
 
 <template>
-  <div class="min-h-screen max-w-[92%] mx-auto lg:max-w-[80%]  py-6">
-      <div class="inline-flex justify-between items-center w-full mb-6">
-        <h1 class="text-2xl font-bold md:text-3xl md:leading-tight dark:text-white">
+  <div class="min-h-screen mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
+      <div class="inline-flex justify-between items-center w-full mb-3">
+        <h1 class="text-[2.5rem] font-extrabold dark:text-white pl-4 leading-tight relative before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-button-accent-main before:rounded-sm">
           {{ $t('animeList.fullListTitle') }}
         </h1>
       </div>

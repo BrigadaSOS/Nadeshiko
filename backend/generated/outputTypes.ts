@@ -13,6 +13,7 @@ export type CategoryOutput = z.output<typeof schemas.s_Category>;
 export type CollectionOutput = z.output<typeof schemas.s_Collection>;
 export type CollectionRequestsOutput = z.output<typeof schemas.s_CollectionRequests>;
 export type ContentRatingOutput = z.output<typeof schemas.s_ContentRating>;
+export type CoveredWordOutput = z.output<typeof schemas.s_CoveredWord>;
 export type EpisodeOutput = z.output<typeof schemas.s_Episode>;
 export type EpisodeCreateRequestOutput = z.output<typeof schemas.s_EpisodeCreateRequest>;
 export type EpisodeUpdateRequestOutput = z.output<typeof schemas.s_EpisodeUpdateRequest>;
@@ -47,6 +48,7 @@ export type UpdateReportRequestOutput = z.output<typeof schemas.s_UpdateReportRe
 export type UserLabFeatureOutput = z.output<typeof schemas.s_UserLabFeature>;
 export type UserPreferencesOutput = z.output<typeof schemas.s_UserPreferences>;
 export type UserQuotaResponseOutput = z.output<typeof schemas.s_UserQuotaResponse>;
+export type WordCoverageTierOutput = z.output<typeof schemas.s_WordCoverageTier>;
 export type WordMatchMediaOutput = z.output<typeof schemas.s_WordMatchMedia>;
 export type CategoryCountOutput = z.output<typeof schemas.s_CategoryCount>;
 export type CharacterOutput = z.output<typeof schemas.s_Character>;
@@ -222,6 +224,15 @@ export const listSegmentsQuerySchema = z.object({
     cursor: z.string().optional(),
   });
 export type ListSegmentsQueryOutput = z.output<typeof listSegmentsQuerySchema>;
+
+export const getCoveredWordsQuerySchema = z.object({
+    tier: z.coerce.number().min(1),
+    minRank: z.coerce.number().min(0).optional().default(0),
+    filter: z.enum(['all', 'covered', 'uncovered']).optional().default('all'),
+    cursor: z.coerce.number().min(0).optional().default(0),
+    take: z.coerce.number().min(1).max(1000).optional().default(200),
+  });
+export type GetCoveredWordsQueryOutput = z.output<typeof getCoveredWordsQuerySchema>;
 
 export const listUserActivityQuerySchema = z.object({
     cursor: z.string().optional(),

@@ -91,11 +91,11 @@ const contentPreview = computed(() => {
       </span>
 
       <!-- Image -->
-      <div v-if="post.image" class="mt-4 mb-5 overflow-hidden rounded-lg">
+      <div v-if="post.image" class="mt-4 mb-5 flex justify-center">
         <img
           :src="post.image"
           :alt="post.title"
-          class="w-full rounded-lg group-hover:scale-105 transition-transform duration-300"
+          class="rounded-lg border border-white/10 group-hover:scale-105 transition-transform duration-300 max-h-[40rem] max-w-full"
         />
       </div>
 
