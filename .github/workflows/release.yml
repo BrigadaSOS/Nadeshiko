@@ -59,7 +59,7 @@ jobs:
           cd backend
           bun run docs:bundle
           test -f docs/generated/openapi.yaml
-          redocly bundle public -o ./docs/generated/openapi-public.yaml --remove-unused-components
+          bun run docs:bundle:public
           test -f docs/generated/openapi-public.yaml
 
       - name: Create GitHub release
