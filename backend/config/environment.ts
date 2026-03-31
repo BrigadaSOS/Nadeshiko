@@ -3,8 +3,8 @@ import { config } from '@config/config';
 
 export const APP_ENVIRONMENT = {
   LOCAL: 'local',
-  DEV: 'dev',
-  PROD: 'prod',
+  DEV: 'development',
+  PROD: 'production',
 } as const;
 
 export type AppEnvironment = (typeof APP_ENVIRONMENT)[keyof typeof APP_ENVIRONMENT];
@@ -24,7 +24,7 @@ export function getAppEnvironment(rawValue: string | undefined): AppEnvironment 
     return normalized;
   }
 
-  throw new Error(`Invalid ENVIRONMENT "${rawValue}". Expected one of: local, dev, prod.`);
+  throw new Error(`Invalid ENVIRONMENT "${rawValue}". Expected one of: local, development, production.`);
 }
 
 export function isLocalEnvironment(rawValue: string = config.ENVIRONMENT): boolean {

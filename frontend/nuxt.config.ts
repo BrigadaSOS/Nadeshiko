@@ -41,7 +41,7 @@ export default defineNuxtConfig({
     },
   },
   devtools: {
-    enabled: process.env.NODE_ENV === 'dev',
+    enabled: process.dev,
 
     timeline: {
       enabled: true,
@@ -77,7 +77,7 @@ export default defineNuxtConfig({
   ],
   security: {
     headers:
-      process.env.NODE_ENV === 'development'
+      process.dev
         ? false
         : {
             contentSecurityPolicy: {

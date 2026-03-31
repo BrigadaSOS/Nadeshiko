@@ -8,7 +8,7 @@ const optionalString = z
 const requiredString = z.string().trim().min(1);
 
 const envSchema = z.object({
-  ENVIRONMENT: z.enum(['local', 'dev', 'prod']),
+  ENVIRONMENT: z.enum(['local', 'development', 'production']),
   PORT: z.coerce.number().int().positive(),
   UUID_NAMESPACE: z.string().uuid(),
   R2_BASE_URL: z.string().url(),

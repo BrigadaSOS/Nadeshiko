@@ -9,7 +9,7 @@ const optionalString = z
   });
 
 const envSchema = z.object({
-  NUXT_PUBLIC_ENVIRONMENT: z.enum(['local', 'dev', 'prod']).default('prod'),
+  NUXT_PUBLIC_ENVIRONMENT: z.enum(['local', 'development', 'production']).default('production'),
   NUXT_BACKEND_INTERNAL_URL: z.string().trim().default(''),
   NUXT_NADESHIKO_API_KEY: z.string().trim().default(''),
   NUXT_BACKEND_HOST_HEADER: optionalString,

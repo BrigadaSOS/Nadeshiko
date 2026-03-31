@@ -1,7 +1,7 @@
 import pino from 'pino';
 import { trace } from '@opentelemetry/api';
 
-const isDevelopment = process.env.NODE_ENV === 'dev';
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 const baseOptions: pino.LoggerOptions = {
   level: process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
