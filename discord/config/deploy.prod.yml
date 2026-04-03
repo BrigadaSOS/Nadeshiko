@@ -1,0 +1,13 @@
+image: brigadasos/nadeshiko-discord-prod
+service: nadeshiko-discord-prod
+
+proxy:
+  disabled: true
+
+env:
+  secret:
+    - DISCORD_BOT_TOKEN
+    - DISCORD_API_KEY_MASTER
+  clear:
+    NADESHIKO_API_URL: "https://api.nadeshiko.co"
+    NADESHIKO_FRONTEND_URL: "https://nadeshiko.co"

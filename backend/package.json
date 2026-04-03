@@ -40,7 +40,7 @@
     "routes": "bun run bin/routes.ts",
     "test": "bun test",
     "test:setup": "bun --env-file=.env.test run db:setup",
-    "cloc": "echo '=== Application Code ===' && cloc --exclude-dir=node_modules,dist,generated,.nuxt,.output,prod,docs,tests . && echo '=== Test Code ===' && cloc --exclude-dir=node_modules,dist,generated,.nuxt,.output,prod,docs ./tests"
+    "cloc": "echo '=== Application Code ===' && cloc --exclude-dir=node_modules,dist,generated,.nuxt,.output,prod,docs,tests . && echo '=== Test Code ===' && cloc --exclude-dir=node_modules,dist,generated,.nuxt,.output,prod,docs ./tests",
   },
   "author": "",
   "license": "AGPL-3.0",
