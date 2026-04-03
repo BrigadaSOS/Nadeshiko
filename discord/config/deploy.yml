@@ -1,0 +1,19 @@
+servers:
+  web:
+    hosts:
+      - nadeshiko
+
+registry:
+  server: ghcr.io
+  username: kamal
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+ssh:
+  user: docker
+
+aliases:
+  logs: app logs -f

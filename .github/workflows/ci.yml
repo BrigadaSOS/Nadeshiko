@@ -13,6 +13,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      discord: ${{ steps.filter.outputs.discord }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -23,6 +24,8 @@ jobs:
               - 'backend/**'
             frontend:
               - 'frontend/**'
+            discord:
+              - 'discord/**'
 
   backend:
     needs: changes
@@ -88,3 +91,25 @@ jobs:
 
       - name: Typecheck
         run: cd frontend && bun run typecheck
+
+  discord:
+    needs: changes
+    if: needs.changes.outputs.discord == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: cd discord && bun install --frozen-lockfile
+
+      - name: Lint
+        run: cd discord && bun run lint
+
+      - name: Typecheck
+        run: cd discord && bun run typecheck

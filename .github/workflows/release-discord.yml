@@ -1,0 +1,94 @@
+name: "[Prod] Release Discord"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'discord/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  deploy-discord:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          aws-region: eu-north-1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push discord image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./discord
+          push: true
+          tags: |
+            ghcr.io/brigadasos/nadeshiko-discord-prod:${{ github.sha }}
+            ghcr.io/brigadasos/nadeshiko-discord-prod:latest
+          labels: |
+            service=nadeshiko-discord-prod
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: nadeshiko
+
+      - name: Configure SSH over Tailscale
+        run: |
+          mkdir -p ~/.ssh
+          cat >> ~/.ssh/config <<'EOF'
+          Host nadeshiko
+            ProxyCommand tailscale nc %h %p
+          EOF
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/config
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+
+      - name: Install Kamal from fork
+        run: |
+          git clone --depth 1 https://github.com/davafons/kamal.git /tmp/kamal
+          cd /tmp/kamal
+          gem build kamal.gemspec
+          gem install kamal-*.gem
+
+      - name: Prepare secrets for CI
+        run: |
+          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' discord/.kamal/secrets.prod
+          sed -i 's/--account nadeshiko-prod //' discord/.kamal/secrets.prod
+
+      - name: Deploy discord to prod
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
+          cd discord
+          kamal deploy -d prod --skip-push
