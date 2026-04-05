@@ -7,7 +7,11 @@ meta {
 get {
   url: {{baseUrl}}/v1/stats/overview
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

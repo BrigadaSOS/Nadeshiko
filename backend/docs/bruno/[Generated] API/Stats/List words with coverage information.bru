@@ -7,7 +7,7 @@ meta {
 get {
   url: {{baseUrl}}/v1/stats/covered-words?filter=all&take=200
   body: none
-  auth: none
+  auth: bearer
 }
 
 params:query {
@@ -16,6 +16,10 @@ params:query {
   filter: all
   cursor:
   take: 200
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {

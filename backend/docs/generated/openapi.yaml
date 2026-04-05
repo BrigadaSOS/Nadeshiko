@@ -217,7 +217,9 @@ paths:
         Returns a comprehensive overview of corpus statistics including headline numbers,
         word frequency coverage tiers, and translation availability. This is the primary
         data source for the public /stats page.
-      security: []
+      security:
+        - ApiKey:
+            - READ_MEDIA
       responses:
         '200':
           description: Corpus statistics overview
@@ -309,7 +311,9 @@ paths:
       description: |
         Returns a paginated list of words from the frequency list within a given
         tier, with optional filtering by coverage status.
-      security: []
+      security:
+        - ApiKey:
+            - READ_MEDIA
       parameters:
         - name: tier
           in: query

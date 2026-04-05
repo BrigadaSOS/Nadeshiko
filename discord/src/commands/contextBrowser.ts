@@ -1,12 +1,12 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, type ButtonInteraction } from 'discord.js';
 import { getSegmentContext, downloadFile } from '../api';
 import { buildSegmentMessage } from '../embeds';
-import type { Segment, MediaInfo } from '../api';
+import type { Segment, Media } from '../api';
 import { BOT_CONFIG } from '../config';
 
 type ContextState = {
   segments: Segment[];
-  mediaMap: Record<string, MediaInfo>;
+  mediaMap: Record<string, Media>;
   currentIndex: number;
   originPublicId: string;
 };
@@ -23,7 +23,7 @@ export async function launchContextBrowser(btnInteraction: ButtonInteraction, or
 
   const state: ContextState = {
     segments: contextResult.segments,
-    mediaMap: contextResult.includes.media,
+    mediaMap: contextResult.includes.media ?? {},
     currentIndex: contextResult.segments.findIndex((s) => s.publicId === originPublicId),
     originPublicId,
   };

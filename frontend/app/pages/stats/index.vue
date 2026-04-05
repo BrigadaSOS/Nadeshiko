@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { userStore } from '~/stores/auth';
-import type { StatsOverviewResponse, UpdateResult } from '~/types/stats';
+import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
 
 useSeoMeta({
   title: 'Stats - Nadeshiko',
@@ -13,28 +13,28 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 });
 
-const { baseURL, headers } = useBackendFetchOptions();
+const sdk = useNadeshikoSdk();
 
 const {
   data: stats,
   refresh: refreshStats,
   error: statsError,
-} = await useAsyncData('stats-overview', () =>
-  $fetch<StatsOverviewResponse>(`/v1/stats/overview`, { baseURL, headers }),
-);
+} = await useAsyncData('stats-overview', async () => {
+  const { data } = await sdk.getStatsOverview();
+  return data;
+});
 
 const updating = ref(false);
-const updateResult = ref<UpdateResult | null>(null);
+const updateResult = ref<TriggerCoveredWordsUpdateResponse | null>(null);
 
 async function triggerUpdate(onlyUncovered: boolean) {
   updating.value = true;
   updateResult.value = null;
   try {
-    const result = await $fetch<UpdateResult>('/v1/stats/covered-words/update', {
-      method: 'POST',
+    const { data } = await sdk.triggerCoveredWordsUpdate({
       body: { onlyUncovered },
     });
-    updateResult.value = result;
+    updateResult.value = data;
     await refreshStats();
   } catch (err) {
     console.error('Coverage update failed:', err);

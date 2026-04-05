@@ -8,7 +8,8 @@ get:
     word frequency coverage tiers, and translation availability. This is the primary
     data source for the public /stats page.
 
-  security: []
+  security:
+    - ApiKey: [READ_MEDIA]
 
   responses:
     "200":
