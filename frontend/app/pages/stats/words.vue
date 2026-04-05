@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WordEntry, TierStats, WordsResponse } from '~/types/stats';
+import type { CoveredWord, GetCoveredWordsResponse } from '@brigadasos/nadeshiko-sdk';
 
 const TIERS = [1000, 2000, 5000, 10000, 20000, 50000, 100000] as const;
 
@@ -39,13 +39,13 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 });
 
-const words = ref<WordEntry[]>([]);
+const words = ref<CoveredWord[]>([]);
 const nextCursor = ref<number | null>(null);
-const tierStats = ref<TierStats | null>(null);
+const tierStats = ref<GetCoveredWordsResponse['tierStats'] | null>(null);
 const loading = ref(false);
 const scrollSentinel = ref<HTMLElement | null>(null);
 
-const { baseURL, headers: fetchHeaders } = useBackendFetchOptions();
+const sdk = useNadeshikoSdk();
 
 async function fetchWordsRaw(
   tier: number,
@@ -53,15 +53,11 @@ async function fetchWordsRaw(
   filter: string,
   cursor: number,
   take: number,
-): Promise<WordsResponse> {
-  const params = new URLSearchParams({
-    tier: String(tier),
-    minRank: String(minRank),
-    filter,
-    cursor: String(cursor),
-    take: String(take),
+): Promise<GetCoveredWordsResponse> {
+  const { data } = await sdk.getCoveredWords({
+    query: { tier, minRank, filter: filter as 'all' | 'covered' | 'uncovered', cursor, take },
   });
-  return $fetch<WordsResponse>(`/v1/stats/covered-words?${params}`, { baseURL, headers: fetchHeaders });
+  return data;
 }
 
 const { data: initialData } = await useAsyncData(

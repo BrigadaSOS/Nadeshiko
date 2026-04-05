@@ -1,95 +1,42 @@
+import { createNadeshikoClient, type NadeshikoClient } from '@brigadasos/nadeshiko-sdk';
+import type {
+  Segment,
+  Media,
+  SearchResponse,
+  GetSegmentContextResponse,
+  GetStatsOverviewResponse,
+} from '@brigadasos/nadeshiko-sdk';
 import { BOT_CONFIG } from './config';
+import { traceApiCall } from './instrumentation';
+import { createLogger } from './logger';
 
-type SearchBody = {
-  query: { search: string; exactMatch?: boolean };
-  filters?: Record<string, unknown>;
-  sort?: { mode?: string; seed?: number };
-  take?: number;
-  cursor?: string;
-  include?: string[];
-};
+const log = createLogger('api');
 
-export type Segment = {
-  id: number;
-  publicId: string;
-  uuid: string;
-  position: number;
-  startTimeMs: number;
-  endTimeMs: number;
-  episode: number;
-  mediaId: number;
-  mediaPublicId: string;
-  textJa: { content: string; highlight?: string };
-  textEn: { content: string; isMachineTranslated: boolean; highlight?: string };
-  textEs: { content: string; isMachineTranslated: boolean; highlight?: string };
-  contentRating: string;
-  urls: { imageUrl: string; audioUrl: string; videoUrl: string };
-};
+export type { Segment, Media, SearchResponse };
+export type ContextResponse = GetSegmentContextResponse;
+export type StatsResponse = GetStatsOverviewResponse;
 
-export type MediaInfo = {
-  id: number;
-  publicId: string;
-  slug: string;
-  nameJa: string;
-  nameRomaji: string;
-  nameEn: string;
-  airingFormat: string;
-  category: string;
-  coverUrl: string;
-  bannerUrl: string;
-  segmentCount: number;
-  episodeCount: number;
-  studio: string;
-};
+let sdk: NadeshikoClient;
 
-export type SearchResponse = {
-  segments: Segment[];
-  includes: { media: Record<string, MediaInfo> };
-  pagination: {
-    hasMore: boolean;
-    estimatedTotalHits: number;
-    estimatedTotalHitsRelation: string;
-    cursor: string | null;
-  };
-};
+export function initSdk() {
+  sdk = createNadeshikoClient({
+    apiKey: BOT_CONFIG.apiKey,
+    baseURL: BOT_CONFIG.apiBaseUrl,
+  });
 
-export type ContextResponse = {
-  segments: Segment[];
-  includes: { media: Record<string, MediaInfo> };
-};
+  sdk.client.interceptors.request.use((request) => {
+    log.debug({ method: request.method, url: request.url }, 'API request');
+    return request;
+  });
 
-export type StatsResponse = {
-  totalSegments: number;
-  totalEpisodes: number;
-  totalMedia: number;
-  totalFrequencyWords: number;
-  dialogueHours: number;
-  tiers: { tier: number; covered: number; total: number; percentage: number }[];
-  translations: {
-    total: number;
-    enHuman: number;
-    enMachine: number;
-    esHuman: number;
-    esMachine: number;
-  };
-};
-
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${BOT_CONFIG.apiBaseUrl}/v1${path}`;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${BOT_CONFIG.apiKey}`,
-    ...((options.headers as Record<string, string>) ?? {}),
-  };
-
-  const response = await fetch(url, { ...options, headers });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`API ${response.status}: ${text.slice(0, 200)}`);
-  }
-
-  return response.json() as Promise<T>;
+  sdk.client.interceptors.response.use((response) => {
+    if (!response.ok) {
+      log.warn({ url: response.url, status: response.status }, 'API request failed');
+    } else {
+      log.debug({ url: response.url, status: response.status }, 'API response');
+    }
+    return response;
+  });
 }
 
 export async function search(
@@ -103,57 +50,67 @@ export async function search(
     category?: string;
   } = {},
 ): Promise<SearchResponse> {
-  const body: SearchBody = {
-    query: { search: query, exactMatch: options.exactMatch },
-    take: options.take ?? BOT_CONFIG.maxSearchResults,
-    include: ['media'],
-    filters: {
-      status: ['ACTIVE', 'VERIFIED'],
-      ...(options.category ? { category: [options.category] } : {}),
-    },
-  };
+  return traceApiCall('POST', '/v1/search', async () => {
+    const filters = {
+      status: ['ACTIVE', 'VERIFIED'] as ('ACTIVE' | 'VERIFIED')[],
+      ...(options.category ? { category: [options.category as 'ANIME' | 'JDRAMA'] } : {}),
+    };
 
-  if (options.cursor) body.cursor = options.cursor;
+    const { data } = await sdk.search({
+      body: {
+        query: { search: query, exactMatch: options.exactMatch },
+        take: options.take ?? BOT_CONFIG.maxSearchResults,
+        cursor: options.cursor,
+        include: ['media'],
+        filters,
+        sort: options.sort ? { mode: options.sort as any, seed: options.seed } : undefined,
+      },
+    });
 
-  if (options.sort) {
-    body.sort = { mode: options.sort };
-    if (options.sort === 'RANDOM' && options.seed) {
-      body.sort.seed = options.seed;
-    }
-  }
-
-  return apiFetch<SearchResponse>('/search', {
-    method: 'POST',
-    body: JSON.stringify(body),
+    return data;
   });
 }
 
 export async function getSegmentContext(uuid: string, take = 5): Promise<ContextResponse> {
-  return apiFetch<ContextResponse>(`/media/segments/${encodeURIComponent(uuid)}/context?take=${take}`);
+  return traceApiCall('GET', `/v1/media/segments/${uuid}/context`, async () => {
+    const { data } = await sdk.getSegmentContext({
+      path: { uuid },
+      query: { take },
+    });
+    return data;
+  });
 }
 
-export async function getSegmentByUuid(uuid: string): Promise<{ segment: Segment; media: MediaInfo | null }> {
-  const data = await apiFetch<any>(`/media/segments/${encodeURIComponent(uuid)}?include=media`);
+export async function getSegmentByUuid(uuid: string): Promise<{ segment: Segment; media: Media | null }> {
+  return traceApiCall('GET', `/v1/media/segments/${uuid}`, async () => {
+    const { data } = await sdk.getSegmentByUuid({
+      path: { uuid },
+    });
 
-  const segment = data as Segment;
-  const media =
-    segment.mediaPublicId && data.includes?.media?.[segment.mediaPublicId]
-      ? data.includes.media[segment.mediaPublicId]
-      : null;
+    const segment = data as Segment;
+    const media = (data as any).includes?.media?.[segment.mediaPublicId] ?? null;
 
-  return { segment, media };
+    return { segment, media };
+  });
 }
 
 export async function getStats(): Promise<StatsResponse> {
-  return apiFetch<StatsResponse>('/stats/overview');
+  return traceApiCall('GET', '/v1/stats/overview', async () => {
+    const { data } = await sdk.getStatsOverview();
+    return data;
+  });
 }
 
 export async function downloadFile(url: string): Promise<Buffer | null> {
   try {
     const response = await fetch(url);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      log.warn({ url, status: response.status }, 'File download failed');
+      return null;
+    }
     return Buffer.from(await response.arrayBuffer());
-  } catch {
+  } catch (error) {
+    log.error({ err: error, url }, 'File download error');
     return null;
   }
 }

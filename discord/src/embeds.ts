@@ -1,6 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import { BOT_CONFIG } from './config';
-import type { Segment, MediaInfo, SearchResponse, ContextResponse, StatsResponse } from './api';
+import type { Segment, Media, SearchResponse, ContextResponse, StatsResponse } from './api';
 
 function formatTimestamp(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -19,7 +19,7 @@ function highlightToMarkdown(text: string): string {
   return result;
 }
 
-function getMediaName(media?: MediaInfo): string {
+function getMediaName(media?: Media): string {
   if (!media) return 'Unknown';
   return media.nameRomaji || media.nameEn || media.nameJa || 'Unknown';
 }
@@ -29,7 +29,7 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - 1)}...`;
 }
 
-function mediaUrl(media: MediaInfo): string {
+function mediaUrl(media: Media): string {
   return `${BOT_CONFIG.frontendUrl}/media/${media.slug || media.publicId}`;
 }
 
@@ -37,7 +37,7 @@ function segmentUrl(publicId: string): string {
   return `${BOT_CONFIG.frontendUrl}/sentence/${publicId}`;
 }
 
-export function buildSegmentMessage(segment: Segment, media: MediaInfo | undefined): string {
+export function buildSegmentMessage(segment: Segment, media: Media | undefined): string {
   const mediaName = getMediaName(media);
   const timestamp = formatTimestamp(segment.startTimeMs);
 
@@ -99,7 +99,7 @@ export function buildContextMessage(response: ContextResponse, targetPublicId: s
 
   if (segments.length === 0) return 'No context segments found.';
 
-  const firstMedia = Object.values(includes.media)[0];
+  const firstMedia = Object.values(includes.media ?? {})[0];
   const mediaName = getMediaName(firstMedia);
   const ep = segments[0]?.episode;
 
