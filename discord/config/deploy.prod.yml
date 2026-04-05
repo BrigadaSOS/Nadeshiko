@@ -1,9 +1,6 @@
 image: brigadasos/nadeshiko-discord-prod
 service: nadeshiko-discord-prod
 
-proxy:
-  disabled: true
-
 env:
   secret:
     - DISCORD_BOT_TOKEN
