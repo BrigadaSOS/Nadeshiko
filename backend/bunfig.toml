@@ -1,3 +1,5 @@
+preload = ["./instrumentation.ts"]
+
 [test]
 preload = ["./tests/helpers/preflight.ts", "./tests/helpers/matchers.ts"]
 bail = 1

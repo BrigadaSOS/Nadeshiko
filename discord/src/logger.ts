@@ -28,5 +28,5 @@ const loggerOptions: pino.LoggerOptions = isDevelopment
     }
   : baseOptions;
 
-export const logger = pino(loggerOptions);
+const logger = pino(loggerOptions);
 export const createLogger = (context: string) => logger.child({ context });

@@ -4,7 +4,10 @@ export const BOT_CONFIG = {
   apiKey: process.env.DISCORD_API_KEY_MASTER ?? '',
   frontendUrl: process.env.NADESHIKO_FRONTEND_URL ?? 'https://nadeshiko.co',
   embedColor: 0x8b5cf6,
-  embedColorAnime: 0x8b5cf6,
-  embedColorJdrama: 0xf59e0b,
-  maxSearchResults: 5,
+  maxSearchResults: 20,
 } as const;
+
+export function getApplicationId(): string {
+  const tokenParts = BOT_CONFIG.token.split('.');
+  return Buffer.from(tokenParts[0], 'base64').toString();
+}

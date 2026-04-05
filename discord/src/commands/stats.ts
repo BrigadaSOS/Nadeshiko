@@ -1,6 +1,10 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
 import { getStats } from '../api';
 import { buildStatsEmbed } from '../embeds';
+import { createLogger } from '../logger';
+import { getActiveTraceId } from '../instrumentation';
+
+const log = createLogger('cmd:stats');
 
 export const data = new SlashCommandBuilder().setName('stats').setDescription('Show Nadeshiko corpus statistics');
 
@@ -12,7 +16,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const embed = buildStatsEmbed(stats);
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    await interaction.editReply({ content: `Failed to get stats: ${msg}` });
+    const traceId = getActiveTraceId();
+    log.error({ err: error, traceId }, 'Stats command failed');
+    const suffix = traceId ? ` (trace: ${traceId})` : '';
+    await interaction.editReply({ content: `Something went wrong.${suffix}` });
   }
 }

@@ -265,10 +265,6 @@ router.get('/v1/admin/users-with-providers', requireSession(enforceAdminAccess),
 export function mountRoutes(app: Application): Application {
   app.get('/up', (_req, res) => res.status(200).send('OK'));
 
-  app.get('/debug-sentry', () => {
-    throw new Error('Sentry test error');
-  });
-
   app.all(
     '/v1/auth/magic-link/verify',
     noCache,

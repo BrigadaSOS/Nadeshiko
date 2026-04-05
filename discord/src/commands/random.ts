@@ -1,28 +1,77 @@
+import { SlashCommandBuilder, ButtonBuilder, ButtonStyle, type ChatInputCommandInteraction } from 'discord.js';
+import { search } from '../api';
+import type { DisplayOptions } from '../embeds';
 import {
-  SlashCommandBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  AttachmentBuilder,
-  type ChatInputCommandInteraction,
-} from 'discord.js';
-import { search, downloadFile } from '../api';
-import { buildSegmentMessage } from '../embeds';
-import { launchContextBrowser } from './contextBrowser';
+  renderSegmentReply,
+  updateSegmentReply,
+  createContextState,
+  handleContextButton,
+  handleContextSelect,
+  handleBackToOriginal,
+  buildLinkOnlyRow,
+} from '../segmentReply';
+import {
+  advancedSearchButton,
+  filterMediaButton,
+  createSearchModalState,
+  showSearchModal,
+  showFilterMediaSelect,
+  handleFilterMediaSelect,
+  createFilterMediaState,
+  renderFilterMediaPage,
+  renderSearchResult,
+  setupModalListener,
+  goToFirstPage,
+  goToNextPage,
+  goToPrevPage,
+} from '../searchModal';
 import { BOT_CONFIG } from '../config';
+import { createLogger } from '../logger';
+import { getActiveTraceId } from '../instrumentation';
+import { getGuildSettings, type Language } from '../settings';
+
+const log = createLogger('cmd:random');
 
 export const data = new SlashCommandBuilder()
   .setName('random')
   .setDescription('Get a random Japanese sentence')
-  .addStringOption((opt) => opt.setName('query').setDescription('Optional search filter').setRequired(false));
+  .addStringOption((opt) =>
+    opt
+      .setName('language')
+      .setDescription('Override translation language')
+      .setRequired(false)
+      .addChoices(
+        { name: 'English', value: 'en' },
+        { name: 'Spanish', value: 'es' },
+        { name: 'Both', value: 'both' },
+        { name: 'None', value: 'none' },
+      ),
+  )
+  .addStringOption((opt) =>
+    opt
+      .setName('media')
+      .setDescription('Filter by anime/drama (type to search)')
+      .setRequired(false)
+      .setAutocomplete(true),
+  );
+
+const rerollButton = new ButtonBuilder()
+  .setCustomId('reroll')
+  .setLabel('Another one')
+  .setStyle(ButtonStyle.Primary)
+  .setEmoji('🎲');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
-  const query = interaction.options.getString('query') || '*';
+  const settings = getGuildSettings(interaction.guildId);
+  const display: DisplayOptions = {
+    language: (interaction.options.getString('language') as Language) ?? settings.language,
+  };
+  const mediaId = interaction.options.getString('media') ?? undefined;
 
   try {
-    const result = await fetchRandom(query);
+    const result = await fetchRandom(mediaId);
 
     if (result.segments.length === 0) {
       await interaction.editReply({ content: 'No results found.' });
@@ -31,71 +80,203 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     let currentSegment = result.segments[0];
     let currentMedia = result.includes.media[currentSegment.mediaPublicId];
+    const contextState = createContextState();
+    const searchState = createSearchModalState(mediaId);
+    const filterState = createFilterMediaState();
+    const searchUrl = `${BOT_CONFIG.frontendUrl}/search`;
+    const randomButtons = [rerollButton, advancedSearchButton, filterMediaButton];
 
-    const content = buildSegmentMessage(currentSegment, currentMedia);
-    const row = buildButtons(currentSegment.publicId);
+    const reply = await renderSegmentReply({
+      interaction,
+      segment: currentSegment,
+      media: currentMedia,
+      display,
+      extraButtons: randomButtons,
+    });
 
-    const videoBuffer = await downloadFile(currentSegment.urls.videoUrl);
-    const files = videoBuffer ? [new AttachmentBuilder(videoBuffer, { name: `${currentSegment.publicId}.mp4` })] : [];
-
-    const reply = await interaction.editReply({ content, components: [row], files });
+    const cleanupModal = setupModalListener(interaction.client, interaction.user.id, searchState, display, searchUrl, [
+      rerollButton,
+    ]);
 
     const collector = reply.createMessageComponentCollector({ time: 300_000 });
 
-    collector.on('collect', async (btnInteraction) => {
-      if (!btnInteraction.isButton()) return;
-
-      if (btnInteraction.customId === 'context') {
-        await launchContextBrowser(btnInteraction, currentSegment.publicId);
+    collector.on('collect', async (i) => {
+      if (i.isStringSelectMenu() && i.customId === 'context_select') {
+        await handleContextSelect(i, display, contextState);
         return;
       }
 
-      if (btnInteraction.customId === 'reroll') {
-        await btnInteraction.deferUpdate();
-        const newResult = await fetchRandom(query);
+      if (i.isStringSelectMenu() && i.customId === 'filter_media_select') {
+        await i.deferUpdate();
+        handleFilterMediaSelect(i, searchState);
+
+        const newResult = await fetchRandom(searchState.mediaId);
+        if (newResult.segments.length === 0) {
+          await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.`, ephemeral: true });
+          return;
+        }
+
+        currentSegment = newResult.segments[0];
+        currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
+        contextState.viewingContext = false;
+        searchState.results = null;
+
+        await updateSegmentReply(i, currentSegment, currentMedia, display, randomButtons);
+        return;
+      }
+
+      if (i.isStringSelectMenu() && i.customId === 'search_select' && searchState.results) {
+        await i.deferUpdate();
+        const idx = searchState.results.segments.findIndex((s) => s.publicId === i.values[0]);
+        if (idx === -1) return;
+        searchState.currentIndex = idx;
+        contextState.viewingContext = false;
+
+        const seg = searchState.results.segments[idx];
+        const media = searchState.results.includes.media[seg.mediaPublicId];
+        currentSegment = seg;
+        currentMedia = media;
+
+        await renderSearchResult(i, searchState, display, searchUrl, [rerollButton]);
+        return;
+      }
+
+      if (!i.isButton()) return;
+
+      if (i.customId === 'next_page' && searchState.results) {
+        await i.deferUpdate();
+        const ok = await goToNextPage(searchState);
+        if (!ok) return;
+        contextState.viewingContext = false;
+        await renderSearchResult(i, searchState, display, searchUrl, [rerollButton]);
+        return;
+      }
+
+      if (i.customId === 'prev_page' && searchState.results) {
+        await i.deferUpdate();
+        const ok = goToPrevPage(searchState);
+        if (!ok) return;
+        contextState.viewingContext = false;
+        await renderSearchResult(i, searchState, display, searchUrl, [rerollButton]);
+        return;
+      }
+
+      if (i.customId === 'first_page' && searchState.results) {
+        await i.deferUpdate();
+        const ok = goToFirstPage(searchState);
+        if (!ok) return;
+        contextState.viewingContext = false;
+        await renderSearchResult(i, searchState, display, searchUrl, [rerollButton]);
+        return;
+      }
+
+      if (i.customId === 'random_result' && searchState.results) {
+        await i.deferUpdate();
+        const randomResult = await search(searchState.lastQuery, {
+          take: 1,
+          sort: 'RANDOM',
+          seed: Math.floor(Math.random() * 1_000_000),
+          mediaId: searchState.mediaId,
+          ...searchState.lastSearchOptions,
+        });
+        if (randomResult.segments.length === 0) return;
+
+        const seg = randomResult.segments[0];
+        const media = randomResult.includes.media[seg.mediaPublicId];
+        searchState.results.segments[searchState.currentIndex] = seg;
+        searchState.results.includes.media[seg.mediaPublicId] = media;
+        currentSegment = seg;
+        currentMedia = media;
+        contextState.viewingContext = false;
+        await renderSearchResult(i, searchState, display, searchUrl, [rerollButton]);
+        return;
+      }
+
+      if (i.customId === 'context') {
+        const extraBtns = searchState.results ? [advancedSearchButton] : randomButtons;
+        await handleContextButton(i, currentSegment, currentMedia, display, contextState, extraBtns);
+        return;
+      }
+
+      if (i.customId === 'back_to_original') {
+        if (searchState.results) {
+          await i.deferUpdate();
+          contextState.viewingContext = false;
+          await renderSearchResult(i, searchState, display, searchUrl, [rerollButton]);
+        } else {
+          await handleBackToOriginal(i, display, contextState, randomButtons);
+        }
+        return;
+      }
+
+      if (i.customId === 'reroll') {
+        await i.deferUpdate();
+        const newResult = await fetchRandom(searchState.mediaId);
         if (newResult.segments.length === 0) return;
 
         currentSegment = newResult.segments[0];
         currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
+        contextState.viewingContext = false;
+        searchState.results = null;
 
-        const newContent = buildSegmentMessage(currentSegment, currentMedia);
-        const newRow = buildButtons(currentSegment.publicId);
+        await updateSegmentReply(i, currentSegment, currentMedia, display, randomButtons);
+        return;
+      }
 
-        const newVideoBuffer = await downloadFile(currentSegment.urls.videoUrl);
-        const newFiles = newVideoBuffer
-          ? [new AttachmentBuilder(newVideoBuffer, { name: `${currentSegment.publicId}.mp4` })]
-          : [];
+      if (i.customId === 'advanced_search') {
+        await showSearchModal(i, 'Search sentences');
+        return;
+      }
 
-        await btnInteraction.editReply({ content: newContent, components: [newRow], files: newFiles });
+      if (i.customId === 'filter_media') {
+        await showFilterMediaSelect(i, searchState, filterState);
+        return;
+      }
+
+      if (i.customId === 'cancel_filter_media') {
+        await i.deferUpdate();
+        if (searchState.results) {
+          await renderSearchResult(i, searchState, display, searchUrl, [rerollButton]);
+        } else {
+          await updateSegmentReply(i, currentSegment, currentMedia, display, randomButtons);
+        }
+        return;
+      }
+
+      if (i.customId === 'filter_media_prev') {
+        await i.deferUpdate();
+        filterState.mediaPage = Math.max(0, filterState.mediaPage - 1);
+        await renderFilterMediaPage(i, searchState, filterState);
+        return;
+      }
+
+      if (i.customId === 'filter_media_next') {
+        await i.deferUpdate();
+        filterState.mediaPage++;
+        await renderFilterMediaPage(i, searchState, filterState);
+        return;
       }
     });
 
     collector.on('end', async () => {
+      cleanupModal();
       try {
-        await interaction.editReply({ components: [] });
+        await interaction.editReply({ components: [buildLinkOnlyRow(currentSegment.publicId)] });
       } catch {}
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    await interaction.editReply({ content: `Failed: ${msg}` });
+    const traceId = getActiveTraceId();
+    log.error({ err: error, traceId }, 'Random command failed');
+    const suffix = traceId ? ` (trace: ${traceId})` : '';
+    await interaction.editReply({ content: `Something went wrong.${suffix}` });
   }
 }
 
-function buildButtons(publicId: string): ActionRowBuilder<ButtonBuilder> {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId('reroll').setLabel('Another one').setStyle(ButtonStyle.Primary).setEmoji('🎲'),
-    new ButtonBuilder().setCustomId('context').setLabel('Context').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setLabel('View on Nadeshiko')
-      .setStyle(ButtonStyle.Link)
-      .setURL(`${BOT_CONFIG.frontendUrl}/sentence/${publicId}`),
-  );
-}
-
-function fetchRandom(query: string) {
-  return search(query, {
+function fetchRandom(mediaId?: string) {
+  return search('*', {
     take: 1,
     sort: 'RANDOM',
     seed: Math.floor(Math.random() * 1_000_000),
+    mediaId,
   });
 }
