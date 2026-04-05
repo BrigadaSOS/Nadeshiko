@@ -1,14 +1,16 @@
 image: brigadasos/nadeshiko-discord-prod
 service: nadeshiko-discord-prod
 
+volumes:
+  - nadeshiko-discord-data:/app/data
+
 env:
   secret:
     - DISCORD_BOT_TOKEN
     - DISCORD_API_KEY_MASTER
-    - SENTRY_DSN
   clear:
     NADESHIKO_API_URL: "https://api.nadeshiko.co"
     NADESHIKO_FRONTEND_URL: "https://nadeshiko.co"
     NODE_ENV: "production"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://monitoring:4318"
     OTEL_SERVICE_NAME: "nadeshiko-discord"

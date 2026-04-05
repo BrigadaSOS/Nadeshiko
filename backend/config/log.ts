@@ -165,6 +165,22 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
         return serialized;
       },
     },
+    customProps: (req: any, res: any) => {
+      const rawReq = req.raw || req;
+      const props: Record<string, any> = {
+        'http.method': rawReq.method,
+        'http.url': rawReq.url,
+        'http.status_code': res.statusCode,
+        'http.response_time': res.getHeader?.('x-response-time'),
+      };
+      if (rawReq.requestId) {
+        props['http.request_id'] = rawReq.requestId;
+      }
+      if (rawReq.route?.path) {
+        props['http.route'] = rawReq.route.path;
+      }
+      return props;
+    },
     customLogLevel: (_req: any, res: any, err: any) => {
       const statusCode = res.statusCode;
       if (err || statusCode >= 500) {

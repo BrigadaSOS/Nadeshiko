@@ -5,7 +5,7 @@ const log = createLogger('health');
 
 export function startHealthServer(port = 3000) {
   const server = createServer((req, res) => {
-    if (req.url === '/health') {
+    if (req.url === '/up') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
       return;

@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import * as Sentry from '@sentry/node';
 import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors';
 import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
 import { logger } from '@config/log';
@@ -17,8 +16,6 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     return next(error);
   }
 
-  Sentry.setUser(req.user ? { id: req.user.id } : null);
-
   // Get requestId for logging and error response
   const requestId = req.requestId || 'unknown';
 
@@ -30,7 +27,6 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     }
     // Other query errors - log as warning (might be expected)
     logger.warn({ err: error, requestId }, 'Database query failed');
-    Sentry.captureException(error);
     return res.status(500).json(createInternalError(requestId).toJSON());
   }
 
@@ -56,7 +52,6 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
 
     if (error.status >= 500) {
       logger.error({ err: error, requestId }, 'Server error');
-      Sentry.captureException(error);
     }
 
     // Validate error code against documented codes for this route
@@ -67,7 +62,6 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
         { errorCode: error.code, route: routeKey, requestId },
         'Undocumented error code for this endpoint — returning 500',
       );
-      Sentry.captureException(error);
       return res.status(500).json(createInternalError(requestId).toJSON());
     }
 
@@ -76,7 +70,6 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
 
   // Unknown error - log and return 500
   logger.error({ err: error, requestId }, 'Unhandled error');
-  Sentry.captureException(error);
   const internalError = createInternalError(requestId);
   return res.status(500).json(internalError.toJSON());
 }
@@ -123,24 +116,20 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
           return mappedError;
         }
         logger.warn({ err: cause, requestId }, 'Database query failed in handler');
-        Sentry.captureException(cause);
         return createInternalError(requestId);
       }
       // Handle other TypeORM errors from handler
       if (cause instanceof TypeORMError) {
         logger.warn({ err: cause, requestId }, 'TypeORM error in handler');
-        Sentry.captureException(cause);
         return createInternalError(requestId);
       }
       // Unknown error from handler
       logger.error({ err: cause, requestId }, 'Unhandled error in handler');
-      Sentry.captureException(cause);
       return createInternalError(requestId);
 
     case 'response_validation':
       // Response validation failed - server bug
       logger.error({ err: cause, requestId }, 'Response validation failed');
-      Sentry.captureException(cause);
       return createInternalError(requestId);
 
     default:

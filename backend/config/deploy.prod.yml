@@ -1,10 +1,6 @@
 image: brigadasos/nadeshiko-backend-prod
 service: nadeshiko-backend-prod
 
-builder:
-  secrets:
-    - SENTRY_AUTH_TOKEN
-
 proxy:
   ssl: true
   host: api.nadeshiko.co
@@ -39,7 +35,6 @@ env:
     - SES_FROM_EMAIL
     - SES_FROM_NAME
 
-    - SENTRY_BACKEND_DSN
     - E2E_USER_PASSWORD
 
   clear:
@@ -56,7 +51,6 @@ env:
     R2_BASE_URL: https://cdn.nadeshiko.co
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://monitoring:4318"
-    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://monitoring:9090/api/v1/otlp/v1/metrics"
     OTEL_SERVICE_NAME: nadeshiko-backend-prod
 
 accessories:

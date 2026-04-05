@@ -7,7 +7,6 @@ import type {
   GetStatsOverviewResponse,
 } from '@brigadasos/nadeshiko-sdk';
 import { BOT_CONFIG } from './config';
-import { traceApiCall } from './instrumentation';
 import { createLogger } from './logger';
 
 const log = createLogger('api');
@@ -15,6 +14,7 @@ const log = createLogger('api');
 export type { Segment, Media, SearchResponse };
 export type ContextResponse = GetSegmentContextResponse;
 export type StatsResponse = GetStatsOverviewResponse;
+export type { MediaAutocompleteItem } from '@brigadasos/nadeshiko-sdk';
 
 let sdk: NadeshikoClient;
 
@@ -48,69 +48,108 @@ export async function search(
     sort?: string;
     seed?: number;
     category?: string;
+    mediaId?: string;
+    episodes?: number[];
+    lengthMin?: number;
+    lengthMax?: number;
   } = {},
 ): Promise<SearchResponse> {
-  return traceApiCall('POST', '/v1/search', async () => {
-    const filters = {
-      status: ['ACTIVE', 'VERIFIED'] as ('ACTIVE' | 'VERIFIED')[],
-      ...(options.category ? { category: [options.category as 'ANIME' | 'JDRAMA'] } : {}),
-    };
+  const mediaInclude = options.mediaId
+    ? {
+        media: {
+          include: [{ mediaId: options.mediaId, ...(options.episodes ? { episodes: options.episodes } : {}) }],
+        },
+      }
+    : {};
 
-    const { data } = await sdk.search({
-      body: {
-        query: { search: query, exactMatch: options.exactMatch },
-        take: options.take ?? BOT_CONFIG.maxSearchResults,
-        cursor: options.cursor,
-        include: ['media'],
-        filters,
-        sort: options.sort ? { mode: options.sort as any, seed: options.seed } : undefined,
-      },
-    });
+  const lengthFilter =
+    options.lengthMin || options.lengthMax
+      ? { segmentLengthChars: { min: options.lengthMin, max: options.lengthMax } }
+      : {};
 
-    return data;
-  });
+  const filters = {
+    status: ['ACTIVE', 'VERIFIED'] as ('ACTIVE' | 'VERIFIED')[],
+    ...(options.category ? { category: [options.category as 'ANIME' | 'JDRAMA'] } : {}),
+    ...mediaInclude,
+    ...lengthFilter,
+  };
+
+  const body = {
+    query: { search: query, exactMatch: options.exactMatch },
+    take: options.take ?? BOT_CONFIG.maxSearchResults,
+    cursor: options.cursor,
+    include: ['media'] as 'media'[],
+    filters,
+    sort: options.sort ? { mode: options.sort as any, seed: options.seed } : undefined,
+  };
+
+  log.debug({ body }, 'Search request');
+
+  const { data } = await sdk.search({ body });
+
+  log.debug(
+    { hits: data.segments.length, total: data.pagination.estimatedTotalHits, hasMore: data.pagination.hasMore },
+    'Search response',
+  );
+
+  return data;
 }
 
 export async function getSegmentContext(uuid: string, take = 5): Promise<ContextResponse> {
-  return traceApiCall('GET', `/v1/media/segments/${uuid}/context`, async () => {
-    const { data } = await sdk.getSegmentContext({
-      path: { uuid },
-      query: { take },
-    });
-    return data;
+  log.debug({ uuid, take }, 'Context request');
+  const { data } = await sdk.getSegmentContext({
+    path: { uuid },
+    query: { take },
   });
+  log.debug({ uuid, segments: data.segments.length }, 'Context response');
+  return data;
 }
 
 export async function getSegmentByUuid(uuid: string): Promise<{ segment: Segment; media: Media | null }> {
-  return traceApiCall('GET', `/v1/media/segments/${uuid}`, async () => {
-    const { data } = await sdk.getSegmentByUuid({
-      path: { uuid },
-    });
-
-    const segment = data as Segment;
-    const media = (data as any).includes?.media?.[segment.mediaPublicId] ?? null;
-
-    return { segment, media };
+  log.debug({ uuid }, 'Segment request');
+  const { data } = await sdk.getSegmentByUuid({
+    path: { uuid },
   });
+
+  const segment = data as Segment;
+  const media = (data as any).includes?.media?.[segment.mediaPublicId] ?? null;
+
+  log.debug({ uuid, mediaPublicId: segment.mediaPublicId }, 'Segment response');
+  return { segment, media };
+}
+
+export async function listMedia(take = 40, cursor?: string) {
+  log.debug({ take, cursor }, 'List media request');
+  const { data } = await sdk.listMedia({
+    query: { take, cursor },
+  });
+  log.debug({ count: data.media.length, hasMore: data.pagination.hasMore }, 'List media response');
+  return data;
+}
+
+export async function autocompleteMedia(query: string, take = 10) {
+  log.debug({ query, take }, 'Media autocomplete request');
+  const { data } = await sdk.autocompleteMedia({
+    query: { query, take },
+  });
+  log.debug({ query, results: data.media.length }, 'Media autocomplete response');
+  return data;
 }
 
 export async function getStats(): Promise<StatsResponse> {
-  return traceApiCall('GET', '/v1/stats/overview', async () => {
-    const { data } = await sdk.getStatsOverview();
-    return data;
-  });
+  const { data } = await sdk.getStatsOverview();
+  log.debug({ totalSegments: data.totalSegments, totalMedia: data.totalMedia }, 'Stats response');
+  return data;
 }
 
 export async function downloadFile(url: string): Promise<Buffer | null> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      log.warn({ url, status: response.status }, 'File download failed');
-      return null;
-    }
-    return Buffer.from(await response.arrayBuffer());
-  } catch (error) {
-    log.error({ err: error, url }, 'File download error');
+  log.debug({ url }, 'File download request');
+  const response = await fetch(url);
+  if (!response.ok) {
+    log.warn({ url, status: response.status }, 'File download failed');
     return null;
   }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  log.debug({ url, bytes: buffer.length }, 'File download complete');
+  return buffer;
 }
