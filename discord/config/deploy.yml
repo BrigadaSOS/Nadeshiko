@@ -2,6 +2,7 @@ servers:
   web:
     hosts:
       - nadeshiko
+    proxy: false
 
 registry:
   server: ghcr.io
