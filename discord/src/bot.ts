@@ -8,6 +8,14 @@ import {
   Events,
 } from 'discord.js';
 import { BOT_CONFIG } from './config';
+import { createLogger } from './logger';
+import { initSentry, shutdownSentry, Sentry } from './sentry';
+import { initTelemetry, shutdownTelemetry } from './telemetry';
+import { initInstrumentation, traceCommand } from './instrumentation';
+import { startHealthServer } from './health';
+import { initSdk } from './api';
+
+const log = createLogger('bot');
 
 import * as searchCmd from './commands/search';
 import * as contextCmd from './commands/context';
@@ -31,13 +39,13 @@ async function registerCommands() {
   const rest = new REST({ version: '10' }).setToken(BOT_CONFIG.token);
   const commandData = allCommands.map((cmd) => cmd.data.toJSON());
 
-  console.log(`Registering ${commandData.length} slash commands...`);
+  log.info({ count: commandData.length }, 'Registering slash commands');
 
   const data = await rest.put(Routes.applicationCommands(getApplicationId()), {
     body: commandData,
   });
 
-  console.log(`Registered ${(data as unknown[]).length} commands globally.`);
+  log.info({ count: (data as unknown[]).length }, 'Registered commands globally');
 }
 
 function getApplicationId(): string {
@@ -47,11 +55,16 @@ function getApplicationId(): string {
 
 async function main() {
   if (!BOT_CONFIG.token) {
-    console.error('DISCORD_BOT_TOKEN is required');
+    log.fatal('DISCORD_BOT_TOKEN is required');
     process.exit(1);
   }
 
-  console.log('API base URL:', BOT_CONFIG.apiBaseUrl);
+  initSentry();
+  initTelemetry();
+  initInstrumentation();
+  initSdk();
+
+  log.info({ apiBaseUrl: BOT_CONFIG.apiBaseUrl }, 'Starting bot');
 
   await registerCommands();
 
@@ -60,9 +73,12 @@ async function main() {
   });
 
   client.once(Events.ClientReady, (readyClient) => {
-    console.log(`Bot online as ${readyClient.user.tag}`);
-    console.log(
-      `Invite URL: https://discord.com/oauth2/authorize?client_id=${readyClient.user.id}&permissions=2147483648&scope=bot%20applications.commands`,
+    log.info({ tag: readyClient.user.tag }, 'Bot online');
+    log.info(
+      {
+        url: `https://discord.com/oauth2/authorize?client_id=${readyClient.user.id}&permissions=2147483648&scope=bot%20applications.commands`,
+      },
+      'Invite URL',
     );
   });
 
@@ -73,9 +89,13 @@ async function main() {
     if (!command) return;
 
     try {
-      await command.execute(interaction);
+      await traceCommand(interaction.commandName, interaction, () => command.execute(interaction));
     } catch (error) {
-      console.error(`Error executing /${interaction.commandName}:`, error);
+      log.error({ err: error, command: interaction.commandName }, 'Error executing command');
+      Sentry.captureException(error, {
+        tags: { command: interaction.commandName },
+        extra: { guildId: interaction.guildId, channelId: interaction.channelId },
+      });
       const content = 'Something went wrong executing this command.';
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({ content, ephemeral: true }).catch(() => {});
@@ -85,10 +105,31 @@ async function main() {
     }
   });
 
+  client.rest.on('rateLimited', (info) => {
+    log.warn(
+      { route: info.route, limit: info.limit, timeout: info.timeToReset, global: info.global },
+      'Rate limited by Discord',
+    );
+  });
+
   await client.login(BOT_CONFIG.token);
+
+  const healthServer = startHealthServer(Number(process.env.HEALTH_PORT) || 3000);
+
+  const shutdown = async () => {
+    log.info('Shutting down');
+    healthServer.close();
+    client.destroy();
+    await shutdownTelemetry();
+    await shutdownSentry();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  log.fatal({ err }, 'Fatal error');
   process.exit(1);
 });
