@@ -3,22 +3,25 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun --hot src/bot.ts",
+    "dev": "NODE_ENV=development bun --hot src/bot.ts",
     "start": "bun src/bot.ts",
+    "register": "bun src/register.ts",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "typecheck": "tsc --noEmit"
   },
   "license": "AGPL-3.0",
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "../../nadeshiko-sdk-ts/build/internal",
+    "@brigadasos/nadeshiko-sdk": "2.0.6-internal.e0449f8",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
+    "@opentelemetry/instrumentation": "^0.214.0",
+    "@opentelemetry/instrumentation-http": "^0.214.0",
     "@opentelemetry/resources": "^2.6.1",
     "@opentelemetry/sdk-metrics": "^2.6.1",
+    "@opentelemetry/sdk-node": "^0.214.0",
     "@opentelemetry/sdk-trace-node": "^2.6.1",
-    "@sentry/node": "^10.47.0",
     "discord.js": "^14.26.0",
     "pino": "^10.3.1"
   },

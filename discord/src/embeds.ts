@@ -1,15 +1,28 @@
 import { EmbedBuilder } from 'discord.js';
 import { BOT_CONFIG } from './config';
-import type { Segment, Media, SearchResponse, ContextResponse, StatsResponse } from './api';
+import type { Segment, Media, StatsResponse, MediaAutocompleteItem } from './api';
+import type { GuildSettings } from './settings';
 
-function formatTimestamp(ms: number): string {
+export type DisplayOptions = Pick<GuildSettings, 'language'>;
+
+const DEFAULT_DISPLAY: DisplayOptions = { language: 'both' };
+
+function shouldShowEn(opts: DisplayOptions): boolean {
+  return opts.language === 'en' || opts.language === 'both';
+}
+
+function shouldShowEs(opts: DisplayOptions): boolean {
+  return opts.language === 'es' || opts.language === 'both';
+}
+
+export function formatTimestamp(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function stripAllHtmlTags(text: string): string {
+export function stripAllHtmlTags(text: string): string {
   return text.replace(/<[^>]+>/g, '');
 }
 
@@ -19,7 +32,11 @@ function highlightToMarkdown(text: string): string {
   return result;
 }
 
-function getMediaName(media?: Media): string {
+export function getMediaName(media?: {
+  nameRomaji?: string | null;
+  nameEn?: string | null;
+  nameJa?: string | null;
+}): string {
   if (!media) return 'Unknown';
   return media.nameRomaji || media.nameEn || media.nameJa || 'Unknown';
 }
@@ -33,11 +50,11 @@ function mediaUrl(media: Media): string {
   return `${BOT_CONFIG.frontendUrl}/media/${media.slug || media.publicId}`;
 }
 
-function segmentUrl(publicId: string): string {
-  return `${BOT_CONFIG.frontendUrl}/sentence/${publicId}`;
-}
-
-export function buildSegmentMessage(segment: Segment, media: Media | undefined): string {
+export function buildSegmentMessage(
+  segment: Segment,
+  media: Media | undefined,
+  opts: DisplayOptions = DEFAULT_DISPLAY,
+): string {
   const mediaName = getMediaName(media);
   const timestamp = formatTimestamp(segment.startTimeMs);
 
@@ -48,83 +65,71 @@ export function buildSegmentMessage(segment: Segment, media: Media | undefined):
 
   const lines: string[] = [`**JP**: ${jaText}`];
 
-  if (segment.textEn.content) {
+  if (segment.textEn.content && shouldShowEn(opts)) {
     const mtTag = segment.textEn.isMachineTranslated ? ' (MT)' : '';
     lines.push(`**EN${mtTag}**: ||${segment.textEn.content}||`);
   }
 
-  if (segment.textEs.content) {
+  if (segment.textEs.content && shouldShowEs(opts)) {
     const mtTag = segment.textEs.isMachineTranslated ? ' (MT)' : '';
     lines.push(`**ES${mtTag}**: ||${segment.textEs.content}||`);
   }
 
-  lines.push('', `${mediaLink} • ${episodeLink} • ${timestamp} | [Open](<${segmentUrl(segment.publicId)}>)`);
+  lines.push('', `${mediaLink} • ${episodeLink} • ${timestamp}`);
 
   return truncate(lines.join('\n'), 2000);
 }
 
-export function buildSearchResultMessages(response: SearchResponse, query: string): string[] {
-  const { segments, includes, pagination } = response;
-
-  const searchUrl = `${BOT_CONFIG.frontendUrl}/search/${encodeURIComponent(query)}`;
-
-  if (segments.length === 0) {
-    return [`No results found for **${truncate(query, 200)}** — [Search on Nadeshiko](<${searchUrl}>)`];
-  }
-
-  const header = `**Search: ${truncate(query, 200)}** — ~${pagination.estimatedTotalHits.toLocaleString()} results | [Open in Nadeshiko](<${searchUrl}>)\n`;
-
-  const segmentLines = segments.map((segment, i) => {
-    const media = includes.media[segment.mediaPublicId];
-    const mediaName = getMediaName(media);
-    const timestamp = formatTimestamp(segment.startTimeMs);
-
-    const mediaLink = media ? `[${mediaName}](<${mediaUrl(media)}>)` : mediaName;
-
-    const jaText = segment.textJa.highlight ? highlightToMarkdown(segment.textJa.highlight) : segment.textJa.content;
-
-    const enText = segment.textEn.content ? ` — ||${segment.textEn.content}||` : '';
-
-    return (
-      `**${i + 1}.** ${truncate(jaText, 150)}${truncate(enText, 100)}\n` +
-      `> ${mediaLink} • Ep. ${segment.episode} • ${timestamp} | [Open](<${segmentUrl(segment.publicId)}>)`
-    );
-  });
-
-  return [header + segmentLines.join('\n\n')];
-}
-
-export function buildContextMessage(response: ContextResponse, targetPublicId: string): string {
-  const { segments, includes } = response;
-
+export function buildContextLines(
+  segments: Segment[],
+  mediaMap: Record<string, Media>,
+  selectedIndex: number,
+  opts: DisplayOptions = DEFAULT_DISPLAY,
+): string {
   if (segments.length === 0) return 'No context segments found.';
 
-  const firstMedia = Object.values(includes.media ?? {})[0];
+  const firstMedia = Object.values(mediaMap)[0];
   const mediaName = getMediaName(firstMedia);
   const ep = segments[0]?.episode;
 
-  const lines = segments.map((seg) => {
-    const isTarget = seg.publicId === targetPublicId;
-    const timestamp = formatTimestamp(seg.startTimeMs);
+  const selectedSeg = segments[selectedIndex];
+  const mediaLink = firstMedia ? `[${mediaName}](<${mediaUrl(firstMedia)}>)` : mediaName;
+  const timestamp = formatTimestamp(selectedSeg.startTimeMs);
+
+  const lines = segments.map((seg, i) => {
+    const isSelected = i === selectedIndex;
+    const ts = formatTimestamp(seg.startTimeMs);
     const jaText = stripAllHtmlTags(seg.textJa.content);
-    const enText = seg.textEn.content;
 
-    const jaLine = isTarget ? `**> ${jaText}**` : jaText;
-    const enLine = enText ? `  ${isTarget ? `**${enText}**` : `*${enText}*`}` : '';
+    const parts: string[] = [];
+    parts.push(isSelected ? `▶ \`${ts}\` #${seg.position}` : `\`${ts}\` #${seg.position}`);
+    parts.push(isSelected ? `**JP**: **${jaText}**` : `**JP**: ${jaText}`);
 
-    return `\`${timestamp}\` ${jaLine}${enLine ? `\n${' '.repeat(8)}${enLine}` : ''}`;
+    if (seg.textEn.content && shouldShowEn(opts)) {
+      const mtTag = seg.textEn.isMachineTranslated ? ' (MT)' : '';
+      parts.push(`**EN${mtTag}**: ||${seg.textEn.content}||`);
+    }
+
+    if (seg.textEs.content && shouldShowEs(opts)) {
+      const mtTag = seg.textEs.isMachineTranslated ? ' (MT)' : '';
+      parts.push(`**ES${mtTag}**: ||${seg.textEs.content}||`);
+    }
+
+    return parts.join('\n');
   });
 
-  const header = `**Context: ${mediaName}** — Episode ${ep}\n`;
-  return truncate(header + lines.join('\n'), 2000);
+  const header = `**Context: ${mediaName}** -- Episode ${ep}\n`;
+  const episodeLink = firstMedia ? `[Episode ${ep}](<${mediaUrl(firstMedia)}>)` : `Episode ${ep}`;
+  const footer = `\n\n${mediaLink} • ${episodeLink} • ${timestamp}`;
+  return truncate(header + lines.join('\n\n') + footer, 2000);
 }
 
 export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
   const tierLines = stats.tiers
-    .filter((t) => t.tier <= 20000)
     .map((t) => {
       const bar = buildProgressBar(t.percentage, 10);
-      return `Top ${t.tier.toLocaleString()}: ${bar} ${t.percentage}% (${t.covered.toLocaleString()}/${t.total.toLocaleString()})`;
+      const label = t.tier === 999999999 ? 'Full corpus (216k words)' : `Top ${t.tier.toLocaleString()}`;
+      return `${label.padEnd(13)}: ${bar} ${t.percentage}% (${t.covered.toLocaleString()}/${t.total.toLocaleString()})`;
     })
     .join('\n');
 
@@ -134,7 +139,8 @@ export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
 
   return new EmbedBuilder()
     .setColor(BOT_CONFIG.embedColor)
-    .setTitle('Nadeshiko Corpus Statistics')
+    .setTitle('Nadeshiko in Numbers')
+    .setURL(`${BOT_CONFIG.frontendUrl}/stats`)
     .addFields(
       {
         name: 'Corpus',
@@ -149,8 +155,8 @@ export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
       {
         name: 'Translations',
         value: [
-          `EN: **${enTotal.toLocaleString()}** (${translations.enHuman.toLocaleString()} human)`,
-          `ES: **${esTotal.toLocaleString()}** (${translations.esHuman.toLocaleString()} human)`,
+          `EN: **${enTotal.toLocaleString()}** (${Math.round((translations.enHuman / enTotal) * 100)}% human)`,
+          `ES: **${esTotal.toLocaleString()}** (${Math.round((translations.esHuman / esTotal) * 100)}% human)`,
         ].join('\n'),
         inline: true,
       },
@@ -161,6 +167,22 @@ export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
       },
     )
     .setFooter({ text: 'nadeshiko.co' });
+}
+
+export function buildMediaSearchMessage(media: MediaAutocompleteItem[], query: string): string {
+  if (media.length === 0) {
+    return `No media found for **${truncate(query, 200)}**`;
+  }
+
+  const header = `**Media matching "${truncate(query, 200)}":**\n\n`;
+  const lines = media.map((m, i) => {
+    const name = getMediaName(m);
+    const jaName = m.nameJa && m.nameJa !== name ? ` (${m.nameJa})` : '';
+    const link = `${BOT_CONFIG.frontendUrl}/media/${m.slug || m.publicId}`;
+    return `**${i + 1}.** [${name}](<${link}>)${jaName}`;
+  });
+
+  return truncate(header + lines.join('\n'), 2000);
 }
 
 function buildProgressBar(percentage: number, length: number): string {

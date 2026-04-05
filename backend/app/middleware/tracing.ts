@@ -1,6 +1,5 @@
-import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { Request, Response, NextFunction } from 'express';
-import { getMeter, getTracer } from '@config/telemetry';
+import { getMeter } from '@config/telemetry';
 
 const DURATION_BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10];
 
@@ -45,63 +44,43 @@ function getRoute(req: Request): string {
 export function tracingMiddleware(req: Request, res: Response, next: NextFunction) {
   const startTime = performance.now();
   const inst = getInstruments();
-  const tracer = getTracer();
 
   inst?.activeRequests.add(1, {
     'http.request.method': req.method,
     'url.scheme': req.protocol,
   });
 
-  if (!tracer) {
-    next();
-    return;
-  }
+  res.on('finish', () => {
+    const durationS = (performance.now() - startTime) / 1000;
+    const route = getRoute(req);
 
-  tracer.startActiveSpan(`${req.method} ${req.path}`, { kind: SpanKind.SERVER }, (span) => {
-    span.setAttributes({
-      'http.method': req.method,
-      'http.url': req.originalUrl,
-      'http.request_id': req.requestId,
+    const metricAttrs: Record<string, string | number> = {
+      'http.request.method': req.method,
+      'http.route': route,
+      'http.response.status_code': res.statusCode,
+      'url.scheme': req.protocol,
+    };
+
+    if (res.statusCode >= 500) {
+      metricAttrs['error.type'] = String(res.statusCode);
+    }
+
+    inst?.requestDuration.record(durationS, metricAttrs);
+    inst?.activeRequests.add(-1, {
+      'http.request.method': req.method,
+      'url.scheme': req.protocol,
     });
 
-    res.on('finish', () => {
-      const durationS = (performance.now() - startTime) / 1000;
-      const route = getRoute(req);
+    const reqContentLength = req.headers['content-length'];
+    if (reqContentLength) {
+      inst?.requestBodySize.record(Number(reqContentLength), metricAttrs);
+    }
 
-      const metricAttrs: Record<string, string | number> = {
-        'http.request.method': req.method,
-        'http.route': route,
-        'http.response.status_code': res.statusCode,
-        'url.scheme': req.protocol,
-      };
-
-      if (res.statusCode >= 500) {
-        metricAttrs['error.type'] = String(res.statusCode);
-      }
-
-      inst?.requestDuration.record(durationS, metricAttrs);
-      inst?.activeRequests.add(-1, {
-        'http.request.method': req.method,
-        'url.scheme': req.protocol,
-      });
-
-      const reqContentLength = req.headers['content-length'];
-      if (reqContentLength) {
-        inst?.requestBodySize.record(Number(reqContentLength), metricAttrs);
-      }
-
-      const resContentLength = res.getHeader('content-length');
-      if (resContentLength) {
-        inst?.responseBodySize.record(Number(resContentLength), metricAttrs);
-      }
-
-      span.setAttribute('http.status_code', res.statusCode);
-      if (res.statusCode >= 500) {
-        span.setStatus({ code: SpanStatusCode.ERROR });
-      }
-      span.end();
-    });
-
-    next();
+    const resContentLength = res.getHeader('content-length');
+    if (resContentLength) {
+      inst?.responseBodySize.record(Number(resContentLength), metricAttrs);
+    }
   });
+
+  next();
 }

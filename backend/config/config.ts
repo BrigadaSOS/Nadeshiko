@@ -54,10 +54,7 @@ const envSchema = z.object({
   SES_FROM_EMAIL: requiredString,
   SES_FROM_NAME: requiredString,
 
-  SENTRY_BACKEND_DSN: optionalString,
-
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString,
-  OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: optionalString,
   OTEL_SERVICE_NAME: optionalString,
 
   DB_SLOW_QUERY_THRESHOLD_MS: z.coerce.number().int().nonnegative().default(200),

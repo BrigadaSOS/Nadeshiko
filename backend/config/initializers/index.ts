@@ -2,13 +2,11 @@ import { logger } from '@config/log';
 import { authInitializer } from './auth';
 import { databaseInitializer } from './database';
 import { mediaAuditsInitializer } from './mediaAudits';
-import { sentryInitializer } from './sentry';
 import { telemetryInitializer } from './telemetry';
 import type { RuntimeContext, RuntimeInitializer } from './types';
 import { workersInitializer } from './workers';
 
 const initializers: RuntimeInitializer[] = [
-  sentryInitializer,
   telemetryInitializer,
   authInitializer,
   databaseInitializer,

@@ -1,6 +1,5 @@
 import express, { type Application, type ErrorRequestHandler, type RequestHandler } from 'express';
 import helmet from 'helmet';
-import * as Sentry from '@sentry/node';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { NotFoundError } from '@app/errors';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
@@ -79,7 +78,6 @@ export function configureErrorHandling(app: Application): Application {
     res.status(error.status).json(error.toJSON());
   });
 
-  Sentry.setupExpressErrorHandler(app);
   app.use(handleErrors as ErrorRequestHandler);
 
   return app;

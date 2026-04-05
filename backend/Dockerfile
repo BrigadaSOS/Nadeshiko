@@ -7,6 +7,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
 RUN bun build ./main.ts --outdir ./prod --target bun --sourcemap=linked
+RUN bun build ./instrumentation.ts --outdir ./prod --target bun --entrypoint-name=instrumentation
 
 FROM oven/bun:1 AS toolbox
 RUN apt-get update && apt-get install -y --no-install-recommends unzip ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -24,20 +25,9 @@ RUN bun install --frozen-lockfile
 ENTRYPOINT []
 CMD ["sleep", "infinity"]
 
-FROM build AS sentry
-RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
-    export SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null)" && \
-    ./node_modules/.bin/sentry-cli sourcemaps inject ./prod && \
-    ./node_modules/.bin/sentry-cli sourcemaps upload \
-      --org davafons \
-      --project nadeshiko-backend \
-      ./prod && \
-    rm -f ./prod/*.map
-
 FROM oven/bun:1 AS release
 WORKDIR /app
-COPY --from=sentry /app/prod ./prod
+COPY --from=build /app/prod ./prod
 COPY --from=build /app/app/mailers/templates ./app/mailers/templates
-
 ENTRYPOINT []
-CMD ["bun", "./prod/main.js"]
+CMD ["bun", "--preload", "./prod/instrumentation.js", "./prod/main.js"]
