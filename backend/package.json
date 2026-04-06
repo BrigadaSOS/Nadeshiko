@@ -7,12 +7,11 @@
   "scripts": {
     "setup": "bun run bin/setup.ts",
     "dev": "bun run generate:api && bun --hot main.ts | pino-pretty",
-    "build:app": "bun build ./main.ts --outdir ./prod --target bun",
-    "build": "bun run generate:api && bun run build:app",
-    "start": "bun prod/main.js",
+    "build": "bun run generate:api",
+    "start": "node --import tsx --import ./instrumentation.ts main.ts",
     "typecheck": "bun run generate:api && bun run typecheck:app",
     "typecheck:app": "tsc --noEmit -p tsconfig.app.json",
-    "check": "bun run lint && bun run generate:api && bun run typecheck:app && bun run build:app",
+    "check": "bun run lint && bun run generate:api && bun run typecheck:app",
     "lint": "bun run lint:code && bun run lint:openapi",
     "lint:code": "biome check .",
     "lint:openapi": "redocly lint",
@@ -45,7 +44,7 @@
   "author": "",
   "license": "AGPL-3.0",
   "engines": {
-    "node": ">=24.0.0",
+    "node": ">=22.0.0",
     "bun": ">=1.0.0"
   },
   "dependencies": {
@@ -76,6 +75,7 @@
     "pino": "^10.2.0",
     "pino-http": "^11.0.0",
     "request-ip": "^3.3.0",
+    "tsx": "^4.21.0",
     "typeorm": "^0.3.20",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"

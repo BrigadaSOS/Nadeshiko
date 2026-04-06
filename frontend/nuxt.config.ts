@@ -285,7 +285,10 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
-    preset: 'bun',
+    preset: 'node-server',
+    externals: {
+      external: ['@opentelemetry/api'],
+    },
     serverAssets: [
       {
         baseName: 'content',

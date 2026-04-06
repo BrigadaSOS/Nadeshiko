@@ -6,27 +6,13 @@ import { getDbLogging } from '@config/schema';
 
 const DB_DURATION_BUCKETS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10];
 
-let instruments: ReturnType<typeof createInstruments> | undefined;
+const meter = getMeter();
 
-function createInstruments() {
-  const meter = getMeter();
-  if (!meter) return undefined;
-
-  return {
-    operationDuration: meter.createHistogram('db.client.operation.duration', {
-      description: 'Duration of database client operations',
-      unit: 's',
-      advice: { explicitBucketBoundaries: DB_DURATION_BUCKETS },
-    }),
-  };
-}
-
-function getInstruments() {
-  if (!instruments) {
-    instruments = createInstruments();
-  }
-  return instruments;
-}
+const operationDuration = meter.createHistogram('db.client.operation.duration', {
+  description: 'Duration of database client operations',
+  unit: 's',
+  advice: { explicitBucketBoundaries: DB_DURATION_BUCKETS },
+});
 
 function extractOperation(query: string): string {
   const trimmed = query.trimStart().toUpperCase();
@@ -40,9 +26,6 @@ function extractTable(query: string): string | undefined {
 }
 
 function recordQuery(query: string, durationMs: number, failed: boolean) {
-  const inst = getInstruments();
-  if (!inst) return;
-
   const operation = extractOperation(query);
   const table = extractTable(query);
   const durationS = durationMs / 1000;
@@ -63,7 +46,7 @@ function recordQuery(query: string, durationMs: number, failed: boolean) {
     attrs['error.type'] = 'query_error';
   }
 
-  inst.operationDuration.record(durationS, attrs);
+  operationDuration.record(durationS, attrs);
 }
 
 export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
@@ -76,7 +59,10 @@ export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
 
   logQuery(query: string, _parameters?: unknown[], _queryRunner?: QueryRunner): void {
     if (this.verboseLogging) {
-      logger.debug({ query: query.slice(0, 300) }, 'Query');
+      const operation = extractOperation(query);
+      const table = extractTable(query);
+      const label = table ? `${operation} ${table}` : operation;
+      logger.debug({ query: query.slice(0, 300) }, label);
     }
   }
 
@@ -84,13 +70,19 @@ export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
     recordQuery(query, time, false);
 
     if (time > config.DB_SLOW_QUERY_THRESHOLD_MS) {
-      logger.warn({ query: query.slice(0, 300), durationMs: time }, 'Slow query');
+      const operation = extractOperation(query);
+      const table = extractTable(query);
+      const label = table ? `Slow ${operation} ${table}` : `Slow ${operation}`;
+      logger.warn({ query: query.slice(0, 300), durationMs: time }, label);
     }
   }
 
   logQueryError(error: string | Error, query: string, _parameters?: unknown[], _queryRunner?: QueryRunner): void {
     recordQuery(query, 0, true);
-    logger.error({ error, query: query.slice(0, 300) }, 'Query error');
+    const operation = extractOperation(query);
+    const table = extractTable(query);
+    const label = table ? `${operation} ${table} error` : `${operation} error`;
+    logger.error({ error, query: query.slice(0, 300) }, label);
   }
 
   logSchemaBuild(message: string): void {
