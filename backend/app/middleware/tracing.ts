@@ -3,39 +3,28 @@ import { getMeter } from '@config/telemetry';
 
 const DURATION_BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10];
 
-let instruments: ReturnType<typeof createInstruments> | undefined;
+const meter = getMeter();
 
-function createInstruments() {
-  const meter = getMeter();
-  if (!meter) return undefined;
+const requestDuration = meter.createHistogram('http.server.request.duration', {
+  description: 'Duration of HTTP server requests',
+  unit: 's',
+  advice: { explicitBucketBoundaries: DURATION_BUCKETS },
+});
 
-  return {
-    requestDuration: meter.createHistogram('http.server.request.duration', {
-      description: 'Duration of HTTP server requests',
-      unit: 's',
-      advice: { explicitBucketBoundaries: DURATION_BUCKETS },
-    }),
-    activeRequests: meter.createUpDownCounter('http.server.active_requests', {
-      description: 'Number of active HTTP server requests',
-      unit: '{request}',
-    }),
-    requestBodySize: meter.createHistogram('http.server.request.body.size', {
-      description: 'Size of HTTP server request bodies',
-      unit: 'By',
-    }),
-    responseBodySize: meter.createHistogram('http.server.response.body.size', {
-      description: 'Size of HTTP server response bodies',
-      unit: 'By',
-    }),
-  };
-}
+const activeRequests = meter.createUpDownCounter('http.server.active_requests', {
+  description: 'Number of active HTTP server requests',
+  unit: '{request}',
+});
 
-function getInstruments() {
-  if (!instruments) {
-    instruments = createInstruments();
-  }
-  return instruments;
-}
+const requestBodySize = meter.createHistogram('http.server.request.body.size', {
+  description: 'Size of HTTP server request bodies',
+  unit: 'By',
+});
+
+const responseBodySize = meter.createHistogram('http.server.response.body.size', {
+  description: 'Size of HTTP server response bodies',
+  unit: 'By',
+});
 
 function getRoute(req: Request): string {
   return (req.route?.path as string) || req.path;
@@ -43,9 +32,8 @@ function getRoute(req: Request): string {
 
 export function tracingMiddleware(req: Request, res: Response, next: NextFunction) {
   const startTime = performance.now();
-  const inst = getInstruments();
 
-  inst?.activeRequests.add(1, {
+  activeRequests.add(1, {
     'http.request.method': req.method,
     'url.scheme': req.protocol,
   });
@@ -65,20 +53,20 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
       metricAttrs['error.type'] = String(res.statusCode);
     }
 
-    inst?.requestDuration.record(durationS, metricAttrs);
-    inst?.activeRequests.add(-1, {
+    requestDuration.record(durationS, metricAttrs);
+    activeRequests.add(-1, {
       'http.request.method': req.method,
       'url.scheme': req.protocol,
     });
 
     const reqContentLength = req.headers['content-length'];
     if (reqContentLength) {
-      inst?.requestBodySize.record(Number(reqContentLength), metricAttrs);
+      requestBodySize.record(Number(reqContentLength), metricAttrs);
     }
 
     const resContentLength = res.getHeader('content-length');
     if (resContentLength) {
-      inst?.responseBodySize.record(Number(resContentLength), metricAttrs);
+      responseBodySize.record(Number(resContentLength), metricAttrs);
     }
   });
 

@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, REST, Routes, Collection, Events } from 'dis
 import { BOT_CONFIG, getApplicationId } from './config';
 import { createLogger } from './logger';
 import { initTelemetry, shutdownTelemetry } from './telemetry';
-import { initInstrumentation, traceCommand } from './instrumentation';
+import { traceCommand } from './instrumentation';
 import { startHealthServer } from './health';
 import { initSdk } from './api';
 import { initSettings } from './settings';
@@ -40,7 +40,6 @@ async function main() {
   }
 
   initTelemetry();
-  initInstrumentation();
   initSdk();
   initSettings();
 

@@ -28,5 +28,6 @@ env:
     PORT: 3000
     LOG_LEVEL: info
 
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://nadeshiko-backend-prod-alloy:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-dev
+    OTEL_SEMCONV_STABILITY_OPT_IN: http

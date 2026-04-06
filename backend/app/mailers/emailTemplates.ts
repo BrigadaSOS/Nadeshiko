@@ -2,6 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '@config/config';
 
+function escapeHTML(str: string): string {
+  return str
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function getLogoUrl(): string {
   return `${config.BASE_URL}/logo-38d6e06a.webp`;
 }
@@ -69,7 +78,7 @@ export async function renderTemplate(templateName: string, variables: Record<str
 
   // Replace all {{key}} placeholders with escaped values
   for (const [key, value] of Object.entries(variables)) {
-    html = html.replaceAll(`{{${key}}}`, Bun.escapeHTML(String(value)));
+    html = html.replaceAll(`{{${key}}}`, escapeHTML(String(value)));
   }
 
   return html;

@@ -16,11 +16,12 @@ RUN --mount=type=secret,id=SENTRY_FRONTEND_DSN \
 
 FROM oven/bun:1 AS otel-deps
 WORKDIR /deps
-RUN bun init -y && bun add @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-http @opentelemetry/exporter-metrics-otlp-http @opentelemetry/resources @opentelemetry/sdk-metrics
+RUN bun init -y && bun add @opentelemetry/sdk-node @opentelemetry/sdk-trace-node @opentelemetry/exporter-trace-otlp-http @opentelemetry/exporter-metrics-otlp-http @opentelemetry/resources @opentelemetry/sdk-metrics @opentelemetry/instrumentation-http @opentelemetry/instrumentation-undici
 
-FROM oven/bun:1
+FROM node:22-slim
 WORKDIR /app
 COPY --from=build /app/.output ./.output
+RUN rm -rf .output/server/node_modules/@opentelemetry/api
 COPY --from=otel-deps /deps/node_modules ./node_modules
 COPY instrumentation.mjs ./
 COPY docker-entrypoint.sh /usr/local/bin/
@@ -30,4 +31,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["bun", "--preload", "./instrumentation.mjs", "--preload", "./.output/server/sentry.server.config.mjs", ".output/server/index.mjs"]
+CMD ["node", "--import", "./instrumentation.mjs", ".output/server/index.mjs"]

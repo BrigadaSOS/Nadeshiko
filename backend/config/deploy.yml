@@ -2,6 +2,8 @@ servers:
   web:
     hosts:
       - nadeshiko
+    options:
+      add-host: host.docker.internal:host-gateway
 
 registry:
   server: ghcr.io

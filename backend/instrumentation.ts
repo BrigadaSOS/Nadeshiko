@@ -28,7 +28,9 @@ if (endpoint) {
     }),
     instrumentations: [
       new HttpInstrumentation(),
-      new ExpressInstrumentation(),
+      new ExpressInstrumentation({
+        ignoreLayersType: ['middleware', 'router'],
+      }),
       new PgInstrumentation({
         enhancedDatabaseReporting: true,
       }),

@@ -1,24 +1,17 @@
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
-import type { Histogram, Counter } from '@opentelemetry/api';
 import { getTracer, getMeter } from './telemetry';
 import type { ChatInputCommandInteraction } from 'discord.js';
 
-let commandDuration: Histogram | undefined;
-let commandErrors: Counter | undefined;
+const meter = getMeter();
 
-export function initInstrumentation() {
-  const meter = getMeter();
-  if (!meter) return;
+const commandDuration = meter.createHistogram('discord.command.duration', {
+  description: 'Duration of Discord command execution in seconds',
+  unit: 's',
+});
 
-  commandDuration = meter.createHistogram('discord.command.duration', {
-    description: 'Duration of Discord command execution in seconds',
-    unit: 's',
-  });
-
-  commandErrors = meter.createCounter('discord.command.errors', {
-    description: 'Number of Discord command errors',
-  });
-}
+const commandErrors = meter.createCounter('discord.command.errors', {
+  description: 'Number of Discord command errors',
+});
 
 export async function traceCommand(
   commandName: string,
@@ -34,10 +27,6 @@ export async function traceCommand(
     'discord.channel.id': interaction.channelId,
   };
 
-  if (!tracer) {
-    return fn();
-  }
-
   return tracer.startActiveSpan(`command ${commandName}`, { kind: SpanKind.SERVER, attributes }, async (span) => {
     const start = performance.now();
     try {
@@ -46,11 +35,11 @@ export async function traceCommand(
     } catch (error) {
       span.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : 'Unknown' });
       span.recordException(error instanceof Error ? error : new Error(String(error)));
-      commandErrors?.add(1, { command: commandName });
+      commandErrors.add(1, { command: commandName });
       throw error;
     } finally {
       const durationS = (performance.now() - start) / 1000;
-      commandDuration?.record(durationS, { command: commandName });
+      commandDuration.record(durationS, { command: commandName });
       span.end();
     }
   });

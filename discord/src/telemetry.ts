@@ -3,7 +3,6 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { metrics, trace, type Meter, type Tracer } from '@opentelemetry/api';
 import packageJson from '../package.json';
 
@@ -26,17 +25,16 @@ export function initTelemetry() {
       exporter: new OTLPMetricExporter(),
       exportIntervalMillis: 15000,
     }),
-    instrumentations: [new HttpInstrumentation()],
   });
 
   sdk.start();
 }
 
-export function getMeter(): Meter | undefined {
+export function getMeter(): Meter {
   return metrics.getMeter('nadeshiko-discord');
 }
 
-export function getTracer(): Tracer | undefined {
+export function getTracer(): Tracer {
   return trace.getTracer('nadeshiko-discord');
 }
 
