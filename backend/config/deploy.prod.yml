@@ -50,8 +50,9 @@ env:
 
     R2_BASE_URL: https://cdn.nadeshiko.co
 
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://monitoring:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-prod
+    OTEL_SEMCONV_STABILITY_OPT_IN: http
 
 accessories:
   postgres:

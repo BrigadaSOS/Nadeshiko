@@ -5,27 +5,13 @@ import { INDEX_NAME } from '@config/elasticsearch';
 
 const ES_DURATION_BUCKETS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10];
 
-let instruments: ReturnType<typeof createInstruments> | undefined;
+const meter = getMeter();
 
-function createInstruments() {
-  const meter = getMeter();
-  if (!meter) return undefined;
-
-  return {
-    operationDuration: meter.createHistogram('db.client.operation.duration', {
-      description: 'Duration of database client operations',
-      unit: 's',
-      advice: { explicitBucketBoundaries: ES_DURATION_BUCKETS },
-    }),
-  };
-}
-
-function getInstruments() {
-  if (!instruments) {
-    instruments = createInstruments();
-  }
-  return instruments;
-}
+const operationDuration = meter.createHistogram('db.client.operation.duration', {
+  description: 'Duration of database client operations',
+  unit: 's',
+  advice: { explicitBucketBoundaries: ES_DURATION_BUCKETS },
+});
 
 function extractOperation(method: string, path: string): string {
   const cleanPath = path.split('?')[0];
@@ -58,8 +44,7 @@ export function instrumentElasticsearchClient(esClient: Client): void {
   });
 
   diag.on('response', (err, result) => {
-    const inst = getInstruments();
-    if (!inst || !result) return;
+    if (!result) return;
 
     const requestId = result.meta?.request?.id;
     const startTime = requestId != null ? requestStartTimes.get(requestId) : undefined;
@@ -89,6 +74,6 @@ export function instrumentElasticsearchClient(esClient: Client): void {
       attrs['error.type'] = err.name || 'elasticsearch_error';
     }
 
-    inst.operationDuration.record(durationS, attrs);
+    operationDuration.record(durationS, attrs);
   });
 }

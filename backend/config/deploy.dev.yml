@@ -50,9 +50,9 @@ env:
 
     R2_BASE_URL: https://cdn.nadeshiko.co
 
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://monitoring:4318"
-    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://monitoring:9090/api/v1/otlp/v1/metrics"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-dev
+    OTEL_SEMCONV_STABILITY_OPT_IN: http
 
 accessories:
   # Rebuild with:
