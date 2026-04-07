@@ -4,11 +4,6 @@ image: brigadasos/nadeshiko-frontend-prod
 builder:
   args:
     NUXT_PUBLIC_ENVIRONMENT: production
-    SENTRY_ORG: davafons
-    SENTRY_PROJECT: nadeshiko-frontend
-  secrets:
-    - SENTRY_FRONTEND_DSN
-    - SENTRY_AUTH_TOKEN
 
 proxy:
   ssl: true
@@ -19,7 +14,6 @@ proxy:
 env:
   secret:
     - NUXT_NADESHIKO_API_KEY
-    - SENTRY_FRONTEND_DSN
 
   clear:
     NUXT_PUBLIC_ENVIRONMENT: production
@@ -29,5 +23,5 @@ env:
     LOG_LEVEL: info
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
-    OTEL_SERVICE_NAME: nadeshiko-frontend
+    OTEL_SERVICE_NAME: nadeshiko-frontend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http

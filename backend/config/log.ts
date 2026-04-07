@@ -151,15 +151,12 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
         return serialized;
       },
       res: (res: any) => {
-        // pino-http wraps the response, so we need to access res.raw for the Express response
         const raw = res.raw || res;
         const serialized: any = {
           statusCode: raw.statusCode,
           headers: raw.getHeaders ? raw.getHeaders() : {},
         };
-        // Include response body if captured by responseBodyLogger middleware
-        // Parse string to object so pino redact paths work properly
-        if (raw.responseBody !== undefined) {
+        if (raw.statusCode >= 400 && raw.responseBody !== undefined) {
           serialized.body = typeof raw.responseBody === 'string' ? safeParseJson(raw.responseBody) : raw.responseBody;
         }
         return serialized;
