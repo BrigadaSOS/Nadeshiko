@@ -4,6 +4,7 @@ import { env } from './config/env';
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const UMAMI_ORIGIN = 'https://cloud.umami.is';
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
+const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -91,7 +92,7 @@ export default defineNuxtConfig({
       : {
           contentSecurityPolicy: {
             'default-src': ["'self'"],
-            'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN, POSTHOG_ORIGIN],
+            'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN, POSTHOG_ORIGIN, CF_INSIGHTS_ORIGIN],
             'style-src': ["'self'", "'unsafe-inline'"],
             'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
             'font-src': ["'self'"],
@@ -100,6 +101,7 @@ export default defineNuxtConfig({
               CDN_ORIGIN,
               UMAMI_ORIGIN,
               POSTHOG_ORIGIN,
+              CF_INSIGHTS_ORIGIN,
 
               'http://127.0.0.1:*',
               'http://localhost:*',

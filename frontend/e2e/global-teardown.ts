@@ -31,15 +31,19 @@ export default async function globalTeardown() {
     });
     if (!loginRes.ok()) return;
 
-    // Deactivate all API keys
-    const keysRes = await request.get('/v1/auth/api-key/list');
-    if (keysRes.ok()) {
-      const keysData = await keysRes.json() as { apiKeys?: { id: string; name?: string }[] };
-      const keys = keysData.apiKeys ?? [];
-      for (const key of keys) {
-        await request.post('/v1/auth/api-key/update', {
+    // Delete all API keys (handles possibly-truncated responses by looping)
+    for (let round = 0; round < 20; round++) {
+      const keysRes = await request.get('/v1/auth/api-key/list');
+      if (!keysRes.ok()) break;
+
+      const text = await keysRes.text();
+      const ids = [...text.matchAll(/"id":"(\d+)"/g)].map(m => m[1]);
+      if (ids.length === 0) break;
+
+      for (const id of [...new Set(ids)]) {
+        await request.post('/v1/auth/api-key/delete', {
           headers: { Origin: BASE_URL },
-          data: { keyId: key.id, enabled: false },
+          data: { keyId: id },
         }).catch(() => {});
       }
     }

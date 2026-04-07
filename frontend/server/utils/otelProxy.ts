@@ -1,6 +1,6 @@
 const MAX_BODY_SIZE = 65536;
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 30;
+const RATE_LIMIT_MAX = 120;
 const MAX_ENTRIES = 10_000;
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
