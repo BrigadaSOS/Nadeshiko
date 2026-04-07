@@ -116,8 +116,7 @@ export const userStore = defineStore('user', {
 
     async sendMagicLink(email: string): Promise<boolean> {
       try {
-        const base = import.meta.client ? window.location.pathname : '/';
-        const callbackURL = `${base}${base.includes('?') ? '&' : '?'}magic_callback=1`;
+        const callbackURL = '/?magic_callback=1';
         await $fetch('/v1/auth/sign-in/magic-link', {
           method: 'POST',
           credentials: 'include',

@@ -72,7 +72,7 @@ export async function buildVerifyNewEmailEmail(url: string): Promise<{ subject: 
 }
 
 export async function renderTemplate(templateName: string, variables: Record<string, string>): Promise<string> {
-  const templatePath = path.join(__dirname, 'templates', `${templateName}.html`);
+  const templatePath = path.join(import.meta.dirname, 'templates', `${templateName}.html`);
 
   let html = await fs.promises.readFile(templatePath, 'utf-8');
 
