@@ -4,11 +4,6 @@ image: brigadasos/nadeshiko-frontend-dev
 builder:
   args:
     NUXT_PUBLIC_ENVIRONMENT: development
-    SENTRY_ORG: davafons
-    SENTRY_PROJECT: nadeshiko-frontend
-  secrets:
-    - SENTRY_FRONTEND_DSN
-    - SENTRY_AUTH_TOKEN
 
 proxy:
   ssl: true
@@ -19,7 +14,6 @@ proxy:
 env:
   secret:
     - NUXT_NADESHIKO_API_KEY
-    - SENTRY_FRONTEND_DSN
 
   clear:
     NUXT_PUBLIC_ENVIRONMENT: development

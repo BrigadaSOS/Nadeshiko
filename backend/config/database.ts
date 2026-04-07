@@ -25,7 +25,7 @@ export const AppDataSource = new DataSource({
     max: 20,
     min: 5,
     acquireTimeoutMillis: 60000,
-    idleTimeoutMillis: 5000,
+    idleTimeoutMillis: 45000,
   },
 });
 

@@ -9,6 +9,7 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
@@ -29,11 +30,22 @@ if (endpoint) {
     instrumentations: [
       new HttpInstrumentation(),
       new ExpressInstrumentation({
-        ignoreLayersType: ['middleware', 'router'],
+        ignoreLayersType: ['router', 'request_handler'],
       }),
       new PgInstrumentation({
         enhancedDatabaseReporting: true,
+        requestHook: (span, queryInfo) => {
+          const sql = queryInfo.query?.text;
+          if (!sql) return;
+          const match = sql.match(/\bFROM\s+"?(?:\w+\.)?"?(\w+)"?/i) || sql.match(/\bINTO\s+"?(?:\w+\.)?"?(\w+)"?/i) || sql.match(/\bUPDATE\s+"?(?:\w+\.)?"?(\w+)"?/i);
+          if (match?.[1]) {
+            const table = match[1];
+            const op = sql.trimStart().split(/\s/)[0].toUpperCase();
+            span.updateName(`pg.query:${op} ${table}`);
+          }
+        },
       }),
+      new RuntimeNodeInstrumentation(),
     ],
   });
 

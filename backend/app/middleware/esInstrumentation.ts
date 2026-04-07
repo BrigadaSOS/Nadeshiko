@@ -1,4 +1,5 @@
 import type { Client } from '@elastic/elasticsearch';
+import { trace } from '@opentelemetry/api';
 import { getMeter } from '@config/telemetry';
 import { config } from '@config/config';
 import { INDEX_NAME } from '@config/elasticsearch';
@@ -34,12 +35,36 @@ const esServerPort = Number(esHost.port) || 9200;
 
 const requestStartTimes = new Map<any, number>();
 
+function suppressInternalHttpSpans(esClient: Client): void {
+  const transport = esClient.transport as any;
+  const otelSym = Object.getOwnPropertySymbols(transport).find((s) => s.toString() === 'Symbol(opentelemetry options)');
+  if (otelSym) {
+    transport[otelSym] = { enabled: true, suppressInternalInstrumentation: true };
+  }
+}
+
 export function instrumentElasticsearchClient(esClient: Client): void {
+  suppressInternalHttpSpans(esClient);
+
   const diag = esClient.diagnostic;
 
   diag.on('request', (_err, result) => {
     if (result?.meta?.request?.id != null) {
       requestStartTimes.set(result.meta.request.id, performance.now());
+    }
+
+    const span = trace.getActiveSpan();
+    if (!span) return;
+    const params = result?.meta?.request?.params;
+    if (!params?.path) return;
+
+    const operation = extractOperation(params.method || 'GET', params.path);
+    const index = params.path.split('/').find((s: string) => s && !s.startsWith('_'));
+    span.updateName(index ? `${operation} ${index}` : operation);
+
+    if (params.body && typeof params.body === 'string') {
+      const truncated = params.body.length > 2048 ? params.body.slice(0, 2048) + '...' : params.body;
+      span.setAttribute('db.statement', truncated);
     }
   });
 

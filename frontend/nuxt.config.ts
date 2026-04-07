@@ -3,7 +3,7 @@ import { env } from './config/env';
 
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const UMAMI_ORIGIN = 'https://cloud.umami.is';
-const SENTRY_INGEST = 'https://*.ingest.de.sentry.io';
+
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -18,7 +18,17 @@ export default defineNuxtConfig({
       allowedHosts: true,
     },
     optimizeDeps: {
-      include: ['@unhead/vue'],
+      include: [
+        '@unhead/vue',
+        '@opentelemetry/sdk-trace-web',
+        '@opentelemetry/sdk-trace-base',
+        '@opentelemetry/exporter-trace-otlp-http',
+        '@opentelemetry/resources',
+        '@opentelemetry/context-zone',
+        '@opentelemetry/instrumentation-document-load',
+        '@opentelemetry/instrumentation-fetch',
+        '@opentelemetry/instrumentation',
+      ],
     },
   },
   app: {
@@ -58,7 +68,7 @@ export default defineNuxtConfig({
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
-      sentryDsn: env.SENTRY_FRONTEND_DSN || '',
+
     },
   },
   pages: true,
@@ -71,7 +81,7 @@ export default defineNuxtConfig({
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
     'nuxt-umami',
-    '@sentry/nuxt/module',
+
     '@nuxtjs/critters',
     'nuxt-security',
   ],
@@ -89,7 +99,7 @@ export default defineNuxtConfig({
               "'self'",
               CDN_ORIGIN,
               UMAMI_ORIGIN,
-              SENTRY_INGEST,
+
               'http://127.0.0.1:*',
               'http://localhost:*',
             ],
@@ -199,13 +209,6 @@ export default defineNuxtConfig({
     transpile: ['vue-toastification'],
   },
   routeRules: {
-    // SSR pages vary by user (auth, language) — never cache on CDN
-    '/**': {
-      headers: {
-        'CDN-Cache-Control': 'no-store',
-        'Cache-Control': 'no-store',
-      },
-    },
     // Private/authenticated areas should never be indexed.
     '/settings/**': {
       robots: false,
@@ -225,65 +228,48 @@ export default defineNuxtConfig({
     // Static assets are fine to cache (Nuxt fingerprints them)
     '/_nuxt/**': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     // Public static assets — long cache, versioned by filename if needed
     '/assets/**': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     '/favicon.ico': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
         'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
       },
     },
     '/github-c80c5ec0.png': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     '/patreon-0c68395a.png': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     '/logo-og-5bc76788.png': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     '/logo-38d6e06a.webp': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     '/github/**': {
       headers: {
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
   },
   sourcemap: { client: 'hidden' },
-  sentry: {
-    sourceMapsUploadOptions: {
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-    },
-    sourcemaps: {
-      filesToDeleteAfterUpload: ['.output/**/public/**/*.map'],
-    },
-  },
+
   nitro: {
     preset: 'node-server',
     externals: {
