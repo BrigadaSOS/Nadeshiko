@@ -2,6 +2,8 @@ import { test, expect } from '../../fixtures';
 import { SearchPage } from '../../pages/SearchPage';
 
 test.describe('Keyboard navigation', () => {
+  test.describe.configure({ mode: 'serial' });
+
   let search: SearchPage;
 
   test.beforeEach(async ({ page }) => {
@@ -11,6 +13,7 @@ test.describe('Keyboard navigation', () => {
 
     // Blur the search input so keyboard events reach the segment handler
     await search.searchInput.blur();
+    await expect(search.searchInput).not.toBeFocused();
   });
 
   test('Arrow Down highlights the first result', async ({ page }) => {
@@ -42,6 +45,7 @@ test.describe('Keyboard navigation', () => {
 
   test('keyboard navigation does not activate when input is focused', async ({ page }) => {
     await search.searchInput.click();
+    await expect(search.searchInput).toBeFocused();
     await page.keyboard.press('ArrowDown');
 
     const firstCard = search.segmentCards.first();

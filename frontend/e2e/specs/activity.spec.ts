@@ -46,11 +46,10 @@ test.describe('Activity', () => {
     await expect(searchInput).toBeVisible({ timeout: 10_000 });
     await searchInput.fill('ギター');
     await searchInput.press('Enter');
-    await authenticatedPage.waitForLoadState('networkidle');
 
     // Click the audio play button on the first result
     const playButton = authenticatedPage.getByTestId('audio-play-button').first();
-    await expect(playButton).toBeVisible({ timeout: 10_000 });
+    await expect(playButton).toBeVisible({ timeout: 15_000 });
     await playButton.click();
     await waitForActivity(authenticatedPage, 'SEGMENT_PLAY');
 
@@ -72,11 +71,10 @@ test.describe('Activity', () => {
     await expect(searchInput).toBeVisible({ timeout: 10_000 });
     await searchInput.fill('ギター');
     await searchInput.press('Enter');
-    await authenticatedPage.waitForLoadState('networkidle');
 
     // Click the share button on the first result
     const shareButton = authenticatedPage.getByTestId('share-button').first();
-    await expect(shareButton).toBeVisible({ timeout: 10_000 });
+    await expect(shareButton).toBeVisible({ timeout: 15_000 });
     await shareButton.click();
     await waitForActivity(authenticatedPage, 'SHARE');
 

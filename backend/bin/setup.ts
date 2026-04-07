@@ -96,14 +96,30 @@ function ensureDockerContainers(adminUser: string): void {
       execFileSync('docker', ['exec', 'nadeshiko-postgres', 'pg_isready', '-U', adminUser], {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-      printSuccess('Docker containers ready');
-      return;
+      printSuccess('PostgreSQL ready');
+      break;
     } catch {
       Bun.sleepSync(1000);
     }
+    if (i === maxAttempts - 1) throw new Error('PostgreSQL did not become ready in time');
   }
 
-  throw new Error('PostgreSQL did not become ready in time');
+  printInfo('Waiting for Elasticsearch to accept connections...');
+  const esMaxAttempts = 60;
+  for (let i = 0; i < esMaxAttempts; i++) {
+    try {
+      execFileSync('docker', [
+        'exec', 'nadeshiko-elasticsearch',
+        'curl', '-sf', 'http://localhost:9200/_cluster/health',
+      ], { stdio: ['pipe', 'pipe', 'pipe'] });
+      printSuccess('Elasticsearch ready');
+      return;
+    } catch {
+      Bun.sleepSync(2000);
+    }
+  }
+
+  throw new Error('Elasticsearch did not become ready in time');
 }
 
 function runDbSetup(): void {

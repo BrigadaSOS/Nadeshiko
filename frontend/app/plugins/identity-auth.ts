@@ -51,7 +51,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     }
   }
 
-  if (import.meta.client && !store.isLoggedIn) {
-    await store.getBasicInfo();
+  if (import.meta.client) {
+    if (!store.isLoggedIn) {
+      await store.getBasicInfo();
+    }
+    if (store.isLoggedIn && store.userName) {
+      const posthog = usePostHog();
+      posthog?.identify(store.userName, { email: store.userEmail ?? undefined });
+    }
   }
 });

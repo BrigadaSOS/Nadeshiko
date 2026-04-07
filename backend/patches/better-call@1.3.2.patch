@@ -1,0 +1,28 @@
+diff --git a/dist/adapters/node/request.cjs b/dist/adapters/node/request.cjs
+index 5d3b220f03799f654d09d8e356b7fff12f350b3c..3ae028447fd71d6aa2b2119264708f4bea8d5bc6 100644
+--- a/dist/adapters/node/request.cjs
++++ b/dist/adapters/node/request.cjs
+@@ -118,8 +118,8 @@ async function setResponse(res, response) {
+ 					res.once("drain", next);
+ 					return;
+ 				}
+-				res.end();
+ 			}
++			res.end();
+ 		} catch (error) {
+ 			cancel(error instanceof Error ? error : new Error(String(error)));
+ 		}
+diff --git a/dist/adapters/node/request.mjs b/dist/adapters/node/request.mjs
+index ebd99889c0ac0fa42bdaacc3435fb001b0555790..2ee56e3268ae4de1bad6223a52b22a2dc43ace10 100644
+--- a/dist/adapters/node/request.mjs
++++ b/dist/adapters/node/request.mjs
+@@ -116,8 +116,8 @@ async function setResponse(res, response) {
+ 					res.once("drain", next);
+ 					return;
+ 				}
+-				res.end();
+ 			}
++			res.end();
+ 		} catch (error) {
+ 			cancel(error instanceof Error ? error : new Error(String(error)));
+ 		}
