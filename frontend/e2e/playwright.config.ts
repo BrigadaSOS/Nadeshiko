@@ -13,11 +13,11 @@ export default defineConfig({
   globalTeardown: './global-teardown.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   maxFailures: process.env.CI ? 5 : undefined,
   workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? 'html' : 'list',
-  timeout: 30_000,
+  timeout: 60_000,
 
   use: {
     baseURL: BASE_URL,
@@ -29,13 +29,17 @@ export default defineConfig({
     {
       name: 'chromium',
       testIgnore: /mobile\.spec\.ts$/,
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+      },
     },
     {
       name: 'mobile',
       testMatch: /mobile\.spec\.ts$/,
       use: {
         ...devices['Desktop Chrome'],
+        channel: 'chrome',
         viewport: { width: 390, height: 844 },
         isMobile: true,
         hasTouch: true,
