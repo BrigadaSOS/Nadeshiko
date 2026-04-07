@@ -177,6 +177,12 @@ export const userStore = defineStore('user', {
         // no-op: clear local auth state even if sign out request fails
       }
 
+      if (import.meta.client) {
+        const posthog = usePostHog();
+        posthog?.capture('user_logged_out');
+        posthog?.reset();
+      }
+
       this.resetAuthState();
       router.push('/');
       useToastSuccess(msg ? msg : $i18n.t('modalauth.labels.logout'));
@@ -299,6 +305,12 @@ export const userStore = defineStore('user', {
           credentials: 'include',
           body: {},
         });
+
+        if (import.meta.client) {
+          const posthog = usePostHog();
+          posthog?.capture('account_deleted');
+          posthog?.reset();
+        }
 
         this.resetAuthState();
         return true;

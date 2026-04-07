@@ -514,6 +514,12 @@ export const ankiStore = defineStore('anki', {
             .catch(() => {});
         }
 
+        const posthog = usePostHog();
+        posthog?.capture('anki_export_completed', {
+          media_name: mediaName(sentence.media),
+          media_id: sentence.media.id,
+        });
+
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {
         console.error(error);

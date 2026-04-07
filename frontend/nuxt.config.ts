@@ -3,7 +3,7 @@ import { env } from './config/env';
 
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const UMAMI_ORIGIN = 'https://cloud.umami.is';
-
+const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -68,7 +68,6 @@ export default defineNuxtConfig({
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
-
     },
   },
   pages: true,
@@ -81,6 +80,7 @@ export default defineNuxtConfig({
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
     'nuxt-umami',
+    '@posthog/nuxt',
 
     '@nuxtjs/critters',
     'nuxt-security',
@@ -91,7 +91,7 @@ export default defineNuxtConfig({
       : {
           contentSecurityPolicy: {
             'default-src': ["'self'"],
-            'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN],
+            'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN, POSTHOG_ORIGIN],
             'style-src': ["'self'", "'unsafe-inline'"],
             'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
             'font-src': ["'self'"],
@@ -99,6 +99,7 @@ export default defineNuxtConfig({
               "'self'",
               CDN_ORIGIN,
               UMAMI_ORIGIN,
+              POSTHOG_ORIGIN,
 
               'http://127.0.0.1:*',
               'http://localhost:*',
@@ -117,6 +118,16 @@ export default defineNuxtConfig({
     xssValidator: false,
     requestSizeLimiter: false,
     corsHandler: false,
+  },
+  posthogConfig: {
+    publicKey: 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD',
+    host: 'https://t.nadeshiko.co',
+    clientConfig: {
+      capture_exceptions: true,
+    },
+    serverConfig: {
+      enableExceptionAutocapture: true,
+    },
   },
   umami: {
     id: '98441c04-c8f9-4882-93c8-0215535b02f1',

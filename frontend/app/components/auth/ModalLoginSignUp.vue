@@ -3,6 +3,7 @@ import { mdiGoogle } from '@mdi/js';
 
 const store = userStore();
 const { $i18n } = useNuxtApp();
+const posthog = usePostHog();
 const magicLinkEmail = ref('');
 const magicLinkSent = ref(false);
 const magicLinkLoading = ref(false);
@@ -18,20 +19,24 @@ watch(
 );
 
 const handleGoogleLogin = async () => {
+  posthog?.capture('login_initiated', { provider: 'google' });
   await store.loginGoogle();
 };
 
 const handleDiscordLogin = async () => {
+  posthog?.capture('login_initiated', { provider: 'discord' });
   await store.loginDiscord();
 };
 
 const handleMagicLink = async () => {
   if (!magicLinkEmail.value.trim()) return;
+  posthog?.capture('login_initiated', { provider: 'magic_link' });
   magicLinkLoading.value = true;
   const sent = await store.sendMagicLink(magicLinkEmail.value.trim());
   magicLinkLoading.value = false;
   if (sent) {
     magicLinkSent.value = true;
+    posthog?.capture('magic_link_requested');
   } else {
     useToastError($i18n.t('modalauth.labels.errorlogin400'));
   }
