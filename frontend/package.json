@@ -26,8 +26,15 @@
     "@nuxtjs/i18n": "^10.2.1",
     "@nuxtjs/seo": "5.1.0",
     "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-zone": "^2.6.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
+    "@opentelemetry/instrumentation-document-load": "^0.59.0",
+    "@opentelemetry/instrumentation-fetch": "^0.214.0",
+    "@opentelemetry/instrumentation-runtime-node": "^0.27.0",
+    "@opentelemetry/resources": "^2.6.1",
+    "@opentelemetry/sdk-trace-base": "^2.6.1",
+    "@opentelemetry/sdk-trace-web": "^2.6.1",
     "@pinia/nuxt": "^0.11.3",
-    "@sentry/nuxt": "^10.40.0",
     "canvas-confetti": "^1.9.4",
     "chart.js": "^4.5.1",
     "gray-matter": "^4.0.3",
@@ -38,7 +45,8 @@
     "pinia-plugin-persistedstate": "^4.7.1",
     "pino": "^10.3.0",
     "vue-chartjs": "^5.3.3",
-    "vue-toastification": "^2.0.0-rc.5"
+    "vue-toastification": "^2.0.0-rc.5",
+    "web-vitals": "^5.2.0"
   },
   "overrides": {
     "@vue/devtools-kit": "7.7.8"

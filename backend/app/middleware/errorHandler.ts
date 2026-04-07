@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors';
 import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 import { logger } from '@config/log';
 import { ApiError, ValidationFailedError, NotFoundError, InternalServerError, isApiError } from '@app/errors';
 import { routeErrorCodes } from 'generated/errorProfiles';
@@ -86,6 +87,15 @@ function isErrorCodeAllowedForRoute(errorCode: string, validCodes: ReadonlySet<s
   return false;
 }
 
+function recordRealException(realError: unknown): void {
+  const span = trace.getActiveSpan();
+  if (!span) return;
+
+  const error = realError instanceof Error ? realError : new Error(String(realError));
+  span.recordException(error);
+  span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+}
+
 function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: string): ApiError {
   const cause = error.cause;
 
@@ -95,6 +105,7 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
       return createValidationError(cause, requestId);
 
     case 'request_handler':
+      recordRealException(cause);
       // Error thrown in handler - check if it's our ApiError
       if (isApiError(cause)) {
         // Attach requestId to the error

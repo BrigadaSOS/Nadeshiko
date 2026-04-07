@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
@@ -5,7 +7,11 @@ import { resourceFromAttributes, hostDetector } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { normalizeRoute, isIgnoredPath } from './route-normalization.mjs';
+
+const require = createRequire(import.meta.url);
 
 class FilteringSpanProcessor extends BatchSpanProcessor {
   onEnd(span) {
@@ -34,17 +40,46 @@ if (endpoint) {
       exportIntervalMillis: 15000,
     }),
     instrumentations: [
-      new HttpInstrumentation({ ignoreOutgoingRequestHook: () => true }),
+      new HttpInstrumentation({
+        ignoreOutgoingRequestHook: () => true,
+        ignoreIncomingRequestHook: (req) => isIgnoredPath(req.url || ''),
+        requestHook: (span, request) => {
+          const url = request.url || '/';
+          const route = normalizeRoute(url);
+          span.updateName(`${request.method} ${route}`);
+          span.setAttribute('http.route', route);
+          span.setAttribute('http.target', url);
+        },
+      }),
+      new RuntimeNodeInstrumentation(),
       new UndiciInstrumentation({
         requestHook: (span, request) => {
-          const path = (request.path || '/').split('?')[0];
-          span.updateName(`${request.method} ${path}`);
+          const rawPath = (request.path || '/').split('?')[0];
+          const route = normalizeRoute(rawPath);
+          span.updateName(`${request.method} ${route}`);
+          span.setAttribute('http.route', route);
+        },
+        responseHook: (span, { response }) => {
+          const statusCode = response.statusCode;
+          if (statusCode >= 400) {
+            span.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: `HTTP ${statusCode}`,
+            });
+          }
         },
       }),
     ],
   });
 
   sdk.start();
+
+  // Force CJS require of http/https after sdk.start() so HttpInstrumentation
+  // can patch them via the CJS hook. ESM import-in-the-middle doesn't intercept
+  // built-in node: modules, but the prototype patches from CJS are shared with
+  // ESM references to the same module.
+  require('http');
+  require('https');
 
   const shutdown = async () => {
     await sdk.shutdown();
