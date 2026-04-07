@@ -5,7 +5,7 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
-    "build": "bun --bun nuxt build",
+    "build": "nuxt build",
     "dev": "bun --bun nuxt dev | pino-pretty",
     "lint": "biome check .",
     "typecheck": "bun --bun nuxt typecheck",
@@ -37,6 +37,7 @@
     "@opentelemetry/sdk-trace-base": "^2.6.1",
     "@opentelemetry/sdk-trace-web": "^2.6.1",
     "@pinia/nuxt": "^0.11.3",
+    "@posthog/nuxt": "^1.6.0",
     "canvas-confetti": "^1.9.4",
     "chart.js": "^4.5.1",
     "gray-matter": "^4.0.3",

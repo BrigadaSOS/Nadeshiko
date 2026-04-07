@@ -28,7 +28,15 @@ if (endpoint) {
       exportIntervalMillis: 15000,
     }),
     instrumentations: [
-      new HttpInstrumentation(),
+      new HttpInstrumentation({
+        requestHook: (span, request) => {
+          if ('url' in request && request.url) {
+            try {
+              span.setAttribute('http.target', decodeURIComponent(request.url));
+            } catch {}
+          }
+        },
+      }),
       new ExpressInstrumentation({
         ignoreLayersType: ['router', 'request_handler'],
       }),

@@ -64,6 +64,12 @@ class SpanRenamer implements SpanProcessor {
       const path = getUrlPath(url);
       span.updateName(`${method} ${path}`);
     }
+
+    if (span.attributes?.['http.url']) {
+      try {
+        span.setAttribute('http.url', decodeURIComponent(span.attributes['http.url']));
+      } catch {}
+    }
   }
   onEnd() {}
 }

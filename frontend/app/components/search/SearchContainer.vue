@@ -36,6 +36,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();
+const posthog = usePostHog();
 const { contentRating } = useContentRating();
 const { excludedLanguages } = useTranslationVisibility();
 const route = useRoute();
@@ -302,15 +303,17 @@ const fetchSentences = async () => {
       });
       response = data ? resolveSearchResponse(data) : null;
 
-      if (
-        isInitialSearch &&
-        query.value &&
-        query.value !== lastTrackedQuery.value &&
-        import.meta.client &&
-        userStore().isLoggedIn
-      ) {
+      if (isInitialSearch && query.value && query.value !== lastTrackedQuery.value && import.meta.client) {
         lastTrackedQuery.value = query.value;
-        sdk.trackUserActivity({ body: { activityType: 'SEARCH', searchQuery: query.value } }).catch(() => {});
+        posthog?.capture('sentence_searched', {
+          query: query.value,
+          category: category.value,
+          has_media_filter: !!media.value,
+          results_count: response?.pagination?.estimatedTotalHits ?? 0,
+        });
+        if (userStore().isLoggedIn) {
+          sdk.trackUserActivity({ body: { activityType: 'SEARCH', searchQuery: query.value } }).catch(() => {});
+        }
       }
     }
     const incomingResults = response?.results || [];
