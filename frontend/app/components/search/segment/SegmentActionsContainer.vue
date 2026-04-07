@@ -41,6 +41,7 @@ const props = defineProps<Props>();
 const anki = ankiStore();
 const user = userStore();
 const sdk = useNadeshikoSdk();
+const posthog = usePostHog();
 const { t } = useI18n();
 const router = useRouter();
 const isAnkiConfigured = ref(false);
@@ -140,6 +141,9 @@ const addToCollection = async (collection: CollectionOption) => {
     await sdk.addSegmentToCollection({
       path: { id: collection.id },
       body: { segmentId: props.content.segment.publicId },
+    });
+    posthog?.capture('segment_added_to_collection', {
+      collection_name: collection.name,
     });
     useToastSuccess(t('searchpage.main.labels.collectionAdded', { name: collection.name }));
     saveLastCollection(collection);

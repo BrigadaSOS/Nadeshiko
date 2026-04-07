@@ -5,6 +5,7 @@ import type { Collection } from '@brigadasos/nadeshiko-sdk';
 const { t } = useI18n();
 
 const sdk = useNadeshikoSdk();
+const posthog = usePostHog();
 
 const { data: initialData } = await useAsyncData(
   'settings-account-collections',
@@ -122,6 +123,7 @@ const submitCreate = async () => {
       });
     }
 
+    posthog?.capture('collection_created');
     useToastSuccess(t('accountSettings.collections.createSuccess'));
     showCreateModal.value = false;
   } catch {
@@ -155,6 +157,7 @@ const submitToggleVisibility = async () => {
     const item = collections.value[idx];
     if (item) item.visibility = newVisibility;
 
+    posthog?.capture('collection_visibility_changed', { new_visibility: newVisibility });
     useToastSuccess(t('accountSettings.collections.visibilityChanged'));
     visibilityTarget.value = null;
   } catch {
@@ -184,6 +187,7 @@ const submitDelete = async () => {
 
     collections.value = collections.value.filter((c) => c.publicId !== deleteTarget.value?.publicId);
 
+    posthog?.capture('collection_deleted');
     useToastSuccess(t('accountSettings.collections.deleted'));
     deleteTarget.value = null;
   } catch {

@@ -2,6 +2,7 @@ export default defineNuxtPlugin(() => {
   const store = userStore();
   const { $i18n } = useNuxtApp();
   const route = useRoute();
+  const posthog = usePostHog();
 
   if (import.meta.client) {
     const isOAuthCallback = route.query.error || route.query.code || route.query.state;
@@ -27,6 +28,12 @@ export default defineNuxtPlugin(() => {
       }
       if (store.isLoggedIn) {
         useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
+        if (store.userName) {
+          posthog?.identify(store.userName, { email: store.userEmail ?? undefined });
+        }
+        posthog?.capture('user_logged_in', {
+          provider: isMagicLinkCallback ? 'magic_link' : 'oauth',
+        });
       }
     }, 200);
   }
