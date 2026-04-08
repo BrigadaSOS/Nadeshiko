@@ -83,7 +83,7 @@ curl -s -X PUT "${ELASTIC_HOST}/_security/role/${ROLE_NAME}" \
     -d "{
         \"indices\": [
             {
-                \"names\": [\"${INDEX_NAME}\"],
+                \"names\": [\"${INDEX_NAME}\", \"${INDEX_NAME}_v*\"],
                 \"privileges\": [\"all\"],
                 \"allow_restricted_indices\": false
             }
