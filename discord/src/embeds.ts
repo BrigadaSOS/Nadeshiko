@@ -46,8 +46,10 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - 1)}...`;
 }
 
-function mediaUrl(media: Media): string {
-  return `${BOT_CONFIG.frontendUrl}/media/${media.slug || media.publicId}`;
+function mediaSearchUrl(media: { publicId: string }, episode?: number): string {
+  const params = new URLSearchParams({ media: media.publicId });
+  if (episode != null) params.set('episode', String(episode));
+  return `${BOT_CONFIG.frontendUrl}/search?${params}`;
 }
 
 export function buildSegmentMessage(
@@ -58,8 +60,10 @@ export function buildSegmentMessage(
   const mediaName = getMediaName(media);
   const timestamp = formatTimestamp(segment.startTimeMs);
 
-  const mediaLink = media ? `[${mediaName}](<${mediaUrl(media)}>)` : mediaName;
-  const episodeLink = media ? `[Episode ${segment.episode}](<${mediaUrl(media)}>)` : `Episode ${segment.episode}`;
+  const sentenceUrl = `${BOT_CONFIG.frontendUrl}/sentence/${segment.publicId}`;
+  const mediaLink = media ? `[${mediaName}](<${mediaSearchUrl(media)}>)` : mediaName;
+  const episodeLink = media ? `[Episode ${segment.episode}](<${mediaSearchUrl(media, segment.episode)}>)` : `Episode ${segment.episode}`;
+  const timestampLink = `[${timestamp}](<${sentenceUrl}>)`;
 
   const jaText = segment.textJa.highlight ? highlightToMarkdown(segment.textJa.highlight) : segment.textJa.content;
 
@@ -75,7 +79,7 @@ export function buildSegmentMessage(
     lines.push(`**ES${mtTag}**: ||${segment.textEs.content}||`);
   }
 
-  lines.push('', `${mediaLink} • ${episodeLink} • ${timestamp}`);
+  lines.push('', `${mediaLink} • ${episodeLink} • ${timestampLink}`);
 
   return truncate(lines.join('\n'), 2000);
 }
@@ -93,17 +97,18 @@ export function buildContextLines(
   const ep = segments[0]?.episode;
 
   const selectedSeg = segments[selectedIndex];
-  const mediaLink = firstMedia ? `[${mediaName}](<${mediaUrl(firstMedia)}>)` : mediaName;
+  const mediaLink = firstMedia ? `[${mediaName}](<${mediaSearchUrl(firstMedia)}>)` : mediaName;
   const timestamp = formatTimestamp(selectedSeg.startTimeMs);
 
   const lines = segments.map((seg, i) => {
     const isSelected = i === selectedIndex;
     const ts = formatTimestamp(seg.startTimeMs);
     const jaText = stripAllHtmlTags(seg.textJa.content);
+    const diff = i - selectedIndex;
+    const prefix = isSelected ? `▶)` : `${diff})`;
 
     const parts: string[] = [];
-    parts.push(isSelected ? `▶ \`${ts}\` #${seg.position}` : `\`${ts}\` #${seg.position}`);
-    parts.push(isSelected ? `**JP**: **${jaText}**` : `**JP**: ${jaText}`);
+    parts.push(isSelected ? `${prefix} **${jaText}**` : `${prefix} ${jaText}`);
 
     if (seg.textEn.content && shouldShowEn(opts)) {
       const mtTag = seg.textEn.isMachineTranslated ? ' (MT)' : '';
@@ -119,7 +124,7 @@ export function buildContextLines(
   });
 
   const header = `**Context: ${mediaName}** -- Episode ${ep}\n`;
-  const episodeLink = firstMedia ? `[Episode ${ep}](<${mediaUrl(firstMedia)}>)` : `Episode ${ep}`;
+  const episodeLink = firstMedia ? `[Episode ${ep}](<${mediaSearchUrl(firstMedia, ep)}>)` : `Episode ${ep}`;
   const footer = `\n\n${mediaLink} • ${episodeLink} • ${timestamp}`;
   return truncate(header + lines.join('\n\n') + footer, 2000);
 }
@@ -174,11 +179,11 @@ export function buildMediaSearchMessage(media: MediaAutocompleteItem[], query: s
     return `No media found for **${truncate(query, 200)}**`;
   }
 
-  const header = `**Media matching "${truncate(query, 200)}":**\n\n`;
+  const header = `🔎 **Media matching "${truncate(query, 200)}":**\n\n`;
   const lines = media.map((m, i) => {
     const name = getMediaName(m);
     const jaName = m.nameJa && m.nameJa !== name ? ` (${m.nameJa})` : '';
-    const link = `${BOT_CONFIG.frontendUrl}/media/${m.slug || m.publicId}`;
+    const link = mediaSearchUrl(m);
     return `**${i + 1}.** [${name}](<${link}>)${jaName}`;
   });
 

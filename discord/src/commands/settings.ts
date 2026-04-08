@@ -41,7 +41,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const reply = await interaction.reply({ ...buildSettingsView(settings), ephemeral: true, fetchReply: true });
 
-    const collector = reply.createMessageComponentCollector({ time: 300_000 });
+    const collector = reply.createMessageComponentCollector({ time: 600_000 });
 
     collector.on('collect', async (i: StringSelectMenuInteraction | ButtonInteraction) => {
       if (i.isStringSelectMenu() && i.customId === 'settings_pick') {

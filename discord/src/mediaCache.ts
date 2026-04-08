@@ -4,7 +4,10 @@ import type { MediaAutocompleteItem } from './api';
 const nameCache = new Map<string, MediaAutocompleteItem>();
 
 export async function searchMediaCache(query: string, limit = 25): Promise<MediaAutocompleteItem[]> {
-  const result = await autocompleteMedia(query || '', limit);
+  if (!query.trim()) {
+    return [];
+  }
+  const result = await autocompleteMedia(query, limit);
   for (const m of result.media) {
     nameCache.set(m.publicId, m);
   }
