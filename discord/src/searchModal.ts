@@ -163,20 +163,78 @@ export function goToSkipBack(state: SearchModalState, count = 10): boolean {
   return true;
 }
 
-export async function goToSkipForward(state: SearchModalState, count = 10): Promise<boolean> {
-  let moved = false;
-  for (let i = 0; i < count; i++) {
-    const ok = await goToNextPage(state);
-    if (!ok) break;
-    moved = true;
+export async function goToSkipForward(state: SearchModalState, count = 5): Promise<boolean> {
+  if (!state.results?.pagination.hasMore) return false;
+
+  const pageSize = BOT_CONFIG.maxSearchResults;
+  const firstNewPage = state.currentPage + 1;
+
+  // Check how many of the target pages are already cached
+  let cachedUntil = firstNewPage;
+  while (cachedUntil < firstNewPage + count && state.pages[cachedUntil]) {
+    cachedUntil++;
   }
-  return moved;
+
+  // If we still need to fetch, do a single bulk request
+  if (cachedUntil < firstNewPage + count) {
+    const lastCachedPage = state.pages[cachedUntil - 1] ?? state.results;
+    const cursor = lastCachedPage.pagination.cursor;
+    if (!cursor) {
+      // No cursor, just jump to last cached page
+      if (cachedUntil <= firstNewPage) return false;
+      state.currentPage = cachedUntil - 1;
+      state.results = state.pages[state.currentPage];
+      state.currentIndex = 0;
+      return true;
+    }
+
+    const pagesToFetch = firstNewPage + count - cachedUntil;
+    const bulkTake = Math.min(pagesToFetch * pageSize, 100);
+
+    const bulkResults = await search(state.lastQuery, {
+      take: bulkTake,
+      cursor,
+      mediaId: state.mediaId,
+      exactMatch: state.lastSearchOptions.exactMatch,
+      category: state.lastSearchOptions.category,
+      episodes: state.lastSearchOptions.episodes,
+      sort: state.lastSearchOptions.sort,
+    });
+
+    if (bulkResults.segments.length === 0 && cachedUntil <= firstNewPage) return false;
+
+    // Split bulk results into pages
+    for (let offset = 0; offset < bulkResults.segments.length; offset += pageSize) {
+      const pageSegments = bulkResults.segments.slice(offset, offset + pageSize);
+      const isLastChunk = offset + pageSize >= bulkResults.segments.length;
+      state.pages[cachedUntil] = {
+        segments: pageSegments,
+        includes: bulkResults.includes,
+        pagination: {
+          ...bulkResults.pagination,
+          hasMore: isLastChunk ? bulkResults.pagination.hasMore : true,
+          cursor: isLastChunk ? bulkResults.pagination.cursor : '',
+        },
+      };
+      cachedUntil++;
+    }
+  }
+
+  // Jump to the target page (or last available)
+  const targetPage = Math.min(firstNewPage + count - 1, cachedUntil - 1);
+  if (targetPage < firstNewPage) return false;
+
+  state.currentPage = targetPage;
+  state.results = state.pages[state.currentPage];
+  state.currentIndex = 0;
+  return true;
 }
 
 export function buildPaginationButtons(state: SearchModalState): ButtonBuilder[] {
   const atFirst = state.currentPage === 0;
-  const hasMore = (state.results?.pagination.hasMore ?? false)
-    && (state.results?.segments.length ?? 0) >= BOT_CONFIG.maxSearchResults;
+  const hasMore =
+    (state.results?.pagination.hasMore ?? false) &&
+    (state.results?.segments.length ?? 0) >= BOT_CONFIG.maxSearchResults;
   const first = ButtonBuilder.from(firstPageButton.toJSON()).setDisabled(atFirst);
   const skipBack = ButtonBuilder.from(skipBackButton.toJSON()).setDisabled(atFirst);
   const prev = ButtonBuilder.from(prevPageButton.toJSON()).setDisabled(atFirst);
@@ -189,7 +247,11 @@ export function getPageOffset(state: SearchModalState): number {
   return state.currentPage * BOT_CONFIG.maxSearchResults;
 }
 
-export function showSearchModal(btnInteraction: ButtonInteraction, title: string, defaults?: { query?: string; episodes?: string; sort?: string }) {
+export function showSearchModal(
+  btnInteraction: ButtonInteraction,
+  title: string,
+  defaults?: { query?: string; episodes?: string; sort?: string },
+) {
   const modal = new ModalBuilder().setCustomId('advanced_search_modal').setTitle(title.slice(0, 45));
 
   const queryInput = new TextInputBuilder()
@@ -323,7 +385,6 @@ export async function renderSearchResult(
 
 export const MEDIA_PER_PAGE = 24;
 
-
 export type FilterMediaItem = {
   publicId: string;
   name: string;
@@ -362,11 +423,8 @@ export async function showFilterMediaSelect(
 ) {
   await btnInteraction.deferUpdate();
 
-  const stats = filterState.cachedSearchStats
-    ?? await getSearchStats(
-      state.lastQuery || undefined,
-      state.lastSearchOptions,
-    );
+  const stats =
+    filterState.cachedSearchStats ?? (await getSearchStats(state.lastQuery || undefined, state.lastSearchOptions));
   filterState.cachedSearchStats = stats;
   filterState.allMedia = stats.media.map((m) => {
     const media = stats.includes.media[m.publicId];
@@ -439,7 +497,11 @@ export async function renderFilterMediaPage(
   const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
 
   const actionButtons = [
-    new ButtonBuilder().setCustomId('filter_media_search').setLabel('Filter by name').setEmoji('🔍').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('filter_media_search')
+      .setLabel('Filter by name')
+      .setEmoji('🔍')
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('cancel_filter_media').setLabel('Cancel').setStyle(ButtonStyle.Secondary),
   ];
   const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(...actionButtons);
@@ -448,10 +510,26 @@ export async function renderFilterMediaPage(
 
   if (totalPages > 1) {
     const paginationRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId('filter_media_first').setEmoji('⏮').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage === 0),
-      new ButtonBuilder().setCustomId('filter_media_prev').setEmoji('◀').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage === 0),
-      new ButtonBuilder().setCustomId('filter_media_next').setEmoji('▶').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage >= totalPages - 1),
-      new ButtonBuilder().setCustomId('filter_media_last').setEmoji('⏭').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage >= totalPages - 1),
+      new ButtonBuilder()
+        .setCustomId('filter_media_first')
+        .setEmoji('⏮')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(mediaPage === 0),
+      new ButtonBuilder()
+        .setCustomId('filter_media_prev')
+        .setEmoji('◀')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(mediaPage === 0),
+      new ButtonBuilder()
+        .setCustomId('filter_media_next')
+        .setEmoji('▶')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(mediaPage >= totalPages - 1),
+      new ButtonBuilder()
+        .setCustomId('filter_media_last')
+        .setEmoji('⏭')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(mediaPage >= totalPages - 1),
     );
     components.push(paginationRow);
   }

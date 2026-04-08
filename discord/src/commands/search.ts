@@ -94,7 +94,10 @@ export type SearchParams = {
   display: DisplayOptions;
 };
 
-export async function executeSearch(interaction: ChatInputCommandInteraction | ButtonInteraction, params: SearchParams) {
+export async function executeSearch(
+  interaction: ChatInputCommandInteraction | ButtonInteraction,
+  params: SearchParams,
+) {
   await interaction.deferReply();
 
   const { query, exact, category, mediaId, episodes, display } = params;
@@ -143,9 +146,7 @@ export async function executeSearch(interaction: ChatInputCommandInteraction | B
 
     const buildSearchUrl = () => {
       const q = searchState.lastQuery;
-      const base = q
-        ? `${BOT_CONFIG.frontendUrl}/search/${encodeURIComponent(q)}`
-        : `${BOT_CONFIG.frontendUrl}/search`;
+      const base = q ? `${BOT_CONFIG.frontendUrl}/search/${encodeURIComponent(q)}` : `${BOT_CONFIG.frontendUrl}/search`;
       const params = new URLSearchParams();
       if (searchState.mediaId) params.set('media', searchState.mediaId);
       const eps = searchState.lastSearchOptions.episodes;
@@ -227,7 +228,15 @@ export async function executeSearch(interaction: ChatInputCommandInteraction | B
           currentSegment = newResult.segments[0];
           currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
           contextState.viewingContext = false;
-          await updateSegmentReply(i, currentSegment, currentMedia, display, buildSearchUrl(), actionButtons, buildStatsPrefix());
+          await updateSegmentReply(
+            i,
+            currentSegment,
+            currentMedia,
+            display,
+            buildSearchUrl(),
+            actionButtons,
+            buildStatsPrefix(),
+          );
         } else {
           const newQuery = searchState.lastQuery;
           const newResult = await search(newQuery, {
@@ -300,7 +309,15 @@ export async function executeSearch(interaction: ChatInputCommandInteraction | B
           currentSegment = newResult.segments[0];
           currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
           contextState.viewingContext = false;
-          await updateSegmentReply(i, currentSegment, currentMedia, display, buildSearchUrl(), actionButtons, buildStatsPrefix());
+          await updateSegmentReply(
+            i,
+            currentSegment,
+            currentMedia,
+            display,
+            buildSearchUrl(),
+            actionButtons,
+            buildStatsPrefix(),
+          );
         }
         return;
       }
@@ -343,7 +360,15 @@ export async function executeSearch(interaction: ChatInputCommandInteraction | B
         if (searchState.results) {
           await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
         } else {
-          await updateSegmentReply(i, currentSegment, currentMedia, display, buildSearchUrl(), actionButtons, buildStatsPrefix());
+          await updateSegmentReply(
+            i,
+            currentSegment,
+            currentMedia,
+            display,
+            buildSearchUrl(),
+            actionButtons,
+            buildStatsPrefix(),
+          );
         }
         return;
       }
@@ -395,4 +420,3 @@ export async function executeSearch(interaction: ChatInputCommandInteraction | B
     await interaction.editReply({ content: `Something went wrong.${suffix}` });
   }
 }
-
