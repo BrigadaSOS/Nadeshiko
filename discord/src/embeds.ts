@@ -62,7 +62,9 @@ export function buildSegmentMessage(
 
   const sentenceUrl = `${BOT_CONFIG.frontendUrl}/sentence/${segment.publicId}`;
   const mediaLink = media ? `[${mediaName}](<${mediaSearchUrl(media)}>)` : mediaName;
-  const episodeLink = media ? `[Episode ${segment.episode}](<${mediaSearchUrl(media, segment.episode)}>)` : `Episode ${segment.episode}`;
+  const episodeLink = media
+    ? `[Episode ${segment.episode}](<${mediaSearchUrl(media, segment.episode)}>)`
+    : `Episode ${segment.episode}`;
   const timestampLink = `[${timestamp}](<${sentenceUrl}>)`;
 
   const jaText = segment.textJa.highlight ? highlightToMarkdown(segment.textJa.highlight) : segment.textJa.content;

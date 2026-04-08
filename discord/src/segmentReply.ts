@@ -39,7 +39,15 @@ type SegmentReplyOptions = {
   contentPrefix?: string;
 };
 
-export async function renderSegmentReply({ interaction, segment, media, display, linkUrl, extraButtons, contentPrefix }: SegmentReplyOptions) {
+export async function renderSegmentReply({
+  interaction,
+  segment,
+  media,
+  display,
+  linkUrl,
+  extraButtons,
+  contentPrefix,
+}: SegmentReplyOptions) {
   const body = buildSegmentMessage(segment, media, display);
   const content = contentPrefix ? `${contentPrefix}\n\n${body}` : body;
   const row = buildSegmentButtons(linkUrl, extraButtons);
@@ -140,7 +148,12 @@ export async function handleContextSelect(
   const mediaName = originalMedia ? getMediaName(originalMedia) : 'Unknown';
   const header = `📜 **Context** for sentence in **${mediaName}** • Episode ${state.originalSegment?.episode ?? segment.episode}`;
   const body = buildSegmentMessage(segment, media, display);
-  const components = buildContextSelectComponents(state.contextSegments, selectedId, state.contextExtraButtons, state.originalSegment?.publicId);
+  const components = buildContextSelectComponents(
+    state.contextSegments,
+    selectedId,
+    state.contextExtraButtons,
+    state.originalSegment?.publicId,
+  );
   const files = await loadVideoFiles(segment);
   const content = `${header}\n\n${body}`;
 
@@ -159,7 +172,15 @@ export async function handleBackToOriginal(
   state.viewingContext = false;
 
   if (!state.originalSegment) return;
-  await updateSegmentReply(btnInteraction, state.originalSegment, state.originalMedia, display, linkUrl, extraButtons, contentPrefix);
+  await updateSegmentReply(
+    btnInteraction,
+    state.originalSegment,
+    state.originalMedia,
+    display,
+    linkUrl,
+    extraButtons,
+    contentPrefix,
+  );
 }
 
 function buildContextSelectComponents(
@@ -251,7 +272,11 @@ export function buildSearchSelectComponents(
   const allButtons = [
     ...(extraButtons ?? []),
     new ButtonBuilder().setCustomId('context').setLabel('Context').setStyle(ButtonStyle.Secondary).setEmoji('📜'),
-    new ButtonBuilder().setLabel('Search on Nadeshiko').setStyle(ButtonStyle.Link).setURL(linkUrl).setEmoji({ id: '1488442092823777410' }),
+    new ButtonBuilder()
+      .setLabel('Search on Nadeshiko')
+      .setStyle(ButtonStyle.Link)
+      .setURL(linkUrl)
+      .setEmoji({ id: '1488442092823777410' }),
   ];
 
   for (let i = 0; i < allButtons.length && rows.length < 5; i += 5) {

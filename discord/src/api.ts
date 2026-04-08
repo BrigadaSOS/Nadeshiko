@@ -156,7 +156,10 @@ export async function getStats(): Promise<StatsResponse> {
   return data;
 }
 
-export async function getSearchStats(query?: string, options?: { exactMatch?: boolean; category?: string }): Promise<SearchStatsResponse> {
+export async function getSearchStats(
+  query?: string,
+  options?: { exactMatch?: boolean; category?: string },
+): Promise<SearchStatsResponse> {
   log.debug({ query, ...options }, 'Search stats request');
   const { data } = await sdk.getSearchStats({
     body: {
@@ -168,6 +171,7 @@ export async function getSearchStats(query?: string, options?: { exactMatch?: bo
   log.debug({ mediaCount: data.media.length, categories: data.categories.length }, 'Search stats response');
   return data;
 }
+
 
 export async function downloadFile(url: string): Promise<Buffer | null> {
   log.debug({ url }, 'File download request');
