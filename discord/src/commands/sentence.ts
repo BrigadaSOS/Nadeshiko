@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ButtonBuilder, ButtonStyle, type ChatInputCommandInteraction } from 'discord.js';
 import { getSegmentByUuid } from '../api';
+import { getMediaName } from '../embeds';
 import {
   renderSegmentReply,
   createContextState,
@@ -8,9 +9,11 @@ import {
   handleBackToOriginal,
   buildLinkOnlyRow,
 } from '../segmentReply';
+import { BOT_CONFIG } from '../config';
 import { createLogger } from '../logger';
 import { getActiveTraceId } from '../instrumentation';
 import { getGuildSettings } from '../settings';
+import { executeSearch } from './search';
 
 const log = createLogger('cmd:sentence');
 
@@ -34,17 +37,46 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   try {
     const { segment, media } = await getSegmentByUuid(id);
+    const resolvedMedia = media ?? undefined;
     const display = getGuildSettings(interaction.guildId);
     const contextState = createContextState();
+    const mediaName = getMediaName(resolvedMedia);
+
+    const params = new URLSearchParams();
+    if (resolvedMedia) {
+      params.set('media', resolvedMedia.publicId);
+      params.set('episode', String(segment.episode));
+    }
+    const qs = params.toString();
+    const linkUrl = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
+
+    const extraButtons: ButtonBuilder[] = [];
+    if (resolvedMedia) {
+      extraButtons.push(
+        new ButtonBuilder()
+          .setCustomId('search_in_media')
+          .setLabel('Search in media')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('🎬'),
+        new ButtonBuilder()
+          .setCustomId('search_in_episode')
+          .setLabel('Search in episode')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('📺'),
+      );
+    }
 
     const reply = await renderSegmentReply({
       interaction,
       segment,
-      media: media ?? undefined,
+      media: resolvedMedia,
       display,
+      linkUrl,
+      extraButtons,
+      contentPrefix: `🔎 Sentence from **${mediaName}** • Episode ${segment.episode}`,
     });
 
-    const collector = reply.createMessageComponentCollector({ time: 300_000 });
+    const collector = reply.createMessageComponentCollector({ time: 600_000 });
 
     collector.on('collect', async (i) => {
       if (i.isStringSelectMenu() && i.customId === 'context_select') {
@@ -55,18 +87,37 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       if (!i.isButton()) return;
 
       if (i.customId === 'context') {
-        await handleContextButton(i, segment, media ?? undefined, display, contextState);
+        await handleContextButton(i, segment, resolvedMedia, display, contextState, extraButtons);
         return;
       }
 
       if (i.customId === 'back_to_original') {
-        await handleBackToOriginal(i, display, contextState);
+        await handleBackToOriginal(i, display, contextState, linkUrl, extraButtons);
+        return;
+      }
+
+      if ((i.customId === 'search_in_media' || i.customId === 'search_in_episode') && resolvedMedia) {
+        collector.stop('search_transition');
+        await executeSearch(i, {
+          mediaId: resolvedMedia.publicId,
+          episodes: i.customId === 'search_in_episode' ? [segment.episode] : undefined,
+          display,
+        });
+        return;
       }
     });
 
-    collector.on('end', async () => {
+    collector.on('end', async (_, reason) => {
+      if (reason === 'search_transition') return;
       try {
-        await interaction.editReply({ components: [buildLinkOnlyRow(segment.publicId)] });
+        const params = new URLSearchParams();
+        if (resolvedMedia) {
+          params.set('media', resolvedMedia.publicId);
+          params.set('episode', String(segment.episode));
+        }
+        const qs = params.toString();
+        const url = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
+        await interaction.editReply({ components: [buildLinkOnlyRow(url)] });
       } catch {}
     });
   } catch (error) {

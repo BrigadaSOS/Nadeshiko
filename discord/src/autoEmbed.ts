@@ -1,6 +1,7 @@
 import { type Message } from 'discord.js';
 import { getSegmentByUuid } from './api';
 import { buildSegmentMessage } from './embeds';
+import { BOT_CONFIG } from './config';
 import {
   buildSegmentButtons,
   loadVideoFiles,
@@ -31,15 +32,22 @@ export async function handleAutoEmbed(message: Message) {
 
   try {
     const { segment, media } = await getSegmentByUuid(segmentId);
-    const content = buildSegmentMessage(segment, media ?? undefined, settings);
-    const row = buildSegmentButtons(segment.publicId);
+    const params = new URLSearchParams();
+    if (media) {
+      params.set('media', media.publicId);
+      params.set('episode', String(segment.episode));
+    }
+    const qs = params.toString();
+    const linkUrl = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
 
+    const content = buildSegmentMessage(segment, media ?? undefined, settings);
+    const row = buildSegmentButtons(linkUrl);
     const files = await loadVideoFiles(segment);
 
     const reply = await message.reply({ content, components: [row], files });
 
     const contextState = createContextState();
-    const collector = reply.createMessageComponentCollector({ time: 300_000 });
+    const collector = reply.createMessageComponentCollector({ time: 600_000 });
 
     collector.on('collect', async (i) => {
       if (i.isStringSelectMenu() && i.customId === 'context_select') {
@@ -55,13 +63,20 @@ export async function handleAutoEmbed(message: Message) {
       }
 
       if (i.customId === 'back_to_original') {
-        await handleBackToOriginal(i, settings, contextState);
+        await handleBackToOriginal(i, settings, contextState, linkUrl);
       }
     });
 
     collector.on('end', async () => {
       try {
-        await reply.edit({ components: [buildLinkOnlyRow(segment.publicId)] });
+        const params = new URLSearchParams();
+        if (media) {
+          params.set('media', media.publicId);
+          params.set('episode', String(segment.episode));
+        }
+        const qs = params.toString();
+        const url = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
+        await reply.edit({ components: [buildLinkOnlyRow(url)] });
       } catch {}
     });
   } catch (error) {
