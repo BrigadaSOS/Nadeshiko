@@ -3,7 +3,7 @@ import type { t_TriggerReindexRequestBodySchema } from 'generated/models';
 import { getStuckJobs } from '@app/workers/queueAdmin';
 import { toAdminQueueStatsDTO } from '@app/controllers/mappers/queue.mapper';
 import { Cache } from '@lib/cache';
-import { client as esClient, INDEX_NAME } from '@config/elasticsearch';
+import { client as esClient, INDEX_NAME, reindexZeroDowntime } from '@config/elasticsearch';
 import { SegmentDocument, type ReindexMediaItem } from '@app/models/SegmentDocument';
 import { updateWordCoverage } from '@app/services/wordCoverageService';
 import { logger } from '@config/log';
@@ -64,7 +64,13 @@ export const getAdminDashboard: GetAdminDashboard = async (_params, respond) => 
 };
 
 export const triggerReindex: TriggerReindex = async ({ body }, respond) => {
-  const result = await SegmentDocument.reindex(toReindexMediaItems(body));
+  const mediaItems = toReindexMediaItems(body);
+  const isFullReindex = !mediaItems || mediaItems.length === 0;
+
+  const result = isFullReindex
+    ? await reindexZeroDowntime((targetIndex) => SegmentDocument.reindex(undefined, targetIndex))
+    : await SegmentDocument.reindex(mediaItems);
+
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
   updateWordCoverage({ onlyUncovered: true }).catch((err) =>

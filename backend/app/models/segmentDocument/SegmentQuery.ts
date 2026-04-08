@@ -5,12 +5,27 @@
  *
  * JAPANESE CONTENT FIELDS (4 fields for different matching strategies)
  * -----------------------------------------------------------------------------
- * | Field               | Purpose                    | Example: "食べました"       |
- * |--------------------|----------------------------|----------------------------|
- * | textJa             | Surface form matching      | Tokens: 食べ, ました        |
- * | textJa.baseform    | Dictionary form matching   | Tokens: 食べる, ます        |
- * | textJa.normalized  | Orthographic variant match | Normalized okurigana/script |
- * | textJa.kana        | Pronunciation/reading match| Tokens: タベ, マシタ        |
+ * | Field               | Purpose                      | Example: "食べました"       |
+ * |---------------------|------------------------------|----------------------------|
+ * | textJa              | Surface form (exact tokens)  | Tokens: 食べ, ました        |
+ * | textJa.baseform     | Dictionary form matching     | Tokens: 食べる              |
+ * | textJa.normalized   | Orthographic + conjugation   | Tokens: 食べる, ます        |
+ * | textJa.kana         | Pronunciation/reading match  | Tokens: タベ, マシタ        |
+ * -----------------------------------------------------------------------------
+ *
+ * textJa vs textJa.normalized vs textJa.baseform:
+ *   - textJa: true surface tokens, no normalization. 食べられない ≠ 食べれなかった
+ *   - normalized: sudachi_normalizedform applied. 喰べる = 食べる, で = だろ (same base copula)
+ *   - baseform: dictionary form + particles/auxiliaries stripped. 食べられなかった → 食べる
+ *
+ * ENGLISH/SPANISH FIELDS
+ * -----------------------------------------------------------------------------
+ * | Field         | Purpose            | Example: "schools"        |
+ * |---------------|--------------------|---------------------------|
+ * | textEn        | Stemmed matching   | Token: school             |
+ * | textEn.exact  | Unstemmed matching | Token: schools            |
+ * | textEs        | Stemmed matching   | (spanish stemmer applied) |
+ * | textEs.exact  | Unstemmed matching | (lowercase + asciifolding)|
  * -----------------------------------------------------------------------------
  *
  * FIELD SELECTION BY INPUT TYPE (AUTO-DETECTED)
@@ -21,6 +36,22 @@
  * | Kanji (食べる)    | textJa^10, baseform^5, norm^4 (NO kana)     | Avoid homophones    |
  * | Kana (たべる)     | textJa^10, baseform^5, norm^4, kana^3       | Standard search     |
  * -----------------------------------------------------------------------------
+ *
+ * PHRASE BOOSTING
+ * -----------------------------------------------------------------------------
+ * Non-quoted searches add a match_phrase should clause (boost: 10) on the exact
+ * field (textJa for Japanese, textEn.exact/textEs.exact for EN/ES). This ensures
+ * sentences with the tokens in order rank much higher than scattered token matches.
+ *
+ * QUOTED SEARCH ("exact phrase")
+ * -----------------------------------------------------------------------------
+ * For Japanese: query_string natively handles "quotes" as phrase queries. Since
+ * textJa uses surface tokens (no normalization), quoted phrases match only the
+ * exact token sequence. The baseform/normalized fields naturally won't match
+ * because their indexed tokens differ from the surface-analyzed query tokens.
+ *
+ * For EN/ES: quoteFieldSuffix '.exact' redirects quoted phrases to the unstemmed
+ * .exact sub-field, so "eating" matches only "eating", not "eat"/"eaten".
  *
  * SCORING (boost_mode: multiply for text queries, replace for match_all)
  * -----------------------------------------------------------------------------
@@ -223,7 +254,7 @@ export class SegmentQuery {
     const boosts = SegmentQuery.getScriptBoosts(SegmentQuery.detectInputScript(query));
     const excludeSet = new Set(excludeLanguages ?? []);
 
-    const japaneseQuery = SegmentQuery.buildStringQuery({
+    const japaneseBaseQuery = SegmentQuery.buildStringQuery({
       query: queryText,
       parserMode,
       analyzeWildcard: true,
@@ -235,6 +266,21 @@ export class SegmentQuery {
       quoteAnalyzer: 'ja_surface_search_analyzer',
       defaultOperator: 'AND',
     });
+
+    const japaneseQuery: estypes.QueryDslQueryContainer = exactMatch
+      ? japaneseBaseQuery
+      : {
+          bool: {
+            must: [japaneseBaseQuery],
+            should: [
+              {
+                match_phrase: {
+                  textJa: { query, boost: 10 },
+                },
+              },
+            ],
+          },
+        };
 
     const languageQueries: estypes.QueryDslQueryContainer[] = [japaneseQuery];
 
@@ -259,28 +305,36 @@ export class SegmentQuery {
       }
     } else {
       if (!excludeSet.has('es')) {
-        languageQueries.push(
-          SegmentQuery.buildStringQuery({
-            query,
-            parserMode,
-            analyzeWildcard: true,
-            fields: [`textEs^${boosts.spanish}`, 'textEs.exact^1'],
-            defaultOperator: 'AND' as estypes.QueryDslOperator,
-            quoteFieldSuffix: '.exact',
-          }),
-        );
+        const esBaseQuery = SegmentQuery.buildStringQuery({
+          query,
+          parserMode,
+          analyzeWildcard: true,
+          fields: [`textEs^${boosts.spanish}`, 'textEs.exact^1'],
+          defaultOperator: 'AND' as estypes.QueryDslOperator,
+          quoteFieldSuffix: '.exact',
+        });
+        languageQueries.push({
+          bool: {
+            must: [esBaseQuery],
+            should: [{ match_phrase: { 'textEs.exact': { query, boost: 10 } } }],
+          },
+        });
       }
       if (!excludeSet.has('en')) {
-        languageQueries.push(
-          SegmentQuery.buildStringQuery({
-            query,
-            parserMode,
-            analyzeWildcard: true,
-            fields: [`textEn^${boosts.english}`, 'textEn.exact^1'],
-            defaultOperator: 'AND' as estypes.QueryDslOperator,
-            quoteFieldSuffix: '.exact',
-          }),
-        );
+        const enBaseQuery = SegmentQuery.buildStringQuery({
+          query,
+          parserMode,
+          analyzeWildcard: true,
+          fields: [`textEn^${boosts.english}`, 'textEn.exact^1'],
+          defaultOperator: 'AND' as estypes.QueryDslOperator,
+          quoteFieldSuffix: '.exact',
+        });
+        languageQueries.push({
+          bool: {
+            must: [enBaseQuery],
+            should: [{ match_phrase: { 'textEn.exact': { query, boost: 10 } } }],
+          },
+        });
       }
     }
 

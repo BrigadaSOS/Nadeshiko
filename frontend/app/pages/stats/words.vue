@@ -31,9 +31,9 @@ function tierLabel(t: number): string {
 }
 
 useSeoMeta({
-  title: `${tierLabel(activeTier.value)} Japanese Words Coverage - Nadeshiko`,
+  title: `${tierLabel(activeTier.value)} Japanese Words Coverage`,
   description: `See which of the ${tierLabel(activeTier.value)} most common Japanese words are covered by Nadeshiko's sentence corpus.`,
-  ogTitle: `${tierLabel(activeTier.value)} Japanese Words Coverage - Nadeshiko`,
+  ogTitle: `${tierLabel(activeTier.value)} Japanese Words Coverage`,
   ogDescription: `See which of the ${tierLabel(activeTier.value)} most common Japanese words are covered by Nadeshiko's sentence corpus.`,
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',

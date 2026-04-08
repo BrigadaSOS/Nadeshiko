@@ -3,10 +3,10 @@ import { userStore } from '~/stores/auth';
 import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
 
 useSeoMeta({
-  title: 'Stats - Nadeshiko',
+  title: 'Stats',
   description:
     'See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list.',
-  ogTitle: 'Stats - Nadeshiko',
+  ogTitle: 'Stats',
   ogDescription:
     'See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list.',
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,

@@ -1,7 +1,6 @@
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { basename } from 'path';
-import { trace } from '@opentelemetry/api';
 import { config } from '@config/config';
 
 const normalizedEnvironment = (config.ENVIRONMENT || '').trim().toLowerCase();
@@ -28,12 +27,6 @@ export const safeParseJson = (value: string): any => {
 const baseOptions: pino.LoggerOptions = {
   level: config.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
   timestamp: pino.stdTimeFunctions.isoTime,
-  mixin() {
-    const span = trace.getActiveSpan();
-    if (!span) return {};
-    const ctx = span.spanContext();
-    return { traceId: ctx.traceId, spanId: ctx.spanId };
-  },
   redact: [
     // Sensitive headers
     'req.headers.cookie',

@@ -8,9 +8,6 @@ test.describe('Sentence page', () => {
     const baseUrl = getE2EBaseUrl();
     const context = await browser.newContext();
     const page = await context.newPage();
-    await page.addInitScript(() => {
-      localStorage.setItem('banner-v2-migration-dismissed', 'true');
-    });
     await page.goto(`${baseUrl}/search/彼女`);
     await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});
     const card = page.getByTestId('segment-card').first();

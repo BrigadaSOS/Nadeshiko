@@ -23,7 +23,7 @@ if (!data.value) {
   throw createError({ statusCode: 404, statusMessage: 'Page Not Found' });
 }
 
-const title = computed(() => data.value?.title || 'Nadeshiko');
+const title = computed(() => data.value?.title || undefined);
 const description = computed(() => data.value?.description || '');
 const canonicalUrl = computed(() => new URL(route.path || '/', siteUrl).toString());
 const contentDate = computed(() => {
