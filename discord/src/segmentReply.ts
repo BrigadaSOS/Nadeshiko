@@ -9,7 +9,7 @@ import {
   type StringSelectMenuInteraction,
 } from 'discord.js';
 import { downloadFile, getSegmentContext } from './api';
-import { buildSegmentMessage, formatTimestamp, stripAllHtmlTags, type DisplayOptions } from './embeds';
+import { buildSegmentMessage, getMediaName, formatTimestamp, stripAllHtmlTags, type DisplayOptions } from './embeds';
 import { BOT_CONFIG } from './config';
 import type { Segment, Media } from './api';
 
@@ -30,16 +30,19 @@ export async function loadVideoFiles(segment: Segment): Promise<AttachmentBuilde
 }
 
 type SegmentReplyOptions = {
-  interaction: ChatInputCommandInteraction;
+  interaction: { editReply: ChatInputCommandInteraction['editReply'] };
   segment: Segment;
   media: Media | undefined;
   display: DisplayOptions;
+  linkUrl: string;
   extraButtons?: ButtonBuilder[];
+  contentPrefix?: string;
 };
 
-export async function renderSegmentReply({ interaction, segment, media, display, extraButtons }: SegmentReplyOptions) {
-  const content = buildSegmentMessage(segment, media, display);
-  const row = buildSegmentButtons(segment.publicId, extraButtons);
+export async function renderSegmentReply({ interaction, segment, media, display, linkUrl, extraButtons, contentPrefix }: SegmentReplyOptions) {
+  const body = buildSegmentMessage(segment, media, display);
+  const content = contentPrefix ? `${contentPrefix}\n\n${body}` : body;
+  const row = buildSegmentButtons(linkUrl, extraButtons);
   const files = await loadVideoFiles(segment);
 
   return interaction.editReply({ content, components: [row], files });
@@ -50,10 +53,13 @@ export async function updateSegmentReply(
   segment: Segment,
   media: Media | undefined,
   display: DisplayOptions,
+  linkUrl: string,
   extraButtons?: ButtonBuilder[],
+  contentPrefix?: string,
 ) {
-  const content = buildSegmentMessage(segment, media, display);
-  const row = buildSegmentButtons(segment.publicId, extraButtons);
+  const body = buildSegmentMessage(segment, media, display);
+  const content = contentPrefix ? `${contentPrefix}\n\n${body}` : body;
+  const row = buildSegmentButtons(linkUrl, extraButtons);
   const files = await loadVideoFiles(segment);
 
   await btnInteraction.editReply({ content, components: [row], files });
@@ -62,6 +68,7 @@ export async function updateSegmentReply(
 const closeContextButton = new ButtonBuilder()
   .setCustomId('back_to_original')
   .setLabel('Close context')
+  .setEmoji('✖')
   .setStyle(ButtonStyle.Secondary);
 
 export type ContextState = {
@@ -105,9 +112,14 @@ export async function handleContextButton(
   state.contextMediaMap = result.includes.media ?? {};
   state.viewingContext = true;
 
-  const content = buildSegmentMessage(segment, media, display);
+  const resolvedMedia = media ?? state.contextMediaMap[segment.mediaPublicId];
+  state.originalMedia = resolvedMedia;
+  const mediaName = getMediaName(resolvedMedia);
+  const header = `📜 **Context** for sentence in **${mediaName}** • Episode ${segment.episode}`;
+  const body = buildSegmentMessage(segment, resolvedMedia, display);
   const components = buildContextSelectComponents(result.segments, segment.publicId, state.contextExtraButtons);
   const files = await loadVideoFiles(segment);
+  const content = `${header}\n\n${body}`;
 
   await btnInteraction.editReply({ content, components, files });
 }
@@ -124,9 +136,13 @@ export async function handleContextSelect(
   if (!segment) return;
 
   const media = state.contextMediaMap[segment.mediaPublicId];
-  const content = buildSegmentMessage(segment, media, display);
-  const components = buildContextSelectComponents(state.contextSegments, selectedId, state.contextExtraButtons);
+  const originalMedia = state.originalMedia;
+  const mediaName = originalMedia ? getMediaName(originalMedia) : 'Unknown';
+  const header = `📜 **Context** for sentence in **${mediaName}** • Episode ${state.originalSegment?.episode ?? segment.episode}`;
+  const body = buildSegmentMessage(segment, media, display);
+  const components = buildContextSelectComponents(state.contextSegments, selectedId, state.contextExtraButtons, state.originalSegment?.publicId);
   const files = await loadVideoFiles(segment);
+  const content = `${header}\n\n${body}`;
 
   await selectInteraction.editReply({ content, components, files });
 }
@@ -135,25 +151,34 @@ export async function handleBackToOriginal(
   btnInteraction: ButtonInteraction,
   display: DisplayOptions,
   state: ContextState,
+  linkUrl: string,
   extraButtons?: ButtonBuilder[],
+  contentPrefix?: string,
 ) {
   await btnInteraction.deferUpdate();
   state.viewingContext = false;
 
   if (!state.originalSegment) return;
-  await updateSegmentReply(btnInteraction, state.originalSegment, state.originalMedia, display, extraButtons);
+  await updateSegmentReply(btnInteraction, state.originalSegment, state.originalMedia, display, linkUrl, extraButtons, contentPrefix);
 }
 
 function buildContextSelectComponents(
   segments: Segment[],
   currentPublicId: string,
   extraButtons?: ButtonBuilder[],
+  originalPublicId?: string,
 ): ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] {
   const rows: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = [];
 
-  const options = segments.slice(0, 25).map((seg) => {
+  const originId = originalPublicId ?? currentPublicId;
+  const originIndex = segments.findIndex((s) => s.publicId === originId);
+
+  const options = segments.slice(0, 25).map((seg, i) => {
     const jaText = stripAllHtmlTags(seg.textJa.content);
-    const label = jaText.length > 100 ? `${jaText.slice(0, 97)}...` : jaText;
+    const diff = i - originIndex;
+    const prefix = seg.publicId === originId ? '▶' : `${diff > 0 ? '+' : ''}${diff}`;
+    const prefixedText = `${prefix}) ${jaText}`;
+    const label = prefixedText.length > 100 ? `${prefixedText.slice(0, 97)}...` : prefixedText;
     const timestamp = formatTimestamp(seg.startTimeMs);
     return {
       label,
@@ -176,9 +201,10 @@ function buildContextSelectComponents(
   }
   buttonRow.addComponents(
     new ButtonBuilder()
-      .setLabel('View on Nadeshiko')
+      .setLabel('Search on Nadeshiko')
       .setStyle(ButtonStyle.Link)
-      .setURL(`${BOT_CONFIG.frontendUrl}/sentence/${currentPublicId}`),
+      .setURL(`${BOT_CONFIG.frontendUrl}/sentence/${currentPublicId}`)
+      .setEmoji({ id: '1488442092823777410' }),
   );
   rows.push(buttonRow);
 
@@ -225,7 +251,7 @@ export function buildSearchSelectComponents(
   const allButtons = [
     ...(extraButtons ?? []),
     new ButtonBuilder().setCustomId('context').setLabel('Context').setStyle(ButtonStyle.Secondary).setEmoji('📜'),
-    new ButtonBuilder().setLabel('View on Nadeshiko').setStyle(ButtonStyle.Link).setURL(linkUrl),
+    new ButtonBuilder().setLabel('Search on Nadeshiko').setStyle(ButtonStyle.Link).setURL(linkUrl).setEmoji({ id: '1488442092823777410' }),
   ];
 
   for (let i = 0; i < allButtons.length && rows.length < 5; i += 5) {
@@ -236,7 +262,7 @@ export function buildSearchSelectComponents(
   return rows;
 }
 
-export function buildSegmentButtons(publicId: string, extraButtons?: ButtonBuilder[]): ActionRowBuilder<ButtonBuilder> {
+export function buildSegmentButtons(linkUrl: string, extraButtons?: ButtonBuilder[]): ActionRowBuilder<ButtonBuilder> {
   const row = new ActionRowBuilder<ButtonBuilder>();
 
   if (extraButtons) {
@@ -246,19 +272,21 @@ export function buildSegmentButtons(publicId: string, extraButtons?: ButtonBuild
   row.addComponents(
     new ButtonBuilder().setCustomId('context').setLabel('Context').setStyle(ButtonStyle.Secondary).setEmoji('📜'),
     new ButtonBuilder()
-      .setLabel('View on Nadeshiko')
+      .setLabel('Search on Nadeshiko')
       .setStyle(ButtonStyle.Link)
-      .setURL(`${BOT_CONFIG.frontendUrl}/sentence/${publicId}`),
+      .setURL(linkUrl)
+      .setEmoji({ id: '1488442092823777410' }),
   );
 
   return row;
 }
 
-export function buildLinkOnlyRow(publicId: string): ActionRowBuilder<ButtonBuilder> {
+export function buildLinkOnlyRow(url: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setLabel('View on Nadeshiko')
+      .setLabel('Search on Nadeshiko')
       .setStyle(ButtonStyle.Link)
-      .setURL(`${BOT_CONFIG.frontendUrl}/sentence/${publicId}`),
+      .setURL(url)
+      .setEmoji({ id: '1488442092823777410' }),
   );
 }

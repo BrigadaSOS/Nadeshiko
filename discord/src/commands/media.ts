@@ -6,7 +6,7 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { autocompleteMedia, search } from '../api';
+import { autocompleteMedia, search, fetchRandom } from '../api';
 import type { Segment, Media } from '../api';
 import { buildMediaSearchMessage, getMediaName, type DisplayOptions } from '../embeds';
 import {
@@ -22,12 +22,14 @@ import {
   createSearchModalState,
   showSearchModal,
   showFilterMediaSelect,
+  showFilterMediaSearchModal,
   handleFilterMediaSelect,
   createFilterMediaState,
   renderFilterMediaPage,
   filterMediaButton,
   renderSearchResult,
   setupModalListener,
+  MEDIA_PER_PAGE,
 } from '../searchModal';
 import { BOT_CONFIG } from '../config';
 import { createLogger } from '../logger';
@@ -48,14 +50,6 @@ export const data = new SlashCommandBuilder()
       .addChoices({ name: 'Anime', value: 'ANIME' }, { name: 'J-Drama', value: 'JDRAMA' }),
   );
 
-function fetchRandomFromMedia(mediaId: string) {
-  return search('*', {
-    take: 1,
-    sort: 'RANDOM',
-    seed: Math.floor(Math.random() * 1_000_000),
-    mediaId,
-  });
-}
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
@@ -106,8 +100,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const randomButtons = [rerollButton, advancedSearchButton, filterMediaButton];
 
     const getMediaUrl = () => {
-      const slug = media.find((m) => m.publicId === searchState.mediaId)?.slug ?? searchState.mediaId;
-      return `${BOT_CONFIG.frontendUrl}/media/${slug}`;
+      const params = new URLSearchParams();
+      if (searchState.mediaId) params.set('media', searchState.mediaId);
+      const qs = params.toString();
+      return qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
     };
 
     const cleanupModal = setupModalListener(
@@ -117,6 +113,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       display,
       getMediaUrl,
       [rerollButton],
+      filterState,
     );
 
     collector.on('collect', async (i) => {
@@ -128,7 +125,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         const selected = media.find((m) => m.publicId === mediaId);
         searchState.mediaName = getMediaName(selected);
 
-        const randomResult = await fetchRandomFromMedia(mediaId);
+        const randomResult = await fetchRandom(mediaId);
 
         if (randomResult.segments.length === 0) {
           await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.`, ephemeral: true });
@@ -140,7 +137,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         searchState.results = null;
         contextState.viewingContext = false;
 
-        await updateSegmentReply(i, currentSegment, currentMedia, display, randomButtons);
+        await updateSegmentReply(i, currentSegment, currentMedia, display, getMediaUrl(), randomButtons);
         return;
       }
 
@@ -160,11 +157,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
       if (i.isStringSelectMenu() && i.customId === 'filter_media_select') {
         await i.deferUpdate();
-        handleFilterMediaSelect(i, searchState);
+        handleFilterMediaSelect(i, searchState, filterState);
 
         if (!searchState.mediaId) return;
 
-        const newResult = await fetchRandomFromMedia(searchState.mediaId);
+        const newResult = await fetchRandom(searchState.mediaId);
         if (newResult.segments.length === 0) {
           await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.`, ephemeral: true });
           return;
@@ -175,7 +172,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         contextState.viewingContext = false;
         searchState.results = null;
 
-        await updateSegmentReply(i, currentSegment, currentMedia, display, randomButtons);
+        await updateSegmentReply(i, currentSegment, currentMedia, display, getMediaUrl(), randomButtons);
         return;
       }
 
@@ -198,7 +195,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           contextState.viewingContext = false;
           await renderSearchResult(i, searchState, display, getMediaUrl(), [rerollButton]);
         } else {
-          await handleBackToOriginal(i, display, contextState, randomButtons);
+          await handleBackToOriginal(i, display, contextState, getMediaUrl(), randomButtons);
         }
         return;
       }
@@ -208,13 +205,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         contextState.viewingContext = false;
         searchState.results = null;
 
-        const newResult = await fetchRandomFromMedia(searchState.mediaId);
+        const newResult = await fetchRandom(searchState.mediaId);
         if (newResult.segments.length === 0) return;
 
         currentSegment = newResult.segments[0];
         currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
 
-        await updateSegmentReply(i, currentSegment, currentMedia, display, randomButtons);
+        await updateSegmentReply(i, currentSegment, currentMedia, display, getMediaUrl(), randomButtons);
         return;
       }
 
@@ -233,8 +230,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         if (searchState.results) {
           await renderSearchResult(i, searchState, display, getMediaUrl(), [rerollButton]);
         } else if (currentSegment) {
-          await updateSegmentReply(i, currentSegment, currentMedia, display, randomButtons);
+          await updateSegmentReply(i, currentSegment, currentMedia, display, getMediaUrl(), randomButtons);
         }
+        return;
+      }
+
+      if (i.customId === 'filter_media_first') {
+        await i.deferUpdate();
+        filterState.mediaPage = 0;
+        await renderFilterMediaPage(i, searchState, filterState);
         return;
       }
 
@@ -249,6 +253,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         await i.deferUpdate();
         filterState.mediaPage++;
         await renderFilterMediaPage(i, searchState, filterState);
+        return;
+      }
+
+      if (i.customId === 'filter_media_last') {
+        await i.deferUpdate();
+        const totalPages = Math.ceil(filterState.filteredMedia.length / MEDIA_PER_PAGE);
+        filterState.mediaPage = Math.max(0, totalPages - 1);
+        await renderFilterMediaPage(i, searchState, filterState);
+        return;
+      }
+
+      if (i.customId === 'filter_media_search') {
+        await showFilterMediaSearchModal(i);
       }
     });
 
@@ -256,7 +273,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       cleanupModal();
       try {
         if (currentSegment) {
-          await interaction.editReply({ components: [buildLinkOnlyRow(currentSegment.publicId)] });
+          await interaction.editReply({ components: [buildLinkOnlyRow(getMediaUrl())] });
         } else {
           await interaction.editReply({ components: [] });
         }

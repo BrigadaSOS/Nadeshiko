@@ -5,13 +5,14 @@ import type {
   SearchResponse,
   GetSegmentContextResponse,
   GetStatsOverviewResponse,
+  SearchStatsResponse,
 } from '@brigadasos/nadeshiko-sdk';
 import { BOT_CONFIG } from './config';
 import { createLogger } from './logger';
 
 const log = createLogger('api');
 
-export type { Segment, Media, SearchResponse };
+export type { Segment, Media, SearchResponse, SearchStatsResponse };
 export type ContextResponse = GetSegmentContextResponse;
 export type StatsResponse = GetStatsOverviewResponse;
 export type { MediaAutocompleteItem } from '@brigadasos/nadeshiko-sdk';
@@ -75,7 +76,7 @@ export async function search(
   };
 
   const body = {
-    query: { search: query, exactMatch: options.exactMatch },
+    query: query ? { search: query, exactMatch: options.exactMatch } : undefined,
     take: options.take ?? BOT_CONFIG.maxSearchResults,
     cursor: options.cursor,
     include: ['media'] as 'media'[],
@@ -95,6 +96,16 @@ export async function search(
   return data;
 }
 
+export function fetchRandom(mediaId?: string, episodes?: number[]) {
+  return search('', {
+    take: 1,
+    sort: 'RANDOM',
+    seed: Math.floor(Math.random() * 1_000_000),
+    mediaId,
+    episodes,
+  });
+}
+
 export async function getSegmentContext(uuid: string, take = 5): Promise<ContextResponse> {
   log.debug({ uuid, take }, 'Context request');
   const { data } = await sdk.getSegmentContext({
@@ -105,14 +116,17 @@ export async function getSegmentContext(uuid: string, take = 5): Promise<Context
   return data;
 }
 
+// TODO: Add include=media support to backend's /v1/media/segments/{uuid} endpoint
+// so we don't need the extra context request just to get the media name.
 export async function getSegmentByUuid(uuid: string): Promise<{ segment: Segment; media: Media | null }> {
   log.debug({ uuid }, 'Segment request');
-  const { data } = await sdk.getSegmentByUuid({
-    path: { uuid },
-  });
+  const [segmentRes, contextRes] = await Promise.all([
+    sdk.getSegmentByUuid({ path: { uuid } }),
+    sdk.getSegmentContext({ path: { uuid }, query: { take: 1 } }),
+  ]);
 
-  const segment = data as Segment;
-  const media = (data as any).includes?.media?.[segment.mediaPublicId] ?? null;
+  const segment = segmentRes.data as Segment;
+  const media = contextRes.data.includes?.media?.[segment.mediaPublicId] ?? null;
 
   log.debug({ uuid, mediaPublicId: segment.mediaPublicId }, 'Segment response');
   return { segment, media };
@@ -139,6 +153,19 @@ export async function autocompleteMedia(query: string, take = 10) {
 export async function getStats(): Promise<StatsResponse> {
   const { data } = await sdk.getStatsOverview();
   log.debug({ totalSegments: data.totalSegments, totalMedia: data.totalMedia }, 'Stats response');
+  return data;
+}
+
+export async function getSearchStats(query?: string, options?: { exactMatch?: boolean; category?: string }): Promise<SearchStatsResponse> {
+  log.debug({ query, ...options }, 'Search stats request');
+  const { data } = await sdk.getSearchStats({
+    body: {
+      query: query ? { search: query, exactMatch: options?.exactMatch } : undefined,
+      filters: options?.category ? { category: [options.category as 'ANIME' | 'JDRAMA'] } : undefined,
+      include: ['media'],
+    },
+  });
+  log.debug({ mediaCount: data.media.length, categories: data.categories.length }, 'Search stats response');
   return data;
 }
 

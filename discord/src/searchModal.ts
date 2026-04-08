@@ -11,8 +11,8 @@ import {
   type StringSelectMenuInteraction,
   type Client,
 } from 'discord.js';
-import { search } from './api';
-import type { SearchResponse } from './api';
+import { search, getSearchStats } from './api';
+import type { SearchResponse, SearchStatsResponse } from './api';
 import { buildSegmentMessage, getMediaName, type DisplayOptions } from './embeds';
 import { buildSearchSelectComponents, loadVideoFiles } from './segmentReply';
 import { findMediaByPublicId } from './mediaCache';
@@ -45,24 +45,36 @@ export type SearchModalState = {
     exactMatch?: boolean;
     category?: string;
     episodes?: number[];
+    sort?: string;
   };
 };
 
 export const firstPageButton = new ButtonBuilder()
   .setCustomId('first_page')
-  .setLabel('<<')
+  .setEmoji('⏮')
+  .setStyle(ButtonStyle.Secondary)
+  .setDisabled(true);
+
+export const skipBackButton = new ButtonBuilder()
+  .setCustomId('skip_back')
+  .setEmoji('⏪')
   .setStyle(ButtonStyle.Secondary)
   .setDisabled(true);
 
 export const prevPageButton = new ButtonBuilder()
   .setCustomId('prev_page')
-  .setLabel('<')
+  .setEmoji('◀')
   .setStyle(ButtonStyle.Secondary)
   .setDisabled(true);
 
 export const nextPageButton = new ButtonBuilder()
   .setCustomId('next_page')
-  .setLabel('>')
+  .setEmoji('▶')
+  .setStyle(ButtonStyle.Secondary);
+
+export const skipForwardButton = new ButtonBuilder()
+  .setCustomId('skip_forward')
+  .setEmoji('⏩')
   .setStyle(ButtonStyle.Secondary);
 
 export const randomResultButton = new ButtonBuilder()
@@ -72,11 +84,12 @@ export const randomResultButton = new ButtonBuilder()
   .setEmoji('🎲');
 
 export function createSearchModalState(mediaId?: string): SearchModalState {
+  const mediaItem = mediaId ? findMediaByPublicId(mediaId) : undefined;
   return {
     results: null,
     currentIndex: 0,
     mediaId,
-    mediaName: undefined,
+    mediaName: mediaItem ? getMediaName(mediaItem) : undefined,
     lastQuery: '',
     pages: [],
     currentPage: 0,
@@ -113,6 +126,7 @@ export async function goToNextPage(state: SearchModalState): Promise<boolean> {
     exactMatch: state.lastSearchOptions.exactMatch,
     category: state.lastSearchOptions.category,
     episodes: state.lastSearchOptions.episodes,
+    sort: state.lastSearchOptions.sort,
   });
 
   if (newResults.segments.length === 0) return false;
@@ -141,26 +155,47 @@ export function goToPrevPage(state: SearchModalState): boolean {
   return true;
 }
 
+export function goToSkipBack(state: SearchModalState, count = 10): boolean {
+  if (state.currentPage === 0) return false;
+  state.currentPage = Math.max(0, state.currentPage - count);
+  state.results = state.pages[state.currentPage];
+  state.currentIndex = 0;
+  return true;
+}
+
+export async function goToSkipForward(state: SearchModalState, count = 10): Promise<boolean> {
+  let moved = false;
+  for (let i = 0; i < count; i++) {
+    const ok = await goToNextPage(state);
+    if (!ok) break;
+    moved = true;
+  }
+  return moved;
+}
+
 export function buildPaginationButtons(state: SearchModalState): ButtonBuilder[] {
   const atFirst = state.currentPage === 0;
-  const hasMore = state.results?.pagination.hasMore ?? false;
+  const hasMore = (state.results?.pagination.hasMore ?? false)
+    && (state.results?.segments.length ?? 0) >= BOT_CONFIG.maxSearchResults;
   const first = ButtonBuilder.from(firstPageButton.toJSON()).setDisabled(atFirst);
+  const skipBack = ButtonBuilder.from(skipBackButton.toJSON()).setDisabled(atFirst);
   const prev = ButtonBuilder.from(prevPageButton.toJSON()).setDisabled(atFirst);
   const next = ButtonBuilder.from(nextPageButton.toJSON()).setDisabled(!hasMore);
-  return [first, prev, next];
+  const skipFwd = ButtonBuilder.from(skipForwardButton.toJSON()).setDisabled(!hasMore);
+  return [first, skipBack, prev, next, skipFwd];
 }
 
 export function getPageOffset(state: SearchModalState): number {
   return state.currentPage * BOT_CONFIG.maxSearchResults;
 }
 
-export function showSearchModal(btnInteraction: ButtonInteraction, title: string, defaults?: { query?: string }) {
+export function showSearchModal(btnInteraction: ButtonInteraction, title: string, defaults?: { query?: string; episodes?: string; sort?: string }) {
   const modal = new ModalBuilder().setCustomId('advanced_search_modal').setTitle(title.slice(0, 45));
 
   const queryInput = new TextInputBuilder()
     .setCustomId('search_query')
     .setLabel('Search query')
-    .setPlaceholder('e.g. a Japanese word or English phrase')
+    .setPlaceholder('Japanese, English or Spanish word (use "" for exact match)')
     .setStyle(TextInputStyle.Short)
     .setValue(defaults?.query ?? '')
     .setRequired(false);
@@ -170,19 +205,21 @@ export function showSearchModal(btnInteraction: ButtonInteraction, title: string
     .setLabel('Episode(s)')
     .setPlaceholder('e.g. 1, 3-5, 12')
     .setStyle(TextInputStyle.Short)
+    .setValue(defaults?.episodes ?? '')
     .setRequired(false);
 
-  const exactInput = new TextInputBuilder()
-    .setCustomId('search_exact')
-    .setLabel('Exact match?')
-    .setPlaceholder('yes or no')
+  const sortInput = new TextInputBuilder()
+    .setCustomId('search_sort')
+    .setLabel('Sort')
+    .setPlaceholder('asc, desc, time_asc, time_desc, or random')
     .setStyle(TextInputStyle.Short)
+    .setValue(defaults?.sort ?? '')
     .setRequired(false);
 
   modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(queryInput),
     new ActionRowBuilder<TextInputBuilder>().addComponents(episodeInput),
-    new ActionRowBuilder<TextInputBuilder>().addComponents(exactInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(sortInput),
   );
 
   return btnInteraction.showModal(modal);
@@ -209,39 +246,40 @@ export async function handleModalSubmit(
   modalInteraction: ModalSubmitInteraction,
   state: SearchModalState,
   display: DisplayOptions,
-  linkUrl: string,
+  linkUrl: string | (() => string),
   extraButtons?: ButtonBuilder[],
 ): Promise<boolean> {
   await modalInteraction.deferUpdate();
 
-  const searchQuery = modalInteraction.fields.getTextInputValue('search_query').trim() || '*';
+  const searchQuery = modalInteraction.fields.getTextInputValue('search_query').trim();
   const episodesRaw = modalInteraction.fields.getTextInputValue('search_episodes').trim();
-  const exactRaw = modalInteraction.fields.getTextInputValue('search_exact').trim().toLowerCase();
+  const sortRaw = modalInteraction.fields.getTextInputValue('search_sort').trim().toLowerCase();
 
   const episodes = parseEpisodes(episodesRaw);
-  const exactMatch = exactRaw === 'yes' || exactRaw === 'y' ? true : undefined;
+  const sort = ['asc', 'desc', 'time_asc', 'time_desc', 'random'].includes(sortRaw) ? sortRaw : undefined;
 
-  state.lastSearchOptions = { exactMatch, episodes };
+  state.lastSearchOptions = { episodes, sort };
 
   const searchResult = await search(searchQuery, {
     take: BOT_CONFIG.maxSearchResults,
     mediaId: state.mediaId,
     episodes,
-    exactMatch,
+    sort,
   });
 
   if (searchResult.segments.length === 0) {
-    await modalInteraction.followUp({
-      content: `No results found for "${searchQuery}".`,
-      ephemeral: true,
-    });
+    const parts = [`No results found for \`${searchQuery}\``];
+    if (state.mediaName) parts.push(`in **${state.mediaName}**`);
+    if (episodes?.length) parts.push(`(episode ${episodes.join(', ')})`);
+    await modalInteraction.followUp({ content: `${parts.join(' ')}.` });
     return false;
   }
 
   state.lastQuery = searchQuery;
   resetPages(state, searchResult);
 
-  await renderSearchResult(modalInteraction, state, display, linkUrl, extraButtons);
+  const resolvedUrl = typeof linkUrl === 'function' ? linkUrl() : linkUrl;
+  await renderSearchResult(modalInteraction, state, display, resolvedUrl, extraButtons);
   return true;
 }
 
@@ -257,15 +295,17 @@ export async function renderSearchResult(
   const seg = state.results.segments[state.currentIndex];
   const media = state.results.includes.media[seg.mediaPublicId];
   const segContent = buildSegmentMessage(seg, media, display);
-  const total = state.results.pagination.estimatedTotalHits;
   const pageOffset = getPageOffset(state);
+  const total = state.results.pagination.estimatedTotalHits;
   const totalPages = Math.ceil(total / BOT_CONFIG.maxSearchResults);
-  const pageLabel = totalPages > 1 ? ` (page ${state.currentPage + 1} of ~${totalPages})` : '';
-  const queryLabel = state.lastQuery !== '*' ? ` for "${state.lastQuery}"` : '';
-  const content = `🔎 **~${total.toLocaleString()} results**${queryLabel}${pageLabel}\n${segContent}`;
-
+  const pageLabel = totalPages > 1 ? ` [Page ${state.currentPage + 1} of ${totalPages}]` : '';
+  const isWildcard = !state.lastQuery;
+  const queryLabel = isWildcard ? '' : ` for \`${state.lastQuery}\``;
+  const eps = state.lastSearchOptions.episodes;
+  const episodeLabel = eps?.length ? ` Ep. ${eps.join(', ')}` : '';
+  const mediaLabel = state.mediaName ? ` in **${state.mediaName}${episodeLabel}**` : '';
   const paginationButtons = buildPaginationButtons(state);
-  const buttons = [...paginationButtons, ...(extraButtons ?? []), randomResultButton];
+  const buttons = [...paginationButtons, ...(extraButtons ?? [])];
   const components = buildSearchSelectComponents(
     state.results.segments,
     state.results.includes.media,
@@ -276,35 +316,43 @@ export async function renderSearchResult(
   );
 
   const files = await loadVideoFiles(seg);
+  const content = `🔎 **~${total.toLocaleString()} results**${queryLabel}${mediaLabel}${pageLabel}\n\n${segContent}`;
 
   await interaction.editReply({ content, components, files });
 }
 
-const MEDIA_PER_PAGE = 24;
+export const MEDIA_PER_PAGE = 24;
 
-function collectAllMedia(state: SearchModalState): { publicId: string; name: string; nameJa?: string }[] {
-  const seen = new Set<string>();
-  const allMedia: { publicId: string; name: string; nameJa?: string }[] = [];
 
-  for (const page of state.pages) {
-    for (const m of Object.values(page.includes.media)) {
-      if (seen.has(m.publicId)) continue;
-      seen.add(m.publicId);
-      allMedia.push({ publicId: m.publicId, name: getMediaName(m), nameJa: m.nameJa });
-    }
-  }
-
-  allMedia.sort((a, b) => a.name.localeCompare(b.name));
-  return allMedia;
-}
+export type FilterMediaItem = {
+  publicId: string;
+  name: string;
+  nameEn?: string;
+  nameJa?: string;
+  nameRomaji?: string;
+  matchCount: number;
+};
 
 export type FilterMediaState = {
   mediaPage: number;
-  allMedia: { publicId: string; name: string; nameJa?: string }[];
+  allMedia: FilterMediaItem[];
+  filteredMedia: FilterMediaItem[];
+  nameFilter: string;
+  cachedSearchStats: SearchStatsResponse | null;
 };
 
 export function createFilterMediaState(): FilterMediaState {
-  return { mediaPage: 0, allMedia: [] };
+  return { mediaPage: 0, allMedia: [], filteredMedia: [], nameFilter: '', cachedSearchStats: null };
+}
+
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+function mediaMatchesFilter(m: FilterMediaItem, filter: string): boolean {
+  const norm = normalize(filter);
+  if (!norm) return true;
+  return [m.name, m.nameEn, m.nameJa, m.nameRomaji].some((n) => n && normalize(n).includes(norm));
 }
 
 export async function showFilterMediaSelect(
@@ -314,10 +362,33 @@ export async function showFilterMediaSelect(
 ) {
   await btnInteraction.deferUpdate();
 
-  if (!state.results) return;
+  const stats = filterState.cachedSearchStats
+    ?? await getSearchStats(
+      state.lastQuery || undefined,
+      state.lastSearchOptions,
+    );
+  filterState.cachedSearchStats = stats;
+  filterState.allMedia = stats.media.map((m) => {
+    const media = stats.includes.media[m.publicId];
+    return {
+      publicId: m.publicId,
+      name: getMediaName(media),
+      nameEn: media?.nameEn ?? undefined,
+      nameJa: media?.nameJa ?? undefined,
+      nameRomaji: media?.nameRomaji ?? undefined,
+      matchCount: m.matchCount,
+    };
+  });
+  filterState.allMedia.sort((a, b) => a.name.localeCompare(b.name));
+  filterState.nameFilter = '';
+  filterState.filteredMedia = filterState.allMedia;
 
-  filterState.allMedia = collectAllMedia(state);
-  filterState.mediaPage = 0;
+  if (state.mediaId) {
+    const idx = filterState.filteredMedia.findIndex((m) => m.publicId === state.mediaId);
+    filterState.mediaPage = idx >= 0 ? Math.floor(idx / MEDIA_PER_PAGE) : 0;
+  } else {
+    filterState.mediaPage = 0;
+  }
 
   await renderFilterMediaPage(btnInteraction, state, filterState);
 }
@@ -327,22 +398,31 @@ export async function renderFilterMediaPage(
   state: SearchModalState,
   filterState: FilterMediaState,
 ) {
-  const { allMedia, mediaPage } = filterState;
-  const totalPages = Math.ceil(allMedia.length / MEDIA_PER_PAGE);
+  const { filteredMedia, mediaPage } = filterState;
+  const totalPages = Math.ceil(filteredMedia.length / MEDIA_PER_PAGE);
   const start = mediaPage * MEDIA_PER_PAGE;
-  const pageMedia = allMedia.slice(start, start + MEDIA_PER_PAGE);
+  const pageMedia = filteredMedia.slice(start, start + MEDIA_PER_PAGE);
 
-  const list = pageMedia.map((m, i) => `\`${start + i + 1}.\` ${m.name}`).join('\n');
+  const list = pageMedia
+    .map((m, i) => {
+      const num = start + i + 1;
+      return `${num}) ${m.name} - ${m.matchCount.toLocaleString()} sentences`;
+    })
+    .join('\n');
 
-  const pageLabel = totalPages > 1 ? ` (page ${mediaPage + 1} of ${totalPages})` : '';
-  const header = `**Filter by media**${pageLabel}\n${list}`;
+  const pageLabel = totalPages > 1 ? ` [Page ${mediaPage + 1} of ${totalPages}]` : '';
+  const filterLabel = filterState.nameFilter ? ` - filtering by "${filterState.nameFilter}"` : '';
+  const header = `🎬 **Filter by media**${pageLabel}${filterLabel}\n\n${list}`;
 
-  const options = pageMedia.map((m) => ({
-    label: m.name.slice(0, 100),
-    value: m.publicId,
-    description: m.nameJa?.slice(0, 100),
-    default: m.publicId === state.mediaId,
-  }));
+  const options = pageMedia.map((m, i) => {
+    const parts = [m.nameJa, `${m.matchCount.toLocaleString()} sentences`].filter(Boolean);
+    return {
+      label: `${start + i + 1}) ${m.name}`.slice(0, 100),
+      value: m.publicId,
+      description: parts.join(' - ').slice(0, 100),
+      default: m.publicId === state.mediaId,
+    };
+  });
 
   options.unshift({
     label: 'All media (no filter)',
@@ -358,35 +438,38 @@ export async function renderFilterMediaPage(
 
   const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
 
-  const buttons: ButtonBuilder[] = [];
-  if (totalPages > 1) {
-    buttons.push(
-      new ButtonBuilder()
-        .setCustomId('filter_media_prev')
-        .setLabel('<')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(mediaPage === 0),
-      new ButtonBuilder()
-        .setCustomId('filter_media_next')
-        .setLabel('>')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(mediaPage >= totalPages - 1),
-    );
-  }
-  buttons.push(
+  const actionButtons = [
+    new ButtonBuilder().setCustomId('filter_media_search').setLabel('Filter by name').setEmoji('🔍').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('cancel_filter_media').setLabel('Cancel').setStyle(ButtonStyle.Secondary),
-  );
+  ];
+  const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(...actionButtons);
 
-  const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
+  const components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] = [selectRow];
+
+  if (totalPages > 1) {
+    const paginationRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId('filter_media_first').setEmoji('⏮').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage === 0),
+      new ButtonBuilder().setCustomId('filter_media_prev').setEmoji('◀').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage === 0),
+      new ButtonBuilder().setCustomId('filter_media_next').setEmoji('▶').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage >= totalPages - 1),
+      new ButtonBuilder().setCustomId('filter_media_last').setEmoji('⏭').setStyle(ButtonStyle.Secondary).setDisabled(mediaPage >= totalPages - 1),
+    );
+    components.push(paginationRow);
+  }
+
+  components.push(actionRow);
 
   await interaction.editReply({
     content: header,
-    components: [selectRow, buttonRow],
+    components,
     files: [],
   });
 }
 
-export function handleFilterMediaSelect(selectInteraction: StringSelectMenuInteraction, state: SearchModalState): void {
+export function handleFilterMediaSelect(
+  selectInteraction: StringSelectMenuInteraction,
+  state: SearchModalState,
+  filterState: FilterMediaState,
+): void {
   const value = selectInteraction.values[0];
 
   if (value === '__all__') {
@@ -394,9 +477,32 @@ export function handleFilterMediaSelect(selectInteraction: StringSelectMenuInter
     state.mediaName = undefined;
   } else {
     state.mediaId = value;
-    const mediaItem = findMediaByPublicId(value);
-    state.mediaName = getMediaName(mediaItem);
+    const filterItem = filterState.allMedia.find((m) => m.publicId === value);
+    state.mediaName = filterItem?.name ?? getMediaName(findMediaByPublicId(value));
   }
+}
+
+export function showFilterMediaSearchModal(btnInteraction: ButtonInteraction) {
+  const modal = new ModalBuilder().setCustomId('filter_media_search_modal').setTitle('Filter by name');
+
+  const nameInput = new TextInputBuilder()
+    .setCustomId('filter_media_name')
+    .setLabel('Name')
+    .setPlaceholder('English, Japanese, or Romaji (leave empty to clear)')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false);
+
+  modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput));
+
+  return btnInteraction.showModal(modal);
+}
+
+export function applyNameFilter(filterState: FilterMediaState, name: string): void {
+  filterState.nameFilter = name;
+  filterState.filteredMedia = name
+    ? filterState.allMedia.filter((m) => mediaMatchesFilter(m, name))
+    : filterState.allMedia;
+  filterState.mediaPage = 0;
 }
 
 export function setupModalListener(
@@ -406,6 +512,7 @@ export function setupModalListener(
   display: DisplayOptions,
   linkUrl: string | (() => string),
   extraButtons?: ButtonBuilder[],
+  filterState?: FilterMediaState,
 ) {
   const handler = async (i: { isModalSubmit(): boolean } & ModalSubmitInteraction) => {
     if (!i.isModalSubmit()) return;
@@ -413,8 +520,20 @@ export function setupModalListener(
 
     try {
       if (i.customId === 'advanced_search_modal') {
-        const url = typeof linkUrl === 'function' ? linkUrl() : linkUrl;
-        await handleModalSubmit(i, state, display, url, extraButtons);
+        if (filterState) {
+          filterState.allMedia = [];
+          filterState.filteredMedia = [];
+          filterState.nameFilter = '';
+          filterState.cachedSearchStats = null;
+        }
+        await handleModalSubmit(i, state, display, linkUrl, extraButtons);
+      }
+
+      if (i.customId === 'filter_media_search_modal' && filterState) {
+        await i.deferUpdate();
+        const name = i.fields.getTextInputValue('filter_media_name').trim();
+        applyNameFilter(filterState, name);
+        await renderFilterMediaPage(i, state, filterState);
       }
     } catch (error) {
       log.error({ err: error }, 'Modal handler failed');
