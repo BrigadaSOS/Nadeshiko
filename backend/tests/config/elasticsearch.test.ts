@@ -6,8 +6,12 @@ const mockGetUser = vi.fn();
 const mockPutRole = vi.fn();
 const mockPutUser = vi.fn();
 const mockIndicesExists = vi.fn();
+const mockIndicesExistsAlias = vi.fn();
+const mockIndicesGetAlias = vi.fn();
+const mockIndicesGet = vi.fn();
 const mockIndicesCreate = vi.fn();
 const mockIndicesDelete = vi.fn();
+const mockIndicesUpdateAliases = vi.fn();
 
 vi.mock('@elastic/elasticsearch', () => {
   class MockClient {
@@ -21,8 +25,12 @@ vi.mock('@elastic/elasticsearch', () => {
 
     indices = {
       exists: (...args: unknown[]) => mockIndicesExists(...args),
+      existsAlias: (...args: unknown[]) => mockIndicesExistsAlias(...args),
+      getAlias: (...args: unknown[]) => mockIndicesGetAlias(...args),
+      get: (...args: unknown[]) => mockIndicesGet(...args),
       create: (...args: unknown[]) => mockIndicesCreate(...args),
       delete: (...args: unknown[]) => mockIndicesDelete(...args),
+      updateAliases: (...args: unknown[]) => mockIndicesUpdateAliases(...args),
     };
   }
 
@@ -39,7 +47,7 @@ const logger: Record<string, unknown> = {
   trace: noop,
   debug: noop,
   info: vi.fn(),
-  warn: noop,
+  warn: vi.fn(),
   error: vi.fn(),
   fatal: noop,
   child: () => logger,
@@ -75,8 +83,12 @@ beforeEach(() => {
   mockPutRole.mockResolvedValue(undefined);
   mockPutUser.mockResolvedValue(undefined);
   mockIndicesExists.mockResolvedValue(false);
+  mockIndicesExistsAlias.mockResolvedValue(false);
+  mockIndicesGetAlias.mockRejectedValue({ meta: { statusCode: 404 } });
+  mockIndicesGet.mockRejectedValue({ meta: { statusCode: 404 } });
   mockIndicesCreate.mockResolvedValue(undefined);
   mockIndicesDelete.mockResolvedValue(undefined);
+  mockIndicesUpdateAliases.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -124,6 +136,19 @@ describe('setupElasticsearchUser', () => {
     expect(mockPutUser).not.toHaveBeenCalled();
   });
 
+  it('includes wildcard pattern in role for versioned indices', async () => {
+    const configValues = makeConfig({
+      ELASTICSEARCH_ADMIN_PASSWORD: 'admin-secret',
+      ELASTICSEARCH_USER: 'app_user',
+    });
+    mockGetUser.mockRejectedValue({ meta: { statusCode: 404 } });
+
+    await setupElasticsearchUser({ configValues });
+
+    const roleArgs = mockPutRole.mock.calls[0]?.[0];
+    expect(roleArgs.indices[0].names).toEqual([INDEX_NAME, `${INDEX_NAME}_v*`]);
+  });
+
   it('recreates role/user and ignores delete 404s when recreateIfExists is true', async () => {
     const configValues = makeConfig({
       ELASTICSEARCH_ADMIN_PASSWORD: 'admin-secret',
@@ -153,87 +178,79 @@ describe('setupElasticsearchUser', () => {
 });
 
 describe('initializeElasticsearchIndexWithClient', () => {
-  it('skips index creation when index already exists', async () => {
-    const esClient = {
-      indices: {
-        exists: vi.fn(async () => true),
-        create: vi.fn(async () => undefined),
-      },
-    };
+  it('skips when alias already exists', async () => {
+    mockIndicesExistsAlias.mockResolvedValue(true);
+    mockIndicesGetAlias.mockResolvedValue({ [`${INDEX_NAME}_v1`]: {} });
 
-    await initializeElasticsearchIndexWithClient(esClient as any);
+    await initializeElasticsearchIndexWithClient(client as any);
 
-    expect(esClient.indices.create).not.toHaveBeenCalled();
+    expect(mockIndicesCreate).not.toHaveBeenCalled();
   });
 
-  it('creates index from schema when missing', async () => {
-    const esClient = {
-      indices: {
-        exists: vi.fn(async () => false),
-        create: vi.fn(async () => undefined),
-      },
-    };
+  it('warns when concrete index exists (legacy)', async () => {
+    mockIndicesExistsAlias.mockResolvedValue(false);
+    mockIndicesExists.mockResolvedValue(true);
 
-    await initializeElasticsearchIndexWithClient(esClient as any);
+    await initializeElasticsearchIndexWithClient(client as any);
 
-    expect(esClient.indices.create).toHaveBeenCalledTimes(1);
-    const createArgs = (esClient.indices.create as any).mock.calls[0]?.[0];
-    expect(createArgs.index).toBe(INDEX_NAME);
+    expect(mockIndicesCreate).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('creates versioned index with alias when nothing exists', async () => {
+    mockIndicesExistsAlias.mockResolvedValue(false);
+    mockIndicesExists.mockResolvedValue(false);
+
+    await initializeElasticsearchIndexWithClient(client as any);
+
+    expect(mockIndicesCreate).toHaveBeenCalledTimes(1);
+    const createArgs = mockIndicesCreate.mock.calls[0]?.[0];
+    expect(createArgs.index).toBe(`${INDEX_NAME}_v1`);
     expect(createArgs.settings).toBeDefined();
     expect(createArgs.mappings).toBeDefined();
-  });
 
-  it('delegates initializeElasticsearchIndex() to the default client', async () => {
-    const existsSpy = vi.spyOn((client as any).indices, 'exists').mockResolvedValueOnce(false);
-    const createSpy = vi.spyOn((client as any).indices, 'create').mockResolvedValueOnce(undefined);
-
-    await initializeElasticsearchIndex();
-
-    expect(existsSpy).toHaveBeenCalledWith({ index: INDEX_NAME });
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(mockIndicesUpdateAliases).toHaveBeenCalledWith({
+      actions: [{ add: { index: `${INDEX_NAME}_v1`, alias: INDEX_NAME, is_write_index: true } }],
+    });
   });
 });
 
 describe('resetElasticsearchIndexWithClient', () => {
-  it('deletes existing index and recreates it', async () => {
-    const esClient = {
-      indices: {
-        exists: vi.fn(async () => true),
-        delete: vi.fn(async () => undefined),
-        create: vi.fn(async () => undefined),
-      },
-    };
+  it('deletes aliased versioned indices and recreates', async () => {
+    mockIndicesExistsAlias.mockResolvedValue(true);
+    mockIndicesGet.mockResolvedValue({ [`${INDEX_NAME}_v2`]: {}, [`${INDEX_NAME}_v1`]: {} });
 
-    await resetElasticsearchIndexWithClient(esClient as any);
+    await resetElasticsearchIndexWithClient(client as any);
 
-    expect(esClient.indices.delete).toHaveBeenCalledWith({ index: INDEX_NAME });
-    expect(esClient.indices.create).toHaveBeenCalledTimes(1);
+    expect(mockIndicesDelete).toHaveBeenCalledWith({ index: `${INDEX_NAME}_v2` });
+    expect(mockIndicesDelete).toHaveBeenCalledWith({ index: `${INDEX_NAME}_v1` });
+    expect(mockIndicesCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ index: `${INDEX_NAME}_v1` }),
+    );
+    expect(mockIndicesUpdateAliases).toHaveBeenCalledWith({
+      actions: [{ add: { index: `${INDEX_NAME}_v1`, alias: INDEX_NAME, is_write_index: true } }],
+    });
   });
 
-  it('creates index when none exists', async () => {
-    const esClient = {
-      indices: {
-        exists: vi.fn(async () => false),
-        delete: vi.fn(async () => undefined),
-        create: vi.fn(async () => undefined),
-      },
-    };
+  it('deletes concrete index (legacy) and creates versioned with alias', async () => {
+    mockIndicesExistsAlias.mockResolvedValue(false);
+    mockIndicesExists.mockResolvedValue(true);
 
-    await resetElasticsearchIndexWithClient(esClient as any);
+    await resetElasticsearchIndexWithClient(client as any);
 
-    expect(esClient.indices.delete).not.toHaveBeenCalled();
-    expect(esClient.indices.create).toHaveBeenCalledTimes(1);
+    expect(mockIndicesDelete).toHaveBeenCalledWith({ index: INDEX_NAME });
+    expect(mockIndicesCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ index: `${INDEX_NAME}_v1` }),
+    );
   });
 
-  it('delegates resetElasticsearchIndex() to the default client', async () => {
-    const existsSpy = vi.spyOn((client as any).indices, 'exists').mockResolvedValueOnce(true);
-    const deleteSpy = vi.spyOn((client as any).indices, 'delete').mockResolvedValueOnce(undefined);
-    const createSpy = vi.spyOn((client as any).indices, 'create').mockResolvedValueOnce(undefined);
+  it('creates index when nothing exists', async () => {
+    mockIndicesExistsAlias.mockResolvedValue(false);
+    mockIndicesExists.mockResolvedValue(false);
 
-    await resetElasticsearchIndex();
+    await resetElasticsearchIndexWithClient(client as any);
 
-    expect(existsSpy).toHaveBeenCalledWith({ index: INDEX_NAME });
-    expect(deleteSpy).toHaveBeenCalledWith({ index: INDEX_NAME });
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(mockIndicesDelete).not.toHaveBeenCalled();
+    expect(mockIndicesCreate).toHaveBeenCalledTimes(1);
   });
 });

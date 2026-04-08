@@ -14,7 +14,7 @@ RUN npx nuxt build
 
 FROM oven/bun:1 AS otel-deps
 WORKDIR /deps
-RUN bun init -y && bun add @opentelemetry/sdk-node @opentelemetry/sdk-trace-node @opentelemetry/exporter-trace-otlp-http @opentelemetry/exporter-metrics-otlp-http @opentelemetry/resources @opentelemetry/sdk-metrics @opentelemetry/instrumentation-http @opentelemetry/instrumentation-undici @opentelemetry/instrumentation-runtime-node
+RUN bun init -y && bun add @opentelemetry/sdk-node @opentelemetry/sdk-trace-node @opentelemetry/exporter-trace-otlp-http @opentelemetry/exporter-metrics-otlp-http @opentelemetry/resources @opentelemetry/sdk-metrics @opentelemetry/instrumentation-http @opentelemetry/instrumentation-undici @opentelemetry/instrumentation-runtime-node @opentelemetry/instrumentation-pino
 
 FROM node:22-slim
 WORKDIR /app

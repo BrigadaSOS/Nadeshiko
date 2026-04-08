@@ -6,6 +6,7 @@ import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes, hostDetector } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
@@ -51,6 +52,7 @@ if (endpoint) {
           span.setAttribute('http.target', url);
         },
       }),
+      new PinoInstrumentation(),
       new RuntimeNodeInstrumentation(),
       new UndiciInstrumentation({
         requestHook: (span, request) => {

@@ -566,7 +566,7 @@
         },
         "spanish_stemmer": {
           "type": "stemmer",
-          "language": "light_spanish"
+          "language": "spanish"
         },
         "english_stemmer": {
           "type": "stemmer",
@@ -615,13 +615,13 @@
           "type": "custom",
           "char_filter": ["normalize"],
           "tokenizer": "ja_sudachi_tokenizer",
-          "filter": ["sudachi_split_search", "cjk_width", "sudachi_normalizedform"]
+          "filter": ["sudachi_split_search", "cjk_width"]
         },
         "ja_surface_search_analyzer": {
           "type": "custom",
           "char_filter": ["normalize"],
           "tokenizer": "ja_sudachi_tokenizer",
-          "filter": ["sudachi_split_search", "cjk_width", "sudachi_normalizedform"]
+          "filter": ["sudachi_split_search", "cjk_width"]
         },
         "ja_normalized_index_analyzer": {
           "type": "custom",
@@ -645,11 +645,11 @@
         },
         "english_custom": {
           "tokenizer": "standard",
-          "filter": ["english_possessive_stemmer", "lowercase", "english_stemmer"]
+          "filter": ["english_possessive_stemmer", "lowercase", "asciifolding", "english_stemmer"]
         },
         "english_exact": {
           "tokenizer": "standard",
-          "filter": ["lowercase"]
+          "filter": ["lowercase", "asciifolding"]
         },
         "ja_kana_index_analyzer": {
           "type": "custom",
@@ -672,7 +672,8 @@
         "type": "keyword"
       },
       "hashedId": {
-        "type": "keyword"
+        "type": "keyword",
+        "index": false
       },
       "position": {
         "type": "integer"
@@ -764,7 +765,8 @@
         "type": "integer"
       },
       "storageBasePath": {
-        "type": "keyword"
+        "type": "keyword",
+        "index": false
       },
       "tokens": {
         "type": "object",

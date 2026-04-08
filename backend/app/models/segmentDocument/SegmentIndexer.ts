@@ -62,9 +62,10 @@ export class SegmentIndexer {
     }
   }
 
-  static async bulkIndex(segments: Segment[]): Promise<BulkResult> {
+  static async bulkIndex(segments: Segment[], targetIndex?: string): Promise<BulkResult> {
     if (segments.length === 0) return { succeeded: 0, failed: 0, errors: [] };
 
+    const indexName = targetIndex ?? INDEX_NAME;
     const mediaIds = [...new Set(segments.map((s) => s.mediaId))];
     const mediaList = await Media.find({ where: { id: In(mediaIds) } });
     const mediaMap = new Map(mediaList.map((m) => [m.id, m]));
@@ -78,7 +79,7 @@ export class SegmentIndexer {
         skippedErrors.push({ segmentId: segment.id, error: `Media with id ${segment.mediaId} not found` });
         continue;
       }
-      operations.push({ index: { _index: INDEX_NAME, _id: segment.id.toString() } });
+      operations.push({ index: { _index: indexName, _id: segment.id.toString() } });
       operations.push(SegmentIndexer.buildDocument(segment, media));
     }
 
@@ -161,7 +162,7 @@ export class SegmentIndexer {
     return { succeeded, failed, errors };
   }
 
-  static async reindex(media?: ReindexMediaItem[]): Promise<t_ReindexResponse> {
+  static async reindex(media?: ReindexMediaItem[], targetIndex?: string): Promise<t_ReindexResponse> {
     const stats = { totalSegments: 0, successfulIndexes: 0, failedIndexes: 0, mediaProcessed: 0 };
     const errors: { segmentId: number; error: string }[] = [];
     const processedMediaIds = new Set<number>();
@@ -173,6 +174,7 @@ export class SegmentIndexer {
           stats,
           errors,
           processedMediaIds,
+          targetIndex,
         );
         stats.mediaProcessed = processedMediaIds.size;
       } else {
@@ -192,6 +194,7 @@ export class SegmentIndexer {
                 stats,
                 errors,
                 processedMediaIds,
+                targetIndex,
               );
             }
           } else {
@@ -203,6 +206,7 @@ export class SegmentIndexer {
               stats,
               errors,
               processedMediaIds,
+              targetIndex,
             );
           }
         }
@@ -233,6 +237,7 @@ export class SegmentIndexer {
     stats: t_ReindexResponse['stats'],
     errors: { segmentId: number; error: string }[],
     processedMediaIds: Set<number>,
+    targetIndex?: string,
   ): Promise<void> {
     let lastId = 0;
 
@@ -247,7 +252,7 @@ export class SegmentIndexer {
         processedMediaIds.add(segment.mediaId);
       }
 
-      const result = await SegmentIndexer.bulkIndex(segments);
+      const result = await SegmentIndexer.bulkIndex(segments, targetIndex);
       stats.successfulIndexes += result.succeeded;
       stats.failedIndexes += result.failed;
       errors.push(...result.errors);

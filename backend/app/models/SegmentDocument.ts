@@ -358,8 +358,8 @@ export class SegmentDocument {
     return SegmentIndexer.bulkDelete(ids);
   }
 
-  static reindex(media?: ReindexMediaItem[]): Promise<t_ReindexResponse> {
-    return SegmentIndexer.reindex(media);
+  static reindex(media?: ReindexMediaItem[], targetIndex?: string): Promise<t_ReindexResponse> {
+    return SegmentIndexer.reindex(media, targetIndex);
   }
 }
 

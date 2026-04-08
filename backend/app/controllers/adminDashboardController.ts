@@ -468,7 +468,8 @@ async function checkElasticsearchWithSize() {
       esClient.indices.stats({ index: INDEX_NAME }),
     ]);
 
-    const indexSizeBytes = stats.indices?.[INDEX_NAME]?.total?.store?.size_in_bytes ?? null;
+    const allIndices = stats.indices ?? {};
+    const indexSizeBytes = Object.values(allIndices)[0]?.total?.store?.size_in_bytes ?? null;
 
     return {
       status: 'connected' as const,

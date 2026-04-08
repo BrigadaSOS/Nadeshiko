@@ -50,7 +50,7 @@ async function main() {
   }
 
   const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+    intents: [GatewayIntentBits.Guilds],
   });
 
   client.once(Events.ClientReady, (readyClient) => {

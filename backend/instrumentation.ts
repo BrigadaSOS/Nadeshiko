@@ -9,6 +9,8 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
+import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -53,6 +55,8 @@ if (endpoint) {
           }
         },
       }),
+      new PinoInstrumentation(),
+      new UndiciInstrumentation(),
       new RuntimeNodeInstrumentation(),
     ],
   });
