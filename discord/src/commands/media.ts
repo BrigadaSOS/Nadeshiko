@@ -50,7 +50,6 @@ export const data = new SlashCommandBuilder()
       .addChoices({ name: 'Anime', value: 'ANIME' }, { name: 'J-Drama', value: 'JDRAMA' }),
   );
 
-
 export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
