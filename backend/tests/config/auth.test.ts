@@ -173,3 +173,67 @@ describe('buildAuthOptions', () => {
     expect(sendWelcomeEmailFn).toHaveBeenCalledWith(11, 'nadeshiko', 'nadeshiko@test.local');
   });
 });
+
+describe('session duration regression tests', () => {
+  const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60; // 2592000
+  const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;   // 604800
+
+  it('session expiresIn is at least 30 days to prevent daily logouts', () => {
+    const options = buildAuthOptions({
+      configValues: makeConfig(),
+      production: false,
+    });
+
+    const expiresIn = (options as any).session?.expiresIn ?? 0;
+
+    // This should be >= 30 days. If you're shortening this intentionally,
+    // make sure you understand the UX impact on daily active users.
+    expect(expiresIn).toBeGreaterThanOrEqual(THIRTY_DAYS_IN_SECONDS);
+  });
+
+  it('session updateAge allows weekly refresh for rolling sessions', () => {
+    const options = buildAuthOptions({
+      configValues: makeConfig(),
+      production: false,
+    });
+
+    const updateAge = (options as any).session?.updateAge ?? 0;
+
+    // updateAge should be >= 7 days. This determines how often active users
+    // need to visit to keep their session alive. With 30-day expiresIn,
+    // a 7-day updateAge means users visiting weekly get 30-day rolling sessions.
+    expect(updateAge).toBeGreaterThanOrEqual(SEVEN_DAYS_IN_SECONDS);
+  });
+
+  it('cookieCache is enabled for performance', () => {
+    const options = buildAuthOptions({
+      configValues: makeConfig(),
+      production: false,
+    });
+
+    const cookieCache = (options as any).session?.cookieCache;
+
+    expect(cookieCache?.enabled).toBe(true);
+    expect(cookieCache?.maxAge).toBeGreaterThanOrEqual(60); // at least 1 minute
+  });
+
+  it('session configuration follows security best practices', () => {
+    const options = buildAuthOptions({
+      configValues: makeConfig(),
+      production: true,
+    });
+
+    const session = (options as any).session;
+
+    // Sessions should be stored server-side for revocation capability
+    expect(session?.storeSessionInDatabase).toBe(true);
+
+    // updateAge should be less than expiresIn (otherwise sessions never refresh)
+    expect(session?.updateAge).toBeLessThan(session?.expiresIn);
+
+    // Sanity check: expiresIn should not be unreasonably long (e.g., 1 year)
+    // This prevents accidental misconfiguration that would be a security risk
+    const NINETY_DAYS_IN_SECONDS = 90 * 24 * 60 * 60;
+    expect(session?.expiresIn).toBeLessThanOrEqual(NINETY_DAYS_IN_SECONDS);
+  });
+});

@@ -256,7 +256,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
     <div v-for="(result, index) in resultList" :key="result.segment.uuid"
       :id="result.segment.uuid"
       data-testid="segment-card"
-      class="hover:bg-neutral-800/20 items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
+      class="hover:bg-neutral-800/20 items-stretch b-2 min-[650px]:rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
@@ -267,7 +267,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
         <img loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
           @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid)) && zoomImage(result.segment.urls.imageUrl)"
-          class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent mx-auto max-w-2xl min-[650px]:max-w-none"
+          class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
           :key="result.segment.urls.imageUrl" />
@@ -308,7 +308,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
 
       <!-- Details -->
       <div class="w-full py-3 sm:py-2 px-4 rounded-e-lg text-white flex flex-col">
-        <div class="h-full flex flex-col">
+        <div class="flex flex-col">
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button -->
@@ -405,10 +405,10 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             <!-- End Spanish and English Sentences -->
           </div>
 
-          <div class="mt-auto">
+          <div>
             <!-- Fourth Row -->
             <!-- Buttons  -->
-            <div class="pb-2">
+            <div class="pt-2 pb-2">
               <SearchSegmentActionsContainer :content="result" :hide-context-button="hideContextButton" @open-context-modal="openModal"
                 @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
             </div>
