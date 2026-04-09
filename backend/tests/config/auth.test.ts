@@ -174,12 +174,6 @@ describe('buildAuthOptions', () => {
   });
 });
 
-/**
- * REGRESSION TESTS: Session duration configuration
- * These tests prevent accidentally shortening session durations,
- * which would cause users to be logged out unexpectedly.
- * See: https://github.com/BrigadaSOS/Nadeshiko/issues/210
- */
 describe('session duration regression tests', () => {
   const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60; // 2592000
   const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;   // 604800
