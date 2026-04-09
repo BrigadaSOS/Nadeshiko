@@ -83,8 +83,12 @@ useHead(() => ({
   title: title.value,
   meta: [
     { name: 'description', content: description.value },
+    { property: 'og:title', content: title.value },
+    { property: 'og:description', content: description.value },
     { property: 'og:image', content: `${requestOrigin}/logo-og-5bc76788.png` },
     { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: title.value },
+    { name: 'twitter:description', content: description.value },
   ],
 }));
 </script>

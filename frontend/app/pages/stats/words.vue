@@ -37,6 +37,8 @@ useSeoMeta({
   ogDescription: `See which of the ${tierLabel(activeTier.value)} most common Japanese words are covered by Nadeshiko's sentence corpus.`,
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
+  twitterTitle: `${tierLabel(activeTier.value)} Japanese Words Coverage`,
+  twitterDescription: `See which of the ${tierLabel(activeTier.value)} most common Japanese words are covered by Nadeshiko's sentence corpus.`,
 });
 
 const words = ref<CoveredWord[]>([]);

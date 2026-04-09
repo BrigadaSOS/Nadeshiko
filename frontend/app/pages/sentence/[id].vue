@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { buildSentenceMetaTags } from '~/utils/metaTags';
+import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import type { SearchStatsResponse } from '~/types/search';
 
@@ -58,10 +58,12 @@ const metaTags = computed(() => {
     title: 'Sentence',
     meta: [
       { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: 'Sentence' },
+      { property: 'og:title', content: socialTitle('Sentence') },
       { property: 'og:description', content: defaultDescription },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: socialTitle('Sentence') },
+      { name: 'twitter:description', content: defaultDescription },
     ],
   };
 
@@ -84,6 +86,7 @@ useHead(metaTags);
             <div class="relative text-white">
                 <div class="pt-2">
                     <div class="md:max-w-[70%] mx-auto">
+                        <h1 class="sr-only">{{ metaTags.title }}</h1>
                         <SearchBaseInputSegment />
                         <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
                     </div>

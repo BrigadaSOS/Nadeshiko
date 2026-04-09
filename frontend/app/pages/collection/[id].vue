@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
+import { socialTitle } from '~/utils/metaTags';
 
 const route = useRoute();
 
@@ -75,16 +76,19 @@ const { data: collectionDetails } = await useAsyncData(
 const metaTags = computed(() => {
   const name = collectionDetails.value?.name ?? 'Collection';
   const title = name;
+  const social = socialTitle(title);
   const description = `Browse the "${name}" collection on Nadeshiko`;
   return {
     title,
     meta: [
       { name: 'description', content: description },
-      { property: 'og:title', content: title },
+      { property: 'og:title', content: social },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
       { property: 'og:image', content: `${useRequestURL().origin}/logo-og-5bc76788.png` },
       { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: social },
+      { name: 'twitter:description', content: description },
     ],
   };
 });
@@ -99,6 +103,7 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
       <div class="relative text-white">
         <div class="pt-2">
           <div class="md:max-w-[70%] mx-auto">
+            <h1 class="sr-only">{{ metaTags.title }}</h1>
             <SearchBaseInputSegment />
             <SearchContainer
               :initial-sentence-data="initialSentenceData"

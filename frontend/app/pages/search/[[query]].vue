@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { SearchFilters } from '~/types/search';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
-import { buildSentenceMetaTags } from '~/utils/metaTags';
+import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 
 const route = useRoute();
@@ -192,10 +192,12 @@ const metaTags = computed(() => {
     title: 'Search',
     meta: [
       { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: 'Search' },
+      { property: 'og:title', content: socialTitle('Search') },
       { property: 'og:description', content: defaultDescription },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: socialTitle('Search') },
+      { name: 'twitter:description', content: defaultDescription },
     ],
   };
 
@@ -212,33 +214,39 @@ const metaTags = computed(() => {
     const totalResults = pagination?.estimatedTotalHits || stats?.reduce((sum, s) => sum + (s.count ?? 0), 0) || 0;
     const isLowerBound = pagination?.estimatedTotalHitsRelation === 'LOWER_BOUND';
 
-    const title = `Search: ${q}`;
-    let description =
-      totalResults > 0
-        ? `${isLowerBound ? 'At least ' : ''}${totalResults.toLocaleString()} results found`
-        : 'Search for Japanese sentences';
+    const title = q;
+    let description: string;
 
-    if (stats && stats.length > 0) {
-      const categoryNames: Record<string, string> = { ANIME: 'anime', JDRAMA: 'live-action' };
-      const order = ['ANIME', 'JDRAMA'];
-      const breakdown = order
-        .map((cat) => stats.find((s) => s.category === cat))
-        .filter((s): s is NonNullable<typeof s> => s != null)
-        .filter((s) => (s.count ?? 0) > 0)
-        .map((s) => `${categoryNames[s.category]}: ${(s.count ?? 0).toLocaleString()}`)
-        .join(', ');
-      if (breakdown) {
-        description += ` (${breakdown})`;
+    if (totalResults > 0) {
+      const count = `${isLowerBound ? 'At least ' : ''}${totalResults.toLocaleString()}`;
+      let breakdown = '';
+      if (stats && stats.length > 0) {
+        const categoryNames: Record<string, string> = { ANIME: 'anime', JDRAMA: 'live-action' };
+        const order = ['ANIME', 'JDRAMA'];
+        const parts = order
+          .map((cat) => stats.find((s) => s.category === cat))
+          .filter((s): s is NonNullable<typeof s> => s != null)
+          .filter((s) => (s.count ?? 0) > 0)
+          .map((s) => `${(s.count ?? 0).toLocaleString()} from ${categoryNames[s.category]}`);
+        if (parts.length > 0) {
+          breakdown = ` (${parts.join(', ')})`;
+        }
       }
+      description = `${count} example sentences containing "${q}"${breakdown} with English and Spanish translations.`;
+    } else {
+      description = `Search for "${q}" in over 1 million Japanese sentences from anime and J-dramas, with English and Spanish translations.`;
     }
 
+    const social = socialTitle(title);
     tags.title = title;
     tags.meta = [
       { name: 'description', content: description },
-      { property: 'og:title', content: title },
+      { property: 'og:title', content: social },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: social },
+      { name: 'twitter:description', content: description },
     ];
   } else if (mediaQueryParam.value && (initialSentenceData.value?.results?.length ?? 0) > 0) {
     const firstResult = initialSentenceData.value?.results[0];
@@ -269,15 +277,16 @@ const metaTags = computed(() => {
     const coverUrl = firstResult?.media?.coverUrl;
     const ogImage = coverUrl || `${requestOrigin}/logo-og-5bc76788.png`;
 
+    const social = socialTitle(title);
     tags.title = title;
     tags.meta = [
       { name: 'description', content: description },
-      { property: 'og:title', content: title },
+      { property: 'og:title', content: social },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
       { property: 'og:image', content: ogImage },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: title },
+      { name: 'twitter:title', content: social },
       { name: 'twitter:description', content: description },
       { name: 'twitter:image', content: ogImage },
     ];
@@ -300,6 +309,7 @@ useSchemaOrg([defineWebPage({ '@type': schemaOrgType })]);
             <div class="relative text-white">
                 <div class="pt-2">
                     <div class="md:max-w-[90%] mx-auto">
+                        <h1 v-if="searchQuery" class="sr-only">{{ metaTags.title }}</h1>
                         <div class="px-4 md:px-0">
                             <SearchBaseInputSegment />
                         </div>
