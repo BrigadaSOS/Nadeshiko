@@ -129,19 +129,6 @@ export function useTranslationVisibility() {
   if (import.meta.client && !watchersReady.value) {
     watchersReady.value = true;
 
-    // On login: DB prefs always win (only on actual state change, not initial load)
-    watch(
-      () => user.isLoggedIn,
-      (loggedIn) => {
-        if (loggedIn) {
-          const dbPrefs = getServerPreferences();
-          prefs.value = dbPrefs;
-          syncCookie(dbPrefs);
-        }
-      },
-    );
-
-    // If server prefs change externally, sync them down
     watch(
       () => user.preferences?.[USER_PREFS_KEY],
       () => {
