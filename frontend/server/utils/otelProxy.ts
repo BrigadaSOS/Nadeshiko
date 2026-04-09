@@ -33,7 +33,8 @@ export function createOtelProxy(signal: 'traces' | 'logs') {
   return defineEventHandler(async (event) => {
     const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
     if (!endpoint) {
-      throw createError({ statusCode: 503, statusMessage: 'Telemetry not configured' });
+      setResponseStatus(event, 204);
+      return '';
     }
 
     const origin = getHeader(event, 'origin');

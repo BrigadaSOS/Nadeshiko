@@ -66,4 +66,32 @@ test.describe('Translation visibility', () => {
     await expect(search.translationBadges('EN')).not.toBeVisible();
     await expect(search.translationBadges('ES')).toBeVisible();
   });
+
+  test('hidden mode persists after page reload', async ({ page }) => {
+    await search.enToggle.click();
+    await search.enToggle.click();
+    await expect(search.translationBadges('EN')).not.toBeVisible();
+
+    await search.esToggle.click();
+    await search.esToggle.click();
+    await expect(search.translationBadges('ES')).not.toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await search.expectResultsVisible();
+
+    await expect(search.translationBadges('EN')).not.toBeVisible();
+    await expect(search.translationBadges('ES')).not.toBeVisible();
+  });
+
+  test('spoiler mode persists after page reload', async ({ page }) => {
+    await search.enToggle.click();
+    const textSpan = search.translationText('EN');
+    await expect(textSpan).toHaveClass(/text-transparent/);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await search.expectResultsVisible();
+
+    await expect(search.translationBadges('EN')).toBeVisible();
+    await expect(search.translationText('EN')).toHaveClass(/text-transparent/);
+  });
 });
