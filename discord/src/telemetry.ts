@@ -5,6 +5,7 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 import { metrics, trace, type Meter, type Tracer } from '@opentelemetry/api';
 import packageJson from '../package.json';
 
@@ -27,7 +28,7 @@ export function initTelemetry() {
       exporter: new OTLPMetricExporter(),
       exportIntervalMillis: 15000,
     }),
-    instrumentations: [new PinoInstrumentation(), new UndiciInstrumentation()],
+    instrumentations: [new PinoInstrumentation(), new UndiciInstrumentation(), new RuntimeNodeInstrumentation()],
   });
 
   sdk.start();
