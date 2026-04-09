@@ -364,9 +364,7 @@ export async function migrateToAlias(esClient?: Client): Promise<void> {
 
   if (oldCount.count !== newCount.count) {
     await clientToUse.indices.delete({ index: physicalName }).catch(() => {});
-    throw new Error(
-      `Document count mismatch after migration: old=${oldCount.count}, new=${newCount.count}. Aborting.`,
-    );
+    throw new Error(`Document count mismatch after migration: old=${oldCount.count}, new=${newCount.count}. Aborting.`);
   }
 
   logger.info({ count: newCount.count }, 'Document counts match. Swapping concrete index to alias...');

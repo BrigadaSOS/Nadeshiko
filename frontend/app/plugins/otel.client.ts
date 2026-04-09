@@ -74,7 +74,6 @@ class SpanRenamer implements SpanProcessor {
   onEnd() {}
 }
 
-
 export default defineNuxtPlugin({
   name: 'otel',
   setup() {

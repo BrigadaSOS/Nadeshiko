@@ -25,10 +25,7 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-const ALLOWED_ORIGINS = [
-  'https://nadeshiko.co',
-  'https://dev.nadeshiko.co',
-];
+const ALLOWED_ORIGINS = ['https://nadeshiko.co', 'https://dev.nadeshiko.co'];
 
 export function createOtelProxy(signal: 'traces' | 'logs') {
   const resourceKey = signal === 'traces' ? 'resourceSpans' : 'resourceLogs';
