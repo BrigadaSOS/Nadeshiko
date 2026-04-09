@@ -260,15 +260,19 @@ jobs:
           echo "::add-mask::${E2E_USER_PASSWORD}"
           echo "E2E_USER_PASSWORD=${E2E_USER_PASSWORD}" >> "$GITHUB_ENV"
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Install Playwright
+      - name: Install dependencies and Playwright
         run: |
           cd frontend
-          npm install @playwright/test
-          npx playwright install --with-deps chromium
+          bun install --frozen-lockfile
+          bunx playwright install --with-deps chromium
 
       - name: Run E2E tests
         run: |
