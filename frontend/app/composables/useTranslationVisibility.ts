@@ -129,15 +129,23 @@ export function useTranslationVisibility() {
   if (import.meta.client && !watchersReady.value) {
     watchersReady.value = true;
 
-    // On login: DB prefs always win (only on actual state change, not initial load)
+    // On login: DB prefs always win, but only after preferences are actually loaded
+    // to avoid race condition where defaults overwrite cookie before DB response arrives
     watch(
       () => user.isLoggedIn,
       (loggedIn) => {
-        if (loggedIn) {
-          const dbPrefs = getServerPreferences();
-          prefs.value = dbPrefs;
-          syncCookie(dbPrefs);
-        }
+        if (!loggedIn) return;
+        // Wait for preferences to be loaded from server before syncing
+        watch(
+          () => user.preferences,
+          (loadedPrefs) => {
+            if (loadedPrefs === null || loadedPrefs === undefined) return;
+            const dbPrefs = getServerPreferences();
+            prefs.value = dbPrefs;
+            syncCookie(dbPrefs);
+          },
+          { once: true },
+        );
       },
     );
 
