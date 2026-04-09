@@ -160,7 +160,7 @@ export default defineNuxtConfig({
         groups: [
           {
             userAgent: '*',
-            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/api/v1/docs', '/docs/'],
+            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/docs/'],
             disallow: [
               '/settings',
               '/settings/',
@@ -188,10 +188,10 @@ export default defineNuxtConfig({
           '/terms-and-conditions',
           '/dmca',
           '/media',
-          '/api/v1/docs',
           '/docs/api/index.html',
           '/blog',
           '/stats',
+          '/stats/words',
         ],
         sources: ['/api/__sitemap__/media', '/api/__sitemap__/words', '/api/__sitemap__/blog'],
         cacheMaxAgeSeconds: 86400,
@@ -241,6 +241,9 @@ export default defineNuxtConfig({
     transpile: ['vue-toastification'],
   },
   routeRules: {
+    '/api/v1/docs': {
+      redirect: { to: '/docs/api/index.html', statusCode: 301 },
+    },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {
