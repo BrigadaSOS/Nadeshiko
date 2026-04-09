@@ -63,7 +63,7 @@ export function instrumentElasticsearchClient(esClient: Client): void {
     span.updateName(index ? `${operation} ${index}` : operation);
 
     if (params.body && typeof params.body === 'string') {
-      const truncated = params.body.length > 2048 ? params.body.slice(0, 2048) + '...' : params.body;
+      const truncated = params.body.length > 2048 ? `${params.body.slice(0, 2048)}...` : params.body;
       span.setAttribute('db.statement', truncated);
     }
   });

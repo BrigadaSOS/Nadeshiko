@@ -92,7 +92,14 @@ export default defineNuxtConfig({
       : {
           contentSecurityPolicy: {
             'default-src': ["'self'"],
-            'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", UMAMI_ORIGIN, POSTHOG_ORIGIN, CF_INSIGHTS_ORIGIN],
+            'script-src': [
+              "'self'",
+              "'unsafe-inline'",
+              "'wasm-unsafe-eval'",
+              UMAMI_ORIGIN,
+              POSTHOG_ORIGIN,
+              CF_INSIGHTS_ORIGIN,
+            ],
             'style-src': ["'self'", "'unsafe-inline'"],
             'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
             'font-src': ["'self'"],

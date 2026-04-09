@@ -60,9 +60,7 @@ vi.mock('@config/log', () => ({
 const {
   INDEX_NAME,
   client,
-  initializeElasticsearchIndex,
   initializeElasticsearchIndexWithClient,
-  resetElasticsearchIndex,
   resetElasticsearchIndexWithClient,
   setupElasticsearchUser,
 } = await import('@config/elasticsearch');
@@ -224,9 +222,7 @@ describe('resetElasticsearchIndexWithClient', () => {
 
     expect(mockIndicesDelete).toHaveBeenCalledWith({ index: `${INDEX_NAME}_v2` });
     expect(mockIndicesDelete).toHaveBeenCalledWith({ index: `${INDEX_NAME}_v1` });
-    expect(mockIndicesCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ index: `${INDEX_NAME}_v1` }),
-    );
+    expect(mockIndicesCreate).toHaveBeenCalledWith(expect.objectContaining({ index: `${INDEX_NAME}_v1` }));
     expect(mockIndicesUpdateAliases).toHaveBeenCalledWith({
       actions: [{ add: { index: `${INDEX_NAME}_v1`, alias: INDEX_NAME, is_write_index: true } }],
     });
@@ -239,9 +235,7 @@ describe('resetElasticsearchIndexWithClient', () => {
     await resetElasticsearchIndexWithClient(client as any);
 
     expect(mockIndicesDelete).toHaveBeenCalledWith({ index: INDEX_NAME });
-    expect(mockIndicesCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ index: `${INDEX_NAME}_v1` }),
-    );
+    expect(mockIndicesCreate).toHaveBeenCalledWith(expect.objectContaining({ index: `${INDEX_NAME}_v1` }));
   });
 
   it('creates index when nothing exists', async () => {
