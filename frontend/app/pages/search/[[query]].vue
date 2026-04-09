@@ -170,17 +170,18 @@ const statsCacheKey = computed(() => {
   return `search-stats-${params || 'default'}`;
 });
 
-const { data: initialSentenceData } = await useAsyncData(sentenceCacheKey.value, () => fetchSentenceData(), {
-  server: true,
-  lazy: false,
-  watch: [],
-});
-
-const { data: initialStatsData } = await useAsyncData(statsCacheKey.value, () => fetchStatsData(), {
-  server: true,
-  lazy: false,
-  watch: [],
-});
+const [{ data: initialSentenceData }, { data: initialStatsData }] = await Promise.all([
+  useAsyncData(sentenceCacheKey.value, () => fetchSentenceData(), {
+    server: true,
+    lazy: false,
+    watch: [],
+  }),
+  useAsyncData(statsCacheKey.value, () => fetchStatsData(), {
+    server: true,
+    lazy: false,
+    watch: [],
+  }),
+]);
 
 const requestOrigin = useRequestURL().origin;
 
