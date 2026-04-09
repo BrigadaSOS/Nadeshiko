@@ -99,8 +99,8 @@ export function useTranslationVisibility() {
     prefs.value = decodeCookie(langCookie.value);
     initialized.value = true;
   } else if (!initialized.value) {
-    // Client init: logged-in users get DB prefs, guests get cookie
-    if (user.isLoggedIn) {
+    // Client init: logged-in users get DB prefs (if saved), otherwise cookie
+    if (user.isLoggedIn && user.preferences?.[USER_PREFS_KEY] != null) {
       const dbPrefs = getServerPreferences();
       prefs.value = dbPrefs;
       syncCookie(dbPrefs);
@@ -131,8 +131,9 @@ export function useTranslationVisibility() {
 
     watch(
       () => user.preferences?.[USER_PREFS_KEY],
-      () => {
+      (newVal) => {
         if (!user.isLoggedIn) return;
+        if (newVal === undefined || newVal === null) return;
         const dbPrefs = getServerPreferences();
         prefs.value = dbPrefs;
         syncCookie(dbPrefs);
