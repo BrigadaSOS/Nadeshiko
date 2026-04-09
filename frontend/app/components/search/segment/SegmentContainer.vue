@@ -307,7 +307,9 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
       </div>
 
       <!-- Details -->
-      <div class="w-full py-3 sm:py-2 px-4 rounded-e-lg text-white flex flex-col">
+      <div class="w-full py-3 px-4 rounded-e-lg text-white flex flex-col"
+        :class="segmentLangRows.length > 0 ? 'sm:py-2' : 'sm:pt-5 sm:pb-3'"
+      >
         <div class="flex flex-col">
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
