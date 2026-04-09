@@ -34,7 +34,7 @@ export function normalizeRoute(url) {
       .join('/');
   }
 
-  return path;
+  return '/__other';
 }
 
 export function isIgnoredPath(url) {
