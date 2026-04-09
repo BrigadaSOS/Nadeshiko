@@ -22,6 +22,9 @@ env:
     PORT: 3000
     LOG_LEVEL: info
 
+    NITRO_PRESET: node_cluster
+    NITRO_CLUSTER_WORKERS: 3
+
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http

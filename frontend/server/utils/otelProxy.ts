@@ -27,8 +27,14 @@ function checkRateLimit(ip: string): boolean {
 
 const ALLOWED_ORIGINS = ['https://nadeshiko.co', 'https://dev.nadeshiko.co'];
 
-export function createOtelProxy(signal: 'traces' | 'logs') {
-  const resourceKey = signal === 'traces' ? 'resourceSpans' : 'resourceLogs';
+const RESOURCE_KEYS: Record<'traces' | 'logs' | 'metrics', string> = {
+  traces: 'resourceSpans',
+  logs: 'resourceLogs',
+  metrics: 'resourceMetrics',
+};
+
+export function createOtelProxy(signal: 'traces' | 'logs' | 'metrics') {
+  const resourceKey = RESOURCE_KEYS[signal];
 
   return defineEventHandler(async (event) => {
     const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;

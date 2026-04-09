@@ -37,7 +37,11 @@ export default defineNitroPlugin((nitroApp) => {
 
     const statusCode = event.node.res.statusCode;
     const method = event.node.req.method || 'UNKNOWN';
-    const route = normalizeRoute(event.path || event.node.req.url || '/');
+    const isKnown = event.context.isKnownRoute !== false;
+    const isBotRequest = event.context.isBot === true;
+    const route = !isKnown
+      ? (isBotRequest ? '/__bot' : '/__unknown')
+      : normalizeRoute(event.path || event.node.req.url || '/');
 
     const metricAttrs: Record<string, string | number> = {
       'http.request.method': method,

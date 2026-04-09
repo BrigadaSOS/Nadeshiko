@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, REST, Routes, Collection, Events } from 'dis
 import { BOT_CONFIG, getApplicationId } from './config';
 import { createLogger } from './logger';
 import { initTelemetry, shutdownTelemetry } from './telemetry';
-import { traceCommand } from './instrumentation';
+import { traceCommand, traceOperation } from './instrumentation';
 import { startHealthServer } from './health';
 import { initSdk } from './api';
 import { initSettings } from './settings';
@@ -67,17 +67,24 @@ async function main() {
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused(true);
       if (focused.name === 'media') {
-        try {
-          const results = await searchMediaCache(focused.value);
-          await interaction.respond(
-            results.map((m) => ({
-              name: getMediaName(m).slice(0, 100),
-              value: m.publicId,
-            })),
-          );
-        } catch (error) {
+        await traceOperation(
+          'autocomplete media',
+          {
+            'discord.user.id': interaction.user.id,
+            'discord.guild.id': interaction.guildId ?? 'dm',
+          },
+          async () => {
+            const results = await searchMediaCache(focused.value);
+            await interaction.respond(
+              results.map((m) => ({
+                name: getMediaName(m).slice(0, 100),
+                value: m.publicId,
+              })),
+            );
+          },
+        ).catch((error) => {
           log.error({ err: error }, 'Media autocomplete failed');
-        }
+        });
       }
       return;
     }
@@ -101,11 +108,17 @@ async function main() {
   });
 
   client.on(Events.MessageCreate, async (message) => {
-    try {
-      await handleAutoEmbed(message);
-    } catch (error) {
+    await traceOperation(
+      'autoembed',
+      {
+        'discord.user.id': message.author.id,
+        'discord.guild.id': message.guildId ?? 'dm',
+        'discord.channel.id': message.channelId,
+      },
+      () => handleAutoEmbed(message),
+    ).catch((error) => {
       log.error({ err: error }, 'Auto-embed error');
-    }
+    });
   });
 
   client.rest.on('rateLimited', (info) => {

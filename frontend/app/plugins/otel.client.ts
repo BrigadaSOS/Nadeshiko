@@ -2,6 +2,8 @@ import { trace } from '@opentelemetry/api';
 import { WebTracerProvider, type SpanProcessor } from '@opentelemetry/sdk-trace-web';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { LoggerProvider, BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { SeverityNumber } from '@opentelemetry/api-logs';
@@ -115,12 +117,35 @@ export default defineNuxtPlugin({
         new DocumentLoadInstrumentation(),
         new FetchInstrumentation({
           propagateTraceHeaderCorsUrls: [/^https?:\/\/(dev\.)?nadeshiko\.co/],
-          ignoreUrls: [/\/otel-collector/, /\/otel-logs/, /cloud\.umami\.is/],
+          ignoreUrls: [/\/otel-collector/, /\/otel-logs/, /\/otel-metrics/, /cloud\.umami\.is/],
+          applyCustomAttributesOnSpan(span, _request, result) {
+            if (result instanceof Response) {
+              span.setAttribute('http.response.status_code', result.status);
+            }
+          },
         }),
       ],
     });
 
     const tracer = trace.getTracer('nadeshiko-browser', config.public.appVersion || '0.0.0');
+
+    const meterProvider = new MeterProvider({
+      resource: resourceFromAttributes(resourceAttrs),
+      readers: [
+        new PeriodicExportingMetricReader({
+          exporter: new OTLPMetricExporter({ url: '/otel-metrics' }),
+          exportIntervalMillis: 30_000,
+        }),
+      ],
+    });
+    const meter = meterProvider.getMeter('nadeshiko-browser');
+
+    const vitalHistograms: Record<string, ReturnType<typeof meter.createHistogram>> = {
+      TTFB: meter.createHistogram('web_vital.ttfb', { description: 'Time to First Byte', unit: 'ms' }),
+      LCP: meter.createHistogram('web_vital.lcp', { description: 'Largest Contentful Paint', unit: 'ms' }),
+      CLS: meter.createHistogram('web_vital.cls', { description: 'Cumulative Layout Shift', unit: '' }),
+      INP: meter.createHistogram('web_vital.inp', { description: 'Interaction to Next Paint', unit: 'ms' }),
+    };
 
     function reportVital({ name, value, rating }: { name: string; value: number; rating: string }) {
       const span = tracer.startSpan(`web-vital ${name}`);
@@ -128,6 +153,8 @@ export default defineNuxtPlugin({
       span.setAttribute('vital.value', value);
       span.setAttribute('vital.rating', rating);
       span.end();
+
+      vitalHistograms[name]?.record(value, { 'vital.rating': rating, 'page.path': getPagePath() });
     }
 
     onTTFB(reportVital);
@@ -201,7 +228,10 @@ export default defineNuxtPlugin({
     });
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') logProcessor.forceFlush();
+      if (document.visibilityState === 'hidden') {
+        logProcessor.forceFlush();
+        meterProvider.forceFlush();
+      }
     });
 
     return {
