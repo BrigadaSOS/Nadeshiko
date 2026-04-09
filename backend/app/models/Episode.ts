@@ -11,7 +11,7 @@ export class Episode extends BaseEntity {
   @PrimaryColumn({ name: 'episode_number', type: 'int' })
   episodeNumber!: number;
 
-  @ManyToOne('Media', 'episodes')
+  @ManyToOne('Media', 'episodes', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'media_id' })
   media!: Media;
 

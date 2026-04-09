@@ -29,7 +29,7 @@ export class Character extends BaseEntity {
   @Column({ name: 'image_url', type: 'varchar' })
   imageUrl!: string;
 
-  @ManyToOne('Seiyuu', 'characters', { cascade: true })
+  @ManyToOne('Seiyuu', 'characters')
   @JoinColumn({ name: 'seiyuu_id' })
   seiyuu!: Seiyuu;
 

@@ -103,7 +103,7 @@ export class Report extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user?: User | null;
 
-  @ManyToOne('MediaAuditRun')
+  @ManyToOne('MediaAuditRun', { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'audit_run_id' })
   auditRun?: unknown;
 }
