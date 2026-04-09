@@ -23,7 +23,7 @@ export class SeriesMedia extends BaseEntity {
   @JoinColumn({ name: 'series_id' })
   series!: Series;
 
-  @ManyToOne('Media', 'seriesEntries')
+  @ManyToOne('Media', 'seriesEntries', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'media_id' })
   media!: Media;
 }
