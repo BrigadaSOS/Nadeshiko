@@ -183,7 +183,6 @@ describe('buildAuthOptions', () => {
 describe('session duration regression tests', () => {
   const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60; // 2592000
   const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;   // 604800
-  const ONE_DAY_IN_SECONDS = 24 * 60 * 60;          // 86400
 
   it('session expiresIn is at least 30 days to prevent daily logouts', () => {
     const options = buildAuthOptions({
