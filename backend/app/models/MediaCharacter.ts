@@ -31,7 +31,7 @@ export class MediaCharacter extends BaseEntity {
   @JoinColumn({ name: 'media_id' })
   media!: Media;
 
-  @ManyToOne('Character', 'mediaAppearances', { cascade: true })
+  @ManyToOne('Character', 'mediaAppearances')
   @JoinColumn({ name: 'character_id' })
   character!: Character;
 }

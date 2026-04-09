@@ -105,7 +105,7 @@ export class Segment extends BaseEntity {
   @Column({ name: 'storage_base_path', type: 'varchar' })
   storageBasePath!: string;
 
-  @ManyToOne('Episode', 'segments')
+  @ManyToOne('Episode', 'segments', { onDelete: 'CASCADE' })
   @JoinColumn([
     { name: 'media_id', referencedColumnName: 'mediaId' },
     { name: 'episode', referencedColumnName: 'episodeNumber' },
