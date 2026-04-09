@@ -299,7 +299,7 @@ useSchemaOrg([defineWebPage({ '@type': schemaOrgType })]);
     <div class="mx-auto">
             <div class="relative text-white">
                 <div class="pt-2">
-                    <div class="px-4 md:px-0 md:max-w-[90%] mx-auto">
+                    <div class="md:max-w-[90%] mx-auto">
                         <div class="px-4 md:px-0">
                             <SearchBaseInputSegment />
                         </div>
