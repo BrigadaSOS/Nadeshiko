@@ -1,10 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Index, Not, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Index, BeforeInsert } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
 import { MediaCharacter } from './MediaCharacter';
 import { MediaExternalId } from './MediaExternalId';
-import { Segment, SegmentStatus } from './Segment';
+import type { Segment } from './Segment';
 import type { SeriesMedia } from './SeriesMedia';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 import { SegmentStorage } from './Segment';
@@ -254,11 +254,14 @@ export class Media extends BaseEntity {
     }>(MEDIA_INFO_CACHE, 'globalStats');
     if (cached) return cached;
 
-    const [mediaCount, segmentCount, episodeCount] = await Promise.all([
+    const [mediaCount, segmentCountResult, episodeCount] = await Promise.all([
       Media.count(),
-      Segment.count({ where: { status: Not(SegmentStatus.DELETED) } }),
+      Episode.createQueryBuilder('e')
+        .select('COALESCE(SUM(e.segmentCount), 0)', 'total')
+        .getRawOne<{ total: string }>(),
       Episode.count(),
     ]);
+    const segmentCount = Number(segmentCountResult?.total ?? 0);
 
     const stats = {
       fullTotalAnimes: mediaCount,
