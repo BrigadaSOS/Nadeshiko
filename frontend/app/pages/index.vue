@@ -2,14 +2,17 @@
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
 
 useSeoMeta({
-  title: 'Nadeshiko: Japanese Sentence Search Engine',
+  title: 'Nadeshiko: Search Japanese sentences from anime',
   description:
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
-  ogTitle: 'Nadeshiko: Japanese Sentence Search Engine',
+  ogTitle: 'Nadeshiko: Search Japanese sentences from anime',
   ogDescription:
     'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
+  twitterTitle: 'Nadeshiko: Search Japanese sentences from anime',
+  twitterDescription:
+    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
 });
 
 useSchemaOrg([

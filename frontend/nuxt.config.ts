@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { env } from './config/env';
 
+const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
+const SITE_URL = isDev ? 'https://dev.nadeshiko.co' : 'https://nadeshiko.co';
+
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const UMAMI_ORIGIN = 'https://cloud.umami.is';
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
@@ -144,47 +147,56 @@ export default defineNuxtConfig({
     autoTrack: true,
   },
   site: {
-    url: 'https://nadeshiko.co',
-    name: 'Nadeshiko',
+    url: SITE_URL,
+    name: 'Nadeshiko: Search Japanese sentences from anime',
     description:
       'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
   },
-  robots: {
-    groups: [
-      {
-        userAgent: '*',
-        allow: ['/', '/search', '/media', '/sentence', '/api/v1/docs', '/docs/'],
-        disallow: [
-          '/settings',
-          '/settings/',
-          '/user',
-          '/user/',
-          '/admin',
-          '/admin/',
-          '/reports',
-          '/reports/',
-          '/api/',
-          '/v1/',
+  robots: isDev
+    ? {
+        groups: [{ userAgent: '*', disallow: ['/'] }],
+      }
+    : {
+        groups: [
+          {
+            userAgent: '*',
+            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/api/v1/docs', '/docs/'],
+            disallow: [
+              '/settings',
+              '/settings/',
+              '/user',
+              '/user/',
+              '/admin',
+              '/admin/',
+              '/reports',
+              '/reports/',
+              '/api/',
+              '/v1/',
+              '/_nuxt/',
+            ],
+          },
         ],
+        sitemap: `${SITE_URL}/sitemap.xml`,
       },
-    ],
-    sitemap: 'https://nadeshiko.co/sitemap.xml',
-  },
-  sitemap: {
-    urls: [
-      '/',
-      '/about',
-      '/privacy',
-      '/terms-and-conditions',
-      '/dmca',
-      '/media',
-      '/api/v1/docs',
-      '/docs/api/index.html',
-      '/blog',
-      '/stats',
-    ],
-    autoI18n: false,
-  },
+  sitemap: isDev
+    ? false
+    : {
+        urls: [
+          '/',
+          '/about',
+          '/privacy',
+          '/terms-and-conditions',
+          '/dmca',
+          '/media',
+          '/api/v1/docs',
+          '/docs/api/index.html',
+          '/blog',
+          '/stats',
+        ],
+        sources: ['/api/__sitemap__/media', '/api/__sitemap__/words', '/api/__sitemap__/blog'],
+        cacheMaxAgeSeconds: 86400,
+        autoI18n: false,
+      },
   ogImage: {
     enabled: false,
   },
@@ -229,6 +241,12 @@ export default defineNuxtConfig({
     transpile: ['vue-toastification'],
   },
   routeRules: {
+    // Block all indexing on dev environments
+    ...(isDev && {
+      '/**': {
+        headers: { 'X-Robots-Tag': 'noindex, nofollow' },
+      },
+    }),
     // Private/authenticated areas should never be indexed.
     '/settings/**': {
       robots: false,

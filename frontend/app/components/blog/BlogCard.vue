@@ -95,6 +95,7 @@ const contentPreview = computed(() => {
         <img
           :src="post.image"
           :alt="post.title"
+          loading="lazy"
           class="rounded-lg border border-white/10 group-hover:scale-105 transition-transform duration-300 max-h-[40rem] max-w-full"
         />
       </div>

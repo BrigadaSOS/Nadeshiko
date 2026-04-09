@@ -11,6 +11,9 @@ useSeoMeta({
     'See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list.',
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
+  twitterTitle: 'Stats',
+  twitterDescription:
+    'See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list.',
 });
 
 const sdk = useNadeshikoSdk();

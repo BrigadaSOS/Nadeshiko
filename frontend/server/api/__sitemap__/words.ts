@@ -22,7 +22,7 @@ export default defineSitemapEventHandler(async () => {
 
   while (true) {
     const response = await $fetch<CoveredWordsResponse>(
-      `${baseUrl}/v1/stats/covered-words?tier=5000&filter=covered&cursor=${cursor}&take=1000`,
+      `${baseUrl}/v1/stats/covered-words?tier=20000&filter=covered&cursor=${cursor}&take=1000`,
       { headers },
     );
     allWords.push(...response.words);

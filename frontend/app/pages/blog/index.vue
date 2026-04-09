@@ -31,11 +31,13 @@ const { data: posts } = await useAsyncData(
 
 useSeoMeta({
   title: 'Blog',
-  ogTitle: 'Nadeshiko Blog',
+  ogTitle: 'Blog',
   description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
   ogDescription: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
+  twitterTitle: 'Blog',
+  twitterDescription: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
 });
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);

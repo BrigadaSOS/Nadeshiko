@@ -11,6 +11,9 @@ useSeoMeta({
     'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
+  twitterTitle: 'Browse Media',
+  twitterDescription:
+    'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
 });
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
@@ -349,6 +352,9 @@ watch([searchQuery, filterCategory], () => {
               <img
                 :src="mediaInfo.coverUrl"
                 :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
+                loading="lazy"
+                width="200"
+                height="300"
                 class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
               />
             </NuxtLink>
@@ -407,6 +413,7 @@ watch([searchQuery, filterCategory], () => {
               <img
                 :src="mediaInfo.bannerUrl"
                 :alt="`Banner image for ${mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'media'}`"
+                loading="lazy"
                 class="object-cover w-full h-full rounded-lg"
               />
               <div
@@ -417,6 +424,9 @@ watch([searchQuery, filterCategory], () => {
               <img
                 :src="mediaInfo.coverUrl"
                 :alt="`Cover image for ${mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'media'}`"
+                loading="lazy"
+                width="256"
+                height="336"
                 class="absolute inset-0 object-cover w-full h-full rounded-lg"
               />
             </div>
