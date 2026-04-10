@@ -50,7 +50,7 @@ const iconSize = computed(() => props.size ?? 16);
       class="inline-block"
       :style="{verticalAlign: props.verticalAlign}"
     >
-      <path :fill=fill :d="path" :stroke-width=strokewidth :stroke="stroke" />
+      <path :fill="fill" :d="path" :stroke-width="strokewidth || undefined" :stroke="stroke || undefined" />
     </svg>
     <slot />
   </span>
