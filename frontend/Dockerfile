@@ -9,7 +9,9 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG NUXT_PUBLIC_ENVIRONMENT
+ARG NITRO_PRESET=node-server
 ENV NUXT_PUBLIC_ENVIRONMENT=${NUXT_PUBLIC_ENVIRONMENT}
+ENV NITRO_PRESET=${NITRO_PRESET}
 RUN npx nuxt build
 
 FROM oven/bun:1 AS otel-deps

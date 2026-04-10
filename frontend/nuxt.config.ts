@@ -51,6 +51,8 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
+        { rel: 'preconnect', href: CDN_ORIGIN },
+        { rel: 'preconnect', href: POSTHOG_ORIGIN },
       ],
     },
   },
