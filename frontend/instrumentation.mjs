@@ -3,7 +3,7 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { resourceFromAttributes, hostDetector } from '@opentelemetry/resources';
+import { resourceFromAttributes, hostDetector, processDetector } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
@@ -34,7 +34,7 @@ if (endpoint) {
 
   const sdk = new NodeSDK({
     resource,
-    resourceDetectors: [hostDetector],
+    resourceDetectors: [hostDetector, processDetector],
     spanProcessors: [new FilteringSpanProcessor(traceExporter)],
     metricReader: new PeriodicExportingMetricReader({
       exporter: new OTLPMetricExporter(),

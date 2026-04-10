@@ -4,6 +4,7 @@ image: brigadasos/nadeshiko-frontend-prod
 builder:
   args:
     NUXT_PUBLIC_ENVIRONMENT: production
+    NITRO_PRESET: node_cluster
 
 proxy:
   ssl: true
