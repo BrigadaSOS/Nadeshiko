@@ -1,0 +1,7 @@
+/media/
+/backend/docs/generated/index.html
+/frontend/public/docs/api/
+/frontend/public/docs/api-internal/
+.playwright-mcp/
+/backend/scripts/.jpdb-cache/
+/backend/scripts/.jiten-cache/
