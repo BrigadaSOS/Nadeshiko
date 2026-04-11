@@ -22,10 +22,10 @@ export const AppDataSource = new DataSource({
   maxQueryExecutionTime: 0,
   logger: new InstrumentedTypeOrmLogger(),
   extra: {
-    max: 20,
-    min: 5,
-    acquireTimeoutMillis: 60000,
-    idleTimeoutMillis: 45000,
+    max: 15,                      // Reduced from 20 - still 7.5x peak needs for 20 req/min
+    min: 5,                       // Keep warm pool for low traffic
+    acquireTimeoutMillis: 60000, // 60s to acquire from pool (fail slow if stuck)
+    idleTimeoutMillis: 300000,    // 5min idle timeout (was 45s) - prevents connection churn
   },
 });
 
