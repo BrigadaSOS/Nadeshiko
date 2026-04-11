@@ -1,6 +1,12 @@
 service: nadeshiko-frontend-prod
 image: brigadasos/nadeshiko-frontend-prod
 
+options:
+  # Memory limit: 1GB RAM + 256MB swap
+  # Nuxt SSR workers=3, each ~200-300MB
+  memory: 1g
+  memory-swap: 1.25g
+
 builder:
   args:
     NUXT_PUBLIC_ENVIRONMENT: production

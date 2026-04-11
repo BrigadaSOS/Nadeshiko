@@ -1,6 +1,11 @@
 service: nadeshiko-frontend-dev
 image: brigadasos/nadeshiko-frontend-dev
 
+options:
+  # Memory limit: 768MB RAM + 256MB swap for dev
+  memory: 768m
+  memory-swap: 1g
+
 builder:
   args:
     NUXT_PUBLIC_ENVIRONMENT: development
