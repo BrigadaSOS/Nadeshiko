@@ -13,6 +13,8 @@ export const client = new Client({
     password: config.ELASTICSEARCH_PASSWORD,
   },
   Connection: HttpConnection,
+  maxSockets: 10,
+  keepAliveTimeout: 60000,
 });
 
 /**
@@ -34,6 +36,8 @@ function createAdminClient(configValues: AppConfig): Client {
       password: adminPassword,
     },
     Connection: HttpConnection,
+    maxSockets: 10,
+    keepAliveTimeout: 60000,
   });
 }
 
