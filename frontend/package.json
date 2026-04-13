@@ -21,7 +21,7 @@
     "setup": "bun run bin/setup.ts"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "2.0.6-internal.e0449f8",
+    "@brigadasos/nadeshiko-sdk": "2.0.7",
     "@mdi/js": "^7.4.47",
     "@nuxtjs/i18n": "^10.2.1",
     "@nuxtjs/seo": "5.1.0",
