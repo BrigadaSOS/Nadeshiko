@@ -1,10 +1,14 @@
-import type { Server } from 'node:http';
+import http, { type Server } from 'node:http';
 import { buildApplication } from '@config/application';
 import { config } from '@config/config';
 import { getAppEnvironment } from '@config/environment';
 import { runInitializers, runShutdownInitializers } from '@config/initializers';
 import type { RuntimeContext } from '@config/initializers/types';
 import { logger } from '@config/log';
+
+// Match kamal-proxy's ∞ timeout to prevent half-open connections
+// 120s gives enough buffer for slow clients while preventing connection accumulation
+const SERVER_KEEP_ALIVE_TIMEOUT_MS = 120000;
 
 async function closeServer(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -20,7 +24,9 @@ async function closeServer(server: Server): Promise<void> {
 
 async function startServer(context: RuntimeContext, port: number): Promise<Server> {
   return await new Promise<Server>((resolve, reject) => {
-    const server = context.app.listen(port, () => resolve(server));
+    const server = http.createServer(context.app);
+    server.keepAliveTimeout = SERVER_KEEP_ALIVE_TIMEOUT_MS;
+    server.listen(port, () => resolve(server));
     server.on('error', reject);
   });
 }
