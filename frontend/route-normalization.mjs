@@ -1,11 +1,18 @@
 const ID_PATTERN = /^[0-9]+$|^[0-9a-f]{8,}$/i;
 const NANOID_PATTERN = /^[A-Za-z0-9_-]{8,}$/;
 
+const STATIC_PAGES = new Set([
+  '/', '/blog', '/media', '/stats', '/stats/words',
+  '/about', '/privacy', '/terms-and-conditions', '/dmca',
+  '/search', '/api/v1/docs',
+]);
+
 const ROUTE_PATTERNS = [
   [/^\/sentence\/[^/]+$/, '/sentence/:id'],
   [/^\/collection\/[^/]+$/, '/collection/:id'],
   [/^\/s\/[^/]+$/, '/s/:id'],
   [/^\/search\/[^/]+$/, '/search/:query'],
+  [/^\/blog\/[^/]+$/, '/blog/:slug'],
   [/^\/admin\//, '/admin/:slug'],
   [/^\/settings\//, '/settings/:slug'],
   [/^\/user\//, '/user/:slug'],
@@ -22,6 +29,8 @@ function isIdSegment(seg) {
 
 export function normalizeRoute(url) {
   const path = url.split('?')[0];
+
+  if (STATIC_PAGES.has(path)) return path;
 
   for (const [pattern, template] of ROUTE_PATTERNS) {
     if (pattern.test(path)) return template;

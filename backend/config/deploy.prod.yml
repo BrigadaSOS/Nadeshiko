@@ -1,16 +1,18 @@
 image: brigadasos/nadeshiko-backend-prod
 service: nadeshiko-backend-prod
 
+servers:
+  web:
+    options:
+      # Memory limit: 1.5GB RAM + 512MB swap
+      # Current ~310MB, peaks ~1.2GB under load = 1.25x headroom
+      memory: 1.5g
+      memory-swap: 2g
+
 proxy:
   ssl: true
   host: api.nadeshiko.co
   forward_headers: true
-
-options:
-  # Memory limit: 1.5GB RAM + 512MB swap
-  # Current ~310MB, peaks ~1.2GB under load = 1.25x headroom
-  memory: 1.5g
-  memory-swap: 2g
 
 env:
   secret:
