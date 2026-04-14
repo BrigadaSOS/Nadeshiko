@@ -49,7 +49,6 @@ service:
   telemetry:
     logs:
       encoding: json
-      level: debug
     metrics:
       readers:
         - pull:

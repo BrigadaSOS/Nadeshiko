@@ -1,4 +1,5 @@
 import { metrics } from '@opentelemetry/api';
+import { normalizeRoute } from '../../route-normalization.mjs';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('nitro:http');
@@ -131,6 +132,8 @@ export default defineNitroPlugin((nitroApp) => {
       'error.fingerprint': fingerprint,
       'error.type': errorType,
       'error.severity': statusCode >= 500 ? '5xx' : '4xx',
+      'error.group': group,
+      'http.route': normalizeRoute(url),
     });
 
     logger.error(
@@ -160,6 +163,8 @@ export default defineNitroPlugin((nitroApp) => {
       'error.fingerprint': fingerprint,
       'error.type': errorType,
       'error.severity': statusCode >= 500 ? '5xx' : '4xx',
+      'error.group': group,
+      'http.route': normalizeRoute(url),
     });
 
     logger.error(

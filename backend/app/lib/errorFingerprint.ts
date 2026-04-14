@@ -52,6 +52,7 @@ export function recordError(
     'error.fingerprint': fingerprint,
     'error.type': errorType,
     'error.severity': extraAttrs?.['error.severity'] || '5xx',
+    'error.group': group,
     ...extraAttrs,
   });
 
@@ -78,6 +79,7 @@ export function recordClientError(
     'error.fingerprint': fingerprint,
     'error.type': errorType,
     'error.severity': '4xx',
+    'error.group': group,
     ...extraAttrs,
   });
 
