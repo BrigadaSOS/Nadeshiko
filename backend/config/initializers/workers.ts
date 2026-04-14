@@ -3,7 +3,9 @@ import { registerActivityRetentionWorker } from '@app/workers/activityRetentionW
 import { registerEmailWorkers } from '@app/workers/emailWorker';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { setBossInstance } from '@app/workers/pgBossClient';
+import { registerQueueMetrics } from '@app/workers/workerInstrumentation';
 import {
+  ALL_QUEUES,
   ACTIVITY_RETENTION_QUEUE,
   EMAIL_SEND_QUEUE,
   ES_SYNC_CREATE_QUEUE,
@@ -91,6 +93,7 @@ export const workersInitializer: RuntimeInitializer = {
     logger.info('PgBoss initialized, queues created, cron scheduled');
 
     setBossInstance(boss);
+    registerQueueMetrics(boss, ALL_QUEUES);
 
     await registerEsSyncWorkers(boss);
     await registerEmailWorkers(boss);

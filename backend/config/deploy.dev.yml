@@ -1,10 +1,12 @@
 service: nadeshiko-backend-dev
 image: brigadasos/nadeshiko-backend-dev
 
-options:
-  # Memory limit: 1.5GB RAM + 256MB swap for dev
-  memory: 1.5g
-  memory-swap: 1.75g
+servers:
+  web:
+    options:
+      # Memory limit: 1.5GB RAM + 256MB swap for dev
+      memory: 1.5g
+      memory-swap: 1.75g
 
 proxy:
   ssl: true

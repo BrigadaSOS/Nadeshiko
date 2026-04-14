@@ -1,10 +1,19 @@
 import pino from 'pino';
+import { trace, context } from '@opentelemetry/api';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 const baseOptions: pino.LoggerOptions = {
   level: process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
   timestamp: pino.stdTimeFunctions.isoTime,
+  mixin() {
+    const span = trace.getSpan(context.active());
+    if (span) {
+      const { traceId, spanId, traceFlags } = span.spanContext();
+      return { trace_id: traceId, span_id: spanId, trace_flags: `0${traceFlags.toString(16)}` };
+    }
+    return {};
+  },
   redact: [
     // Sensitive headers
     'req.headers.cookie',

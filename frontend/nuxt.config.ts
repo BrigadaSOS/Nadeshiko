@@ -138,6 +138,8 @@ export default defineNuxtConfig({
     host: 'https://t.nadeshiko.co',
     clientConfig: {
       capture_exceptions: true,
+      capture_pageview: true,
+      capture_pageleave: true,
     },
     serverConfig: {
       enableExceptionAutocapture: true,

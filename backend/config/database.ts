@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { APP_ENTITIES, APP_SUBSCRIBERS } from '@config/schema';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { InstrumentedTypeOrmLogger } from '@app/middleware/dbInstrumentation';
+import { getMeter } from '@config/telemetry';
 import { logger } from '@config/log';
 
 const postgres = getAppPostgresConfig();
@@ -29,9 +30,40 @@ export const AppDataSource = new DataSource({
   },
 });
 
+function registerPoolMetrics(): void {
+  const pool = (AppDataSource.driver as any).master;
+  if (!pool) return;
+
+  const meter = getMeter();
+  const attrs = { 'db.system.name': 'postgresql' };
+
+  meter.createObservableGauge('db.client.connection.count', {
+    description: 'Current number of connections in the pool',
+    unit: '{connection}',
+  }).addCallback((obs) => {
+    obs.observe(pool.totalCount, { ...attrs, 'db.client.connection.state': 'used' });
+    obs.observe(pool.idleCount, { ...attrs, 'db.client.connection.state': 'idle' });
+  });
+
+  meter.createObservableGauge('db.client.connection.pending_requests', {
+    description: 'Number of queued requests waiting for a connection',
+    unit: '{request}',
+  }).addCallback((obs) => {
+    obs.observe(pool.waitingCount, attrs);
+  });
+
+  meter.createObservableGauge('db.client.connection.max', {
+    description: 'Maximum number of connections in the pool',
+    unit: '{connection}',
+  }).addCallback((obs) => {
+    obs.observe(pool.options?.max ?? 15, attrs);
+  });
+}
+
 export async function initializeDatabase(): Promise<void> {
   try {
     await AppDataSource.initialize();
+    registerPoolMetrics();
     logger.info('Database connection established successfully');
   } catch (error) {
     logger.error(error, 'Database connection failed');

@@ -142,6 +142,14 @@ const syncFromResponse = () => {
 
 syncFromResponse();
 
+if (import.meta.client) {
+  const posthog = usePostHog();
+  posthog?.capture('media_browsed', {
+    category: filterCategory.value,
+    search_query: searchQuery.value,
+  });
+}
+
 watch(initialResponse, () => {
   syncFromResponse();
 });
@@ -227,6 +235,15 @@ const loadMore = async () => {
 
 const handleFilterChange = (category) => {
   updateUrl({ category });
+};
+
+const trackMediaSelected = (mediaInfo, viewMode) => {
+  const posthog = usePostHog();
+  posthog?.capture('media_selected', {
+    media_id: mediaInfo.publicId,
+    media_name: mediaName(mediaInfo),
+    view_mode: viewMode,
+  });
 };
 
 let observer = null;
@@ -348,7 +365,7 @@ watch([searchQuery, filterCategory], () => {
           <div
             class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
-            <NuxtLink data-testid="media-card" :to="`/search?media=${mediaInfo.publicId}`">
+            <NuxtLink data-testid="media-card" :to="`/search?media=${mediaInfo.publicId}`" @click="trackMediaSelected(mediaInfo, 'grid')">
               <img
                 :src="mediaInfo.coverUrl"
                 :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
@@ -491,6 +508,7 @@ watch([searchQuery, filterCategory], () => {
                   <NuxtLink
                     :to="`/search?media=${mediaInfo.publicId}`"
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-input-focus-ring dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
+                    @click="trackMediaSelected(mediaInfo, 'list')"
                   >
                     <div>{{ $t('animeList.vocabularyButton') }}</div>
                     <UiBaseIcon

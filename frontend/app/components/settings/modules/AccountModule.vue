@@ -44,11 +44,14 @@ const requestEmailChange = async () => {
   }
 };
 
+const posthog = usePostHog();
+
 const updatePreference = async (key: string, value: string) => {
   savingPreferences.value = true;
   try {
     await sdk.updateUserPreferences({ body: { [key]: value } });
     user_store.preferences = { ...user_store.preferences, [key]: value };
+    posthog?.capture('setting_changed', { setting_name: key, value });
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
   } catch (error) {
     console.error('Failed to update preference:', error);

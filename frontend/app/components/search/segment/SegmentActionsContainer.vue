@@ -82,6 +82,10 @@ const emit = defineEmits([
 
 const concatSentence = (direction: 'forward' | 'backward' | 'both') => {
   emit('concat-sentence', props.content, direction);
+  posthog?.capture('segment_expanded', {
+    direction,
+    media_id: props.content.media.id,
+  });
 };
 
 const revertConcat = () => {
@@ -90,6 +94,10 @@ const revertConcat = () => {
 
 const openContextModal = () => {
   emit('open-context-modal', props.content);
+  posthog?.capture('context_viewed', {
+    media_id: props.content.media.id,
+    segment_id: props.content.segment.publicId,
+  });
 };
 
 const openAnkiModal = () => {
@@ -133,7 +141,7 @@ const loadCollections = async () => {
   }
 };
 
-const addToCollection = async (collection: CollectionOption) => {
+const addToCollection = async (collection: CollectionOption, isQuickAdd = false) => {
   if (addingCollectionId.value !== null) return;
 
   addingCollectionId.value = collection.id;
@@ -144,6 +152,7 @@ const addToCollection = async (collection: CollectionOption) => {
     });
     posthog?.capture('segment_added_to_collection', {
       collection_name: collection.name,
+      is_quick_add: isQuickAdd,
     });
     useToastSuccess(t('searchpage.main.labels.collectionAdded', { name: collection.name }));
     saveLastCollection(collection);
@@ -156,7 +165,7 @@ const addToCollection = async (collection: CollectionOption) => {
 
 const quickAddToLastCollection = async () => {
   if (!lastCollection.value) return;
-  await addToCollection(lastCollection.value);
+  await addToCollection(lastCollection.value, true);
 };
 
 const openCollectionsPage = async () => {

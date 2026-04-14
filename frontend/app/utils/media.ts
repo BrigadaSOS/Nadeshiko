@@ -123,6 +123,11 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
 }
 
 export function downloadAudioOrImage(url: string | URL | Request, filename: string, isBlobUrl = false) {
+  const ext = String(filename).split('.').pop()?.toLowerCase();
+  const typeMap: Record<string, string> = { mp4: 'video', png: 'image', jpg: 'image', mp3: 'audio', wav: 'audio' };
+  const posthog = usePostHog();
+  posthog?.capture('segment_downloaded', { download_type: typeMap[ext ?? ''] ?? ext });
+
   if (isBlobUrl) {
     const a = document.createElement('a');
     a.href = url as string;
@@ -192,6 +197,12 @@ export async function getSharingURL(params: {
     await navigator.clipboard.writeText(`${window.location.origin}/sentence/${params.publicId}`);
     const message = $i18n.t('searchpage.main.labels.copiedsharingurl');
     useToastSuccess(message);
+
+    const posthog = usePostHog();
+    posthog?.capture('segment_shared', {
+      media_id: params.mediaId,
+      media_name: params.mediaName,
+    });
 
     const user = userStore();
     if (user.isLoggedIn) {

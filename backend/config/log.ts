@@ -1,6 +1,7 @@
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { basename } from 'path';
+import { trace, context } from '@opentelemetry/api';
 import { config } from '@config/config';
 
 const normalizedEnvironment = (config.ENVIRONMENT || '').trim().toLowerCase();
@@ -80,6 +81,14 @@ const baseOptions: pino.LoggerOptions = {
     'res.body.revisions',
   ],
 
+  mixin() {
+    const span = trace.getSpan(context.active());
+    if (span) {
+      const { traceId, spanId, traceFlags } = span.spanContext();
+      return { trace_id: traceId, span_id: spanId, trace_flags: `0${traceFlags.toString(16)}` };
+    }
+    return {};
+  },
   formatters: {
     level: (label) => {
       return { level: label };
