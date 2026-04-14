@@ -3,12 +3,12 @@ import helmet from 'helmet';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { NotFoundError } from '@app/errors';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
-import { tracingMiddleware } from '@app/middleware/tracing';
 import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
 import { rawBodySaver } from '@app/middleware/rawBodySaver';
 import { httpLogger } from '@config/log';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 import { mountRoutes as defaultMountRoutes } from '@config/routes';
+import { getMeter } from '@config/telemetry';
 
 const JSON_BODY_LIMIT = '10mb';
 
@@ -60,7 +60,16 @@ export function configureMiddleware(app: Application): Application {
   app.use(handleJsonParseErrors as ErrorRequestHandler);
 
   app.use(httpLogger);
-  app.use(tracingMiddleware);
+
+  const activeRequests = getMeter().createUpDownCounter('http.server.active_requests', {
+    description: 'Number of active HTTP server requests',
+    unit: '{request}',
+  });
+  app.use((req, res, next) => {
+    activeRequests.add(1, { 'http.request.method': req.method });
+    res.on('finish', () => activeRequests.add(-1, { 'http.request.method': req.method }));
+    next();
+  });
 
   return app;
 }
