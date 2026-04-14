@@ -26,8 +26,26 @@ const responseBodySize = meter.createHistogram('http.server.response.body.size',
   unit: 'By',
 });
 
+const ID_PATTERN = /^[0-9]+$|^[0-9a-f]{8,}$/i;
+const NANOID_PATTERN = /^[A-Za-z0-9_-]{8,}$/;
+
+function isIdSegment(seg: string): boolean {
+  if (ID_PATTERN.test(seg)) return true;
+  if (seg.length >= 8 && NANOID_PATTERN.test(seg) && /[0-9]/.test(seg) && /[A-Za-z]/.test(seg)) return true;
+  return false;
+}
+
+function normalizePathIds(path: string): string {
+  return path
+    .split('/')
+    .map((s) => (s !== '' && isIdSegment(s) ? ':id' : s))
+    .join('/');
+}
+
 function getRoute(req: Request): string {
-  return (req.route?.path as string) || req.path;
+  if (req.route?.path) return req.route.path as string;
+  // Fallback: normalize raw path to collapse IDs and prevent cardinality explosion
+  return normalizePathIds(req.path);
 }
 
 export function tracingMiddleware(req: Request, res: Response, next: NextFunction) {
