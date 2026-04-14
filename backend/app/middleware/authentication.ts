@@ -12,6 +12,7 @@ import { auth } from '@config/auth';
 import { fromNodeHeaders } from 'better-auth/node';
 import { defaultKeyHasher } from '@better-auth/api-key';
 import { AppDataSource } from '@config/database';
+import { trace } from '@opentelemetry/api';
 import { logger } from '@config/log';
 import {
   getCachedApiKey,
@@ -224,6 +225,9 @@ async function attachAuthPayloadToRequest(
     type: authType,
     ...(apiKey ? { apiKey } : {}),
   };
+
+  const span = trace.getActiveSpan();
+  if (span) span.setAttribute('enduser.id', String(userId));
 }
 
 async function loadActiveUser(userId: number): Promise<User> {

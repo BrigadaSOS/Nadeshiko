@@ -13,32 +13,29 @@ import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-docu
 import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { onCLS, onINP, onLCP, onTTFB } from 'web-vitals';
+import { getPagePath } from '~/utils/pagePath';
 
-const DYNAMIC_ROUTE_PATTERNS: [RegExp, string][] = [
-  [/^\/search\/.*/, '/search/:query'],
-  [/^\/sentence\/.*/, '/sentence/:id'],
-  [/^\/collection\/.*/, '/collection/:id'],
-  [/^\/s\/.*/, '/s/:id'],
-  [/^\/admin\/.*/, '/admin/:slug'],
-  [/^\/settings\/.*/, '/settings/:slug'],
-  [/^\/user\/.*/, '/user/:slug'],
-];
+const ID_PATTERN = /^[0-9]+$|^[0-9a-f]{8,}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NANOID_PATTERN = /^[A-Za-z0-9_-]{8,}$/;
 
-function getPagePath(): string {
-  try {
-    const path = new URL(window.location.href).pathname;
-    for (const [pattern, replacement] of DYNAMIC_ROUTE_PATTERNS) {
-      if (pattern.test(path)) return replacement;
-    }
-    return path;
-  } catch {
-    return '/';
-  }
+function isIdSegment(seg: string): boolean {
+  if (ID_PATTERN.test(seg)) return true;
+  if (UUID_PATTERN.test(seg)) return true;
+  if (seg.length >= 8 && NANOID_PATTERN.test(seg) && /[0-9]/.test(seg) && /[A-Za-z]/.test(seg)) return true;
+  return false;
+}
+
+function normalizePath(path: string): string {
+  return path
+    .split('/')
+    .map((s) => (s !== '' && isIdSegment(s) ? ':id' : s))
+    .join('/');
 }
 
 function getUrlPath(url: string): string {
   try {
-    return new URL(url).pathname;
+    return normalizePath(new URL(url).pathname);
   } catch {
     return url;
   }
@@ -141,10 +138,26 @@ export default defineNuxtPlugin({
     const meter = meterProvider.getMeter('nadeshiko-browser');
 
     const vitalHistograms: Record<string, ReturnType<typeof meter.createHistogram>> = {
-      TTFB: meter.createHistogram('web_vital.ttfb', { description: 'Time to First Byte', unit: 'ms' }),
-      LCP: meter.createHistogram('web_vital.lcp', { description: 'Largest Contentful Paint', unit: 'ms' }),
-      CLS: meter.createHistogram('web_vital.cls', { description: 'Cumulative Layout Shift', unit: '' }),
-      INP: meter.createHistogram('web_vital.inp', { description: 'Interaction to Next Paint', unit: 'ms' }),
+      TTFB: meter.createHistogram('web_vital.ttfb', {
+        description: 'Time to First Byte',
+        unit: 'ms',
+        advice: { explicitBucketBoundaries: [0, 100, 200, 400, 800, 1200, 1800, 3000, 5000] },
+      }),
+      LCP: meter.createHistogram('web_vital.lcp', {
+        description: 'Largest Contentful Paint',
+        unit: 'ms',
+        advice: { explicitBucketBoundaries: [0, 200, 500, 1000, 2500, 4000, 6000, 10000] },
+      }),
+      CLS: meter.createHistogram('web_vital.cls', {
+        description: 'Cumulative Layout Shift',
+        unit: '',
+        advice: { explicitBucketBoundaries: [0, 10, 25, 50, 100, 250, 500, 1000] },
+      }),
+      INP: meter.createHistogram('web_vital.inp', {
+        description: 'Interaction to Next Paint',
+        unit: 'ms',
+        advice: { explicitBucketBoundaries: [0, 50, 100, 200, 300, 500, 1000, 2000] },
+      }),
     };
 
     function reportVital({ name, value, rating }: { name: string; value: number; rating: string }) {
@@ -174,6 +187,10 @@ export default defineNuxtPlugin({
     });
     const logger = loggerProvider.getLogger('browser-console');
 
+    const errorCounter = meter.createCounter('app.exception', {
+      description: 'Total application exceptions by fingerprint',
+    });
+
     const severityMap: Record<string, SeverityNumber> = {
       error: SeverityNumber.ERROR,
       warn: SeverityNumber.WARN,
@@ -192,41 +209,6 @@ export default defineNuxtPlugin({
       };
     }
 
-    const originalOnError = window.onerror;
-    window.onerror = (message, source, lineno, colno, error) => {
-      logger.emit({
-        severityNumber: SeverityNumber.ERROR,
-        severityText: 'ERROR',
-        body: String(message),
-        attributes: {
-          'log.source': 'window.onerror',
-          'page.path': getPagePath(),
-          'exception.source': source || '',
-          'exception.lineno': lineno || 0,
-          'exception.colno': colno || 0,
-          'exception.type': error?.name || '',
-          'exception.stacktrace': error?.stack || '',
-        },
-      });
-      if (originalOnError) return originalOnError(message, source, lineno, colno, error);
-      return false;
-    };
-
-    window.addEventListener('unhandledrejection', (event) => {
-      const reason = event.reason;
-      logger.emit({
-        severityNumber: SeverityNumber.ERROR,
-        severityText: 'ERROR',
-        body: reason instanceof Error ? reason.message : String(reason),
-        attributes: {
-          'log.source': 'unhandledrejection',
-          'page.path': getPagePath(),
-          'exception.type': reason instanceof Error ? reason.name : 'UnhandledRejection',
-          'exception.stacktrace': reason instanceof Error ? reason.stack || '' : '',
-        },
-      });
-    });
-
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         logProcessor.forceFlush();
@@ -235,7 +217,7 @@ export default defineNuxtPlugin({
     });
 
     return {
-      provide: { otelTracer: tracer },
+      provide: { otelTracer: tracer, otelErrorCounter: errorCounter },
     };
   },
 });

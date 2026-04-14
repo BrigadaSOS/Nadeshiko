@@ -92,12 +92,19 @@ onBeforeUnmount(() => {
   }
 });
 
+const posthog = usePostHog();
+
 const toggleFromResult = async (result: MediaAutocompleteItem) => {
+  const wasHidden = isMediaHidden(result.publicId);
   await toggleHideMedia({
     publicId: result.publicId,
     nameEn: result.nameEn,
     nameJa: result.nameJa,
     nameRomaji: result.nameRomaji,
+  });
+  posthog?.capture('media_visibility_changed', {
+    action: wasHidden ? 'unhidden' : 'hidden',
+    media_name: displayMediaName(result),
   });
 };
 
@@ -107,6 +114,10 @@ const unhide = async (item: HiddenMediaItem) => {
     nameEn: item.nameEn,
     nameJa: item.nameJa,
     nameRomaji: item.nameRomaji,
+  });
+  posthog?.capture('media_visibility_changed', {
+    action: 'unhidden',
+    media_name: displayMediaName(item),
   });
 };
 </script>

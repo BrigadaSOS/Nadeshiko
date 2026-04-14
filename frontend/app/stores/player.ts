@@ -42,6 +42,17 @@ export const usePlayerStore = defineStore('player', {
       this.currentIndex = startIndex;
       this.showPlayer = true;
       this.isImmersive = false;
+
+      const result = results[startIndex];
+      if (result && import.meta.client) {
+        const posthog = usePostHog();
+        posthog?.capture('search_result_clicked', {
+          media_id: result.media.id,
+          media_name: result.media.nameRomaji,
+          result_position: startIndex,
+        });
+      }
+
       this.playCurrent();
     },
 
@@ -61,6 +72,16 @@ export const usePlayerStore = defineStore('player', {
           .play()
           .then(() => {
             this.isPlaying = true;
+
+            const posthog = usePostHog();
+            posthog?.capture('segment_played', {
+              media_id: this.currentResult?.media.id,
+              media_name: this.currentResult?.media.nameRomaji,
+              segment_id: this.currentResult?.segment.publicId,
+              playlist_position: this.currentIndex,
+              is_autoplay: this.autoplay,
+            });
+
             const user = userStore();
             if (user.isLoggedIn) {
               const sdk = useNadeshikoSdk();
@@ -120,6 +141,8 @@ export const usePlayerStore = defineStore('player', {
 
     toggleAutoplay() {
       this.autoplay = !this.autoplay;
+      const posthog = usePostHog();
+      posthog?.capture('autoplay_toggled', { enabled: this.autoplay });
     },
 
     toggleRepeat() {
@@ -128,12 +151,20 @@ export const usePlayerStore = defineStore('player', {
 
     toggleImmersive() {
       this.isImmersive = !this.isImmersive;
+      const posthog = usePostHog();
+      posthog?.capture('immersive_mode_toggled', { enabled: this.isImmersive });
     },
 
     next() {
       if (this.currentIndex !== null && this.currentIndex < this.playlist.length - 1) {
         this.currentIndex++;
         this.playCurrent();
+        const posthog = usePostHog();
+        posthog?.capture('segment_navigated', {
+          direction: 'next',
+          playlist_position: this.currentIndex,
+          playlist_size: this.playlist.length,
+        });
       } else {
         this.isPlaying = false;
       }
@@ -143,6 +174,12 @@ export const usePlayerStore = defineStore('player', {
       if (this.currentIndex !== null && this.currentIndex > 0) {
         this.currentIndex--;
         this.playCurrent();
+        const posthog = usePostHog();
+        posthog?.capture('segment_navigated', {
+          direction: 'prev',
+          playlist_position: this.currentIndex,
+          playlist_size: this.playlist.length,
+        });
       }
     },
 
@@ -151,6 +188,11 @@ export const usePlayerStore = defineStore('player', {
         this.currentAudio.currentTime = 0;
         this.currentAudio.play();
         this.isPlaying = true;
+        const posthog = usePostHog();
+        posthog?.capture('segment_replayed', {
+          media_id: this.currentResult?.media.id,
+          segment_id: this.currentResult?.segment.publicId,
+        });
       }
     },
 

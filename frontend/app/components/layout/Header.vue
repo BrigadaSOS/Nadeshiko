@@ -91,7 +91,7 @@ async function submitSidebarSearch() {
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.about") }}
                     </NuxtLink>
-                    <NuxtLink to="/api/v1/docs" :prefetch="false"
+                    <NuxtLink to="/docs/api/index.html" external
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         API
                     </NuxtLink>
@@ -213,7 +213,7 @@ async function submitSidebarSearch() {
                     <UiBaseIcon :path="mdiInformationOutline" :size="18" />
                     {{ $t("navbar.buttons.about") }}
                 </NuxtLink>
-                <NuxtLink to="/api/v1/docs" :prefetch="false"
+                <NuxtLink to="/docs/api/index.html" external
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiApi" :size="18" />
                     API

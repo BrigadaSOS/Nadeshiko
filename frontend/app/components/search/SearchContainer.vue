@@ -305,12 +305,19 @@ const fetchSentences = async () => {
 
       if (isInitialSearch && query.value && query.value !== lastTrackedQuery.value && import.meta.client) {
         lastTrackedQuery.value = query.value;
+        const resultsCount = response?.pagination?.estimatedTotalHits ?? 0;
         posthog?.capture('sentence_searched', {
           query: query.value,
           category: category.value,
           has_media_filter: !!media.value,
-          results_count: response?.pagination?.estimatedTotalHits ?? 0,
+          results_count: resultsCount,
         });
+        if (resultsCount === 0) {
+          posthog?.capture('search_results_empty', {
+            query: query.value,
+            category: category.value,
+          });
+        }
         if (userStore().isLoggedIn) {
           sdk.trackUserActivity({ body: { activityType: 'SEARCH', searchQuery: query.value } }).catch(() => {});
         }
@@ -366,6 +373,10 @@ const resetSentencePagination = () => {
 };
 
 const loadMore = () => {
+  posthog?.capture('search_load_more', {
+    query: query.value,
+    results_so_far: sentenceData.value?.results?.length ?? 0,
+  });
   fetchSentences();
 };
 
@@ -386,6 +397,11 @@ const getCategoryCount = (categoryKey: string): number => {
 };
 
 const categoryFilter = (categoryKey: string) => {
+  posthog?.capture('search_filter_changed', {
+    category: categoryKey,
+    query: query.value,
+  });
+
   const queryParams = {
     ...route.query,
   };
