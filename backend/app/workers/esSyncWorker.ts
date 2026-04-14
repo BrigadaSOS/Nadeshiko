@@ -5,6 +5,7 @@ import { logger } from '@config/log';
 import { In } from 'typeorm';
 import type { EsSyncJobData } from './esSyncQueue';
 import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from './queueNames';
+import { instrumentedHandler } from './workerInstrumentation';
 
 export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
   const workerOptions = {
@@ -12,17 +13,29 @@ export async function registerEsSyncWorkers(boss: PgBoss): Promise<void> {
     teamSize: 3,
   };
 
-  await boss.work(ES_SYNC_CREATE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
-    await handleBulkIndex(jobs, 'CREATE');
-  });
+  await boss.work(
+    ES_SYNC_CREATE_QUEUE,
+    workerOptions,
+    instrumentedHandler(ES_SYNC_CREATE_QUEUE, async (jobs: Job<EsSyncJobData>[]) => {
+      await handleBulkIndex(jobs, 'CREATE');
+    }),
+  );
 
-  await boss.work(ES_SYNC_UPDATE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
-    await handleBulkIndex(jobs, 'UPDATE');
-  });
+  await boss.work(
+    ES_SYNC_UPDATE_QUEUE,
+    workerOptions,
+    instrumentedHandler(ES_SYNC_UPDATE_QUEUE, async (jobs: Job<EsSyncJobData>[]) => {
+      await handleBulkIndex(jobs, 'UPDATE');
+    }),
+  );
 
-  await boss.work(ES_SYNC_DELETE_QUEUE, workerOptions, async (jobs: Job<EsSyncJobData>[]) => {
-    await handleBulkDelete(jobs);
-  });
+  await boss.work(
+    ES_SYNC_DELETE_QUEUE,
+    workerOptions,
+    instrumentedHandler(ES_SYNC_DELETE_QUEUE, async (jobs: Job<EsSyncJobData>[]) => {
+      await handleBulkDelete(jobs);
+    }),
+  );
 
   logger.info('ES sync workers registered with batchSize=100, teamSize=3');
 }

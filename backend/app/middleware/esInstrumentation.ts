@@ -8,8 +8,8 @@ const ES_DURATION_BUCKETS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10];
 
 const meter = getMeter();
 
-const operationDuration = meter.createHistogram('db.client.operation.duration', {
-  description: 'Duration of database client operations',
+const operationDuration = meter.createHistogram('db.elasticsearch.operation.duration', {
+  description: 'Duration of Elasticsearch client operations',
   unit: 's',
   advice: { explicitBucketBoundaries: ES_DURATION_BUCKETS },
 });

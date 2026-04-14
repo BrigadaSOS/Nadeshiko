@@ -117,6 +117,8 @@ export const ankiStore = defineStore('anki', {
         body: { ankiProfiles: profiles },
       });
       store.preferences = { ...store.preferences, ankiProfiles: profiles };
+      const posthog = usePostHog();
+      posthog?.capture('anki_profile_configured', { profile_count: profiles.length });
     },
 
     async createProfile(name: string): Promise<AnkiProfile> {
@@ -199,7 +201,15 @@ export const ankiStore = defineStore('anki', {
         if (models && Array.isArray(models)) {
           this.availableModels = models;
         }
+        const posthog = usePostHog();
+        posthog?.capture('anki_connection_tested', {
+          success: true,
+          deck_count: this.availableDecks.length,
+          model_count: this.availableModels.length,
+        });
       } catch (error) {
+        const posthog = usePostHog();
+        posthog?.capture('anki_connection_tested', { success: false });
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`Failed to load Anki data: ${message}`);
       }
@@ -518,11 +528,16 @@ export const ankiStore = defineStore('anki', {
         posthog?.capture('anki_export_completed', {
           media_name: mediaName(sentence.media),
           media_id: sentence.media.id,
+          export_method: id ? 'search_by_id' : 'last_card',
         });
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {
         console.error(error);
+        const posthog = usePostHog();
+        posthog?.capture('anki_export_failed', {
+          error_message: error instanceof Error ? error.message : String(error),
+        });
         useToastError($i18n.t('anki.toast.cardAddError', { error: error }));
       }
     },

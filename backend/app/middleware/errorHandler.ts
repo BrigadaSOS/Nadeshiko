@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors';
 import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
-import { trace, SpanStatusCode } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 import { logger } from '@config/log';
 import { ApiError, ValidationFailedError, NotFoundError, InternalServerError, isApiError } from '@app/errors';
+import { recordError, recordClientError } from '@app/lib/errorFingerprint';
 import { routeErrorCodes } from 'generated/errorProfiles';
 
 type PgDriverError = {
@@ -24,10 +25,12 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
   if (error instanceof QueryFailedError) {
     const mappedError = mapQueryFailedError(error, requestId);
     if (mappedError) {
+      recordClientError(error, mappedError.code, { 'http.route': req.route?.path ?? req.path });
       return res.status(mappedError.status).json(mappedError.toJSON());
     }
     // Other query errors - log as warning (might be expected)
-    logger.warn({ err: error, requestId }, 'Database query failed');
+    const fp = recordRealException(error, req);
+    logger.warn({ err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Database query failed');
     return res.status(500).json(createInternalError(requestId).toJSON());
   }
 
@@ -35,12 +38,13 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
   if (error instanceof EntityNotFoundError) {
     const notFoundError = parseEntityNotFoundError(error);
     notFoundError.instance = requestId;
+    recordClientError(error, 'NOT_FOUND', { 'http.route': req.route?.path ?? req.path });
     return res.status(404).json(notFoundError.toJSON());
   }
 
   // Handle ExpressRuntimeError from the generated routes
   if (error instanceof ExpressRuntimeError) {
-    const apiError = convertExpressRuntimeError(error, requestId);
+    const apiError = convertExpressRuntimeError(error, requestId, req);
     return res.status(apiError.status).json(apiError.toJSON());
   }
 
@@ -52,7 +56,10 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     }
 
     if (error.status >= 500) {
-      logger.error({ err: error, requestId }, 'Server error');
+      const fp = recordRealException(error, req);
+      logger.error({ err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Server error');
+    } else if (error.status >= 400) {
+      recordClientError(error, error.code, { 'http.route': req.route?.path ?? req.path });
     }
 
     // Validate error code against documented codes for this route
@@ -70,7 +77,8 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
   }
 
   // Unknown error - log and return 500
-  logger.error({ err: error, requestId }, 'Unhandled error');
+  const fp = recordRealException(error, req);
+  logger.error({ err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Unhandled error');
   const internalError = createInternalError(requestId);
   return res.status(500).json(internalError.toJSON());
 }
@@ -87,16 +95,24 @@ function isErrorCodeAllowedForRoute(errorCode: string, validCodes: ReadonlySet<s
   return false;
 }
 
-function recordRealException(realError: unknown): void {
-  const span = trace.getActiveSpan();
-  if (!span) return;
-
+function recordRealException(realError: unknown, req?: Request): { fingerprint: string; group: string } {
   const error = realError instanceof Error ? realError : new Error(String(realError));
-  span.recordException(error);
-  span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+  const errorType = realError instanceof Error ? realError.constructor.name : 'UnknownError';
+
+  const attrs: Record<string, string> = {};
+  if (req?.route?.path) attrs['http.route'] = req.route.path;
+
+  const result = recordError(error, errorType, attrs);
+
+  const span = trace.getActiveSpan();
+  if (span && req?.user) {
+    span.setAttribute('enduser.id', String(req.user.id));
+  }
+
+  return result;
 }
 
-function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: string): ApiError {
+function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: string, req: Request): ApiError {
   const cause = error.cause;
 
   switch (error.phase) {
@@ -104,13 +120,16 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
       // Validation failed before handler - return 400 with details
       return createValidationError(cause, requestId);
 
-    case 'request_handler':
-      recordRealException(cause);
+    case 'request_handler': {
       // Error thrown in handler - check if it's our ApiError
       if (isApiError(cause)) {
-        // Attach requestId to the error
         if (!cause.instance) {
           cause.instance = requestId;
+        }
+        if (cause.status >= 500) {
+          recordRealException(cause, req);
+        } else if (cause.status >= 400) {
+          recordClientError(cause, cause.code, { 'http.route': req.route?.path ?? req.path });
         }
         return cause;
       }
@@ -118,30 +137,38 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
       if (cause instanceof EntityNotFoundError) {
         const notFoundError = parseEntityNotFoundError(cause);
         notFoundError.instance = requestId;
+        recordClientError(cause, 'NOT_FOUND', { 'http.route': req.route?.path ?? req.path });
         return notFoundError;
       }
       // Handle TypeORM QueryFailedError from handler (duplicate keys, etc.)
       if (cause instanceof QueryFailedError) {
         const mappedError = mapQueryFailedError(cause, requestId);
         if (mappedError) {
+          recordClientError(cause, mappedError.code, { 'http.route': req.route?.path ?? req.path });
           return mappedError;
         }
-        logger.warn({ err: cause, requestId }, 'Database query failed in handler');
+        const fp = recordRealException(cause, req);
+        logger.warn({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Database query failed in handler');
         return createInternalError(requestId);
       }
       // Handle other TypeORM errors from handler
       if (cause instanceof TypeORMError) {
-        logger.warn({ err: cause, requestId }, 'TypeORM error in handler');
+        const fp = recordRealException(cause, req);
+        logger.warn({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'TypeORM error in handler');
         return createInternalError(requestId);
       }
       // Unknown error from handler
-      logger.error({ err: cause, requestId }, 'Unhandled error in handler');
+      const fp = recordRealException(cause, req);
+      logger.error({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Unhandled error in handler');
       return createInternalError(requestId);
+    }
 
-    case 'response_validation':
+    case 'response_validation': {
       // Response validation failed - server bug
-      logger.error({ err: cause, requestId }, 'Response validation failed');
+      const fp = recordRealException(cause, req);
+      logger.error({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Response validation failed');
       return createInternalError(requestId);
+    }
 
     default:
       return createInternalError(requestId);

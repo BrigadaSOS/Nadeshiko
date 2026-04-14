@@ -1,6 +1,39 @@
+import { metrics } from '@opentelemetry/api';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('nitro:http');
+
+const errorCounter = metrics.getMeter('nadeshiko-frontend').createCounter('app.exception', {
+  description: 'Total application exceptions by fingerprint',
+});
+
+const SKIP_PATTERNS = [/node_modules\//, /node:internal\//, /<anonymous>/];
+const FRAME_RE = /at .+?\((.+?):\d+:\d+\)|at (.+?):\d+:\d+/;
+
+function computeFingerprint(error: Error | string, errorType: string): { fingerprint: string; group: string } {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+
+  let frame = 'unknown';
+  if (stack) {
+    for (const line of stack.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('at ')) continue;
+      if (SKIP_PATTERNS.some((p) => p.test(trimmed))) continue;
+      const match = trimmed.match(FRAME_RE);
+      const filePath = match?.[1] || match?.[2];
+      if (filePath) {
+        frame = filePath.replace(/:\d+:\d+$/, '');
+        break;
+      }
+    }
+  }
+
+  return {
+    fingerprint: `${errorType}:${frame}`,
+    group: message.length > 120 ? message.slice(0, 120) : message,
+  };
+}
 
 // Helper to safely parse JSON
 function safeParseJson(value: string | undefined | null): any {
@@ -90,7 +123,15 @@ export default defineNitroPlugin((nitroApp) => {
     const context = event?.context;
     const url = event?.node?.req?.url || 'unknown';
     const method = event?.node?.req?.method || 'UNKNOWN';
-    const statusCode = 'statusCode' in error ? (error.statusCode as number) : undefined;
+    const errorType = error.constructor?.name || 'Error';
+    const { fingerprint, group } = computeFingerprint(error, errorType);
+    const statusCode = 'statusCode' in error ? (error.statusCode as number) : 500;
+
+    errorCounter.add(1, {
+      'error.fingerprint': fingerprint,
+      'error.type': errorType,
+      'error.severity': statusCode >= 500 ? '5xx' : '4xx',
+    });
 
     logger.error(
       {
@@ -101,6 +142,8 @@ export default defineNitroPlugin((nitroApp) => {
         req: event ? getRedactedRequestPayload(event) : undefined,
         requestId: context?.requestId,
         stack: error.stack,
+        'error.fingerprint': fingerprint,
+        'error.group': group,
       },
       `[NITRO] ${method} ${url} - ERROR: ${error.message}`,
     );
@@ -109,7 +152,15 @@ export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('handlerError', (error, event) => {
     const url = event.node.req.url || 'unknown';
     const method = event.node.req.method || 'UNKNOWN';
-    const statusCode = 'statusCode' in error ? (error.statusCode as number) : undefined;
+    const errorType = error.constructor?.name || 'Error';
+    const { fingerprint, group } = computeFingerprint(error, errorType);
+    const statusCode = 'statusCode' in error ? (error.statusCode as number) : 500;
+
+    errorCounter.add(1, {
+      'error.fingerprint': fingerprint,
+      'error.type': errorType,
+      'error.severity': statusCode >= 500 ? '5xx' : '4xx',
+    });
 
     logger.error(
       {
@@ -120,6 +171,8 @@ export default defineNitroPlugin((nitroApp) => {
         req: getRedactedRequestPayload(event),
         requestId: event.context.requestId,
         stack: error.stack,
+        'error.fingerprint': fingerprint,
+        'error.group': group,
       },
       `[NITRO] ${method} ${url} - HANDLER ERROR: ${error.message}`,
     );

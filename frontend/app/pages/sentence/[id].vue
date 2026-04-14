@@ -79,6 +79,16 @@ const metaTags = computed(() => {
 });
 
 useHead(metaTags);
+
+if (import.meta.client) {
+  const result = initialSentenceData.value?.results?.[0];
+  const posthog = usePostHog();
+  posthog?.capture('shared_link_viewed', {
+    segment_id: id.value,
+    media_name: result ? mediaName(result.media) : undefined,
+    referrer: document.referrer || undefined,
+  });
+}
 </script>
 
 <template>

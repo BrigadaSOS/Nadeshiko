@@ -1,11 +1,13 @@
 image: brigadasos/nadeshiko-discord-prod
 service: nadeshiko-discord-prod
 
-options:
-  # Memory limit: 512MB RAM + 256MB swap
-  # Discord bot is lightweight, just API polling
-  memory: 512m
-  memory-swap: 768m
+servers:
+  web:
+    options:
+      # Memory limit: 512MB RAM + 256MB swap
+      # Discord bot is lightweight, just API polling
+      memory: 512m
+      memory-swap: 768m
 
 volumes:
   - nadeshiko-discord-data:/app/data

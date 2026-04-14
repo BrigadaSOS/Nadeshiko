@@ -201,6 +201,7 @@ export const userStore = defineStore('user', {
         }
 
         const impersonating = !!response?.session?.impersonatedBy;
+        const wasLoggedIn = this.isLoggedIn;
         this.$patch({
           isLoggedIn: true,
           userName: sessionUser?.name ?? null,
@@ -210,6 +211,17 @@ export const userStore = defineStore('user', {
           isImpersonating: impersonating,
           impersonatedUsername: impersonating ? (sessionUser?.name ?? null) : null,
         });
+
+        if (!wasLoggedIn && sessionUser?.createdAt) {
+          const createdAt = new Date(sessionUser.createdAt).getTime();
+          const now = Date.now();
+          if (now - createdAt < 60_000) {
+            const posthog = usePostHog();
+            posthog?.capture('signup_completed', {
+              provider: sessionUser?.provider ?? 'unknown',
+            });
+          }
+        }
 
         this.preferences = await $fetch<Record<string, any>>('/v1/user/preferences', {
           method: 'GET',

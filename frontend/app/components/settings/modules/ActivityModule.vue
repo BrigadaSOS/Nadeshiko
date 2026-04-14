@@ -193,6 +193,8 @@ const toggleTracking = async () => {
   try {
     await sdk.updateUserPreferences({ body: { searchHistory: { enabled: newValue } } });
     trackingEnabled.value = newValue;
+    const posthog = usePostHog();
+    posthog?.capture('activity_tracking_toggled', { enabled: newValue });
   } catch (error) {
     console.error('[Activity] Failed to toggle tracking:', error);
   } finally {

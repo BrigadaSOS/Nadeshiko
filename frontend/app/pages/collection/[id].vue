@@ -96,6 +96,14 @@ const metaTags = computed(() => {
 useHead(metaTags);
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
+
+if (import.meta.client) {
+  const posthog = usePostHog();
+  posthog?.capture('collection_viewed', {
+    collection_id: collectionId.value,
+    item_count: initialSentenceData.value?.pagination?.estimatedTotalHits ?? 0,
+  });
+}
 </script>
 
 <template>
