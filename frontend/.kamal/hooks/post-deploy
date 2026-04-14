@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Upload source maps to the browser collector's sourcemaps volume.
+# The symbolicator matches stack trace URLs like:
+#   https://nadeshiko.co/_nuxt/CaE2F1kx.js:1:23456
+# to source map files at:
+#   /sourcemaps/_nuxt/CaE2F1kx.js.map
+
+SOURCEMAPS_DIR="/var/lib/docker/volumes/otelcol-browser-sourcemaps/_data/_nuxt"
+
+ssh nadeshiko "mkdir -p $SOURCEMAPS_DIR"
+
+rsync -az --delete \
+  .output/public/_nuxt/*.map \
+  nadeshiko:"$SOURCEMAPS_DIR/"
+
+echo "Source maps uploaded to nadeshiko:$SOURCEMAPS_DIR"
+
+# Create Grafana deploy annotation
+cd "$(git rev-parse --show-toplevel)" || exit 1
+scripts/grafana-annotate-deploy.sh

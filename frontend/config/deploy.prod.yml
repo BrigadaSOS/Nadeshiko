@@ -37,3 +37,27 @@ env:
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http
+
+    NUXT_PUBLIC_OTEL_COLLECTOR_URL: "https://o.nadeshiko.co"
+
+accessories:
+  otelcol-browser:
+    image: ghcr.io/davafons/otelcol-browser:latest
+    host: nadeshiko
+    cmd: "--config=/etc/otelcol/config.yaml"
+    # Proxy route registered manually after boot:
+    #   ssh nadeshiko "docker exec kamal-proxy kamal-proxy deploy \
+    #     nadeshiko-frontend-prod-otelcol-browser \
+    #     --target \$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nadeshiko-frontend-prod-otelcol-browser):4329 \
+    #     --host o.nadeshiko.co --tls \
+    #     --health-check-port 13133 --health-check-path /"
+    options:
+      memory: 192m
+      add-host: host.docker.internal:host-gateway
+    env:
+      clear:
+        GOMEMLIMIT: 150MiB
+    files:
+      - config/otelcol-browser.yaml:/etc/otelcol/config.yaml:ro
+    volumes:
+      - otelcol-browser-sourcemaps:/sourcemaps:ro

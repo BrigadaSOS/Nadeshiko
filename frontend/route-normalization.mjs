@@ -19,7 +19,7 @@ const ROUTE_PATTERNS = [
 ];
 
 const IGNORED_PREFIXES = ['/_nuxt/', '/_i18n/', '/__nuxt'];
-const IGNORED_PATHS = ['/up', '/favicon.ico', '/otel-collector'];
+const IGNORED_PATHS = ['/up', '/favicon.ico'];
 
 function isIdSegment(seg) {
   if (ID_PATTERN.test(seg)) return true;
