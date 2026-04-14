@@ -1,1 +1,0 @@
-export default createOtelProxy('traces');

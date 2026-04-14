@@ -77,8 +77,11 @@ export default defineNuxtPlugin({
   name: 'otel',
   setup() {
     const config = useRuntimeConfig();
+    const collectorUrl = config.public.otelCollectorUrl;
 
-    const exporter = new OTLPTraceExporter({ url: '/otel-collector' });
+    if (!collectorUrl) return;
+
+    const exporter = new OTLPTraceExporter({ url: `${collectorUrl}/v1/traces` });
 
     const conn = (navigator as any).connection;
     const resourceAttrs: Record<string, string> = {
@@ -114,7 +117,7 @@ export default defineNuxtPlugin({
         new DocumentLoadInstrumentation(),
         new FetchInstrumentation({
           propagateTraceHeaderCorsUrls: [/^https?:\/\/(dev\.)?nadeshiko\.co/],
-          ignoreUrls: [/\/otel-collector/, /\/otel-logs/, /\/otel-metrics/, /cloud\.umami\.is/],
+          ignoreUrls: [/o\.nadeshiko\.co/, /cloud\.umami\.is/],
           applyCustomAttributesOnSpan(span, _request, result) {
             if (result instanceof Response) {
               span.setAttribute('http.response.status_code', result.status);
@@ -130,7 +133,7 @@ export default defineNuxtPlugin({
       resource: resourceFromAttributes(resourceAttrs),
       readers: [
         new PeriodicExportingMetricReader({
-          exporter: new OTLPMetricExporter({ url: '/otel-metrics' }),
+          exporter: new OTLPMetricExporter({ url: `${collectorUrl}/v1/metrics` }),
           exportIntervalMillis: 30_000,
         }),
       ],
@@ -175,7 +178,7 @@ export default defineNuxtPlugin({
     onCLS(reportVital);
     onINP(reportVital);
 
-    const logExporter = new OTLPLogExporter({ url: '/otel-logs' });
+    const logExporter = new OTLPLogExporter({ url: `${collectorUrl}/v1/logs` });
     const logProcessor = new BatchLogRecordProcessor(logExporter, {
       maxQueueSize: 50,
       maxExportBatchSize: 10,
