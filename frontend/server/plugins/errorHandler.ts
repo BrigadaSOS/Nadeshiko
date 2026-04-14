@@ -65,8 +65,7 @@ export default defineNitroPlugin((nitroApp) => {
     const statusCode = res.statusCode;
     const duration = Date.now() - (event.context.startTime || Date.now());
 
-    const isBotOrUnknown404 = statusCode === 404 && (event.context.isBot || !event.context.isKnownRoute);
-    const logLevel = isBotOrUnknown404 ? 'debug' : statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
+    const logLevel = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
     const logFn = logger[logLevel] || logger.info;
 
     logFn.call(
@@ -93,14 +92,6 @@ export default defineNitroPlugin((nitroApp) => {
     const method = event?.node?.req?.method || 'UNKNOWN';
     const statusCode = 'statusCode' in error ? (error.statusCode as number) : undefined;
 
-    if (statusCode === 404 && (context?.isBot || !context?.isKnownRoute)) {
-      logger.debug(
-        { type: 'bot-404', method, url, requestId: context?.requestId },
-        `[NITRO] ${method} ${url} - 404 (${context?.isBot ? 'bot' : 'unknown route'})`,
-      );
-      return;
-    }
-
     logger.error(
       {
         err: error,
@@ -119,14 +110,6 @@ export default defineNitroPlugin((nitroApp) => {
     const url = event.node.req.url || 'unknown';
     const method = event.node.req.method || 'UNKNOWN';
     const statusCode = 'statusCode' in error ? (error.statusCode as number) : undefined;
-
-    if (statusCode === 404 && (event.context.isBot || !event.context.isKnownRoute)) {
-      logger.debug(
-        { type: 'bot-404', method, url, requestId: event.context.requestId },
-        `[NITRO] ${method} ${url} - 404 (${event.context.isBot ? 'bot' : 'unknown route'})`,
-      );
-      return;
-    }
 
     logger.error(
       {
