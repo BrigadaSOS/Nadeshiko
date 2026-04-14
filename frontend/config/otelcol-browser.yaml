@@ -1,0 +1,72 @@
+receivers:
+  otlp/browser:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4329
+        include_metadata: true
+        cors:
+          allowed_origins:
+            - "https://nadeshiko.co"
+            - "https://dev.nadeshiko.co"
+          allowed_headers:
+            - "Content-Type"
+          max_age: 3600
+        max_request_body_size: 65536
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  headerinjector:
+    headers:
+      - header: cf-ipcountry
+        attribute: client.geo.country
+      - header: cf-ray
+        attribute: client.geo.edge
+        extract_edge_pop: true
+  source_map_symbolicator:
+    source_map_store: file_store
+    local_source_maps:
+      path: /sourcemaps
+    allowed_languages: ["webjs"]
+  batch:
+    send_batch_size: 1000
+    timeout: 5s
+
+exporters:
+  otlphttp:
+    endpoint: http://host.docker.internal:4328
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      encoding: json
+      level: debug
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: "0.0.0.0"
+                port: 8889
+  pipelines:
+    traces:
+      receivers: [otlp/browser]
+      processors: [memory_limiter, headerinjector, source_map_symbolicator, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp/browser]
+      processors: [memory_limiter, headerinjector, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp/browser]
+      processors: [memory_limiter, headerinjector, source_map_symbolicator, batch]
+      exporters: [otlphttp]
