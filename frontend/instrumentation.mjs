@@ -45,11 +45,11 @@ if (endpoint) {
         ignoreOutgoingRequestHook: () => true,
         ignoreIncomingRequestHook: (req) => isIgnoredPath(req.url || ''),
         requestHook: (span, request) => {
-          const url = request.url || '/';
-          const route = normalizeRoute(url);
-          span.updateName(`${request.method} ${route}`);
-          span.setAttribute('http.route', route);
-          span.setAttribute('http.target', url);
+          if ('url' in request && request.url) {
+            try {
+              span.setAttribute('http.target', decodeURIComponent(request.url));
+            } catch {}
+          }
         },
       }),
       new PinoInstrumentation(),

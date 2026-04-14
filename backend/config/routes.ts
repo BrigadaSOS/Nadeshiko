@@ -6,6 +6,8 @@ import express, {
   type Response,
 } from 'express';
 import { toNodeHandler } from 'better-auth/node';
+import { getRPCMetadata, RPCType } from '@opentelemetry/core';
+import { context as otelContext } from '@opentelemetry/api';
 import { auth } from '@config/auth';
 import { requireSession, enforceAdminAccess } from '@app/middleware/routePolicies';
 import { routeAuth } from 'generated/routeAuth';
@@ -272,8 +274,15 @@ export function mountRoutes(app: Application): Application {
     invalidateAuthCachesAfterMutation,
     toNodeHandler(auth),
   );
-  app.all('/v1/auth', noCache, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
-  app.all('/v1/auth/*splat', noCache, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
+  const setAuthRoute: RequestHandler = (req, _res, next) => {
+    const rpcMetadata = getRPCMetadata(otelContext.active());
+    if (rpcMetadata?.type === RPCType.HTTP) {
+      rpcMetadata.route = req.path.split('?')[0];
+    }
+    next();
+  };
+  app.all('/v1/auth', noCache, setAuthRoute, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
+  app.all('/v1/auth/*splat', noCache, setAuthRoute, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
   app.use('/', router);
   return app;
 }
