@@ -9,33 +9,23 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	"go.uber.org/zap"
 )
 
 type headerInjectorProcessor struct {
-	cfg    *Config
-	logger *zap.Logger
+	cfg *Config
 }
 
-func newProcessor(cfg *Config, logger *zap.Logger) *headerInjectorProcessor {
-	return &headerInjectorProcessor{cfg: cfg, logger: logger}
+func newProcessor(cfg *Config) *headerInjectorProcessor {
+	return &headerInjectorProcessor{cfg: cfg}
 }
 
 func (p *headerInjectorProcessor) extractValues(ctx context.Context) map[string]string {
 	info := client.FromContext(ctx)
 	attrs := make(map[string]string)
 
-	// Debug: log all available metadata keys
-	var keys []string
-	for key := range info.Metadata.Keys() {
-		keys = append(keys, key)
-	}
-	p.logger.Debug("headerinjector metadata", zap.Strings("keys", keys), zap.Int("header_count", len(keys)))
-
 	for _, mapping := range p.cfg.Headers {
 		vals := info.Metadata.Get(mapping.Header)
 		if len(vals) == 0 {
-			p.logger.Debug("header not found in metadata", zap.String("header", mapping.Header))
 			continue
 		}
 		value := vals[0]

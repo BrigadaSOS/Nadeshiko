@@ -57,6 +57,7 @@ function reportError(
     'error.fingerprint': fingerprint,
     'error.type': name,
     'error.severity': 'exception',
+    'error.group': group,
     'page.path': getPagePath(),
   });
 
