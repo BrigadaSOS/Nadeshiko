@@ -15,7 +15,6 @@ const ROUTE_PATTERNS = [
   [/^\/blog\/[^/]+$/, '/blog/:slug'],
   [/^\/admin\//, '/admin/:slug'],
   [/^\/settings\//, '/settings/:slug'],
-  [/^\/user\//, '/user/:slug'],
 ];
 
 const IGNORED_PREFIXES = ['/_nuxt/', '/_i18n/', '/__nuxt'];
@@ -23,7 +22,7 @@ const IGNORED_PATHS = ['/up', '/favicon.ico'];
 
 function isIdSegment(seg) {
   if (ID_PATTERN.test(seg)) return true;
-  if (seg.length >= 8 && NANOID_PATTERN.test(seg) && /[0-9]/.test(seg) && /[A-Za-z]/.test(seg)) return true;
+  if (seg.length >= 8 && NANOID_PATTERN.test(seg) && /[a-z]/.test(seg) && /[A-Z]/.test(seg)) return true;
   return false;
 }
 

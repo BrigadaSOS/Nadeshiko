@@ -12,7 +12,6 @@ import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
-import { trace, context } from '@opentelemetry/api';
 
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
@@ -40,17 +39,7 @@ if (endpoint) {
           }
         },
       }),
-      new ExpressInstrumentation({
-        ignoreLayersType: ['router', 'request_handler'],
-        requestHook: (span, info) => {
-          const route = info.request.route?.path || info.request.baseUrl;
-          if (!route) return;
-          const httpSpan = trace.getSpan(context.active());
-          if (httpSpan && httpSpan !== span) {
-            httpSpan.setAttribute('http.route', route);
-          }
-        },
-      }),
+      new ExpressInstrumentation(),
       new PgInstrumentation({
         enhancedDatabaseReporting: true,
         requestHook: (span, queryInfo) => {
