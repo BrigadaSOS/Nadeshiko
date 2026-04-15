@@ -35,7 +35,7 @@ properties:
     example: 1133
   status:
     type: string
-    enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
     description: Segment status
     example: "ACTIVE"
   startTimeMs:

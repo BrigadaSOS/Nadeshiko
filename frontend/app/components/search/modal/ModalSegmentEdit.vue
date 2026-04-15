@@ -43,11 +43,8 @@ const jsonErrors = reactive({
 
 const statusOptions = [
   { value: 'ACTIVE', color: 'green' },
-  { value: 'VERIFIED', color: 'blue' },
-  { value: 'SUSPENDED', color: 'amber' },
+  { value: 'HIDDEN', color: 'amber' },
   { value: 'DELETED', color: 'red' },
-  { value: 'INVALID', color: 'gray' },
-  { value: 'TOO_LONG', color: 'orange' },
 ] as const;
 
 const contentRatingOptions = [
@@ -234,6 +231,32 @@ const formatRelativeTime = (dateStr: string) => {
 
 const closeModal = () => {
   window.NDOverlay?.close('#nd-vertically-centered-scrollable-segment-edit');
+};
+
+const showDeleteEpisodeConfirm = ref(false);
+const isDeletingEpisode = ref(false);
+
+const deleteEpisode = async () => {
+  if (!props.segment || isDeletingEpisode.value) return;
+
+  isDeletingEpisode.value = true;
+  errorMessage.value = '';
+
+  try {
+    await $fetch(`/v1/media/${props.segment.media.id}/episodes/${props.segment.segment.episode}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    useToastSuccess(t('modalSegmentEdit.deleteEpisodeSuccess'));
+    closeModal();
+    window.location.reload();
+  } catch {
+    errorMessage.value = t('modalSegmentEdit.deleteEpisodeError');
+  } finally {
+    isDeletingEpisode.value = false;
+    showDeleteEpisodeConfirm.value = false;
+  }
 };
 
 const submitEdit = async () => {
@@ -699,26 +722,64 @@ const submitEdit = async () => {
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
-        <button
-          type="button"
-          class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-          data-nd-overlay="#nd-vertically-centered-scrollable-segment-edit"
-        >
-          {{ t('modalSegmentEdit.cancel') }}
-        </button>
-        <button
-          type="button"
-          :disabled="isSubmitting"
-          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
-          @click="submitEdit"
-        >
-          <span
-            v-if="isSubmitting"
-            class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
-          />
-          {{ isSubmitting ? t('modalSegmentEdit.saving') : t('modalSegmentEdit.save') }}
-        </button>
+      <div class="flex items-center py-3 px-4 border-t dark:border-modal-border">
+        <!-- Delete Episode (left side) -->
+        <div class="flex items-center gap-2">
+          <template v-if="!showDeleteEpisodeConfirm">
+            <button
+              type="button"
+              class="py-2 px-3 text-sm font-medium rounded-lg border border-red-800 text-red-400 hover:bg-red-900/30 transition-colors"
+              @click="showDeleteEpisodeConfirm = true"
+            >
+              {{ t('modalSegmentEdit.deleteEpisode') }}
+            </button>
+          </template>
+          <template v-else>
+            <span class="text-sm text-red-400">{{ t('modalSegmentEdit.deleteEpisodeConfirm', { episode: segment?.segment.episode }) }}</span>
+            <button
+              type="button"
+              :disabled="isDeletingEpisode"
+              class="py-1.5 px-3 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:pointer-events-none"
+              @click="deleteEpisode"
+            >
+              <span
+                v-if="isDeletingEpisode"
+                class="animate-spin inline-block w-3 h-3 border-[2px] border-current border-t-transparent rounded-full mr-1"
+              />
+              {{ t('modalSegmentEdit.deleteEpisodeYes') }}
+            </button>
+            <button
+              type="button"
+              class="py-1.5 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+              @click="showDeleteEpisodeConfirm = false"
+            >
+              {{ t('modalSegmentEdit.cancel') }}
+            </button>
+          </template>
+        </div>
+
+        <!-- Save / Cancel (right side) -->
+        <div class="flex items-center gap-x-2 ml-auto">
+          <button
+            type="button"
+            class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+            data-nd-overlay="#nd-vertically-centered-scrollable-segment-edit"
+          >
+            {{ t('modalSegmentEdit.cancel') }}
+          </button>
+          <button
+            type="button"
+            :disabled="isSubmitting"
+            class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
+            @click="submitEdit"
+          >
+            <span
+              v-if="isSubmitting"
+              class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+            />
+            {{ isSubmitting ? t('modalSegmentEdit.saving') : t('modalSegmentEdit.save') }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

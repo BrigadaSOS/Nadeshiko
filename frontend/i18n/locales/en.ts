@@ -218,6 +218,11 @@ export default {
       audio: 'Audio',
       video: 'Video',
     },
+    deleteEpisode: 'Delete Episode',
+    deleteEpisodeConfirm: 'Delete episode {episode} and all its segments?',
+    deleteEpisodeYes: 'Delete',
+    deleteEpisodeSuccess: 'Episode deleted successfully',
+    deleteEpisodeError: 'Failed to delete episode',
   },
   filterContent: {
     searchPlaceholder: 'Search here',

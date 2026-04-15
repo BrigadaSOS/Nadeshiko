@@ -9,7 +9,7 @@ SegmentFields: &segmentFields
   status:
     type: string
     description: Segment status
-    enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+    enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
     example: "ACTIVE"
   startTimeMs:
     type: integer
@@ -88,7 +88,7 @@ SegmentCreateRequest:
     status:
       type: string
       description: Segment status
-      enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+      enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
       default: "ACTIVE"
       example: "ACTIVE"
     textEs:
