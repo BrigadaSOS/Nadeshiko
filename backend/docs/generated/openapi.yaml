@@ -4772,8 +4772,9 @@ components:
           items:
             type: string
             enum:
-              - DELETED
               - ACTIVE
+              - HIDDEN
+              - DELETED
               - SUSPENDED
               - VERIFIED
               - INVALID
@@ -4963,8 +4964,9 @@ components:
         status:
           type: string
           enum:
-            - DELETED
             - ACTIVE
+            - HIDDEN
+            - DELETED
             - SUSPENDED
             - VERIFIED
             - INVALID
@@ -6134,8 +6136,9 @@ components:
           type: string
           description: Segment status
           enum:
-            - DELETED
             - ACTIVE
+            - HIDDEN
+            - DELETED
             - SUSPENDED
             - VERIFIED
             - INVALID
@@ -6697,8 +6700,9 @@ components:
           type: string
           description: Segment status
           enum:
-            - DELETED
             - ACTIVE
+            - HIDDEN
+            - DELETED
             - SUSPENDED
             - VERIFIED
             - INVALID

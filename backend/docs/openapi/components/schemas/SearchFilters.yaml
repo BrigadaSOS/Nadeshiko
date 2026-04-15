@@ -31,7 +31,7 @@ properties:
     description: Segment status filter
     items:
       type: string
-      enum: [DELETED, ACTIVE, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+      enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
     default: ["ACTIVE"]
   segmentLengthChars:
     type: object

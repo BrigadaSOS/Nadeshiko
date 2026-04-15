@@ -3,11 +3,17 @@ import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
 import { nanoid } from 'nanoid';
 export enum SegmentStatus {
-  DELETED = 'DELETED',
   ACTIVE = 'ACTIVE',
+  HIDDEN = 'HIDDEN',
+  DELETED = 'DELETED',
+  // Legacy values kept for DB enum compatibility — not used by application
+  /** @deprecated Use HIDDEN instead */
   SUSPENDED = 'SUSPENDED',
+  /** @deprecated Use HIDDEN instead */
   VERIFIED = 'VERIFIED',
+  /** @deprecated Use HIDDEN instead */
   INVALID = 'INVALID',
+  /** @deprecated Use HIDDEN instead */
   TOO_LONG = 'TOO_LONG',
 }
 
