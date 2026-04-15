@@ -404,7 +404,7 @@ export const s_SearchFilters = z.object({
   category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']),
   contentRating: z.array(s_ContentRating).optional(),
   status: z
-    .array(z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']))
+    .array(z.enum(['ACTIVE', 'HIDDEN', 'DELETED', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']))
     .optional()
     .default(['ACTIVE']),
   segmentLengthChars: z.object({ min: z.coerce.number().optional(), max: z.coerce.number().optional() }).optional(),
@@ -417,7 +417,7 @@ export const s_Segment = z.object({
   uuid: z.string(),
   publicId: z.string(),
   position: z.coerce.number(),
-  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']),
+  status: z.enum(['ACTIVE', 'HIDDEN', 'DELETED', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']),
   startTimeMs: z.coerce.number(),
   endTimeMs: z.coerce.number(),
   contentRating: s_ContentRating,
@@ -444,7 +444,10 @@ export const s_Segment = z.object({
 
 export const s_SegmentCreateRequest = z.object({
   position: z.coerce.number(),
-  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional().default('ACTIVE'),
+  status: z
+    .enum(['ACTIVE', 'HIDDEN', 'DELETED', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG'])
+    .optional()
+    .default('ACTIVE'),
   startTimeMs: z.coerce.number(),
   endTimeMs: z.coerce.number(),
   textJa: z.object({ content: z.string().max(500).optional() }),
@@ -469,7 +472,7 @@ export const s_SegmentCreateRequest = z.object({
 
 export const s_SegmentUpdateRequest = z.object({
   position: z.coerce.number().optional(),
-  status: z.enum(['DELETED', 'ACTIVE', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional(),
+  status: z.enum(['ACTIVE', 'HIDDEN', 'DELETED', 'SUSPENDED', 'VERIFIED', 'INVALID', 'TOO_LONG']).optional(),
   startTimeMs: z.coerce.number().optional(),
   endTimeMs: z.coerce.number().optional(),
   textJa: z.object({ content: z.string().max(500).optional() }).optional(),

@@ -451,7 +451,7 @@ export type t_SearchFilters = {
     max?: number;
     min?: number;
   };
-  status?: ('DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG')[];
+  status?: ('ACTIVE' | 'HIDDEN' | 'DELETED' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG')[];
 };
 
 export type t_SearchMultipleResponse = {
@@ -493,7 +493,7 @@ export type t_Segment = {
   position: number;
   publicId: string;
   startTimeMs: number;
-  status: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
+  status: 'ACTIVE' | 'HIDDEN' | 'DELETED' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   textEn: {
     content: string;
     highlight?: string;
@@ -538,7 +538,7 @@ export type t_SegmentCreateRequest = {
     [key: string]: unknown | undefined;
   } | null;
   startTimeMs: number;
-  status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
+  status?: 'ACTIVE' | 'HIDDEN' | 'DELETED' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   storage: 'LOCAL' | 'R2';
   textEn?: {
     content?: string;
@@ -816,7 +816,7 @@ export type t_CreateSegmentRequestBodySchema = {
     [key: string]: unknown | undefined;
   } | null;
   startTimeMs: number;
-  status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
+  status?: 'ACTIVE' | 'HIDDEN' | 'DELETED' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   storage: 'LOCAL' | 'R2';
   textEn?: {
     content?: string;
@@ -1271,7 +1271,7 @@ export type t_UpdateSegmentRequestBodySchema = {
     [key: string]: unknown | undefined;
   } | null;
   startTimeMs?: number;
-  status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
+  status?: 'ACTIVE' | 'HIDDEN' | 'DELETED' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   storage?: 'LOCAL' | 'R2';
   textEn?: {
     content?: string;
@@ -1302,7 +1302,7 @@ export type t_UpdateSegmentByUuidRequestBodySchema = {
     [key: string]: unknown | undefined;
   } | null;
   startTimeMs?: number;
-  status?: 'DELETED' | 'ACTIVE' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
+  status?: 'ACTIVE' | 'HIDDEN' | 'DELETED' | 'SUSPENDED' | 'VERIFIED' | 'INVALID' | 'TOO_LONG';
   storage?: 'LOCAL' | 'R2';
   textEn?: {
     content?: string;

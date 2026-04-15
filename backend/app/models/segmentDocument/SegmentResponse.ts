@@ -305,13 +305,17 @@ export class SegmentResponse {
 
   private static toSegmentStatus(value: string): SegmentOutput['status'] {
     switch (value) {
-      case 'DELETED':
       case 'ACTIVE':
+      case 'HIDDEN':
+      case 'DELETED':
+        return value;
+      // Legacy values → map to HIDDEN
       case 'SUSPENDED':
-      case 'VERIFIED':
       case 'INVALID':
       case 'TOO_LONG':
-        return value;
+        return 'HIDDEN';
+      case 'VERIFIED':
+        return 'ACTIVE';
       default:
         return 'ACTIVE';
     }

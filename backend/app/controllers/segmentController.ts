@@ -83,22 +83,36 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
     }),
   );
 
-  const result = await Segment.createQueryBuilder().insert().into(Segment).values(attributes).orIgnore().execute();
+  // Upsert: insert new segments, or reactivate DELETED/HIDDEN ones with updated content.
+  // This allows reprocessing an episode without needing to hard-delete first —
+  // segments with the same UUID (same anime + episode + position) get their content replaced.
+  const result = await Segment.createQueryBuilder()
+    .insert()
+    .into(Segment)
+    .values(attributes)
+    .orUpdate(
+      [
+        'status', 'position', 'start_time_ms', 'end_time_ms',
+        'content', 'content_english', 'content_english_mt',
+        'content_spanish', 'content_spanish_mt',
+        'content_rating', 'rating_analysis', 'pos_analysis',
+        'storage', 'hashed_id', 'storage_base_path', 'updated_at',
+      ],
+      ['uuid'],
+    )
+    .execute();
 
-  const created = result.identifiers.filter((id) => id?.id !== undefined).length;
-  const skipped = attributes.length - created;
+  const allIds = result.identifiers.filter((id) => id?.id !== undefined).map((id) => id.id as number);
 
-  if (created > 0) {
-    const createdIds = result.identifiers.filter((id) => id?.id !== undefined).map((id) => id.id as number);
-
-    sendBulkEsSyncJobs(createdIds.map((segmentId) => ({ segmentId, operation: 'CREATE' as const }))).catch((error) => {
+  if (allIds.length > 0) {
+    sendBulkEsSyncJobs(allIds.map((segmentId) => ({ segmentId, operation: 'CREATE' as const }))).catch((error) => {
       logger.error({ err: error }, 'Failed to enqueue bulk ES sync jobs for batch segment creation');
     });
 
     Cache.invalidate(MEDIA_INFO_CACHE);
   }
 
-  return respond.with201().body({ created, skipped });
+  return respond.with201().body({ created: allIds.length, skipped: attributes.length - allIds.length });
 };
 
 export const getSegment: GetSegment = async ({ params }, respond) => {
