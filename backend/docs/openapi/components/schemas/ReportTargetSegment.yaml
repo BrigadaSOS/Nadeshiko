@@ -11,7 +11,7 @@ properties:
     example: "SEGMENT"
   mediaId:
     type: string
-    description: Public ID of the media this report targets
+    description: publicId of the media this report targets
     example: "V1StGXR8_Z5d"
   episodeNumber:
     type: integer
@@ -20,5 +20,5 @@ properties:
   segmentId:
     type: string
     nullable: true
-    description: Segment public ID or UUID
+    description: Segment publicId
     example: "abc123xyz"

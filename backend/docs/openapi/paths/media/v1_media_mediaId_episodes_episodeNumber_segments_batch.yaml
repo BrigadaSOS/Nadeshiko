@@ -6,17 +6,17 @@ post:
   summary: Batch create segments
   description: |
     Creates multiple segments for a specific episode in a single request.
-    Duplicate UUIDs are silently skipped.
+    Duplicate segments are silently skipped.
 
   security:
     - ApiKey: [ADD_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
+      description: publicId of the media
       example: "V1StGXR8_Z5d"
     - name: episodeNumber
       in: path

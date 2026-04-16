@@ -1,23 +1,23 @@
 meta {
   name: Update collection metadata
   type: http
-  seq: 56
+  seq: 46
 }
 
 patch {
-  url: {{baseUrl}}/v1/collections/:id?id=V1StGXR8_Z5d
+  url: {{baseUrl}}/v1/collections/:collectionPublicId?collectionPublicId=V1StGXR8_Z5d
   body: json
   auth: none
 }
 
 params:query {
-  id: V1StGXR8_Z5d
+  collectionPublicId: V1StGXR8_Z5d
 }
 
 body:json {
   {
     "name": "Updated Collection Name",
-    "visibility": "PUBLIC"
+    "visibility": "PRIVATE"
   }
 }
 

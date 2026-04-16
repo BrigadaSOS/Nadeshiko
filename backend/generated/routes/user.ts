@@ -14,6 +14,8 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
+  t_AddExcludedMediaRequestBodySchema,
+  t_AffectedCountResponse,
   t_CreateUserReportRequestBodySchema,
   t_DeleteUserActivityByDateParamSchema,
   t_DeleteUserActivityByIdParamSchema,
@@ -25,24 +27,21 @@ import type {
   t_Error404,
   t_Error429,
   t_Error500,
-  t_GetUserActivityHeatmapQuerySchema,
-  t_GetUserActivityStatsQuerySchema,
-  t_HeatmapDayCounts,
-  t_ListUserActivityQuerySchema,
-  t_OpaqueCursorPagination,
+  t_MediaSummary,
+  t_RemoveExcludedMediaParamSchema,
   t_Report,
   t_TrackUserActivityRequestBodySchema,
   t_UnenrollUserLabParamSchema,
   t_UpdateUserPreferencesRequestBodySchema,
-  t_UserActivity,
   t_UserExportResponse,
   t_UserLabFeature,
+  t_UserMe,
   t_UserPreferences,
-  t_UserQuotaResponse,
 } from '../models.ts';
-import type { CreateReportRequestOutput, DeleteUserActivityQueryOutput, GetUserActivityHeatmapQueryOutput, GetUserActivityStatsQueryOutput, ListUserActivityQueryOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { CreateReportRequestOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
+  s_AffectedCountResponse,
   s_CreateReportRequest,
   s_Error400,
   s_Error401,
@@ -50,27 +49,79 @@ import {
   s_Error404,
   s_Error429,
   s_Error500,
-  s_HeatmapDayCounts,
-  s_OpaqueCursorPagination,
+  s_MediaSummary,
   s_Report,
-  s_UserActivity,
+  s_UserActivityRequest,
   s_UserExportResponse,
   s_UserLabFeature,
+  s_UserMe,
   s_UserPreferences,
-  s_UserQuotaResponse,
 } from '../schemas.ts';
 
-export type GetUserQuotaResponder = {
-  with200(): ExpressRuntimeResponse<t_UserQuotaResponse>;
+export type GetMeResponder = {
+  with200(): ExpressRuntimeResponse<t_UserMe>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
   with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type GetUserQuota = (
+export type GetMe = (
   params: Params<void, void, void, void>,
-  respond: GetUserQuotaResponder,
+  respond: GetMeResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListExcludedMediaResponder = {
+  with200(): ExpressRuntimeResponse<{
+    excludedMedia: t_MediaSummary[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListExcludedMedia = (
+  params: Params<void, void, void, void>,
+  respond: ListExcludedMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type AddExcludedMediaResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type AddExcludedMedia = (
+  params: Params<void, void, t_AddExcludedMediaRequestBodySchema, void>,
+  respond: AddExcludedMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type RemoveExcludedMediaResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type RemoveExcludedMedia = (
+  params: Params<t_RemoveExcludedMediaParamSchema, void, void, void>,
+  respond: RemoveExcludedMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -81,6 +132,7 @@ export type CreateUserReportResponder = {
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -95,6 +147,8 @@ export type CreateUserReport = (
 export type GetUserPreferencesResponder = {
   with200(): ExpressRuntimeResponse<t_UserPreferences>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -108,7 +162,10 @@ export type GetUserPreferences = (
 
 export type UpdateUserPreferencesResponder = {
   with200(): ExpressRuntimeResponse<t_UserPreferences>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -120,32 +177,17 @@ export type UpdateUserPreferences = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type ListUserActivityResponder = {
-  with200(): ExpressRuntimeResponse<{
-    activities: t_UserActivity[];
-    pagination: t_OpaqueCursorPagination;
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListUserActivity = (
-  params: Params<void, ListUserActivityQueryOutput, void, void>,
-  respond: ListUserActivityResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
 export type TrackUserActivityResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type TrackUserActivity = (
-  params: Params<void, void, t_TrackUserActivityRequestBodySchema, void>,
+  params: Params<void, void, UserActivityRequestOutput, void>,
   respond: TrackUserActivityResponder,
   req: Request,
   res: Response,
@@ -153,10 +195,10 @@ export type TrackUserActivity = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type DeleteUserActivityResponder = {
-  with200(): ExpressRuntimeResponse<{
-    deletedCount: number;
-  }>;
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -168,53 +210,11 @@ export type DeleteUserActivity = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type GetUserActivityHeatmapResponder = {
-  with200(): ExpressRuntimeResponse<{
-    activityByDay: {
-      [key: string]: t_HeatmapDayCounts | undefined;
-    };
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetUserActivityHeatmap = (
-  params: Params<void, GetUserActivityHeatmapQueryOutput, void, void>,
-  respond: GetUserActivityHeatmapResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetUserActivityStatsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    topMedia: {
-      count: number;
-      mediaId: number;
-    }[];
-    totalExports: number;
-    totalListAdds: number;
-    totalPlays: number;
-    totalSearches: number;
-    totalShares: number;
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetUserActivityStats = (
-  params: Params<void, GetUserActivityStatsQueryOutput, void, void>,
-  respond: GetUserActivityStatsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
 export type DeleteUserActivityByDateResponder = {
-  with200(): ExpressRuntimeResponse<{
-    deletedCount: number;
-  }>;
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -229,7 +229,9 @@ export type DeleteUserActivityByDate = (
 export type DeleteUserActivityByIdResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
   with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -244,6 +246,8 @@ export type DeleteUserActivityById = (
 export type ExportUserDataResponder = {
   with200(): ExpressRuntimeResponse<t_UserExportResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -258,6 +262,8 @@ export type ExportUserData = (
 export type ListUserLabsResponder = {
   with200(): ExpressRuntimeResponse<t_UserLabFeature[]>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -272,7 +278,9 @@ export type ListUserLabs = (
 export type EnrollUserLabResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
   with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -287,7 +295,9 @@ export type EnrollUserLab = (
 export type UnenrollUserLabResponder = {
   with204(): ExpressRuntimeResponse<void>;
   with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
   with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -300,15 +310,15 @@ export type UnenrollUserLab = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UserImplementation = {
-  getUserQuota: GetUserQuota;
+  getMe: GetMe;
+  listExcludedMedia: ListExcludedMedia;
+  addExcludedMedia: AddExcludedMedia;
+  removeExcludedMedia: RemoveExcludedMedia;
   createUserReport: CreateUserReport;
   getUserPreferences: GetUserPreferences;
   updateUserPreferences: UpdateUserPreferences;
-  listUserActivity: ListUserActivity;
   trackUserActivity: TrackUserActivity;
   deleteUserActivity: DeleteUserActivity;
-  getUserActivityHeatmap: GetUserActivityHeatmap;
-  getUserActivityStats: GetUserActivityStats;
   deleteUserActivityByDate: DeleteUserActivityByDate;
   deleteUserActivityById: DeleteUserActivityById;
   exportUserData: ExportUserData;
@@ -320,9 +330,9 @@ export type UserImplementation = {
 export function createUserRouter(implementation: UserImplementation): Router {
   const router = Router();
 
-  const getUserQuotaResponseBodyValidator = responseValidationFactory(
+  const getMeResponseBodyValidator = responseValidationFactory(
     [
-      ['200', s_UserQuotaResponse],
+      ['200', s_UserMe],
       ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
@@ -331,8 +341,8 @@ export function createUserRouter(implementation: UserImplementation): Router {
     undefined,
   );
 
-  // getUserQuota
-  router.get(`/v1/user/quota`, async (req: Request, res: Response, next: NextFunction) => {
+  // getMe
+  router.get(`/v1/user/me`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
@@ -343,7 +353,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_UserQuotaResponse>(200);
+          return new ExpressRuntimeResponse<t_UserMe>(200);
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
@@ -362,7 +372,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.getUserQuota(input, responder, req, res, next).catch((err) => {
+      const response = await implementation.getMe(input, responder, req, res, next).catch((err) => {
         throw ExpressRuntimeError.HandlerError(err);
       });
 
@@ -376,7 +386,224 @@ export function createUserRouter(implementation: UserImplementation): Router {
       res.status(status);
 
       if (body !== undefined) {
-        res.json(getUserQuotaResponseBodyValidator(status, body));
+        res.json(getMeResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listExcludedMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ excludedMedia: z.array(s_MediaSummary) })],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // listExcludedMedia
+  router.get(`/v1/user/excluded-media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            excludedMedia: t_MediaSummary[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.listExcludedMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(listExcludedMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const addExcludedMediaRequestBodySchema = z.object({
+    mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  });
+
+  const addExcludedMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // addExcludedMedia
+  router.post(`/v1/user/excluded-media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(addExcludedMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.addExcludedMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(addExcludedMediaResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const removeExcludedMediaParamSchema = z.object({
+    mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  });
+
+  const removeExcludedMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // removeExcludedMedia
+  router.delete(`/v1/user/excluded-media/:mediaPublicId`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(removeExcludedMediaParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.removeExcludedMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(removeExcludedMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }
@@ -393,6 +620,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
       ['400', s_Error400],
       ['401', s_Error401],
       ['404', s_Error404],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -420,6 +648,9 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
         with404() {
           return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -456,6 +687,8 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['200', s_UserPreferences],
       ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -477,6 +710,12 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -514,7 +753,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
   const updateUserPreferencesResponseBodyValidator = responseValidationFactory(
     [
       ['200', s_UserPreferences],
+      ['400', s_Error400],
       ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -534,8 +776,17 @@ export function createUserRouter(implementation: UserImplementation): Router {
         with200() {
           return new ExpressRuntimeResponse<t_UserPreferences>(200);
         },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -568,87 +819,15 @@ export function createUserRouter(implementation: UserImplementation): Router {
     }
   });
 
-  const listUserActivityQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    activityType: s_ActivityType.optional(),
-    date: z.string().optional(),
-  });
-
-  const listUserActivityResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ activities: z.array(s_UserActivity), pagination: s_OpaqueCursorPagination })],
-      ['401', s_Error401],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listUserActivity
-  router.get(`/v1/user/activity`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(listUserActivityQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            activities: t_UserActivity[];
-            pagination: t_OpaqueCursorPagination;
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.listUserActivity(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listUserActivityResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const trackUserActivityRequestBodySchema = z.object({
-    activityType: z.enum(['SEARCH', 'SEGMENT_PLAY', 'SHARE', 'ANKI_EXPORT']),
-    segmentId: z.string().optional(),
-    mediaId: z.coerce.number().optional(),
-    mediaName: z.string().optional(),
-    japaneseText: z.string().optional(),
-    searchQuery: z.string().optional(),
-  });
+  const trackUserActivityRequestBodySchema = s_UserActivityRequest;
 
   const trackUserActivityResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['400', s_Error400],
       ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -673,6 +852,12 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -709,8 +894,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
   const deleteUserActivityResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ deletedCount: z.coerce.number() })],
+      ['200', s_AffectedCountResponse],
       ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -728,12 +915,16 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            deletedCount: number;
-          }>(200);
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -766,154 +957,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
     }
   });
 
-  const getUserActivityHeatmapQuerySchema = z.object({ days: z.coerce.number().max(730).optional().default(365) });
-
-  const getUserActivityHeatmapResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ activityByDay: z.record(z.string(), s_HeatmapDayCounts) })],
-      ['401', s_Error401],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getUserActivityHeatmap
-  router.get(`/v1/user/activity/heatmap`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getUserActivityHeatmapQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            activityByDay: {
-              [key: string]: t_HeatmapDayCounts | undefined;
-            };
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getUserActivityHeatmap(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getUserActivityHeatmapResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
-
-  const getUserActivityStatsResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          totalSearches: z.coerce.number(),
-          totalExports: z.coerce.number(),
-          totalPlays: z.coerce.number(),
-          totalListAdds: z.coerce.number(),
-          totalShares: z.coerce.number(),
-          topMedia: z.array(z.object({ mediaId: z.coerce.number(), count: z.coerce.number() })),
-        }),
-      ],
-      ['401', s_Error401],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getUserActivityStats
-  router.get(`/v1/user/activity/stats`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getUserActivityStatsQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            topMedia: {
-              count: number;
-              mediaId: number;
-            }[];
-            totalExports: number;
-            totalListAdds: number;
-            totalPlays: number;
-            totalSearches: number;
-            totalShares: number;
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getUserActivityStats(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getUserActivityStatsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
   const deleteUserActivityByDateParamSchema = z.object({ date: z.string() });
 
   const deleteUserActivityByDateResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ deletedCount: z.coerce.number() })],
+      ['200', s_AffectedCountResponse],
       ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -931,12 +982,16 @@ export function createUserRouter(implementation: UserImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            deletedCount: number;
-          }>(200);
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -969,20 +1024,22 @@ export function createUserRouter(implementation: UserImplementation): Router {
     }
   });
 
-  const deleteUserActivityByIdParamSchema = z.object({ id: z.coerce.number() });
+  const deleteUserActivityByIdParamSchema = z.object({ activityId: z.coerce.number() });
 
   const deleteUserActivityByIdResponseBodyValidator = responseValidationFactory(
     [
       ['204', z.undefined()],
       ['401', s_Error401],
+      ['403', s_Error403],
       ['404', s_Error404],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
   );
 
   // deleteUserActivityById
-  router.delete(`/v1/user/activity/:id`, async (req: Request, res: Response, next: NextFunction) => {
+  router.delete(`/v1/user/activity/:activityId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: parseRequestInput(deleteUserActivityByIdParamSchema, req.params, RequestInputType.RouteParam),
@@ -998,8 +1055,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
         },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
         with404() {
           return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -1036,6 +1099,8 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['200', s_UserExportResponse],
       ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -1057,6 +1122,12 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -1093,6 +1164,8 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['200', z.array(s_UserLabFeature)],
       ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -1114,6 +1187,12 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -1152,7 +1231,9 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['204', z.undefined()],
       ['401', s_Error401],
+      ['403', s_Error403],
       ['404', s_Error404],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -1175,8 +1256,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
         },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
         with404() {
           return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -1215,7 +1302,9 @@ export function createUserRouter(implementation: UserImplementation): Router {
     [
       ['204', z.undefined()],
       ['401', s_Error401],
+      ['403', s_Error403],
       ['404', s_Error404],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -1238,8 +1327,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
         },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
         with404() {
           return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);

@@ -2,11 +2,12 @@ post:
   tags:
     - Search
   operationId: searchWords
+  x-order: 30
   summary: Search by multiple words
   description: |
-    Searches for multiple words simultaneously and aggregates results by media.
+    Searches for multiple words simultaneously and aggregates matches per media.
 
-    Unlike the main search endpoint, this returns a summary of matches per media rather than individual segments.
+    Unlike the main search endpoint, this returns a per-word summary of matches across media rather than individual segments. Filters apply the same way as `/v1/search`.
 
   security:
     - ApiKey: [READ_MEDIA]
@@ -17,9 +18,6 @@ post:
       application/json:
         schema:
           $ref: "../../components/requestBodies/SearchMultipleRequest.yaml"
-        example:
-          words: ["彼女", "私"]
-          exactMatch: false
   responses:
     "200":
       description: OK
@@ -28,16 +26,7 @@ post:
           schema:
             $ref: "../../components/responses/SearchMultipleResponse.yaml"
     "400":
-      description: Bad Request
-      content:
-        application/json:
-          schema:
-            $ref: "../../components/schemas/Error400.yaml"
-          examples:
-            ValidationFailed:
-              $ref: "../../components/examples/ValidationFailed.yaml"
-            InvalidJson:
-              $ref: "../../components/examples/InvalidJson.yaml"
+      $ref: "../../components/responses/BadRequest.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
     "403":

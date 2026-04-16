@@ -1,8 +1,7 @@
 type: object
 description: Media entry with full metadata
 required:
-  - id
-  - publicId
+  - mediaPublicId
   - slug
   - externalIds
   - nameJa
@@ -14,71 +13,81 @@ required:
   - coverUrl
   - bannerUrl
   - startDate
+  - endDate
   - category
   - segmentCount
   - episodeCount
+  - studio
   - seasonName
   - seasonYear
 properties:
-  id:
-    type: integer
-    description: Internal unique identifier for the media
-    example: 7674
-  publicId:
+  mediaPublicId:
     type: string
-    description: Public identifier for the media (use this in public URLs)
-    example: "V1StGXR8_Z5d"
+    description: Public ID for the media (use this in public URLs)
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   slug:
     type: string
     description: URL-friendly slug for the media
-    example: "bakuman"
+    minLength: 1
+    example: bakuman
   externalIds:
     $ref: "./ExternalId.yaml"
   nameJa:
     type: string
     description: Original Japanese name of the media
-    example: "バクマン。"
+    minLength: 1
+    example: バクマン。
   nameRomaji:
     type: string
     description: Romaji transliteration of the media name
-    example: "Bakuman."
+    minLength: 1
+    example: Bakuman.
   nameEn:
     type: string
     description: English name of the media
-    example: "Bakuman."
+    minLength: 1
+    example: Bakuman.
   airingFormat:
     type: string
-    description: Format of the media release (e.g., TV, OVA, Movie)
-    example: "TV"
+    description: Format of the media release
+    enum: [TV, MOVIE, OVA, ONA, SPECIAL]
+    example: TV
   airingStatus:
     type: string
-    description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
-    example: "FINISHED"
+    description: Current airing status
+    enum: [FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED]
+    example: FINISHED
   genres:
     type: array
     items:
       type: string
+      minLength: 1
     description: List of genres associated with the media
-    example: ["Comedy", "Drama", "Romance", "Slice of Life"]
+    example: [Comedy, Drama, Romance, Slice of Life]
   coverUrl:
     type: string
     format: uri
+    minLength: 1
     description: Full URL to the cover image
     example: "https://cdn.example.com/media/anime/bakuman/cover.webp"
   bannerUrl:
     type: string
     format: uri
+    minLength: 1
     description: Full URL to the banner image
     example: "https://cdn.example.com/media/anime/bakuman/banner.webp"
   startDate:
     type: string
     format: date
+    minLength: 1
     description: Start date of the media (first airing/release)
     example: "2010-10-02"
   endDate:
     type: string
     format: date
     nullable: true
+    minLength: 1
     description: End date of the media (last airing/release)
     example: "2011-04-02"
   category:
@@ -86,26 +95,26 @@ properties:
   segmentCount:
     type: integer
     description: Total number of subtitle segments available
-    example: 0
+    minimum: 0
+    example: 1234
   episodeCount:
     type: integer
     description: Total number of episodes available
+    minimum: 0
     example: 25
   studio:
     type: string
     nullable: true
     description: Animation studio that produced the media
-    example: "J.C.STAFF"
+    example: J.C.STAFF
   seasonName:
     type: string
     description: Airing season label for the media
-    example: "FALL"
+    enum: [WINTER, SPRING, SUMMER, FALL]
+    example: FALL
   seasonYear:
     type: integer
     description: Airing year for the media
+    minimum: 1900
+    maximum: 2100
     example: 2010
-  characters:
-    type: array
-    items:
-      $ref: "./MediaCharacter.yaml"
-    description: Characters appearing in the media with their voice actors

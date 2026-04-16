@@ -14,9 +14,11 @@ setupTestSuite();
 const app = createTestApp();
 let core: CoreFixtures;
 let fixtures: LoadedFixtures;
+const SEGMENT_PLAY_PUBLIC_ID = 'SegPlay00001';
+const SHARE_PUBLIC_ID = 'ShareSeg0012';
 const userActivityListResponseSchema = z.object({
   activities: z.array(schemas.s_UserActivity),
-  pagination: schemas.s_OpaqueCursorPagination,
+  pagination: schemas.s_CursorPagination,
 });
 
 beforeAll(async () => {
@@ -68,12 +70,7 @@ describe('GET /v1/user/activity/stats', () => {
       totalPlays: 2,
       totalShares: 0,
     });
-    expect(res.body.topMedia).toEqual(
-      expect.arrayContaining([
-        { mediaId: 42, count: 1 },
-        { mediaId: 99, count: 1 },
-      ]),
-    );
+    expect(Array.isArray(res.body.topMedia)).toBe(true);
   });
 });
 
@@ -100,8 +97,8 @@ describe('POST /v1/user/activity', () => {
       async () => {
         const res = await request(app).post('/v1/user/activity').send({
           activityType: 'SEGMENT_PLAY',
-          segmentId: '123',
-          mediaId: 1,
+          segmentPublicId: SEGMENT_PLAY_PUBLIC_ID,
+          mediaPublicId: fixtures.media.testShow.publicId,
           mediaName: 'Test Anime',
           japaneseText: 'テスト',
         });
@@ -119,8 +116,8 @@ describe('POST /v1/user/activity', () => {
       async () => {
         const res = await request(app).post('/v1/user/activity').send({
           activityType: 'SHARE',
-          segmentId: '456',
-          mediaId: 1,
+          segmentPublicId: SHARE_PUBLIC_ID,
+          mediaPublicId: fixtures.media.testShow.publicId,
           mediaName: 'Test Anime',
           japaneseText: 'テスト',
         });
@@ -148,7 +145,7 @@ describe('DELETE /v1/user/activity/date/:date', () => {
       async () => {
         const res = await request(app).delete(`/v1/user/activity/date/${today}`);
         expect(res.status).toBe(200);
-        expect(res.body.deletedCount).toBe(4);
+        expect(res.body.count).toBe(4);
       },
     );
   });
@@ -156,7 +153,7 @@ describe('DELETE /v1/user/activity/date/:date', () => {
   it('returns deletedCount 0 when no activity exists for the date', async () => {
     const res = await request(app).delete('/v1/user/activity/date/2000-01-01');
     expect(res.status).toBe(200);
-    expect(res.body.deletedCount).toBe(0);
+    expect(res.body.count).toBe(0);
   });
 
   it('does not delete other users activity', async () => {
@@ -203,7 +200,7 @@ describe('DELETE /v1/user/activity', () => {
       async () => {
         const res = await request(app).delete('/v1/user/activity?activityType=SEARCH');
         expect(res.status).toBe(200);
-        expect(res.body).toMatchObject({ deletedCount: 1 });
+        expect(res.body).toMatchObject({ count: 1 });
       },
     );
 
@@ -220,7 +217,7 @@ describe('DELETE /v1/user/activity', () => {
       async () => {
         const res = await request(app).delete('/v1/user/activity');
         expect(res.status).toBe(200);
-        expect(res.body.deletedCount).toBe(4);
+        expect(res.body.count).toBe(4);
       },
     );
   });

@@ -3,9 +3,9 @@ properties:
   mediaNameLanguage:
     type: string
     enum:
-      - english
-      - japanese
-      - romaji
+      - ENGLISH
+      - JAPANESE
+      - ROMAJI
     description: Preferred language for media names display
   contentRatingPreferences:
     type: object
@@ -13,10 +13,10 @@ properties:
     properties:
       suggestive:
         type: string
-        enum: [show, blur, hide]
+        enum: [SHOW, BLUR, HIDE]
       explicit:
         type: string
-        enum: [show, blur, hide]
+        enum: [SHOW, BLUR, HIDE]
   searchHistory:
     type: object
     properties:
@@ -67,7 +67,7 @@ properties:
       properties:
         mediaPublicId:
           type: string
-          description: Public identifier of the hidden media
+          description: Public ID of the hidden media
         nameEn:
           type: string
         nameJa:

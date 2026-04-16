@@ -1,22 +1,20 @@
 get:
-  x-internal: true
   tags:
     - Collections
+  x-order: 10
   operationId: listCollections
-  summary: List user's collections
+  summary: List collections
   description: |
-    Returns all collections for the authenticated user. Can filter by visibility.
+    Returns the authenticated user's collections. Can be filtered by visibility.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [READ_COLLECTIONS]
   parameters:
     - name: visibility
       in: query
       description: Filter by visibility
       schema:
-        type: string
-        enum: [public, private]
-        example: private
+        $ref: "../../components/schemas/CollectionVisibility.yaml"
     - name: cursor
       in: query
       description: Opaque pagination cursor token
@@ -51,22 +49,22 @@ get:
       $ref: "../../components/responses/InternalServerError.yaml"
 
 post:
-  x-internal: true
   tags:
     - Collections
+  x-order: 40
   operationId: createCollection
   summary: Create collection
   description: |
     Creates a new segment collection for the authenticated user.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [CREATE_COLLECTIONS]
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: "../../components/schemas/collection/CollectionRequests.yaml"
+          $ref: "../../components/schemas/collection/CollectionRequests.yaml#/CollectionCreateRequest"
   responses:
     "201":
       description: Created

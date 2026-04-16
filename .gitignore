@@ -6,3 +6,4 @@
 /backend/scripts/.jpdb-cache/
 /backend/scripts/.jiten-cache/
 .claude/
+.codex

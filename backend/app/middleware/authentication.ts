@@ -1,4 +1,4 @@
-import { ApiAuth, ApiKeyKind, ApiPermission, AuthType, User } from '@app/models';
+import { ApiKeyKind, ApiPermission, AuthType, User } from '@app/models';
 import {
   AuthCredentialsExpiredError,
   AuthCredentialsInvalidError,
@@ -6,14 +6,10 @@ import {
   QuotaExceededError,
   RateLimitExceededError,
 } from '@app/errors';
-import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '@config/auth';
 import { fromNodeHeaders } from 'better-auth/node';
-import { defaultKeyHasher } from '@better-auth/api-key';
-import { AppDataSource } from '@config/database';
 import { trace } from '@opentelemetry/api';
-import { logger } from '@config/log';
 import {
   getCachedApiKey,
   getCachedUser,
@@ -22,8 +18,6 @@ import {
   setCachedUser,
 } from '@app/middleware/authCacheStore';
 
-const BETTER_AUTH_PREFIX = 'nade_';
-const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
 type VerifyApiKey = (args: { body: { key: string } }) => Promise<unknown>;
 
 export const requireSessionAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
@@ -63,14 +57,7 @@ export const requireApiKeyAuth = async (req: Request, _res: Response, next: Next
     throw new AuthCredentialsRequiredError('No API key was provided in Authorization header.');
   }
 
-  if (apiKey.startsWith(BETTER_AUTH_PREFIX)) {
-    // Keys with the Better Auth prefix go directly to Better Auth
-    await authenticateBetterAuthApiKey(req, apiKey);
-  } else {
-    // All other keys use legacy auth (with auto-migration to Better Auth)
-    await authenticateLegacyApiKey(req, apiKey);
-  }
-
+  await authenticateBetterAuthApiKey(req, apiKey);
   next();
 };
 
@@ -82,10 +69,6 @@ function isKnownAuthError(
     error instanceof AuthCredentialsInvalidError ||
     error instanceof AuthCredentialsExpiredError
   );
-}
-
-function hashApiKey(apiKey: string): string {
-  return crypto.createHash('sha256').update(apiKey).digest('hex');
 }
 
 function extractBearerToken(req: Request): string | undefined {
@@ -316,76 +299,6 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
     permissions,
   });
 }
-
-async function authenticateLegacyApiKey(req: Request, apiKey: string): Promise<void> {
-  const hashedKey = hashApiKey(apiKey);
-
-  const apiAuth = await ApiAuth.findOne({
-    where: { token: hashedKey },
-  });
-
-  if (!apiAuth) {
-    throw new AuthCredentialsInvalidError('Invalid API key.');
-  }
-
-  if (!apiAuth.isActive) {
-    // Key was migrated to Better Auth — verify through that flow
-    await authenticateBetterAuthApiKey(req, apiKey);
-    return;
-  }
-
-  if (apiAuth.userId == null) {
-    throw new AuthCredentialsInvalidError('API key has no associated user.');
-  }
-
-  await attachAuthPayloadToRequest(req, apiAuth.userId, AuthType.API_KEY_LEGACY, {
-    kind: ApiKeyKind.USER,
-    permissions: [ApiPermission.READ_MEDIA],
-  });
-
-  // Auto-migrate legacy keys to Better Auth
-  migrateLegacyKeyToBetterAuth(apiKey, apiAuth).catch((error) => {
-    logger.warn({ error, apiAuthId: apiAuth.id }, 'Legacy API key migration failed (non-fatal)');
-  });
-}
-
-async function migrateLegacyKeyToBetterAuth(plaintextKey: string, legacyRecord: ApiAuth): Promise<void> {
-  const hashedKey = await defaultKeyHasher(plaintextKey);
-
-  const separatorIndex = plaintextKey.indexOf('_');
-  const keyPrefix = separatorIndex > 0 ? plaintextKey.slice(0, separatorIndex + 1) : null;
-
-  const permissions = JSON.stringify({ [BETTER_AUTH_PERMISSION_RESOURCE]: [ApiPermission.READ_MEDIA] });
-  const metadata = JSON.stringify({ source: 'legacy-migration' });
-
-  await AppDataSource.query(
-    `
-      INSERT INTO "apikey" (
-        "name",
-        "start",
-        "prefix",
-        "key",
-        "userId",
-        "enabled",
-        "rateLimitEnabled",
-        "metadata",
-        "permissions",
-        "createdAt",
-        "updatedAt"
-      )
-      VALUES ($1, $2, $3, $4, $5, true, false, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      ON CONFLICT ("key") DO NOTHING
-    `,
-    [legacyRecord.name, plaintextKey.slice(0, 6), keyPrefix, hashedKey, legacyRecord.userId, metadata, permissions],
-  );
-
-  // Deactivate the legacy record
-  legacyRecord.isActive = false;
-  await legacyRecord.save();
-
-  logger.info({ apiAuthId: legacyRecord.id, userId: legacyRecord.userId }, 'Legacy API key migrated to Better Auth');
-}
-
 export function assertUser(req: Request): User {
   if (!req.user) {
     throw new Error('assertUser: req.user is not set — auth middleware may not have run');

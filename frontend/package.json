@@ -1,6 +1,6 @@
 {
   "name": "nuxt-app",
-  "version": "2.0.7",
+  "version": "2.1.0",
   "private": true,
   "license": "AGPL-3.0",
   "type": "module",

@@ -1,4 +1,5 @@
 type: string
-description: Resource to expand in the response includes block
+description: |
+  Resource to expand in the response `includes` block. Currently only `media` is supported; additional expansions may be added in future versions without breaking existing clients.
 enum:
   - media

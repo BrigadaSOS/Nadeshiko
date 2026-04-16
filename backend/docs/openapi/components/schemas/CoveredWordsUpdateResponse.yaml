@@ -1,0 +1,21 @@
+type: object
+description: Result of a word coverage update run
+required:
+  - wordsChecked
+  - newlyCovered
+  - totalCovered
+  - percentage
+properties:
+  wordsChecked:
+    type: integer
+    example: 50000
+  newlyCovered:
+    type: integer
+    example: 120
+  totalCovered:
+    type: integer
+    example: 42000
+  percentage:
+    type: number
+    format: float
+    example: 84.0

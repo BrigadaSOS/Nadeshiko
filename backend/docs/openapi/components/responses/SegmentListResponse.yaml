@@ -1,16 +1,11 @@
-description: OK
-content:
-  application/json:
-    schema:
-      type: object
-      required:
-        - segments
-        - pagination
-      properties:
-        segments:
-          type: array
-          items:
-            $ref: "../schemas/segment/Segment.yaml"
-          description: Array of segment objects
-        pagination:
-          $ref: "../schemas/OpaqueCursorPagination.yaml"
+type: object
+required:
+  - segments
+  - pagination
+properties:
+  segments:
+    type: array
+    items:
+      $ref: "../schemas/segment/Segment.yaml"
+  pagination:
+    $ref: "../schemas/CursorPagination.yaml"

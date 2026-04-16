@@ -1,0 +1,35 @@
+post:
+  tags:
+    - Search
+  operationId: searchMedia
+  summary: Find media by name
+  description: |
+    Returns a short list of media matching a name prefix or substring.
+    Results are ranked by exact match, then prefix match, then contains match,
+    and further sorted by name length.
+
+  security:
+    - ApiKey: [READ_MEDIA]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/SearchMediaRequest.yaml"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/MediaAutocompleteResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

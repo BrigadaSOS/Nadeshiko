@@ -1,14 +1,16 @@
 type: object
 description: Media match count entry
 required:
-  - mediaId
+  - mediaPublicId
   - matchCount
 properties:
-  mediaId:
-    type: integer
-    description: Media identifier (look up full details in includes.media)
-    example: 110316
+  mediaPublicId:
+    type: string
+    description: Media public ID (look up full details in `includes.media` when `include[]=media` is requested)
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   matchCount:
     type: integer
     description: Number of times the word appears in this media
+    minimum: 0
     example: 234

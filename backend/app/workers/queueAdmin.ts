@@ -74,8 +74,8 @@ export async function getStuckJobs(): Promise<QueueStats[]> {
         failed: Number(failedResult.rows[0]?.count ?? 0),
         completed: Number(completedResult.rows[0]?.count ?? 0),
       });
-    } catch {
-      logger.error(`Failed to get queue state for ${queue}`);
+    } catch (error) {
+      logger.error({ err: error, queue }, 'Failed to get queue state');
     }
   }
 
@@ -118,8 +118,7 @@ export async function fetchQueueDetails(queueName: string): Promise<QueueDetails
       },
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to get queue details for ${queueName}: ${errorMessage}`);
+    logger.error({ err: error, queueName }, 'Failed to get queue details');
     return null;
   }
 }
@@ -147,8 +146,7 @@ export async function getFailedJobs(queueName: string): Promise<FailedQueueJob[]
 
     return result.rows;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to get failed jobs from ${queueName}: ${errorMessage}`);
+    logger.error({ err: error, queueName }, 'Failed to get failed jobs');
     return [];
   }
 }
@@ -172,11 +170,10 @@ export async function purgeFailedJobs(queueName: string): Promise<number> {
     );
 
     const count = result.rows.length;
-    logger.info(`Purged ${count} failed jobs from ${queueName}`);
+    logger.info({ count, queueName }, 'Purged failed jobs');
     return count;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to purge failed jobs from ${queueName}: ${errorMessage}`);
+    logger.error({ err: error, queueName }, 'Failed to purge failed jobs');
     return 0;
   }
 }
@@ -187,11 +184,10 @@ export async function purgeFailedJobs(queueName: string): Promise<number> {
  */
 export async function retryFailedJobs(queueName: string): Promise<number> {
   try {
-    logger.info(`Retry requested for ${queueName} (handled automatically by PgBoss)`);
+    logger.info({ queueName }, 'Retry requested (handled automatically by PgBoss)');
     return 0;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to retry jobs from ${queueName}: ${errorMessage}`);
+    logger.error({ err: error, queueName }, 'Failed to retry jobs');
     return 0;
   }
 }

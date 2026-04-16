@@ -67,7 +67,7 @@ export function setupSearchSuite() {
     await clearEsIndex();
     // Truncate test-specific tables. Core user fixtures (User) are preserved
     // since they are not referenced by foreign keys from these tables.
-    await TestDataSource.query(`TRUNCATE "Segment", "Episode", "Media", "Series", "Seiyuu" RESTART IDENTITY CASCADE`);
+    await TestDataSource.query(`TRUNCATE "Segment", "Episode", "Media" RESTART IDENTITY CASCADE`);
   });
 
   afterAll(async () => {

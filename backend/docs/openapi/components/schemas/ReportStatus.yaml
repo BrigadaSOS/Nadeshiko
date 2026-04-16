@@ -1,0 +1,4 @@
+type: string
+description: Current status of a report
+enum: [OPEN, PROCESSING, FIXED, DISMISSED]
+example: "OPEN"

@@ -1,7 +1,6 @@
 get:
   tags:
-    - User
-  x-internal: true
+    - Activity
   operationId: getUserActivityHeatmap
   summary: Get activity heatmap data
   description: |
@@ -9,13 +8,14 @@ get:
     Each day contains per-type counts that can be summed or filtered client-side.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [READ_ACTIVITY]
   parameters:
     - name: days
       in: query
       schema:
         type: integer
         default: 365
+        minimum: 1
         maximum: 730
       description: Number of days to include in the heatmap
   responses:
@@ -35,5 +35,9 @@ get:
                 description: Map of YYYY-MM-DD date strings to per-type activity counts
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

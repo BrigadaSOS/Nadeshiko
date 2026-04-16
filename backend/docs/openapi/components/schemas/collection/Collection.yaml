@@ -1,8 +1,7 @@
 type: object
 description: User segment collection
 required:
-  - id
-  - publicId
+  - collectionPublicId
   - name
   - type
   - visibility
@@ -10,13 +9,10 @@ required:
   - createdAt
   - updatedAt
 properties:
-  id:
-    type: integer
-    description: Collection ID
-    example: 123
-  publicId:
+  collectionPublicId:
     type: string
-    description: Public identifier for the collection
+    description: Public ID for the collection
+    pattern: '^[A-Za-z0-9_-]{12}$'
     example: "V1StGXR8_Z5d"
   name:
     type: string
@@ -28,10 +24,7 @@ properties:
     description: Type of the collection
     example: "USER"
   visibility:
-    type: string
-    enum: [PUBLIC, PRIVATE]
-    description: Visibility of the collection
-    example: "PRIVATE"
+    $ref: "../CollectionVisibility.yaml"
   segmentCount:
     type: integer
     description: Number of segments in the collection

@@ -147,7 +147,7 @@ watch(
     isLoadingInternal.value = true;
     try {
       const { data } = await sdk.getSegmentByUuid({
-        path: { uuid: seg.segment.uuid },
+        path: { publicId: seg.segment.publicId },
         query: { include: ['ratingAnalysis', 'posAnalysis', 'hashedId', 'storage', 'storageBasePath'] },
       });
       lastRatingAnalysis = data?.ratingAnalysis ?? null;
@@ -185,7 +185,7 @@ const fetchRevisions = async () => {
   if (!props.segment) return;
   isLoadingRevisions.value = true;
   try {
-    const { data } = await sdk.listSegmentRevisions({ path: { uuid: props.segment.segment.uuid } });
+    const { data } = await sdk.listSegmentRevisions({ path: { publicId: props.segment.segment.publicId } });
     revisions.value = data?.revisions ?? [];
   } catch {
     revisions.value = [];
@@ -289,7 +289,7 @@ const submitEdit = async () => {
     }
 
     await sdk.updateSegmentByUuid({
-      path: { uuid: props.segment.segment.uuid },
+      path: { publicId: props.segment.segment.publicId },
       body,
     });
 

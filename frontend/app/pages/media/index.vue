@@ -49,12 +49,12 @@ const onDeleteSuccess = (mediaId) => {
 
 const secondaryMediaNames = (mediaInfo) => {
   const namesByLanguage = {
-    english: mediaInfo?.nameEn || '',
-    japanese: mediaInfo?.nameJa || '',
-    romaji: mediaInfo?.nameRomaji || '',
+    ENGLISH: mediaInfo?.nameEn || '',
+    JAPANESE: mediaInfo?.nameJa || '',
+    ROMAJI: mediaInfo?.nameRomaji || '',
   };
 
-  const order = ['english', 'japanese', 'romaji'];
+  const order = ['ENGLISH', 'JAPANESE', 'ROMAJI'];
   const secondary = order
     .filter((lang) => lang !== language.value)
     .map((lang) => namesByLanguage[lang])

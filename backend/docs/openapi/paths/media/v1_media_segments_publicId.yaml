@@ -1,0 +1,85 @@
+get:
+  tags:
+    - Media
+  operationId: getSegment
+  x-order: 50
+  summary: Get single segment
+  description: |
+    Returns a specific segment by its public ID.
+
+  security:
+    - ApiKey: [READ_MEDIA]
+  parameters:
+    - name: segmentPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Segment public ID
+      example: V1StGXR8_Z5d
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/segment/Segment.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  operationId: updateSegment
+  x-internal: true
+  tags:
+    - Media
+  summary: Update segment
+  description: |
+    Updates an existing segment. Only provided fields will be updated.
+
+  security:
+    - ApiKey: [UPDATE_MEDIA]
+  parameters:
+    - name: segmentPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Segment public ID
+      example: V1StGXR8_Z5d
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/segment/SegmentRequests.yaml#/SegmentUpdateRequest"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/segment/SegmentInternal.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

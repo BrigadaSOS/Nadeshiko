@@ -8,15 +8,16 @@ import * as schemas from './schemas';
 // Output types for named schemas (post-parsing, defaults applied)
 // ============================================
 export type ActivityTypeOutput = z.output<typeof schemas.s_ActivityType>;
-export type AdminReportGroupItemOutput = z.output<typeof schemas.s_AdminReportGroupItem>;
-export type BatchUpdateReportsRequestOutput = z.output<typeof schemas.s_BatchUpdateReportsRequest>;
-export type BulkDeleteReportsRequestOutput = z.output<typeof schemas.s_BulkDeleteReportsRequest>;
-export type BulkUpdateReportsRequestOutput = z.output<typeof schemas.s_BulkUpdateReportsRequest>;
+export type AddSegmentToCollectionRequestOutput = z.output<typeof schemas.s_AddSegmentToCollectionRequest>;
+export type AffectedCountResponseOutput = z.output<typeof schemas.s_AffectedCountResponse>;
+export type AnnouncementOutput = z.output<typeof schemas.s_Announcement>;
 export type CategoryOutput = z.output<typeof schemas.s_Category>;
-export type CollectionOutput = z.output<typeof schemas.s_Collection>;
-export type CollectionRequestsOutput = z.output<typeof schemas.s_CollectionRequests>;
+export type CollectionVisibilityOutput = z.output<typeof schemas.s_CollectionVisibility>;
 export type ContentRatingOutput = z.output<typeof schemas.s_ContentRating>;
 export type CoveredWordOutput = z.output<typeof schemas.s_CoveredWord>;
+export type CoveredWordsUpdateRequestOutput = z.output<typeof schemas.s_CoveredWordsUpdateRequest>;
+export type CoveredWordsUpdateResponseOutput = z.output<typeof schemas.s_CoveredWordsUpdateResponse>;
+export type CursorPaginationOutput = z.output<typeof schemas.s_CursorPagination>;
 export type EpisodeOutput = z.output<typeof schemas.s_Episode>;
 export type EpisodeCreateRequestOutput = z.output<typeof schemas.s_EpisodeCreateRequest>;
 export type EpisodeUpdateRequestOutput = z.output<typeof schemas.s_EpisodeUpdateRequest>;
@@ -33,84 +34,106 @@ export type IncludeExpansionOutput = z.output<typeof schemas.s_IncludeExpansion>
 export type MediaAuditOutput = z.output<typeof schemas.s_MediaAudit>;
 export type MediaAuditRunOutput = z.output<typeof schemas.s_MediaAuditRun>;
 export type MediaFilterItemOutput = z.output<typeof schemas.s_MediaFilterItem>;
-export type MediaIncludeExpansionOutput = z.output<typeof schemas.s_MediaIncludeExpansion>;
+export type MediaGlobalStatsOutput = z.output<typeof schemas.s_MediaGlobalStats>;
 export type MediaSearchStatsOutput = z.output<typeof schemas.s_MediaSearchStats>;
-export type OpaqueCursorPaginationOutput = z.output<typeof schemas.s_OpaqueCursorPagination>;
-export type PaginationInfoOutput = z.output<typeof schemas.s_PaginationInfo>;
 export type ReindexRequestOutput = z.output<typeof schemas.s_ReindexRequest>;
 export type ReindexResponseOutput = z.output<typeof schemas.s_ReindexResponse>;
+export type ReportReasonOutput = z.output<typeof schemas.s_ReportReason>;
+export type ReportSourceOutput = z.output<typeof schemas.s_ReportSource>;
+export type ReportStatusOutput = z.output<typeof schemas.s_ReportStatus>;
 export type ReportTargetEpisodeOutput = z.output<typeof schemas.s_ReportTargetEpisode>;
 export type ReportTargetMediaOutput = z.output<typeof schemas.s_ReportTargetMedia>;
 export type ReportTargetSegmentOutput = z.output<typeof schemas.s_ReportTargetSegment>;
 export type ReportTargetSegmentInputOutput = z.output<typeof schemas.s_ReportTargetSegmentInput>;
+export type ReportTargetTypeOutput = z.output<typeof schemas.s_ReportTargetType>;
 export type RunAuditResponseOutput = z.output<typeof schemas.s_RunAuditResponse>;
+export type SearchMultipleQueryOutput = z.output<typeof schemas.s_SearchMultipleQuery>;
+export type SearchPaginationOutput = z.output<typeof schemas.s_SearchPagination>;
+export type SearchQueryOutput = z.output<typeof schemas.s_SearchQuery>;
+export type SearchSortOutput = z.output<typeof schemas.s_SearchSort>;
 export type SegmentRevisionOutput = z.output<typeof schemas.s_SegmentRevision>;
-export type SeriesOutput = z.output<typeof schemas.s_Series>;
+export type SegmentStatusOutput = z.output<typeof schemas.s_SegmentStatus>;
 export type TokenOutput = z.output<typeof schemas.s_Token>;
-export type UpdateReportRequestOutput = z.output<typeof schemas.s_UpdateReportRequest>;
+export type UpdateCollectionSegmentRequestOutput = z.output<typeof schemas.s_UpdateCollectionSegmentRequest>;
+export type UserActivityRequestOutput = z.output<typeof schemas.s_UserActivityRequest>;
+export type UserActivityStatsOutput = z.output<typeof schemas.s_UserActivityStats>;
 export type UserLabFeatureOutput = z.output<typeof schemas.s_UserLabFeature>;
+export type UserMeOutput = z.output<typeof schemas.s_UserMe>;
 export type UserPreferencesOutput = z.output<typeof schemas.s_UserPreferences>;
-export type UserQuotaResponseOutput = z.output<typeof schemas.s_UserQuotaResponse>;
 export type WordCoverageTierOutput = z.output<typeof schemas.s_WordCoverageTier>;
 export type WordMatchMediaOutput = z.output<typeof schemas.s_WordMatchMedia>;
+export type AdminReportGroupItemOutput = z.output<typeof schemas.s_AdminReportGroupItem>;
+export type BatchUpdateReportsRequestOutput = z.output<typeof schemas.s_BatchUpdateReportsRequest>;
+export type BulkDeleteReportsRequestOutput = z.output<typeof schemas.s_BulkDeleteReportsRequest>;
+export type BulkUpdateReportsRequestOutput = z.output<typeof schemas.s_BulkUpdateReportsRequest>;
 export type CategoryCountOutput = z.output<typeof schemas.s_CategoryCount>;
-export type CharacterOutput = z.output<typeof schemas.s_Character>;
-export type CharacterInputOutput = z.output<typeof schemas.s_CharacterInput>;
-export type CollectionListResponseOutput = z.output<typeof schemas.s_CollectionListResponse>;
+export type CollectionOutput = z.output<typeof schemas.s_Collection>;
+export type CollectionCreateRequestOutput = z.output<typeof schemas.s_CollectionCreateRequest>;
+export type CollectionUpdateRequestOutput = z.output<typeof schemas.s_CollectionUpdateRequest>;
+export type CoveredWordsResponseOutput = z.output<typeof schemas.s_CoveredWordsResponse>;
 export type EpisodeListResponseOutput = z.output<typeof schemas.s_EpisodeListResponse>;
-export type MediaAutocompleteItemOutput = z.output<typeof schemas.s_MediaAutocompleteItem>;
+export type MediaOutput = z.output<typeof schemas.s_Media>;
+export type MediaCreateRequestOutput = z.output<typeof schemas.s_MediaCreateRequest>;
+export type MediaSummaryOutput = z.output<typeof schemas.s_MediaSummary>;
+export type MediaUpdateRequestOutput = z.output<typeof schemas.s_MediaUpdateRequest>;
 export type ReportTargetOutput = z.output<typeof schemas.s_ReportTarget>;
 export type SearchFiltersOutput = z.output<typeof schemas.s_SearchFilters>;
+export type SearchMediaFiltersOutput = z.output<typeof schemas.s_SearchMediaFilters>;
 export type SegmentOutput = z.output<typeof schemas.s_Segment>;
 export type SegmentCreateRequestOutput = z.output<typeof schemas.s_SegmentCreateRequest>;
 export type SegmentUpdateRequestOutput = z.output<typeof schemas.s_SegmentUpdateRequest>;
-export type SeiyuuOutput = z.output<typeof schemas.s_Seiyuu>;
-export type SeriesListResponseOutput = z.output<typeof schemas.s_SeriesListResponse>;
+export type StatsOverviewOutput = z.output<typeof schemas.s_StatsOverview>;
+export type UpdateReportRequestOutput = z.output<typeof schemas.s_UpdateReportRequest>;
 export type UserActivityOutput = z.output<typeof schemas.s_UserActivity>;
-export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCollection>;
 export type UserReportTargetOutput = z.output<typeof schemas.s_UserReportTarget>;
 export type WordMatchOutput = z.output<typeof schemas.s_WordMatch>;
 export type AdminReportGroupOutput = z.output<typeof schemas.s_AdminReportGroup>;
+export type CollectionListResponseOutput = z.output<typeof schemas.s_CollectionListResponse>;
 export type CreateReportRequestOutput = z.output<typeof schemas.s_CreateReportRequest>;
 export type MediaAutocompleteResponseOutput = z.output<typeof schemas.s_MediaAutocompleteResponse>;
-export type MediaCharacterOutput = z.output<typeof schemas.s_MediaCharacter>;
-export type MediaCreateRequestOutput = z.output<typeof schemas.s_MediaCreateRequest>;
-export type MediaUpdateRequestOutput = z.output<typeof schemas.s_MediaUpdateRequest>;
-export type ReportOutput = z.output<typeof schemas.s_Report>;
-export type SearchMultipleRequestOutput = z.output<typeof schemas.s_SearchMultipleRequest>;
-export type SearchRequestOutput = z.output<typeof schemas.s_SearchRequest>;
-export type SearchStatsRequestOutput = z.output<typeof schemas.s_SearchStatsRequest>;
-export type SegmentBatchCreateRequestOutput = z.output<typeof schemas.s_SegmentBatchCreateRequest>;
-export type SegmentInternalOutput = z.output<typeof schemas.s_SegmentInternal>;
-export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
-export type MediaOutput = z.output<typeof schemas.s_Media>;
-export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
-export type CharacterWithMediaOutput = z.output<typeof schemas.s_CharacterWithMedia>;
-export type CollectionWithSegmentsOutput = z.output<typeof schemas.s_CollectionWithSegments>;
 export type MediaListResponseOutput = z.output<typeof schemas.s_MediaListResponse>;
+export type ReportOutput = z.output<typeof schemas.s_Report>;
+export type SearchMediaRequestOutput = z.output<typeof schemas.s_SearchMediaRequest>;
+export type SearchMultipleRequestOutput = z.output<typeof schemas.s_SearchMultipleRequest>;
 export type SearchMultipleResponseOutput = z.output<typeof schemas.s_SearchMultipleResponse>;
+export type SearchRequestOutput = z.output<typeof schemas.s_SearchRequest>;
 export type SearchResponseOutput = z.output<typeof schemas.s_SearchResponse>;
+export type SearchStatsRequestOutput = z.output<typeof schemas.s_SearchStatsRequest>;
 export type SearchStatsResponseOutput = z.output<typeof schemas.s_SearchStatsResponse>;
+export type SegmentBatchCreateRequestOutput = z.output<typeof schemas.s_SegmentBatchCreateRequest>;
 export type SegmentContextResponseOutput = z.output<typeof schemas.s_SegmentContextResponse>;
-export type SeiyuuWithRolesOutput = z.output<typeof schemas.s_SeiyuuWithRoles>;
-export type SeriesWithMediaOutput = z.output<typeof schemas.s_SeriesWithMedia>;
+export type SegmentInternalOutput = z.output<typeof schemas.s_SegmentInternal>;
+export type SegmentListResponseOutput = z.output<typeof schemas.s_SegmentListResponse>;
+export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCollection>;
+export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
+export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
 
 // ============================================
 // Inline query schemas and their output types
 // ============================================
 
-export const getAdminDashboardOverviewQuerySchema = z.object({ days: z.string().optional() });
-export type GetAdminDashboardOverviewQueryOutput = z.output<typeof getAdminDashboardOverviewQuerySchema>;
+export const listUserActivityQuerySchema = z.object({
+    cursor: z.string().optional(),
+    take: z.coerce.number().min(1).max(100).optional().default(20),
+    activityType: schemas.s_ActivityType.optional(),
+    date: z.string().optional(),
+  });
+export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
 
-export const getAdminDashboardActivityQuerySchema = z.object({ days: z.string().optional() });
-export type GetAdminDashboardActivityQueryOutput = z.output<typeof getAdminDashboardActivityQuerySchema>;
+export const getUserActivityHeatmapQuerySchema = z.object({
+    days: z.coerce.number().min(1).max(730).optional().default(365),
+  });
+export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
+
+export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
+export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
 
 export const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),
     status: z.string().optional(),
-    source: z.enum(['USER', 'AUTO']).optional(),
-    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    source: schemas.s_ReportSource.optional(),
+    'target.type': schemas.s_ReportTargetType.optional(),
     'target.mediaId': z.coerce.number().optional(),
     'target.episodeNumber': z.coerce.number().optional(),
     'target.segmentId': z.coerce.number().optional(),
@@ -130,92 +153,31 @@ export const listAdminMediaAuditRunsQuerySchema = z.object({
 export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
 
 export const listCollectionsQuerySchema = z.object({
-    visibility: z.enum(['public', 'private']).optional(),
+    visibility: schemas.s_CollectionVisibility.optional(),
     cursor: z.string().optional(),
     take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
-
-export const getCollectionQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type GetCollectionQueryOutput = z.output<typeof getCollectionQuerySchema>;
-
-export const searchCollectionSegmentsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
-export type SearchCollectionSegmentsQueryOutput = z.output<typeof searchCollectionSegmentsQuerySchema>;
 
 export const listMediaQuerySchema = z.object({
     take: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.string().optional(),
     category: z.enum(['ANIME', 'JDRAMA']).optional(),
     query: z.string().optional(),
-    include: z
-      .preprocess(
-        (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
-        z.array(schemas.s_MediaIncludeExpansion),
-      )
-      .optional()
-      .default([]),
   });
 export type ListMediaQueryOutput = z.output<typeof listMediaQuerySchema>;
-
-export const autocompleteMediaQuerySchema = z.object({
-    query: z.string().min(1).regex(new RegExp('.*\\S.*')),
-    take: z.coerce.number().min(1).max(25).optional().default(10),
-    category: z.enum(['ANIME', 'JDRAMA']).optional(),
-  });
-export type AutocompleteMediaQueryOutput = z.output<typeof autocompleteMediaQuerySchema>;
-
-export const getSegmentByUuidQuerySchema = z.object({
-    include: z
-      .preprocess(
-        (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
-        z.array(z.enum(['ratingAnalysis', 'posAnalysis', 'hashedId', 'storageBasePath', 'storage'])),
-      )
-      .optional(),
-  });
-export type GetSegmentByUuidQueryOutput = z.output<typeof getSegmentByUuidQuerySchema>;
 
 export const getSegmentContextQuerySchema = z.object({
     take: z.coerce.number().min(1).max(30).optional().default(3),
     contentRating: z
       .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(schemas.s_ContentRating))
       .optional(),
+    include: z
+      .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(schemas.s_IncludeExpansion))
+      .optional()
+      .default([]),
   });
 export type GetSegmentContextQueryOutput = z.output<typeof getSegmentContextQuerySchema>;
-
-export const listSeriesQuerySchema = z.object({
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-    cursor: z.string().optional(),
-    query: z.string().optional(),
-  });
-export type ListSeriesQueryOutput = z.output<typeof listSeriesQuerySchema>;
-
-export const getSeriesQuerySchema = z.object({
-    include: z
-      .preprocess(
-        (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
-        z.array(schemas.s_MediaIncludeExpansion),
-      )
-      .optional()
-      .default([]),
-  });
-export type GetSeriesQueryOutput = z.output<typeof getSeriesQuerySchema>;
-
-export const getMediaQuerySchema = z.object({
-    include: z
-      .preprocess(
-        (it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
-        z.array(schemas.s_MediaIncludeExpansion),
-      )
-      .optional()
-      .default([]),
-  });
-export type GetMediaQueryOutput = z.output<typeof getMediaQuerySchema>;
 
 export const listEpisodesQuerySchema = z.object({
     take: z.coerce.number().min(1).max(100).optional().default(50),
@@ -232,25 +194,11 @@ export type ListSegmentsQueryOutput = z.output<typeof listSegmentsQuerySchema>;
 export const getCoveredWordsQuerySchema = z.object({
     tier: z.coerce.number().min(1),
     minRank: z.coerce.number().min(0).optional().default(0),
-    filter: z.enum(['all', 'covered', 'uncovered']).optional().default('all'),
-    cursor: z.coerce.number().min(0).optional().default(0),
+    filter: z.enum(['ALL', 'COVERED', 'UNCOVERED']).optional().default('ALL'),
+    cursor: z.string().optional(),
     take: z.coerce.number().min(1).max(1000).optional().default(200),
   });
 export type GetCoveredWordsQueryOutput = z.output<typeof getCoveredWordsQuerySchema>;
 
-export const listUserActivityQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    activityType: schemas.s_ActivityType.optional(),
-    date: z.string().optional(),
-  });
-export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
-
 export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
 export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;
-
-export const getUserActivityHeatmapQuerySchema = z.object({ days: z.coerce.number().max(730).optional().default(365) });
-export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
-
-export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
-export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;

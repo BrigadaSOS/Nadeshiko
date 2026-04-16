@@ -30,9 +30,8 @@ properties:
     type: array
     description: Segment status filter
     items:
-      type: string
-      enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
-    default: ["ACTIVE"]
+      $ref: "./SegmentStatus.yaml"
+    default: [ACTIVE]
   segmentLengthChars:
     type: object
     description: Content character count range filter
@@ -40,10 +39,12 @@ properties:
       min:
         type: integer
         description: Minimum content length
+        minimum: 0
         example: 10
       max:
         type: integer
         description: Maximum content length
+        minimum: 0
         example: 50
   segmentDurationMs:
     type: object
@@ -52,18 +53,20 @@ properties:
       min:
         type: integer
         description: Minimum duration in ms
+        minimum: 0
         example: 1000
       max:
         type: integer
         description: Maximum duration in ms
+        minimum: 0
         example: 10000
   languages:
-    type: object
-    description: Language inclusion/exclusion for search matching
-    properties:
-      exclude:
-        type: array
-        description: Language codes to exclude from search matching (e.g., ["en"], ["es"], ["en","es"])
-        items:
-          type: string
-          enum: [en, es]
+    type: array
+    description: |
+      Translation languages to include alongside Japanese in search matching.
+      - Omitted / `null`: match against Japanese and all translation languages (default)
+      - `[]`: match against Japanese only
+      - `["EN"]` / `["ES"]` / `["EN", "ES"]`: match against Japanese plus the listed translation languages
+    items:
+      type: string
+      enum: [EN, ES]

@@ -1,29 +1,43 @@
 type: object
 description: Search hit statistics for a single media
 required:
-  - mediaId
-  - publicId
+  - mediaPublicId
   - matchCount
   - episodeHits
 properties:
-  mediaId:
-    type: integer
-    description: Media identifier (look up full details in includes.media)
-    example: 110316
-  publicId:
+  mediaPublicId:
     type: string
-    description: Public identifier for use in URLs and filters
-    example: abc123xyz
+    description: Media public ID (look up full details in `includes.media` when `include[]=media` is requested)
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   matchCount:
     type: integer
     description: Number of matching segments found in this media
+    minimum: 0
     example: 42
   episodeHits:
-    type: object
-    description: Mapping of episode numbers to segment hit counts
+    type: array
+    description: Episode-level hit counts
+    items:
+      type: object
+      required:
+        - episode
+        - hitCount
+      properties:
+        episode:
+          type: integer
+          description: Episode number
+          minimum: 0
+          example: 1
+        hitCount:
+          type: integer
+          description: Number of matching segments in this episode
+          minimum: 0
+          example: 5
     example:
-      1: 5
-      2: 8
-      3: 3
-    additionalProperties:
-      type: integer
+      - episode: 1
+        hitCount: 5
+      - episode: 2
+        hitCount: 8
+      - episode: 3
+        hitCount: 3

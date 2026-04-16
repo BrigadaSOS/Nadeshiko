@@ -1,11 +1,11 @@
 meta {
   name: List all media
   type: http
-  seq: 7
+  seq: 8
 }
 
 get {
-  url: {{baseUrl}}/v1/media?take=20&category=ANIME&query=steins&include=
+  url: {{baseUrl}}/v1/media?take=20&category=ANIME&query=steins
   body: none
   auth: bearer
 }
@@ -15,7 +15,6 @@ params:query {
   cursor:
   category: ANIME
   query: steins
-  include: 
 }
 
 auth:bearer {

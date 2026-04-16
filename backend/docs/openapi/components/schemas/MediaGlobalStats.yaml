@@ -1,0 +1,22 @@
+type: object
+description: Global corpus totals across all media
+required:
+  - totalMedia
+  - totalSegments
+  - totalEpisodes
+properties:
+  totalMedia:
+    type: integer
+    description: Total number of media across all pages
+    minimum: 0
+    example: 312
+  totalSegments:
+    type: integer
+    description: Total number of non-deleted segments
+    minimum: 0
+    example: 184520
+  totalEpisodes:
+    type: integer
+    description: Total number of episodes
+    minimum: 0
+    example: 4287

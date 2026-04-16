@@ -15,42 +15,22 @@ post:
     content:
       application/json:
         schema:
-          type: object
-          properties:
-            maxRank:
-              type: integer
-              default: 999999
-              description: Maximum frequency rank to check (defaults to all words)
-            onlyUncovered:
-              type: boolean
-              default: false
-              description: Only check words that currently have zero matches (faster for incremental updates)
+          $ref: "../../components/schemas/CoveredWordsUpdateRequest.yaml"
 
   responses:
     "200":
-      description: Coverage update result
+      description: OK
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - wordsChecked
-              - newlyCovered
-              - totalCovered
-              - percentage
-            properties:
-              wordsChecked:
-                type: integer
-              newlyCovered:
-                type: integer
-              totalCovered:
-                type: integer
-              percentage:
-                type: number
-                format: float
+            $ref: "../../components/schemas/CoveredWordsUpdateResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
-      description: Internal server error
-      content:
-        application/json:
-          schema:
-            $ref: "../../components/schemas/Error500.yaml"
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -40,12 +40,12 @@ const displayMediaName = (media: NamedMedia): string => {
 
 const secondaryMediaNames = (media: NamedMedia): string => {
   const namesByLanguage = {
-    english: media.nameEn || '',
-    japanese: media.nameJa || '',
-    romaji: media.nameRomaji || '',
+    ENGLISH: media.nameEn || '',
+    JAPANESE: media.nameJa || '',
+    ROMAJI: media.nameRomaji || '',
   };
 
-  const orderedLanguages: Array<'english' | 'japanese' | 'romaji'> = ['english', 'japanese', 'romaji'];
+  const orderedLanguages: Array<'ENGLISH' | 'JAPANESE' | 'ROMAJI'> = ['ENGLISH', 'JAPANESE', 'ROMAJI'];
   const secondaryNames = orderedLanguages
     .filter((lang) => lang !== language.value)
     .map((lang) => namesByLanguage[lang])

@@ -1,0 +1,18 @@
+type: object
+description: Sort configuration
+properties:
+  mode:
+    type: string
+    description: |
+      Sort mode.
+      - `RELEVANCE` (default): Elasticsearch relevance score
+      - `ASC` / `DESC`: by segment length (character count)
+      - `TIME_ASC` / `TIME_DESC`: by episode & position within an episode
+      - `RANDOM`: deterministic random order (pass `seed` for reproducibility)
+    enum: [RELEVANCE, ASC, DESC, TIME_ASC, TIME_DESC, RANDOM]
+    default: RELEVANCE
+  seed:
+    type: integer
+    description: Non-negative integer seed for deterministic random sorting (only used when mode is RANDOM)
+    minimum: 0
+    example: 42

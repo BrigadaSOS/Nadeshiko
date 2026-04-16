@@ -13,8 +13,6 @@ export const client = new Client({
     password: config.ELASTICSEARCH_PASSWORD,
   },
   Connection: HttpConnection,
-  maxSockets: 10,
-  keepAliveTimeout: 60000,
 });
 
 /**
@@ -36,8 +34,6 @@ function createAdminClient(configValues: AppConfig): Client {
       password: adminPassword,
     },
     Connection: HttpConnection,
-    maxSockets: 10,
-    keepAliveTimeout: 60000,
   });
 }
 
@@ -165,7 +161,7 @@ export async function initializeElasticsearchIndexWithClient(esClient?: Client):
   const aliasExists = await clientToUse.indices.existsAlias({ name: INDEX_NAME });
   if (aliasExists) {
     const physical = await resolvePhysicalIndex(clientToUse);
-    logger.info(`Elasticsearch alias '${INDEX_NAME}' exists, pointing to '${physical}'`);
+    logger.info({ alias: INDEX_NAME, physical }, 'Elasticsearch alias exists');
     return;
   }
 
@@ -178,7 +174,7 @@ export async function initializeElasticsearchIndexWithClient(esClient?: Client):
   }
 
   const physicalName = `${INDEX_NAME}_v1`;
-  logger.info(`Creating Elasticsearch index '${physicalName}' with alias '${INDEX_NAME}'`);
+  logger.info({ index: physicalName, alias: INDEX_NAME }, 'Creating Elasticsearch index');
 
   await clientToUse.indices.create({
     index: physicalName,
@@ -190,7 +186,7 @@ export async function initializeElasticsearchIndexWithClient(esClient?: Client):
     actions: [{ add: { index: physicalName, alias: INDEX_NAME, is_write_index: true } }],
   });
 
-  logger.info(`Elasticsearch index '${physicalName}' created with alias '${INDEX_NAME}'`);
+  logger.info({ index: physicalName, alias: INDEX_NAME }, 'Elasticsearch index created');
 }
 
 export async function resetElasticsearchIndex(): Promise<void> {
@@ -206,7 +202,7 @@ export async function resetElasticsearchIndexWithClient(esClient?: Client): Prom
     for (const idx of allVersioned) {
       await clientToUse.indices.delete({ index: idx });
     }
-    logger.info(`Deleted alias '${INDEX_NAME}' and ${allVersioned.length} versioned index(es)`);
+    logger.info({ alias: INDEX_NAME, count: allVersioned.length }, 'Deleted alias and versioned indices');
   } else {
     const concreteExists = await clientToUse.indices.exists({ index: INDEX_NAME });
     if (concreteExists) {
@@ -225,7 +221,7 @@ export async function resetElasticsearchIndexWithClient(esClient?: Client): Prom
     actions: [{ add: { index: physicalName, alias: INDEX_NAME, is_write_index: true } }],
   });
 
-  logger.info(`Elasticsearch index '${physicalName}' recreated with alias '${INDEX_NAME}'`);
+  logger.info({ index: physicalName, alias: INDEX_NAME }, 'Elasticsearch index recreated');
 }
 
 export async function reindexZeroDowntime(
@@ -334,7 +330,7 @@ export async function migrateToAlias(esClient?: Client): Promise<void> {
 
   const aliasExists = await clientToUse.indices.existsAlias({ name: INDEX_NAME });
   if (aliasExists) {
-    logger.info(`'${INDEX_NAME}' is already an alias. No migration needed.`);
+    logger.info({ alias: INDEX_NAME }, 'Already an alias, no migration needed');
     return;
   }
 
@@ -378,7 +374,7 @@ export async function migrateToAlias(esClient?: Client): Promise<void> {
     actions: [{ add: { index: physicalName, alias: INDEX_NAME, is_write_index: true } }],
   });
 
-  logger.info(`Migration complete: '${INDEX_NAME}' is now an alias pointing to '${physicalName}'`);
+  logger.info({ alias: INDEX_NAME, physical: physicalName }, 'Migration complete');
 }
 
 function extractVersion(indexName: string): number {

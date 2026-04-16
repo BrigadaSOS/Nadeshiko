@@ -1,15 +1,14 @@
 get:
   tags:
-    - User
-  x-internal: true
+    - Activity
   operationId: getUserActivityStats
   summary: Get user activity statistics
   description: |
     Returns aggregate statistics about the authenticated user's activity:
-    total searches, exports, plays, and top media.
+    total searches, exports, plays, list adds, shares, and top media.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [READ_ACTIVITY]
   parameters:
     - name: since
       in: query
@@ -23,38 +22,12 @@ get:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - totalSearches
-              - totalExports
-              - totalPlays
-              - totalListAdds
-              - totalShares
-              - topMedia
-            properties:
-              totalSearches:
-                type: integer
-              totalExports:
-                type: integer
-              totalPlays:
-                type: integer
-              totalListAdds:
-                type: integer
-              totalShares:
-                type: integer
-              topMedia:
-                type: array
-                items:
-                  type: object
-                  required:
-                    - mediaId
-                    - count
-                  properties:
-                    mediaId:
-                      type: integer
-                    count:
-                      type: integer
+            $ref: "../../components/schemas/UserActivityStats.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

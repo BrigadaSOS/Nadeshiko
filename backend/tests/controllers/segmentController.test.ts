@@ -1,5 +1,4 @@
 import request from 'supertest';
-import { v3 as uuidv3 } from 'uuid';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, spyOn } from 'bun:test';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
@@ -7,9 +6,8 @@ import { loadFixtures } from '../fixtures/loader';
 import { assertDifference } from '../helpers/assertions';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { setBossInstance } from '@app/workers/pgBossClient';
-import { toSegmentDTO } from '@app/controllers/mappers/segment.mapper';
-import { toMediaBaseDTO } from '@app/controllers/mappers/shared.mapper';
-import { config } from '@config/config';
+import { toSegmentDTO } from '@app/controllers/mappers/segmentMapper';
+import { toMediaBaseDTO } from '@app/controllers/mappers/sharedMapper';
 import { ContentRating, Segment, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { Media } from '@app/models/Media';
 import { MediaExternalId, ExternalSourceType } from '@app/models/MediaExternalId';
@@ -21,6 +19,8 @@ const app = createTestApp();
 let core: CoreFixtures;
 let segmentSeedCounter = 0;
 const activeSpies: Array<{ mockRestore: () => void }> = [];
+const MISSING_MEDIA_PUBLIC_ID = 'MissingMed01';
+const MISSING_SEGMENT_PUBLIC_ID = 'MissSegm0012';
 
 beforeAll(async () => {
   setBossInstance({
@@ -45,7 +45,7 @@ async function seedSegment(mediaId: number, episodeNumber: number, overrides: Pa
   const uuid = `seg-${mediaId}-${episodeNumber}-${segmentSeedCounter}`;
   return Segment.save({
     uuid,
-    publicId: `pub-${uuid}`,
+    publicId: overrides.publicId ?? `seg${String(segmentSeedCounter).padStart(9, '0')}`,
     position: segmentSeedCounter,
     status: SegmentStatus.ACTIVE,
     startTimeMs: 1000,
@@ -141,12 +141,10 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
             hashedId: 'new-hash',
           });
 
-        const expectedUuid = uuidv3(`99999-1-${episode.episodeNumber}-${position}`, config.UUID_NAMESPACE);
-
         expect(res.status).toBe(201);
         expect(res.body).toMatchObject({
-          uuid: expectedUuid,
-          mediaId: media.id,
+          segmentPublicId: expect.any(String),
+          mediaPublicId: media.publicId,
           episode: episode.episodeNumber,
           position,
           textJa: { content: 'テスト' },
@@ -163,7 +161,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
 
   it('returns 404 when media does not exist', async () => {
     const res = await request(app)
-      .post('/v1/media/999999/episodes/1/segments')
+      .post(`/v1/media/${MISSING_MEDIA_PUBLIC_ID}/episodes/1/segments`)
       .send({
         position: 1,
         startTimeMs: 0,
@@ -200,51 +198,43 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
   });
 });
 
-describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => {
-  it('returns a segment by id', async () => {
+describe('GET /v1/media/segments/:segmentPublicId', () => {
+  it('returns a segment by publicId', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
     const segment = await seedSegment(media.id, episode.episodeNumber, { position: 5 });
 
-    const res = await request(app).get(
-      `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
-    );
+    const res = await request(app).get(`/v1/media/segments/${segment.publicId}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      id: segment.id,
-      uuid: segment.uuid,
-      mediaId: media.id,
+      segmentPublicId: segment.publicId,
+      mediaPublicId: media.publicId,
       episode: episode.episodeNumber,
       position: 5,
     });
   });
 
   it('returns 404 when segment does not exist', async () => {
-    const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
-    const episode = fixtures.episodes.pilot;
-
-    const res = await request(app).get(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/999999`);
+    const res = await request(app).get(`/v1/media/segments/${MISSING_SEGMENT_PUBLIC_ID}`);
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
-describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => {
+describe('PATCH /v1/media/segments/:segmentPublicId', () => {
   it('updates a segment and preserves falsy values', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
-    const segment = await seedSegment(media.id, episode.episodeNumber, {
+    const segment = await seedSegment(fixtures.media.testShow.id, episode.episodeNumber, {
       contentEsMt: true,
       contentEnMt: true,
       contentRating: ContentRating.SAFE,
     });
 
     const res = await request(app)
-      .patch(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/${segment.id}`)
+      .patch(`/v1/media/segments/${segment.publicId}`)
       .send({
         textJa: { content: '更新' },
         textEn: { content: 'updated-en', isMachineTranslated: false },
@@ -262,7 +252,7 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      id: segment.id,
+      segmentPublicId: segment.publicId,
       position: 9,
       textJa: { content: '更新' },
       textEn: { content: 'updated-en', isMachineTranslated: false },
@@ -284,129 +274,8 @@ describe('PATCH /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => 
   });
 
   it('returns 404 when segment does not exist', async () => {
-    const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
-    const episode = fixtures.episodes.pilot;
-
     const res = await request(app)
-      .patch(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/999999`)
-      .send({
-        textJa: { content: 'nope' },
-      });
-
-    expect(res.status).toBe(404);
-    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
-  });
-
-  it('returns 404 when segment id exists but under a different media/episode path', async () => {
-    const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
-    const episode = fixtures.episodes.pilot;
-    const segment = await seedSegment(media.id, episode.episodeNumber, { contentJa: 'original' });
-
-    const res = await request(app)
-      .patch(`/v1/media/nonexistent-media/episodes/${episode.episodeNumber + 999}/segments/${segment.id}`)
-      .send({
-        textJa: { content: 'should-not-update' },
-      });
-
-    expect(res.status).toBe(404);
-    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
-
-    const unchanged = await Segment.findOneByOrFail({ id: segment.id });
-    expect(unchanged.contentJa).toBe('original');
-  });
-});
-
-describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber/segments/:id', () => {
-  it('soft-deletes a segment (status=DELETED) and returns 204', async () => {
-    const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
-    const episode = fixtures.episodes.pilot;
-    const segment = await seedSegment(media.id, episode.episodeNumber);
-
-    await assertDifference(
-      () => Segment.count(),
-      0,
-      async () => {
-        const res = await request(app).delete(
-          `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/${segment.id}`,
-        );
-        expect(res.status).toBe(204);
-      },
-    );
-
-    const deleted = await Segment.findOneByOrFail({ id: segment.id });
-    expect(deleted.status).toBe(SegmentStatus.DELETED);
-  });
-
-  it('returns 404 when segment does not exist', async () => {
-    const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
-    const episode = fixtures.episodes.pilot;
-
-    const res = await request(app).delete(
-      `/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/999999`,
-    );
-    expect(res.status).toBe(404);
-    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
-  });
-});
-
-describe('GET /v1/media/segments/:uuid', () => {
-  it('returns a segment by uuid', async () => {
-    const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
-    const episode = fixtures.episodes.pilot;
-    const segment = await seedSegment(media.id, episode.episodeNumber, { uuid: 'segment-uuid-123' });
-
-    const res = await request(app).get(`/v1/media/segments/${segment.uuid}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      id: segment.id,
-      uuid: 'segment-uuid-123',
-    });
-  });
-
-  it('returns 404 when uuid does not exist', async () => {
-    const res = await request(app).get('/v1/media/segments/missing-uuid');
-    expect(res.status).toBe(404);
-    expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
-  });
-});
-
-describe('PATCH /v1/media/segments/:uuid', () => {
-  it('updates a segment by uuid', async () => {
-    const fixtures = await loadFixtures(['mediaWithEpisode']);
-    const media = fixtures.media.testShow;
-    const episode = fixtures.episodes.pilot;
-    const segment = await seedSegment(media.id, episode.episodeNumber, { uuid: 'segment-to-update' });
-
-    const res = await request(app)
-      .patch(`/v1/media/segments/${segment.uuid}`)
-      .send({
-        textJa: { content: 'changed' },
-        status: 'INVALID',
-        contentRating: 'EXPLICIT',
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      uuid: 'segment-to-update',
-      textJa: { content: 'changed' },
-      status: 'INVALID',
-      contentRating: 'EXPLICIT',
-    });
-
-    const updated = await Segment.findOneByOrFail({ id: segment.id });
-    expect(updated.contentJa).toBe('changed');
-    expect(updated.status).toBe(SegmentStatus.INVALID);
-    expect(updated.contentRating).toBe(ContentRating.EXPLICIT);
-  });
-
-  it('returns 404 when uuid does not exist', async () => {
-    const res = await request(app)
-      .patch('/v1/media/segments/missing-uuid')
+      .patch(`/v1/media/segments/${MISSING_SEGMENT_PUBLIC_ID}`)
       .send({
         textJa: { content: 'nope' },
       });
@@ -416,21 +285,18 @@ describe('PATCH /v1/media/segments/:uuid', () => {
   });
 });
 
-describe('GET /v1/media/segments/:uuid/context', () => {
+describe('GET /v1/media/segments/:publicId/context', () => {
   it('returns context from SegmentDocument and passes query parameters', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
-    const segment = await seedSegment(media.id, episode.episodeNumber, {
-      uuid: 'context-segment',
-      position: 12,
-    });
+    const segment = await seedSegment(media.id, episode.episodeNumber, { position: 12 });
 
     const contextResponse = {
       segments: [toSegmentDTO(segment)],
       includes: {
         media: {
-          [String(media.id)]: toMediaBaseDTO(media as Media),
+          [media.publicId]: toMediaBaseDTO(media as Media),
         },
       },
     };
@@ -438,10 +304,10 @@ describe('GET /v1/media/segments/:uuid/context', () => {
     const surroundingSpy = spyOn(SegmentDocument, 'surroundingSegments').mockResolvedValueOnce(contextResponse as any);
     activeSpies.push(surroundingSpy);
 
-    const res = await request(app).get(`/v1/media/segments/${segment.uuid}/context?take=5&contentRating=SAFE`);
+    const res = await request(app).get(`/v1/media/segments/${segment.publicId}/context?take=5&contentRating=SAFE`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(contextResponse);
+    expect(res.body).toEqual({ segments: contextResponse.segments });
     expect(surroundingSpy).toHaveBeenCalledWith({
       mediaId: media.id,
       episodeNumber: episode.episodeNumber,
@@ -451,14 +317,14 @@ describe('GET /v1/media/segments/:uuid/context', () => {
     });
   });
 
-  it('returns 404 when base segment uuid does not exist', async () => {
+  it('returns 404 when base segment publicId does not exist', async () => {
     const surroundingSpy = spyOn(SegmentDocument, 'surroundingSegments').mockResolvedValueOnce({
       segments: [],
       includes: { media: {} },
     } as any);
     activeSpies.push(surroundingSpy);
 
-    const res = await request(app).get('/v1/media/segments/missing-segment/context');
+    const res = await request(app).get(`/v1/media/segments/${MISSING_SEGMENT_PUBLIC_ID}/context`);
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });

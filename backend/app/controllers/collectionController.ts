@@ -20,19 +20,21 @@ import {
 } from '@app/models';
 import type { CategoryOutput } from 'generated/outputTypes';
 import type { User } from '@app/models/User';
-import { toCollectionDTO } from './mappers/collection.mapper';
+import { toCollectionDTO } from './mappers/collectionMapper';
+import { toSearchResponseDTO } from './mappers/searchMapper';
 import { SegmentDocument } from '@app/models/SegmentDocument';
 import { AccessDeniedError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
+import { resolveMediaFilterIds } from './searchFilters';
 
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
   const user = assertUser(req);
 
   const whereClause: Partial<Pick<Collection, 'userId' | 'visibility'>> = { userId: user.id };
 
-  if (query.visibility === 'public') {
+  if (query.visibility === 'PUBLIC') {
     whereClause.visibility = CollectionVisibility.PUBLIC;
-  } else if (query.visibility === 'private') {
+  } else if (query.visibility === 'PRIVATE') {
     whereClause.visibility = CollectionVisibility.PRIVATE;
   }
 
@@ -80,96 +82,51 @@ export const createCollection: CreateCollection = async ({ body }, respond, req)
   return respond.with201().body(toCollectionDTO(collection));
 };
 
-export const getCollection: GetCollection = async ({ params, query }, respond, req) => {
+export const getCollection: GetCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionReadable(collection, user);
 
-  const {
-    items: segmentItems,
-    totalCount,
-    pagination,
-  } = await CollectionSegment.paginateWithKeyset({
-    take: query.take,
-    cursor: query.cursor,
-    orderBy: { column: 'id', direction: 'ASC' },
-    count: true,
-    query: () =>
-      CollectionSegment.createQueryBuilder('cs').where('cs.collectionId = :collectionId', {
-        collectionId: collection.id,
-      }),
-  });
+  const segmentCount = await CollectionSegment.count({ where: { collectionId: collection.id } });
 
-  if (segmentItems.length === 0) {
-    return respond.with200().body({
-      ...toCollectionDTO(collection, totalCount),
-      segments: [],
-      includes: { media: {} },
-      totalCount,
-      pagination,
-    });
-  }
-
-  const segmentIds = segmentItems.map((item) => item.segmentId);
-  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
-
-  const resultById = new Map(searchResults.map((r) => [r.id, r]));
-
-  const segments = segmentItems
-    .map((item) => {
-      const result = resultById.get(item.segmentId);
-      if (!result) return null;
-      return {
-        position: item.position,
-        note: item.note,
-        result,
-      };
-    })
-    .filter((s): s is NonNullable<typeof s> => s !== null);
-
-  return respond.with200().body({
-    ...toCollectionDTO(collection, totalCount),
-    segments,
-    includes,
-    totalCount,
-    pagination,
-  });
+  return respond.with200().body(toCollectionDTO(collection, segmentCount));
 };
 
 export const updateCollection: UpdateCollection = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionOwnership(collection, user);
 
   const patch: Partial<Pick<Collection, 'name' | 'visibility'>> = {};
   if (body.name !== undefined) patch.name = body.name;
   if (body.visibility !== undefined) patch.visibility = toCollectionVisibility(body.visibility);
 
-  const updated = await Collection.findAndUpdateOrFail({ where: { publicId: params.id }, patch });
+  const updated = await Collection.findAndUpdateOrFail({ where: { publicId: params.collectionPublicId }, patch });
 
   return respond.with200().body(toCollectionDTO(updated));
 };
 
 export const deleteCollection: DeleteCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionOwnership(collection, user);
 
   if (collection.type === CollectionType.ANKI_EXPORT) {
     throw new InvalidRequestError('Cannot delete the Anki Exports collection.');
   }
 
-  await Collection.deleteOrFail({ where: { publicId: params.id } });
+  await Collection.deleteOrFail({ where: { publicId: params.collectionPublicId } });
 
   return respond.with204();
 };
 
 export const addSegmentToCollection: AddSegmentToCollection = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionOwnership(collection, user);
 
-  const segment = await Segment.findOneOrFail({ where: [{ publicId: body.segmentId }, { uuid: body.segmentId }] });
+  const segmentPublicId = body.segmentPublicId;
+  const segment = await Segment.findOneOrFail({ where: [{ publicId: segmentPublicId }, { uuid: segmentPublicId }] });
   await Collection.getRepository().manager.transaction(async (manager) => {
     await manager
       .createQueryBuilder(Collection, 'collection')
@@ -206,11 +163,13 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
 
 export const updateCollectionSegment: UpdateCollectionSegment = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionOwnership(collection, user);
 
+  const segment = await Segment.findOneOrFail({ where: { publicId: params.segmentPublicId }, select: ['id'] });
+
   const item = await CollectionSegment.findOneOrFail({
-    where: { collectionId: collection.id, segmentId: params.segmentId },
+    where: { collectionId: collection.id, segmentId: segment.id },
   });
 
   if (body.position !== undefined) item.position = body.position;
@@ -223,70 +182,34 @@ export const updateCollectionSegment: UpdateCollectionSegment = async ({ params,
 
 export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionOwnership(collection, user);
 
+  const segment = await Segment.findOneOrFail({ where: { publicId: params.segmentPublicId }, select: ['id'] });
+
   await CollectionSegment.deleteOrFail({
-    where: { collectionId: collection.id, segmentId: params.segmentId },
+    where: { collectionId: collection.id, segmentId: segment.id },
   });
 
   return respond.with204();
 };
 
-export const searchCollectionSegments: SearchCollectionSegments = async ({ params, query }, respond, req) => {
+export const searchCollectionSegments: SearchCollectionSegments = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionReadable(collection, user);
 
-  const {
-    items: segmentItems,
-    totalCount,
-    pagination,
-  } = await CollectionSegment.paginateWithKeyset({
-    take: query.take,
-    cursor: query.cursor,
-    orderBy: { column: 'id', direction: 'ASC' },
-    count: true,
-    query: () =>
-      CollectionSegment.createQueryBuilder('cs').where('cs.collectionId = :collectionId', {
-        collectionId: collection.id,
-      }),
-  });
+  await resolveMediaFilterIds(body.filters);
 
-  if (segmentItems.length === 0) {
-    return respond.with200().body({
-      segments: [],
-      includes: { media: {} },
-      pagination: {
-        ...pagination,
-        estimatedTotalHits: totalCount,
-        estimatedTotalHitsRelation: 'EXACT' as const,
-      },
-    });
-  }
+  const segmentIds = await fetchCollectionSegmentIds(collection.id);
+  const results = await SegmentDocument.searchInIds(segmentIds, body, 'strict');
 
-  const segmentIds = segmentItems.map((item) => item.segmentId);
-  const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
-
-  const resultById = new Map(searchResults.map((r) => [r.id, r]));
-  const segments = segmentItems
-    .map((item) => resultById.get(item.segmentId))
-    .filter((s): s is NonNullable<typeof s> => s != null);
-
-  return respond.with200().body({
-    segments,
-    includes,
-    pagination: {
-      ...pagination,
-      estimatedTotalHits: totalCount,
-      estimatedTotalHitsRelation: 'EXACT' as const,
-    },
-  });
+  return respond.with200().body(toSearchResponseDTO(results, body.include));
 };
 
 export const getCollectionStats: GetCollectionStats = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const collection = await Collection.findOneOrFail({ where: { publicId: params.id } });
+  const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
   assertCollectionReadable(collection, user);
 
   // Fetch all segment items from the collection
@@ -302,23 +225,18 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   // Get full segment data from ES to access media info
   const segmentIds = allSegmentItems.map((item) => item.segmentId);
   const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
-  const expectedIds = new Set(segmentIds);
 
   const mediaIncludes = includes.media;
 
   // Compute per-media stats
-  const mediaMap = new Map<number, { publicId: string; matchCount: number; episodeHits: Record<string, number> }>();
+  const mediaMap = new Map<string, { matchCount: number; episodeHits: Record<string, number> }>();
   const categoryCountMap = new Map<CategoryOutput, number>();
 
   for (const seg of searchResults) {
-    if (!expectedIds.has(seg.id)) {
-      continue;
-    }
-
-    let entry = mediaMap.get(seg.mediaId);
+    let entry = mediaMap.get(seg.mediaPublicId);
     if (!entry) {
-      entry = { publicId: seg.mediaPublicId, matchCount: 0, episodeHits: {} };
-      mediaMap.set(seg.mediaId, entry);
+      entry = { matchCount: 0, episodeHits: {} };
+      mediaMap.set(seg.mediaPublicId, entry);
     }
     entry.matchCount++;
     const epKey = String(seg.episode);
@@ -329,11 +247,13 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
     categoryCountMap.set(category, (categoryCountMap.get(category) ?? 0) + 1);
   }
 
-  const media = Array.from(mediaMap.entries()).map(([mediaId, stats]) => ({
-    mediaId,
-    publicId: stats.publicId,
+  const media = Array.from(mediaMap.entries()).map(([mediaPublicId, stats]) => ({
+    mediaPublicId,
     matchCount: stats.matchCount,
-    episodeHits: stats.episodeHits,
+    episodeHits: Object.entries(stats.episodeHits).map(([ep, hitCount]) => ({
+      episode: Number(ep),
+      hitCount,
+    })),
   }));
 
   const categories = Array.from(categoryCountMap.entries()).map(([category, count]) => ({
@@ -351,6 +271,16 @@ const assertCollectionOwnership = (collection: Collection, user: Pick<User, 'id'
     throw new AccessDeniedError('You do not have permission to modify this collection.');
   }
 };
+
+async function fetchCollectionSegmentIds(collectionId: number): Promise<number[]> {
+  const rows = await CollectionSegment.createQueryBuilder('cs')
+    .select('cs.segmentId', 'segmentId')
+    .where('cs.collectionId = :collectionId', { collectionId })
+    .orderBy('cs.id', 'ASC')
+    .getRawMany<{ segmentId: number | string }>();
+
+  return rows.map((row) => Number(row.segmentId)).filter(Number.isFinite);
+}
 
 const assertCollectionReadable = (collection: Collection, user: Pick<User, 'id' | 'role'>): void => {
   if (collection.visibility === CollectionVisibility.PUBLIC) {

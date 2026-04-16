@@ -9,10 +9,16 @@ let mockSearchStats: Mock<typeof SegmentDocument.searchStats>;
 let mockWordsMatched: Mock<typeof SegmentDocument.wordsMatched>;
 
 function buildMediaRecord(id: number) {
+  const mediaPublicId = `Media${String(id).padStart(7, '0')}`;
   return {
-    id,
-    publicId: `media-pid-${id}`,
-    externalIds: {},
+    mediaPublicId,
+    slug: `media-${id}`,
+    externalIds: {
+      anilist: null,
+      imdb: null,
+      tvdb: null,
+      tmdb: null,
+    },
     nameJa: `media-${id}-ja`,
     nameRomaji: `media-${id}-romaji`,
     nameEn: `media-${id}-en`,
@@ -29,7 +35,6 @@ function buildMediaRecord(id: number) {
     studio: 'Studio',
     seasonName: 'WINTER',
     seasonYear: 2024,
-    characters: [],
   };
 }
 
@@ -89,7 +94,7 @@ describe('search controller', () => {
     );
 
     expect(res.status).toBe(200);
-    expect((res.body as any).includes.media['1']).toMatchObject({ id: 1 });
+    expect((res.body as any).includes.media['1']).toMatchObject({ mediaPublicId: 'Media0000001' });
     expect(mockSearch).toHaveBeenCalledTimes(1);
     assertMatchesSchema(schemas.s_SearchResponse, res.body, 'search() 200');
   });
@@ -116,7 +121,7 @@ describe('search controller', () => {
     );
 
     expect(res.status).toBe(200);
-    expect((res.body as any).includes).toEqual({ media: {} });
+    expect((res.body as any).includes).toBeUndefined();
   });
 
   it('search stats strips includes by default', async () => {
@@ -134,7 +139,7 @@ describe('search controller', () => {
     );
 
     expect(res.status).toBe(200);
-    expect((res.body as any).includes).toEqual({ media: {} });
+    expect((res.body as any).includes).toBeUndefined();
     expect(mockSearchStats).toHaveBeenCalledTimes(1);
   });
 
@@ -156,7 +161,7 @@ describe('search controller', () => {
     );
 
     expect(res.status).toBe(200);
-    expect((res.body as any).includes).toEqual({ media: {} });
+    expect((res.body as any).includes).toBeUndefined();
     expect(mockWordsMatched).toHaveBeenCalledWith(
       ['猫'],
       true,

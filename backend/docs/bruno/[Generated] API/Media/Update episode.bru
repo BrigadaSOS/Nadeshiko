@@ -1,17 +1,17 @@
 meta {
   name: Update episode
   type: http
-  seq: 30
+  seq: 20
 }
 
 patch {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber?mediaId=V1StGXR8_Z5d&episodeNumber=1
+  url: {{baseUrl}}/v1/media/:mediaPublicId/episodes/:episodeNumber?mediaPublicId=V1StGXR8_Z5d&episodeNumber=1
   body: json
   auth: bearer
 }
 
 params:query {
-  mediaId: V1StGXR8_Z5d
+  mediaPublicId: V1StGXR8_Z5d
   episodeNumber: 1
 }
 

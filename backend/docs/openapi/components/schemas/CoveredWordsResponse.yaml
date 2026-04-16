@@ -1,0 +1,27 @@
+type: object
+description: Paginated list of frequency-list words with coverage information
+required:
+  - words
+  - pagination
+  - tierStats
+properties:
+  words:
+    type: array
+    items:
+      $ref: "./CoveredWord.yaml"
+  pagination:
+    $ref: "./CursorPagination.yaml"
+  tierStats:
+    type: object
+    description: Tier-level word counts (cached)
+    required:
+      - total
+      - covered
+      - uncovered
+    properties:
+      total:
+        type: integer
+      covered:
+        type: integer
+      uncovered:
+        type: integer

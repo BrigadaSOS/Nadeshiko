@@ -4,6 +4,7 @@ node_modules
 !.env.test
 prod
 logs
+.codex
 *.log
 # Editor directories and files
 .vscode/*

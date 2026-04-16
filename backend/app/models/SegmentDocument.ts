@@ -85,6 +85,35 @@ export class SegmentDocument {
     request: SearchRequestInput,
     parserMode: QueryParserMode = 'strict',
   ): Promise<SearchResponseOutput> {
+    return SegmentDocument.executeSearch(request, parserMode);
+  }
+
+  static async searchInIds(
+    segmentIds: number[],
+    request: SearchRequestInput,
+    parserMode: QueryParserMode = 'strict',
+  ): Promise<SearchResponseOutput> {
+    if (segmentIds.length === 0) {
+      return {
+        segments: [],
+        includes: { media: {} },
+        pagination: {
+          hasMore: false,
+          estimatedTotalHits: 0,
+          estimatedTotalHitsRelation: 'EXACT',
+          cursor: null,
+        },
+      };
+    }
+
+    return SegmentDocument.executeSearch(request, parserMode, [{ ids: { values: segmentIds.map(String) } }]);
+  }
+
+  private static async executeSearch(
+    request: SearchRequestInput,
+    parserMode: QueryParserMode,
+    extraFilters: estypes.QueryDslQueryContainer[] = [],
+  ): Promise<SearchResponseOutput> {
     const filters: SearchFiltersOutput = request.filters ?? { status: ['ACTIVE'], category: ['ANIME', 'JDRAMA'] };
     const sl = filters.segmentLengthChars;
     if (sl?.min !== undefined && sl?.max !== undefined && sl.min > sl.max) {
@@ -94,7 +123,7 @@ export class SegmentDocument {
     const { must, isMatchAll, hasQuery } = SegmentQuery.buildSearchMust(
       { query: request.query, filters },
       parserMode,
-      filters.languages?.exclude,
+      filters.languages,
     );
 
     const { filter, must_not } = SegmentQuery.buildCommonFilters(filters);
@@ -119,17 +148,17 @@ export class SegmentDocument {
       }
     }
 
-    const excludeLangs = new Set(filters.languages?.exclude ?? []);
+    const excludeLangs = new Set(filters.languages ?? []);
     const highlightFields: Record<string, estypes.SearchHighlightField> = {
       textJa: {
         matched_fields: ['textJa', 'textJa.kana', 'textJa.baseform', 'textJa.normalized'],
         type: 'fvh',
       },
     };
-    if (!excludeLangs.has('en')) {
+    if (!excludeLangs.has('EN')) {
       highlightFields.textEn = { matched_fields: ['textEn', 'textEn.exact'], type: 'fvh' };
     }
-    if (!excludeLangs.has('es')) {
+    if (!excludeLangs.has('ES')) {
       highlightFields.textEs = { matched_fields: ['textEs', 'textEs.exact'], type: 'fvh' };
     }
 
@@ -138,7 +167,7 @@ export class SegmentDocument {
       sort,
       index: INDEX_NAME,
       highlight: { fields: highlightFields },
-      query: { bool: { filter, must, must_not } },
+      query: { bool: { filter: [...filter, ...extraFilters], must, must_not } },
       search_after: searchAfter,
     });
 
@@ -149,7 +178,7 @@ export class SegmentDocument {
         const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
         return SegmentResponse.buildSearch(esResult, mediaResult);
       },
-      () => SegmentDocument.search(request, 'safe'),
+      () => SegmentDocument.executeSearch(request, 'safe', extraFilters),
       {
         parserMode,
         hasQuery,
@@ -172,7 +201,7 @@ export class SegmentDocument {
     const { must, hasQuery } = SegmentQuery.buildSearchMust(
       { query: request.query, filters },
       parserMode,
-      filters.languages?.exclude,
+      filters.languages,
     );
     const mediaInfo = Media.getMediaInfoMap();
 
@@ -199,7 +228,7 @@ export class SegmentDocument {
       : { filter: [] as estypes.QueryDslQueryContainer[], must_not: [] as estypes.QueryDslQueryContainer[] };
 
     const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
-      const baseQuery = SegmentQuery.buildMultiLanguage(word, exactMatch, parserMode, filters?.languages?.exclude);
+      const baseQuery = SegmentQuery.buildMultiLanguage(word, exactMatch, parserMode, filters?.languages);
       return [
         {},
         {
@@ -235,7 +264,7 @@ export class SegmentDocument {
       : { filter: [] as estypes.QueryDslQueryContainer[], must_not: [] as estypes.QueryDslQueryContainer[] };
 
     const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
-      const baseQuery = SegmentQuery.buildMultiLanguage(word, false, parserMode, filters?.languages?.exclude);
+      const baseQuery = SegmentQuery.buildMultiLanguage(word, false, parserMode, filters?.languages);
       return [
         {},
         {

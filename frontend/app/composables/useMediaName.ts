@@ -1,4 +1,4 @@
-type MediaNameLanguage = 'english' | 'japanese' | 'romaji';
+type MediaNameLanguage = 'ENGLISH' | 'JAPANESE' | 'ROMAJI';
 
 type HasMediaNames = {
   nameEn: string;
@@ -7,9 +7,9 @@ type HasMediaNames = {
 };
 
 const localeToLanguage: Record<string, MediaNameLanguage> = {
-  ja: 'japanese',
-  en: 'english',
-  es: 'english',
+  ja: 'JAPANESE',
+  en: 'ENGLISH',
+  es: 'ENGLISH',
 };
 
 export function useMediaName() {
@@ -20,14 +20,14 @@ export function useMediaName() {
     if (store.isLoggedIn && store.preferences?.mediaNameLanguage) {
       return store.preferences.mediaNameLanguage as MediaNameLanguage;
     }
-    return localeToLanguage[locale.value] ?? 'english';
+    return localeToLanguage[locale.value] ?? 'ENGLISH';
   });
 
   const mediaName = (media: HasMediaNames): string => {
     switch (language.value) {
-      case 'japanese':
+      case 'JAPANESE':
         return media.nameJa || media.nameEn;
-      case 'romaji':
+      case 'ROMAJI':
         return media.nameRomaji || media.nameEn;
       default:
         return media.nameEn;

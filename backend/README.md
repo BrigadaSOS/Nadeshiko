@@ -98,3 +98,24 @@ in `config/deploy.prod.yml`. Manage accessory lifecycle with the `prod` destinat
 
 Import and use the [Bruno](https://www.usebruno.com/) collection from
 `/docs/bruno` for easy testing of the API endpoints.
+
+## OpenAPI Diffing
+
+Use `oasdiff` to check breaking changes and generate a changelog for the public API contract.
+The backend scripts compare your working copy against a git ref, defaulting to `origin/main`.
+If you want release notes for what is currently in production, point `--from` at the tag that
+matches the deployed backend release.
+
+Install `oasdiff` first, then run:
+
+```bash
+bun run openapi:breaking -- --from origin/main
+bun run openapi:changelog -- --from v2.1.0 --output docs/generated/openapi-changelog.md
+```
+
+Notes:
+
+- These commands compare the bundled `public` spec by default, so `x-internal` endpoints are excluded.
+- Use `origin/main` when you want pre-merge compatibility checks, and a release tag when you want a prod-facing changelog.
+- Pass `--visibility internal` if you want to diff the full internal contract instead.
+- Pass `--format json`, `--format yaml`, or another `oasdiff` format when you need machine-readable output.

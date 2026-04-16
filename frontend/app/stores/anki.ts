@@ -300,10 +300,10 @@ export const ankiStore = defineStore('anki', {
         const collectionId = await this.getOrCreateAnkiExportsCollectionId();
         if (!collectionId) return;
 
-        const sdk = useNadeshikoSdk();
-        await sdk.addSegmentToCollection({
-          path: { id: collectionId },
-          body: { segmentId: sentence.segment.publicId },
+        await $fetch(`/v1/collections/${collectionId}/segments`, {
+          method: 'POST',
+          credentials: 'include',
+          body: { segmentPublicId: sentence.segment.publicId },
         });
       } catch (error: unknown) {
         const err = error as { statusCode?: number };
@@ -329,11 +329,11 @@ export const ankiStore = defineStore('anki', {
         user.isLoggedIn && user.preferences?.mediaNameLanguage
           ? user.preferences.mediaNameLanguage
           : locale === 'ja'
-            ? 'japanese'
-            : 'english';
+            ? 'JAPANESE'
+            : 'ENGLISH';
       const mediaName = (media: { nameEn: string; nameJa: string; nameRomaji: string }) => {
-        if (mediaLang === 'japanese') return media.nameJa || media.nameEn;
-        if (mediaLang === 'romaji') return media.nameRomaji || media.nameEn;
+        if (mediaLang === 'JAPANESE') return media.nameJa || media.nameEn;
+        if (mediaLang === 'ROMAJI') return media.nameRomaji || media.nameEn;
         return media.nameEn;
       };
 
@@ -388,7 +388,7 @@ export const ankiStore = defineStore('anki', {
 
         if (needsImage) {
           const req = this.executeAction('storeMediaFile', {
-            filename: `${sentence.segment.uuid}.webp`,
+            filename: `${sentence.segment.publicId}.webp`,
             url: sentence.segment.urls.imageUrl,
           }).then((r) => {
             imageResult = r;
@@ -402,12 +402,12 @@ export const ankiStore = defineStore('anki', {
             const blob64 = await blobToBase64(sentence.blobAudio);
             const raw = blob64.substring(blob64.indexOf(',') + 1);
             req = this.executeAction('storeMediaFile', {
-              filename: `${sentence.segment.uuid}.wav`,
+              filename: `${sentence.segment.publicId}.wav`,
               data: raw,
             });
           } else {
             req = this.executeAction('storeMediaFile', {
-              filename: `${sentence.segment.uuid}.mp3`,
+              filename: `${sentence.segment.publicId}.mp3`,
               url: sentence.segment.urls.audioUrl,
             });
           }

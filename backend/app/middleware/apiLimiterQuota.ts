@@ -5,7 +5,7 @@ import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 import { logger } from '@config/log';
 
 export const rateLimitApiQuota = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  if (req.auth?.type !== AuthType.API_KEY && req.auth?.type !== AuthType.API_KEY_LEGACY) {
+  if (req.auth?.type !== AuthType.API_KEY) {
     next();
     return;
   }

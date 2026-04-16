@@ -1,0 +1,4 @@
+type: string
+description: Visibility of a collection
+enum: [PUBLIC, PRIVATE]
+example: "PRIVATE"

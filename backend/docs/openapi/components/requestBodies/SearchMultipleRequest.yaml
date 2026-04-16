@@ -1,28 +1,14 @@
 type: object
+required:
+  - query
 properties:
   query:
-    type: object
-    description: What to search for
-    properties:
-      words:
-        type: array
-        items:
-          type: string
-        description: List of words to search for
-        example: ["彼女", "私"]
-      exactMatch:
-        type: boolean
-        default: false
-        description: Whether to use exact matching
-    required:
-      - words
+    $ref: "../schemas/SearchMultipleQuery.yaml"
   filters:
     $ref: "../schemas/SearchFilters.yaml"
   include:
     type: array
-    description: Resources to expand in the response includes block
+    description: Optional resources to expand in the response `includes` block
     items:
       $ref: "../schemas/IncludeExpansion.yaml"
     default: []
-required:
-  - query

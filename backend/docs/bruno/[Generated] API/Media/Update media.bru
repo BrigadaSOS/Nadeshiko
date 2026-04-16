@@ -1,17 +1,17 @@
 meta {
   name: Update media
   type: http
-  seq: 25
+  seq: 15
 }
 
 patch {
-  url: {{baseUrl}}/v1/media/:id?id=V1StGXR8_Z5d
+  url: {{baseUrl}}/v1/media/:mediaPublicId?mediaPublicId=V1StGXR8_Z5d
   body: json
   auth: bearer
 }
 
 params:query {
-  id: V1StGXR8_Z5d
+  mediaPublicId: V1StGXR8_Z5d
 }
 
 auth:bearer {
@@ -47,21 +47,6 @@ body:json {
     "seasonName": "FALL",
     "seasonYear": 2010,
     "storageBasePath": "media/21459",
-    "characters": [
-      {
-        "externalIds": {},
-        "nameJa": "真城最高",
-        "nameEn": "Moritaka Mashiro",
-        "imageUrl": "https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg",
-        "role": "MAIN",
-        "seiyuu": {
-          "externalIds": {},
-          "nameJa": "阿部敦",
-          "nameEn": "Atsushi Abe",
-          "imageUrl": "https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg"
-        }
-      }
-    ],
     "segmentCount": 1234
   }
 }

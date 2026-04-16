@@ -10,13 +10,13 @@ get:
   security:
     - ApiKey: [READ_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
-      example: "V1StGXR8_Z5d"
+      description: publicId of the media
+      example: V1StGXR8_Z5d
     - name: episodeNumber
       in: path
       required: true
@@ -33,17 +33,19 @@ get:
         minimum: 1
         maximum: 100
       description: Maximum number of segments to return
-      example: 50
     - name: cursor
       in: query
       required: false
       schema:
         type: string
       description: Opaque pagination cursor token
-      example: 1000
   responses:
     "200":
-      $ref: "../../components/responses/SegmentListResponse.yaml"
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/SegmentListResponse.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
@@ -69,13 +71,13 @@ post:
   security:
     - ApiKey: [ADD_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
-      example: "V1StGXR8_Z5d"
+      description: publicId of the media
+      example: V1StGXR8_Z5d
     - name: episodeNumber
       in: path
       required: true
@@ -91,7 +93,11 @@ post:
           $ref: "../../components/schemas/segment/SegmentRequests.yaml#/SegmentCreateRequest"
   responses:
     "201":
-      $ref: "../../components/responses/SegmentInternalResponse.yaml"
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/segment/SegmentInternal.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

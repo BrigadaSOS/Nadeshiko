@@ -31,15 +31,13 @@ get:
       description: Filter by coverage status
       schema:
         type: string
-        enum: [all, covered, uncovered]
-        default: all
+        enum: [ALL, COVERED, UNCOVERED]
+        default: ALL
     - name: cursor
       in: query
-      description: Rank to start from (exclusive) for pagination within the slice.
+      description: Opaque pagination cursor returned from the previous page
       schema:
-        type: integer
-        default: 0
-        minimum: 0
+        type: string
     - name: take
       in: query
       description: Number of results per page
@@ -51,43 +49,18 @@ get:
 
   responses:
     "200":
-      description: Paginated list of words
+      description: OK
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - words
-              - nextCursor
-              - tierStats
-            properties:
-              words:
-                type: array
-                items:
-                  $ref: "../../components/schemas/CoveredWord.yaml"
-              nextCursor:
-                type: integer
-                nullable: true
-                description: Rank cursor for the next page, or null if this is the last page
-              tierStats:
-                type: object
-                description: Tier-level word counts (cached)
-                required:
-                  - total
-                  - covered
-                  - uncovered
-                properties:
-                  total:
-                    type: integer
-                  covered:
-                    type: integer
-                  uncovered:
-                    type: integer
+            $ref: "../../components/schemas/CoveredWordsResponse.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
-      description: Internal server error
-      content:
-        application/json:
-          schema:
-            $ref: "../../components/schemas/Error500.yaml"
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 type AnnouncementData = {
   message: string;
-  type: 'info' | 'warning' | 'maintenance';
+  type: 'INFO' | 'WARNING' | 'MAINTENANCE';
   active: boolean;
 };
 
@@ -27,9 +27,9 @@ const { data: announcement } = await useAsyncData(
 
 const typeLabel = computed(() => {
   switch (announcement.value?.type) {
-    case 'warning':
+    case 'WARNING':
       return 'Important Notice';
-    case 'maintenance':
+    case 'MAINTENANCE':
       return 'Maintenance Notice';
     default:
       return 'Notice';

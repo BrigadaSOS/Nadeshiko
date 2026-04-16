@@ -69,22 +69,25 @@ export function asObject(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 }
 
+async function fetchMe(): Promise<Record<string, unknown> | null> {
+  return $fetch<Record<string, unknown>>('/v1/user/me', { method: 'GET', credentials: 'include' }).catch(() => null);
+}
+
 export const apiStore = defineStore('api', {
   actions: {
     async getApiKeysByUser(): Promise<ApiKeysByUserResponse> {
       try {
-        const sdk = useNadeshikoSdk();
-        const [keysRaw, quotaResult] = await Promise.all([
+        const [keysRaw, meResult] = await Promise.all([
           $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []),
-          sdk.getUserQuota().catch(() => ({ data: null })),
+          fetchMe(),
         ]);
 
         const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey);
-        const quotaData = quotaResult.data;
+        const quotaData = asObject(meResult?.quota);
         const quota: QuotaInfo = {
-          quotaUsed: quotaData?.quotaUsed ?? 0,
-          quotaLimit: quotaData?.quotaLimit ?? 5000,
-          quotaRemaining: quotaData?.quotaRemaining ?? 0,
+          quotaUsed: Number(quotaData?.used ?? 0),
+          quotaLimit: Number(quotaData?.limit ?? 5000),
+          quotaRemaining: Number(quotaData?.remaining ?? 0),
         };
 
         return { status: 200, keys, quota };

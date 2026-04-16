@@ -1,0 +1,18 @@
+type: object
+description: Site-wide announcement banner
+required:
+  - message
+  - type
+  - active
+properties:
+  message:
+    type: string
+    maxLength: 500
+    example: "Scheduled maintenance tonight from 2-4 AM UTC."
+  type:
+    type: string
+    enum: [INFO, WARNING, MAINTENANCE]
+    example: "INFO"
+  active:
+    type: boolean
+    example: true

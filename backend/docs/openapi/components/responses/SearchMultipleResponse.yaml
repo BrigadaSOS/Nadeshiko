@@ -1,7 +1,6 @@
 type: object
 required:
   - results
-  - includes
 properties:
   results:
     type: array
@@ -9,11 +8,10 @@ properties:
       $ref: "../schemas/WordMatch.yaml"
   includes:
     type: object
-    required:
-      - media
+    description: Optional related resources requested via `include[]`
     properties:
       media:
         type: object
         additionalProperties:
           $ref: "../schemas/Media.yaml"
-        description: Media objects keyed by mediaId
+        description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.

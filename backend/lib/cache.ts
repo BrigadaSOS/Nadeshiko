@@ -34,6 +34,14 @@ class AppCache {
     return entry.value as T;
   }
 
+  async getOrCompute<T>(namespace: CacheNamespace, key: string, ttlMs: number, compute: () => Promise<T>): Promise<T> {
+    const cached = this.get<T>(namespace, key);
+    if (cached !== null) return cached;
+    const value = await compute();
+    this.set(namespace, key, value, ttlMs);
+    return value;
+  }
+
   set<T>(namespace: CacheNamespace, key: string, value: T, ttlMs: number): void {
     const expiresAt = Date.now() + ttlMs;
     let targetStore = this.store.get(namespace);

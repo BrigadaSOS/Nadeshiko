@@ -1,12 +1,12 @@
 import type { ContentRating } from '@brigadasos/nadeshiko-sdk';
-export type ContentRatingMode = 'show' | 'blur' | 'hide';
+export type ContentRatingMode = 'SHOW' | 'BLUR' | 'HIDE';
 
 export interface ContentRatingPreferences {
   questionable: ContentRatingMode;
 }
 
 const DEFAULT_PREFERENCES: ContentRatingPreferences = {
-  questionable: 'blur',
+  questionable: 'BLUR',
 };
 
 const ALL_RATINGS: ContentRating[] = ['SAFE', 'SUGGESTIVE', 'QUESTIONABLE', 'EXPLICIT'];
@@ -32,7 +32,7 @@ export function useContentRating() {
     return ALL_RATINGS.filter((rating) => {
       if (rating === 'SAFE') return true;
       const key = toPreferenceKey(rating);
-      return key ? prefs[key] !== 'hide' : true;
+      return key ? prefs[key] !== 'HIDE' : true;
     });
   });
 
@@ -41,7 +41,7 @@ export function useContentRating() {
     const key = toPreferenceKey(rating);
     if (!key) return false;
     const mode = preferences.value[key];
-    return mode === 'blur';
+    return mode === 'BLUR';
   };
 
   const isRestricted = (rating: string): boolean => {

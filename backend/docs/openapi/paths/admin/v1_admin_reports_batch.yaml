@@ -21,13 +21,7 @@ patch:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - updated
-            properties:
-              updated:
-                type: integer
-                description: Number of reports updated
+            $ref: "../../components/schemas/AffectedCountResponse.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
