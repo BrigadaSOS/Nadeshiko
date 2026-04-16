@@ -24,19 +24,21 @@ const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === '?' || (event.shiftKey && event.code === 'Slash')) {
     event.preventDefault();
     showModal.value = !showModal.value;
+    return;
   }
 
   if (event.code === 'Escape' && showModal.value) {
+    event.stopImmediatePropagation();
     close();
   }
 };
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
+  window.addEventListener('keydown', handleKeydown, true);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('keydown', handleKeydown, true);
 });
 
 defineExpose({ open });
@@ -46,6 +48,7 @@ defineExpose({ open });
   <Teleport to="body">
     <div
       v-if="showModal"
+      data-nd-modal-open
       class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
       @click="handleBackdropClick"
     >

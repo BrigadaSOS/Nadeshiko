@@ -13,7 +13,10 @@ definePageMeta({
     if (first === 'account' || first === 'settings' || first === 'settigns') {
       return navigateTo('/user/settings', { replace: true });
     }
-    if (first === 'dashboard' || first === 'reports') {
+    if (first === 'dashboard') {
+      return navigateTo('/user/admin/users', { replace: true });
+    }
+    if (first === 'reports') {
       return navigateTo(`/user/admin/${slugParts.join('/')}`, { replace: true });
     }
 

@@ -160,7 +160,7 @@ const filteredMedia = computed(() => {
   if (showHidden.value) return media.value;
   const hidden = new Set(hiddenMediaIds.value);
   if (hidden.size === 0) return media.value;
-  return media.value.filter((m) => !hidden.has(m.id));
+  return media.value.filter((m) => !hidden.has(m.publicId));
 });
 
 const hasHiddenMedia = computed(() => hiddenMediaIds.value.length > 0);

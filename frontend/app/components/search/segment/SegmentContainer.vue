@@ -43,12 +43,21 @@ const { mediaName } = useMediaName();
 const { shouldBlur, isRestricted } = useContentRating();
 const { englishMode, spanishMode } = useTranslationVisibility();
 
+const containerRef = ref<HTMLElement | null>(null);
 const selectedResult = ref<SearchResult | null>(null);
 const searchNoteResult = ref<SearchResult | null>(null);
 const segmentToEdit = ref<SearchResult | null>(null);
 
 // Keyboard navigation
 const focusedIndex = ref<number | null>(null);
+
+if (props.highlightedPosition != null) {
+  watch(resultList, (list) => {
+    if (props.highlightedPosition == null) return;
+    const idx = list.findIndex((r) => r.segment.position === props.highlightedPosition);
+    if (idx !== -1) focusedIndex.value = idx;
+  }, { immediate: true });
+}
 
 const scrollFocusedIntoView = () => {
   const result = resultList.value[focusedIndex.value ?? -1];
@@ -65,6 +74,24 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 
   if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+
+  const insideOverlay = containerRef.value?.closest('.nd-overlay');
+  const hasOpenOverlay = document.querySelector('.nd-overlay:not(.hidden), [data-nd-modal-open]');
+  if (insideOverlay) {
+    if (insideOverlay.classList.contains('hidden')) return;
+  } else {
+    if (hasOpenOverlay) return;
+  }
+
+  if (event.code === 'KeyS' && event.shiftKey) {
+    event.preventDefault();
+    const input = document.getElementById('sentence-search-input');
+    if (input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus();
+    }
     return;
   }
 
@@ -227,18 +254,18 @@ const handleTokenSearch = (dictionaryForm: string) => {
 const filterByMedia = (mediaId: string, episodeNumber?: number) => {
   const query: Record<string, string | number | string[] | number[] | undefined> = { ...route.query, media: mediaId };
 
-  // Clear episode when selecting only media
   delete query.episode;
 
   if (episodeNumber !== undefined) {
     query.episode = episodeNumber;
   }
 
-  router.push({ path: route.path, query });
+  const basePath = route.path.startsWith('/sentence/') ? '/search' : route.path;
+  router.push({ path: basePath, query });
 };
 </script>
 <template>
-  <div v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
+  <div ref="containerRef" v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
 
     <SearchModalContext v-if="!hideContextButton" :sentence="selectedResult" />
 
@@ -256,11 +283,12 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
     <div v-for="(result, index) in resultList" :key="result.segment.uuid"
       :id="result.segment.uuid"
       data-testid="segment-card"
-      class="hover:bg-neutral-800/20 items-stretch b-2 min-[650px]:rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
+      class="items-stretch b-2 min-[650px]:rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
-        'bg-neutral-700/30 hover:bg-neutral-700/40': focusedIndex === index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
+        'bg-neutral-700/30 hover:bg-neutral-700/35': focusedIndex === index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
+        'hover:bg-neutral-800/20': focusedIndex !== index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
       }">
       <!-- Image -->
       <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">

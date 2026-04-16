@@ -39,6 +39,8 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
     return;
   }
 
+  if (!showPlayer.value) return;
+
   switch (event.code) {
     case 'Space':
       event.preventDefault();
@@ -53,32 +55,29 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
       playerStore.next();
       break;
     case 'KeyR':
-      if (showPlayer.value) {
-        event.preventDefault();
-        playerStore.restart();
-      }
+      event.preventDefault();
+      playerStore.restart();
       break;
     case 'KeyF':
-      if (showPlayer.value) {
-        event.preventDefault();
-        playerStore.toggleImmersive();
-      }
+      event.preventDefault();
+      playerStore.toggleImmersive();
       break;
     case 'KeyL':
-      if (showPlayer.value) {
-        event.preventDefault();
-        playerStore.toggleAutoplay();
-      }
+      event.preventDefault();
+      playerStore.toggleAutoplay();
       break;
-    case 'Escape':
+    case 'Escape': {
+      const hasOpenModal = document.querySelector('[data-nd-modal-open]');
+      if (hasOpenModal) break;
       if (isImmersive.value) {
-        event.stopImmediatePropagation();
+        event.stopPropagation();
         playerStore.toggleImmersive();
-      } else if (showPlayer.value) {
-        event.stopImmediatePropagation();
+      } else {
+        event.stopPropagation();
         playerStore.hidePlayer();
       }
       break;
+    }
   }
 };
 

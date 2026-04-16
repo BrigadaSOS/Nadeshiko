@@ -642,7 +642,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
             <!-- Filters -->
-            <div v-if="searchData?.media?.length > 0 || isLoading" class="2xl:min-w-[18rem] 2xl:max-w-[18rem] yomitan-ignore">
+            <div v-if="!isSingleSentenceView && (searchData?.media?.length > 0 || isLoading)" class="2xl:min-w-[18rem] 2xl:max-w-[18rem] yomitan-ignore">
                 <div v-if="searchData?.media?.length > 0" class="p-2 mx-auto hidden 2xl:block">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
