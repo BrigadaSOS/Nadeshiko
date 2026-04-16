@@ -38,20 +38,6 @@ const navigateSearchSentence = async () => {
   await navigateTo(target);
 };
 
-const handleKeyDown = (event) => {
-  if (event.shiftKey && event.key === 'S') {
-    const inputElem = document.getElementById('sentence-search-input');
-    const rect = inputElem.getBoundingClientRect();
-
-    // The element is no longer visible
-    if (rect.bottom <= 0) {
-      event.preventDefault();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      inputElem.focus();
-    }
-  }
-};
-
 const syncQueryFromRoute = () => {
   query.value = route.params.query ? decodeURIComponent(String(route.params.query)) : String(route.query.query || '');
 };
@@ -59,14 +45,6 @@ const syncQueryFromRoute = () => {
 syncQueryFromRoute();
 
 watch(() => [route.params.query, route.query.query], syncQueryFromRoute);
-
-onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown);
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeyDown);
-});
 </script>
 <template>
   <SearchModalBatch />

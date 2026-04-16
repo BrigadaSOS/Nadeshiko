@@ -25,6 +25,8 @@ import { userStore } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
 import { useToastError, useToastSuccess } from '~/utils/toast';
 
+const { englishMode, spanishMode } = useTranslationVisibility();
+
 type Props = {
   content: SearchResult;
   hideContextButton?: boolean;
@@ -320,9 +322,9 @@ const openCollectionsPage = async () => {
         </div>
         <SearchDropdownItem @click="copyToClipboard(content.segment.textJa.content)"
           :text="$t('searchpage.main.buttons.jpsentence')" :iconPath="mdiText" />
-        <SearchDropdownItem @click="copyToClipboard(content.segment.textEn.content)"
+        <SearchDropdownItem v-if="englishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEn.content)"
           :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
-        <SearchDropdownItem @click="copyToClipboard(content.segment.textEs.content)"
+        <SearchDropdownItem v-if="spanishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEs.content)"
           :text="$t('searchpage.main.buttons.essentence')" :iconPath="mdiText" />
       </SearchDropdownContent>
     </template>

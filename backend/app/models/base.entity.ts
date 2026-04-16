@@ -1,30 +1,13 @@
 import { BaseEntity as TypeOrmBaseEntity, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import type { FindManyOptions, FindOptionsWhere, SelectQueryBuilder } from 'typeorm';
-import type { t_OpaqueCursorPagination } from 'generated/models';
+import type { FindOptionsWhere, SelectQueryBuilder } from 'typeorm';
 import { NotFoundError } from '@app/errors';
-import { decodeKeysetCursor, decodeOffsetCursor, encodeKeysetCursor, encodeOffsetCursor } from '@lib/cursor';
+import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
 
 type ConcreteEntity = (new () => BaseEntity) & typeof BaseEntity;
 
 type ExistsEntity = {
   existsBy(where: unknown): Promise<boolean>;
   name: string;
-};
-
-type OffsetFindOptions<TThis extends ConcreteEntity> = Omit<FindManyOptions<InstanceType<TThis>>, 'take' | 'skip'>;
-
-type OffsetBaseParams = {
-  take: number;
-  cursor?: string | null;
-  exists?: {
-    entity: ExistsEntity;
-    where: unknown;
-  };
-};
-
-type OffsetResult<TThis extends ConcreteEntity> = {
-  items: InstanceType<TThis>[];
-  pagination: t_OpaqueCursorPagination;
 };
 
 export abstract class BaseEntity extends TypeOrmBaseEntity {
@@ -34,62 +17,29 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   @UpdateDateColumn({ name: 'updated_at', nullable: true })
   updatedAt?: Date;
 
-  static paginateWithOffset<TThis extends ConcreteEntity>(
+  static paginateWithKeyset<TThis extends ConcreteEntity>(
     this: TThis,
-    params: OffsetBaseParams & { findAndCount: OffsetFindOptions<TThis> },
-  ): Promise<OffsetResult<TThis> & { totalCount: number }>;
+    params: {
+      take: number;
+      cursor?: string | null;
+      orderBy?: { column: string; direction: 'ASC' | 'DESC' };
+      query: () => SelectQueryBuilder<InstanceType<TThis>>;
+      count: true;
+      exists?: { entity: ExistsEntity; where: unknown };
+    },
+  ): Promise<{ items: InstanceType<TThis>[]; pagination: { hasMore: boolean; cursor: string | null }; totalCount: number }>;
 
-  static paginateWithOffset<TThis extends ConcreteEntity>(
+  static paginateWithKeyset<TThis extends ConcreteEntity>(
     this: TThis,
-    params: OffsetBaseParams & { find?: OffsetFindOptions<TThis> },
-  ): Promise<OffsetResult<TThis>>;
-
-  static async paginateWithOffset<TThis extends ConcreteEntity>(
-    this: TThis,
-    params: OffsetBaseParams & ({ find?: OffsetFindOptions<TThis> } | { findAndCount: OffsetFindOptions<TThis> }),
-  ): Promise<OffsetResult<TThis> & { totalCount?: number }> {
-    const skip = decodeOffsetCursor(params.cursor);
-
-    let items: InstanceType<TThis>[];
-    let hasMore: boolean;
-    let totalCount: number | undefined;
-
-    if ('findAndCount' in params && params.findAndCount) {
-      const [rows, count] = (await this.findAndCount({
-        ...params.findAndCount,
-        take: params.take,
-        skip,
-      } as FindManyOptions)) as [InstanceType<TThis>[], number];
-      items = rows;
-      totalCount = count;
-      hasMore = skip + rows.length < count;
-    } else {
-      const options = 'find' in params ? params.find : undefined;
-      const rows = (await this.find({
-        ...options,
-        take: params.take + 1,
-        skip,
-      } as FindManyOptions)) as InstanceType<TThis>[];
-      hasMore = rows.length > params.take;
-      items = hasMore ? rows.slice(0, params.take) : rows;
-    }
-
-    if (items.length === 0 && params.exists) {
-      const entityExists = await params.exists.entity.existsBy(params.exists.where);
-      if (!entityExists) {
-        throw new NotFoundError(`${params.exists.entity.name} not found`);
-      }
-    }
-
-    return {
-      items,
-      totalCount,
-      pagination: {
-        hasMore,
-        cursor: hasMore ? encodeOffsetCursor(skip + items.length) : null,
-      },
-    };
-  }
+    params: {
+      take: number;
+      cursor?: string | null;
+      orderBy?: { column: string; direction: 'ASC' | 'DESC' };
+      query: () => SelectQueryBuilder<InstanceType<TThis>>;
+      count?: false;
+      exists?: { entity: ExistsEntity; where: unknown };
+    },
+  ): Promise<{ items: InstanceType<TThis>[]; pagination: { hasMore: boolean; cursor: string | null } }>;
 
   static async paginateWithKeyset<TThis extends ConcreteEntity>(
     this: TThis,
@@ -98,12 +48,16 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
       cursor?: string | null;
       orderBy?: { column: string; direction: 'ASC' | 'DESC' };
       query: () => SelectQueryBuilder<InstanceType<TThis>>;
+      count?: boolean;
+      exists?: { entity: ExistsEntity; where: unknown };
     },
   ) {
     const orderBy = params.orderBy ?? { column: 'id', direction: 'DESC' as const };
     const qb = params.query();
-    const decodedCursor = decodeKeysetCursor<number>(params.cursor);
 
+    const countPromise = params.count ? qb.clone().getCount() : undefined;
+
+    const decodedCursor = decodeKeysetCursor<number>(params.cursor);
     if (decodedCursor !== undefined) {
       const op = orderBy.direction === 'DESC' ? '<' : '>';
       qb.andWhere(`${qb.alias}.${orderBy.column} ${op} :cursor`, { cursor: decodedCursor });
@@ -112,9 +66,18 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
     qb.orderBy(`${qb.alias}.${orderBy.column}`, orderBy.direction);
     qb.take(params.take + 1);
 
-    const rows = await qb.getMany();
+    const [rows, totalCount] = await Promise.all([qb.getMany(), countPromise]);
+
     const hasMore = rows.length > params.take;
     const items = hasMore ? rows.slice(0, params.take) : rows;
+
+    if (items.length === 0 && params.exists) {
+      const entityExists = await params.exists.entity.existsBy(params.exists.where);
+      if (!entityExists) {
+        throw new NotFoundError(`${params.exists.entity.name} not found`);
+      }
+    }
+
     const nextCursor =
       hasMore && items.length > 0
         ? encodeKeysetCursor((items[items.length - 1] as Record<string, unknown>)[orderBy.column])
@@ -126,6 +89,7 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
         hasMore,
         cursor: nextCursor,
       },
+      ...(totalCount !== undefined ? { totalCount } : {}),
     };
   }
 

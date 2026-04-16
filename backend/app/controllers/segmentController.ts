@@ -31,17 +31,20 @@ import { InvalidRequestError, NotFoundError } from '@app/errors';
 export const listSegments: ListSegments = async ({ params, query }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
 
-  const { items: segments, pagination } = await Segment.paginateWithOffset({
+  const { items: segments, pagination } = await Segment.paginateWithKeyset({
     take: query.take,
     cursor: query.cursor,
+    orderBy: { column: 'id', direction: 'ASC' },
     exists: {
       entity: Episode,
       where: { mediaId: media.id, episodeNumber: params.episodeNumber },
     },
-    find: {
-      where: { mediaId: media.id, episode: params.episodeNumber },
-      order: { id: 'ASC' },
-    },
+    query: () =>
+      Segment.createQueryBuilder('segment')
+        .where('segment.mediaId = :mediaId AND segment.episode = :episode', {
+          mediaId: media.id,
+          episode: params.episodeNumber,
+        }),
   });
 
   return respond.with200().body({

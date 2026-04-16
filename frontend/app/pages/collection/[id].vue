@@ -73,6 +73,8 @@ const { data: collectionDetails } = await useAsyncData(
   { server: true, lazy: false },
 );
 
+const requestOrigin = useRequestURL().origin;
+
 const metaTags = computed(() => {
   const name = collectionDetails.value?.name ?? 'Collection';
   const title = name;
@@ -85,7 +87,7 @@ const metaTags = computed(() => {
       { property: 'og:title', content: social },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
-      { property: 'og:image', content: `${useRequestURL().origin}/logo-og-5bc76788.png` },
+      { property: 'og:image', content: `${requestOrigin}/logo-og-5bc76788.png` },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: social },
       { name: 'twitter:description', content: description },

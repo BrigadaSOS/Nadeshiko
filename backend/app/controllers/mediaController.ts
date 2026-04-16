@@ -35,22 +35,24 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
     return listMediaRanked(query, respond);
   }
 
-  const base = query.category ? { category: query.category as CategoryType } : {};
-  const where = query.category ? base : undefined;
-
-  const mediaRelations = Media.buildRelations({
-    includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
-  });
+  const includeCharacters = query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false;
 
   const [{ items: mediaList, pagination }, globalStats] = await Promise.all([
-    Media.paginateWithOffset({
-      find: {
-        where,
-        relations: mediaRelations,
-        order: { id: 'DESC' },
-      },
+    Media.paginateWithKeyset({
       take: query.take,
       cursor: query.cursor,
+      query: () => {
+        const qb = Media.createQueryBuilder('media')
+          .leftJoinAndSelect('media.externalIds', 'externalIds')
+          .leftJoinAndSelect('media.episodes', 'episodes');
+        if (query.category) qb.where({ category: query.category as CategoryType });
+        if (includeCharacters) {
+          qb.leftJoinAndSelect('media.characters', 'characters')
+            .leftJoinAndSelect('characters.character', 'character')
+            .leftJoinAndSelect('character.seiyuu', 'seiyuu');
+        }
+        return qb;
+      },
     }),
     Media.getGlobalStats(),
   ]);

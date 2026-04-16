@@ -10,7 +10,7 @@ import {
   mdiEyeOffOutline,
   mdiHistory,
   mdiFormatListBulletedSquare,
-  mdiViewDashboardOutline,
+  mdiAccountGroupOutline,
   mdiShieldCrownOutline,
   mdiBullhornOutline,
 } from '@mdi/js';
@@ -31,7 +31,7 @@ const SettingsCollectionsModule = defineAsyncComponent(
 const SettingsHiddenMediaModule = defineAsyncComponent(
   () => import('../../components/settings/modules/HiddenMediaModule.vue'),
 );
-const SettingsDashboardModule = defineAsyncComponent(
+const SettingsUsersModule = defineAsyncComponent(
   () => import('../../components/settings/modules/DashboardModule.vue'),
 );
 const SettingsReportsModule = defineAsyncComponent(() => import('../../components/settings/modules/ReportsModule.vue'));
@@ -61,7 +61,7 @@ const tabsAdvanced = computed(() => [
 ]);
 
 const tabsAdmin = computed(() => [
-  { name: 'Dashboard', icon: mdiViewDashboardOutline, route: '/user/admin/dashboard', requiresAuth: true },
+  { name: 'Users', icon: mdiAccountGroupOutline, route: '/user/admin/users', requiresAuth: true },
   { name: 'Reports', icon: mdiShieldCrownOutline, route: '/user/admin/reports', requiresAuth: true },
   { name: 'Announcement', icon: mdiBullhornOutline, route: '/user/admin/announcement', requiresAuth: true },
 ]);
@@ -74,7 +74,7 @@ const allTabs = computed(() => [
 
 const activeTabRoute = computed(() => {
   const path = route.path;
-  if (path.startsWith('/user/admin/dashboard')) return '/user/admin/dashboard';
+  if (path.startsWith('/user/admin/users')) return '/user/admin/users';
   if (path.startsWith('/user/admin/reports')) return '/user/admin/reports';
   if (path.startsWith('/user/admin/announcement')) return '/user/admin/announcement';
   if (
@@ -110,7 +110,7 @@ definePageMeta({
       '/user/developer',
       '/user/labs',
     ];
-    const adminAllowed = ['/user/admin/dashboard', '/user/admin/reports', '/user/admin/announcement'];
+    const adminAllowed = ['/user/admin/users', '/user/admin/reports', '/user/admin/announcement'];
 
     if (store.isLoggedIn) {
       if (to.path === '/user') {
@@ -130,10 +130,10 @@ definePageMeta({
           return navigateTo('/user/settings', { replace: true });
         }
         if (to.path === '/user/admin') {
-          return navigateTo('/user/admin/dashboard', { replace: true });
+          return navigateTo('/user/admin/users', { replace: true });
         }
         if (!adminAllowed.some((prefix) => to.path.startsWith(prefix))) {
-          return navigateTo('/user/admin/dashboard', { replace: true });
+          return navigateTo('/user/admin/users', { replace: true });
         }
         return;
       }
@@ -251,7 +251,7 @@ watch(activeTabRoute, scrollActiveTabIntoView);
           <SettingsHiddenMediaModule v-if="activeTabRoute === '/user/hide-media'" />
           <SettingsDeveloperModule v-if="activeTabRoute === '/user/developer'" />
           <SettingsLabsModule v-if="activeTabRoute === '/user/labs'" />
-          <SettingsDashboardModule v-if="activeTabRoute === '/user/admin/dashboard'" />
+          <SettingsUsersModule v-if="activeTabRoute === '/user/admin/users'" />
           <SettingsReportsModule v-if="activeTabRoute === '/user/admin/reports'" />
           <SettingsAnnouncementModule v-if="activeTabRoute === '/user/admin/announcement'" />
         </div>
