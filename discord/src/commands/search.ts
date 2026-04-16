@@ -1,5 +1,10 @@
-import { SlashCommandBuilder, type ChatInputCommandInteraction, type ButtonInteraction } from 'discord.js';
-import { search, fetchRandom, getSearchStats } from '../api';
+import {
+  SlashCommandBuilder,
+  type ChatInputCommandInteraction,
+  type ButtonInteraction,
+  type Message,
+} from 'discord.js';
+import { search, fetchRandom, getSearchStats, type SearchResponse } from '../api';
 import type { DisplayOptions } from '../embeds';
 import {
   renderSegmentReply,
@@ -105,7 +110,7 @@ export async function executeSearch(
   const searchQuery = query || '';
 
   try {
-    let result;
+    let result: SearchResponse;
 
     let cachedSearchStats: Awaited<ReturnType<typeof getSearchStats>> | null = null;
     if (isRandomMode) {
@@ -175,7 +180,7 @@ export async function executeSearch(
       return `🔎 Searching from **${total.toLocaleString()}** sentences on Nadeshiko`;
     };
 
-    let reply;
+    let reply: Message<boolean>;
     if (isRandomMode) {
       reply = await renderSegmentReply({
         interaction,

@@ -1,5 +1,5 @@
 import { metrics } from '@opentelemetry/api';
-import { normalizeRoute } from '../../route-normalization.mjs';
+import { normalizeRoute } from '~~/route-normalization.mjs';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('nitro:http');

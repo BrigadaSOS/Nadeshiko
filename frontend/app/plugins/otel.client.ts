@@ -170,12 +170,14 @@ export default defineNuxtPlugin({
       span.setAttribute('vital.rating', rating);
       span.end();
 
-      vitalHistograms[name]?.record(value, { 'vital.rating': rating, 'page.path': getPagePath() });
+      // CLS is a unitless score (0–1 range); multiply by 1000 to align with histogram buckets
+      const recordValue = name === 'CLS' ? value * 1000 : value;
+      vitalHistograms[name]?.record(recordValue, { 'vital.rating': rating, 'page.path': getPagePath() });
     }
 
     onTTFB(reportVital);
-    onLCP(reportVital);
-    onCLS(reportVital);
+    onLCP(reportVital, { reportAllChanges: true });
+    onCLS(reportVital, { reportAllChanges: true });
     onINP(reportVital);
 
     const logExporter = new OTLPLogExporter({ url: `${collectorUrl}/v1/logs` });
@@ -214,6 +216,7 @@ export default defineNuxtPlugin({
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
+        provider.forceFlush();
         logProcessor.forceFlush();
         meterProvider.forceFlush();
       }

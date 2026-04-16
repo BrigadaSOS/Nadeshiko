@@ -1,6 +1,7 @@
 get:
   tags:
     - Stats
+  x-internal: true
   operationId: getCoveredWords
   summary: List words with coverage information
   description: |

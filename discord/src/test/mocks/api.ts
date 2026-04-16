@@ -11,7 +11,6 @@ export const mockAutocompleteMedia = mock((): Promise<any> => Promise.resolve({}
 export const mockListMedia = mock((): Promise<any> => Promise.resolve({} as any));
 export const mockDownloadFile = mock((): Promise<Buffer | null> => Promise.resolve(null));
 
-
 export function resetApiMocks() {
   mockSearch.mockReset();
   mockFetchRandom.mockReset();
@@ -23,7 +22,6 @@ export function resetApiMocks() {
   mockListMedia.mockReset();
   mockDownloadFile.mockReset();
   mockDownloadFile.mockResolvedValue(null);
-
 }
 
 export function registerMocks() {

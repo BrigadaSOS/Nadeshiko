@@ -1,21 +1,59 @@
 <script setup lang="ts">
-import type { AdminReport, MediaAudit, MediaAuditRun } from '@brigadasos/nadeshiko-sdk';
+import type { MediaAudit, MediaAuditRun } from '@brigadasos/nadeshiko-sdk';
+
+// TODO: replace with SDK types once regenerated
+type ReportGroupItem = {
+  id: number;
+  reason: string;
+  description: string | null;
+  source: string;
+  reporterName: string;
+  createdAt: string;
+  adminNotes: string | null;
+};
+
+type ReportGroup = {
+  target: { type: string; mediaId: string; episodeNumber?: number; segmentId?: string | null };
+  mediaName: string;
+  status: string;
+  reportCount: number;
+  reporterCount: number;
+  firstReportedAt: string;
+  lastStatusChange: string | null;
+  reports: ReportGroupItem[];
+};
 
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();
 
-const reports = ref<AdminReport[]>([]);
+const groups = ref<ReportGroup[]>([]);
 const isLoading = ref(false);
 const hasMore = ref(false);
 const cursor = ref<string | null>(null);
 
 const sourceFilter = ref<'' | 'USER' | 'AUTO'>('');
+const orphanedFilter = ref(false);
+const expandedGroups = ref(new Set<number>());
+const selectedGroupIndices = ref(new Set<number>());
+const isBatchUpdating = ref(false);
+const editingNotes = ref<Record<number, string>>({});
+const isBulkDismissing = ref(false);
+const showDismissConfirm = ref(false);
+const pendingDeleteId = ref<number | null>(null);
+const isBulkDeleting = ref(false);
+const showDeleteConfirm = ref(false);
 
-const ALL_STATUSES = ['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED'] as const;
+const ALL_STATUSES = ['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED'] as const;
 const activeStatuses = ref(new Set<string>(ALL_STATUSES));
 
 const statusFilterQuery = computed(() => {
   if (activeStatuses.value.size === 0 || activeStatuses.value.size === ALL_STATUSES.length) return '';
+  return [...activeStatuses.value].join(',');
+});
+
+// For bulk operations: always include status filter (even "all") so the backend has at least one filter
+const bulkStatusFilter = computed(() => {
+  if (activeStatuses.value.size === 0) return '';
   return [...activeStatuses.value].join(',');
 });
 
@@ -40,23 +78,27 @@ const editingAudit = ref<MediaAudit | null>(null);
 const editThreshold = ref<Record<string, number | boolean>>({});
 
 const buildReportQuery = (append = false) => {
-  const query: Record<string, string | number> = { take: 20 };
+  const query: Record<string, string | number | boolean> = { take: 20 };
   if (cursor.value && append) query.cursor = cursor.value;
   if (statusFilterQuery.value) query.status = statusFilterQuery.value;
   if (sourceFilter.value) query.source = sourceFilter.value;
+  if (orphanedFilter.value) query.orphaned = true;
   return query;
 };
 
 const fetchReports = async (append = false) => {
   isLoading.value = true;
   try {
-    const { data } = await sdk.listAdminReports({ query: buildReportQuery(append) });
-    const result = data ?? { reports: [], pagination: { hasMore: false, cursor: null } };
+    const data = await $fetch<{ groups: ReportGroup[]; pagination: { hasMore: boolean; cursor: string | null } }>(
+      '/v1/admin/reports',
+      { query: buildReportQuery(append) },
+    );
+    const result = data ?? { groups: [], pagination: { hasMore: false, cursor: null } };
 
     if (append) {
-      reports.value.push(...(result.reports as AdminReport[]));
+      groups.value.push(...result.groups);
     } else {
-      reports.value = (result.reports ?? []) as AdminReport[];
+      groups.value = result.groups;
     }
     hasMore.value = result.pagination?.hasMore ?? false;
     cursor.value = result.pagination?.cursor ?? null;
@@ -74,44 +116,22 @@ const fetchRuns = async () => {
   try {
     const { data } = await sdk.listAdminMediaAuditRuns({ query: { take: 50 } });
     runs.value = data?.runs ?? [];
-  } catch {}
+  } catch (err) {
+    console.error('Failed to fetch audit runs:', err);
+  }
 };
 
-const { data: initialAdminData } = await useAsyncData(
-  'settings-admin-reports-initial',
-  async () => {
-    const [reportsResult, auditsResult] = await Promise.all([
-      sdk.listAdminReports({ query: buildReportQuery(false) }).catch(() => ({ data: null })),
-      sdk.listAdminMediaAudits().catch(() => ({ data: null })),
-    ]);
+// Admin pages require auth -- skip SSR data fetch, load client-side only
+onMounted(() => {
+  fetchReports();
+  fetchAudits();
+});
 
-    const reportData = reportsResult.data;
-    return {
-      reports: (reportData?.reports ?? []) as AdminReport[],
-      hasMore: reportData?.pagination?.hasMore ?? false,
-      cursor: reportData?.pagination?.cursor ?? null,
-      audits: (Array.isArray(auditsResult.data) ? auditsResult.data : []) as MediaAudit[],
-    };
-  },
-  {
-    default: () => ({
-      reports: [] as AdminReport[],
-      hasMore: false,
-      cursor: null as string | null,
-      audits: [] as MediaAudit[],
-    }),
-  },
-);
-
-reports.value = initialAdminData.value.reports;
-hasMore.value = initialAdminData.value.hasMore;
-cursor.value = initialAdminData.value.cursor;
-audits.value = initialAdminData.value.audits;
-
-watch([sourceFilter, statusFilterQuery], () => {
+watch([sourceFilter, statusFilterQuery, orphanedFilter], () => {
   cursor.value = null;
   autoSubTab.value = 'results';
-  selectedIds.value = new Set();
+  selectedGroupIndices.value = new Set();
+  expandedGroups.value = new Set();
   fetchReports();
 });
 
@@ -128,32 +148,22 @@ const runAudit = async (auditName: string) => {
   }
 };
 
-const runAllAudits = async () => {
-  const enabled = audits.value.filter((a) => a.enabled);
-  for (const audit of enabled) {
-    await runAudit(audit.name);
-  }
-};
+const updateReport = async (reportId: number, status?: string, adminNotes?: string) => {
+  const body: Record<string, string> = {};
+  if (status !== undefined) body.status = status;
+  if (adminNotes !== undefined) body.adminNotes = adminNotes;
 
-const updateReport = async (reportId: number, status: AdminReport['status'], adminNotes?: string) => {
   try {
-    await sdk.updateAdminReport({
-      path: { id: reportId },
-      body: {
-        status,
-        ...(adminNotes !== undefined ? { adminNotes } : {}),
-      },
+    await $fetch(`/v1/admin/reports/${reportId}`, {
+      method: 'PATCH',
+      body,
     });
-
-    const idx = reports.value.findIndex((r) => r.id === reportId);
-    if (idx !== -1) {
-      const report = reports.value[idx];
-      if (!report) return;
-      report.status = status as AdminReport['status'];
-      if (adminNotes !== undefined) report.adminNotes = adminNotes;
-    }
+    // Re-fetch to get updated group state
+    await fetchReports();
     useToastSuccess(t('reports.admin.updateSuccess'));
-  } catch {}
+  } catch {
+    useToastError('Failed to update report');
+  }
 };
 
 const openAuditConfig = (audit: MediaAudit) => {
@@ -170,7 +180,6 @@ const saveAuditConfig = async () => {
       path: { name: editingAudit.value.name },
       body: {
         threshold: editThreshold.value,
-        enabled: editingAudit.value.enabled,
       },
     });
     useToastSuccess('Audit config updated');
@@ -181,17 +190,13 @@ const saveAuditConfig = async () => {
 
 const statusClass = (status: string) => {
   switch (status) {
-    case 'PENDING':
+    case 'OPEN':
       return 'bg-yellow-500/20 text-yellow-400 border-yellow-600';
-    case 'CONCERN':
-      return 'bg-orange-500/20 text-orange-400 border-orange-600';
-    case 'ACCEPTED':
-      return 'bg-green-500/20 text-green-400 border-green-600';
-    case 'REJECTED':
-      return 'bg-red-500/20 text-red-400 border-red-600';
-    case 'RESOLVED':
+    case 'PROCESSING':
       return 'bg-blue-500/20 text-blue-400 border-blue-600';
-    case 'IGNORED':
+    case 'FIXED':
+      return 'bg-green-500/20 text-green-400 border-green-600';
+    case 'DISMISSED':
       return 'bg-neutral-500/20 text-neutral-400 border-neutral-600';
     default:
       return 'bg-neutral-500/20 text-neutral-400 border-neutral-600';
@@ -204,17 +209,14 @@ const sourceClass = (source: string) => {
     : 'bg-cyan-500/20 text-cyan-400 border-cyan-600';
 };
 
-const editingNotes = ref<Record<number, string>>({});
-
-const startEditNotes = (report: AdminReport) => {
+const startEditNotes = (report: ReportGroupItem) => {
   editingNotes.value[report.id] = report.adminNotes || '';
 };
 
-const saveNotes = (reportId: number) => {
-  const report = reports.value.find((r) => r.id === reportId);
-  if (!report) return;
-  updateReport(reportId, report.status, editingNotes.value[reportId]);
+const saveNotes = async (reportId: number) => {
+  const notes = editingNotes.value[reportId];
   delete editingNotes.value[reportId];
+  await updateReport(reportId, undefined, notes);
 };
 
 const formatDate = (iso: string) => {
@@ -231,50 +233,159 @@ const formatRelativeDate = (iso: string) => {
   return `${days}d ago`;
 };
 
-const isRunningAny = computed(() => runningAudits.value.size > 0);
-
-const selectedIds = ref(new Set<number>());
-const isBatchUpdating = ref(false);
+const toggleExpand = (idx: number) => {
+  const next = new Set(expandedGroups.value);
+  if (next.has(idx)) next.delete(idx);
+  else next.add(idx);
+  expandedGroups.value = next;
+};
 
 const allVisibleSelected = computed(() => {
-  return reports.value.length > 0 && reports.value.every((r) => selectedIds.value.has(r.id));
+  return groups.value.length > 0 && groups.value.every((_, i) => selectedGroupIndices.value.has(i));
 });
 
 const toggleSelectAll = () => {
   if (allVisibleSelected.value) {
-    selectedIds.value = new Set();
+    selectedGroupIndices.value = new Set();
   } else {
-    selectedIds.value = new Set(reports.value.map((r) => r.id));
+    selectedGroupIndices.value = new Set(groups.value.map((_, i) => i));
   }
 };
 
-const toggleSelect = (id: number) => {
-  const next = new Set(selectedIds.value);
-  if (next.has(id)) {
-    next.delete(id);
-  } else {
-    next.add(id);
-  }
-  selectedIds.value = next;
+const toggleSelectGroup = (idx: number) => {
+  const next = new Set(selectedGroupIndices.value);
+  if (next.has(idx)) next.delete(idx);
+  else next.add(idx);
+  selectedGroupIndices.value = next;
 };
 
-const batchUpdate = async (status: AdminReport['status']) => {
-  const ids = [...selectedIds.value];
+const selectedReportIds = computed(() => {
+  const ids: number[] = [];
+  for (const idx of selectedGroupIndices.value) {
+    const group = groups.value[idx];
+    if (group) ids.push(...group.reports.map((r) => r.id));
+  }
+  return ids;
+});
+
+const selectedGroupRepIds = computed(() => {
+  const ids: number[] = [];
+  for (const idx of selectedGroupIndices.value) {
+    const group = groups.value[idx];
+    if (group?.reports[0]) ids.push(group.reports[0].id);
+  }
+  return ids;
+});
+
+const batchUpdate = async (status: string) => {
+  const ids = selectedReportIds.value;
   if (ids.length === 0) return;
 
   isBatchUpdating.value = true;
   try {
-    await sdk.batchUpdateAdminReports({ body: { ids, status } });
-    for (const report of reports.value) {
-      if (selectedIds.value.has(report.id)) {
-        report.status = status;
-      }
-    }
-    selectedIds.value = new Set();
-    useToastSuccess(`${ids.length} report(s) updated`);
+    const { updated } = await $fetch<{ updated: number }>('/v1/admin/reports/batch', {
+      method: 'PATCH',
+      body: { ids, status },
+    });
+    selectedGroupIndices.value = new Set();
+    useToastSuccess(`${updated} report(s) updated`);
+    await fetchReports();
   } catch {
+    useToastError('Failed to update reports');
   } finally {
     isBatchUpdating.value = false;
+  }
+};
+
+const batchDelete = async () => {
+  const ids = selectedGroupRepIds.value;
+  if (ids.length === 0) return;
+
+  isBatchUpdating.value = true;
+  const results = await Promise.allSettled(
+    ids.map((id) => $fetch<{ deleted: number }>(`/v1/admin/reports/${id}`, { method: 'DELETE' })),
+  );
+
+  const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+  const failed = results.length - succeeded;
+
+  selectedGroupIndices.value = new Set();
+  if (succeeded > 0) useToastSuccess(`${succeeded} report(s) deleted`);
+  if (failed > 0) useToastError(`${failed} delete(s) failed`);
+  await fetchReports();
+  isBatchUpdating.value = false;
+};
+
+const buildBulkFilters = () => {
+  const filters: Record<string, string | boolean> = {};
+  if (bulkStatusFilter.value) filters.status = bulkStatusFilter.value;
+  if (sourceFilter.value) filters.source = sourceFilter.value;
+  if (orphanedFilter.value) filters.orphaned = true;
+  return Object.keys(filters).length > 0 ? filters : undefined;
+};
+
+const bulkDismissAllMatching = async () => {
+  showDismissConfirm.value = false;
+  isBulkDismissing.value = true;
+  try {
+    const result = await $fetch<{ updated: number }>('/v1/admin/reports/bulk', {
+      method: 'PATCH',
+      body: {
+        status: 'DISMISSED',
+        filters: buildBulkFilters(),
+      },
+    });
+
+    useToastSuccess(`${result.updated} report(s) dismissed`);
+    await fetchReports();
+  } catch {
+    useToastError('Failed to dismiss reports');
+  } finally {
+    isBulkDismissing.value = false;
+  }
+};
+
+const confirmDeleteReport = (reportId: number) => {
+  pendingDeleteId.value = reportId;
+};
+
+const cancelDeleteReport = () => {
+  pendingDeleteId.value = null;
+};
+
+const deleteReport = async () => {
+  const reportId = pendingDeleteId.value;
+  if (!reportId) return;
+  pendingDeleteId.value = null;
+
+  try {
+    const result = await $fetch<{ deleted: number }>(`/v1/admin/reports/${reportId}`, {
+      method: 'DELETE',
+    });
+    useToastSuccess(`${result.deleted} report(s) deleted`);
+    await fetchReports();
+  } catch {
+    useToastError('Failed to delete report');
+  }
+};
+
+const bulkDeleteAllMatching = async () => {
+  showDeleteConfirm.value = false;
+  isBulkDeleting.value = true;
+  try {
+    const result = await $fetch<{ deleted: number }>('/v1/admin/reports/bulk', {
+      method: 'DELETE',
+      body: {
+        filters: buildBulkFilters(),
+      },
+    });
+
+    useToastSuccess(`${result.deleted} report(s) deleted`);
+    await fetchReports();
+  } catch {
+    useToastError('Failed to delete reports');
+  } finally {
+    isBulkDeleting.value = false;
   }
 };
 </script>
@@ -282,7 +393,7 @@ const batchUpdate = async (status: AdminReport['status']) => {
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-white">{{ t('reports.admin.title') }}</h1>
+      <h1 class="text-2xl font-bold text-white" data-testid="reports-title">{{ t('reports.admin.title') }}</h1>
     </div>
 
     <div class="flex flex-wrap items-center gap-3 mb-4">
@@ -321,36 +432,33 @@ const batchUpdate = async (status: AdminReport['status']) => {
           {{ status }}
         </button>
       </div>
+
+      <button
+        class="px-2.5 py-1.5 text-xs font-medium rounded-md border transition-all duration-150 cursor-pointer"
+        :class="orphanedFilter ? 'bg-red-500/20 text-red-400 border-red-600' : 'border-neutral-700 text-neutral-600 bg-neutral-800/50'"
+        data-testid="orphaned-filter"
+        @click="orphanedFilter = !orphanedFilter"
+      >
+        Orphaned
+      </button>
     </div>
 
     <!-- Audit Cards (Auto tab) -->
     <div v-if="sourceFilter === 'AUTO'" class="mb-4">
-      <div class="flex items-center justify-between mb-3">
+      <div class="mb-3">
         <span class="text-sm text-gray-400">Available checks</span>
-        <button
-          :disabled="isRunningAny || audits.filter(a => a.enabled).length === 0"
-          class="px-3 py-1.5 text-xs rounded-lg bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed"
-          @click="runAllAudits"
-        >
-          {{ isRunningAny ? 'Running...' : 'Run All' }}
-        </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         <div
           v-for="audit in audits"
           :key="audit.name"
-          class="rounded-lg border bg-neutral-800/50 p-4 transition-colors"
-          :class="audit.enabled ? 'border-neutral-700' : 'border-neutral-800 opacity-60'"
+          class="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4 transition-colors"
         >
           <div class="flex items-start justify-between gap-2 mb-2">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium text-white truncate">{{ audit.label }}</span>
-                <span
-                  class="shrink-0 w-1.5 h-1.5 rounded-full"
-                  :class="audit.enabled ? 'bg-green-400' : 'bg-neutral-600'"
-                />
               </div>
               <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ audit.description }}</p>
             </div>
@@ -366,7 +474,7 @@ const batchUpdate = async (status: AdminReport['status']) => {
                 </svg>
               </button>
               <button
-                :disabled="runningAudits.has(audit.name) || !audit.enabled"
+                :disabled="runningAudits.has(audit.name)"
                 class="px-2.5 py-1 text-xs rounded bg-cyan-600/80 text-white hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 @click="runAudit(audit.name)"
               >
@@ -379,15 +487,9 @@ const batchUpdate = async (status: AdminReport['status']) => {
             </div>
           </div>
 
-          <div v-if="audit.latestRun" class="flex items-center gap-2 mt-2 pt-2 border-t border-neutral-700/50">
-            <span class="text-xs text-gray-400">
-              <span class="font-mono font-medium text-white">{{ audit.latestRun.resultCount }}</span> findings
-            </span>
-            <span class="text-neutral-600">&middot;</span>
-            <span class="text-xs text-gray-500">{{ formatRelativeDate(audit.latestRun.createdAt) }}</span>
-          </div>
-          <div v-else class="mt-2 pt-2 border-t border-neutral-700/50">
-            <span class="text-xs text-gray-600">Never run</span>
+          <div class="mt-2 pt-2 border-t border-neutral-700/50">
+            <span v-if="audit.latestRun" class="text-xs text-gray-500">Last run {{ formatRelativeDate(audit.latestRun.createdAt) }}</span>
+            <span v-else class="text-xs text-gray-600">Never run</span>
           </div>
         </div>
       </div>
@@ -413,200 +515,171 @@ const batchUpdate = async (status: AdminReport['status']) => {
 
     <!-- Batch Actions Bar -->
     <div
-      v-if="selectedIds.size > 0"
+      v-if="selectedGroupIndices.size > 0"
       class="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg border border-neutral-600 bg-neutral-800/80"
     >
-      <span class="text-sm text-white font-medium">{{ selectedIds.size }} selected</span>
+      <span class="text-sm text-white font-medium">{{ selectedGroupIndices.size }} group(s) selected</span>
       <div class="flex gap-1.5 ml-2">
-        <button
-          :disabled="isBatchUpdating"
-          class="px-2.5 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50 disabled:opacity-50"
-          @click="batchUpdate('ACCEPTED')"
-        >
-          Accept
-        </button>
-        <button
-          :disabled="isBatchUpdating"
-          class="px-2.5 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50 disabled:opacity-50"
-          @click="batchUpdate('REJECTED')"
-        >
-          Reject
-        </button>
-        <button
-          :disabled="isBatchUpdating"
-          class="px-2.5 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50 disabled:opacity-50"
-          @click="batchUpdate('RESOLVED')"
-        >
-          Resolve
-        </button>
-        <button
-          :disabled="isBatchUpdating"
-          class="px-2.5 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50 disabled:opacity-50"
-          @click="batchUpdate('IGNORED')"
-        >
-          Ignore
-        </button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50 disabled:opacity-50" @click="batchUpdate('OPEN')">Open</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50 disabled:opacity-50" @click="batchUpdate('PROCESSING')">Processing</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50 disabled:opacity-50" @click="batchUpdate('FIXED')">Fixed</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50 disabled:opacity-50" @click="batchUpdate('DISMISSED')">Dismiss</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50 disabled:opacity-50" @click="batchDelete">Delete</button>
       </div>
+      <button class="ml-auto text-xs text-gray-500 hover:text-white" @click="selectedGroupIndices = new Set()">Clear</button>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="flex justify-end gap-2 mb-3">
       <button
-        class="ml-auto text-xs text-gray-500 hover:text-white"
-        @click="selectedIds = new Set()"
+        :disabled="isBulkDismissing || groups.length === 0"
+        class="px-3 py-1.5 text-xs rounded-lg border border-neutral-600 text-neutral-400 hover:text-white hover:border-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed"
+        @click="showDismissConfirm = true"
       >
-        Clear
+        <span v-if="isBulkDismissing" class="flex items-center gap-1.5">
+          <span class="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
+          Dismissing all...
+        </span>
+        <span v-else>Dismiss All Matching</span>
+      </button>
+      <button
+        :disabled="isBulkDeleting || groups.length === 0"
+        class="px-3 py-1.5 text-xs rounded-lg border border-red-800 text-red-400 hover:text-red-300 hover:border-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+        @click="showDeleteConfirm = true"
+      >
+        <span v-if="isBulkDeleting" class="flex items-center gap-1.5">
+          <span class="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
+          Deleting all...
+        </span>
+        <span v-else>Delete All Matching</span>
       </button>
     </div>
 
-    <!-- Reports Table -->
+    <!-- Report Groups Table -->
     <template v-if="sourceFilter !== 'AUTO' || autoSubTab === 'results'">
       <div class="overflow-x-auto rounded-lg border border-neutral-700">
         <table class="w-full text-sm text-left text-gray-300">
           <thead class="text-xs uppercase bg-neutral-800 text-gray-400">
             <tr>
               <th class="px-3 py-3 w-8">
-                <input
-                  type="checkbox"
-                  :checked="allVisibleSelected"
-                  class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer"
-                  @change="toggleSelectAll"
-                />
+                <input type="checkbox" :checked="allVisibleSelected" class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer" @change="toggleSelectAll" />
               </th>
-              <th class="px-3 py-3">ID</th>
-              <th class="px-3 py-3">Source</th>
+              <th class="px-3 py-3 w-8" />
               <th class="px-3 py-3">{{ t('reports.table.type') }}</th>
               <th class="px-3 py-3">{{ t('reports.table.target') }}</th>
-              <th class="px-3 py-3">{{ t('reports.table.reason') }}</th>
-              <th class="px-3 py-3">{{ t('reports.table.description') }}</th>
-              <th v-if="sourceFilter !== 'AUTO'" class="px-3 py-3">{{ t('reports.admin.reporter') }}</th>
               <th class="px-3 py-3">{{ t('reports.admin.count') }}</th>
               <th class="px-3 py-3">{{ t('reports.table.status') }}</th>
-              <th class="px-3 py-3">{{ t('reports.admin.notes') }}</th>
+              <th class="px-3 py-3">Reported</th>
+              <th class="px-3 py-3">Updated</th>
               <th class="px-3 py-3">{{ t('reports.admin.actions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="report in reports"
-              :key="report.id"
-              class="border-b border-neutral-700 hover:bg-neutral-800/50"
-            >
-              <td class="px-3 py-3 w-8">
-                <input
-                  type="checkbox"
-                  :checked="selectedIds.has(report.id)"
-                  class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer"
-                  @change="toggleSelect(report.id)"
-                />
-              </td>
-              <td class="px-3 py-3">{{ report.id }}</td>
-              <td class="px-3 py-3">
-                <span
-                  class="px-2 py-1 text-xs font-medium rounded border"
-                  :class="sourceClass(report.source)"
-                >
-                  {{ report.source }}
-                </span>
-              </td>
-              <td class="px-3 py-3">
-                <span
-                  class="px-2 py-1 text-xs font-medium rounded border"
-                  :class="report.target.type === 'SEGMENT' ? 'bg-purple-500/20 text-purple-400 border-purple-600' : report.target.type === 'EPISODE' ? 'bg-amber-500/20 text-amber-400 border-amber-600' : 'bg-teal-500/20 text-teal-400 border-teal-600'"
-                >
-                  {{ report.target.type }}
-                </span>
-              </td>
-              <td class="px-3 py-3 font-mono text-xs max-w-[150px] truncate">
-                <span>M{{ report.target.mediaId }}</span>
-                <span v-if="'episodeNumber' in report.target && report.target.episodeNumber"> EP{{ report.target.episodeNumber }}</span>
-                <NuxtLink
-                  v-if="report.target.type === 'SEGMENT'"
-                  :to="`/sentence/${report.target.segmentId}`"
-                  class="block text-purple-400 hover:text-purple-300 underline truncate"
-                >
-                  {{ report.target.segmentId }}
-                </NuxtLink>
-              </td>
-              <td class="px-3 py-3 text-xs">
-                {{ report.reason.replace(/_/g, ' ') }}
-              </td>
-              <td class="px-3 py-3 max-w-[200px] truncate text-xs">
-                {{ report.description || '-' }}
-              </td>
-              <td v-if="sourceFilter !== 'AUTO'" class="px-3 py-3 text-xs">
-                {{ report.reporterName }}
-              </td>
-              <td class="px-3 py-3 text-center">
-                <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">
-                  {{ report.reportCount }}
-                </span>
-                <span
-                  v-if="report.source === 'AUTO' && report.data?.userReportCount"
-                  class="block text-[10px] text-yellow-400 mt-0.5"
-                >
-                  +{{ report.data.userReportCount }} user
-                </span>
-              </td>
-              <td class="px-3 py-3">
-                <span
-                  class="px-2 py-1 text-xs font-medium rounded border"
-                  :class="statusClass(report.status)"
-                >
-                  {{ report.status }}
-                </span>
-              </td>
-              <td class="px-3 py-3 max-w-[200px]">
-                <template v-if="editingNotes[report.id] !== undefined">
-                  <input
-                    v-model="editingNotes[report.id]"
-                    class="w-full rounded border border-neutral-600 bg-neutral-800 text-white px-2 py-1 text-xs"
-                    @keyup.enter="saveNotes(report.id)"
-                  />
-                  <button
-                    class="text-xs text-blue-400 hover:text-blue-300 mt-1"
-                    @click="saveNotes(report.id)"
+            <template v-for="(group, idx) in groups" :key="idx">
+              <tr
+                class="border-b border-neutral-700 hover:bg-neutral-800/50 cursor-pointer"
+                data-testid="report-row"
+                @click="toggleExpand(idx)"
+              >
+                <td class="px-3 py-3 w-8" @click.stop>
+                  <input type="checkbox" :checked="selectedGroupIndices.has(idx)" class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer" @change="toggleSelectGroup(idx)" />
+                </td>
+                <td class="px-3 py-3 w-8 text-neutral-500">
+                  <span class="inline-block transition-transform" :class="expandedGroups.has(idx) ? 'rotate-90' : ''">&#9654;</span>
+                </td>
+                <td class="px-3 py-3">
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded border"
+                    :class="group.target.type === 'SEGMENT' ? 'bg-purple-500/20 text-purple-400 border-purple-600' : group.target.type === 'EPISODE' ? 'bg-amber-500/20 text-amber-400 border-amber-600' : 'bg-teal-500/20 text-teal-400 border-teal-600'"
                   >
-                    {{ t('reports.admin.save') }}
-                  </button>
-                </template>
-                <template v-else>
-                  <span class="text-xs cursor-pointer hover:text-white" @click="startEditNotes(report)">
-                    {{ report.adminNotes || t('reports.admin.addNote') }}
+                    {{ group.target.type }}
                   </span>
-                </template>
-              </td>
-              <td class="px-3 py-3">
-                <div class="flex gap-1 flex-wrap">
-                  <button
-                    v-if="report.status === 'PENDING'"
-                    class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50"
-                    @click="updateReport(report.id, 'ACCEPTED')"
+                </td>
+                <td class="px-3 py-3 text-xs max-w-[250px]" :title="group.mediaName || group.target.mediaId">
+                  <template v-if="group.target.mediaId">
+                    <NuxtLink
+                      :to="`/media/${group.target.mediaId}`"
+                      class="block truncate font-medium text-white hover:text-purple-300 underline"
+                      @click.stop
+                    >
+                      {{ group.mediaName || group.target.mediaId }}
+                    </NuxtLink>
+                    <span v-if="group.target.episodeNumber" class="text-neutral-400">EP{{ group.target.episodeNumber }}</span>
+                    <NuxtLink
+                      v-if="group.target.type === 'SEGMENT' && group.target.segmentId"
+                      :to="`/sentence/${group.target.segmentId}`"
+                      class="block text-purple-400 hover:text-purple-300 underline truncate"
+                      :title="group.target.segmentId"
+                      @click.stop
+                    >
+                      {{ group.target.segmentId }}
+                    </NuxtLink>
+                  </template>
+                  <span v-else class="text-red-400 italic">deleted</span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">{{ group.reportCount }}</span>
+                  <span
+                    v-if="group.reporterCount > 0"
+                    class="block text-[10px] text-neutral-500 mt-0.5 cursor-help"
+                    :title="[...new Set(group.reports.map(r => r.reporterName))].join(', ')"
                   >
-                    {{ t('reports.admin.accept') }}
-                  </button>
-                  <button
-                    v-if="report.status === 'PENDING'"
-                    class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50"
-                    @click="updateReport(report.id, 'REJECTED')"
-                  >
-                    {{ t('reports.admin.reject') }}
-                  </button>
-                  <button
-                    v-if="report.status !== 'RESOLVED' && report.status !== 'IGNORED'"
-                    class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50"
-                    @click="updateReport(report.id, 'RESOLVED')"
-                  >
-                    {{ t('reports.admin.resolve') }}
-                  </button>
-                  <button
-                    v-if="report.source === 'AUTO' && report.status !== 'IGNORED'"
-                    class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50"
-                    @click="updateReport(report.id, 'IGNORED')"
-                  >
-                    Ignore
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="reports.length === 0 && !isLoading">
-              <td colspan="12" class="px-4 py-8 text-center text-gray-500">
+                    {{ group.reporterCount }} {{ group.reporterCount === 1 ? 'reporter' : 'reporters' }}
+                  </span>
+                </td>
+                <td class="px-3 py-3">
+                  <span class="px-2 py-1 text-xs font-medium rounded border" :class="statusClass(group.status)">{{ group.status }}</span>
+                </td>
+                <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="formatDate(group.firstReportedAt)">
+                  {{ formatRelativeDate(group.firstReportedAt) }}
+                </td>
+                <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="group.lastStatusChange ? formatDate(group.lastStatusChange) : ''">
+                  {{ group.lastStatusChange ? formatRelativeDate(group.lastStatusChange) : '-' }}
+                </td>
+                <td class="px-3 py-3" @click.stop>
+                  <div class="flex gap-1 flex-wrap">
+                    <button class="px-2 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50" @click="updateReport(group.reports[0].id, 'OPEN')">Open</button>
+                    <button class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50" @click="updateReport(group.reports[0].id, 'PROCESSING')">Processing</button>
+                    <button class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50" @click="updateReport(group.reports[0].id, 'FIXED')">Fixed</button>
+                    <button class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50" @click="updateReport(group.reports[0].id, 'DISMISSED')">Dismiss</button>
+                    <button class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50" @click="confirmDeleteReport(group.reports[0].id)">Delete</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr v-if="expandedGroups.has(idx)" v-for="report in group.reports" :key="report.id" class="bg-neutral-900/50 border-b border-neutral-800">
+                <td colspan="2" />
+                <td colspan="2" class="px-3 py-2 text-xs">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 text-[10px] font-medium rounded border" :class="sourceClass(report.source)">{{ report.source }}</span>
+                    <span class="font-medium text-neutral-300">{{ report.reason.replace(/_/g, ' ') }}</span>
+                  </div>
+                  <span v-if="report.description" class="block text-neutral-500 truncate max-w-[300px] mt-0.5" :title="report.description">{{ report.description }}</span>
+                </td>
+                <td class="px-3 py-2 text-xs text-neutral-300">{{ report.reporterName }}</td>
+                <td />
+                <td class="px-3 py-2 text-xs text-gray-500" :title="formatDate(report.createdAt)">{{ formatRelativeDate(report.createdAt) }}</td>
+                <td class="px-3 py-2 max-w-[150px]">
+                  <template v-if="editingNotes[report.id] !== undefined">
+                    <input
+                      v-model="editingNotes[report.id]"
+                      class="w-full rounded border border-neutral-600 bg-neutral-800 text-white px-2 py-1 text-xs"
+                      @keyup.enter="saveNotes(report.id)"
+                      @keyup.escape="delete editingNotes[report.id]"
+                    />
+                    <button class="text-xs text-blue-400 hover:text-blue-300 mt-1" @click="saveNotes(report.id)">{{ t('reports.admin.save') }}</button>
+                  </template>
+                  <template v-else>
+                    <span class="text-xs cursor-pointer hover:text-white truncate block max-w-[130px]" :title="report.adminNotes || ''" @click="startEditNotes(report)">
+                      {{ report.adminNotes || t('reports.admin.addNote') }}
+                    </span>
+                  </template>
+                </td>
+                <td />
+              </tr>
+            </template>
+            <tr v-if="groups.length === 0 && !isLoading">
+              <td colspan="9" class="px-4 py-8 text-center text-gray-500">
                 {{ t('reports.noReports') }}
               </td>
             </tr>
@@ -624,7 +697,7 @@ const batchUpdate = async (status: AdminReport['status']) => {
         </button>
       </div>
 
-      <div v-if="isLoading && reports.length === 0" class="text-center py-8">
+      <div v-if="isLoading && groups.length === 0" class="text-center py-8">
         <div
           class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-white rounded-full"
           role="status"
@@ -708,11 +781,6 @@ const batchUpdate = async (status: AdminReport['status']) => {
             </div>
           </div>
 
-          <div class="flex items-center gap-3 mt-4">
-            <label class="text-sm text-gray-300">Enabled</label>
-            <input v-model="editingAudit.enabled" type="checkbox" class="rounded border-neutral-600" />
-          </div>
-
           <div class="flex justify-end gap-2 mt-6">
             <button
               class="px-4 py-2 text-sm rounded-lg bg-neutral-700 text-white hover:bg-neutral-600"
@@ -730,5 +798,34 @@ const batchUpdate = async (status: AdminReport['status']) => {
         </div>
       </div>
     </Teleport>
+
+    <ConfirmModal
+      :visible="showDismissConfirm"
+      title="Dismiss all matching reports?"
+      confirm-label="Dismiss All"
+      @confirm="bulkDismissAllMatching"
+      @cancel="showDismissConfirm = false"
+    >
+      This will dismiss <strong>all</strong> reports matching the current filters. This action can be undone by reopening individual reports.
+    </ConfirmModal>
+
+    <ConfirmModal
+      :visible="showDeleteConfirm"
+      title="Delete all matching reports?"
+      confirm-label="Delete All"
+      @confirm="bulkDeleteAllMatching"
+      @cancel="showDeleteConfirm = false"
+    >
+      This will <strong>permanently delete</strong> all reports matching the current filters. This cannot be undone.
+    </ConfirmModal>
+
+    <ConfirmModal
+      :visible="pendingDeleteId !== null"
+      title="Delete this report group?"
+      description="This will permanently delete this report and all duplicates with the same target and reason."
+      confirm-label="Delete"
+      @confirm="deleteReport"
+      @cancel="cancelDeleteReport"
+    />
   </div>
 </template>

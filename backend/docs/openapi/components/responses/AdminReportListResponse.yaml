@@ -1,11 +1,11 @@
 type: object
 required:
-  - reports
+  - groups
   - pagination
 properties:
-  reports:
+  groups:
     type: array
     items:
-      $ref: "../schemas/AdminReport.yaml"
+      $ref: "../schemas/AdminReportGroup.yaml"
   pagination:
     $ref: "../schemas/OpaqueCursorPagination.yaml"

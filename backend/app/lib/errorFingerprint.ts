@@ -27,10 +27,7 @@ function extractFirstAppFrame(stack: string | undefined): string {
   return 'unknown';
 }
 
-export function computeFingerprint(
-  error: Error | string,
-  errorType: string,
-): { fingerprint: string; group: string } {
+export function computeFingerprint(error: Error | string, errorType: string): { fingerprint: string; group: string } {
   const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
   const frame = extractFirstAppFrame(stack);

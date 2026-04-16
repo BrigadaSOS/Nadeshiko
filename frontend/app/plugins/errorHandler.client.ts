@@ -4,10 +4,7 @@ import { getPagePath } from '~/utils/pagePath';
 
 const BROWSER_FRAME_RE = /at .+?\((.+?):\d+:\d+\)|at (.+?):\d+:\d+|@(.+?):\d+:\d+/;
 
-function computeBrowserFingerprint(
-  error: unknown,
-  errorType: string,
-): { fingerprint: string; group: string } {
+function computeBrowserFingerprint(error: unknown, errorType: string): { fingerprint: string; group: string } {
   const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
 

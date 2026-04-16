@@ -172,7 +172,6 @@ export async function getSearchStats(
   return data;
 }
 
-
 export async function downloadFile(url: string): Promise<Buffer | null> {
   log.debug({ url }, 'File download request');
   const response = await fetch(url);

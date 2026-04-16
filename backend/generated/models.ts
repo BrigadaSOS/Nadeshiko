@@ -4,14 +4,54 @@
 
 export type t_ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'SHARE';
 
-export type t_AdminReport = t_Report & {
+export type t_AdminReportGroup = {
+  firstReportedAt: string;
+  lastStatusChange: string | null;
+  mediaName: string;
   reportCount: number;
+  reporterCount: number;
+  reports: t_AdminReportGroupItem[];
+  status: 'OPEN' | 'PROCESSING' | 'FIXED' | 'DISMISSED';
+  target: t_ReportTarget;
+};
+
+export type t_AdminReportGroupItem = {
+  adminNotes: string | null;
+  createdAt: string;
+  description: string | null;
+  id: number;
+  reason:
+    | 'WRONG_TRANSLATION'
+    | 'WRONG_TIMING'
+    | 'WRONG_AUDIO'
+    | 'WRONG_JAPANESE_TEXT'
+    | 'LOW_QUALITY_AUDIO'
+    | 'NSFW_NOT_TAGGED'
+    | 'DUPLICATE_SEGMENT'
+    | 'WRONG_METADATA'
+    | 'MISSING_EPISODES'
+    | 'WRONG_COVER_IMAGE'
+    | 'WRONG_TITLE'
+    | 'DUPLICATE_MEDIA'
+    | 'WRONG_EPISODE_NUMBER'
+    | 'IMAGE_ISSUE'
+    | 'INAPPROPRIATE_CONTENT'
+    | 'OTHER'
+    | 'LOW_SEGMENT_MEDIA'
+    | 'EMPTY_EPISODES'
+    | 'MISSING_EPISODES_AUTO'
+    | 'BAD_SEGMENT_RATIO'
+    | 'MEDIA_WITH_NO_EPISODES'
+    | 'MISSING_TRANSLATIONS'
+    | 'DB_ES_SYNC_ISSUES'
+    | 'HIGH_REPORT_DENSITY';
   reporterName: string;
+  source: 'USER' | 'AUTO';
 };
 
 export type t_AdminReportListResponse = {
+  groups: t_AdminReportGroup[];
   pagination: t_OpaqueCursorPagination;
-  reports: t_AdminReport[];
 };
 
 export type t_Category = 'ANIME' | 'JDRAMA';
@@ -389,7 +429,7 @@ export type t_Report = {
     | 'DB_ES_SYNC_ISSUES'
     | 'HIGH_REPORT_DENSITY';
   source: 'USER' | 'AUTO';
-  status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  status: 'OPEN' | 'PROCESSING' | 'FIXED' | 'DISMISSED';
   target: t_ReportTarget;
   updatedAt: string | null;
   userId: number | null;
@@ -755,7 +795,35 @@ export type t_AutocompleteMediaQuerySchema = {
 export type t_BatchUpdateAdminReportsRequestBodySchema = {
   adminNotes?: string;
   ids: number[];
-  status: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  status: 'OPEN' | 'PROCESSING' | 'FIXED' | 'DISMISSED';
+};
+
+export type t_BulkDeleteAdminReportsRequestBodySchema = {
+  filters?: {
+    auditRunId?: number;
+    orphaned?: boolean;
+    source?: 'USER' | 'AUTO';
+    status?: string;
+    targetEpisodeNumber?: number;
+    targetMediaId?: number;
+    targetSegmentId?: number;
+    targetType?: 'SEGMENT' | 'EPISODE' | 'MEDIA';
+  };
+};
+
+export type t_BulkUpdateAdminReportsRequestBodySchema = {
+  adminNotes?: string;
+  filters?: {
+    auditRunId?: number;
+    orphaned?: boolean;
+    source?: 'USER' | 'AUTO';
+    status?: string;
+    targetEpisodeNumber?: number;
+    targetMediaId?: number;
+    targetSegmentId?: number;
+    targetType?: 'SEGMENT' | 'EPISODE' | 'MEDIA';
+  };
+  status: 'OPEN' | 'PROCESSING' | 'FIXED' | 'DISMISSED';
 };
 
 export type t_CreateCollectionRequestBodySchema = {
@@ -864,6 +932,10 @@ export type t_CreateUserReportRequestBodySchema = {
     | 'INAPPROPRIATE_CONTENT'
     | 'OTHER';
   target: t_UserReportTarget;
+};
+
+export type t_DeleteAdminReportParamSchema = {
+  id: number;
 };
 
 export type t_DeleteCollectionParamSchema = {
@@ -1024,6 +1096,7 @@ export type t_ListAdminQueueFailedParamSchema = {
 export type t_ListAdminReportsQuerySchema = {
   auditRunId?: number;
   cursor?: string;
+  orphaned?: boolean;
   source?: 'USER' | 'AUTO';
   status?: string;
   take?: number;
@@ -1184,7 +1257,7 @@ export type t_UpdateAdminReportParamSchema = {
 
 export type t_UpdateAdminReportRequestBodySchema = {
   adminNotes?: string;
-  status?: 'PENDING' | 'CONCERN' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'IGNORED';
+  status?: 'OPEN' | 'PROCESSING' | 'FIXED' | 'DISMISSED';
 };
 
 export type t_UpdateAnnouncementRequestBodySchema = {
