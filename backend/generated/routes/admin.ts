@@ -16,6 +16,9 @@ import { z } from 'zod/v4';
 import type {
   t_AdminReportListResponse,
   t_BatchUpdateAdminReportsRequestBodySchema,
+  t_BulkDeleteAdminReportsRequestBodySchema,
+  t_BulkUpdateAdminReportsRequestBodySchema,
+  t_DeleteAdminReportParamSchema,
   t_Error400,
   t_Error401,
   t_Error403,
@@ -46,11 +49,13 @@ import type {
   t_UpdateAdminReportRequestBodySchema,
   t_UpdateAnnouncementRequestBodySchema,
 } from '../models.ts';
-import type { BatchUpdateReportsRequestOutput, GetAdminDashboardActivityQueryOutput, GetAdminDashboardOverviewQueryOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminDashboardActivityQueryOutput, GetAdminDashboardOverviewQueryOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
   s_BatchUpdateReportsRequest,
+  s_BulkDeleteReportsRequest,
+  s_BulkUpdateReportsRequest,
   s_Error400,
   s_Error401,
   s_Error403,
@@ -584,6 +589,44 @@ export type BatchUpdateAdminReports = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type BulkUpdateAdminReportsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    updated: number;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type BulkUpdateAdminReports = (
+  params: Params<void, void, BulkUpdateReportsRequestOutput, void>,
+  respond: BulkUpdateAdminReportsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type BulkDeleteAdminReportsResponder = {
+  with200(): ExpressRuntimeResponse<{
+    deleted: number;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type BulkDeleteAdminReports = (
+  params: Params<void, void, BulkDeleteReportsRequestOutput, void>,
+  respond: BulkDeleteAdminReportsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type UpdateAdminReportResponder = {
   with200(): ExpressRuntimeResponse<t_Report>;
   with400(): ExpressRuntimeResponse<t_Error400>;
@@ -597,6 +640,25 @@ export type UpdateAdminReportResponder = {
 export type UpdateAdminReport = (
   params: Params<t_UpdateAdminReportParamSchema, void, UpdateReportRequestOutput, void>,
   respond: UpdateAdminReportResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type DeleteAdminReportResponder = {
+  with200(): ExpressRuntimeResponse<{
+    deleted: number;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type DeleteAdminReport = (
+  params: Params<t_DeleteAdminReportParamSchema, void, void, void>,
+  respond: DeleteAdminReportResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -749,7 +811,10 @@ export type AdminImplementation = {
   purgeAdminQueueFailed: PurgeAdminQueueFailed;
   listAdminReports: ListAdminReports;
   batchUpdateAdminReports: BatchUpdateAdminReports;
+  bulkUpdateAdminReports: BulkUpdateAdminReports;
+  bulkDeleteAdminReports: BulkDeleteAdminReports;
   updateAdminReport: UpdateAdminReport;
+  deleteAdminReport: DeleteAdminReport;
   listAdminMediaAudits: ListAdminMediaAudits;
   updateAdminMediaAudit: UpdateAdminMediaAudit;
   runAdminMediaAudit: RunAdminMediaAudit;
@@ -2202,6 +2267,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     'target.episodeNumber': z.coerce.number().optional(),
     'target.segmentId': z.coerce.number().optional(),
     auditRunId: z.coerce.number().optional(),
+    orphaned: PermissiveBoolean.optional(),
   });
 
   const listAdminReportsResponseBodyValidator = responseValidationFactory(
@@ -2342,6 +2408,152 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
+  const bulkUpdateAdminReportsRequestBodySchema = s_BulkUpdateReportsRequest;
+
+  const bulkUpdateAdminReportsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ updated: z.coerce.number() })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // bulkUpdateAdminReports
+  router.patch(`/v1/admin/reports/bulk`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(bulkUpdateAdminReportsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            updated: number;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.bulkUpdateAdminReports(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(bulkUpdateAdminReportsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const bulkDeleteAdminReportsRequestBodySchema = s_BulkDeleteReportsRequest;
+
+  const bulkDeleteAdminReportsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ deleted: z.coerce.number() })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // bulkDeleteAdminReports
+  router.delete(`/v1/admin/reports/bulk`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(bulkDeleteAdminReportsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            deleted: number;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.bulkDeleteAdminReports(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(bulkDeleteAdminReportsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
   const updateAdminReportParamSchema = z.object({ id: z.coerce.number() });
 
   const updateAdminReportRequestBodySchema = s_UpdateReportRequest;
@@ -2411,6 +2623,79 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       if (body !== undefined) {
         res.json(updateAdminReportResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const deleteAdminReportParamSchema = z.object({ id: z.coerce.number() });
+
+  const deleteAdminReportResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ deleted: z.coerce.number() })],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // deleteAdminReport
+  router.delete(`/v1/admin/reports/:id`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(deleteAdminReportParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            deleted: number;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.deleteAdminReport(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(deleteAdminReportResponseBodyValidator(status, body));
       } else {
         res.end();
       }

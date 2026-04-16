@@ -125,7 +125,7 @@ describe('buildReports', () => {
       reason: ReportReason.EMPTY_EPISODES,
       description: 'test desc',
       data: { count: 5 },
-      status: ReportStatus.PENDING,
+      status: ReportStatus.OPEN,
     });
   });
 
@@ -187,7 +187,7 @@ describe('getPreviousRunData', () => {
     report.auditRunId = run.id;
     report.reason = ReportReason.EMPTY_EPISODES;
     report.data = { segmentCount: 2 };
-    report.status = ReportStatus.PENDING;
+    report.status = ReportStatus.OPEN;
     await report.save();
 
     const result = await getPreviousRunData('lowSegmentEpisodes');
@@ -257,7 +257,7 @@ describe('runAllAuditsWithDeps', () => {
       targetMediaId: media.id,
       targetEpisodeNumber: 1,
       reason: ReportReason.EMPTY_EPISODES,
-      status: ReportStatus.PENDING,
+      status: ReportStatus.OPEN,
     });
   });
 

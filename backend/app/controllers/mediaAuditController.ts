@@ -82,7 +82,7 @@ export const getAdminMediaAuditRun: GetAdminMediaAuditRun = async ({ params }, r
     run: toMediaAuditRunDTO(run),
     reports: reports.map((report) =>
       toReportDTO(report, {
-        mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
+        mediaPublicId: publicIdMaps.media.get(report.targetMediaId)?.publicId ?? '',
         segmentPublicId: report.targetSegmentId ? (publicIdMaps.segments.get(report.targetSegmentId) ?? null) : null,
       }),
     ),

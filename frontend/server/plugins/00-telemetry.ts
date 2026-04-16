@@ -29,9 +29,8 @@ export default defineNitroPlugin((nitroApp) => {
     if (event.context._otelIgnored) return;
 
     const matchedPath = event.context.matchedRoute?.path;
-    const route = matchedPath && !isCatchAll(matchedPath)
-      ? matchedPath
-      : normalizeRoute(event.path || event.node.req.url || '/');
+    const route =
+      matchedPath && !isCatchAll(matchedPath) ? matchedPath : normalizeRoute(event.path || event.node.req.url || '/');
 
     const rpcMetadata = getRPCMetadata(otelContext.active());
     if (rpcMetadata?.type === RPCType.HTTP) {

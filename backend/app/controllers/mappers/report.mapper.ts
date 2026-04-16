@@ -1,9 +1,10 @@
-import type { t_Report, t_AdminReport } from 'generated/models';
+import type { t_Report, t_AdminReportGroup, t_AdminReportGroupItem } from 'generated/models';
 import type {
   CreateReportRequestOutput,
   ListAdminReportsQueryOutput,
   UpdateReportRequestOutput,
 } from 'generated/outputTypes';
+import { In } from 'typeorm';
 import type { Report } from '@app/models';
 import { Media, Segment, ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models';
 
@@ -50,6 +51,7 @@ export type AdminReportFilters = {
   targetEpisodeNumber?: number;
   targetSegmentId?: number;
   auditRunId?: number;
+  orphaned?: boolean;
 };
 
 export const toReportDTO = (report: Report, ids: ReportPublicIds): t_Report => {
@@ -69,13 +71,74 @@ export const toReportDTO = (report: Report, ids: ReportPublicIds): t_Report => {
   };
 };
 
-export const toAdminReportDTO = (report: Report, reportCount: number, ids: ReportPublicIds): t_AdminReport => {
+export function toTargetGroupKey(
+  report: Pick<Report, 'targetType' | 'targetMediaId' | 'targetEpisodeNumber' | 'targetSegmentId'>,
+): string {
+  return `${report.targetType}:${report.targetMediaId}:${report.targetEpisodeNumber ?? ''}:${report.targetSegmentId ?? ''}`;
+}
+
+type MediaInfo = { publicId: string; nameRomaji: string };
+export type ReportPublicIdMaps = { media: ReadonlyMap<number, MediaInfo>; segments: ReadonlyMap<number, string> };
+
+function toGroupItemDTO(report: Report): t_AdminReportGroupItem {
   return {
-    ...toReportDTO(report, ids),
-    reportCount,
+    id: report.id,
+    reason: report.reason,
+    description: report.description ?? null,
+    source: report.source,
     reporterName: report.user?.username ?? 'System',
+    createdAt: report.createdAt.toISOString(),
+    adminNotes: report.adminNotes ?? null,
   };
-};
+}
+
+export function toAdminReportGroupsDTO(
+  groupReps: Report[],
+  allReports: Report[],
+  publicIdMaps: ReportPublicIdMaps,
+): t_AdminReportGroup[] {
+  const reportsByTarget = new Map<string, Report[]>();
+  for (const report of allReports) {
+    const key = toTargetGroupKey(report);
+    const list = reportsByTarget.get(key);
+    if (list) {
+      list.push(report);
+    } else {
+      reportsByTarget.set(key, [report]);
+    }
+  }
+
+  return groupReps.map((rep) => {
+    const key = toTargetGroupKey(rep);
+    const members = reportsByTarget.get(key) ?? [rep];
+    const mediaInfo = publicIdMaps.media.get(rep.targetMediaId);
+    const ids: ReportPublicIds = {
+      mediaPublicId: mediaInfo?.publicId ?? '',
+      segmentPublicId: rep.targetSegmentId ? (publicIdMaps.segments.get(rep.targetSegmentId) ?? null) : null,
+    };
+
+    const userIds = new Set(members.map((r) => r.userId).filter((id) => id != null));
+    const firstCreated = members.reduce((min, r) => (r.createdAt < min ? r.createdAt : min), members[0].createdAt);
+    const lastUpdated = members.reduce(
+      (max, r) => {
+        if (!r.updatedAt) return max;
+        return !max || r.updatedAt > max ? r.updatedAt : max;
+      },
+      null as Date | null,
+    );
+
+    return {
+      target: toReportTargetDTO(rep, ids),
+      mediaName: mediaInfo?.nameRomaji ?? '',
+      status: rep.status,
+      reportCount: members.length,
+      reporterCount: userIds.size,
+      firstReportedAt: firstCreated.toISOString(),
+      lastStatusChange: lastUpdated?.toISOString() ?? null,
+      reports: members.map(toGroupItemDTO),
+    };
+  });
+}
 
 type ReportCreateAttributesInput = {
   body: CreateReportRequestOutput;
@@ -99,7 +162,7 @@ export function toReportCreateAttributes({
     reason: body.reason as ReportReason,
     description: body.description ?? null,
     userId,
-    status: ReportStatus.PENDING,
+    status: ReportStatus.OPEN,
   };
 }
 
@@ -112,7 +175,7 @@ export function toReportUpdatePatch(body: UpdateReportRequestOutput): Partial<Re
 
 const VALID_STATUSES = new Set(Object.values(ReportStatus));
 
-function parseStatusFilter(raw?: string): ReportStatus[] | undefined {
+export function parseStatusFilter(raw?: string): ReportStatus[] | undefined {
   if (!raw) return undefined;
   const statuses = raw
     .split(',')
@@ -130,40 +193,31 @@ export function toAdminReportFilters(query: ListAdminReportsQueryOutput): AdminR
     targetEpisodeNumber: query['target.episodeNumber'],
     targetSegmentId: query['target.segmentId'],
     auditRunId: query.auditRunId,
+    orphaned: query.orphaned,
   };
 }
 
-export function toReportTargetCountKey(report: Pick<Report, 'targetType' | 'targetMediaId'>): string {
-  return `${report.targetType}:${report.targetMediaId}`;
-}
-
-export type ReportPublicIdMaps = { media: ReadonlyMap<number, string>; segments: ReadonlyMap<number, string> };
-
-export function toAdminReportListDTO(
-  reports: Report[],
-  countMap: ReadonlyMap<string, number>,
-  publicIdMaps: ReportPublicIdMaps,
-): t_AdminReport[] {
-  return reports.map((report) =>
-    toAdminReportDTO(report, countMap.get(toReportTargetCountKey(report)) ?? 1, {
-      mediaPublicId: publicIdMaps.media.get(report.targetMediaId) ?? '',
-      segmentPublicId: report.targetSegmentId ? (publicIdMaps.segments.get(report.targetSegmentId) ?? null) : null,
-    }),
-  );
+export async function resolveReportPublicIdsForOne(report: Report): Promise<ReportPublicIds> {
+  const media = await Media.findOne({ where: { id: report.targetMediaId }, select: ['publicId'] });
+  let segmentPublicId: string | null = null;
+  if (report.targetSegmentId) {
+    const segment = await Segment.findOne({ where: { id: report.targetSegmentId }, select: ['publicId'] });
+    segmentPublicId = segment?.publicId ?? null;
+  }
+  return { mediaPublicId: media?.publicId ?? '', segmentPublicId };
 }
 
 export async function resolveReportPublicIds(reports: Report[]): Promise<ReportPublicIdMaps> {
   const mediaIds = [...new Set(reports.map((r) => r.targetMediaId))];
   const segmentIds = [...new Set(reports.map((r) => r.targetSegmentId).filter((id): id is number => id != null))];
 
-  const { In } = await import('typeorm');
   const [mediaEntries, segmentEntries] = await Promise.all([
-    mediaIds.length > 0 ? Media.find({ where: { id: In(mediaIds) }, select: ['id', 'publicId'] }) : [],
+    mediaIds.length > 0 ? Media.find({ where: { id: In(mediaIds) }, select: ['id', 'publicId', 'nameRomaji'] }) : [],
     segmentIds.length > 0 ? Segment.find({ where: { id: In(segmentIds) }, select: ['id', 'publicId'] }) : [],
   ]);
 
   return {
-    media: new Map(mediaEntries.map((m) => [m.id, m.publicId])),
+    media: new Map(mediaEntries.map((m) => [m.id, { publicId: m.publicId, nameRomaji: m.nameRomaji }])),
     segments: new Map(segmentEntries.map((s) => [s.id, s.publicId])),
   };
 }

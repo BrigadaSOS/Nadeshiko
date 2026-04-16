@@ -42,3 +42,45 @@ patch:
       $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: deleteAdminReport
+  summary: Delete report and its group
+  description: |
+    Deletes a report and all other reports with the same target and reason (the dedup group).
+
+  security:
+    - SessionCookie: [ADMIN]
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Report ID
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - deleted
+            properties:
+              deleted:
+                type: integer
+                description: Number of reports deleted
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

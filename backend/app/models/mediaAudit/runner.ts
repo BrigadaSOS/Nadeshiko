@@ -121,7 +121,7 @@ export function buildReports(
     report.reason = reason;
     report.description = result.description;
     report.data = data;
-    report.status = ReportStatus.PENDING;
+    report.status = ReportStatus.OPEN;
     return report;
   });
 }
@@ -169,7 +169,7 @@ async function getUserReportCounts(): Promise<Map<string, number>> {
     .addSelect('r.target_episode_number', 'targetEpisodeNumber')
     .addSelect('COUNT(*)', 'count')
     .where('r.source = :source', { source: 'USER' })
-    .andWhere('r.status IN (:...statuses)', { statuses: ['PENDING', 'ACCEPTED'] })
+    .andWhere('r.status IN (:...statuses)', { statuses: [ReportStatus.OPEN, ReportStatus.PROCESSING] })
     .groupBy('r.target_media_id')
     .addGroupBy('r.target_episode_number')
     .getRawMany();

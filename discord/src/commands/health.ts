@@ -48,9 +48,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .addFields(
         {
           name: 'Discord Bot',
-          value: wsPing >= 0
-            ? `🟢 **online** (${wsPing}ms)`
-            : `🟡 **starting** (ping unavailable)`,
+          value: wsPing >= 0 ? `🟢 **online** (${wsPing}ms)` : `🟡 **starting** (ping unavailable)`,
           inline: false,
         },
         {
@@ -83,9 +81,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .addFields(
         {
           name: 'Discord Bot',
-          value: wsPing >= 0
-            ? `🟢 **online** (${wsPing}ms)`
-            : `🟡 **starting** (ping unavailable)`,
+          value: wsPing >= 0 ? `🟢 **online** (${wsPing}ms)` : `🟡 **starting** (ping unavailable)`,
           inline: false,
         },
         {

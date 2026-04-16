@@ -194,6 +194,8 @@ paths:
     $ref: "./paths/admin/v1_admin_reports.yaml"
   "/v1/admin/reports/batch":
     $ref: "./paths/admin/v1_admin_reports_batch.yaml"
+  "/v1/admin/reports/bulk":
+    $ref: "./paths/admin/v1_admin_reports_bulk.yaml"
   "/v1/admin/reports/{id}":
     $ref: "./paths/admin/v1_admin_reports_id.yaml"
   "/v1/admin/media/audits":

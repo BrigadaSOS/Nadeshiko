@@ -24,7 +24,7 @@ function buildReport() {
     targetType: 'MEDIA',
     targetMediaId: 9,
     reason: 'OTHER',
-    status: 'PENDING',
+    status: 'OPEN',
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     updatedAt: new Date('2025-01-01T00:00:00.000Z'),
   };
@@ -56,7 +56,7 @@ describe('userExport.mapper', () => {
       [buildCollection()] as any,
       [buildReport()] as any,
       {
-        media: new Map([[9, 'media-pub-9']]),
+        media: new Map([[9, { publicId: 'media-pub-9', nameRomaji: 'Test Media' }]]),
         segments: new Map(),
       },
     );

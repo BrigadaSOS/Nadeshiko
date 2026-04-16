@@ -15,10 +15,77 @@ export const PermissiveBoolean = z.preprocess((value) => {
 
 export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'SHARE']);
 
+export const s_AdminReportGroupItem = z.object({
+  id: z.coerce.number(),
+  reason: z.enum([
+    'WRONG_TRANSLATION',
+    'WRONG_TIMING',
+    'WRONG_AUDIO',
+    'WRONG_JAPANESE_TEXT',
+    'LOW_QUALITY_AUDIO',
+    'NSFW_NOT_TAGGED',
+    'DUPLICATE_SEGMENT',
+    'WRONG_METADATA',
+    'MISSING_EPISODES',
+    'WRONG_COVER_IMAGE',
+    'WRONG_TITLE',
+    'DUPLICATE_MEDIA',
+    'WRONG_EPISODE_NUMBER',
+    'IMAGE_ISSUE',
+    'INAPPROPRIATE_CONTENT',
+    'OTHER',
+    'LOW_SEGMENT_MEDIA',
+    'EMPTY_EPISODES',
+    'MISSING_EPISODES_AUTO',
+    'BAD_SEGMENT_RATIO',
+    'MEDIA_WITH_NO_EPISODES',
+    'MISSING_TRANSLATIONS',
+    'DB_ES_SYNC_ISSUES',
+    'HIGH_REPORT_DENSITY',
+  ]),
+  description: z.string().nullable(),
+  source: z.enum(['USER', 'AUTO']),
+  reporterName: z.string(),
+  createdAt: z.iso.datetime({ offset: true }),
+  adminNotes: z.string().nullable(),
+});
+
 export const s_BatchUpdateReportsRequest = z.object({
   ids: z.array(z.coerce.number()).min(1).max(100),
-  status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']),
+  status: z.enum(['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED']),
   adminNotes: z.string().max(1000).optional(),
+});
+
+export const s_BulkDeleteReportsRequest = z.object({
+  filters: z
+    .object({
+      status: z.string().optional(),
+      source: z.enum(['USER', 'AUTO']).optional(),
+      targetType: z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+      targetMediaId: z.coerce.number().optional(),
+      targetEpisodeNumber: z.coerce.number().optional(),
+      targetSegmentId: z.coerce.number().optional(),
+      auditRunId: z.coerce.number().optional(),
+      orphaned: PermissiveBoolean.optional(),
+    })
+    .optional(),
+});
+
+export const s_BulkUpdateReportsRequest = z.object({
+  status: z.enum(['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED']),
+  adminNotes: z.string().max(1000).optional(),
+  filters: z
+    .object({
+      status: z.string().optional(),
+      source: z.enum(['USER', 'AUTO']).optional(),
+      targetType: z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+      targetMediaId: z.coerce.number().optional(),
+      targetEpisodeNumber: z.coerce.number().optional(),
+      targetSegmentId: z.coerce.number().optional(),
+      auditRunId: z.coerce.number().optional(),
+      orphaned: PermissiveBoolean.optional(),
+    })
+    .optional(),
 });
 
 export const s_Category = z.enum(['ANIME', 'JDRAMA']);
@@ -293,7 +360,7 @@ export const s_Token = z.object({
 });
 
 export const s_UpdateReportRequest = z.object({
-  status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']).optional(),
+  status: z.enum(['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED']).optional(),
   adminNotes: z.string().max(1000).optional(),
 });
 
@@ -522,6 +589,17 @@ export const s_WordMatch = z.object({
   media: z.array(s_WordMatchMedia),
 });
 
+export const s_AdminReportGroup = z.object({
+  target: s_ReportTarget,
+  mediaName: z.string(),
+  status: z.enum(['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED']),
+  reportCount: z.coerce.number(),
+  reporterCount: z.coerce.number(),
+  firstReportedAt: z.iso.datetime({ offset: true }),
+  lastStatusChange: z.iso.datetime({ offset: true }).nullable(),
+  reports: z.array(s_AdminReportGroupItem),
+});
+
 export const s_CreateReportRequest = z.object({
   target: s_UserReportTarget,
   reason: z.enum([
@@ -630,7 +708,7 @@ export const s_Report = z.object({
   ]),
   description: z.string().nullable(),
   data: z.record(z.string(), z.unknown()).nullable(),
-  status: z.enum(['PENDING', 'CONCERN', 'ACCEPTED', 'REJECTED', 'RESOLVED', 'IGNORED']),
+  status: z.enum(['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED']),
   adminNotes: z.string().max(1000).nullable(),
   userId: z.coerce.number().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
@@ -679,7 +757,10 @@ export const s_SegmentInternal = s_Segment.merge(
   }),
 );
 
-export const s_AdminReport = s_Report.merge(z.object({ reportCount: z.coerce.number(), reporterName: z.string() }));
+export const s_AdminReportListResponse = z.object({
+  groups: z.array(s_AdminReportGroup),
+  pagination: s_OpaqueCursorPagination,
+});
 
 export const s_Media = z.object({
   id: z.coerce.number(),
@@ -716,11 +797,6 @@ export const s_UserExportResponse = z.object({
   activity: z.array(s_UserActivity),
   collections: z.array(s_UserExportCollection),
   reports: z.array(s_Report),
-});
-
-export const s_AdminReportListResponse = z.object({
-  reports: z.array(s_AdminReport),
-  pagination: s_OpaqueCursorPagination,
 });
 
 export const s_CharacterWithMedia = s_Character.merge(

@@ -1,0 +1,34 @@
+type: object
+properties:
+  filters:
+    type: object
+    description: Filters to select which reports to delete. If omitted, deletes all reports.
+    properties:
+      status:
+        type: string
+        description: >
+          Filter by current report status. Accepts a single value or comma-separated list
+          (e.g. "OPEN,DISMISSED").
+      source:
+        type: string
+        enum: [USER, AUTO]
+        description: Filter by report source
+      targetType:
+        type: string
+        enum: [SEGMENT, EPISODE, MEDIA]
+        description: Filter by target type
+      targetMediaId:
+        type: integer
+        description: Filter by target media ID
+      targetEpisodeNumber:
+        type: integer
+        description: Filter by target episode number
+      targetSegmentId:
+        type: integer
+        description: Filter by target segment ID
+      auditRunId:
+        type: integer
+        description: Filter by audit run ID
+      orphaned:
+        type: boolean
+        description: Only delete reports whose target media no longer exists

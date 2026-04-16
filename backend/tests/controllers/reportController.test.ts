@@ -109,7 +109,7 @@ describe('POST /v1/user/reports', () => {
       },
       reason: 'OTHER',
       description: 'metadata mismatch',
-      status: 'PENDING',
+      status: 'OPEN',
       userId: core.users.regular.id,
     });
 
@@ -148,7 +148,7 @@ describe('POST /v1/user/reports', () => {
         segmentId: segment.publicId,
       },
       reason: 'WRONG_TRANSLATION',
-      status: 'PENDING',
+      status: 'OPEN',
     });
 
     const saved = await Report.findOneByOrFail({ id: res.body.id });
@@ -243,24 +243,24 @@ describe('GET /v1/admin/reports', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      reports: [],
+      groups: [],
       pagination: { hasMore: false, cursor: null },
     });
   });
 
-  it('filters by all query fields and returns reportCount by target', async () => {
+  it('groups reports by target and returns individual reports within each group', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
     const seg1 = await seedSegment(media.id, episode.episodeNumber);
-    const seg2 = await seedSegment(media.id, episode.episodeNumber);
     const auditRun = (await MediaAuditRun.save({
       auditName: 'db-es-sync-issues',
       category: 'ANIME',
-      resultCount: 1,
+      resultCount: 2,
       thresholdUsed: { maxMismatchRatio: 0.1 },
     })) as MediaAuditRun;
 
+    // Two reports for the same target (different reasons) -> one group with 2 individual reports
     await Report.save({
       source: ReportSource.AUTO,
       targetType: ReportTargetType.SEGMENT,
@@ -268,7 +268,7 @@ describe('GET /v1/admin/reports', () => {
       targetEpisodeNumber: episode.episodeNumber,
       targetSegmentId: seg1.id,
       reason: ReportReason.DB_ES_SYNC_ISSUES,
-      status: ReportStatus.CONCERN,
+      status: ReportStatus.PROCESSING,
       auditRunId: auditRun.id,
       userId: null,
     });
@@ -278,31 +278,31 @@ describe('GET /v1/admin/reports', () => {
       targetType: ReportTargetType.SEGMENT,
       targetMediaId: media.id,
       targetEpisodeNumber: episode.episodeNumber,
-      targetSegmentId: seg2.id,
+      targetSegmentId: seg1.id,
       reason: ReportReason.BAD_SEGMENT_RATIO,
-      status: ReportStatus.PENDING,
+      status: ReportStatus.PROCESSING,
+      auditRunId: auditRun.id,
       userId: null,
     });
 
     const res = await request(app).get(
-      `/v1/admin/reports?status=CONCERN&source=AUTO&target.type=SEGMENT&target.mediaId=${media.id}&target.episodeNumber=${episode.episodeNumber}&target.segmentId=${seg1.id}&auditRunId=${auditRun.id}&take=20`,
+      `/v1/admin/reports?status=PROCESSING&source=AUTO&target.type=SEGMENT&target.mediaId=${media.id}&target.episodeNumber=${episode.episodeNumber}&target.segmentId=${seg1.id}&auditRunId=${auditRun.id}&take=20`,
     );
 
     expect(res.status).toBe(200);
-    expect(res.body.reports).toHaveLength(1);
-    expect(res.body.reports[0]).toMatchObject({
-      source: 'AUTO',
+    // One target group containing both reports
+    expect(res.body.groups).toHaveLength(1);
+    expect(res.body.groups[0]).toMatchObject({
       target: {
         type: 'SEGMENT',
         mediaId: media.publicId,
         episodeNumber: episode.episodeNumber,
         segmentId: seg1.publicId,
       },
-      status: 'CONCERN',
-      auditRunId: auditRun.id,
-      reporterName: 'System',
+      status: 'PROCESSING',
       reportCount: 2,
     });
+    expect(res.body.groups[0].reports).toHaveLength(2);
   });
 });
 
@@ -316,30 +316,30 @@ describe('PATCH /v1/admin/reports/:id', () => {
       targetType: ReportTargetType.MEDIA,
       targetMediaId: media.id,
       reason: ReportReason.OTHER,
-      status: ReportStatus.PENDING,
+      status: ReportStatus.OPEN,
       userId: core.users.regular.id,
     })) as Report;
 
     const res = await request(app).patch(`/v1/admin/reports/${report.id}`).send({
-      status: 'ACCEPTED',
+      status: 'FIXED',
       adminNotes: 'Confirmed and queued fix',
     });
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       id: report.id,
-      status: 'ACCEPTED',
+      status: 'FIXED',
       adminNotes: 'Confirmed and queued fix',
     });
 
     const updated = await Report.findOneByOrFail({ id: report.id });
-    expect(updated.status).toBe(ReportStatus.ACCEPTED);
+    expect(updated.status).toBe(ReportStatus.FIXED);
     expect(updated.adminNotes).toBe('Confirmed and queued fix');
   });
 
   it('returns 404 when report does not exist', async () => {
     const res = await request(app).patch('/v1/admin/reports/999999').send({
-      status: 'RESOLVED',
+      status: 'FIXED',
     });
 
     expect(res.status).toBe(404);

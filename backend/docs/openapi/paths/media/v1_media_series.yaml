@@ -1,6 +1,7 @@
 get:
   tags:
     - Media
+  x-internal: true
   operationId: listSeries
   summary: List all series
   description: |

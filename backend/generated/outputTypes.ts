@@ -8,7 +8,10 @@ import * as schemas from './schemas';
 // Output types for named schemas (post-parsing, defaults applied)
 // ============================================
 export type ActivityTypeOutput = z.output<typeof schemas.s_ActivityType>;
+export type AdminReportGroupItemOutput = z.output<typeof schemas.s_AdminReportGroupItem>;
 export type BatchUpdateReportsRequestOutput = z.output<typeof schemas.s_BatchUpdateReportsRequest>;
+export type BulkDeleteReportsRequestOutput = z.output<typeof schemas.s_BulkDeleteReportsRequest>;
+export type BulkUpdateReportsRequestOutput = z.output<typeof schemas.s_BulkUpdateReportsRequest>;
 export type CategoryOutput = z.output<typeof schemas.s_Category>;
 export type CollectionOutput = z.output<typeof schemas.s_Collection>;
 export type CollectionRequestsOutput = z.output<typeof schemas.s_CollectionRequests>;
@@ -67,6 +70,7 @@ export type UserActivityOutput = z.output<typeof schemas.s_UserActivity>;
 export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCollection>;
 export type UserReportTargetOutput = z.output<typeof schemas.s_UserReportTarget>;
 export type WordMatchOutput = z.output<typeof schemas.s_WordMatch>;
+export type AdminReportGroupOutput = z.output<typeof schemas.s_AdminReportGroup>;
 export type CreateReportRequestOutput = z.output<typeof schemas.s_CreateReportRequest>;
 export type MediaAutocompleteResponseOutput = z.output<typeof schemas.s_MediaAutocompleteResponse>;
 export type MediaCharacterOutput = z.output<typeof schemas.s_MediaCharacter>;
@@ -78,10 +82,9 @@ export type SearchRequestOutput = z.output<typeof schemas.s_SearchRequest>;
 export type SearchStatsRequestOutput = z.output<typeof schemas.s_SearchStatsRequest>;
 export type SegmentBatchCreateRequestOutput = z.output<typeof schemas.s_SegmentBatchCreateRequest>;
 export type SegmentInternalOutput = z.output<typeof schemas.s_SegmentInternal>;
-export type AdminReportOutput = z.output<typeof schemas.s_AdminReport>;
+export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type MediaOutput = z.output<typeof schemas.s_Media>;
 export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
-export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type CharacterWithMediaOutput = z.output<typeof schemas.s_CharacterWithMedia>;
 export type CollectionWithSegmentsOutput = z.output<typeof schemas.s_CollectionWithSegments>;
 export type MediaListResponseOutput = z.output<typeof schemas.s_MediaListResponse>;
@@ -112,6 +115,7 @@ export const listAdminReportsQuerySchema = z.object({
     'target.episodeNumber': z.coerce.number().optional(),
     'target.segmentId': z.coerce.number().optional(),
     auditRunId: z.coerce.number().optional(),
+    orphaned: schemas.PermissiveBoolean.optional(),
   });
 export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
 

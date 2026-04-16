@@ -371,7 +371,7 @@ describe('GET /v1/admin/media/audits/runs/:id', () => {
       targetEpisodeNumber: null,
       reason: ReportReason.DB_ES_SYNC_ISSUES,
       description: 'mismatch found',
-      status: ReportStatus.PENDING,
+      status: ReportStatus.OPEN,
       auditRunId: run.id,
       userId: null,
     })) as Report;
@@ -382,7 +382,7 @@ describe('GET /v1/admin/media/audits/runs/:id', () => {
       targetEpisodeNumber: 3,
       reason: ReportReason.EMPTY_EPISODES,
       description: 'episode has no segments',
-      status: ReportStatus.CONCERN,
+      status: ReportStatus.PROCESSING,
       auditRunId: run.id,
       userId: null,
     })) as Report;
