@@ -68,9 +68,9 @@ properties:
     additionalProperties: true
   status:
     type: string
-    enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
+    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
     description: Current status of the report
-    example: "PENDING"
+    example: "OPEN"
   adminNotes:
     type: string
     nullable: true

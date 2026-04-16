@@ -14,12 +14,10 @@ export enum ReportTargetType {
 }
 
 export enum ReportStatus {
-  PENDING = 'PENDING',
-  CONCERN = 'CONCERN',
-  ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED',
-  RESOLVED = 'RESOLVED',
-  IGNORED = 'IGNORED',
+  OPEN = 'OPEN',
+  PROCESSING = 'PROCESSING',
+  FIXED = 'FIXED',
+  DISMISSED = 'DISMISSED',
 }
 
 export enum ReportReason {
@@ -90,7 +88,7 @@ export class Report extends BaseEntity {
   @Column({ type: 'jsonb', nullable: true })
   data?: Record<string, unknown> | null;
 
-  @Column({ type: 'enum', enum: ReportStatus, default: ReportStatus.PENDING })
+  @Column({ type: 'enum', enum: ReportStatus, default: ReportStatus.OPEN })
   status!: ReportStatus;
 
   @Column({ name: 'admin_notes', type: 'varchar', length: 1000, nullable: true })

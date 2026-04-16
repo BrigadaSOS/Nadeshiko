@@ -23,9 +23,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   ];
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setLabel('Homepage').setStyle(ButtonStyle.Link).setURL(BOT_CONFIG.frontendUrl).setEmoji({ id: '1488442092823777410' }),
-    new ButtonBuilder().setLabel('About').setStyle(ButtonStyle.Link).setURL(`${BOT_CONFIG.frontendUrl}/about`).setEmoji({ id: '1488442092823777410' }),
-    new ButtonBuilder().setLabel('Patreon').setStyle(ButtonStyle.Link).setURL('https://patreon.com/BrigadaSOS').setEmoji('💜'),
+    new ButtonBuilder()
+      .setLabel('Homepage')
+      .setStyle(ButtonStyle.Link)
+      .setURL(BOT_CONFIG.frontendUrl)
+      .setEmoji({ id: '1488442092823777410' }),
+    new ButtonBuilder()
+      .setLabel('About')
+      .setStyle(ButtonStyle.Link)
+      .setURL(`${BOT_CONFIG.frontendUrl}/about`)
+      .setEmoji({ id: '1488442092823777410' }),
+    new ButtonBuilder()
+      .setLabel('Patreon')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://patreon.com/BrigadaSOS')
+      .setEmoji('💜'),
   );
 
   await interaction.reply({ content: lines.join('\n'), components: [row] });

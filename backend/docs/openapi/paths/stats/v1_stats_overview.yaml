@@ -1,6 +1,7 @@
 get:
   tags:
     - Stats
+  x-internal: true
   operationId: getStatsOverview
   summary: Get corpus statistics overview
   description: |

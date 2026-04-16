@@ -2,9 +2,9 @@ type: object
 properties:
   status:
     type: string
-    enum: [PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED]
+    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
     description: New status for the report
-    example: "ACCEPTED"
+    example: "PROCESSING"
   adminNotes:
     type: string
     maxLength: 1000

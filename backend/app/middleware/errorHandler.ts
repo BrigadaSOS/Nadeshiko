@@ -30,7 +30,10 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     }
     // Other query errors - log as warning (might be expected)
     const fp = recordRealException(error, req);
-    logger.warn({ err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Database query failed');
+    logger.warn(
+      { err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group },
+      'Database query failed',
+    );
     return res.status(500).json(createInternalError(requestId).toJSON());
   }
 
@@ -57,7 +60,10 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
 
     if (error.status >= 500) {
       const fp = recordRealException(error, req);
-      logger.error({ err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Server error');
+      logger.error(
+        { err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group },
+        'Server error',
+      );
     } else if (error.status >= 400) {
       recordClientError(error, error.code, { 'http.route': req.route?.path ?? req.path });
     }
@@ -78,7 +84,10 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
 
   // Unknown error - log and return 500
   const fp = recordRealException(error, req);
-  logger.error({ err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Unhandled error');
+  logger.error(
+    { err: error, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group },
+    'Unhandled error',
+  );
   const internalError = createInternalError(requestId);
   return res.status(500).json(internalError.toJSON());
 }
@@ -148,25 +157,37 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
           return mappedError;
         }
         const fp = recordRealException(cause, req);
-        logger.warn({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Database query failed in handler');
+        logger.warn(
+          { err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group },
+          'Database query failed in handler',
+        );
         return createInternalError(requestId);
       }
       // Handle other TypeORM errors from handler
       if (cause instanceof TypeORMError) {
         const fp = recordRealException(cause, req);
-        logger.warn({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'TypeORM error in handler');
+        logger.warn(
+          { err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group },
+          'TypeORM error in handler',
+        );
         return createInternalError(requestId);
       }
       // Unknown error from handler
       const fp = recordRealException(cause, req);
-      logger.error({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Unhandled error in handler');
+      logger.error(
+        { err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group },
+        'Unhandled error in handler',
+      );
       return createInternalError(requestId);
     }
 
     case 'response_validation': {
       // Response validation failed - server bug
       const fp = recordRealException(cause, req);
-      logger.error({ err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group }, 'Response validation failed');
+      logger.error(
+        { err: cause, requestId, 'error.fingerprint': fp.fingerprint, 'error.group': fp.group },
+        'Response validation failed',
+      );
       return createInternalError(requestId);
     }
 

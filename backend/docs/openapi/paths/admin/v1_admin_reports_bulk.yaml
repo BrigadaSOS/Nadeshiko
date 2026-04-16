@@ -1,0 +1,82 @@
+patch:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: bulkUpdateAdminReports
+  summary: Bulk update reports by filters
+  description: |
+    Updates the status of all reports matching the given filters.
+    Unlike the batch endpoint which takes explicit IDs, this updates all matching reports in one operation.
+
+  security:
+    - SessionCookie: [ADMIN]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/BulkUpdateReportsRequest.yaml"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - updated
+            properties:
+              updated:
+                type: integer
+                description: Number of reports updated
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: bulkDeleteAdminReports
+  summary: Bulk delete reports by filters
+  description: |
+    Permanently deletes all reports matching the given filters.
+
+  security:
+    - SessionCookie: [ADMIN]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/BulkDeleteReportsRequest.yaml"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - deleted
+            properties:
+              deleted:
+                type: integer
+                description: Number of reports deleted
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

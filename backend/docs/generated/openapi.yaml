@@ -211,6 +211,7 @@ paths:
     get:
       tags:
         - Stats
+      x-internal: true
       operationId: getStatsOverview
       summary: Get corpus statistics overview
       description: |
@@ -306,6 +307,7 @@ paths:
     get:
       tags:
         - Stats
+      x-internal: true
       operationId: getCoveredWords
       summary: List words with coverage information
       description: |
@@ -400,6 +402,7 @@ paths:
     post:
       tags:
         - Stats
+      x-internal: true
       operationId: triggerCoveredWordsUpdate
       summary: Trigger word coverage update
       description: |
@@ -811,6 +814,7 @@ paths:
     get:
       tags:
         - Media
+      x-internal: true
       operationId: listSeries
       summary: List all series
       description: |
@@ -910,6 +914,7 @@ paths:
     get:
       tags:
         - Media
+      x-internal: true
       operationId: getSeries
       summary: Get series details
       description: |
@@ -4216,7 +4221,7 @@ paths:
           schema:
             type: string
           description: |
-            Filter by report status. Accepts a single value or comma-separated list (e.g. "PENDING,ACCEPTED"). Valid values: PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED.
+            Filter by report status. Accepts a single value or comma-separated list (e.g. "OPEN,PROCESSING"). Valid values: OPEN, PROCESSING, FIXED, DISMISSED.
         - name: source
           in: query
           schema:
@@ -4254,6 +4259,11 @@ paths:
           schema:
             type: integer
           description: Filter by audit run ID
+        - name: orphaned
+          in: query
+          schema:
+            type: boolean
+          description: When true, only return reports whose target media has been deleted
       responses:
         '200':
           description: OK
@@ -4310,6 +4320,88 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/reports/bulk:
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: bulkUpdateAdminReports
+      summary: Bulk update reports by filters
+      description: |
+        Updates the status of all reports matching the given filters.
+        Unlike the batch endpoint which takes explicit IDs, this updates all matching reports in one operation.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkUpdateReportsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - updated
+                properties:
+                  updated:
+                    type: integer
+                    description: Number of reports updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: bulkDeleteAdminReports
+      summary: Bulk delete reports by filters
+      description: |
+        Permanently deletes all reports matching the given filters.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkDeleteReportsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - deleted
+                properties:
+                  deleted:
+                    type: integer
+                    description: Number of reports deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/admin/reports/{id}:
     patch:
       tags:
@@ -4345,6 +4437,47 @@ paths:
                 $ref: '#/components/schemas/Report'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: deleteAdminReport
+      summary: Delete report and its group
+      description: |
+        Deletes a report and all other reports with the same target and reason (the dedup group).
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Report ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - deleted
+                properties:
+                  deleted:
+                    type: integer
+                    description: Number of reports deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7037,14 +7170,12 @@ components:
         status:
           type: string
           enum:
-            - PENDING
-            - CONCERN
-            - ACCEPTED
-            - REJECTED
-            - RESOLVED
-            - IGNORED
+            - OPEN
+            - PROCESSING
+            - FIXED
+            - DISMISSED
           description: Current status of the report
-          example: PENDING
+          example: OPEN
         adminNotes:
           type: string
           nullable: true
@@ -7526,32 +7657,128 @@ components:
               error:
                 type: string
                 description: Error message
-    AdminReport:
-      allOf:
-        - $ref: '#/components/schemas/Report'
-        - type: object
-          required:
-            - reportCount
-            - reporterName
-          properties:
-            reportCount:
-              type: integer
-              description: Number of reports for the same target
-              example: 3
-            reporterName:
-              type: string
-              description: Name of the user who submitted this report
-              example: john_doe
-    AdminReportListResponse:
+    AdminReportGroupItem:
       type: object
       required:
-        - reports
-        - pagination
+        - id
+        - reason
+        - description
+        - source
+        - reporterName
+        - createdAt
+        - adminNotes
       properties:
+        id:
+          type: integer
+          description: Report ID
+        reason:
+          type: string
+          enum:
+            - WRONG_TRANSLATION
+            - WRONG_TIMING
+            - WRONG_AUDIO
+            - WRONG_JAPANESE_TEXT
+            - LOW_QUALITY_AUDIO
+            - NSFW_NOT_TAGGED
+            - DUPLICATE_SEGMENT
+            - WRONG_METADATA
+            - MISSING_EPISODES
+            - WRONG_COVER_IMAGE
+            - WRONG_TITLE
+            - DUPLICATE_MEDIA
+            - WRONG_EPISODE_NUMBER
+            - IMAGE_ISSUE
+            - INAPPROPRIATE_CONTENT
+            - OTHER
+            - LOW_SEGMENT_MEDIA
+            - EMPTY_EPISODES
+            - MISSING_EPISODES_AUTO
+            - BAD_SEGMENT_RATIO
+            - MEDIA_WITH_NO_EPISODES
+            - MISSING_TRANSLATIONS
+            - DB_ES_SYNC_ISSUES
+            - HIGH_REPORT_DENSITY
+          description: Reason for the report
+        description:
+          type: string
+          nullable: true
+          description: Optional description with additional details
+        source:
+          type: string
+          enum:
+            - USER
+            - AUTO
+          description: Who created this report
+        reporterName:
+          type: string
+          description: Name of the reporter
+        createdAt:
+          type: string
+          format: date-time
+          description: When the report was created
+        adminNotes:
+          type: string
+          nullable: true
+          description: Notes from the admin who reviewed the report
+    AdminReportGroup:
+      type: object
+      required:
+        - target
+        - mediaName
+        - status
+        - reportCount
+        - reporterCount
+        - firstReportedAt
+        - lastStatusChange
+        - reports
+      properties:
+        target:
+          $ref: '#/components/schemas/ReportTarget'
+        mediaName:
+          type: string
+          description: Display name of the target media (romaji)
+          example: Bocchi the Rock!
+        status:
+          type: string
+          enum:
+            - OPEN
+            - PROCESSING
+            - FIXED
+            - DISMISSED
+          description: Current status of the group (status of the most recent report)
+          example: OPEN
+        reportCount:
+          type: integer
+          description: Total number of individual reports in this group
+          example: 3
+        reporterCount:
+          type: integer
+          description: Number of distinct users who reported this target
+          example: 2
+        firstReportedAt:
+          type: string
+          format: date-time
+          description: When the earliest report in this group was created
+        lastStatusChange:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the most recent status change occurred in this group
         reports:
           type: array
           items:
-            $ref: '#/components/schemas/AdminReport'
+            $ref: '#/components/schemas/AdminReportGroupItem'
+          description: Individual reports within this group
+    AdminReportListResponse:
+      type: object
+      required:
+        - groups
+        - pagination
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminReportGroup'
         pagination:
           $ref: '#/components/schemas/OpaqueCursorPagination'
     BatchUpdateReportsRequest:
@@ -7574,32 +7801,121 @@ components:
         status:
           type: string
           enum:
-            - PENDING
-            - CONCERN
-            - ACCEPTED
-            - REJECTED
-            - RESOLVED
-            - IGNORED
+            - OPEN
+            - PROCESSING
+            - FIXED
+            - DISMISSED
           description: New status for all selected reports
-          example: IGNORED
+          example: DISMISSED
         adminNotes:
           type: string
           maxLength: 1000
           description: Optional admin notes to set on all selected reports
+    BulkDeleteReportsRequest:
+      type: object
+      properties:
+        filters:
+          type: object
+          description: Filters to select which reports to delete. If omitted, deletes all reports.
+          properties:
+            status:
+              type: string
+              description: |
+                Filter by current report status. Accepts a single value or comma-separated list (e.g. "OPEN,DISMISSED").
+            source:
+              type: string
+              enum:
+                - USER
+                - AUTO
+              description: Filter by report source
+            targetType:
+              type: string
+              enum:
+                - SEGMENT
+                - EPISODE
+                - MEDIA
+              description: Filter by target type
+            targetMediaId:
+              type: integer
+              description: Filter by target media ID
+            targetEpisodeNumber:
+              type: integer
+              description: Filter by target episode number
+            targetSegmentId:
+              type: integer
+              description: Filter by target segment ID
+            auditRunId:
+              type: integer
+              description: Filter by audit run ID
+            orphaned:
+              type: boolean
+              description: Only delete reports whose target media no longer exists
+    BulkUpdateReportsRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - OPEN
+            - PROCESSING
+            - FIXED
+            - DISMISSED
+          description: New status for all matching reports
+          example: DISMISSED
+        adminNotes:
+          type: string
+          maxLength: 1000
+          description: Optional admin notes to set on all matching reports
+        filters:
+          type: object
+          description: Filters to select which reports to update. If omitted, updates all reports.
+          properties:
+            status:
+              type: string
+              description: |
+                Filter by current report status. Accepts a single value or comma-separated list (e.g. "OPEN,PROCESSING").
+            source:
+              type: string
+              enum:
+                - USER
+                - AUTO
+              description: Filter by report source
+            targetType:
+              type: string
+              enum:
+                - SEGMENT
+                - EPISODE
+                - MEDIA
+              description: Filter by target type
+            targetMediaId:
+              type: integer
+              description: Filter by target media ID
+            targetEpisodeNumber:
+              type: integer
+              description: Filter by target episode number
+            targetSegmentId:
+              type: integer
+              description: Filter by target segment ID
+            auditRunId:
+              type: integer
+              description: Filter by audit run ID
+            orphaned:
+              type: boolean
+              description: Only update reports whose target media no longer exists
     UpdateReportRequest:
       type: object
       properties:
         status:
           type: string
           enum:
-            - PENDING
-            - CONCERN
-            - ACCEPTED
-            - REJECTED
-            - RESOLVED
-            - IGNORED
+            - OPEN
+            - PROCESSING
+            - FIXED
+            - DISMISSED
           description: New status for the report
-          example: ACCEPTED
+          example: PROCESSING
         adminNotes:
           type: string
           maxLength: 1000

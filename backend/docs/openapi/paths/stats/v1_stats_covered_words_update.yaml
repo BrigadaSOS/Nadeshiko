@@ -1,6 +1,7 @@
 post:
   tags:
     - Stats
+  x-internal: true
   operationId: triggerCoveredWordsUpdate
   summary: Trigger word coverage update
   description: |

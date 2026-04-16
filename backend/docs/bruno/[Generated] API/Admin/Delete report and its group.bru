@@ -1,0 +1,27 @@
+meta {
+  name: Delete report and its group
+  type: http
+  seq: 82
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/reports/:id
+  body: none
+  auth: none
+}
+
+params:query {
+  id:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

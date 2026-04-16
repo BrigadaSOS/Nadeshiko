@@ -87,7 +87,10 @@ import {
   createUserReport,
   listAdminReports,
   updateAdminReport,
+  deleteAdminReport,
   batchUpdateAdminReports,
+  bulkUpdateAdminReports,
+  bulkDeleteAdminReports,
 } from '@app/controllers/reportController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
 import { listUserLabs, enrollUserLab, unenrollUserLab } from '@app/controllers/labsController';
@@ -215,7 +218,10 @@ const AdminRoutes = createAdminRouter({
   purgeAdminQueueFailed,
   listAdminReports,
   batchUpdateAdminReports,
+  bulkUpdateAdminReports,
+  bulkDeleteAdminReports,
   updateAdminReport,
+  deleteAdminReport,
   listAdminMediaAudits,
   updateAdminMediaAudit,
   runAdminMediaAudit,

@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'bun:test';
 import {
-  toAdminReportDTO,
-  toAdminReportFilters,
-  toAdminReportListDTO,
+  toAdminReportGroupsDTO,
   toReportCreateAttributes,
   toReportDTO,
-  toReportTargetCountKey,
+  toTargetGroupKey,
   toReportUpdatePatch,
+  toAdminReportFilters,
 } from '@app/controllers/mappers/report.mapper';
 import { ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models/Report';
 
@@ -22,7 +21,7 @@ function buildReport(overrides: Record<string, unknown> = {}) {
     reason: ReportReason.OTHER,
     description: null,
     data: null,
-    status: ReportStatus.PENDING,
+    status: ReportStatus.OPEN,
     adminNotes: null,
     userId: 7,
     user: { username: 'reporter' },
@@ -92,12 +91,6 @@ describe('report.mapper', () => {
     });
   });
 
-  it('maps admin report with reporter fallback', () => {
-    const dto = toAdminReportDTO(buildReport({ user: null }) as any, 4, { mediaPublicId: 'pub-10' });
-    expect(dto.reportCount).toBe(4);
-    expect(dto.reporterName).toBe('System');
-  });
-
   it('maps create attributes for segment target', () => {
     const attrs = toReportCreateAttributes({
       userId: 17,
@@ -124,7 +117,7 @@ describe('report.mapper', () => {
       reason: ReportReason.WRONG_TRANSLATION,
       description: 'needs fix',
       userId: 17,
-      status: ReportStatus.PENDING,
+      status: ReportStatus.OPEN,
     });
   });
 
@@ -153,17 +146,17 @@ describe('report.mapper', () => {
 
   it('builds update patch only from defined values', () => {
     const patch = toReportUpdatePatch({
-      status: 'ACCEPTED',
+      status: 'FIXED',
     } as any);
 
     expect(patch).toEqual({
-      status: ReportStatus.ACCEPTED,
+      status: ReportStatus.FIXED,
     });
   });
 
   it('maps admin report query filters', () => {
     const filters = toAdminReportFilters({
-      status: 'CONCERN',
+      status: 'PROCESSING',
       source: 'AUTO',
       'target.type': 'SEGMENT',
       'target.mediaId': 9,
@@ -173,7 +166,7 @@ describe('report.mapper', () => {
     } as any);
 
     expect(filters).toEqual({
-      statuses: [ReportStatus.CONCERN],
+      statuses: [ReportStatus.PROCESSING],
       source: ReportSource.AUTO,
       targetType: ReportTargetType.SEGMENT,
       targetMediaId: 9,
@@ -183,14 +176,60 @@ describe('report.mapper', () => {
     });
   });
 
-  it('maps report target count key and admin list dto', () => {
-    const one = buildReport({ targetType: ReportTargetType.MEDIA, targetMediaId: 77 }) as any;
-    const two = buildReport({ id: 2, targetType: ReportTargetType.MEDIA, targetMediaId: 77 }) as any;
-    const countMap = new Map([[toReportTargetCountKey(one), 5]]);
+  it('builds target group key without reason', () => {
+    const report = buildReport({ targetType: ReportTargetType.MEDIA, targetMediaId: 77 }) as any;
+    expect(toTargetGroupKey(report)).toBe('MEDIA:77::');
 
-    const list = toAdminReportListDTO([one, two], countMap, { media: new Map([[77, 'pub-77']]), segments: new Map() });
-    expect(list).toHaveLength(2);
-    expect(list[0].reportCount).toBe(5);
-    expect(list[1].reportCount).toBe(5);
+    const segReport = buildReport({
+      targetType: ReportTargetType.SEGMENT,
+      targetMediaId: 20,
+      targetEpisodeNumber: 5,
+      targetSegmentId: 101,
+    }) as any;
+    expect(toTargetGroupKey(segReport)).toBe('SEGMENT:20:5:101');
+  });
+
+  it('groups reports by target into AdminReportGroup DTOs', () => {
+    const rep = buildReport({ targetType: ReportTargetType.MEDIA, targetMediaId: 77 }) as any;
+    const member1 = buildReport({
+      id: 1,
+      targetMediaId: 77,
+      reason: ReportReason.WRONG_TRANSLATION,
+      description: 'bad subtitle',
+      userId: 7,
+      user: { username: 'alice' },
+      createdAt: new Date('2025-01-01T00:00:00.000Z'),
+    }) as any;
+    const member2 = buildReport({
+      id: 2,
+      targetMediaId: 77,
+      reason: ReportReason.WRONG_AUDIO,
+      description: null,
+      userId: 8,
+      user: { username: 'bob' },
+      createdAt: new Date('2025-01-03T00:00:00.000Z'),
+    }) as any;
+
+    const groups = toAdminReportGroupsDTO([rep], [member1, member2], {
+      media: new Map([[77, { publicId: 'pub-77', nameRomaji: 'Test Show' }]]),
+      segments: new Map(),
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].mediaName).toBe('Test Show');
+    expect(groups[0].reportCount).toBe(2);
+    expect(groups[0].reporterCount).toBe(2);
+    expect(groups[0].reports).toHaveLength(2);
+    expect(groups[0].reports[0]).toMatchObject({
+      id: 1,
+      reason: 'WRONG_TRANSLATION',
+      description: 'bad subtitle',
+      reporterName: 'alice',
+    });
+    expect(groups[0].reports[1]).toMatchObject({
+      id: 2,
+      reason: 'WRONG_AUDIO',
+      reporterName: 'bob',
+    });
   });
 });

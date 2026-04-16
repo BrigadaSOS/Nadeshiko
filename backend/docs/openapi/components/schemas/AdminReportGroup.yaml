@@ -1,0 +1,44 @@
+type: object
+required:
+  - target
+  - mediaName
+  - status
+  - reportCount
+  - reporterCount
+  - firstReportedAt
+  - lastStatusChange
+  - reports
+properties:
+  target:
+    $ref: "./ReportTarget.yaml"
+  mediaName:
+    type: string
+    description: Display name of the target media (romaji)
+    example: "Bocchi the Rock!"
+  status:
+    type: string
+    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
+    description: Current status of the group (status of the most recent report)
+    example: "OPEN"
+  reportCount:
+    type: integer
+    description: Total number of individual reports in this group
+    example: 3
+  reporterCount:
+    type: integer
+    description: Number of distinct users who reported this target
+    example: 2
+  firstReportedAt:
+    type: string
+    format: date-time
+    description: When the earliest report in this group was created
+  lastStatusChange:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the most recent status change occurred in this group
+  reports:
+    type: array
+    items:
+      $ref: "./AdminReportGroupItem.yaml"
+    description: Individual reports within this group

@@ -19,38 +19,42 @@ const jobCount = meter.createCounter('pgboss.job.count', {
 });
 
 export function registerQueueMetrics(boss: PgBoss, queueNames: readonly string[]): void {
-  meter.createObservableGauge('pgboss.queue.size', {
-    description: 'Number of jobs in each state per queue',
-    unit: '{job}',
-  }).addCallback(async (obs) => {
-    for (const queue of queueNames) {
-      try {
-        const stats = await boss.getQueueStats(queue);
-        obs.observe(stats.queuedCount, { 'pgboss.queue': queue, 'pgboss.state': 'queued' });
-        obs.observe(stats.activeCount, { 'pgboss.queue': queue, 'pgboss.state': 'active' });
-        obs.observe(stats.deferredCount, { 'pgboss.queue': queue, 'pgboss.state': 'deferred' });
-      } catch (err) {
-        logger.debug(`Failed to get queue stats for ${queue}: ${err}`);
+  meter
+    .createObservableGauge('pgboss.queue.size', {
+      description: 'Number of jobs in each state per queue',
+      unit: '{job}',
+    })
+    .addCallback(async (obs) => {
+      for (const queue of queueNames) {
+        try {
+          const stats = await boss.getQueueStats(queue);
+          obs.observe(stats.queuedCount, { 'pgboss.queue': queue, 'pgboss.state': 'queued' });
+          obs.observe(stats.activeCount, { 'pgboss.queue': queue, 'pgboss.state': 'active' });
+          obs.observe(stats.deferredCount, { 'pgboss.queue': queue, 'pgboss.state': 'deferred' });
+        } catch (err) {
+          logger.debug(`Failed to get queue stats for ${queue}: ${err}`);
+        }
       }
-    }
-  });
+    });
 
   const db = boss.getDb();
-  meter.createObservableGauge('pgboss.queue.failed', {
-    description: 'Number of failed jobs per queue',
-    unit: '{job}',
-  }).addCallback(async (obs) => {
-    try {
-      const result = await db.executeSql(
-        `SELECT name, COUNT(*)::int AS count FROM pgboss.job WHERE state = 'failed' GROUP BY name`,
-      );
-      for (const row of result.rows) {
-        obs.observe(row.count, { 'pgboss.queue': row.name });
+  meter
+    .createObservableGauge('pgboss.queue.failed', {
+      description: 'Number of failed jobs per queue',
+      unit: '{job}',
+    })
+    .addCallback(async (obs) => {
+      try {
+        const result = await db.executeSql(
+          `SELECT name, COUNT(*)::int AS count FROM pgboss.job WHERE state = 'failed' GROUP BY name`,
+        );
+        for (const row of result.rows) {
+          obs.observe(row.count, { 'pgboss.queue': row.name });
+        }
+      } catch (err) {
+        logger.debug(`Failed to get failed job counts: ${err}`);
       }
-    } catch (err) {
-      logger.debug(`Failed to get failed job counts: ${err}`);
-    }
-  });
+    });
 }
 
 export function instrumentedHandler<T>(
