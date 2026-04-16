@@ -7,8 +7,8 @@ const route = useRoute();
 const router = useRouter();
 
 const activeTier = ref(Number(route.query.tier) || 1000);
-const activeFilter = ref<'all' | 'covered' | 'uncovered'>(
-  (route.query.filter as 'all' | 'covered' | 'uncovered') || 'all',
+const activeFilter = ref<'ALL' | 'COVERED' | 'UNCOVERED'>(
+  (route.query.filter as 'ALL' | 'COVERED' | 'UNCOVERED') || 'ALL',
 );
 if (!TIERS.includes(activeTier.value as (typeof TIERS)[number])) {
   activeTier.value = 1000;
@@ -42,7 +42,7 @@ useSeoMeta({
 });
 
 const words = ref<CoveredWord[]>([]);
-const nextCursor = ref<number | null>(null);
+const nextCursor = ref<string | null>(null);
 const tierStats = ref<GetCoveredWordsResponse['tierStats'] | null>(null);
 const loading = ref(false);
 const scrollSentinel = ref<HTMLElement | null>(null);
@@ -53,26 +53,26 @@ async function fetchWordsRaw(
   tier: number,
   minRank: number,
   filter: string,
-  cursor: number,
+  cursor: string | undefined,
   take: number,
 ): Promise<GetCoveredWordsResponse> {
   const { data } = await sdk.getCoveredWords({
-    query: { tier, minRank, filter: filter as 'all' | 'covered' | 'uncovered', cursor, take },
+    query: { tier, minRank, filter: filter as 'ALL' | 'COVERED' | 'UNCOVERED', cursor, take },
   });
   return data;
 }
 
 const { data: initialData } = await useAsyncData(
   `words-${activeTier.value}-${activeFilter.value}`,
-  () => fetchWordsRaw(activeTier.value, tierMinRank(activeTier.value), activeFilter.value, 0, 500),
+  () => fetchWordsRaw(activeTier.value, tierMinRank(activeTier.value), activeFilter.value, undefined, 500),
   { server: true, lazy: false },
 );
 
 words.value = initialData.value?.words ?? [];
-nextCursor.value = initialData.value?.nextCursor ?? null;
+nextCursor.value = initialData.value?.pagination?.cursor ?? null;
 tierStats.value = initialData.value?.tierStats ?? null;
 
-async function fetchWords(cursor: number = 0, append: boolean = false) {
+async function fetchWords(cursor: string | undefined = undefined, append: boolean = false) {
   loading.value = true;
   try {
     const data = await fetchWordsRaw(activeTier.value, tierMinRank(activeTier.value), activeFilter.value, cursor, 500);
@@ -82,7 +82,7 @@ async function fetchWords(cursor: number = 0, append: boolean = false) {
       words.value = data.words;
     }
     tierStats.value = data.tierStats;
-    nextCursor.value = data.nextCursor;
+    nextCursor.value = data.pagination?.cursor ?? null;
   } finally {
     loading.value = false;
   }
@@ -92,7 +92,7 @@ function updateUrl() {
   router.replace({
     query: {
       tier: String(activeTier.value),
-      ...(activeFilter.value !== 'all' ? { filter: activeFilter.value } : {}),
+      ...(activeFilter.value !== 'ALL' ? { filter: activeFilter.value } : {}),
     },
   });
 }
@@ -103,22 +103,22 @@ async function selectTier(tier: number) {
   await fetchWords();
 }
 
-async function selectFilter(filter: 'all' | 'covered' | 'uncovered') {
+async function selectFilter(filter: 'ALL' | 'COVERED' | 'UNCOVERED') {
   activeFilter.value = filter;
   updateUrl();
   await fetchWords();
 }
 
 async function loadMore() {
-  if (nextCursor.value != null && !loading.value) {
+  if (nextCursor.value && !loading.value) {
     await fetchWords(nextCursor.value, true);
   }
 }
 
-function filterCount(filter: 'all' | 'covered' | 'uncovered'): string {
+function filterCount(filter: 'ALL' | 'COVERED' | 'UNCOVERED'): string {
   if (!tierStats.value) return '';
-  if (filter === 'all') return tierStats.value.total.toLocaleString();
-  if (filter === 'covered') return tierStats.value.covered.toLocaleString();
+  if (filter === 'ALL') return tierStats.value.total.toLocaleString();
+  if (filter === 'COVERED') return tierStats.value.covered.toLocaleString();
   return tierStats.value.uncovered.toLocaleString();
 }
 
@@ -174,15 +174,15 @@ onUnmounted(() => observer?.disconnect());
     <div class="flex items-center gap-3 mb-6">
       <div class="flex rounded-lg overflow-hidden border border-white/10">
         <button
-          v-for="mode in (['all', 'covered', 'uncovered'] as const)"
+          v-for="mode in (['ALL', 'COVERED', 'UNCOVERED'] as const)"
           :key="mode"
           class="px-3 py-1.5 text-xs font-medium transition-colors"
           :class="activeFilter === mode ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60'"
           @click="selectFilter(mode)"
         >
-          <template v-if="mode === 'all'">All ({{ filterCount('all') }})</template>
-          <template v-else-if="mode === 'covered'">Covered ({{ filterCount('covered') }})</template>
-          <template v-else>Missing ({{ filterCount('uncovered') }})</template>
+          <template v-if="mode === 'ALL'">All ({{ filterCount('ALL') }})</template>
+          <template v-else-if="mode === 'COVERED'">Covered ({{ filterCount('COVERED') }})</template>
+          <template v-else>Missing ({{ filterCount('UNCOVERED') }})</template>
         </button>
       </div>
     </div>

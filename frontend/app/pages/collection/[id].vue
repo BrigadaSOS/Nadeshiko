@@ -10,7 +10,7 @@ const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
     const { data, response } = await sdk.getCollection({
-      path: { id: collectionId.value },
+      path: { collectionId: collectionId.value },
       query: { take: 20 },
     });
     if (response.status === 403 || response.status === 401) {
@@ -37,7 +37,7 @@ const fetchSentenceData = async () => {
 const fetchStatsData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data } = await sdk.getCollectionStats({ path: { id: collectionId.value } });
+    const { data } = await sdk.getCollectionStats({ path: { collectionId: collectionId.value } });
     return data ? resolveStatsResponse(data) : null;
   } catch {
     return null;
@@ -61,7 +61,7 @@ const { data: collectionDetails } = await useAsyncData(
   async () => {
     const sdk = useNadeshikoSdk();
     const { data, response } = await sdk.getCollection({
-      path: { id: collectionId.value },
+      path: { collectionId: collectionId.value },
       query: { take: 1 },
     });
     if (response.status === 403 || response.status === 401) {

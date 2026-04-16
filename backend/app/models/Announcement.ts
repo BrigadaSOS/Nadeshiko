@@ -1,7 +1,7 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
 import { BaseEntity } from './base.entity';
 
-export type AnnouncementType = 'info' | 'warning' | 'maintenance';
+export type AnnouncementType = 'INFO' | 'WARNING' | 'MAINTENANCE';
 
 @Entity('Announcement')
 export class Announcement extends BaseEntity {
@@ -11,7 +11,7 @@ export class Announcement extends BaseEntity {
   @Column({ type: 'text' })
   message!: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'info' })
+  @Column({ type: 'varchar', length: 20, default: 'INFO' })
   type!: AnnouncementType;
 
   @Column({ type: 'boolean', default: false })

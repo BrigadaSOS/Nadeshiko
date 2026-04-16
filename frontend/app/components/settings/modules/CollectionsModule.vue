@@ -68,7 +68,7 @@ const submitRename = async () => {
   isRenaming.value = true;
   try {
     await sdk.updateCollection({
-      path: { id: renameTarget.value.publicId },
+      path: { collectionId: renameTarget.value.publicId },
       body: { name: renameValue.value.trim() },
     });
 
@@ -149,7 +149,7 @@ const submitToggleVisibility = async () => {
   const newVisibility = visibilityTarget.value.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
   try {
     await sdk.updateCollection({
-      path: { id: visibilityTarget.value.publicId },
+      path: { collectionId: visibilityTarget.value.publicId },
       body: { visibility: newVisibility },
     });
 
@@ -182,7 +182,7 @@ const submitDelete = async () => {
   isDeleting.value = true;
   try {
     await sdk.deleteCollection({
-      path: { id: deleteTarget.value.publicId },
+      path: { collectionId: deleteTarget.value.publicId },
     });
 
     collections.value = collections.value.filter((c) => c.publicId !== deleteTarget.value?.publicId);

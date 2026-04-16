@@ -1,7 +1,6 @@
 type: object
 required:
   - segments
-  - includes
   - pagination
 properties:
   segments:
@@ -10,13 +9,12 @@ properties:
       $ref: "../schemas/segment/Segment.yaml"
   includes:
     type: object
-    required:
-      - media
+    description: Optional related resources requested via `include[]`
     properties:
       media:
         type: object
         additionalProperties:
           $ref: "../schemas/Media.yaml"
-        description: Media objects keyed by media publicId
+        description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
   pagination:
-    $ref: "../schemas/PaginationInfo.yaml"
+    $ref: "../schemas/SearchPagination.yaml"

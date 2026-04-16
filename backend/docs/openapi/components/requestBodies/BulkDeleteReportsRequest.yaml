@@ -10,13 +10,9 @@ properties:
           Filter by current report status. Accepts a single value or comma-separated list
           (e.g. "OPEN,DISMISSED").
       source:
-        type: string
-        enum: [USER, AUTO]
-        description: Filter by report source
+        $ref: "../schemas/ReportSource.yaml"
       targetType:
-        type: string
-        enum: [SEGMENT, EPISODE, MEDIA]
-        description: Filter by target type
+        $ref: "../schemas/ReportTargetType.yaml"
       targetMediaId:
         type: integer
         description: Filter by target media ID

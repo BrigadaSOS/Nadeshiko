@@ -8,7 +8,7 @@ interface CoveredWord {
 
 interface CoveredWordsResponse {
   words: CoveredWord[];
-  nextCursor: number | null;
+  pagination: { hasMore: boolean; cursor: string | null };
 }
 
 export default defineSitemapEventHandler(async () => {
@@ -18,16 +18,16 @@ export default defineSitemapEventHandler(async () => {
   const headers = { Authorization: `Bearer ${apiKey}` };
 
   const allWords: CoveredWord[] = [];
-  let cursor = 0;
+  let cursor: string | null = null;
 
   while (true) {
-    const response = await $fetch<CoveredWordsResponse>(
-      `${baseUrl}/v1/stats/covered-words?tier=20000&filter=covered&cursor=${cursor}&take=1000`,
-      { headers },
-    );
+    const qs: string = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
+    const endpoint = `${baseUrl}/v1/stats/covered-words?tier=20000&filter=COVERED&take=1000${qs}`;
+    const backendResponse = await fetch(endpoint, { headers });
+    const response = (await backendResponse.json()) as CoveredWordsResponse;
     allWords.push(...response.words);
-    if (response.nextCursor == null) break;
-    cursor = response.nextCursor;
+    if (!response.pagination?.cursor) break;
+    cursor = response.pagination.cursor;
   }
 
   return allWords.map(

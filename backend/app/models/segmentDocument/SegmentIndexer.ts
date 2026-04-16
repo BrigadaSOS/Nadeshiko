@@ -39,7 +39,7 @@ export class SegmentIndexer {
     try {
       const media = await Media.findOne({ where: { id: segment.mediaId } });
       if (!media) {
-        logger.error(`Media with id ${segment.mediaId} not found for segment ${segment.id}`);
+        logger.error({ mediaId: segment.mediaId, segmentId: segment.id }, 'Media not found for segment');
         return false;
       }
 
@@ -49,15 +49,15 @@ export class SegmentIndexer {
         document: SegmentIndexer.buildDocument(segment, media),
       });
 
-      logger.info(`Indexed segment ${segment.id} in ES`);
+      logger.info({ segmentId: segment.id }, 'Indexed segment in ES');
       return true;
-    } catch (error: any) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (error?.meta?.statusCode === 404 || errorMessage.includes('document_missing_exception')) {
-        logger.warn(`Segment ${segment.id} not found in ES during update (may have been deleted)`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if ((error as any)?.meta?.statusCode === 404 || message.includes('document_missing_exception')) {
+        logger.warn({ segmentId: segment.id }, 'Segment not found in ES during update (may have been deleted)');
         return true;
       }
-      logger.error(`Failed to index segment ${segment.id} in ES: ${errorMessage}`);
+      logger.error({ err: error, segmentId: segment.id }, 'Failed to index segment in ES');
       return false;
     }
   }
@@ -110,22 +110,22 @@ export class SegmentIndexer {
       succeeded = response.items.length;
     }
 
-    logger.info(`Bulk indexed ${succeeded} segments (${failed} failed) in ES`);
+    logger.info({ succeeded, failed }, 'Bulk indexed segments in ES');
     return { succeeded, failed, errors };
   }
 
   static async delete(id: number): Promise<boolean> {
     try {
       await client.delete({ index: INDEX_NAME, id: id.toString() });
-      logger.info(`Deleted segment ${id} from ES`);
+      logger.info({ segmentId: id }, 'Deleted segment from ES');
       return true;
-    } catch (error: any) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (error?.meta?.statusCode === 404 || errorMessage.includes('document_missing_exception')) {
-        logger.info(`Segment ${id} already deleted from ES`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if ((error as any)?.meta?.statusCode === 404 || message.includes('document_missing_exception')) {
+        logger.info({ segmentId: id }, 'Segment already deleted from ES');
         return true;
       }
-      logger.error(`Failed to delete segment ${id} from ES: ${errorMessage}`);
+      logger.error({ err: error, segmentId: id }, 'Failed to delete segment from ES');
       return false;
     }
   }
@@ -158,7 +158,7 @@ export class SegmentIndexer {
       }
     }
 
-    logger.info(`Bulk deleted ${succeeded} segments (${failed} failed) from ES`);
+    logger.info({ succeeded, failed }, 'Bulk deleted segments from ES');
     return { succeeded, failed, errors };
   }
 
@@ -215,13 +215,18 @@ export class SegmentIndexer {
       }
 
       logger.info(
-        `Reindex completed: ${stats.successfulIndexes}/${stats.totalSegments} segments indexed for ${stats.mediaProcessed} media`,
+        {
+          successfulIndexes: stats.successfulIndexes,
+          totalSegments: stats.totalSegments,
+          mediaProcessed: stats.mediaProcessed,
+        },
+        'Reindex completed',
       );
 
       return { success: true, message: 'Reindex operation completed', stats, errors };
-    } catch (error: any) {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(`Reindex operation failed: ${errorMessage}`);
+      logger.error({ err: error }, 'Reindex operation failed');
       return { success: false, message: errorMessage, stats, errors };
     }
   }

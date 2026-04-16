@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import request from 'supertest';
 import express, { type Request, type Response, type ErrorRequestHandler } from 'express';
-import crypto from 'crypto';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'bun:test';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
@@ -9,7 +8,7 @@ import { requestIdMiddleware } from '@app/middleware/requestId';
 import { requireApiKeyAuth, requireSessionAuth, assertUser } from '@app/middleware/authentication';
 import { invalidateUserCache, invalidateApiKeyCacheForUser } from '@app/middleware/authCacheStore';
 import { handleErrors } from '@app/middleware/errorHandler';
-import { ApiAuth, User } from '@app/models';
+import { User } from '@app/models';
 import { auth } from '@config/auth';
 
 let mockGetSession: Mock<any>;
@@ -70,48 +69,38 @@ function createSessionApp() {
   return app;
 }
 
-describe('requireApiKeyAuth — legacy keys', () => {
-  it('authenticates with a valid legacy API key', async () => {
-    const plainKey = 'test_legacy_key_abc123';
-    const hashedKey = crypto.createHash('sha256').update(plainKey).digest('hex');
-
-    await ApiAuth.save({
-      token: hashedKey,
-      isActive: true,
-      userId: fixtures.users.kevin.id,
+describe('requireApiKeyAuth', () => {
+  it('passes legacy-format API keys through Better Auth verification', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-migrated-legacy-key',
+        referenceId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
     });
 
     const app = createApiKeyApp();
-    const res = await request(app).get('/test').set('Authorization', `Bearer ${plainKey}`);
+    const res = await request(app).get('/test').set('Authorization', 'Bearer test_legacy_key_abc123');
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       userId: fixtures.users.kevin.id,
-      authType: 'api-key-legacy',
+      authType: 'api-key',
+      permissions: expect.arrayContaining(['READ_MEDIA']),
     });
+    expect(mockVerifyApiKey).toHaveBeenCalled();
   });
 
-  it('returns 401 for an invalid legacy API key', async () => {
-    const app = createApiKeyApp();
-    const res = await request(app).get('/test').set('Authorization', 'Bearer totally_invalid_key');
-
-    expect(res.status).toBe(401);
-    expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });
-  });
-
-  it('returns 401 for a deactivated legacy API key', async () => {
-    const plainKey = 'test_deactivated_key_xyz';
-    const hashedKey = crypto.createHash('sha256').update(plainKey).digest('hex');
-
-    await ApiAuth.save({
-      token: hashedKey,
-      isActive: false,
-      userId: fixtures.users.kevin.id,
+  it('returns 401 for an invalid Better Auth API key', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: false,
+      error: { code: 'INVALID_API_KEY' },
     });
 
     const app = createApiKeyApp();
-    const res = await request(app).get('/test').set('Authorization', `Bearer ${plainKey}`);
-
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_invalid');
     expect(res.status).toBe(401);
     expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });
   });
@@ -131,11 +120,7 @@ describe('requireApiKeyAuth — legacy keys', () => {
     expect(res.status).toBe(401);
     expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_REQUIRED' });
   });
-});
 
-// Better Auth API key
-
-describe('requireApiKeyAuth — better-auth keys', () => {
   it('authenticates with a valid better-auth API key', async () => {
     mockVerifyApiKey.mockResolvedValue({
       valid: true,
@@ -459,17 +444,18 @@ describe('user cache', () => {
       preferences: {},
     });
 
-    const plainKey = 'test_inactive_user_key';
-    const hashedKey = crypto.createHash('sha256').update(plainKey).digest('hex');
-
-    await ApiAuth.save({
-      token: hashedKey,
-      isActive: true,
-      userId: inactiveUser.id,
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-inactive-user',
+        referenceId: String(inactiveUser.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
     });
 
     const app = createApiKeyApp();
-    const res = await request(app).get('/test').set('Authorization', `Bearer ${plainKey}`);
+    const res = await request(app).get('/test').set('Authorization', 'Bearer nade_inactive_user_key');
 
     expect(res.status).toBe(401);
     expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });

@@ -6,7 +6,7 @@ import type { Media } from '@app/models';
 import type { SegmentDocumentShape, SlimToken } from '../SegmentDocument';
 import { enhanceHighlight } from './HighlightEnhancer';
 import type {
-  PaginationInfoOutput,
+  SearchPaginationOutput,
   SearchResponseOutput,
   SearchMultipleResponseOutput,
   SegmentOutput,
@@ -24,6 +24,7 @@ type SegmentSearchHit = estypes.SearchHit<SegmentDocumentShape>;
 type HighlightMap = Record<string, string[]>;
 type TermsBucket = { key?: string | number; doc_count?: number } & Record<string, unknown>;
 type TermsAggregation = { buckets?: TermsBucket[] };
+type TokenOutput = SegmentOutput['textJa']['tokens'];
 
 export class SegmentResponse {
   static buildSearch(esResponse: estypes.SearchResponse, mediaInfoResponse: MediaInfoMap): SearchResponseOutput {
@@ -72,7 +73,7 @@ export class SegmentResponse {
         }
 
         if (!(mediaInfo.publicId in mediaMap)) {
-          mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaId, mediaInfo);
+          mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaInfo);
         }
 
         const storageBasePath = mediaInfo.storageBasePath;
@@ -95,15 +96,15 @@ export class SegmentResponse {
         const textEnHighlight = highlight.textEn?.[0];
         const textEsHighlight = highlight.textEs?.[0];
 
-        const tokens: SlimToken[] | undefined = data.tokens ?? undefined;
+        const rawTokens: SlimToken[] | undefined = data.tokens ?? undefined;
+        const tokens = SegmentResponse.normalizeTokens(rawTokens);
         const enhancedHighlight =
-          tokens && textJaHighlight ? enhanceHighlight(textJaHighlight, tokens) : textJaHighlight;
+          rawTokens && textJaHighlight ? enhanceHighlight(textJaHighlight, rawTokens) : textJaHighlight;
 
         return {
           id: segmentId,
-          publicId: data.publicId,
+          segmentPublicId: data.publicId,
           status: SegmentResponse.toSegmentStatus(data.status),
-          uuid: data.uuid,
           position: data.position,
           startTimeMs: data.startTimeMs,
           endTimeMs: data.endTimeMs,
@@ -112,17 +113,17 @@ export class SegmentResponse {
           mediaPublicId: mediaInfo.publicId,
           textJa: {
             content: data.textJa,
-            ...(enhancedHighlight ? { highlight: enhancedHighlight } : {}),
-            ...(tokens ? { tokens } : {}),
+            highlight: enhancedHighlight ?? null,
+            tokens: tokens ?? null,
           },
           textEn: {
             content: data.textEn,
-            ...(textEnHighlight ? { highlight: textEnHighlight } : {}),
+            highlight: textEnHighlight ?? null,
             isMachineTranslated: data.textEnMt,
           },
           textEs: {
             content: data.textEs,
-            ...(textEsHighlight ? { highlight: textEsHighlight } : {}),
+            highlight: textEsHighlight ?? null,
             isMachineTranslated: data.textEsMt,
           },
           contentRating,
@@ -134,41 +135,59 @@ export class SegmentResponse {
     return { segments, mediaMap };
   }
 
-  static buildMedia(mediaId: number, mediaInfo: MediaInfo): MediaOutput {
+  static normalizeTokens(tokens?: SlimToken[]): TokenOutput {
+    if (!tokens || tokens.length === 0) {
+      return null;
+    }
+
+    return tokens.map((token) => ({
+      ...token,
+      p1: token.p1 ?? null,
+      p2: token.p2 ?? null,
+      p4: token.p4 ?? null,
+      cf: token.cf ?? null,
+    }));
+  }
+
+  static buildMedia(mediaInfo: MediaInfo): MediaOutput {
     return {
-      id: mediaId,
-      publicId: mediaInfo.publicId,
+      mediaPublicId: mediaInfo.publicId,
       slug: mediaInfo.slug,
-      externalIds: mediaInfo.externalIds,
+      externalIds: {
+        anilist: mediaInfo.externalIds.anilist ?? null,
+        imdb: mediaInfo.externalIds.imdb ?? null,
+        tmdb: mediaInfo.externalIds.tmdb ?? null,
+        tvdb: mediaInfo.externalIds.tvdb ?? null,
+      },
       nameJa: mediaInfo.nameJa,
       nameRomaji: mediaInfo.nameRomaji,
       nameEn: mediaInfo.nameEn,
-      airingFormat: mediaInfo.airingFormat,
-      airingStatus: mediaInfo.airingStatus,
+      airingFormat: mediaInfo.airingFormat as MediaOutput['airingFormat'],
+      airingStatus: mediaInfo.airingStatus as MediaOutput['airingStatus'],
       genres: mediaInfo.genres,
       coverUrl: mediaInfo.cover,
       bannerUrl: mediaInfo.banner,
       startDate: mediaInfo.startDate,
-      endDate: mediaInfo.endDate,
+      endDate: mediaInfo.endDate ?? null,
       category: mediaInfo.category as 'ANIME' | 'JDRAMA',
       segmentCount: mediaInfo.segmentCount,
       episodeCount: mediaInfo.episodeCount,
-      studio: mediaInfo.studio,
-      seasonName: mediaInfo.seasonName,
+      studio: mediaInfo.studio ?? null,
+      seasonName: mediaInfo.seasonName as MediaOutput['seasonName'],
       seasonYear: mediaInfo.seasonYear,
     };
   }
 
-  static buildPagination(esResponse: estypes.SearchResponse, cursor?: string): PaginationInfoOutput {
+  static buildPagination(esResponse: estypes.SearchResponse, cursor?: string): SearchPaginationOutput {
     const totalHits = esResponse.hits.total;
     let estimatedTotalHits = 0;
-    let estimatedTotalHitsRelation: 'EXACT' | 'LOWER_BOUND' = 'EXACT';
+    let estimatedTotalHitsRelation: 'EXACT' | 'AT_LEAST' = 'EXACT';
 
     if (typeof totalHits === 'number') {
       estimatedTotalHits = totalHits;
     } else if (totalHits && typeof totalHits === 'object') {
       estimatedTotalHits = totalHits.value;
-      estimatedTotalHitsRelation = totalHits.relation === 'gte' ? 'LOWER_BOUND' : 'EXACT';
+      estimatedTotalHitsRelation = totalHits.relation === 'gte' ? 'AT_LEAST' : 'EXACT';
     }
 
     const hasMore = Boolean(cursor);
@@ -208,10 +227,10 @@ export class SegmentResponse {
             if (!mediaInfo) return null;
 
             if (!(mediaInfo.publicId in mediaMap)) {
-              mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaId, mediaInfo);
+              mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaInfo);
             }
 
-            return { mediaId, matchCount: Number(bucket.doc_count ?? 0) };
+            return { mediaPublicId: mediaInfo.publicId, matchCount: Number(bucket.doc_count ?? 0) };
           })
           .filter((item): item is WordMatchMediaOutput => item !== null);
       }
@@ -256,14 +275,16 @@ export class SegmentResponse {
         }, {});
 
         if (!(mediaInfo.publicId in mediaMap)) {
-          mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaId, mediaInfo);
+          mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaInfo);
         }
 
         return {
-          mediaId,
-          publicId: mediaInfo.publicId,
+          mediaPublicId: mediaInfo.publicId,
           matchCount: Number(mediaBucket.doc_count ?? 0),
-          episodeHits: episodesWithResults,
+          episodeHits: Object.entries(episodesWithResults).map(([ep, hitCount]) => ({
+            episode: Number(ep),
+            hitCount,
+          })),
         };
       })
       .filter(SegmentResponse.notEmpty);

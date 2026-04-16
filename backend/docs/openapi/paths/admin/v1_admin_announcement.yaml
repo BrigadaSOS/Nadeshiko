@@ -12,19 +12,7 @@ get:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - message
-              - type
-              - active
-            properties:
-              message:
-                type: string
-              type:
-                type: string
-                enum: [info, warning, maintenance]
-              active:
-                type: boolean
+            $ref: "../../components/schemas/Announcement.yaml"
     "204":
       description: No announcement set
     "429":
@@ -47,39 +35,14 @@ put:
     content:
       application/json:
         schema:
-          type: object
-          required:
-            - message
-            - type
-            - active
-          properties:
-            message:
-              type: string
-              maxLength: 500
-            type:
-              type: string
-              enum: [info, warning, maintenance]
-            active:
-              type: boolean
+          $ref: "../../components/schemas/Announcement.yaml"
   responses:
     "200":
       description: OK
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - message
-              - type
-              - active
-            properties:
-              message:
-                type: string
-              type:
-                type: string
-                enum: [info, warning, maintenance]
-              active:
-                type: boolean
+            $ref: "../../components/schemas/Announcement.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

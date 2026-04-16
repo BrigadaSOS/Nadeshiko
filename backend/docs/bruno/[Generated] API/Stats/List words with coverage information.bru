@@ -1,11 +1,11 @@
 meta {
   name: List words with coverage information
   type: http
-  seq: 5
+  seq: 6
 }
 
 get {
-  url: {{baseUrl}}/v1/stats/covered-words?filter=all&take=200
+  url: {{baseUrl}}/v1/stats/covered-words?filter=ALL&take=200
   body: none
   auth: bearer
 }
@@ -13,7 +13,7 @@ get {
 params:query {
   tier:
   minRank:
-  filter: all
+  filter: ALL
   cursor:
   take: 200
 }

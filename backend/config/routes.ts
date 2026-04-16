@@ -13,23 +13,8 @@ import { requireSession, enforceAdminAccess } from '@app/middleware/routePolicie
 import { routeAuth } from 'generated/routeAuth';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
-import { getAdminHealth, getAdminDashboard, triggerReindex } from '@app/controllers/adminController';
-import {
-  getAdminDashboardOverview,
-  getAdminDashboardMedia,
-  getAdminDashboardActivity,
-  getAdminDashboardCollections,
-  getAdminDashboardApiKeys,
-  getAdminDashboardSystem,
-  getAdminUsersWithProviders,
-} from '@app/controllers/adminDashboardController';
-import {
-  listAdminQueueStats,
-  getAdminQueue,
-  retryAdminQueueFailed,
-  listAdminQueueFailed,
-  purgeAdminQueueFailed,
-} from '@app/controllers/queueController';
+import { triggerReindex } from '@app/controllers/adminController';
+import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
 import {
   listMedia,
@@ -37,10 +22,8 @@ import {
   getMedia,
   updateMedia,
   deleteMedia,
-  autocompleteMedia,
+  searchMedia,
 } from '@app/controllers/mediaController';
-import { getCharacter } from '@app/controllers/characterController';
-import { getSeiyuu } from '@app/controllers/seiyuuController';
 import {
   listCollections,
   getCollection,
@@ -54,16 +37,6 @@ import {
   getCollectionStats,
 } from '@app/controllers/collectionController';
 import {
-  listSeries,
-  getSeries,
-  createSeries,
-  updateSeries,
-  deleteSeries,
-  addMediaToSeries,
-  updateSeriesMedia,
-  removeMediaFromSeries,
-} from '@app/controllers/seriesController';
-import {
   listEpisodes,
   createEpisode,
   getEpisode,
@@ -75,14 +48,10 @@ import {
   createSegment,
   createSegmentsBatch,
   getSegment,
-  updateSegment,
-  deleteSegment,
-  getSegmentByUuid,
   getSegmentContext,
-  updateSegmentByUuid,
+  updateSegment,
   listSegmentRevisions,
 } from '@app/controllers/segmentController';
-import { getUserQuota } from '@app/controllers/userQuotaController';
 import {
   createUserReport,
   listAdminReports,
@@ -103,6 +72,7 @@ import {
   deleteUserActivityByDate,
   deleteUserActivityById,
 } from '@app/controllers/activityController';
+import { getMe, listExcludedMedia, addExcludedMedia, removeExcludedMedia } from '@app/controllers/userController';
 import { exportUserData } from '@app/controllers/userExportController';
 import {
   listAdminMediaAudits,
@@ -116,6 +86,7 @@ import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
 import { createRouter as createCollectionsRouter } from 'generated/routes/collections';
 import { createRouter as createAdminRouter } from 'generated/routes/admin';
+import { createRouter as createActivityRouter } from 'generated/routes/activity';
 import { createRouter as createUserRouter } from 'generated/routes/user';
 import { createRouter as createStatsRouter } from 'generated/routes/stats';
 
@@ -152,12 +123,12 @@ const SearchRoutes = createSearchRouter({
   search,
   getSearchStats,
   searchWords,
+  searchMedia,
 });
 
 const MediaRoutes = createMediaRouter({
   listMedia,
   createMedia,
-  autocompleteMedia,
   getMedia,
   updateMedia,
   deleteMedia,
@@ -170,22 +141,15 @@ const MediaRoutes = createMediaRouter({
   createSegment,
   createSegmentsBatch,
   getSegment,
-  updateSegment,
-  deleteSegment,
-  getSegmentByUuid,
   getSegmentContext,
-  updateSegmentByUuid,
+  updateSegment,
   listSegmentRevisions,
-  listSeries,
-  createSeries,
-  getSeries,
-  updateSeries,
-  deleteSeries,
-  addMediaToSeries,
-  updateSeriesMedia,
-  removeMediaFromSeries,
-  getCharacter,
-  getSeiyuu,
+});
+
+const ActivityRoutes = createActivityRouter({
+  listUserActivity,
+  getUserActivityHeatmap,
+  getUserActivityStats,
 });
 
 const CollectionsRoutes = createCollectionsRouter({
@@ -202,20 +166,7 @@ const CollectionsRoutes = createCollectionsRouter({
 });
 
 const AdminRoutes = createAdminRouter({
-  getAdminDashboard,
-  getAdminDashboardOverview,
-  getAdminDashboardMedia,
-  getAdminDashboardActivity,
-  getAdminDashboardCollections,
-  getAdminDashboardApiKeys,
-  getAdminDashboardSystem,
-  getAdminHealth,
   triggerReindex,
-  listAdminQueueStats,
-  getAdminQueue,
-  listAdminQueueFailed,
-  retryAdminQueueFailed,
-  purgeAdminQueueFailed,
   listAdminReports,
   batchUpdateAdminReports,
   bulkUpdateAdminReports,
@@ -238,17 +189,17 @@ const StatsRoutes = createStatsRouter({
 });
 
 const UserRoutes = createUserRouter({
-  getUserQuota,
+  getMe,
+  listExcludedMedia,
+  addExcludedMedia,
+  removeExcludedMedia,
   createUserReport,
   getUserPreferences,
   updateUserPreferences,
-  listUserActivity,
   deleteUserActivity,
   trackUserActivity,
   deleteUserActivityByDate,
   deleteUserActivityById,
-  getUserActivityHeatmap,
-  getUserActivityStats,
   exportUserData,
   listUserLabs,
   enrollUserLab,
@@ -264,6 +215,7 @@ for (const { method, path, middleware } of routeAuth) {
 router.use('/', SearchRoutes);
 router.use('/', StatsRoutes);
 router.use('/', MediaRoutes);
+router.use('/', ActivityRoutes);
 router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
@@ -293,4 +245,4 @@ export function mountRoutes(app: Application): Application {
   return app;
 }
 
-export { router, MediaRoutes, SearchRoutes, StatsRoutes, CollectionsRoutes, AdminRoutes, UserRoutes };
+export { router, MediaRoutes, SearchRoutes, StatsRoutes, ActivityRoutes, CollectionsRoutes, AdminRoutes, UserRoutes };

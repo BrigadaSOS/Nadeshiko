@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "2.0.7",
+  "version": "2.1.0",
   "description": "",
   "main": "main.ts",
   "type": "module",
@@ -21,6 +21,9 @@
     "generate:all": "bun run generate:api && bun run bin/generateBrunoCollection.ts && bun run docs:build",
     "docs:bundle": "redocly bundle main -o ./docs/generated/openapi.yaml --remove-unused-components",
     "docs:bundle:public": "redocly bundle public -o ./docs/generated/openapi-public.yaml --remove-unused-components",
+    "openapi:breaking": "bun run bin/openapiDiff.ts breaking",
+    "openapi:changelog": "bun run bin/openapiDiff.ts changelog",
+    "openapi:diff": "bun run bin/openapiDiff.ts diff",
     "docs:build": "mkdir -p ../frontend/public/docs/api && redocly bundle public -o ../frontend/public/docs/api/openapi.yaml --remove-unused-components && redocly build-docs ../frontend/public/docs/api/openapi.yaml -o ../frontend/public/docs/api/index.html --title \"Nadeshiko API Docs\" --disableGoogleFont ",
     "docs:build:internal": "mkdir -p ../frontend/public/docs/api-internal && redocly bundle main -o ../frontend/public/docs/api-internal/openapi.yaml --remove-unused-components && redocly build-docs ../frontend/public/docs/api-internal/openapi.yaml -o ../frontend/public/docs/api-internal/index.html --title \"Nadeshiko API Docs\" --disableGoogleFont",
     "docs:serve": "bun run bin/docsServe.ts",

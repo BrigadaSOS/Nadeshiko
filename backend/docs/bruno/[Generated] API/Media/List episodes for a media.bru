@@ -1,19 +1,19 @@
 meta {
   name: List episodes for a media
   type: http
-  seq: 27
+  seq: 17
 }
 
 get {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes?mediaId=V1StGXR8_Z5d&take=50&cursor=10
+  url: {{baseUrl}}/v1/media/:mediaPublicId/episodes?mediaPublicId=V1StGXR8_Z5d&take=50
   body: none
   auth: bearer
 }
 
 params:query {
-  mediaId: V1StGXR8_Z5d
+  mediaPublicId: V1StGXR8_Z5d
   take: 50
-  cursor: 10
+  cursor:
 }
 
 auth:bearer {

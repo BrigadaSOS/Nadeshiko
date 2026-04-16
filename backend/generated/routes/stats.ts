@@ -14,33 +14,35 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
-  t_CoveredWord,
+  t_CoveredWordsResponse,
+  t_CoveredWordsUpdateResponse,
   t_Error400,
+  t_Error401,
+  t_Error403,
+  t_Error429,
   t_Error500,
   t_GetCoveredWordsQuerySchema,
+  t_StatsOverview,
   t_TriggerCoveredWordsUpdateRequestBodySchema,
-  t_WordCoverageTier,
 } from '../models.ts';
-import type { GetCoveredWordsQueryOutput } from '../outputTypes.ts';
-import { PermissiveBoolean, s_CoveredWord, s_Error400, s_Error500, s_WordCoverageTier } from '../schemas.ts';
+import type { CoveredWordsUpdateRequestOutput, GetCoveredWordsQueryOutput } from '../outputTypes.ts';
+import {
+  s_CoveredWordsResponse,
+  s_CoveredWordsUpdateRequest,
+  s_CoveredWordsUpdateResponse,
+  s_Error400,
+  s_Error401,
+  s_Error403,
+  s_Error429,
+  s_Error500,
+  s_StatsOverview,
+} from '../schemas.ts';
 
 export type GetStatsOverviewResponder = {
-  with200(): ExpressRuntimeResponse<{
-    dialogueHours: number;
-    lastUpdated: string | null;
-    tiers: t_WordCoverageTier[];
-    totalEpisodes: number;
-    totalFrequencyWords: number;
-    totalMedia: number;
-    totalSegments: number;
-    translations: {
-      enHuman: number;
-      enMachine: number;
-      esHuman: number;
-      esMachine: number;
-      total: number;
-    };
-  }>;
+  with200(): ExpressRuntimeResponse<t_StatsOverview>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -53,16 +55,11 @@ export type GetStatsOverview = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetCoveredWordsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    nextCursor: number | null;
-    tierStats: {
-      covered: number;
-      total: number;
-      uncovered: number;
-    };
-    words: t_CoveredWord[];
-  }>;
+  with200(): ExpressRuntimeResponse<t_CoveredWordsResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
@@ -75,17 +72,16 @@ export type GetCoveredWords = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type TriggerCoveredWordsUpdateResponder = {
-  with200(): ExpressRuntimeResponse<{
-    newlyCovered: number;
-    percentage: number;
-    totalCovered: number;
-    wordsChecked: number;
-  }>;
+  with200(): ExpressRuntimeResponse<t_CoveredWordsUpdateResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type TriggerCoveredWordsUpdate = (
-  params: Params<void, void, t_TriggerCoveredWordsUpdateRequestBodySchema, void>,
+  params: Params<void, void, CoveredWordsUpdateRequestOutput, void>,
   respond: TriggerCoveredWordsUpdateResponder,
   req: Request,
   res: Response,
@@ -103,25 +99,10 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
 
   const getStatsOverviewResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          totalSegments: z.coerce.number(),
-          totalEpisodes: z.coerce.number(),
-          totalMedia: z.coerce.number(),
-          totalFrequencyWords: z.coerce.number(),
-          dialogueHours: z.coerce.number(),
-          tiers: z.array(s_WordCoverageTier),
-          lastUpdated: z.iso.datetime({ offset: true }).nullable(),
-          translations: z.object({
-            total: z.coerce.number(),
-            enHuman: z.coerce.number(),
-            enMachine: z.coerce.number(),
-            esHuman: z.coerce.number(),
-            esMachine: z.coerce.number(),
-          }),
-        }),
-      ],
+      ['200', s_StatsOverview],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -139,22 +120,16 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            dialogueHours: number;
-            lastUpdated: string | null;
-            tiers: t_WordCoverageTier[];
-            totalEpisodes: number;
-            totalFrequencyWords: number;
-            totalMedia: number;
-            totalSegments: number;
-            translations: {
-              enHuman: number;
-              enMachine: number;
-              esHuman: number;
-              esMachine: number;
-              total: number;
-            };
-          }>(200);
+          return new ExpressRuntimeResponse<t_StatsOverview>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -190,22 +165,18 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
   const getCoveredWordsQuerySchema = z.object({
     tier: z.coerce.number().min(1),
     minRank: z.coerce.number().min(0).optional().default(0),
-    filter: z.enum(['all', 'covered', 'uncovered']).optional().default('all'),
-    cursor: z.coerce.number().min(0).optional().default(0),
+    filter: z.enum(['ALL', 'COVERED', 'UNCOVERED']).optional().default('ALL'),
+    cursor: z.string().optional(),
     take: z.coerce.number().min(1).max(1000).optional().default(200),
   });
 
   const getCoveredWordsResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          words: z.array(s_CoveredWord),
-          nextCursor: z.coerce.number().nullable(),
-          tierStats: z.object({ total: z.coerce.number(), covered: z.coerce.number(), uncovered: z.coerce.number() }),
-        }),
-      ],
+      ['200', s_CoveredWordsResponse],
       ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -223,18 +194,19 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            nextCursor: number | null;
-            tierStats: {
-              covered: number;
-              total: number;
-              uncovered: number;
-            };
-            words: t_CoveredWord[];
-          }>(200);
+          return new ExpressRuntimeResponse<t_CoveredWordsResponse>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);
@@ -267,22 +239,15 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
     }
   });
 
-  const triggerCoveredWordsUpdateRequestBodySchema = z.object({
-    maxRank: z.coerce.number().optional().default(999999),
-    onlyUncovered: PermissiveBoolean.optional().default(false),
-  });
+  const triggerCoveredWordsUpdateRequestBodySchema = s_CoveredWordsUpdateRequest;
 
   const triggerCoveredWordsUpdateResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({
-          wordsChecked: z.coerce.number(),
-          newlyCovered: z.coerce.number(),
-          totalCovered: z.coerce.number(),
-          percentage: z.coerce.number(),
-        }),
-      ],
+      ['200', s_CoveredWordsUpdateResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
       ['500', s_Error500],
     ],
     undefined,
@@ -300,12 +265,19 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            newlyCovered: number;
-            percentage: number;
-            totalCovered: number;
-            wordsChecked: number;
-          }>(200);
+          return new ExpressRuntimeResponse<t_CoveredWordsUpdateResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
         },
         with500() {
           return new ExpressRuntimeResponse<t_Error500>(500);

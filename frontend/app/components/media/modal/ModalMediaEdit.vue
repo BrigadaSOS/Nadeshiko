@@ -134,7 +134,7 @@ const submitEdit = async () => {
     }
 
     await sdk.updateMedia({
-      path: { id: props.media.publicId },
+      path: { mediaId: props.media.publicId },
       body,
     });
 
@@ -180,7 +180,7 @@ const submitDelete = async () => {
 
   try {
     await sdk.deleteMedia({
-      path: { id: props.media.publicId },
+      path: { mediaId: props.media.publicId },
     });
 
     emit('delete:success', props.media.id);

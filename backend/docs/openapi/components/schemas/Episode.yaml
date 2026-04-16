@@ -1,37 +1,51 @@
 type: object
+description: Episode entry with metadata and dialogue segment count
 required:
-  - mediaId
+  - mediaPublicId
   - episodeNumber
+  - titleEn
+  - titleRomaji
+  - titleJa
+  - description
+  - airedAt
+  - lengthSeconds
+  - thumbnailUrl
   - segmentCount
 properties:
-  mediaId:
-    type: integer
-    description: ID of the media this episode belongs to
-    example: 7674
+  mediaPublicId:
+    type: string
+    description: Media public ID this episode belongs to
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   episodeNumber:
     type: integer
-    description: Episode number within the media
+    description: Episode number within the media (0 for movies/specials)
+    minimum: 0
     example: 1
   titleEn:
     type: string
     nullable: true
+    minLength: 1
     description: English title of the episode
-    example: "The Beginning"
+    example: The Beginning
   titleRomaji:
     type: string
     nullable: true
+    minLength: 1
     description: Romanized title of the episode
-    example: "Hajimari"
+    example: Hajimari
   titleJa:
     type: string
     nullable: true
+    minLength: 1
     description: Japanese title of the episode
-    example: "始まり"
+    example: 始まり
   description:
     type: string
     nullable: true
+    minLength: 1
     description: Episode description or synopsis
-    example: "The hero begins their journey"
+    example: The hero begins their journey
   airedAt:
     type: string
     format: date-time
@@ -41,14 +55,18 @@ properties:
   lengthSeconds:
     type: integer
     nullable: true
+    minimum: 0
     description: Episode duration in seconds
     example: 1420
   thumbnailUrl:
     type: string
+    format: uri
     nullable: true
+    minLength: 1
     description: URL to episode thumbnail image
     example: "https://example.com/thumbnails/episode1.jpg"
   segmentCount:
     type: integer
     description: Number of segments in this episode
+    minimum: 0
     example: 450

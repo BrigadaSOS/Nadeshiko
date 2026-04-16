@@ -283,7 +283,7 @@ const batchUpdate = async (status: string) => {
 
   isBatchUpdating.value = true;
   try {
-    const { updated } = await $fetch<{ updated: number }>('/v1/admin/reports/batch', {
+    const { updated } = await $fetch<{ count: number }>('/v1/admin/reports/batch', {
       method: 'PATCH',
       body: { ids, status },
     });
@@ -303,7 +303,7 @@ const batchDelete = async () => {
 
   isBatchUpdating.value = true;
   const results = await Promise.allSettled(
-    ids.map((id) => $fetch<{ deleted: number }>(`/v1/admin/reports/${id}`, { method: 'DELETE' })),
+    ids.map((id) => $fetch<{ count: number }>(`/v1/admin/reports/${id}`, { method: 'DELETE' })),
   );
 
   const succeeded = results.filter((r) => r.status === 'fulfilled').length;
@@ -328,7 +328,7 @@ const bulkDismissAllMatching = async () => {
   showDismissConfirm.value = false;
   isBulkDismissing.value = true;
   try {
-    const result = await $fetch<{ updated: number }>('/v1/admin/reports/bulk', {
+    const result = await $fetch<{ count: number }>('/v1/admin/reports/bulk', {
       method: 'PATCH',
       body: {
         status: 'DISMISSED',
@@ -336,7 +336,7 @@ const bulkDismissAllMatching = async () => {
       },
     });
 
-    useToastSuccess(`${result.updated} report(s) dismissed`);
+    useToastSuccess(`${result.count} report(s) dismissed`);
     await fetchReports();
   } catch {
     useToastError('Failed to dismiss reports');
@@ -359,10 +359,10 @@ const deleteReport = async () => {
   pendingDeleteId.value = null;
 
   try {
-    const result = await $fetch<{ deleted: number }>(`/v1/admin/reports/${reportId}`, {
+    const result = await $fetch<{ count: number }>(`/v1/admin/reports/${reportId}`, {
       method: 'DELETE',
     });
-    useToastSuccess(`${result.deleted} report(s) deleted`);
+    useToastSuccess(`${result.count} report(s) deleted`);
     await fetchReports();
   } catch {
     useToastError('Failed to delete report');
@@ -373,14 +373,14 @@ const bulkDeleteAllMatching = async () => {
   showDeleteConfirm.value = false;
   isBulkDeleting.value = true;
   try {
-    const result = await $fetch<{ deleted: number }>('/v1/admin/reports/bulk', {
+    const result = await $fetch<{ count: number }>('/v1/admin/reports/bulk', {
       method: 'DELETE',
       body: {
         filters: buildBulkFilters(),
       },
     });
 
-    useToastSuccess(`${result.deleted} report(s) deleted`);
+    useToastSuccess(`${result.count} report(s) deleted`);
     await fetchReports();
   } catch {
     useToastError('Failed to delete reports');

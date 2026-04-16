@@ -1,4 +1,4 @@
-description: Too Many Requests
+description: Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
 content:
   application/json:
     schema:

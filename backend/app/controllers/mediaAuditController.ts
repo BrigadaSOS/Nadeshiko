@@ -10,14 +10,14 @@ import { InvalidRequestError, NotFoundError } from '@app/errors';
 import { runAllAudits } from '@app/models/mediaAudit/runner';
 import { auditRegistry } from '@app/models/mediaAudit/checks';
 import type { MediaAuditCheck, ThresholdField } from '@app/models/mediaAudit/checks';
-import { toReportDTO, resolveReportPublicIds } from '@app/controllers/mappers/report.mapper';
+import { toReportDTO, resolveReportPublicIds } from '@app/controllers/mappers/reportMapper';
 import {
   toAdminMediaAuditListDTO,
   toMediaAuditDTO,
   toMediaAuditRunDTO,
   toMediaAuditRunsDTO,
   toRunAuditResponseDTO,
-} from '@app/controllers/mappers/mediaAudit.mapper';
+} from '@app/controllers/mappers/mediaAuditMapper';
 
 export const listAdminMediaAudits: ListAdminMediaAudits = async (_params, respond) => {
   const [dbAudits, latestRunsByAuditName] = await Promise.all([
@@ -49,7 +49,7 @@ export const runAdminMediaAudit: RunAdminMediaAudit = async ({ params, query }, 
 
 export const listAdminMediaAuditRuns: ListAdminMediaAuditRuns = async ({ query }, respond) => {
   const { items: runs, pagination } = await MediaAuditRun.paginateWithKeyset({
-    take: query.take ?? 20,
+    take: query.take,
     cursor: query.cursor,
     query: () => {
       const qb = MediaAuditRun.createQueryBuilder('run');
@@ -69,7 +69,7 @@ export const listAdminMediaAuditRuns: ListAdminMediaAuditRuns = async ({ query }
 };
 
 export const getAdminMediaAuditRun: GetAdminMediaAuditRun = async ({ params }, respond) => {
-  const run = await getMediaAuditRunOrFail(params.id);
+  const run = await getMediaAuditRunOrFail(params.auditRunId);
 
   const reports = await Report.find({
     where: { auditRunId: run.id },

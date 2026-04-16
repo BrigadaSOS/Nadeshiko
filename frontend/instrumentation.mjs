@@ -2,7 +2,10 @@ import { createRequire } from 'node:module';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+import {
+  OTLPMetricExporter,
+  AggregationTemporalityPreference,
+} from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes, hostDetector, processDetector } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -37,20 +40,15 @@ if (endpoint) {
     resourceDetectors: [hostDetector, processDetector],
     spanProcessors: [new FilteringSpanProcessor(traceExporter)],
     metricReader: new PeriodicExportingMetricReader({
-      exporter: new OTLPMetricExporter(),
+      exporter: new OTLPMetricExporter({
+        temporalityPreference: AggregationTemporalityPreference.DELTA,
+      }),
       exportIntervalMillis: 15000,
     }),
     instrumentations: [
       new HttpInstrumentation({
         ignoreOutgoingRequestHook: () => true,
         ignoreIncomingRequestHook: (req) => isIgnoredPath(req.url || ''),
-        requestHook: (span, request) => {
-          if ('url' in request && request.url) {
-            try {
-              span.setAttribute('http.target', decodeURIComponent(request.url));
-            } catch {}
-          }
-        },
       }),
       new PinoInstrumentation(),
       new RuntimeNodeInstrumentation(),

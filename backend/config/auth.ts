@@ -148,11 +148,21 @@ export async function resolveDefaultApiPermissions(
   findUserById: FindUserById = defaultFindUserById,
 ): Promise<Record<string, ApiPermission[]>> {
   const numericUserId = Number(userId);
-  const defaultReadOnly = [ApiPermission.READ_MEDIA];
+  const defaultUserPermissions = [
+    ApiPermission.READ_MEDIA,
+    ApiPermission.READ_PROFILE,
+    ApiPermission.WRITE_PROFILE,
+    ApiPermission.READ_ACTIVITY,
+    ApiPermission.WRITE_ACTIVITY,
+    ApiPermission.READ_COLLECTIONS,
+    ApiPermission.CREATE_COLLECTIONS,
+    ApiPermission.UPDATE_COLLECTIONS,
+    ApiPermission.DELETE_COLLECTIONS,
+  ];
 
   if (!Number.isInteger(numericUserId) || numericUserId <= 0) {
     return {
-      [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultReadOnly,
+      [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultUserPermissions,
     };
   }
 
@@ -160,7 +170,7 @@ export async function resolveDefaultApiPermissions(
   const isAdmin = user?.role === UserRoleType.ADMIN;
 
   return {
-    [BETTER_AUTH_API_PERMISSION_RESOURCE]: isAdmin ? Object.values(ApiPermission) : defaultReadOnly,
+    [BETTER_AUTH_API_PERMISSION_RESOURCE]: isAdmin ? Object.values(ApiPermission) : defaultUserPermissions,
   };
 }
 

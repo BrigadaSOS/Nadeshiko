@@ -1,18 +1,18 @@
 meta {
   name: Update segment in collection
   type: http
-  seq: 59
+  seq: 49
 }
 
 patch {
-  url: {{baseUrl}}/v1/collections/:id/segments/:segmentId?id=V1StGXR8_Z5d&segmentId=456
+  url: {{baseUrl}}/v1/collections/:collectionPublicId/segments/:segmentPublicId?collectionPublicId=V1StGXR8_Z5d&segmentPublicId=V1StGXR8_Z5d
   body: json
   auth: none
 }
 
 params:query {
-  id: V1StGXR8_Z5d
-  segmentId: 456
+  collectionPublicId: V1StGXR8_Z5d
+  segmentPublicId: V1StGXR8_Z5d
 }
 
 body:json {

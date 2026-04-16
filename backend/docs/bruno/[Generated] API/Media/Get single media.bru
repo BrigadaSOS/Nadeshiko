@@ -1,18 +1,17 @@
 meta {
   name: Get single media
   type: http
-  seq: 24
+  seq: 14
 }
 
 get {
-  url: {{baseUrl}}/v1/media/:id?id=V1StGXR8_Z5d&include=[]
+  url: {{baseUrl}}/v1/media/:mediaPublicId?mediaPublicId=V1StGXR8_Z5d
   body: none
   auth: bearer
 }
 
 params:query {
-  id: V1StGXR8_Z5d
-  include: []
+  mediaPublicId: V1StGXR8_Z5d
 }
 
 auth:bearer {

@@ -18,10 +18,7 @@ properties:
     description: Report ID
     example: 1
   source:
-    type: string
-    enum: [USER, AUTO]
-    description: Who created this report
-    example: "USER"
+    $ref: "./ReportSource.yaml"
   target:
     $ref: "./ReportTarget.yaml"
   auditRunId:
@@ -29,34 +26,7 @@ properties:
     nullable: true
     description: ID of the audit run that created this report (AUTO only)
   reason:
-    type: string
-    enum:
-      - WRONG_TRANSLATION
-      - WRONG_TIMING
-      - WRONG_AUDIO
-      - WRONG_JAPANESE_TEXT
-      - LOW_QUALITY_AUDIO
-      - NSFW_NOT_TAGGED
-      - DUPLICATE_SEGMENT
-      - WRONG_METADATA
-      - MISSING_EPISODES
-      - WRONG_COVER_IMAGE
-      - WRONG_TITLE
-      - DUPLICATE_MEDIA
-      - WRONG_EPISODE_NUMBER
-      - IMAGE_ISSUE
-      - INAPPROPRIATE_CONTENT
-      - OTHER
-      - LOW_SEGMENT_MEDIA
-      - EMPTY_EPISODES
-      - MISSING_EPISODES_AUTO
-      - BAD_SEGMENT_RATIO
-      - MEDIA_WITH_NO_EPISODES
-      - MISSING_TRANSLATIONS
-      - DB_ES_SYNC_ISSUES
-      - HIGH_REPORT_DENSITY
-    description: Reason for the report
-    example: "WRONG_TRANSLATION"
+    $ref: "./ReportReason.yaml"
   description:
     type: string
     nullable: true
@@ -67,10 +37,7 @@ properties:
     description: Check-specific metrics (AUTO reports) or null (USER reports)
     additionalProperties: true
   status:
-    type: string
-    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
-    description: Current status of the report
-    example: "OPEN"
+    $ref: "./ReportStatus.yaml"
   adminNotes:
     type: string
     nullable: true

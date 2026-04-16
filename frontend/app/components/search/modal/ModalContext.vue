@@ -25,7 +25,7 @@ const getContextSentence = async () => {
 
   try {
     const { data } = await sdk.getSegmentContext({
-      path: { uuid: sentence.segment.publicId },
+      path: { publicId: sentence.segment.publicId },
       query: {
         take: 15,
         contentRating: contentRating.value,
@@ -38,7 +38,7 @@ const getContextSentence = async () => {
 
     const match = response?.segments?.find((s: SearchResult) => s.segment.position === sentence.segment.position);
     if (match) {
-      scrollToElement(match.segment.uuid);
+      scrollToElement(match.segment.publicId);
     }
   } catch (error) {
     // Context fetch failed - UI shows empty state

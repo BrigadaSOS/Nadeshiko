@@ -62,36 +62,36 @@ const updatePreference = async (key: string, value: string) => {
 };
 
 const mediaNameExamples: Record<string, string> = {
-  english: 'Attack on Titan',
-  japanese: '進撃の巨人',
-  romaji: 'Shingeki no Kyojin',
+  ENGLISH: 'Attack on Titan',
+  JAPANESE: '進撃の巨人',
+  ROMAJI: 'Shingeki no Kyojin',
 };
 
 const mediaNameLanguageLabel = computed(() => {
-  const lang = user_store.preferences?.mediaNameLanguage || 'english';
-  return lang.charAt(0).toUpperCase() + lang.slice(1);
+  const lang = user_store.preferences?.mediaNameLanguage || 'ENGLISH';
+  return lang.charAt(0) + lang.slice(1).toLowerCase();
 });
 
 const mediaNameExample = computed(() => {
-  const lang = user_store.preferences?.mediaNameLanguage || 'english';
-  return mediaNameExamples[lang] ?? mediaNameExamples.english;
+  const lang = user_store.preferences?.mediaNameLanguage || 'ENGLISH';
+  return mediaNameExamples[lang] ?? mediaNameExamples.ENGLISH;
 });
 
 // Content rating preview segment
 const PREVIEW_SEGMENT_UUID = 'skU_sjEmsvrE';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
   sdk
-    .getSegmentContext({ path: { uuid: PREVIEW_SEGMENT_UUID }, query: { take: 1 } })
+    .getSegmentContext({ path: { publicId: PREVIEW_SEGMENT_UUID }, query: { take: 1 } })
     .then((r) => (r.data ? resolveContextResponse(r.data) : null))
     .catch(() => null),
 );
 const previewSegment = computed(() => previewData.value?.segments?.[0] ?? null);
 
-const questionableMode = computed(() => user_store.preferences?.contentRatingPreferences?.questionable || 'blur');
+const questionableMode = computed(() => user_store.preferences?.contentRatingPreferences?.questionable || 'BLUR');
 
 const contentRatingDescription = (category: string) => {
-  const value = user_store.preferences?.contentRatingPreferences?.[category] || 'blur';
-  return t(`accountSettings.account.contentRatingHint_${value}`);
+  const value = user_store.preferences?.contentRatingPreferences?.[category] || 'BLUR';
+  return t(`accountSettings.account.contentRatingHint_${value.toLowerCase()}`);
 };
 
 const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLanguage', value);
@@ -435,14 +435,14 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">Media names will appear in {{ mediaNameLanguageLabel }} when possible. Example: <span lang="ja" class="text-white/80 italic">{{ mediaNameExample }}</span></p>
         </div>
         <select
-          :value="user_store.preferences?.mediaNameLanguage || 'english'"
+          :value="user_store.preferences?.mediaNameLanguage || 'ENGLISH'"
           @change="updateMediaNameLanguage(($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
           class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
-          <option value="english">English</option>
-          <option value="japanese">Japanese</option>
-          <option value="romaji">Romaji</option>
+          <option value="ENGLISH">English</option>
+          <option value="JAPANESE">Japanese</option>
+          <option value="ROMAJI">Romaji</option>
         </select>
       </div>
       <div v-if="labsStore.isFeatureEnabled('interactive-tokens')" class="flex justify-between items-center mt-4">
@@ -468,19 +468,19 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.questionableContentDesc') }}. {{ contentRatingDescription('questionable') }}</p>
         </div>
         <select
-          :value="user_store.preferences?.contentRatingPreferences?.questionable || 'blur'"
+          :value="user_store.preferences?.contentRatingPreferences?.questionable || 'BLUR'"
           @change="updateContentRatingPreference('questionable', ($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
           class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
-          <option value="show">{{ $t('accountSettings.account.contentRatingShow') }}</option>
-          <option value="blur">{{ $t('accountSettings.account.contentRatingBlur') }}</option>
-          <option value="hide">{{ $t('accountSettings.account.contentRatingHide') }}</option>
+          <option value="SHOW">{{ $t('accountSettings.account.contentRatingShow') }}</option>
+          <option value="BLUR">{{ $t('accountSettings.account.contentRatingBlur') }}</option>
+          <option value="HIDE">{{ $t('accountSettings.account.contentRatingHide') }}</option>
         </select>
       </div>
       <!-- Content rating visual example -->
       <div v-if="previewSegment" class="mt-3 rounded-lg bg-white/5 overflow-hidden">
-        <div v-if="questionableMode === 'hide'" class="flex items-center justify-center py-6 px-4 bg-neutral-800">
+        <div v-if="questionableMode === 'HIDE'" class="flex items-center justify-center py-6 px-4 bg-neutral-800">
           <span class="text-gray-500 text-sm">{{ $t('accountSettings.account.contentRatingHiddenDesc') }}</span>
         </div>
         <div v-else class="flex flex-col sm:flex-row items-stretch">
@@ -489,7 +489,7 @@ const logoutCurrentUser = async () => {
               :src="previewSegment.segment.urls.imageUrl"
               :alt="`Preview image for content rating sample`"
               class="h-full w-full object-cover object-center transition-all duration-300"
-              :class="questionableMode === 'blur' ? 'blur-[42px] scale-125' : ''"
+              :class="questionableMode === 'BLUR' ? 'blur-[42px] scale-125' : ''"
             />
           </div>
           <div class="flex-1 px-4 py-3 flex flex-col justify-center gap-1.5">

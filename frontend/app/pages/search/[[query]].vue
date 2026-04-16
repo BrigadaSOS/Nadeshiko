@@ -54,9 +54,9 @@ const fetchSentenceData = async () => {
     if (route.query.uuid) {
       // UUID lookup: fetch segment + media directly
       const uuid = String(route.query.uuid);
-      const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid } });
+      const { data: segment } = await sdk.getSegment({ path: { publicId: uuid } });
       if (!segment) return null;
-      const { data: media } = await sdk.getMedia({ path: { id: segment.mediaPublicId } });
+      const { data: media } = await sdk.getMedia({ path: { mediaId: segment.mediaPublicId } });
       return resolveSearchResponse({
         segments: [segment],
         includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
@@ -89,7 +89,7 @@ const fetchSentenceData = async () => {
 
     const sortParam = route.query.sort ? String(route.query.sort).toUpperCase() : null;
     const sort =
-      sortParam && sortParam !== 'NONE'
+      sortParam && sortParam !== 'RELEVANCE'
         ? { mode: sortParam as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
         : undefined;
 
@@ -213,7 +213,7 @@ const metaTags = computed(() => {
     const stats = initialStatsData.value?.categories;
     const pagination = initialSentenceData.value?.pagination;
     const totalResults = pagination?.estimatedTotalHits || stats?.reduce((sum, s) => sum + (s.count ?? 0), 0) || 0;
-    const isLowerBound = pagination?.estimatedTotalHitsRelation === 'LOWER_BOUND';
+    const isLowerBound = pagination?.estimatedTotalHitsRelation === 'AT_LEAST';
 
     const title = q;
     let description: string;

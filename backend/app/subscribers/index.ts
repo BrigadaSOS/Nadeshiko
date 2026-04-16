@@ -1,2 +1,2 @@
-import './segment.subscriber';
-export { SegmentSubscriber } from './segment.subscriber';
+import './segmentSubscriber';
+export { SegmentSubscriber } from './segmentSubscriber';

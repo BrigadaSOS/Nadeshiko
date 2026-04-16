@@ -1,30 +1,27 @@
 meta {
   name: Create collection
   type: http
-  seq: 54
+  seq: 44
 }
 
 post {
   url: {{baseUrl}}/v1/collections
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 body:json {
   {
     "name": "My Study List",
-    "visibility": "PRIVATE"
+    "visibility": ""
   }
 }
 
 settings {
   encodeUrl: true
   timeout: 0
-}
-
-script:pre-request {
-  const sessionToken = bru.getEnvVar("sessionToken");
-  if (sessionToken) {
-    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
-  }
 }

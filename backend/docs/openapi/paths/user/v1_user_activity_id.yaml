@@ -10,7 +10,7 @@ delete:
   security:
     - SessionCookie: []
   parameters:
-    - name: id
+    - name: activityId
       in: path
       required: true
       schema:
@@ -21,7 +21,11 @@ delete:
       description: No Content
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
     "404":
       $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

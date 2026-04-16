@@ -44,25 +44,25 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
   return unwrap(await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []));
 };
 
+const fetchMe = async (): Promise<Record<string, unknown> | null> =>
+  $fetch<Record<string, unknown>>('/v1/user/me', { method: 'GET', credentials: 'include' }).catch(() => null);
+
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData(
   'developer-api-keys',
   async () => {
-    const [keysRaw, quotaRes] = await Promise.all([
-      fetchApiKeyList(),
-      sdk.getUserQuota().catch(() => ({ data: null })),
-    ]);
+    const [keysRaw, meRes] = await Promise.all([fetchApiKeyList(), fetchMe()]);
 
     const keys = (Array.isArray(keysRaw) ? keysRaw : [])
       .map(normalizeApiKey)
       .filter((k) => k.isActive)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    const q = (quotaRes.data ?? {}) as Record<string, unknown>;
+    const q = ((meRes?.quota ?? null) || {}) as Record<string, unknown>;
     return {
       keys,
       quota: {
-        quotaUsed: Number(q.quotaUsed ?? 0),
-        quotaLimit: Number(q.quotaLimit ?? 5000),
-        quotaRemaining: Number(q.quotaRemaining ?? 0),
+        quotaUsed: Number(q.used ?? 0),
+        quotaLimit: Number(q.limit ?? 5000),
+        quotaRemaining: Number(q.remaining ?? 0),
       },
     };
   },

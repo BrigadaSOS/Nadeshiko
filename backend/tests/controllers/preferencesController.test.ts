@@ -66,8 +66,8 @@ describe('PATCH /v1/user/preferences', () => {
   it('replaces arrays instead of deep-merging them', async () => {
     fixtures.users.kevin.preferences = {
       hiddenMedia: [
-        { mediaId: 1, nameEn: 'Old One' },
-        { mediaId: 2, nameEn: 'Old Two' },
+        { mediaPublicId: 'old-media-01', nameEn: 'Old One' },
+        { mediaPublicId: 'old-media-02', nameEn: 'Old Two' },
       ],
     };
     await fixtures.users.kevin.save();
@@ -76,12 +76,12 @@ describe('PATCH /v1/user/preferences', () => {
     const res = await request(app)
       .patch('/v1/user/preferences')
       .send({
-        hiddenMedia: [{ mediaId: 999, nameEn: 'Only New' }],
+        hiddenMedia: [{ mediaPublicId: 'new-media-99', nameEn: 'Only New' }],
       });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      hiddenMedia: [{ mediaId: 999, nameEn: 'Only New' }],
+      hiddenMedia: [{ mediaPublicId: 'new-media-99', nameEn: 'Only New' }],
     });
   });
 });

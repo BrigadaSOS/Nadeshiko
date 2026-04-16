@@ -2,35 +2,29 @@ get:
   tags:
     - Media
   operationId: getMedia
+  x-order: 20
   summary: Get single media
   description: |
-    Returns a single media entry by its ID with full metadata.
+    Returns a single media entry by its public ID with full metadata.
 
   security:
     - ApiKey: [READ_MEDIA]
   parameters:
-    - name: id
+    - name: mediaPublicId
       in: path
       required: true
       description: Media public ID
       schema:
         type: string
-        example: "V1StGXR8_Z5d"
-    - name: include
-      in: query
-      description: Resources to expand in the media response
-      schema:
-        type: array
-        items:
-          $ref: "../../components/schemas/MediaIncludeExpansion.yaml"
-        default: []
+        pattern: '^[A-Za-z0-9_-]{12}$'
+        example: V1StGXR8_Z5d
   responses:
     "200":
       description: OK
       content:
         application/json:
           schema:
-            $ref: "../../components/responses/MediaResponse.yaml"
+            $ref: "../../components/schemas/Media.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
@@ -56,26 +50,26 @@ patch:
   security:
     - ApiKey: [UPDATE_MEDIA]
   parameters:
-    - name: id
+    - name: mediaPublicId
       in: path
       required: true
       description: Media public ID
       schema:
         type: string
-        example: "V1StGXR8_Z5d"
+        example: V1StGXR8_Z5d
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: "../../components/schemas/MediaUpdateRequest.yaml"
+          $ref: "../../components/requestBodies/MediaUpdateRequest.yaml"
   responses:
     "200":
       description: OK
       content:
         application/json:
           schema:
-            $ref: "../../components/responses/MediaResponse.yaml"
+            $ref: "../../components/schemas/Media.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
@@ -101,13 +95,13 @@ delete:
   security:
     - ApiKey: [REMOVE_MEDIA]
   parameters:
-    - name: id
+    - name: mediaPublicId
       in: path
       required: true
       description: Media public ID
       schema:
         type: string
-        example: "V1StGXR8_Z5d"
+        example: V1StGXR8_Z5d
   responses:
     "204":
       description: No Content

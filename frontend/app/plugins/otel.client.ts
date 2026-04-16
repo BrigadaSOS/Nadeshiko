@@ -3,7 +3,7 @@ import { WebTracerProvider, type SpanProcessor } from '@opentelemetry/sdk-trace-
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+import { OTLPMetricExporter, AggregationTemporalityPreference } from '@opentelemetry/exporter-metrics-otlp-http';
 import { LoggerProvider, BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { SeverityNumber } from '@opentelemetry/api-logs';
@@ -18,18 +18,29 @@ import { getPagePath } from '~/utils/pagePath';
 const ID_PATTERN = /^[0-9]+$|^[0-9a-f]{8,}$/i;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NANOID_PATTERN = /^[A-Za-z0-9_-]{8,}$/;
+const COMPOSITE_ID_PATTERN = /^[0-9]+(?:[_-][0-9]+)+$/;
 
 function isIdSegment(seg: string): boolean {
-  if (ID_PATTERN.test(seg)) return true;
-  if (UUID_PATTERN.test(seg)) return true;
-  if (seg.length >= 8 && NANOID_PATTERN.test(seg) && /[0-9]/.test(seg) && /[A-Za-z]/.test(seg)) return true;
+  const bare = seg.replace(/\.[^.]+$/, '');
+  if (ID_PATTERN.test(bare)) return true;
+  if (UUID_PATTERN.test(bare)) return true;
+  if (COMPOSITE_ID_PATTERN.test(bare)) return true;
+  if (bare.length >= 8 && NANOID_PATTERN.test(bare) && /[0-9]/.test(bare) && /[A-Za-z]/.test(bare)) return true;
   return false;
+}
+
+function getSpanUrl(span: { attributes?: Record<string, unknown> }): string {
+  return String(span.attributes?.['http.url'] || span.attributes?.['url.full'] || '');
 }
 
 function normalizePath(path: string): string {
   return path
     .split('/')
-    .map((s) => (s !== '' && isIdSegment(s) ? ':id' : s))
+    .map((s) => {
+      if (s === '' || !isIdSegment(s)) return s;
+      const dotIdx = s.lastIndexOf('.');
+      return dotIdx > 0 ? `:id${s.slice(dotIdx)}` : ':id';
+    })
     .join('/');
 }
 
@@ -54,19 +65,24 @@ class SpanRenamer implements SpanProcessor {
       span.updateName(`${name} ${getPagePath()}`);
       span.setAttribute('page.path', getPagePath());
     } else if (name === 'resourceFetch') {
-      const url = span.attributes?.['http.url'] || '';
+      const url = getSpanUrl(span);
       const path = getUrlPath(url);
-      span.updateName(`resourceFetch ${path}`);
+      if (path) span.updateName(`resourceFetch ${path}`);
     } else if (name.startsWith('HTTP ')) {
       const method = name.replace('HTTP ', '');
-      const url = span.attributes?.['http.url'] || '';
+      const url = getSpanUrl(span);
       const path = getUrlPath(url);
-      span.updateName(`${method} ${path}`);
+      if (path) span.updateName(`${method} ${path}`);
     }
 
     if (span.attributes?.['http.url']) {
       try {
         span.setAttribute('http.url', decodeURIComponent(span.attributes['http.url']));
+      } catch {}
+    }
+    if (span.attributes?.['url.full']) {
+      try {
+        span.setAttribute('url.full', decodeURIComponent(String(span.attributes['url.full'])));
       } catch {}
     }
   }
@@ -133,7 +149,10 @@ export default defineNuxtPlugin({
       resource: resourceFromAttributes(resourceAttrs),
       readers: [
         new PeriodicExportingMetricReader({
-          exporter: new OTLPMetricExporter({ url: `${collectorUrl}/v1/metrics` }),
+          exporter: new OTLPMetricExporter({
+            url: `${collectorUrl}/v1/metrics`,
+            temporalityPreference: AggregationTemporalityPreference.DELTA,
+          }),
           exportIntervalMillis: 30_000,
         }),
       ],

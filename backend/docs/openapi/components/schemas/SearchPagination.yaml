@@ -1,0 +1,30 @@
+type: object
+description: Pagination metadata for search results
+required:
+  - hasMore
+  - estimatedTotalHits
+  - estimatedTotalHitsRelation
+  - cursor
+properties:
+  hasMore:
+    type: boolean
+    description: Whether there are more results after this page
+    example: true
+  estimatedTotalHits:
+    type: integer
+    description: Estimated total number of matching segments
+    minimum: 0
+    example: 12456
+  estimatedTotalHitsRelation:
+    type: string
+    description: |
+      Whether `estimatedTotalHits` is exact or a lower bound.
+      - `EXACT`: the value is the precise total
+      - `AT_LEAST`: at least this many matches exist (true total may be higher)
+    enum: [EXACT, AT_LEAST]
+    example: AT_LEAST
+  cursor:
+    type: string
+    nullable: true
+    minLength: 1
+    description: Opaque cursor token to pass on the next request to fetch the following page

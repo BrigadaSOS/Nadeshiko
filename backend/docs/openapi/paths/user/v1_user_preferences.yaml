@@ -18,6 +18,10 @@ get:
             $ref: "../../components/schemas/UserPreferences.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
 
@@ -46,7 +50,13 @@ patch:
         application/json:
           schema:
             $ref: "../../components/schemas/UserPreferences.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"

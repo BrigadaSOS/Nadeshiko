@@ -1,0 +1,24 @@
+meta {
+  name: Get activity heatmap data
+  type: http
+  seq: 41
+}
+
+get {
+  url: {{baseUrl}}/v1/user/activity/heatmap?days=365
+  body: none
+  auth: bearer
+}
+
+params:query {
+  days: 365
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

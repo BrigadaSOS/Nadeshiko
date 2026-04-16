@@ -149,7 +149,7 @@ const addToCollection = async (collection: CollectionOption, isQuickAdd = false)
   addingCollectionId.value = collection.id;
   try {
     await sdk.addSegmentToCollection({
-      path: { id: collection.id },
+      path: { collectionId: collection.id },
       body: { segmentId: props.content.segment.publicId },
     });
     posthog?.capture('segment_added_to_collection', {

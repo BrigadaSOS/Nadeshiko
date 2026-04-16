@@ -8,7 +8,7 @@ export { AccountQuotaUsage } from './AccountQuotaUsage';
 export { LabEnrollment } from './LabEnrollment';
 
 // Media domain
-export { Media, CategoryType, MediaInclude } from './Media';
+export { Media, CategoryType } from './Media';
 export { MediaExternalId, ExternalSourceType } from './MediaExternalId';
 export { Segment, SegmentStatus, SegmentStorage, ContentRating } from './Segment';
 export type { PosAnalysisData, RatingAnalysisData } from './Segment';

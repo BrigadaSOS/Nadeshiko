@@ -1,17 +1,17 @@
 meta {
   name: Delete report and its group
   type: http
-  seq: 82
+  seq: 59
 }
 
 delete {
-  url: {{baseUrl}}/v1/admin/reports/:id
+  url: {{baseUrl}}/v1/admin/reports/:reportId
   body: none
   auth: none
 }
 
 params:query {
-  id:
+  reportId:
 }
 
 settings {

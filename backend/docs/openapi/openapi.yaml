@@ -5,16 +5,25 @@ info:
     Thank you for using the Nadeshiko API! This API lets you search Japanese dialogue segments across anime and J-Drama, with translations and contextual metadata.
 
     ### Authentication
-    All API requests require an API key passed as a Bearer token. You can register and generate your key on the [developer page](https://nadeshiko.co/user/developer), where you can also check your current usage.
+    All public API requests require an API key passed in the `Authorization` header as `Bearer <api_key>`.
+    You can register and generate your key on the [developer page](https://nadeshiko.co/user/developer), where you can also check your current usage.
+
+    ### Request Headers
+    The only required application-level request header for the public API is:
+
+    - `Authorization: Bearer <api_key>`
+
+    Public API endpoints do not currently expose custom request ID or rate limit response headers.
 
     ### Rate Limit
     Each API key is limited to **150 requests per minute**. Exceeding this limit will return a `429 Too Many Requests` response.
+    The `429` response body distinguishes between short-term rate limiting and monthly quota exhaustion.
 
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
 
-  version: 2.0.7
+  version: 2.1.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -35,28 +44,44 @@ tags:
     description: |
       Search endpoints for querying Japanese segments across indexed media.
 
+  - name: Media
+    description: |
+      Media endpoints for browsing anime and J-Drama entries, episodes, and segments.
+
+  - name: Collections
+    description: |
+      Collection endpoints for managing saved segment collections.
+
+  - name: User
+    description: |
+      User endpoints for profile data, excluded media, and activity history.
+
+  - name: Activity
+    description: |
+      Activity endpoints for tracking and querying the authenticated user's activity history.
+
+  - name: Stats
+    description: |
+      Statistics endpoints for corpus coverage and word frequency data.
+
   - name: Admin
     x-internal: true
     description: |
       Administrative endpoints for system management, queue monitoring, and automated review.
 
-  - name: Media
-    description: |
-      Media CRUD endpoints for managing anime and J-Drama entries, episodes, segments, characters, and seiyuu.
-
+x-tagGroups:
+  - name: Core
+    tags:
+      - Search
+      - Media
   - name: User
-    x-internal: true
-    description: |
-      User endpoints for account data including quota, preferences, activity history, reports, and data export.
-
-  - name: Stats
-    description: |
-      Public statistics endpoints for corpus coverage and word frequency data.
-
-  - name: Collections
-    x-internal: true
-    description: |
-      Collection endpoints for managing saved segment collections.
+    tags:
+      - User
+      - Activity
+      - Collections
+  - name: Misc
+    tags:
+      - Stats
 
 paths:
   # Search endpoints
@@ -66,6 +91,8 @@ paths:
     $ref: "./paths/search/v1_search_stats.yaml"
   "/v1/search/words":
     $ref: "./paths/search/v1_search_words.yaml"
+  "/v1/search/media":
+    $ref: "./paths/search/v1_search_media.yaml"
   # Stats endpoints
   "/v1/stats/overview":
     $ref: "./paths/stats/v1_stats_overview.yaml"
@@ -76,56 +103,38 @@ paths:
   # Media endpoints
   "/v1/media":
     $ref: "./paths/media/v1_media.yaml"
-  "/v1/media/autocomplete":
-    $ref: "./paths/media/v1_media_autocomplete.yaml"
 
-  # Segment standalone UUID query (static prefix before {id})
-  "/v1/media/segments/{uuid}":
-    $ref: "./paths/media/v1_media_segments_uuid.yaml"
-  "/v1/media/segments/{uuid}/context":
-    $ref: "./paths/media/v1_media_segments_uuid_context.yaml"
-  "/v1/media/segments/{uuid}/revisions":
-    $ref: "./paths/media/v1_media_segments_uuid_revisions.yaml"
-
-  # Series endpoints (static prefix before {id})
-  "/v1/media/series":
-    $ref: "./paths/media/v1_media_series.yaml"
-  "/v1/media/series/{id}":
-    $ref: "./paths/media/v1_media_series_id.yaml"
-  "/v1/media/series/{id}/media":
-    $ref: "./paths/media/v1_media_series_id_media.yaml"
-  "/v1/media/series/{id}/media/{mediaId}":
-    $ref: "./paths/media/v1_media_series_id_media_mediaId.yaml"
-
-  # Character endpoints (static prefix before {id})
-  "/v1/media/characters/{id}":
-    $ref: "./paths/media/v1_media_characters_id.yaml"
-
-  # Seiyuu endpoints (static prefix before {id})
-  "/v1/media/seiyuu/{id}":
-    $ref: "./paths/media/v1_media_seiyuu_id.yaml"
+  # Segment standalone query by segmentPublicId (static prefix before {mediaPublicId})
+  "/v1/media/segments/{segmentPublicId}":
+    $ref: "./paths/media/v1_media_segments_publicId.yaml"
+  "/v1/media/segments/{segmentPublicId}/context":
+    $ref: "./paths/media/v1_media_segments_publicId_context.yaml"
+  "/v1/media/segments/{segmentPublicId}/revisions":
+    $ref: "./paths/media/v1_media_segments_publicId_revisions.yaml"
 
   # Parameterized media route — MUST come after all static /v1/media/* routes
-  "/v1/media/{id}":
+  "/v1/media/{mediaPublicId}":
     $ref: "./paths/media/v1_media_id.yaml"
 
   # Episode endpoints (nested under media)
-  "/v1/media/{mediaId}/episodes":
+  "/v1/media/{mediaPublicId}/episodes":
     $ref: "./paths/media/v1_media_mediaId_episodes.yaml"
-  "/v1/media/{mediaId}/episodes/{episodeNumber}":
+  "/v1/media/{mediaPublicId}/episodes/{episodeNumber}":
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber.yaml"
 
   # Segment endpoints (nested under episodes)
-  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments":
+  "/v1/media/{mediaPublicId}/episodes/{episodeNumber}/segments":
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments.yaml"
-  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/batch":
+  "/v1/media/{mediaPublicId}/episodes/{episodeNumber}/segments/batch":
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_batch.yaml"
-  "/v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}":
-    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_id.yaml"
 
   # User endpoints
-  "/v1/user/quota":
-    $ref: "./paths/user/v1_user_quota.yaml"
+  "/v1/user/me":
+    $ref: "./paths/user/v1_user_me.yaml"
+  "/v1/user/excluded-media":
+    $ref: "./paths/user/v1_user_excluded_media.yaml"
+  "/v1/user/excluded-media/{mediaPublicId}":
+    $ref: "./paths/user/v1_user_excluded_media_mediaPublicId.yaml"
   "/v1/user/reports":
     $ref: "./paths/user/v1_user_reports.yaml"
   "/v1/user/preferences":
@@ -138,7 +147,7 @@ paths:
     $ref: "./paths/user/v1_user_activity_stats.yaml"
   "/v1/user/activity/date/{date}":
     $ref: "./paths/user/v1_user_activity_date_date.yaml"
-  "/v1/user/activity/{id}":
+  "/v1/user/activity/{activityId}":
     $ref: "./paths/user/v1_user_activity_id.yaml"
   "/v1/user/export":
     $ref: "./paths/user/v1_user_export.yaml"
@@ -150,53 +159,27 @@ paths:
   # Collection endpoints
   "/v1/collections":
     $ref: "./paths/collections/v1_collections.yaml"
-  "/v1/collections/{id}":
+  "/v1/collections/{collectionPublicId}":
     $ref: "./paths/collections/v1_collections_id.yaml"
-  "/v1/collections/{id}/segments":
+  "/v1/collections/{collectionPublicId}/segments":
     $ref: "./paths/collections/v1_collections_id_segments.yaml"
-  "/v1/collections/{id}/segments/{segmentId}":
-    $ref: "./paths/collections/v1_collections_id_segments_segmentId.yaml"
-  "/v1/collections/{id}/search":
+  "/v1/collections/{collectionPublicId}/search":
     $ref: "./paths/collections/v1_collections_id_search.yaml"
-  "/v1/collections/{id}/stats":
+  "/v1/collections/{collectionPublicId}/segments/{segmentPublicId}":
+    $ref: "./paths/collections/v1_collections_id_segments_segmentId.yaml"
+  "/v1/collections/{collectionPublicId}/stats":
     $ref: "./paths/collections/v1_collections_id_stats.yaml"
 
   # Admin endpoints
-  "/v1/admin/dashboard":
-    $ref: "./paths/admin/v1_admin_dashboard.yaml"
-  "/v1/admin/dashboard/overview":
-    $ref: "./paths/admin/v1_admin_dashboard_overview.yaml"
-  "/v1/admin/dashboard/media":
-    $ref: "./paths/admin/v1_admin_dashboard_media.yaml"
-  "/v1/admin/dashboard/activity":
-    $ref: "./paths/admin/v1_admin_dashboard_activity.yaml"
-  "/v1/admin/dashboard/collections":
-    $ref: "./paths/admin/v1_admin_dashboard_collections.yaml"
-  "/v1/admin/dashboard/api-keys":
-    $ref: "./paths/admin/v1_admin_dashboard_api_keys.yaml"
-  "/v1/admin/dashboard/system":
-    $ref: "./paths/admin/v1_admin_dashboard_system.yaml"
-  "/v1/admin/health":
-    $ref: "./paths/admin/v1_admin_health.yaml"
   "/v1/admin/reindex":
     $ref: "./paths/admin/v1_admin_reindex.yaml"
-  "/v1/admin/queues/stats":
-    $ref: "./paths/admin/v1_admin_queues_stats.yaml"
-  "/v1/admin/queues/{queueName}":
-    $ref: "./paths/admin/v1_admin_queues__queueName_.yaml"
-  "/v1/admin/queues/{queueName}/failed":
-    $ref: "./paths/admin/v1_admin_queues__queueName__failed.yaml"
-  "/v1/admin/queues/{queueName}/retry":
-    $ref: "./paths/admin/v1_admin_queues__queueName__retry.yaml"
-  "/v1/admin/queues/{queueName}/purge":
-    $ref: "./paths/admin/v1_admin_queues__queueName__purge.yaml"
   "/v1/admin/reports":
     $ref: "./paths/admin/v1_admin_reports.yaml"
   "/v1/admin/reports/batch":
     $ref: "./paths/admin/v1_admin_reports_batch.yaml"
   "/v1/admin/reports/bulk":
     $ref: "./paths/admin/v1_admin_reports_bulk.yaml"
-  "/v1/admin/reports/{id}":
+  "/v1/admin/reports/{reportId}":
     $ref: "./paths/admin/v1_admin_reports_id.yaml"
   "/v1/admin/media/audits":
     $ref: "./paths/admin/v1_admin_media_audits.yaml"
@@ -206,7 +189,7 @@ paths:
     $ref: "./paths/admin/v1_admin_media_audits_name_run.yaml"
   "/v1/admin/media/audits/runs":
     $ref: "./paths/admin/v1_admin_media_audits_runs.yaml"
-  "/v1/admin/media/audits/runs/{id}":
+  "/v1/admin/media/audits/runs/{auditRunId}":
     $ref: "./paths/admin/v1_admin_media_audits_runs_id.yaml"
   "/v1/admin/announcement":
     $ref: "./paths/admin/v1_admin_announcement.yaml"
@@ -217,20 +200,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: APIKey
-      description: API key authentication via Authorization Bearer header
+      description: "Send `Authorization: Bearer <api_key>`. Get your API key from https://nadeshiko.co/user/developer"
 
     SessionCookie:
       type: apiKey
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
-
-
-
-
-
-
-
-
-
-

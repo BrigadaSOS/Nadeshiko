@@ -32,7 +32,7 @@ export function registerQueueMetrics(boss: PgBoss, queueNames: readonly string[]
           obs.observe(stats.activeCount, { 'pgboss.queue': queue, 'pgboss.state': 'active' });
           obs.observe(stats.deferredCount, { 'pgboss.queue': queue, 'pgboss.state': 'deferred' });
         } catch (err) {
-          logger.debug(`Failed to get queue stats for ${queue}: ${err}`);
+          logger.debug({ err, queue }, 'Failed to get queue stats');
         }
       }
     });
@@ -52,7 +52,7 @@ export function registerQueueMetrics(boss: PgBoss, queueNames: readonly string[]
           obs.observe(row.count, { 'pgboss.queue': row.name });
         }
       } catch (err) {
-        logger.debug(`Failed to get failed job counts: ${err}`);
+        logger.debug({ err }, 'Failed to get failed job counts');
       }
     });
 }

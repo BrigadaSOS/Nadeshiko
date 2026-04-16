@@ -5,15 +5,12 @@ import type {
   GetMedia,
   UpdateMedia,
   DeleteMedia,
-  AutocompleteMedia,
 } from 'generated/routes/media';
+import type { SearchMedia } from 'generated/routes/search';
 import type { ListMediaQueryOutput } from 'generated/outputTypes';
-import type { t_CharacterInput, t_ExternalId } from 'generated/models';
+import type { t_ExternalId } from 'generated/models';
 import type { DeepPartial } from 'typeorm';
-import { CategoryType, Media, MediaCharacter, MediaExternalId, MediaInclude, Segment } from '@app/models';
-import { Character } from '@app/models/Character';
-import { Seiyuu } from '@app/models/Seiyuu';
-import { CharacterRole } from '@app/models/MediaCharacter';
+import { CategoryType, Media, MediaExternalId, Segment } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import {
   toMediaCreateAttributes,
@@ -21,8 +18,8 @@ import {
   toMediaExternalIdAttributes,
   toMediaListDTO,
   toMediaUpdatePatch,
-} from './mappers/media.mapper';
-import { toMediaAutocompleteDTO } from './mappers/shared.mapper';
+} from './mappers/mediaMapper';
+import { toMediaSummaryDTO } from './mappers/sharedMapper';
 import { Cache } from '@lib/cache';
 import { decodeOffsetCursor, encodeOffsetCursor } from '@lib/cursor';
 import { SegmentDocument } from '@app/models/SegmentDocument';
@@ -35,8 +32,6 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
     return listMediaRanked(query, respond);
   }
 
-  const includeCharacters = query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false;
-
   const [{ items: mediaList, pagination }, globalStats] = await Promise.all([
     Media.paginateWithKeyset({
       take: query.take,
@@ -46,11 +41,6 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
           .leftJoinAndSelect('media.externalIds', 'externalIds')
           .leftJoinAndSelect('media.episodes', 'episodes');
         if (query.category) qb.where({ category: query.category as CategoryType });
-        if (includeCharacters) {
-          qb.leftJoinAndSelect('media.characters', 'characters')
-            .leftJoinAndSelect('characters.character', 'character')
-            .leftJoinAndSelect('character.seiyuu', 'seiyuu');
-        }
         return qb;
       },
     }),
@@ -79,7 +69,6 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
     ELSE 2
   END`;
 
-  const includeCharacters = query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false;
   const skip = decodeOffsetCursor(query.cursor);
   const take = query.take;
 
@@ -104,12 +93,6 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
 
   if (query.category) {
     qb.andWhere('media.category = :category', { category: query.category as CategoryType });
-  }
-
-  if (includeCharacters) {
-    qb.leftJoinAndSelect('media.characters', 'characters')
-      .leftJoinAndSelect('characters.character', 'character')
-      .leftJoinAndSelect('character.seiyuu', 'seiyuu');
   }
 
   const [rows, globalStats] = await Promise.all([qb.getMany(), Media.getGlobalStats()]);
@@ -137,31 +120,23 @@ export const createMedia: CreateMedia = async ({ body }, respond) => {
   const slug = await resolveUniqueSlug(slugSource);
   const media = await Media.create({ ...attrs, slug } as DeepPartial<Media>).save();
 
-  if (body.characters?.length) {
-    media.characters = await replaceMediaCharacters(media.id, body.characters);
-  }
-
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
-  return respond.with201().body(toMediaDTO(media));
+  return respond.with201().body(toMediaDTO(media) as any);
 };
 
-export const getMedia: GetMedia = async ({ params, query }, respond) => {
-  const mediaRelations = Media.buildRelations({
-    includeCharacters: query.include?.includes(MediaInclude.MEDIA_CHARACTERS) ?? false,
-  });
-
+export const getMedia: GetMedia = async ({ params }, respond) => {
   const media = await Media.findOneOrFail({
-    where: [{ publicId: params.id }, { slug: params.id }],
-    relations: mediaRelations,
+    where: { publicId: params.mediaPublicId },
+    relations: Media.buildRelations(),
   });
 
-  return respond.with200().body(toMediaDTO(media));
+  return respond.with200().body(toMediaDTO(media) as any);
 };
 
 export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
-  const media = await Media.findOneOrFail({ where: { publicId: params.id } });
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
   const patch = toMediaUpdatePatch(body);
 
   if (body.nameRomaji !== undefined || body.nameEn !== undefined) {
@@ -176,27 +151,21 @@ export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
     media.externalIds = await replaceMediaExternalIds(media.id, body.externalIds);
   }
 
-  if (body.characters !== undefined) {
-    media.characters = await replaceMediaCharacters(media.id, body.characters);
-  }
-
   await media.save();
 
   const updated = await Media.findOneOrFail({
     where: { id: media.id },
-    relations: Media.buildRelations({
-      includeCharacters: body.characters !== undefined,
-    }),
+    relations: Media.buildRelations(),
   });
 
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
 
-  return respond.with200().body(toMediaDTO(updated));
+  return respond.with200().body(toMediaDTO(updated) as any);
 };
 
 export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
-  const media = await Media.findOneOrFail({ where: { publicId: params.id } });
+  const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
 
   const segmentIds = await Segment.createQueryBuilder('s')
     .select('s.id')
@@ -216,8 +185,8 @@ export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
   return respond.with204();
 };
 
-export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, respond) => {
-  const normalizedQuery = params.query.trim().toLowerCase();
+export const searchMedia: SearchMedia = async ({ body }, respond) => {
+  const normalizedQuery = body.query.trim().toLowerCase();
   if (!normalizedQuery) {
     throw new InvalidRequestError('query must contain at least one non-whitespace character');
   }
@@ -245,15 +214,16 @@ export const autocompleteMedia: AutocompleteMedia = async ({ query: params }, re
     .orderBy('match_rank', 'ASC')
     .addOrderBy('name_length', 'ASC')
     .addOrderBy('media.id', 'ASC')
-    .take(params.take);
+    .take(body.take);
 
-  if (params.category) {
-    qb.andWhere('media.category = :category', { category: params.category as CategoryType });
+  const categories = body.filters?.category;
+  if (categories && categories.length > 0) {
+    qb.andWhere('media.category IN (:...categories)', { categories: categories as CategoryType[] });
   }
 
   const media = await qb.getMany();
   return respond.with200().body({
-    media: media.map(toMediaAutocompleteDTO),
+    media: media.map(toMediaSummaryDTO),
   });
 };
 
@@ -295,129 +265,4 @@ async function replaceMediaExternalIds(mediaId: number, externalIds: t_ExternalI
   }
 
   return MediaExternalId.save(rows);
-}
-
-async function replaceMediaCharacters(mediaId: number, characters: t_CharacterInput[]): Promise<MediaCharacter[]> {
-  await MediaCharacter.delete({ mediaId });
-
-  if (characters.length === 0) {
-    return [];
-  }
-
-  const result = await insertCharactersForMedia(characters);
-  const mediaCharacters = result.map((r) => {
-    r.mediaCharacter.mediaId = mediaId;
-    return r.mediaCharacter;
-  });
-  const saved = await MediaCharacter.save(mediaCharacters);
-
-  for (let i = 0; i < saved.length; i++) {
-    saved[i].character = await Character.findOneOrFail({
-      where: { id: saved[i].characterId },
-      relations: ['seiyuu'],
-    });
-  }
-
-  return saved;
-}
-
-async function insertCharactersForMedia(
-  characters: t_CharacterInput[],
-): Promise<{ mediaCharacter: MediaCharacter; seiyuu: Seiyuu }[]> {
-  const result: { mediaCharacter: MediaCharacter; seiyuu: Seiyuu }[] = [];
-
-  for (const char of characters) {
-    const seiyuu = await upsertSeiyuu(char.seiyuu);
-
-    const characterAnilistId = char.externalIds.anilist;
-    let character: Character;
-
-    if (characterAnilistId === undefined) {
-      character = await Character.create({
-        externalIds: char.externalIds,
-        nameJapanese: char.nameJa,
-        nameEnglish: char.nameEn,
-        imageUrl: char.imageUrl,
-        seiyuu,
-      }).save();
-    } else {
-      const existing = await Character.createQueryBuilder('c')
-        .where(`c.external_ids->>'anilist' = :id`, { id: characterAnilistId })
-        .getOne();
-
-      if (existing) {
-        character = existing;
-      } else {
-        character = await Character.create({
-          externalIds: char.externalIds,
-          nameJapanese: char.nameJa,
-          nameEnglish: char.nameEn,
-          imageUrl: char.imageUrl,
-          seiyuu,
-        }).save();
-      }
-    }
-
-    result.push({
-      seiyuu,
-      mediaCharacter: MediaCharacter.create({
-        characterId: character.id,
-        role: char.role as CharacterRole,
-      }),
-    });
-  }
-
-  return result;
-}
-
-async function upsertSeiyuu(seiyuuInput: t_CharacterInput['seiyuu']): Promise<Seiyuu> {
-  const anilistId = seiyuuInput.externalIds.anilist;
-
-  if (anilistId === undefined) {
-    return Seiyuu.create({
-      externalIds: seiyuuInput.externalIds,
-      nameJapanese: seiyuuInput.nameJa,
-      nameEnglish: seiyuuInput.nameEn,
-      imageUrl: seiyuuInput.imageUrl,
-    }).save();
-  }
-
-  const maxRetries = 3;
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const existing = await Seiyuu.createQueryBuilder('s')
-      .where(`s.external_ids->>'anilist' = :id`, { id: anilistId })
-      .getOne();
-
-    if (existing) {
-      return existing;
-    }
-
-    try {
-      return await Seiyuu.create({
-        externalIds: seiyuuInput.externalIds,
-        nameJapanese: seiyuuInput.nameJa,
-        nameEnglish: seiyuuInput.nameEn,
-        imageUrl: seiyuuInput.imageUrl,
-      }).save();
-    } catch (error: unknown) {
-      if (attempt < maxRetries - 1 && isDuplicateKeyError(error)) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error('Failed to upsert seiyuu after retries');
-}
-
-function isDuplicateKeyError(error: unknown): boolean {
-  if (error instanceof Error) {
-    const errMsg = error.message;
-    return (
-      errMsg.includes('duplicate key') ||
-      errMsg.includes('unique constraint') ||
-      errMsg.includes('IDX_Seiyuu_anilist_id')
-    );
-  }
-  return false;
 }

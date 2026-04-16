@@ -1,17 +1,17 @@
 meta {
   name: Delete media
   type: http
-  seq: 26
+  seq: 16
 }
 
 delete {
-  url: {{baseUrl}}/v1/media/:id?id=V1StGXR8_Z5d
+  url: {{baseUrl}}/v1/media/:mediaPublicId?mediaPublicId=V1StGXR8_Z5d
   body: none
   auth: bearer
 }
 
 params:query {
-  id: V1StGXR8_Z5d
+  mediaPublicId: V1StGXR8_Z5d
 }
 
 auth:bearer {

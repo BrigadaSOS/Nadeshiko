@@ -1,17 +1,17 @@
 meta {
   name: Search collection segments
   type: http
-  seq: 61
+  seq: 51
 }
 
 get {
-  url: {{baseUrl}}/v1/collections/:id/search?id=V1StGXR8_Z5d&cursor=eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9&take=20
+  url: {{baseUrl}}/v1/collections/:collectionPublicId/search?collectionPublicId=V1StGXR8_Z5d&cursor=eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9&take=20
   body: none
   auth: none
 }
 
 params:query {
-  id: V1StGXR8_Z5d
+  collectionPublicId: V1StGXR8_Z5d
   cursor: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MjB9
   take: 20
 }

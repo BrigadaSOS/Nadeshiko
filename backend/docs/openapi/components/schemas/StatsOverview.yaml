@@ -1,0 +1,81 @@
+type: object
+description: Corpus statistics overview
+required:
+  - totalSegments
+  - totalEpisodes
+  - totalMedia
+  - totalFrequencyWords
+  - dialogueHours
+  - tiers
+  - lastUpdated
+  - translations
+properties:
+  totalSegments:
+    type: integer
+    minimum: 0
+    description: Total number of active segments in the corpus
+    example: 1200000
+  totalEpisodes:
+    type: integer
+    minimum: 0
+    description: Total number of episodes
+    example: 8500
+  totalMedia:
+    type: integer
+    minimum: 0
+    description: Total number of media entries
+    example: 350
+  totalFrequencyWords:
+    type: integer
+    minimum: 0
+    description: Total number of words in the frequency list
+    example: 215900
+  dialogueHours:
+    type: number
+    format: float
+    minimum: 0.0
+    description: Total hours of Japanese dialogue (subtitle coverage time)
+    example: 2450.5
+  tiers:
+    type: array
+    items:
+      $ref: "./WordCoverageTier.yaml"
+  lastUpdated:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the word coverage data was last updated
+  translations:
+    type: object
+    required:
+      - total
+      - enHuman
+      - enMachine
+      - esHuman
+      - esMachine
+    properties:
+      total:
+        type: integer
+        minimum: 0
+        description: Total active segments
+        example: 1200000
+      enHuman:
+        type: integer
+        minimum: 0
+        description: Segments with human English translations
+        example: 800000
+      enMachine:
+        type: integer
+        minimum: 0
+        description: Segments with machine English translations
+        example: 350000
+      esHuman:
+        type: integer
+        minimum: 0
+        description: Segments with human Spanish translations
+        example: 200000
+      esMachine:
+        type: integer
+        minimum: 0
+        description: Segments with machine Spanish translations
+        example: 400000

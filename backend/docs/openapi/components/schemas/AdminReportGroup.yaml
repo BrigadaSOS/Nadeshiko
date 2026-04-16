@@ -16,10 +16,7 @@ properties:
     description: Display name of the target media (romaji)
     example: "Bocchi the Rock!"
   status:
-    type: string
-    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
-    description: Current status of the group (status of the most recent report)
-    example: "OPEN"
+    $ref: "./ReportStatus.yaml"
   reportCount:
     type: integer
     description: Total number of individual reports in this group

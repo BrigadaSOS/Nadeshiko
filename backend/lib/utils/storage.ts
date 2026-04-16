@@ -2,7 +2,6 @@ import { config } from '@config/config';
 import { SegmentStorage } from '@app/models/Segment';
 
 export type Storage = SegmentStorage;
-export { SegmentStorage };
 
 const STORAGE_BASE_URLS: Record<SegmentStorage, string> = {
   [SegmentStorage.R2]: config.R2_BASE_URL,
@@ -68,11 +67,4 @@ export function getSegmentVideoUrl(segment: {
   storageBasePath: string;
 }): string {
   return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${segment.episode}/${segment.hashedId}.mp4`;
-}
-
-/**
- * Get the base URL for a storage backend.
- */
-export function getStorageBaseUrl(storage: SegmentStorage): string {
-  return STORAGE_BASE_URLS[storage];
 }

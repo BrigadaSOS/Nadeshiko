@@ -104,10 +104,9 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       return;
     }
 
-    logger.info(`Email sent to ${options.to}: ${options.subject}`);
+    logger.info({ to: options.to, subject: options.subject }, 'Email sent');
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to send email to ${options.to}: ${errorMessage}`);
+    logger.error({ err: error, to: options.to }, 'Failed to send email');
     throw error;
   }
 }

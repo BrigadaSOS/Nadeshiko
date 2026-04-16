@@ -23,7 +23,7 @@ import {
   toReportUpdatePatch,
   resolveReportPublicIds,
   resolveReportPublicIdsForOne,
-} from '@app/controllers/mappers/report.mapper';
+} from '@app/controllers/mappers/reportMapper';
 
 export const createUserReport: CreateUserReport = async ({ body }, respond, req) => {
   const user = assertUser(req);
@@ -104,9 +104,9 @@ export const listAdminReports: ListAdminReports = async ({ query }, respond) => 
 
 export const updateAdminReport: UpdateAdminReport = async ({ params, body }, respond) => {
   const report = await Report.findAndUpdateOrFail({
-    where: { id: params.id },
+    where: { id: params.reportId },
     patch: toReportUpdatePatch(body),
-    detail: `Report with ID ${params.id} not found`,
+    detail: `Report with ID ${params.reportId} not found`,
   });
 
   const r = report as Report;
@@ -130,7 +130,7 @@ export const batchUpdateAdminReports: BatchUpdateAdminReports = async ({ body },
   const reports = await Report.findBy({ id: In(ids) });
   const updated = await updateReportGroups(reports, patch);
 
-  return respond.with200().body({ updated });
+  return respond.with200().body({ count: updated });
 };
 
 export const bulkUpdateAdminReports: BulkUpdateAdminReports = async ({ body }, respond) => {
@@ -149,17 +149,17 @@ export const bulkUpdateAdminReports: BulkUpdateAdminReports = async ({ body }, r
 
   const result = await qb.execute();
 
-  return respond.with200().body({ updated: result.affected ?? 0 });
+  return respond.with200().body({ count: result.affected ?? 0 });
 };
 
 export const deleteAdminReport: DeleteAdminReport = async ({ params }, respond) => {
-  const report = await Report.findOne({ where: { id: params.id } });
+  const report = await Report.findOne({ where: { id: params.reportId } });
   if (!report) {
-    throw new NotFoundError(`Report with ID ${params.id} not found`);
+    throw new NotFoundError(`Report with ID ${params.reportId} not found`);
   }
 
   const deleted = await deleteReportGroup(report);
-  return respond.with200().body({ deleted });
+  return respond.with200().body({ count: deleted });
 };
 
 export const bulkDeleteAdminReports: BulkDeleteAdminReports = async ({ body }, respond) => {
@@ -174,7 +174,7 @@ export const bulkDeleteAdminReports: BulkDeleteAdminReports = async ({ body }, r
   applyReportFilters(qb, '"Report"', parsed, 'bulk');
 
   const result = await qb.execute();
-  return respond.with200().body({ deleted: result.affected ?? 0 });
+  return respond.with200().body({ count: result.affected ?? 0 });
 };
 
 function parseBulkFilters(filters: {

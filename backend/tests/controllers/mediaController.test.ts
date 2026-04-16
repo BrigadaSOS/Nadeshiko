@@ -7,17 +7,15 @@ import { loadFixtures } from '../fixtures/loader';
 import { assertDifference } from '../helpers/assertions';
 import { assertMatchesSchema } from '../helpers/openapiContract';
 import { CategoryType, Media } from '@app/models/Media';
-import { CharacterRole, MediaCharacter } from '@app/models/MediaCharacter';
 import { MediaExternalId, ExternalSourceType } from '@app/models/MediaExternalId';
 import { SegmentStorage } from '@app/models/Segment';
-import { Character } from '@app/models/Character';
-import { Seiyuu } from '@app/models/Seiyuu';
 
 setupTestSuite();
 
 const app = createTestApp();
 
 let fixtures: CoreFixtures;
+const MISSING_MEDIA_PUBLIC_ID = 'MissingMed01';
 
 beforeAll(async () => {
   fixtures = await seedCoreFixtures();
@@ -50,7 +48,7 @@ function buildCreateMediaBody(overrides: Record<string, unknown> = {}) {
 
 describe('GET /v1/media', () => {
   it('returns paginated media list', async () => {
-    await loadFixtures(['seiyuuWithRoles']);
+    await loadFixtures(['twoMedias']);
 
     const page1 = await request(app).get('/v1/media?take=1');
     expect(page1.status).toBe(200);
@@ -65,10 +63,10 @@ describe('GET /v1/media', () => {
   });
 
   it('filters by query and category', async () => {
-    await loadFixtures(['seiyuuWithRoles']);
+    await loadFixtures(['twoMedias']);
 
     await Media.save({
-      publicId: 'pub-drama-title',
+      publicId: 'DramaTitle01',
       nameJa: 'ドラマ作品',
       nameRomaji: 'Drama Title',
       nameEn: 'Drama Title',
@@ -96,12 +94,12 @@ describe('GET /v1/media', () => {
   });
 });
 
-describe('GET /v1/media/autocomplete', () => {
+describe('POST /v1/search/media', () => {
   it('returns matches and applies category filter', async () => {
-    await loadFixtures(['seiyuuWithRoles']);
+    await loadFixtures(['twoMedias']);
 
     await Media.save({
-      publicId: 'pub-drama-story',
+      publicId: 'DramaStory01',
       nameJa: 'ドラマ',
       nameRomaji: 'Drama Story',
       nameEn: 'Drama Story',
@@ -119,24 +117,30 @@ describe('GET /v1/media/autocomplete', () => {
       storageBasePath: 'media/drama-story',
     });
 
-    const res = await request(app).get('/v1/media/autocomplete?query=story&category=JDRAMA');
+    const res = await request(app)
+      .post('/v1/search/media')
+      .send({
+        query: 'story',
+        filter: { category: ['JDRAMA'] },
+      });
     expect(res.status).toBe(200);
     expect(res.body.media).toHaveLength(1);
     expect(res.body.media[0]).toMatchObject({
       nameEn: 'Drama Story',
       category: 'JDRAMA',
+      mediaPublicId: expect.any(String),
     });
   });
 
   it('returns 400 when query is only whitespace', async () => {
-    const res = await request(app).get('/v1/media/autocomplete?query=%20%20%20');
+    const res = await request(app).post('/v1/search/media').send({ query: '   ' });
     expect(res.status).toBe(400);
   });
 });
 
 describe('POST /v1/media', () => {
   it('creates media with external ids', async () => {
-    let createdId: number | null = null;
+    let createdPublicId: string | null = null;
 
     await assertDifference(
       () => Media.count(),
@@ -161,71 +165,32 @@ describe('POST /v1/media', () => {
             imdb: 'tt12345',
           },
         });
-        createdId = res.body.id as number;
+        createdPublicId = res.body.mediaPublicId as string;
       },
     );
 
-    const rows = await MediaExternalId.findBy({ mediaId: createdId as number });
+    const created = await Media.findOneByOrFail({ publicId: createdPublicId as string });
+    const rows = await MediaExternalId.findBy({ mediaId: created.id });
     expect(rows).toHaveLength(2);
-  });
-
-  it('creates media with nested character and seiyuu payload', async () => {
-    const res = await request(app)
-      .post('/v1/media')
-      .send(
-        buildCreateMediaBody({
-          nameEn: 'Media With Characters',
-          storageBasePath: 'media/with-characters',
-          characters: [
-            {
-              externalIds: { anilist: 'c-100' },
-              nameJa: 'キャラ',
-              nameEn: 'Character',
-              imageUrl: 'https://example.com/char.jpg',
-              role: 'MAIN',
-              seiyuu: {
-                externalIds: { anilist: 's-100' },
-                nameJa: '声優',
-                nameEn: 'Seiyuu',
-                imageUrl: 'https://example.com/seiyuu.jpg',
-              },
-            },
-          ],
-        }),
-      );
-
-    expect(res.status).toBe(201);
-    expect(res.body.characters).toHaveLength(1);
-    expect(res.body.characters[0]).toMatchObject({
-      nameEn: 'Character',
-      role: CharacterRole.MAIN,
-      seiyuu: { nameEn: 'Seiyuu' },
-    });
-
-    const mediaId = res.body.id as number;
-    expect(await MediaCharacter.countBy({ mediaId })).toBe(1);
-    expect(await Character.count()).toBeGreaterThanOrEqual(1);
-    expect(await Seiyuu.count()).toBeGreaterThanOrEqual(1);
   });
 });
 
 describe('GET /v1/media/:id', () => {
-  it('returns media and includes characters when requested', async () => {
-    const loaded = await loadFixtures(['seiyuuWithRoles']);
+  it('returns media by publicId', async () => {
+    const loaded = await loadFixtures(['twoMedias']);
     const media = loaded.media.spyXFamily;
 
-    const res = await request(app).get(`/v1/media/${media.publicId}?include=media.characters`);
+    const res = await request(app).get(`/v1/media/${media.publicId}`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      id: media.id,
+      mediaPublicId: media.publicId,
       nameEn: 'Spy x Family',
     });
-    expect(res.body.characters).toHaveLength(1);
     assertMatchesSchema(schemas.s_Media, res.body, 'GET /v1/media/:id 200');
   });
 
   it('returns 404 when media does not exist', async () => {
-    const res = await request(app).get('/v1/media/999999');
+    const res = await request(app).get(`/v1/media/${MISSING_MEDIA_PUBLIC_ID}`);
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
@@ -267,7 +232,12 @@ describe('PATCH /v1/media/:id', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(res.body.externalIds).toEqual({ tvdb: 'new-tvdb' });
+    expect(res.body.externalIds).toEqual({
+      anilist: null,
+      imdb: null,
+      tmdb: null,
+      tvdb: 'new-tvdb',
+    });
 
     const rows = await MediaExternalId.findBy({ mediaId: media.id });
     expect(rows).toHaveLength(1);
@@ -277,46 +247,8 @@ describe('PATCH /v1/media/:id', () => {
     });
   });
 
-  it('clears media characters when an empty list is provided', async () => {
-    const createRes = await request(app)
-      .post('/v1/media')
-      .send(
-        buildCreateMediaBody({
-          nameEn: 'To Clear Characters',
-          storageBasePath: 'media/to-clear',
-          characters: [
-            {
-              externalIds: { anilist: 'c-clear' },
-              nameJa: 'クリア',
-              nameEn: 'Clear',
-              imageUrl: 'https://example.com/clear-char.jpg',
-              role: 'SUPPORTING',
-              seiyuu: {
-                externalIds: { anilist: 's-clear' },
-                nameJa: 'クリア声優',
-                nameEn: 'Clear Seiyuu',
-                imageUrl: 'https://example.com/clear-seiyuu.jpg',
-              },
-            },
-          ],
-        }),
-      );
-    expect(createRes.status).toBe(201);
-    const mediaId = createRes.body.id as number;
-    const publicId = createRes.body.publicId as string;
-    expect(await MediaCharacter.countBy({ mediaId })).toBe(1);
-
-    const res = await request(app).patch(`/v1/media/${publicId}`).send({
-      characters: [],
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.body.characters).toEqual([]);
-    expect(await MediaCharacter.countBy({ mediaId })).toBe(0);
-  });
-
   it('returns 404 when media does not exist', async () => {
-    const res = await request(app).patch('/v1/media/999999').send({ nameEn: 'Nope' });
+    const res = await request(app).patch(`/v1/media/${MISSING_MEDIA_PUBLIC_ID}`).send({ nameEn: 'Nope' });
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
@@ -341,7 +273,7 @@ describe('DELETE /v1/media/:id', () => {
   });
 
   it('returns 404 when media does not exist', async () => {
-    const res = await request(app).delete('/v1/media/nonexistent');
+    const res = await request(app).delete(`/v1/media/${MISSING_MEDIA_PUBLIC_ID}`);
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });

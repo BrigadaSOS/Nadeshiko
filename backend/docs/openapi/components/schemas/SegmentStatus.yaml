@@ -1,0 +1,4 @@
+type: string
+description: Segment status
+enum: [ACTIVE, HIDDEN, DELETED]
+example: "ACTIVE"

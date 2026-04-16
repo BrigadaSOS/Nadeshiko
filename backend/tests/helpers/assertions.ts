@@ -34,9 +34,9 @@ async function withSavepointRecovery(block: () => Promise<void>): Promise<void> 
  * });
  *
  * // Multiple counters — call in parallel before the block, check after:
- * await assertDifference(() => Series.count(), +1, async () => {
- *   await assertDifference(() => SeriesMedia.count(), 0, async () => {
- *     await request(app).post('/v1/media/series').send({ nameEn: 'My Series' });
+ * await assertDifference(() => Media.count(), +1, async () => {
+ *   await assertDifference(() => Episode.count(), 0, async () => {
+ *     await request(app).post('/v1/media').send(buildCreateMediaBody());
  *   });
  * });
  */

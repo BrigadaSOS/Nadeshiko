@@ -8,4 +8,4 @@ properties:
     items:
       $ref: "../schemas/AdminReportGroup.yaml"
   pagination:
-    $ref: "../schemas/OpaqueCursorPagination.yaml"
+    $ref: "../schemas/CursorPagination.yaml"

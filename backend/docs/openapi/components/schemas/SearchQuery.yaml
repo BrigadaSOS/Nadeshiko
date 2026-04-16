@@ -1,0 +1,12 @@
+type: object
+description: What to search for (omit for queryless browse/stats)
+properties:
+  search:
+    type: string
+    description: Search expression (supports boolean operators, wildcards, phrase matching)
+    maxLength: 500
+    example: "(猫 OR 犬) AND 好き"
+  exactMatch:
+    type: boolean
+    description: Require exact phrase matching (disables fuzzy and partial matches)
+    default: false

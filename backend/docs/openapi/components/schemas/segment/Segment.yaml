@@ -1,81 +1,75 @@
 type: object
-description: Segment with content, optional highlights, and media URLs
+description: Segment with content, translations, search-related highlights, and media URLs
 required:
-  - id
-  - uuid
-  - publicId
+  - segmentPublicId
   - position
   - status
   - startTimeMs
   - endTimeMs
   - contentRating
   - episode
-  - mediaId
   - mediaPublicId
   - textJa
   - textEn
   - textEs
   - urls
 properties:
-  id:
-    type: integer
-    description: Numeric identifier for the segment
-    example: 120045
-  uuid:
+  segmentPublicId:
     type: string
-    description: Unique identifier for the segment
-    example: "3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e"
-  publicId:
-    type: string
-    description: Public identifier for the segment (use this instead of uuid in public URLs)
-    example: "V1StGXR8_Z5d"
+    description: Public ID for the segment (nanoid)
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   position:
     type: integer
     description: Position of the segment within the episode
+    minimum: 0
     example: 1133
   status:
-    type: string
-    enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
-    description: Segment status
-    example: "ACTIVE"
+    $ref: "../SegmentStatus.yaml"
   startTimeMs:
     type: integer
     description: Start time of the segment in milliseconds from the beginning of the episode
+    minimum: 0
     example: 2007255
   endTimeMs:
     type: integer
     description: End time of the segment in milliseconds from the beginning of the episode
+    minimum: 0
     example: 2008464
   contentRating:
     $ref: "../ContentRating.yaml"
   episode:
     type: integer
-    description: Episode number this segment belongs to
+    description: Episode number this segment belongs to (0 for movies/specials)
+    minimum: 0
     example: 1
-  mediaId:
-    type: integer
-    description: Media ID this segment belongs to
-    example: 7674
   mediaPublicId:
     type: string
-    description: Public ID of the media this segment belongs to
-    example: "V1StGXR8_Z5d"
+    description: Public ID of the media this segment belongs to (nanoid)
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   textJa:
     type: object
     required:
       - content
+      - highlight
+      - tokens
     properties:
       content:
         type: string
+        minLength: 1
         maxLength: 500
         description: Original Japanese content
-        example: "僕は僕で、君は君だ。"
+        example: 僕は僕で、君は君だ。
       highlight:
         type: string
-        description: Japanese content with search terms highlighted
+        nullable: true
+        minLength: 1
+        description: Japanese `content` with `<mark>` tags wrapping terms that matched a search query. Only populated on segments returned from a search endpoint.
       tokens:
         type: array
-        description: Morphological tokens for interactive display (Labs feature)
+        nullable: true
+        description: Morphological tokens for interactive display. Populated only for segments with available POS analysis.
         items:
           $ref: "Token.yaml"
   textEn:
@@ -83,37 +77,45 @@ properties:
     required:
       - content
       - isMachineTranslated
+      - highlight
     properties:
       content:
         type: string
+        minLength: 1
         maxLength: 500
         description: English translation
-        example: "I am me, and you are you."
+        example: I am me, and you are you.
       isMachineTranslated:
         type: boolean
         description: Whether the translation was machine-translated
         example: false
       highlight:
         type: string
-        description: English content with search terms highlighted
+        nullable: true
+        minLength: 1
+        description: English `content` with `<mark>` tags wrapping terms that matched a search query. Only populated on segments returned from a search endpoint that matched this language.
   textEs:
     type: object
     required:
       - content
       - isMachineTranslated
+      - highlight
     properties:
       content:
         type: string
+        minLength: 1
         maxLength: 500
         description: Spanish translation
-        example: "Yo soy yo, y tú eres tú."
+        example: Yo soy yo, y tú eres tú.
       isMachineTranslated:
         type: boolean
         description: Whether the translation was machine-translated
         example: false
       highlight:
         type: string
-        description: Spanish content with search terms highlighted
+        nullable: true
+        minLength: 1
+        description: Spanish `content` with `<mark>` tags wrapping terms that matched a search query. Only populated on segments returned from a search endpoint that matched this language.
   urls:
     type: object
     description: URLs to media resources for this segment
@@ -125,12 +127,15 @@ properties:
       imageUrl:
         type: string
         format: uri
+        minLength: 1
         description: URL to the subtitle image snapshot
       audioUrl:
         type: string
         format: uri
+        minLength: 1
         description: URL to the audio clip for this segment
       videoUrl:
         type: string
         format: uri
+        minLength: 1
         description: URL to the video clip for this segment

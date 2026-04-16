@@ -65,10 +65,8 @@ describe('unauthenticated access', () => {
 
   const protectedRoutes = [
     { method: 'get' as const, path: '/v1/media' },
-    { method: 'get' as const, path: '/v1/user/quota' },
     { method: 'get' as const, path: '/v1/collections' },
-    { method: 'get' as const, path: '/v1/admin/dashboard' },
-    { method: 'get' as const, path: '/v1/admin/health' },
+    { method: 'post' as const, path: '/v1/admin/reindex' },
   ];
 
   for (const route of protectedRoutes) {
@@ -88,9 +86,7 @@ describe('admin route protection', () => {
   });
 
   const adminRoutes = [
-    { method: 'get' as const, path: '/v1/admin/dashboard' },
-    { method: 'get' as const, path: '/v1/admin/health' },
-    { method: 'get' as const, path: '/v1/admin/queues/stats' },
+    { method: 'post' as const, path: '/v1/admin/reindex' },
     { method: 'get' as const, path: '/v1/admin/reports' },
     { method: 'get' as const, path: '/v1/admin/media/audits' },
   ];
@@ -114,7 +110,7 @@ describe('admin route protection', () => {
       type: AuthType.SESSION,
     };
 
-    const res = await request(app).get('/v1/admin/health');
+    const res = await request(app).post('/v1/admin/reindex').send({});
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(403);
   });
@@ -309,7 +305,7 @@ describe('admin role boundary', () => {
       type: AuthType.SESSION,
     };
 
-    const res = await request(app).get('/v1/admin/dashboard');
+    const res = await request(app).post('/v1/admin/reindex').send({});
     expect(res.status).toBe(403);
   });
 
@@ -328,7 +324,7 @@ describe('admin role boundary', () => {
       type: AuthType.SESSION,
     };
 
-    const res = await request(app).get('/v1/admin/dashboard');
+    const res = await request(app).post('/v1/admin/reindex').send({});
     expect(res.status).toBe(403);
   });
 });

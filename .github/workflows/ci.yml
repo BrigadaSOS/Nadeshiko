@@ -14,6 +14,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       discord: ${{ steps.filter.outputs.discord }}
+      openapi: ${{ steps.filter.outputs.openapi }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -26,6 +27,9 @@ jobs:
               - 'frontend/**'
             discord:
               - 'discord/**'
+            openapi:
+              - 'backend/docs/openapi/**'
+              - 'backend/redocly.yaml'
 
   backend:
     needs: changes
@@ -69,6 +73,69 @@ jobs:
 
       - name: Test
         run: cd backend && bun run test
+
+  openapi:
+    needs: changes
+    if: needs.changes.outputs.openapi == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          path: head
+
+      - name: Checkout PR base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install backend dependencies
+        run: cd head/backend && bun install --frozen-lockfile
+
+      - name: Bundle base public OpenAPI spec
+        run: |
+          set -euo pipefail
+          REDOCLY="${GITHUB_WORKSPACE}/head/backend/node_modules/.bin/redocly"
+          cd "${GITHUB_WORKSPACE}/base/backend"
+          "$REDOCLY" bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
+
+      - name: Bundle head public OpenAPI spec
+        run: |
+          set -euo pipefail
+          cd "${GITHUB_WORKSPACE}/head/backend"
+          ./node_modules/.bin/redocly bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
+
+      - name: Check public API breaking changes
+        uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.1
+        with:
+          base: base/backend/docs/generated/openapi-public.yaml
+          revision: head/backend/docs/generated/openapi-public.yaml
+          fail-on: ERR
+
+      - name: Generate public API changelog
+        uses: oasdiff/oasdiff-action/changelog@v0.0.40-beta.1
+        with:
+          base: base/backend/docs/generated/openapi-public.yaml
+          revision: head/backend/docs/generated/openapi-public.yaml
+          format: markdown
+          output-to-file: head/backend/docs/generated/openapi-changelog.md
+
+      - name: Publish OpenAPI changelog summary
+        run: cat head/backend/docs/generated/openapi-changelog.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload OpenAPI changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-changelog
+          path: head/backend/docs/generated/openapi-changelog.md
+          if-no-files-found: error
 
   frontend:
     needs: changes

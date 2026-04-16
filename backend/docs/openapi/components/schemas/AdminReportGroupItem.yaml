@@ -12,41 +12,13 @@ properties:
     type: integer
     description: Report ID
   reason:
-    type: string
-    enum:
-      - WRONG_TRANSLATION
-      - WRONG_TIMING
-      - WRONG_AUDIO
-      - WRONG_JAPANESE_TEXT
-      - LOW_QUALITY_AUDIO
-      - NSFW_NOT_TAGGED
-      - DUPLICATE_SEGMENT
-      - WRONG_METADATA
-      - MISSING_EPISODES
-      - WRONG_COVER_IMAGE
-      - WRONG_TITLE
-      - DUPLICATE_MEDIA
-      - WRONG_EPISODE_NUMBER
-      - IMAGE_ISSUE
-      - INAPPROPRIATE_CONTENT
-      - OTHER
-      - LOW_SEGMENT_MEDIA
-      - EMPTY_EPISODES
-      - MISSING_EPISODES_AUTO
-      - BAD_SEGMENT_RATIO
-      - MEDIA_WITH_NO_EPISODES
-      - MISSING_TRANSLATIONS
-      - DB_ES_SYNC_ISSUES
-      - HIGH_REPORT_DENSITY
-    description: Reason for the report
+    $ref: "./ReportReason.yaml"
   description:
     type: string
     nullable: true
     description: Optional description with additional details
   source:
-    type: string
-    enum: [USER, AUTO]
-    description: Who created this report
+    $ref: "./ReportSource.yaml"
   reporterName:
     type: string
     description: Name of the reporter

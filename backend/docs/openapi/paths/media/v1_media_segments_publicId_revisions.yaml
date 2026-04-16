@@ -1,0 +1,34 @@
+get:
+  operationId: listSegmentRevisions
+  x-internal: true
+  tags:
+    - Media
+  summary: List segment revision history
+  description: |
+    Returns the revision history for a segment, ordered by most recent first.
+
+  security:
+    - ApiKey: [READ_MEDIA]
+  parameters:
+    - name: segmentPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Segment public ID
+      example: V1StGXR8_Z5d
+  responses:
+    "200":
+      $ref: "../../components/responses/SegmentRevisionListResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

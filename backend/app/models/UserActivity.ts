@@ -1,6 +1,5 @@
 import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn, type FindOptionsWhere } from 'typeorm';
 import type { User } from './User';
-import type { t_OpaqueCursorPagination } from 'generated/models';
 import { BaseEntity } from './base.entity';
 
 export enum ActivityType {
@@ -68,41 +67,6 @@ export class UserActivity extends BaseEntity {
       mediaName: data.mediaName ?? null,
       japaneseText: data.japaneseText ?? null,
     });
-  }
-
-  static async listForUser(params: {
-    userId: number;
-    take: number;
-    cursor?: string;
-    activityType?: string;
-    date?: string;
-  }): Promise<{
-    activities: UserActivity[];
-    pagination: t_OpaqueCursorPagination;
-  }> {
-    const { items: activities, pagination } = await UserActivity.paginateWithKeyset({
-      take: params.take,
-      cursor: params.cursor,
-      query: () => {
-        const qb = UserActivity.createQueryBuilder('activity').where('activity.user_id = :userId', {
-          userId: params.userId,
-        });
-
-        if (params.activityType) {
-          qb.andWhere('activity.activity_type = :activityType', { activityType: params.activityType });
-        }
-        if (params.date) {
-          qb.andWhere('DATE(activity.created_at) = :date', { date: params.date });
-        }
-
-        return qb;
-      },
-    });
-
-    return {
-      activities,
-      pagination,
-    };
   }
 
   static async getStatsForUser(

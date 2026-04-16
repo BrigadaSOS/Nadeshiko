@@ -1,0 +1,67 @@
+get:
+  tags:
+    - Media
+  operationId: getSegmentContext
+  x-order: 60
+  summary: Get surrounding context for a segment
+  description: |
+    Retrieves segments surrounding a specific segment within an episode.
+    Returns segments both before and after the target, providing dialogue context for how a sentence is used.
+
+  security:
+    - ApiKey: [READ_MEDIA]
+  parameters:
+    - name: segmentPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Segment public ID
+      example: V1StGXR8_Z5d
+    - name: take
+      in: query
+      schema:
+        type: integer
+        default: 3
+        minimum: 1
+        maximum: 30
+      description: Number of segments to return before and after the target
+    - name: contentRating
+      in: query
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: "../../components/schemas/ContentRating.yaml"
+      description: Content ratings to include (omit for all ratings)
+    - name: include
+      in: query
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: "../../components/schemas/IncludeExpansion.yaml"
+        default: []
+      description: Optional resources to expand in the response `includes` block
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/SegmentContextResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

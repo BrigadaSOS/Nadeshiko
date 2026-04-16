@@ -1,0 +1,9 @@
+type: object
+description: Number of records affected by a bulk operation
+required:
+  - count
+properties:
+  count:
+    type: integer
+    description: Number of records affected
+    example: 42

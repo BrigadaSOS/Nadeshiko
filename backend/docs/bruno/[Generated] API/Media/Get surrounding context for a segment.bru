@@ -5,18 +5,19 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/media/segments/:uuid/context?uuid=3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e&take=3&contentRating=SAFE&contentRating=SUGGESTIVE&contentRating=QUESTIONABLE&contentRating=EXPLICIT
+  url: {{baseUrl}}/v1/media/segments/:segmentPublicId/context?segmentPublicId=V1StGXR8_Z5d&take=3&contentRating=SAFE&contentRating=SUGGESTIVE&contentRating=QUESTIONABLE&contentRating=EXPLICIT&include=[]
   body: none
   auth: bearer
 }
 
 params:query {
-  uuid: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+  segmentPublicId: V1StGXR8_Z5d
   take: 3
   contentRating: SAFE
   contentRating: SUGGESTIVE
   contentRating: QUESTIONABLE
   contentRating: EXPLICIT
+  include: []
 }
 
 auth:bearer {

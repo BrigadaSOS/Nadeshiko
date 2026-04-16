@@ -1,5 +1,6 @@
 const ID_PATTERN = /^[0-9]+$|^[0-9a-f]{8,}$/i;
 const NANOID_PATTERN = /^[A-Za-z0-9_-]{8,}$/;
+const COMPOSITE_ID_PATTERN = /^[0-9]+(?:[_-][0-9]+)+$/;
 
 const STATIC_PAGES = new Set([
   '/', '/blog', '/media', '/stats', '/stats/words',
@@ -21,8 +22,11 @@ const IGNORED_PREFIXES = ['/_nuxt/', '/_i18n/', '/__nuxt'];
 const IGNORED_PATHS = ['/up', '/favicon.ico'];
 
 function isIdSegment(seg) {
-  if (ID_PATTERN.test(seg)) return true;
-  if (seg.length >= 8 && NANOID_PATTERN.test(seg) && /[a-z]/.test(seg) && /[A-Z]/.test(seg)) return true;
+  const bare = seg.replace(/\.[^.]+$/, '');
+  if (ID_PATTERN.test(bare)) return true;
+  if (COMPOSITE_ID_PATTERN.test(bare)) return true;
+  if (bare.length >= 8 && NANOID_PATTERN.test(bare) && /[a-z]/.test(bare) && /[A-Z]/.test(bare))
+    return true;
   return false;
 }
 
@@ -38,7 +42,11 @@ export function normalizeRoute(url) {
   if (path.startsWith('/v1/') || path.startsWith('/media/')) {
     return path
       .split('/')
-      .map((s) => (s !== '' && isIdSegment(s) ? ':id' : s))
+      .map((s) => {
+        if (s === '' || !isIdSegment(s)) return s;
+        const dotIdx = s.lastIndexOf('.');
+        return dotIdx > 0 ? `:id${s.slice(dotIdx)}` : ':id';
+      })
       .join('/');
   }
 

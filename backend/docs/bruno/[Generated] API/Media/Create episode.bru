@@ -1,17 +1,17 @@
 meta {
   name: Create episode
   type: http
-  seq: 28
+  seq: 18
 }
 
 post {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes?mediaId=V1StGXR8_Z5d
+  url: {{baseUrl}}/v1/media/:mediaPublicId/episodes?mediaPublicId=V1StGXR8_Z5d
   body: json
   auth: bearer
 }
 
 params:query {
-  mediaId: V1StGXR8_Z5d
+  mediaPublicId: V1StGXR8_Z5d
 }
 
 auth:bearer {

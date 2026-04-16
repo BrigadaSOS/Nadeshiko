@@ -1,19 +1,17 @@
 meta {
   name: Update segment
   type: http
-  seq: 36
+  seq: 11
 }
 
 patch {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/:id?mediaId=V1StGXR8_Z5d&episodeNumber=1&id=12345
+  url: {{baseUrl}}/v1/media/segments/:segmentPublicId?segmentPublicId=V1StGXR8_Z5d
   body: json
   auth: bearer
 }
 
 params:query {
-  mediaId: V1StGXR8_Z5d
-  episodeNumber: 1
-  id: 12345
+  segmentPublicId: V1StGXR8_Z5d
 }
 
 auth:bearer {

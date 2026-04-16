@@ -1,0 +1,24 @@
+meta {
+  name: Get user activity statistics
+  type: http
+  seq: 42
+}
+
+get {
+  url: {{baseUrl}}/v1/user/activity/stats
+  body: none
+  auth: bearer
+}
+
+params:query {
+  since:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

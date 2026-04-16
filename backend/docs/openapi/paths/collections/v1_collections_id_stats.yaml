@@ -11,7 +11,7 @@ get:
   security:
     - SessionCookie: []
   parameters:
-    - name: id
+    - name: collectionPublicId
       in: path
       required: true
       description: Collection public ID

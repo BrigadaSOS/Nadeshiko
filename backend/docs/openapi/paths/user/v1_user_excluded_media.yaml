@@ -1,0 +1,73 @@
+get:
+  tags:
+    - User
+  operationId: listExcludedMedia
+  summary: List excluded media
+  description: |
+    Returns the list of media entries the authenticated user has excluded from search results.
+
+  security:
+    - ApiKey: [READ_PROFILE]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - excludedMedia
+            properties:
+              excludedMedia:
+                type: array
+                items:
+                  $ref: "../../components/schemas/MediaSummary.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+post:
+  tags:
+    - User
+  operationId: addExcludedMedia
+  summary: Exclude media from search results
+  description: |
+    Adds a media entry to the authenticated user's excluded media list.
+    Excluded media is hidden from search results.
+
+  security:
+    - ApiKey: [WRITE_PROFILE]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - mediaPublicId
+          properties:
+            mediaPublicId:
+              type: string
+              pattern: '^[A-Za-z0-9_-]{12}$'
+              description: Public ID of the media to exclude
+              example: V1StGXR8_Z5d
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

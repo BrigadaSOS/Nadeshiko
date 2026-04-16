@@ -43,7 +43,7 @@ get:
                 items:
                   $ref: "../../components/schemas/MediaAuditRun.yaml"
               pagination:
-                $ref: "../../components/schemas/OpaqueCursorPagination.yaml"
+                $ref: "../../components/schemas/CursorPagination.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
     "403":

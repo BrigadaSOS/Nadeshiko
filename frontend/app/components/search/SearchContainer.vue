@@ -168,7 +168,7 @@ applyRouteQuery(route);
 const fetchStats = async () => {
   try {
     if (props.collectionId) {
-      const { data, response } = await sdk.getCollectionStats({ path: { id: props.collectionId } });
+      const { data, response } = await sdk.getCollectionStats({ path: { collectionId: props.collectionId } });
       if (response.status === 403 || response.status === 401) {
         await navigateTo('/', { redirectCode: 302 });
         return;
@@ -239,7 +239,7 @@ const fetchSentences = async () => {
 
     if (props.collectionId) {
       const { data, response: fetchResponse } = await sdk.searchCollectionSegments({
-        path: { id: props.collectionId },
+        path: { collectionId: props.collectionId },
         query: {
           ...(cursor.value ? { cursor: cursor.value } : {}),
           take: 20,
@@ -293,7 +293,7 @@ const fetchSentences = async () => {
           query: query.value ? { search: query.value } : undefined,
           take: 30,
           sort:
-            sort.value && sort.value.toUpperCase() !== 'NONE'
+            sort.value && sort.value.toUpperCase() !== 'RELEVANCE'
               ? { mode: sort.value.toUpperCase() as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
               : undefined,
           cursor: cursor.value || undefined,
@@ -426,17 +426,17 @@ const getEpisodeHitsData = () => {
   return selectedMediaStat.value?.episodeHits || {};
 };
 
-const handleRemoveFromCollection = async (segmentId: number) => {
+const handleRemoveFromCollection = async (segmentPublicId: string) => {
   if (!props.collectionId) return;
   try {
     await sdk.removeSegmentFromCollection({
-      path: { id: props.collectionId, segmentId },
+      path: { collectionId: props.collectionId, segmentId: segmentPublicId },
     });
     // Remove from current results
     if (sentenceData.value?.results) {
       sentenceData.value = {
         ...sentenceData.value,
-        results: sentenceData.value.results.filter((r) => r.segment.id !== segmentId),
+        results: sentenceData.value.results.filter((r) => r.segment.publicId !== segmentPublicId),
       };
     }
     // Refresh stats

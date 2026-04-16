@@ -10,36 +10,28 @@ patch:
   security:
     - SessionCookie: []
   parameters:
-    - name: id
+    - name: collectionPublicId
       in: path
       required: true
       description: Collection public ID
       schema:
         type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
         example: "V1StGXR8_Z5d"
-    - name: segmentId
+    - name: segmentPublicId
       in: path
       required: true
-      description: Segment ID
+      description: Segment public ID
       schema:
-        type: integer
-        example: 456
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+        example: V1StGXR8_Z5d
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          type: object
-          properties:
-            position:
-              type: integer
-              description: New position in the collection
-              example: 2
-            note:
-              type: string
-              nullable: true
-              maxLength: 500
-              description: Updated annotation
+          $ref: "../../components/schemas/collection/CollectionRequests.yaml#/UpdateCollectionSegmentRequest"
   responses:
     "204":
       description: No Content
@@ -57,31 +49,33 @@ patch:
       $ref: "../../components/responses/InternalServerError.yaml"
 
 delete:
-  x-internal: true
   tags:
     - Collections
+  x-order: 70
   operationId: removeSegmentFromCollection
   summary: Remove segment from collection
   description: |
     Removes a segment from a collection. Requires collection ownership.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [DELETE_COLLECTIONS]
   parameters:
-    - name: id
+    - name: collectionPublicId
       in: path
       required: true
       description: Collection public ID
       schema:
         type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
         example: "V1StGXR8_Z5d"
-    - name: segmentId
+    - name: segmentPublicId
       in: path
       required: true
-      description: Segment ID
+      description: Segment public ID
       schema:
-        type: integer
-        example: 456
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+        example: V1StGXR8_Z5d
   responses:
     "204":
       description: No Content

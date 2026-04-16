@@ -19,19 +19,23 @@ import type {
   t_Error429,
   t_Error500,
   t_GetSearchStatsRequestBodySchema,
+  t_MediaAutocompleteResponse,
+  t_SearchMediaRequestBodySchema,
   t_SearchMultipleResponse,
   t_SearchRequestBodySchema,
   t_SearchResponse,
   t_SearchStatsResponse,
   t_SearchWordsRequestBodySchema,
 } from '../models.ts';
-import type { SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput } from '../outputTypes.ts';
+import type { SearchMediaRequestOutput, SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput } from '../outputTypes.ts';
 import {
   s_Error400,
   s_Error401,
   s_Error403,
   s_Error429,
   s_Error500,
+  s_MediaAutocompleteResponse,
+  s_SearchMediaRequest,
   s_SearchMultipleRequest,
   s_SearchMultipleResponse,
   s_SearchRequest,
@@ -91,10 +95,28 @@ export type SearchWords = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type SearchMediaResponder = {
+  with200(): ExpressRuntimeResponse<t_MediaAutocompleteResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type SearchMedia = (
+  params: Params<void, void, SearchMediaRequestOutput, void>,
+  respond: SearchMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type SearchImplementation = {
   search: Search;
   getSearchStats: GetSearchStats;
   searchWords: SearchWords;
+  searchMedia: SearchMedia;
 };
 
 export function createSearchRouter(implementation: SearchImplementation): Router {
@@ -305,6 +327,77 @@ export function createSearchRouter(implementation: SearchImplementation): Router
 
       if (body !== undefined) {
         res.json(searchWordsResponseBodyValidator(status, body));
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const searchMediaRequestBodySchema = s_SearchMediaRequest;
+
+  const searchMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_MediaAutocompleteResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // searchMedia
+  router.post(`/v1/search/media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(searchMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_MediaAutocompleteResponse>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      const response = await implementation.searchMedia(input, responder, req, res, next).catch((err) => {
+        throw ExpressRuntimeError.HandlerError(err);
+      });
+
+      // escape hatch to allow responses to be sent by the implementation handler
+      if (response === SkipResponse) {
+        return;
+      }
+
+      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
+
+      res.status(status);
+
+      if (body !== undefined) {
+        res.json(searchMediaResponseBodyValidator(status, body));
       } else {
         res.end();
       }

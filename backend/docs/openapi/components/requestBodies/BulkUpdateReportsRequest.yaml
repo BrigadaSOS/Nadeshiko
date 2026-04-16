@@ -3,10 +3,7 @@ required:
   - status
 properties:
   status:
-    type: string
-    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
-    description: New status for all matching reports
-    example: "DISMISSED"
+    $ref: "../schemas/ReportStatus.yaml"
   adminNotes:
     type: string
     maxLength: 1000
@@ -21,13 +18,9 @@ properties:
           Filter by current report status. Accepts a single value or comma-separated list
           (e.g. "OPEN,PROCESSING").
       source:
-        type: string
-        enum: [USER, AUTO]
-        description: Filter by report source
+        $ref: "../schemas/ReportSource.yaml"
       targetType:
-        type: string
-        enum: [SEGMENT, EPISODE, MEDIA]
-        description: Filter by target type
+        $ref: "../schemas/ReportTargetType.yaml"
       targetMediaId:
         type: integer
         description: Filter by target media ID

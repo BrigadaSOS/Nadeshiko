@@ -1,0 +1,18 @@
+type: object
+required:
+  - query
+properties:
+  query:
+    type: string
+    description: Search term to match against media names (English, Japanese, romaji)
+    minLength: 1
+    pattern: '.*\S.*'
+    example: steins
+  take:
+    type: integer
+    description: Maximum number of results to return
+    default: 10
+    minimum: 1
+    maximum: 40
+  filters:
+    $ref: "../schemas/SearchMediaFilters.yaml"

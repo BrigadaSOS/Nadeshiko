@@ -13,5 +13,5 @@ content:
           example: 700
         skipped:
           type: integer
-          description: Number of segments skipped due to duplicate UUIDs
+          description: Number of segments skipped because they already exist
           example: 15

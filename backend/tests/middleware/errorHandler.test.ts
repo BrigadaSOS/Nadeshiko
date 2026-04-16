@@ -95,15 +95,15 @@ describe('handleErrors', () => {
     it('allows DUPLICATE_KEY when route documents INVALID_REQUEST', async () => {
       const app = express();
       app.use(requestIdMiddleware);
-      app.post('/v1/media/series', express.json(), (_req: Request, _res: Response) => {
+      app.post('/v1/media', express.json(), (_req: Request, _res: Response) => {
         const driverError: any = new Error('duplicate key');
         driverError.code = '23505';
-        driverError.table = 'media_series';
+        driverError.table = 'media';
         throw new QueryFailedError('INSERT ...', [], driverError);
       });
       app.use(handleErrors as ErrorRequestHandler);
 
-      const res = await request(app).post('/v1/media/series').send({});
+      const res = await request(app).post('/v1/media').send({});
 
       expect(res.status).toBe(409);
       expect(res.body).toMatchObject({ code: 'DUPLICATE_KEY' });
@@ -187,7 +187,7 @@ describe('handleErrors', () => {
       const app = createErrorApp(() => {
         const driverError: any = new Error('violates foreign key constraint');
         driverError.code = '23503';
-        driverError.constraint = 'FK_media_series_id_fkey';
+        driverError.constraint = 'FK_episode_media_id_fkey';
         throw new QueryFailedError('INSERT ...', [], driverError);
       });
 

@@ -2,6 +2,7 @@ post:
   tags:
     - Search
   operationId: search
+  x-order: 10
   summary: Search segments by query
   description: |
     The primary search endpoint for finding Japanese segments and their translations across indexed media (anime, J-Drama).
@@ -18,15 +19,15 @@ post:
     **Input Type Handling**
     | Input Type | Search Strategy |
     |------------|-----------------|
-    | **Romaji** (`go`, `taberu`) | Boosts EN/ES translations, reading form (pronunciation), and base form |
-    | **Kanji** (`食べる`, `彼女`) | Searches content and base form (dictionary form). Ignores matches by reading (homophones). |
-    | **Kana** (`たべる`, `かのじょ`) | Standard search across content, base form, and reading form |
-    | **English/Spanish** | Direct translation search |
+    | **Kanji** (`食べる`, `彼女`) | Matches against surface form, dictionary form, and normalized form. Reading-only field is disabled to avoid homophones. |
+    | **Kana** (`たべる`, `かのじょ`) | Matches against surface form, dictionary form, normalized form, and reading form. |
+    | **Romaji / English / Spanish** (`go`, `taberu`, `good morning`) | Boosts EN/ES translations. Also matches kana (reading) and normalized Japanese forms as fallbacks. |
 
   security:
     - ApiKey: [READ_MEDIA]
 
   requestBody:
+    required: true
     content:
       application/json:
         schema:
@@ -39,16 +40,7 @@ post:
           schema:
             $ref: "../../components/responses/SearchResponse.yaml"
     "400":
-      description: Bad Request
-      content:
-        application/json:
-          schema:
-            $ref: "../../components/schemas/Error400.yaml"
-          examples:
-            ValidationFailed:
-              $ref: "../../components/examples/ValidationFailed.yaml"
-            InvalidJson:
-              $ref: "../../components/examples/InvalidJson.yaml"
+      $ref: "../../components/responses/BadRequest.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
     "403":

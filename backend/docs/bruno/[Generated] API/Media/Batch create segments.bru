@@ -1,17 +1,17 @@
 meta {
   name: Batch create segments
   type: http
-  seq: 34
+  seq: 24
 }
 
 post {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments/batch?mediaId=V1StGXR8_Z5d&episodeNumber=1
+  url: {{baseUrl}}/v1/media/:mediaPublicId/episodes/:episodeNumber/segments/batch?mediaPublicId=V1StGXR8_Z5d&episodeNumber=1
   body: json
   auth: bearer
 }
 
 params:query {
-  mediaId: V1StGXR8_Z5d
+  mediaPublicId: V1StGXR8_Z5d
   episodeNumber: 1
 }
 
@@ -24,7 +24,7 @@ body:json {
     "segments": [
       {
         "position": 1133,
-        "status": "ACTIVE",
+        "status": "",
         "startTimeMs": 2007255,
         "endTimeMs": 2008464,
         "textJa": {

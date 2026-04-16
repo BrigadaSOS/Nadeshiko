@@ -11,9 +11,9 @@ const id = computed(() => String(route.params.id));
 const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data: segment } = await sdk.getSegmentByUuid({ path: { uuid: id.value } });
+    const { data: segment } = await sdk.getSegment({ path: { publicId: id.value } });
     if (!segment) return null;
-    const { data: media } = await sdk.getMedia({ path: { id: segment.mediaPublicId } });
+    const { data: media } = await sdk.getMedia({ path: { mediaId: segment.mediaPublicId } });
     return resolveSearchResponse({
       segments: [segment],
       includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
