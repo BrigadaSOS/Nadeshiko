@@ -1,5 +1,6 @@
 get:
   operationId: listEpisodes
+  x-order: 30
   tags:
     - Media
   summary: List episodes for a media
@@ -9,13 +10,14 @@ get:
   security:
     - ApiKey: [READ_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
-      example: "V1StGXR8_Z5d"
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Media public ID
+      example: V1StGXR8_Z5d
     - name: take
       in: query
       required: false
@@ -25,17 +27,19 @@ get:
         minimum: 1
         maximum: 100
       description: Maximum number of episodes to return
-      example: 50
     - name: cursor
       in: query
       required: false
       schema:
         type: string
       description: Opaque pagination cursor token
-      example: 10
   responses:
     "200":
-      $ref: "../../components/responses/EpisodeListResponse.yaml"
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/EpisodeListResponse.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
@@ -61,13 +65,13 @@ post:
   security:
     - ApiKey: [ADD_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
-      example: "V1StGXR8_Z5d"
+      description: Media public ID
+      example: V1StGXR8_Z5d
   requestBody:
     required: true
     content:
@@ -76,7 +80,11 @@ post:
           $ref: "../../components/schemas/EpisodeCreateRequest.yaml"
   responses:
     "201":
-      $ref: "../../components/responses/EpisodeResponse.yaml"
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Episode.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

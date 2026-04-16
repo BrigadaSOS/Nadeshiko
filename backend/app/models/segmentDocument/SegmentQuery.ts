@@ -161,11 +161,11 @@ export class SegmentQuery {
     }
 
     if (filters.media?.include && filters.media.include.length > 0) {
-      filter.push(SegmentQuery.buildMediaFilter(filters.media.include));
+      filter.push(SegmentQuery.buildMediaFilter(filters.media.include as any));
     }
 
     if (filters.media?.exclude && filters.media.exclude.length > 0) {
-      must_not.push(SegmentQuery.buildMediaFilter(filters.media.exclude));
+      must_not.push(SegmentQuery.buildMediaFilter(filters.media.exclude as any));
     }
 
     if (filters.contentRating && filters.contentRating.length > 0) {
@@ -206,7 +206,7 @@ export class SegmentQuery {
         { episode: { order: 'desc' as estypes.SortOrder } },
         { position: { order: 'desc' as estypes.SortOrder } },
       ];
-    } else if (!sortMode || sortMode === 'none') {
+    } else if (!sortMode || sortMode === 'relevance') {
       if (isMatchAll && useLengthScoring) {
         sort = [{ _score: { order: 'desc' } }, { characterCount: { order: 'asc', unmapped_type: 'short' } }];
       } else if (isMatchAll) {
@@ -366,8 +366,10 @@ export class SegmentQuery {
       status: SegmentQuery.normalizeStringArray(f.status),
       category: SegmentQuery.normalizeStringArray(f.category),
       contentRating: SegmentQuery.normalizeStringArray(f.contentRating),
-      mediaInclude: f.media?.include?.map((m) => ({ mediaId: m.mediaId, episodes: m.episodes?.sort() })) ?? null,
-      mediaExclude: f.media?.exclude?.map((m) => ({ mediaId: m.mediaId, episodes: m.episodes?.sort() })) ?? null,
+      mediaInclude:
+        f.media?.include?.map((m) => ({ mediaPublicId: m.mediaPublicId, episodes: m.episodes?.sort() })) ?? null,
+      mediaExclude:
+        f.media?.exclude?.map((m) => ({ mediaPublicId: m.mediaPublicId, episodes: m.episodes?.sort() })) ?? null,
       segmentLengthChars: f.segmentLengthChars ?? null,
       segmentDurationMs: f.segmentDurationMs ?? null,
     });

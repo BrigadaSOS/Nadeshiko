@@ -1,0 +1,4 @@
+type: string
+description: Kind of entity a report is about
+enum: [SEGMENT, EPISODE, MEDIA]
+example: "SEGMENT"

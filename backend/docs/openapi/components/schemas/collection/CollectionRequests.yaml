@@ -1,14 +1,49 @@
-type: object
-description: Request body for creating a new collection
-required:
-  - name
-properties:
-  name:
-    type: string
-    description: Name of the collection
-    example: "My Study List"
-  visibility:
-    type: string
-    enum: [PUBLIC, PRIVATE]
-    description: Visibility of the collection
-    example: "PRIVATE"
+CollectionCreateRequest:
+  type: object
+  description: Request body for creating a new collection
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: Name of the collection
+      example: "My Study List"
+    visibility:
+      $ref: "../CollectionVisibility.yaml"
+
+CollectionUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      example: "Updated Collection Name"
+    visibility:
+      $ref: "../CollectionVisibility.yaml"
+
+AddSegmentToCollectionRequest:
+  type: object
+  required:
+    - segmentPublicId
+  properties:
+    segmentPublicId:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Segment public ID
+      example: "V1StGXR8_Z5d"
+    note:
+      type: string
+      maxLength: 500
+      description: Optional annotation
+
+UpdateCollectionSegmentRequest:
+  type: object
+  properties:
+    position:
+      type: integer
+      description: New position in the collection
+      example: 2
+    note:
+      type: string
+      nullable: true
+      maxLength: 500
+      description: Updated annotation

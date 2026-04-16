@@ -15,16 +15,20 @@ properties:
     description: Specific error code for programmatic handling
   title:
     type: string
+    minLength: 1
     description: A short, human-readable summary of the problem
   detail:
     type: string
+    minLength: 1
     description: A human-readable explanation specific to this occurrence
   type:
     type: string
     format: uri
+    minLength: 1
     description: A URI reference that identifies the problem type (e.g., GitHub issues link)
   instance:
     type: string
+    minLength: 1
     description: A URI reference that identifies the specific occurrence (e.g., trace ID)
   status:
     type: integer

@@ -1,17 +1,17 @@
 meta {
   name: Delete activity record
   type: http
-  seq: 48
+  seq: 35
 }
 
 delete {
-  url: {{baseUrl}}/v1/user/activity/:id
+  url: {{baseUrl}}/v1/user/activity/:activityId
   body: none
   auth: none
 }
 
 params:query {
-  id:
+  activityId:
 }
 
 settings {

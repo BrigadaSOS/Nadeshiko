@@ -1,11 +1,6 @@
 import { User } from '@app/models/User';
 import { Media } from '@app/models/Media';
 import { Episode } from '@app/models/Episode';
-import { Series } from '@app/models/Series';
-import { SeriesMedia } from '@app/models/SeriesMedia';
-import { Seiyuu } from '@app/models/Seiyuu';
-import { Character } from '@app/models/Character';
-import { MediaCharacter } from '@app/models/MediaCharacter';
 import { UserActivity } from '@app/models/UserActivity';
 import { FIXTURE_SETS, isFixtureRef, type FixtureCatalog, type FixtureEntityKey, type FixtureSetName } from './catalog';
 
@@ -15,37 +10,17 @@ export interface LoadedFixtures {
   users: Record<string, User>;
   media: Record<string, Media>;
   episodes: Record<string, Episode>;
-  series: Record<string, Series>;
-  seriesMedia: Record<string, SeriesMedia>;
-  seiyuu: Record<string, Seiyuu>;
-  characters: Record<string, Character>;
-  mediaCharacters: Record<string, MediaCharacter>;
   activities: Record<string, UserActivity>;
 }
 
-const INSERT_ORDER: FixtureEntityKey[] = [
-  'users',
-  'media',
-  'episodes',
-  'series',
-  'seiyuu',
-  'characters',
-  'seriesMedia',
-  'mediaCharacters',
-  'activities',
-];
+const INSERT_ORDER: FixtureEntityKey[] = ['users', 'media', 'episodes', 'activities'];
 
 // biome-ignore format: keep aligned
 const ENTITY_CLASSES: Record<FixtureEntityKey, new () => { save(): Promise<unknown> }> = {
-  users:           User,
-  media:           Media,
-  episodes:        Episode,
-  series:          Series,
-  seriesMedia:     SeriesMedia,
-  seiyuu:          Seiyuu,
-  characters:      Character,
-  mediaCharacters: MediaCharacter,
-  activities:      UserActivity,
+  users:      User,
+  media:      Media,
+  episodes:   Episode,
+  activities: UserActivity,
 };
 
 function emptyLoadedFixtures(): LoadedFixtures {
@@ -53,11 +28,6 @@ function emptyLoadedFixtures(): LoadedFixtures {
     users: {},
     media: {},
     episodes: {},
-    series: {},
-    seriesMedia: {},
-    seiyuu: {},
-    characters: {},
-    mediaCharacters: {},
     activities: {},
   };
 }

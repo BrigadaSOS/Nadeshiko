@@ -3,9 +3,13 @@ description: Activity counts for a single day, broken down by type. Only types w
 properties:
   SEARCH:
     type: integer
+    minimum: 0
   SEGMENT_PLAY:
     type: integer
+    minimum: 0
   ANKI_EXPORT:
     type: integer
+    minimum: 0
   SHARE:
     type: integer
+    minimum: 0

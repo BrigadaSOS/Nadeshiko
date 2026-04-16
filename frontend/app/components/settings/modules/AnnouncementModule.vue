@@ -1,7 +1,7 @@
 <script setup lang="ts">
 type AnnouncementData = {
   message: string;
-  type: 'info' | 'warning' | 'maintenance';
+  type: 'INFO' | 'WARNING' | 'MAINTENANCE';
   active: boolean;
 };
 
@@ -10,7 +10,7 @@ const saving = ref(false);
 
 const form = reactive<AnnouncementData>({
   message: '',
-  type: 'info',
+  type: 'INFO',
   active: false,
 });
 
@@ -86,9 +86,9 @@ const clear = async () => {
 };
 
 const typeOptions = [
-  { value: 'info', label: 'Info', color: 'bg-neutral-500' },
-  { value: 'warning', label: 'Warning', color: 'bg-amber-500' },
-  { value: 'maintenance', label: 'Maintenance', color: 'bg-blue-500' },
+  { value: 'INFO', label: 'Info', color: 'bg-neutral-500' },
+  { value: 'WARNING', label: 'Warning', color: 'bg-amber-500' },
+  { value: 'MAINTENANCE', label: 'Maintenance', color: 'bg-blue-500' },
 ] as const;
 </script>
 
@@ -161,7 +161,7 @@ const typeOptions = [
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-red-400 shrink-0">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
-            <span class="font-semibold text-white text-sm">{{ form.type === 'warning' ? 'Important Notice' : form.type === 'maintenance' ? 'Maintenance Notice' : 'Notice' }}</span>
+            <span class="font-semibold text-white text-sm">{{ form.type === 'WARNING' ? 'Important Notice' : form.type === 'MAINTENANCE' ? 'Maintenance Notice' : 'Notice' }}</span>
           </div>
           <p class="text-sm text-white/80 leading-relaxed">{{ form.message }}</p>
         </div>

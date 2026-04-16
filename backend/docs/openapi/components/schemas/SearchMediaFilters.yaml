@@ -1,0 +1,9 @@
+type: object
+description: Filters for narrowing media search results
+properties:
+  category:
+    type: array
+    description: Media category filter
+    items:
+      $ref: "./Category.yaml"
+    default: [ANIME, JDRAMA]

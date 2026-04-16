@@ -1,3 +1,11 @@
+plugins:
+  - "./docs/plugins/sort-paths.js"
+
+openapi:
+  expandResponses: all
+  jsonSamplesExpandLevel: all
+  schemasExpansionLevel: all
+
 apis:
   main:
     root: docs/openapi/openapi.yaml
@@ -5,15 +13,20 @@ apis:
     root: docs/openapi/openapi.yaml
     decorators:
       remove-x-internal: on
+      nadeshiko/sort-paths-by-x-order: on
 
 rules:
   no-unresolved-refs: error
   no-unused-components: warn
+  component-name-unique: error
   operation-operationId: error
+  operation-tag-defined: error
   operation-summary: warn
+  operation-2xx-response: error
   no-ambiguous-paths: off
   no-path-trailing-slash: error
   path-not-include-query: error
+  path-params-defined: error
   path-parameters-defined: error
   no-empty-servers: error
   no-server-trailing-slash: error
@@ -26,6 +39,17 @@ rules:
   no-enum-type-mismatch: error
   no-example-value-and-externalValue: error
   no-schema-type-mismatch: error
+  security-defined: off
+  spec-strict-refs: error
+  request-mime-type:
+    severity: error
+    allowedValues:
+      - application/json
+  response-mime-type:
+    severity: error
+    allowedValues:
+      - application/json
+  array-parameter-serialization: warn
   no-duplicated-tag-names: warn
   tag-description: warn
   parameter-description: warn

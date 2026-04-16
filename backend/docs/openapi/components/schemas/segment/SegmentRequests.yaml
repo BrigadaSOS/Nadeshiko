@@ -7,10 +7,7 @@ SegmentFields: &segmentFields
     description: Position of the segment within the episode
     example: 1133
   status:
-    type: string
-    description: Segment status
-    enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
-    example: "ACTIVE"
+    $ref: "../SegmentStatus.yaml"
   startTimeMs:
     type: integer
     description: Start time of the segment in milliseconds from the beginning of the episode
@@ -86,11 +83,9 @@ SegmentCreateRequest:
   properties:
     <<: *segmentFields
     status:
-      type: string
-      description: Segment status
-      enum: [ACTIVE, HIDDEN, DELETED, SUSPENDED, VERIFIED, INVALID, TOO_LONG]
+      allOf:
+        - $ref: "../SegmentStatus.yaml"
       default: "ACTIVE"
-      example: "ACTIVE"
     textEs:
       type: object
       properties:

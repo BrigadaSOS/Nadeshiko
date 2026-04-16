@@ -1,17 +1,17 @@
 meta {
   name: Get audit run details
   type: http
-  seq: 87
+  seq: 64
 }
 
 get {
-  url: {{baseUrl}}/v1/admin/media/audits/runs/:id
+  url: {{baseUrl}}/v1/admin/media/audits/runs/:auditRunId
   body: none
   auth: none
 }
 
 params:query {
-  id:
+  auditRunId:
 }
 
 settings {

@@ -1,15 +1,17 @@
 type: object
 description: A media filter entry with optional episode restriction
 required:
-  - mediaId
+  - mediaPublicId
 properties:
-  mediaId:
+  mediaPublicId:
     type: string
-    description: Media identifier (publicId or AniList external ID)
-    example: abc123xyz
+    description: Media public ID (nanoid)
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   episodes:
     type: array
-    description: Specific episodes (omit for all episodes)
+    description: Specific episodes (omit for all episodes). Use 0 for movies/specials
     items:
       type: integer
+      minimum: 0
     example: [1, 2]

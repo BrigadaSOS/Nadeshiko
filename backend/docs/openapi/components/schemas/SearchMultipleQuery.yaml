@@ -1,0 +1,19 @@
+type: object
+description: What to search for (multiple words)
+required:
+  - words
+properties:
+  words:
+    type: array
+    items:
+      type: string
+      minLength: 1
+      maxLength: 100
+    description: List of words to search for
+    minItems: 1
+    maxItems: 100
+    example: ["彼女", "私"]
+  exactMatch:
+    type: boolean
+    default: false
+    description: Require exact phrase matching (disables fuzzy and partial matches)

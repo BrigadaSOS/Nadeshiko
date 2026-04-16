@@ -50,8 +50,7 @@ async function handleBulkIndex(jobs: Job<EsSyncJobData>[], operation: 'CREATE' |
     const missingIds = segmentIds.filter((id) => !foundIds.has(id));
 
     if (missingIds.length > 0) {
-      const label = operation === 'UPDATE' ? '(may have been deleted)' : '';
-      logger.warn(`Segments not found for ${operation} ${label}: ${missingIds.join(', ')}`);
+      logger.warn({ operation, missingIds }, 'Segments not found for operation');
     }
 
     if (segments.length === 0) return;
@@ -59,14 +58,14 @@ async function handleBulkIndex(jobs: Job<EsSyncJobData>[], operation: 'CREATE' |
     const result = await SegmentIndexer.bulkIndex(segments);
 
     for (const err of result.errors) {
-      logger.warn(`Bulk ${operation} failed for segment ${err.segmentId}: ${err.error}`);
+      logger.warn({ operation, segmentId: err.segmentId, error: err.error }, 'Bulk operation failed for segment');
     }
 
     if (result.succeeded === 0 && result.failed > 0) {
       throw new Error(`All ${result.failed} segments failed during bulk ${operation}`);
     }
   } catch (error) {
-    logger.error({ err: error, segmentIds }, `Error processing ES ${operation} batch`);
+    logger.error({ err: error, segmentIds, operation }, 'Error processing ES batch');
     throw error;
   }
 }
@@ -78,7 +77,7 @@ async function handleBulkDelete(jobs: Job<EsSyncJobData>[]): Promise<void> {
     const result = await SegmentIndexer.bulkDelete(segmentIds);
 
     for (const err of result.errors) {
-      logger.warn(`Bulk DELETE failed for segment ${err.segmentId}: ${err.error}`);
+      logger.warn({ segmentId: err.segmentId, error: err.error }, 'Bulk DELETE failed for segment');
     }
 
     if (result.succeeded === 0 && result.failed > 0) {

@@ -1,0 +1,26 @@
+meta {
+  name: Find media by name
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/media/autocomplete?query=steins&take=10
+  body: none
+  auth: bearer
+}
+
+params:query {
+  query: steins
+  take: 10
+  filters:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

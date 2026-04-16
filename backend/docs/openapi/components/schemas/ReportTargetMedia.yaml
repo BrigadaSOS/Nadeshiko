@@ -10,5 +10,5 @@ properties:
     example: "MEDIA"
   mediaId:
     type: string
-    description: Public ID of the media this report targets
+    description: publicId of the media this report targets
     example: "V1StGXR8_Z5d"

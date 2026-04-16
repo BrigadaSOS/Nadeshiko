@@ -33,14 +33,12 @@ get:
     - name: source
       in: query
       schema:
-        type: string
-        enum: [USER, AUTO]
+        $ref: "../../components/schemas/ReportSource.yaml"
       description: Filter by report source
     - name: target.type
       in: query
       schema:
-        type: string
-        enum: [SEGMENT, EPISODE, MEDIA]
+        $ref: "../../components/schemas/ReportTargetType.yaml"
       description: Filter by target type
     - name: target.mediaId
       in: query

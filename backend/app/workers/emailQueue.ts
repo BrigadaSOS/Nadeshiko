@@ -20,16 +20,15 @@ export async function sendEmailJob(data: EmailJobData, dedupeKey?: string): Prom
 
     if (dedupeKey) {
       jobId = await boss.send(EMAIL_SEND_QUEUE, data, { singletonKey: dedupeKey });
-      logger.info(`Enqueued email job ${jobId} with dedupe key ${dedupeKey} to ${data.to}`);
+      logger.info({ jobId, dedupeKey, to: data.to }, 'Enqueued email job');
     } else {
       jobId = await boss.send(EMAIL_SEND_QUEUE, data);
-      logger.info(`Enqueued email job ${jobId} to ${data.to}`);
+      logger.info({ jobId, to: data.to }, 'Enqueued email job');
     }
 
     return jobId;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to enqueue email job: ${errorMessage}`);
+    logger.error({ err: error }, 'Failed to enqueue email job');
     return null;
   }
 }

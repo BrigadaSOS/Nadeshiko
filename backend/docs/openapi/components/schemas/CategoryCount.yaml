@@ -9,4 +9,5 @@ properties:
   count:
     type: integer
     description: Number of entries in this category
+    minimum: 0
     example: 1523

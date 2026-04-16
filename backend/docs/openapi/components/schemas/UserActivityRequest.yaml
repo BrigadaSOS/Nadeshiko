@@ -1,0 +1,24 @@
+type: object
+description: Request body for tracking a user activity event
+required:
+  - activityType
+properties:
+  activityType:
+    type: string
+    enum:
+      - SEARCH
+      - SEGMENT_PLAY
+      - SHARE
+      - ANKI_EXPORT
+  segmentPublicId:
+    type: string
+    pattern: '^[A-Za-z0-9_-]{12}$'
+  mediaPublicId:
+    type: string
+    pattern: '^[A-Za-z0-9_-]{12}$'
+  mediaName:
+    type: string
+  japaneseText:
+    type: string
+  searchQuery:
+    type: string

@@ -1,0 +1,67 @@
+type: object
+required:
+  - user
+  - quota
+properties:
+  user:
+    type: object
+    required:
+      - username
+      - createdAt
+      - role
+    properties:
+      username:
+        type: string
+        minLength: 1
+        description: The user's display name.
+        example: tanaka_san
+      createdAt:
+        type: string
+        format: date-time
+        description: When the account was created.
+        example: "2024-03-15T10:00:00.000Z"
+      role:
+        type: string
+        minLength: 1
+        description: The user's account tier or role.
+        example: USER
+  quota:
+    type: object
+    required:
+      - used
+      - limit
+      - remaining
+      - periodYyyymm
+      - periodStart
+      - periodEnd
+    properties:
+      used:
+        type: integer
+        minimum: 0
+        description: Number of API requests used this month.
+        example: 342
+      limit:
+        type: integer
+        minimum: 0
+        description: Maximum number of API requests allowed per month.
+        example: 5000
+      remaining:
+        type: integer
+        minimum: 0
+        description: Number of API requests remaining this month.
+        example: 4658
+      periodYyyymm:
+        type: integer
+        minimum: 202001
+        description: Current month in YYYYMM format.
+        example: 202602
+      periodStart:
+        type: string
+        format: date-time
+        description: Start of the current month (UTC).
+        example: "2026-02-01T00:00:00.000Z"
+      periodEnd:
+        type: string
+        format: date-time
+        description: End of the current month (UTC).
+        example: "2026-02-28T23:59:59.999Z"

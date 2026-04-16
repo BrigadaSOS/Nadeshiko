@@ -1,22 +1,22 @@
 meta {
   name: Update report
   type: http
-  seq: 81
+  seq: 58
 }
 
 patch {
-  url: {{baseUrl}}/v1/admin/reports/:id
+  url: {{baseUrl}}/v1/admin/reports/:reportId
   body: json
   auth: none
 }
 
 params:query {
-  id:
+  reportId:
 }
 
 body:json {
   {
-    "status": "PROCESSING",
+    "status": "OPEN",
     "adminNotes": "Confirmed wrong translation, will fix"
   }
 }

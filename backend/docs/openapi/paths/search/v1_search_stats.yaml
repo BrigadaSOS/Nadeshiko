@@ -2,20 +2,20 @@ post:
   tags:
     - Search
   operationId: getSearchStats
+  x-order: 20
   summary: Get search statistics
   description: |
-    Returns statistics for search filters and category tabs without fetching segment rows.
+    Returns filter statistics for a query without returning segment results. Useful for populating filter UIs:
+    - `media`: media matching the query, with per-episode hit counts
+    - `categories`: segment counts grouped by media category
 
-    This endpoint is optimized for UI filter panels:
-    - `media` powers the media dropdown on the right side.
-    - `categories` powers category tabs below the search bar.
-
-    The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
+    Stats are scoped by the query and category filters but are not narrowed by a selected media/episode — so selecting a media in the UI doesn't zero out other media from the list.
 
   security:
     - ApiKey: [READ_MEDIA]
 
   requestBody:
+    required: true
     content:
       application/json:
         schema:
@@ -28,16 +28,7 @@ post:
           schema:
             $ref: "../../components/responses/SearchStatsResponse.yaml"
     "400":
-      description: Bad Request
-      content:
-        application/json:
-          schema:
-            $ref: "../../components/schemas/Error400.yaml"
-          examples:
-            ValidationFailed:
-              $ref: "../../components/examples/ValidationFailed.yaml"
-            InvalidJson:
-              $ref: "../../components/examples/InvalidJson.yaml"
+      $ref: "../../components/responses/BadRequest.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
     "403":

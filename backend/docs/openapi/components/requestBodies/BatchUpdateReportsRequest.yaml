@@ -12,10 +12,7 @@ properties:
     description: Report IDs to update
     example: [1, 2, 3]
   status:
-    type: string
-    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
-    description: New status for all selected reports
-    example: "DISMISSED"
+    $ref: "../schemas/ReportStatus.yaml"
   adminNotes:
     type: string
     maxLength: 1000

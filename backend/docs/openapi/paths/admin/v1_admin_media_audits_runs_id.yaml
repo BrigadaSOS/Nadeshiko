@@ -10,7 +10,7 @@ get:
   security:
     - SessionCookie: [ADMIN]
   parameters:
-    - name: id
+    - name: auditRunId
       in: path
       required: true
       schema:

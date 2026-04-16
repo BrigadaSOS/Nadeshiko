@@ -1,0 +1,27 @@
+get:
+  tags:
+    - User
+  operationId: getMe
+  summary: Get current user profile
+  description: |
+    Returns the authenticated user's profile and current month API quota.
+
+    You can also check your usage stats at https://nadeshiko.co/user/developer.
+
+  security:
+    - ApiKey: [READ_PROFILE]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/UserMe.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -2,8 +2,8 @@ type: object
 required:
   - id
   - activityType
-  - segmentId
-  - mediaId
+  - segmentPublicId
+  - mediaPublicId
   - searchQuery
   - mediaName
   - japaneseText
@@ -11,23 +11,31 @@ required:
 properties:
   id:
     type: integer
+    minimum: 1
   activityType:
     $ref: "./ActivityType.yaml"
-  segmentId:
+  segmentPublicId:
     type: string
     nullable: true
-  mediaId:
-    type: integer
+    minLength: 1
+    pattern: '^[A-Za-z0-9_-]{12}$'
+  mediaPublicId:
+    type: string
     nullable: true
+    minLength: 1
+    pattern: '^[A-Za-z0-9_-]{12}$'
   searchQuery:
     type: string
     nullable: true
+    minLength: 1
   mediaName:
     type: string
     nullable: true
+    minLength: 1
   japaneseText:
     type: string
     nullable: true
+    minLength: 1
   createdAt:
     type: string
     format: date-time

@@ -13,7 +13,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.0.4
+  version: 2.0.7
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -32,18 +32,18 @@ tags:
     description: |
       Search endpoints for querying Japanese segments across indexed media.
   - name: Admin
-    x-internal: true
     description: |
       Administrative endpoints for system management, queue monitoring, and automated review.
   - name: Media
     description: |
       Media CRUD endpoints for managing anime and J-Drama entries, episodes, segments, characters, and seiyuu.
   - name: User
-    x-internal: true
     description: |
       User endpoints for account data including quota, preferences, activity history, reports, and data export.
+  - name: Stats
+    description: |
+      Statistics endpoints for corpus coverage and word frequency data.
   - name: Collections
-    x-internal: true
     description: |
       Collection endpoints for managing saved segment collections.
 paths:
@@ -76,6 +76,7 @@ paths:
         - ApiKey:
             - READ_MEDIA
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -88,16 +89,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SearchResponse'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error400'
-              examples:
-                ValidationFailed:
-                  $ref: '#/components/examples/ValidationFailed'
-                InvalidJson:
-                  $ref: '#/components/examples/InvalidJson'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -113,17 +105,18 @@ paths:
       operationId: getSearchStats
       summary: Get search statistics
       description: |
-        Returns statistics for search filters and category tabs without fetching segment rows.
+        Returns statistics for search filters without returning search results.
 
-        This endpoint is optimized for UI filter panels:
-        - `media` powers the media dropdown on the right side.
-        - `categories` powers category tabs below the search bar.
+        Use this to populate filter options:
+        - `media`: available media matching the query (for media selection)
+        - `categories`: segment counts by category (for category filtering)
 
         The stats are scoped by query and category filters, but are not narrowed by a selected media/episode.
       security:
         - ApiKey:
             - READ_MEDIA
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -136,16 +129,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SearchStatsResponse'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error400'
-              examples:
-                ValidationFailed:
-                  $ref: '#/components/examples/ValidationFailed'
-                InvalidJson:
-                  $ref: '#/components/examples/InvalidJson'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -174,10 +158,11 @@ paths:
             schema:
               $ref: '#/components/schemas/SearchMultipleRequest'
             example:
-              words:
-                - 彼女
-                - 私
-              exactMatch: false
+              query:
+                words:
+                  - 彼女
+                  - 私
+                exactMatch: false
       responses:
         '200':
           description: OK
@@ -186,16 +171,138 @@ paths:
               schema:
                 $ref: '#/components/schemas/SearchMultipleResponse'
         '400':
-          description: Bad Request
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/stats/overview:
+    get:
+      tags:
+        - Stats
+      x-internal: true
+      operationId: getStatsOverview
+      summary: Get corpus statistics overview
+      description: |
+        Returns a comprehensive overview of corpus statistics including headline numbers,
+        word frequency coverage tiers, and translation availability.
+      security:
+        - ApiKey:
+            - READ_MEDIA
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error400'
-              examples:
-                ValidationFailed:
-                  $ref: '#/components/examples/ValidationFailed'
-                InvalidJson:
-                  $ref: '#/components/examples/InvalidJson'
+                $ref: '#/components/schemas/StatsOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/stats/covered-words:
+    get:
+      tags:
+        - Stats
+      x-internal: true
+      operationId: getCoveredWords
+      summary: List words with coverage information
+      description: |
+        Returns a paginated list of words from the frequency list within a given
+        tier, with optional filtering by coverage status.
+      security:
+        - ApiKey:
+            - READ_MEDIA
+      parameters:
+        - name: tier
+          in: query
+          required: true
+          description: Frequency tier (max rank) to query
+          schema:
+            type: integer
+            minimum: 1
+        - name: minRank
+          in: query
+          description: Minimum rank (exclusive). Use to query a slice, e.g. minRank=1000&tier=2000 for ranks 1001-2000.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: filter
+          in: query
+          description: Filter by coverage status
+          schema:
+            type: string
+            enum:
+              - ALL
+              - COVERED
+              - UNCOVERED
+            default: ALL
+        - name: cursor
+          in: query
+          description: Opaque pagination cursor returned from the previous page
+          schema:
+            type: string
+        - name: take
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 200
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoveredWordsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/stats/covered-words/update:
+    post:
+      tags:
+        - Stats
+      x-internal: true
+      operationId: triggerCoveredWordsUpdate
+      summary: Trigger word coverage update
+      description: |
+        Re-checks word coverage by querying Elasticsearch for all words in the frequency table.
+        Can optionally only check currently uncovered words (faster for incremental updates after adding new media).
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoveredWordsUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoveredWordsUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -293,7 +400,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Media'
+                $ref: '#/components/schemas/MediaResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -364,46 +471,28 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/segments/{uuid}:
+  /v1/media/segments/{publicId}:
     get:
       tags:
         - Media
-      operationId: getSegmentByUuid
+      operationId: getSegmentByPublicId
       summary: Get segment by publicId
       description: |
         Returns a specific segment by its publicId. A shortcut alternative to the nested `/media/{mediaId}/episodes/{episodeNumber}/segments/{id}` path.
-
-        Pass `include[]=ratingAnalysis` and/or `include[]=posAnalysis` to receive raw analysis fields alongside the standard segment data.
       security:
         - ApiKey:
             - READ_MEDIA
       parameters:
-        - name: uuid
+        - name: publicId
           in: path
           required: true
           schema:
             type: string
           description: Segment publicId
-          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
-        - name: include
-          in: query
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              enum:
-                - ratingAnalysis
-                - posAnalysis
-                - hashedId
-                - storageBasePath
-                - storage
-          style: form
-          explode: true
-          description: Additional internal fields to include in the response
+          example: V1StGXR8_Z5d
       responses:
         '200':
-          $ref: '#/components/responses/SegmentInternalResponse'
+          $ref: '#/components/responses/SegmentResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -417,7 +506,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
-      operationId: updateSegmentByUuid
+      operationId: updateSegmentByPublicId
       x-internal: true
       tags:
         - Media
@@ -428,13 +517,13 @@ paths:
         - ApiKey:
             - UPDATE_MEDIA
       parameters:
-        - name: uuid
+        - name: publicId
           in: path
           required: true
           schema:
             type: string
           description: Segment publicId
-          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+          example: V1StGXR8_Z5d
       requestBody:
         required: true
         content:
@@ -456,7 +545,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/segments/{uuid}/context:
+  /v1/media/segments/{publicId}/context:
     get:
       tags:
         - Media
@@ -469,13 +558,13 @@ paths:
         - ApiKey:
             - READ_MEDIA
       parameters:
-        - name: uuid
+        - name: publicId
           in: path
           required: true
           schema:
             type: string
           description: Segment publicId
-          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+          example: V1StGXR8_Z5d
         - name: take
           in: query
           schema:
@@ -499,34 +588,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/SegmentContextResponse'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error400'
-              examples:
-                ValidationFailed:
-                  $ref: '#/components/examples/ValidationFailed'
-                InvalidJson:
-                  $ref: '#/components/examples/InvalidJson'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error404'
-              examples:
-                NotFound:
-                  $ref: '#/components/examples/NotFound'
+          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/segments/{uuid}/revisions:
+  /v1/media/segments/{publicId}/revisions:
     get:
       operationId: listSegmentRevisions
       x-internal: true
@@ -539,13 +612,13 @@ paths:
         - ApiKey:
             - READ_MEDIA
       parameters:
-        - name: uuid
+        - name: publicId
           in: path
           required: true
           schema:
             type: string
           description: Segment publicId
-          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
+          example: V1StGXR8_Z5d
       responses:
         '200':
           $ref: '#/components/responses/SegmentRevisionListResponse'
@@ -565,6 +638,7 @@ paths:
     get:
       tags:
         - Media
+      x-internal: true
       operationId: listSeries
       summary: List all series
       description: |
@@ -625,24 +699,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - nameJa
-                - nameRomaji
-                - nameEn
-              properties:
-                nameJa:
-                  type: string
-                  description: Japanese name of the series
-                  example: バクマン。シリーズ
-                nameRomaji:
-                  type: string
-                  description: Romaji name of the series
-                  example: Bakuman. Series
-                nameEn:
-                  type: string
-                  description: English name of the series
-                  example: Bakuman Series
+              $ref: '#/components/schemas/SeriesCreateRequest'
       responses:
         '201':
           description: Created
@@ -660,10 +717,11 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/series/{id}:
+  /v1/media/series/{seriesId}:
     get:
       tags:
         - Media
+      x-internal: true
       operationId: getSeries
       summary: Get series details
       description: |
@@ -672,7 +730,7 @@ paths:
         - ApiKey:
             - READ_MEDIA
       parameters:
-        - name: id
+        - name: seriesId
           in: path
           required: true
           description: Series public ID
@@ -718,7 +776,7 @@ paths:
         - ApiKey:
             - UPDATE_MEDIA
       parameters:
-        - name: id
+        - name: seriesId
           in: path
           required: true
           description: Series public ID
@@ -730,20 +788,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                nameJa:
-                  type: string
-                  description: Updated Japanese name
-                  example: 更新バクマン。シリーズ
-                nameRomaji:
-                  type: string
-                  description: Updated Romaji name
-                  example: Updated Bakuman. Series
-                nameEn:
-                  type: string
-                  description: Updated English name
-                  example: Updated Bakuman Series
+              $ref: '#/components/schemas/SeriesUpdateRequest'
       responses:
         '200':
           description: OK
@@ -775,7 +820,7 @@ paths:
         - ApiKey:
             - REMOVE_MEDIA
       parameters:
-        - name: id
+        - name: seriesId
           in: path
           required: true
           description: Series public ID
@@ -797,7 +842,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/series/{id}/media:
+  /v1/media/series/{seriesId}/media:
     post:
       tags:
         - Media
@@ -810,7 +855,7 @@ paths:
         - ApiKey:
             - ADD_MEDIA
       parameters:
-        - name: id
+        - name: seriesId
           in: path
           required: true
           description: Series public ID
@@ -822,19 +867,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - mediaId
-                - position
-              properties:
-                mediaId:
-                  type: string
-                  description: Media public ID to add
-                  example: abc123def456
-                position:
-                  type: integer
-                  description: Position in the series (1-indexed)
-                  example: 1
+              $ref: '#/components/schemas/AddMediaToSeriesRequest'
       responses:
         '204':
           description: No Content
@@ -850,7 +883,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/series/{id}/media/{mediaId}:
+  /v1/media/series/{seriesId}/media/{mediaId}:
     patch:
       tags:
         - Media
@@ -863,7 +896,7 @@ paths:
         - ApiKey:
             - UPDATE_MEDIA
       parameters:
-        - name: id
+        - name: seriesId
           in: path
           required: true
           description: Series public ID
@@ -882,14 +915,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - position
-              properties:
-                position:
-                  type: integer
-                  description: New position in the series (1-indexed)
-                  example: 2
+              $ref: '#/components/schemas/UpdateSeriesMediaRequest'
       responses:
         '204':
           description: No Content
@@ -917,7 +943,7 @@ paths:
         - ApiKey:
             - REMOVE_MEDIA
       parameters:
-        - name: id
+        - name: seriesId
           in: path
           required: true
           description: Series public ID
@@ -946,7 +972,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/characters/{id}:
+  /v1/media/characters/{characterId}:
     get:
       x-internal: true
       tags:
@@ -959,7 +985,7 @@ paths:
         - ApiKey:
             - READ_MEDIA
       parameters:
-        - name: id
+        - name: characterId
           in: path
           required: true
           description: Character ID
@@ -985,7 +1011,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/seiyuu/{id}:
+  /v1/media/seiyuu/{seiyuuId}:
     get:
       x-internal: true
       tags:
@@ -998,7 +1024,7 @@ paths:
         - ApiKey:
             - READ_MEDIA
       parameters:
-        - name: id
+        - name: seiyuuId
           in: path
           required: true
           description: Internal seiyuu ID
@@ -1024,7 +1050,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/{id}:
+  /v1/media/{mediaId}:
     get:
       tags:
         - Media
@@ -1036,7 +1062,7 @@ paths:
         - ApiKey:
             - READ_MEDIA
       parameters:
-        - name: id
+        - name: mediaId
           in: path
           required: true
           description: Media public ID
@@ -1057,7 +1083,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Media'
+                $ref: '#/components/schemas/MediaResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1082,7 +1108,7 @@ paths:
         - ApiKey:
             - UPDATE_MEDIA
       parameters:
-        - name: id
+        - name: mediaId
           in: path
           required: true
           description: Media public ID
@@ -1101,7 +1127,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Media'
+                $ref: '#/components/schemas/MediaResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1126,7 +1152,7 @@ paths:
         - ApiKey:
             - REMOVE_MEDIA
       parameters:
-        - name: id
+        - name: mediaId
           in: path
           required: true
           description: Media public ID
@@ -1183,7 +1209,7 @@ paths:
           schema:
             type: string
           description: Opaque pagination cursor token
-          example: 10
+          example: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MTB9
       responses:
         '200':
           $ref: '#/components/responses/EpisodeListResponse'
@@ -1413,7 +1439,7 @@ paths:
           schema:
             type: string
           description: Opaque pagination cursor token
-          example: 1000
+          example: eyJraW5kIjoib2Zmc2V0Iiwic2tpcCI6MTAwMH0
       responses:
         '200':
           $ref: '#/components/responses/SegmentListResponse'
@@ -1527,14 +1553,16 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{id}:
+  /v1/media/{mediaId}/episodes/{episodeNumber}/segments/{segmentId}:
     get:
       operationId: getSegment
+      x-internal: true
       tags:
         - Media
       summary: Get single segment
       description: |
-        Returns a specific segment by its ID within the media/episode hierarchy.
+        Returns a specific segment by its numeric ID within the media/episode hierarchy.
+        Internal-only; public consumers should use `getSegmentByPublicId`.
       security:
         - ApiKey:
             - READ_MEDIA
@@ -1553,7 +1581,7 @@ paths:
             type: integer
           description: Episode number
           example: 1
-        - name: id
+        - name: segmentId
           in: path
           required: true
           schema:
@@ -1601,7 +1629,7 @@ paths:
             type: integer
           description: Episode number
           example: 1
-        - name: id
+        - name: segmentId
           in: path
           required: true
           schema:
@@ -1655,7 +1683,7 @@ paths:
             type: integer
           description: Episode number
           example: 1
-        - name: id
+        - name: segmentId
           in: path
           required: true
           schema:
@@ -1733,6 +1761,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/preferences:
@@ -1755,6 +1785,10 @@ paths:
                 $ref: '#/components/schemas/UserPreferences'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
@@ -1781,8 +1815,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserPreferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity:
@@ -1836,9 +1876,13 @@ paths:
                     items:
                       $ref: '#/components/schemas/UserActivity'
                   pagination:
-                    $ref: '#/components/schemas/OpaqueCursorPagination'
+                    $ref: '#/components/schemas/CursorPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
@@ -1856,27 +1900,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - activityType
-              properties:
-                activityType:
-                  type: string
-                  enum:
-                    - SEARCH
-                    - SEGMENT_PLAY
-                    - SHARE
-                    - ANKI_EXPORT
-                segmentId:
-                  type: string
-                mediaId:
-                  type: integer
-                mediaName:
-                  type: string
-                japaneseText:
-                  type: string
-                searchQuery:
-                  type: string
+              $ref: '#/components/schemas/UserActivityRequest'
       responses:
         '204':
           description: No Content
@@ -1884,6 +1908,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -1908,14 +1936,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - deletedCount
-                properties:
-                  deletedCount:
-                    type: integer
+                $ref: '#/components/schemas/AffectedCountResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/heatmap:
@@ -1955,6 +1982,10 @@ paths:
                     description: Map of YYYY-MM-DD date strings to per-type activity counts
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/stats:
@@ -1982,39 +2013,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - totalSearches
-                  - totalExports
-                  - totalPlays
-                  - totalListAdds
-                  - totalShares
-                  - topMedia
-                properties:
-                  totalSearches:
-                    type: integer
-                  totalExports:
-                    type: integer
-                  totalPlays:
-                    type: integer
-                  totalListAdds:
-                    type: integer
-                  totalShares:
-                    type: integer
-                  topMedia:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - mediaId
-                        - count
-                      properties:
-                        mediaId:
-                          type: integer
-                        count:
-                          type: integer
+                $ref: '#/components/schemas/UserActivityStats'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/activity/date/{date}:
@@ -2042,17 +2047,16 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - deletedCount
-                properties:
-                  deletedCount:
-                    type: integer
+                $ref: '#/components/schemas/AffectedCountResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/user/activity/{id}:
+  /v1/user/activity/{activityId}:
     delete:
       tags:
         - User
@@ -2064,7 +2068,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: activityId
           in: path
           required: true
           schema:
@@ -2075,8 +2079,12 @@ paths:
           description: No Content
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/export:
@@ -2100,6 +2108,10 @@ paths:
                 $ref: '#/components/schemas/UserExportResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/labs:
@@ -2126,6 +2138,10 @@ paths:
                   $ref: '#/components/schemas/UserLabFeature'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/labs/{key}:
@@ -2152,8 +2168,12 @@ paths:
           description: No Content
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -2178,8 +2198,12 @@ paths:
           description: No Content
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/collections:
@@ -2198,11 +2222,7 @@ paths:
           in: query
           description: Filter by visibility
           schema:
-            type: string
-            enum:
-              - public
-              - private
-            example: private
+            $ref: '#/components/schemas/CollectionVisibility'
         - name: cursor
           in: query
           description: Opaque pagination cursor token
@@ -2250,7 +2270,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CollectionRequests'
+              $ref: '#/components/schemas/CollectionCreateRequest'
       responses:
         '201':
           description: Created
@@ -2268,7 +2288,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/collections/{id}:
+  /v1/collections/{collectionId}:
     get:
       x-internal: true
       tags:
@@ -2280,7 +2300,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2332,7 +2352,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2344,17 +2364,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: Updated Collection Name
-                visibility:
-                  type: string
-                  enum:
-                    - PUBLIC
-                    - PRIVATE
-                  example: PUBLIC
+              $ref: '#/components/schemas/CollectionUpdateRequest'
       responses:
         '200':
           description: OK
@@ -2385,7 +2395,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2407,7 +2417,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/collections/{id}/segments:
+  /v1/collections/{collectionId}/segments:
     post:
       x-internal: true
       tags:
@@ -2419,7 +2429,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2431,18 +2441,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - segmentId
-              properties:
-                segmentId:
-                  type: string
-                  description: Public ID or UUID of the segment to add
-                  example: abc123def456
-                note:
-                  type: string
-                  maxLength: 500
-                  description: Optional annotation
+              $ref: '#/components/schemas/AddSegmentToCollectionRequest'
       responses:
         '204':
           description: No Content
@@ -2458,7 +2457,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/collections/{id}/segments/{segmentId}:
+  /v1/collections/{collectionId}/segments/{segmentId}:
     patch:
       x-internal: true
       tags:
@@ -2470,7 +2469,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2480,26 +2479,16 @@ paths:
         - name: segmentId
           in: path
           required: true
-          description: Segment ID
+          description: Segment public ID
           schema:
-            type: integer
-            example: 456
+            type: string
+            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                position:
-                  type: integer
-                  description: New position in the collection
-                  example: 2
-                note:
-                  type: string
-                  nullable: true
-                  maxLength: 500
-                  description: Updated annotation
+              $ref: '#/components/schemas/UpdateCollectionSegmentRequest'
       responses:
         '204':
           description: No Content
@@ -2526,7 +2515,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2536,10 +2525,10 @@ paths:
         - name: segmentId
           in: path
           required: true
-          description: Segment ID
+          description: Segment public ID
           schema:
-            type: integer
-            example: 456
+            type: string
+            example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
       responses:
         '204':
           description: No Content
@@ -2555,7 +2544,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/collections/{id}/search:
+  /v1/collections/{collectionId}/search:
     get:
       x-internal: true
       tags:
@@ -2568,7 +2557,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2609,7 +2598,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/collections/{id}/stats:
+  /v1/collections/{collectionId}/stats:
     get:
       x-internal: true
       tags:
@@ -2622,7 +2611,7 @@ paths:
       security:
         - SessionCookie: []
       parameters:
-        - name: id
+        - name: collectionId
           in: path
           required: true
           description: Collection public ID
@@ -2644,891 +2633,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/dashboard:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminDashboard
-      summary: Get dashboard statistics
-      description: |
-        Returns at-a-glance statistics for the admin dashboard including media counts,
-        user counts, and system health information.
-      security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - media
-                  - users
-                  - activity
-                  - system
-                properties:
-                  media:
-                    type: object
-                    required:
-                      - totalMedia
-                      - totalEpisodes
-                      - totalSegments
-                      - totalCharacters
-                      - totalSeiyuu
-                    properties:
-                      totalMedia:
-                        type: integer
-                      totalEpisodes:
-                        type: integer
-                      totalSegments:
-                        type: integer
-                      totalCharacters:
-                        type: integer
-                      totalSeiyuu:
-                        type: integer
-                  users:
-                    type: object
-                    required:
-                      - totalUsers
-                      - recentlyRegisteredCount
-                      - recentlyActiveCount
-                    properties:
-                      totalUsers:
-                        type: integer
-                      recentlyRegisteredCount:
-                        type: integer
-                        description: Users registered in the last 30 days
-                      recentlyActiveCount:
-                        type: integer
-                        description: Users active in the last 30 days
-                  activity:
-                    type: object
-                    required:
-                      - totalSearches
-                      - totalExports
-                      - totalPlays
-                      - totalCollectionAdds
-                      - activeSearchers7d
-                      - topQueries7d
-                      - dailyActivity30d
-                    properties:
-                      totalSearches:
-                        type: integer
-                      totalExports:
-                        type: integer
-                      totalPlays:
-                        type: integer
-                      totalCollectionAdds:
-                        type: integer
-                      activeSearchers7d:
-                        type: integer
-                        description: Unique users who searched in the last 7 days
-                      topQueries7d:
-                        type: array
-                        items:
-                          type: object
-                          required:
-                            - query
-                            - count
-                          properties:
-                            query:
-                              type: string
-                            count:
-                              type: integer
-                      dailyActivity30d:
-                        type: array
-                        items:
-                          type: object
-                          required:
-                            - date
-                            - count
-                          properties:
-                            date:
-                              type: string
-                            count:
-                              type: integer
-                  system:
-                    type: object
-                    required:
-                      - status
-                      - app
-                      - elasticsearch
-                      - database
-                      - queues
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - healthy
-                          - degraded
-                      app:
-                        type: object
-                        required:
-                          - version
-                        properties:
-                          version:
-                            type: string
-                      elasticsearch:
-                        type: object
-                        required:
-                          - status
-                        properties:
-                          status:
-                            type: string
-                            enum:
-                              - connected
-                              - disconnected
-                          version:
-                            type: string
-                            nullable: true
-                          clusterName:
-                            type: string
-                            nullable: true
-                          clusterStatus:
-                            type: string
-                            nullable: true
-                          indexName:
-                            type: string
-                            nullable: true
-                          documentCount:
-                            type: integer
-                            nullable: true
-                      database:
-                        type: object
-                        required:
-                          - status
-                        properties:
-                          status:
-                            type: string
-                            enum:
-                              - connected
-                              - disconnected
-                          version:
-                            type: string
-                            nullable: true
-                      queues:
-                        type: array
-                        items:
-                          type: object
-                          required:
-                            - queue
-                            - stuckCount
-                            - failedCount
-                          properties:
-                            queue:
-                              type: string
-                            stuckCount:
-                              type: integer
-                            failedCount:
-                              type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/dashboard/overview:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminDashboardOverview
-      summary: Get dashboard overview statistics
-      description: |
-        Returns key metrics and daily activity for the admin dashboard overview tab.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: days
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Number of days for daily activity range (7, 30, or 90)
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - media
-                  - users
-                  - activity
-                properties:
-                  media:
-                    type: object
-                    required:
-                      - totalMedia
-                      - totalEpisodes
-                      - totalSegments
-                      - totalCharacters
-                      - totalSeiyuu
-                    properties:
-                      totalMedia:
-                        type: integer
-                      totalEpisodes:
-                        type: integer
-                      totalSegments:
-                        type: integer
-                      totalCharacters:
-                        type: integer
-                      totalSeiyuu:
-                        type: integer
-                  users:
-                    type: object
-                    required:
-                      - totalUsers
-                      - recentlyRegisteredCount
-                      - recentlyActiveCount
-                    properties:
-                      totalUsers:
-                        type: integer
-                      recentlyRegisteredCount:
-                        type: integer
-                        description: Users registered in the last 30 days
-                      recentlyActiveCount:
-                        type: integer
-                        description: Users active in the last 30 days
-                  activity:
-                    type: object
-                    required:
-                      - totalSearches
-                      - totalExports
-                      - totalPlays
-                      - totalShares
-                      - activeSearchers7d
-                      - dailyActivity
-                    properties:
-                      totalSearches:
-                        type: integer
-                      totalExports:
-                        type: integer
-                      totalPlays:
-                        type: integer
-                      totalShares:
-                        type: integer
-                      activeSearchers7d:
-                        type: integer
-                        description: Unique users who searched in the last 7 days
-                      dailyActivity:
-                        type: array
-                        items:
-                          type: object
-                          required:
-                            - date
-                            - count
-                          properties:
-                            date:
-                              type: string
-                            count:
-                              type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/dashboard/media:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminDashboardMedia
-      summary: Get media breakdown statistics
-      description: |
-        Returns media breakdowns by category, format, status, genre, studio,
-        segment content ratings, segment statuses, and top media by interaction.
-      security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - byCategory
-                  - byFormat
-                  - byStatus
-                  - byGenre
-                  - byStudio
-                  - segmentsByContentRating
-                  - segmentsByStatus
-                  - topMediaByPlays
-                  - topMediaBySearches
-                  - topMediaByExports
-                properties:
-                  byCategory:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - label
-                        - count
-                      properties:
-                        label:
-                          type: string
-                        count:
-                          type: integer
-                  byFormat:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - label
-                        - count
-                      properties:
-                        label:
-                          type: string
-                        count:
-                          type: integer
-                  byStatus:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - label
-                        - count
-                      properties:
-                        label:
-                          type: string
-                        count:
-                          type: integer
-                  byGenre:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - label
-                        - count
-                      properties:
-                        label:
-                          type: string
-                        count:
-                          type: integer
-                  byStudio:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - label
-                        - count
-                      properties:
-                        label:
-                          type: string
-                        count:
-                          type: integer
-                  segmentsByContentRating:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - label
-                        - count
-                      properties:
-                        label:
-                          type: string
-                        count:
-                          type: integer
-                  segmentsByStatus:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - label
-                        - count
-                      properties:
-                        label:
-                          type: string
-                        count:
-                          type: integer
-                  topMediaByPlays:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - mediaId
-                        - mediaName
-                        - count
-                      properties:
-                        mediaId:
-                          type: integer
-                        mediaName:
-                          type: string
-                        count:
-                          type: integer
-                  topMediaBySearches:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - mediaId
-                        - mediaName
-                        - count
-                      properties:
-                        mediaId:
-                          type: integer
-                        mediaName:
-                          type: string
-                        count:
-                          type: integer
-                  topMediaByExports:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - mediaId
-                        - mediaName
-                        - count
-                      properties:
-                        mediaId:
-                          type: integer
-                        mediaName:
-                          type: string
-                        count:
-                          type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/dashboard/activity:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminDashboardActivity
-      summary: Get activity analytics
-      description: |
-        Returns time-series activity data by type, top searches, export trends,
-        and most exported media.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: days
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Number of days for activity range (7, 30, or 90)
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - dailyActivityByType
-                  - topSearches
-                  - dailyExports
-                  - topExportedMedia
-                properties:
-                  dailyActivityByType:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - date
-                        - search
-                        - ankiExport
-                        - segmentPlay
-                        - share
-                      properties:
-                        date:
-                          type: string
-                        search:
-                          type: integer
-                        ankiExport:
-                          type: integer
-                        segmentPlay:
-                          type: integer
-                        share:
-                          type: integer
-                  topSearches:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - query
-                        - count
-                      properties:
-                        query:
-                          type: string
-                        count:
-                          type: integer
-                  dailyExports:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - date
-                        - count
-                      properties:
-                        date:
-                          type: string
-                        count:
-                          type: integer
-                  topExportedMedia:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - mediaId
-                        - mediaName
-                        - count
-                      properties:
-                        mediaId:
-                          type: integer
-                        mediaName:
-                          type: string
-                        count:
-                          type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/dashboard/collections:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminDashboardCollections
-      summary: Get collection statistics
-      description: |
-        Returns collection statistics by type and visibility, average collection size,
-        and top collections by segment count.
-      security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - totalCollections
-                  - byTypeAndVisibility
-                  - averageSize
-                  - topCollections
-                properties:
-                  totalCollections:
-                    type: integer
-                  byTypeAndVisibility:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - type
-                        - visibility
-                        - count
-                      properties:
-                        type:
-                          type: string
-                        visibility:
-                          type: string
-                        count:
-                          type: integer
-                  averageSize:
-                    type: number
-                  topCollections:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - id
-                        - name
-                        - type
-                        - visibility
-                        - segmentCount
-                      properties:
-                        id:
-                          type: integer
-                        name:
-                          type: string
-                        type:
-                          type: string
-                        visibility:
-                          type: string
-                        segmentCount:
-                          type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/dashboard/api-keys:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminDashboardApiKeys
-      summary: Get API key usage statistics
-      description: |
-        Returns all API keys with their current quota usage for the current billing period.
-      security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - keys
-                properties:
-                  keys:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - id
-                        - isActive
-                        - requestCount
-                      properties:
-                        id:
-                          type: integer
-                        name:
-                          type: string
-                          nullable: true
-                        hint:
-                          type: string
-                          nullable: true
-                        isActive:
-                          type: boolean
-                        username:
-                          type: string
-                          nullable: true
-                        email:
-                          type: string
-                          nullable: true
-                        requestCount:
-                          type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/dashboard/system:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminDashboardSystem
-      summary: Get real-time system health
-      description: |
-        Returns real-time system health including Elasticsearch and database status,
-        queue statistics, and index size.
-      security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - status
-                  - app
-                  - elasticsearch
-                  - database
-                  - queues
-                properties:
-                  status:
-                    type: string
-                    enum:
-                      - healthy
-                      - degraded
-                  app:
-                    type: object
-                    required:
-                      - version
-                    properties:
-                      version:
-                        type: string
-                  elasticsearch:
-                    type: object
-                    required:
-                      - status
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - connected
-                          - disconnected
-                      version:
-                        type: string
-                        nullable: true
-                      clusterName:
-                        type: string
-                        nullable: true
-                      clusterStatus:
-                        type: string
-                        nullable: true
-                      indexName:
-                        type: string
-                        nullable: true
-                      documentCount:
-                        type: integer
-                        nullable: true
-                      indexSizeBytes:
-                        type: integer
-                        nullable: true
-                  database:
-                    type: object
-                    required:
-                      - status
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - connected
-                          - disconnected
-                      version:
-                        type: string
-                        nullable: true
-                  queues:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - queue
-                        - stuckCount
-                        - failedCount
-                      properties:
-                        queue:
-                          type: string
-                        stuckCount:
-                          type: integer
-                        failedCount:
-                          type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/health:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminHealth
-      summary: Check system health
-      description: |
-        Returns connectivity status and version information for all backend subsystems
-        (Elasticsearch, PostgreSQL, application).
-      security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - status
-                  - app
-                  - elasticsearch
-                  - database
-                properties:
-                  status:
-                    type: string
-                    enum:
-                      - healthy
-                      - degraded
-                    description: Overall system status
-                  app:
-                    type: object
-                    required:
-                      - version
-                    properties:
-                      version:
-                        type: string
-                        description: API version from OpenAPI spec
-                  elasticsearch:
-                    type: object
-                    required:
-                      - status
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - connected
-                          - disconnected
-                      version:
-                        type: string
-                        nullable: true
-                      clusterName:
-                        type: string
-                        nullable: true
-                      clusterStatus:
-                        type: string
-                        nullable: true
-                        description: ES cluster health (green, yellow, red)
-                      indexName:
-                        type: string
-                        nullable: true
-                      documentCount:
-                        type: integer
-                        nullable: true
-                  database:
-                    type: object
-                    required:
-                      - status
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - connected
-                          - disconnected
-                      version:
-                        type: string
-                        nullable: true
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -3574,371 +2678,6 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/admin/queues/stats:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: listAdminQueueStats
-      summary: Get queue statistics
-      description: |
-        Returns statistics for all ES sync queues including pending and failed job counts.
-      security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  required:
-                    - queue
-                    - stuckCount
-                    - failedCount
-                  properties:
-                    queue:
-                      type: string
-                      example: es-sync-create
-                    stuckCount:
-                      type: integer
-                      description: Number of jobs currently pending/active
-                      example: 5
-                    failedCount:
-                      type: integer
-                      description: Number of failed jobs
-                      example: 2
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/queues/{queueName}:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminQueue
-      summary: Get detailed queue information
-      description: |
-        Returns live queue stats and queue metadata from PgBoss for a specific queue.
-
-        **Queue names:**
-        - `es-sync-create` - Jobs to create new segments in Elasticsearch
-        - `es-sync-update` - Jobs to update existing segments
-        - `es-sync-delete` - Jobs to delete segments
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: queueName
-          in: path
-          required: true
-          schema:
-            type: string
-            enum:
-              - es-sync-create
-              - es-sync-update
-              - es-sync-delete
-          description: The name of the queue
-          example: es-sync-create
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - queue
-                  - stats
-                  - metadata
-                properties:
-                  queue:
-                    type: string
-                    example: es-sync-create
-                  stats:
-                    type: object
-                    required:
-                      - deferred
-                      - queued
-                      - active
-                      - total
-                    properties:
-                      deferred:
-                        type: integer
-                        description: Jobs scheduled for future execution (`start_after > now()`)
-                        example: 1
-                      queued:
-                        type: integer
-                        description: Jobs currently queued and waiting to be processed
-                        example: 10
-                      active:
-                        type: integer
-                        description: Jobs currently being processed
-                        example: 2
-                      total:
-                        type: integer
-                        description: Total jobs currently stored in the queue table
-                        example: 13
-                  metadata:
-                    type: object
-                    required:
-                      - policy
-                      - partition
-                      - createdOn
-                      - updatedOn
-                      - singletonsActive
-                      - table
-                    properties:
-                      policy:
-                        type: string
-                        example: standard
-                      partition:
-                        type: boolean
-                        example: false
-                      deadLetter:
-                        type: string
-                        nullable: true
-                      warningQueueSize:
-                        type: integer
-                        nullable: true
-                      retryLimit:
-                        type: integer
-                        nullable: true
-                        example: 5
-                      retryDelay:
-                        type: integer
-                        nullable: true
-                        description: Initial retry delay in seconds
-                        example: 1
-                      retryBackoff:
-                        type: boolean
-                        nullable: true
-                        example: true
-                      retryDelayMax:
-                        type: integer
-                        nullable: true
-                      expireInSeconds:
-                        type: integer
-                        nullable: true
-                        example: 3600
-                      retentionSeconds:
-                        type: integer
-                        nullable: true
-                        example: 86400
-                      deleteAfterSeconds:
-                        type: integer
-                        nullable: true
-                      createdOn:
-                        type: string
-                        format: date-time
-                      updatedOn:
-                        type: string
-                        format: date-time
-                      singletonsActive:
-                        type: array
-                        items:
-                          type: string
-                      table:
-                        type: string
-                        example: job
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/queues/{queueName}/failed:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: listAdminQueueFailed
-      summary: Get failed jobs from a queue
-      description: |
-        Returns jobs that have exceeded their retry limit and permanently failed.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: queueName
-          in: path
-          required: true
-          schema:
-            type: string
-            enum:
-              - es-sync-create
-              - es-sync-update
-              - es-sync-delete
-          description: The name of the queue
-          example: es-sync-create
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  required:
-                    - id
-                    - segmentId
-                    - error
-                    - createdOn
-                  properties:
-                    id:
-                      type: string
-                      description: Job ID
-                    segmentId:
-                      type: integer
-                      description: The segment ID that failed to sync
-                    error:
-                      type: string
-                      nullable: true
-                      description: Error message from the last attempt
-                    createdOn:
-                      type: string
-                      format: date-time
-                      description: When the job was created
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/queues/{queueName}/retry:
-    post:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: retryAdminQueueFailed
-      summary: Retry failed jobs from a queue
-      description: |
-        Re-enqueues all failed jobs from a specific queue for another attempt.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: queueName
-          in: path
-          required: true
-          schema:
-            type: string
-            enum:
-              - es-sync-create
-              - es-sync-update
-              - es-sync-delete
-          description: The name of the queue
-          example: es-sync-create
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - success
-                  - retriedCount
-                  - message
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  retriedCount:
-                    type: integer
-                    description: Number of jobs queued for retry
-                    example: 5
-                  message:
-                    type: string
-                    example: Retried 5 failed jobs from es-sync-create
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/queues/{queueName}/purge:
-    delete:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: purgeAdminQueueFailed
-      summary: Purge failed jobs from a queue
-      description: |
-        Permanently deletes all failed jobs from a queue.
-        This does **not** re-sync the affected segments -- use the reindex endpoint for that.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: queueName
-          in: path
-          required: true
-          schema:
-            type: string
-            enum:
-              - es-sync-create
-              - es-sync-update
-              - es-sync-delete
-          description: The name of the queue
-          example: es-sync-create
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - success
-                  - purgedCount
-                  - message
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  purgedCount:
-                    type: integer
-                    description: Number of failed jobs deleted
-                    example: 15
-                  message:
-                    type: string
-                    example: Purged 15 failed jobs from es-sync-create
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
   /v1/admin/reports:
     get:
       tags:
@@ -3970,23 +2709,16 @@ paths:
           schema:
             type: string
           description: |
-            Filter by report status. Accepts a single value or comma-separated list (e.g. "PENDING,ACCEPTED"). Valid values: PENDING, CONCERN, ACCEPTED, REJECTED, RESOLVED, IGNORED.
+            Filter by report status. Accepts a single value or comma-separated list (e.g. "OPEN,PROCESSING"). Valid values: OPEN, PROCESSING, FIXED, DISMISSED.
         - name: source
           in: query
           schema:
-            type: string
-            enum:
-              - USER
-              - AUTO
+            $ref: '#/components/schemas/ReportSource'
           description: Filter by report source
         - name: target.type
           in: query
           schema:
-            type: string
-            enum:
-              - SEGMENT
-              - EPISODE
-              - MEDIA
+            $ref: '#/components/schemas/ReportTargetType'
           description: Filter by target type
         - name: target.mediaId
           in: query
@@ -4008,6 +2740,11 @@ paths:
           schema:
             type: integer
           description: Filter by audit run ID
+        - name: orphaned
+          in: query
+          schema:
+            type: boolean
+          description: When true, only return reports whose target media has been deleted
       responses:
         '200':
           description: OK
@@ -4047,13 +2784,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - updated
-                properties:
-                  updated:
-                    type: integer
-                    description: Number of reports updated
+                $ref: '#/components/schemas/AffectedCountResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -4064,7 +2795,77 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/admin/reports/{id}:
+  /v1/admin/reports/bulk:
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: bulkUpdateAdminReports
+      summary: Bulk update reports by filters
+      description: |
+        Updates the status of all reports matching the given filters.
+        Unlike the batch endpoint which takes explicit IDs, this updates all matching reports in one operation.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkUpdateReportsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffectedCountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: bulkDeleteAdminReports
+      summary: Bulk delete reports by filters
+      description: |
+        Permanently deletes all reports matching the given filters.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkDeleteReportsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffectedCountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/reports/{reportId}:
     patch:
       tags:
         - Admin
@@ -4078,7 +2879,7 @@ paths:
         - SessionCookie:
             - ADMIN
       parameters:
-        - name: id
+        - name: reportId
           in: path
           required: true
           schema:
@@ -4099,6 +2900,41 @@ paths:
                 $ref: '#/components/schemas/Report'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: deleteAdminReport
+      summary: Delete report and its group
+      description: |
+        Deletes a report and all other reports with the same target and reason (the dedup group).
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Report ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffectedCountResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4280,7 +3116,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/MediaAuditRun'
                   pagination:
-                    $ref: '#/components/schemas/OpaqueCursorPagination'
+                    $ref: '#/components/schemas/CursorPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4289,7 +3125,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/runs/{id}:
+  /v1/admin/media/audits/runs/{auditRunId}:
     get:
       tags:
         - Admin
@@ -4302,7 +3138,7 @@ paths:
         - SessionCookie:
             - ADMIN
       parameters:
-        - name: id
+        - name: auditRunId
           in: path
           required: true
           schema:
@@ -4350,22 +3186,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - type
-                  - active
-                properties:
-                  message:
-                    type: string
-                  type:
-                    type: string
-                    enum:
-                      - info
-                      - warning
-                      - maintenance
-                  active:
-                    type: boolean
+                $ref: '#/components/schemas/Announcement'
         '204':
           description: No announcement set
         '429':
@@ -4388,45 +3209,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - message
-                - type
-                - active
-              properties:
-                message:
-                  type: string
-                  maxLength: 500
-                type:
-                  type: string
-                  enum:
-                    - info
-                    - warning
-                    - maintenance
-                active:
-                  type: boolean
+              $ref: '#/components/schemas/Announcement'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - type
-                  - active
-                properties:
-                  message:
-                    type: string
-                  type:
-                    type: string
-                    enum:
-                      - info
-                      - warning
-                      - maintenance
-                  active:
-                    type: boolean
+                $ref: '#/components/schemas/Announcement'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -4450,21 +3240,36 @@ components:
       name: nadeshiko.session_token
       description: Session authentication via cookie
   schemas:
+    SearchQuery:
+      type: object
+      description: What to search for (omit for queryless browse/stats)
+      properties:
+        search:
+          type: string
+          description: Search expression (supports boolean operators, wildcards, phrase matching)
+          maxLength: 500
+          example: (猫 OR 犬) AND 好き
+        exactMatch:
+          type: boolean
+          description: Whether to use exact phrase matching
+          default: false
     MediaFilterItem:
       type: object
       description: A media filter entry with optional episode restriction
       required:
-        - mediaId
+        - mediaPublicId
       properties:
-        mediaId:
+        mediaPublicId:
           type: string
-          description: Media identifier (publicId or AniList external ID)
+          description: Media public identifier (nanoid)
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: abc123xyz
         episodes:
           type: array
-          description: Specific episodes (omit for all episodes)
+          description: Specific episodes (omit for all episodes). Use 0 for movies/specials
           items:
             type: integer
+            minimum: 0
           example:
             - 1
             - 2
@@ -4489,6 +3294,14 @@ components:
         - QUESTIONABLE
         - EXPLICIT
       example: SAFE
+    SegmentStatus:
+      type: string
+      description: Segment status
+      enum:
+        - ACTIVE
+        - HIDDEN
+        - DELETED
+      example: ACTIVE
     SearchFilters:
       type: object
       description: Search filters for narrowing segment results
@@ -4524,14 +3337,7 @@ components:
           type: array
           description: Segment status filter
           items:
-            type: string
-            enum:
-              - DELETED
-              - ACTIVE
-              - SUSPENDED
-              - VERIFIED
-              - INVALID
-              - TOO_LONG
+            $ref: '#/components/schemas/SegmentStatus'
           default:
             - ACTIVE
         segmentLengthChars:
@@ -4541,10 +3347,12 @@ components:
             min:
               type: integer
               description: Minimum content length
+              minimum: 0
               example: 10
             max:
               type: integer
               description: Maximum content length
+              minimum: 0
               example: 50
         segmentDurationMs:
           type: object
@@ -4553,23 +3361,21 @@ components:
             min:
               type: integer
               description: Minimum duration in ms
+              minimum: 0
               example: 1000
             max:
               type: integer
               description: Maximum duration in ms
+              minimum: 0
               example: 10000
         languages:
-          type: object
-          description: Language inclusion/exclusion for search matching
-          properties:
-            exclude:
-              type: array
-              description: Language codes to exclude from search matching (e.g., ["en"], ["es"], ["en","es"])
-              items:
-                type: string
-                enum:
-                  - en
-                  - es
+          type: array
+          description: Language codes to exclude from search matching (e.g., ["EN"], ["ES"], ["EN","ES"])
+          items:
+            type: string
+            enum:
+              - EN
+              - ES
     IncludeExpansion:
       type: string
       description: Resource to expand in the response includes block
@@ -4579,40 +3385,38 @@ components:
       type: object
       properties:
         query:
-          type: object
-          description: What to search for (omit for queryless browse)
-          properties:
-            search:
-              type: string
-              description: Search expression (supports boolean operators, wildcards, phrase matching)
-              example: (猫 OR 犬) AND 好き
-            exactMatch:
-              type: boolean
-              description: Whether to use exact phrase matching
-              default: false
+          $ref: '#/components/schemas/SearchQuery'
         take:
           type: integer
           description: Max amount of entries by response
           default: 10
+          minimum: 1
+          maximum: 50
         cursor:
           type: string
           description: Opaque cursor token returned from the previous search page
-          example: eyJraW5kIjoia2V5c2V0IiwiY3Vyc29yIjpbMjMuMzE3MjcsN119
+          maxLength: 500
+          example: eyJraW...N119
         sort:
           type: object
           description: Sort configuration
           properties:
             mode:
               type: string
-              description: Sort mode
+              description: |
+                Sort mode.
+                - `RELEVANCE` (default): Elasticsearch relevance score
+                - `ASC` / `DESC`: by segment length (character count)
+                - `TIME_ASC` / `TIME_DESC`: by episode & position within an episode
+                - `RANDOM`: deterministic random order (pass `seed` for reproducibility)
               enum:
+                - RELEVANCE
                 - ASC
                 - DESC
-                - NONE
                 - TIME_ASC
                 - TIME_DESC
                 - RANDOM
-              default: NONE
+              default: RELEVANCE
             seed:
               type: integer
               description: Non-negative integer seed for deterministic random sorting (only used when mode is RANDOM)
@@ -4682,8 +3486,6 @@ components:
       type: object
       description: Segment with content, optional highlights, and media URLs
       required:
-        - id
-        - uuid
         - publicId
         - position
         - status
@@ -4691,61 +3493,45 @@ components:
         - endTimeMs
         - contentRating
         - episode
-        - mediaId
         - mediaPublicId
         - textJa
         - textEn
         - textEs
         - urls
       properties:
-        id:
-          type: integer
-          description: Numeric identifier for the segment
-          example: 120045
-        uuid:
-          type: string
-          description: Unique identifier for the segment
-          example: 3fd94cef-a3e1-31ae-bc8d-e743f03e9c7e
         publicId:
           type: string
-          description: Public identifier for the segment (use this instead of uuid in public URLs)
+          description: Public identifier for the segment (nanoid)
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: V1StGXR8_Z5d
         position:
           type: integer
           description: Position of the segment within the episode
+          minimum: 0
           example: 1133
         status:
-          type: string
-          enum:
-            - DELETED
-            - ACTIVE
-            - SUSPENDED
-            - VERIFIED
-            - INVALID
-            - TOO_LONG
-          description: Segment status
-          example: ACTIVE
+          $ref: '#/components/schemas/SegmentStatus'
         startTimeMs:
           type: integer
           description: Start time of the segment in milliseconds from the beginning of the episode
+          minimum: 0
           example: 2007255
         endTimeMs:
           type: integer
           description: End time of the segment in milliseconds from the beginning of the episode
+          minimum: 0
           example: 2008464
         contentRating:
           $ref: '#/components/schemas/ContentRating'
         episode:
           type: integer
-          description: Episode number this segment belongs to
+          description: Episode number this segment belongs to (0 for movies/specials)
+          minimum: 0
           example: 1
-        mediaId:
-          type: integer
-          description: Media ID this segment belongs to
-          example: 7674
         mediaPublicId:
           type: string
-          description: Public ID of the media this segment belongs to
+          description: Public ID of the media this segment belongs to (nanoid)
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: V1StGXR8_Z5d
         textJa:
           type: object
@@ -4754,6 +3540,7 @@ components:
           properties:
             content:
               type: string
+              minLength: 1
               maxLength: 500
               description: Original Japanese content
               example: 僕は僕で、君は君だ。
@@ -4773,6 +3560,7 @@ components:
           properties:
             content:
               type: string
+              minLength: 1
               maxLength: 500
               description: English translation
               example: I am me, and you are you.
@@ -4791,6 +3579,7 @@ components:
           properties:
             content:
               type: string
+              minLength: 1
               maxLength: 500
               description: Spanish translation
               example: Yo soy yo, y tú eres tú.
@@ -4812,14 +3601,17 @@ components:
             imageUrl:
               type: string
               format: uri
+              minLength: 1
               description: URL to the subtitle image snapshot
             audioUrl:
               type: string
               format: uri
+              minLength: 1
               description: URL to the audio clip for this segment
             videoUrl:
               type: string
               format: uri
+              minLength: 1
               description: URL to the video clip for this segment
     ExternalId:
       type: object
@@ -4841,84 +3633,12 @@ components:
           type: string
           description: TMDB ID
           example: '90955'
-    Seiyuu:
-      type: object
-      description: Japanese voice actor (seiyuu)
-      required:
-        - id
-        - publicId
-        - externalIds
-        - nameJa
-        - nameEn
-        - imageUrl
-      properties:
-        id:
-          type: integer
-          description: Internal seiyuu ID
-          example: 1
-        publicId:
-          type: string
-          description: Public identifier for the seiyuu (use this in public URLs)
-          example: V1StGXR8_Z5d
-        externalIds:
-          $ref: '#/components/schemas/ExternalId'
-        nameJa:
-          type: string
-          description: Japanese name of the voice actor
-          example: 阿部敦
-        nameEn:
-          type: string
-          description: English name of the voice actor
-          example: Atsushi Abe
-        imageUrl:
-          type: string
-          format: uri
-          description: Profile image URL
-          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
-    MediaCharacter:
-      type: object
-      description: Character appearing in a media with their voice actor and role
-      required:
-        - id
-        - nameJa
-        - nameEn
-        - imageUrl
-        - seiyuu
-        - role
-      properties:
-        id:
-          type: integer
-          description: AniList character ID
-          example: 14545
-        nameJa:
-          type: string
-          description: Japanese name of the character
-          example: 真城最高
-        nameEn:
-          type: string
-          description: English name of the character
-          example: Moritaka Mashiro
-        imageUrl:
-          type: string
-          format: uri
-          description: Character image URL
-          example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
-        seiyuu:
-          $ref: '#/components/schemas/Seiyuu'
-        role:
-          type: string
-          enum:
-            - MAIN
-            - SUPPORTING
-            - BACKGROUND
-          description: Character's role in the media
-          example: MAIN
     Media:
       type: object
       description: Media entry with full metadata
       required:
-        - id
         - publicId
+        - slug
         - externalIds
         - nameJa
         - nameRomaji
@@ -4935,40 +3655,58 @@ components:
         - seasonName
         - seasonYear
       properties:
-        id:
-          type: integer
-          description: Internal unique identifier for the media
-          example: 7674
         publicId:
           type: string
           description: Public identifier for the media (use this in public URLs)
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: V1StGXR8_Z5d
+        slug:
+          type: string
+          description: URL-friendly slug for the media
+          minLength: 1
+          example: bakuman
         externalIds:
           $ref: '#/components/schemas/ExternalId'
         nameJa:
           type: string
           description: Original Japanese name of the media
+          minLength: 1
           example: バクマン。
         nameRomaji:
           type: string
           description: Romaji transliteration of the media name
+          minLength: 1
           example: Bakuman.
         nameEn:
           type: string
           description: English name of the media
+          minLength: 1
           example: Bakuman.
         airingFormat:
           type: string
-          description: Format of the media release (e.g., TV, OVA, Movie)
+          description: Format of the media release
+          enum:
+            - TV
+            - MOVIE
+            - OVA
+            - ONA
+            - SPECIAL
           example: TV
         airingStatus:
           type: string
-          description: Current airing status (FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED)
+          description: Current airing status
+          enum:
+            - FINISHED
+            - RELEASING
+            - NOT_YET_RELEASED
+            - CANCELLED
           example: FINISHED
         genres:
           type: array
           items:
             type: string
+            minLength: 1
+          minItems: 0
           description: List of genres associated with the media
           example:
             - Comedy
@@ -4978,16 +3716,19 @@ components:
         coverUrl:
           type: string
           format: uri
+          minLength: 1
           description: Full URL to the cover image
           example: https://cdn.example.com/media/anime/bakuman/cover.webp
         bannerUrl:
           type: string
           format: uri
+          minLength: 1
           description: Full URL to the banner image
           example: https://cdn.example.com/media/anime/bakuman/banner.webp
         startDate:
           type: string
           format: date
+          minLength: 1
           description: Start date of the media (first airing/release)
           example: '2010-10-02'
         endDate:
@@ -5001,10 +3742,12 @@ components:
         segmentCount:
           type: integer
           description: Total number of subtitle segments available
+          minimum: 0
           example: 0
         episodeCount:
           type: integer
           description: Total number of episodes available
+          minimum: 0
           example: 25
         studio:
           type: string
@@ -5014,17 +3757,19 @@ components:
         seasonName:
           type: string
           description: Airing season label for the media
+          enum:
+            - WINTER
+            - SPRING
+            - SUMMER
+            - FALL
           example: FALL
         seasonYear:
           type: integer
           description: Airing year for the media
+          minimum: 1900
+          maximum: 2100
           example: 2010
-        characters:
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaCharacter'
-          description: Characters appearing in the media with their voice actors
-    PaginationInfo:
+    SearchPagination:
       type: object
       description: Pagination metadata for search results
       required:
@@ -5040,17 +3785,22 @@ components:
         estimatedTotalHits:
           type: integer
           description: Estimated total number of matching segments
+          minimum: 0
           example: 12456
         estimatedTotalHitsRelation:
           type: string
-          description: Whether estimatedTotalHits is exact or a lower bound
+          description: |
+            Whether `estimatedTotalHits` is exact or a lower bound.
+            - `EXACT`: the value is the precise total
+            - `AT_LEAST`: at least this many matches exist (true total may be higher)
           enum:
             - EXACT
-            - LOWER_BOUND
-          example: LOWER_BOUND
+            - AT_LEAST
+          example: AT_LEAST
         cursor:
           type: string
           nullable: true
+          minLength: 1
           description: Opaque cursor token for fetching the next page (`null` when hasMore is false)
     SearchResponse:
       type: object
@@ -5072,9 +3822,9 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by media publicId
+              description: Map of mediaPublicId → Media object. Lookup using segment.mediaPublicId
         pagination:
-          $ref: '#/components/schemas/PaginationInfo'
+          $ref: '#/components/schemas/SearchPagination'
     Error400:
       type: object
       description: Bad Request error response
@@ -5093,16 +3843,20 @@ components:
             - INVALID_REQUEST
         title:
           type: string
+          minLength: 1
           description: A short, human-readable summary of the problem
         detail:
           type: string
+          minLength: 1
           description: A human-readable explanation specific to this occurrence
         type:
           type: string
           format: uri
+          minLength: 1
           description: A URI reference that identifies the problem type (e.g., GitHub issues link)
         instance:
           type: string
+          minLength: 1
           description: A URI reference that identifies the specific occurrence (e.g., trace ID)
         status:
           type: integer
@@ -5132,16 +3886,20 @@ components:
             - AUTH_CREDENTIALS_EXPIRED
         title:
           type: string
+          minLength: 1
           description: A short, human-readable summary of the problem
         detail:
           type: string
+          minLength: 1
           description: A human-readable explanation specific to this occurrence
         type:
           type: string
           format: uri
+          minLength: 1
           description: A URI reference that identifies the problem type (e.g., GitHub issues link)
         instance:
           type: string
+          minLength: 1
           description: A URI reference that identifies the specific occurrence (e.g., trace ID)
         status:
           type: integer
@@ -5170,16 +3928,20 @@ components:
             - INSUFFICIENT_PERMISSIONS
         title:
           type: string
+          minLength: 1
           description: A short, human-readable summary of the problem
         detail:
           type: string
+          minLength: 1
           description: A human-readable explanation specific to this occurrence
         type:
           type: string
           format: uri
+          minLength: 1
           description: A URI reference that identifies the problem type (e.g., GitHub issues link)
         instance:
           type: string
+          minLength: 1
           description: A URI reference that identifies the specific occurrence (e.g., trace ID)
         status:
           type: integer
@@ -5208,16 +3970,20 @@ components:
             - QUOTA_EXCEEDED
         title:
           type: string
+          minLength: 1
           description: A short, human-readable summary of the problem
         detail:
           type: string
+          minLength: 1
           description: A human-readable explanation specific to this occurrence
         type:
           type: string
           format: uri
+          minLength: 1
           description: A URI reference that identifies the problem type (e.g., GitHub issues link)
         instance:
           type: string
+          minLength: 1
           description: A URI reference that identifies the specific occurrence (e.g., trace ID)
         status:
           type: integer
@@ -5245,16 +4011,20 @@ components:
             - INTERNAL_SERVER_EXCEPTION
         title:
           type: string
+          minLength: 1
           description: A short, human-readable summary of the problem
         detail:
           type: string
+          minLength: 1
           description: A human-readable explanation specific to this occurrence
         type:
           type: string
           format: uri
+          minLength: 1
           description: A URI reference that identifies the problem type (e.g., GitHub issues link)
         instance:
           type: string
+          minLength: 1
           description: A URI reference that identifies the specific occurrence (e.g., trace ID)
         status:
           type: integer
@@ -5270,17 +4040,7 @@ components:
       type: object
       properties:
         query:
-          type: object
-          description: What to search for (omit for queryless stats)
-          properties:
-            search:
-              type: string
-              description: Search expression (supports boolean operators, wildcards, phrase matching)
-              example: 彼女
-            exactMatch:
-              type: boolean
-              description: Whether to use exact phrase matching
-              default: false
+          $ref: '#/components/schemas/SearchQuery'
         filters:
           $ref: '#/components/schemas/SearchFilters'
         include:
@@ -5293,32 +4053,46 @@ components:
       type: object
       description: Search hit statistics for a single media
       required:
-        - mediaId
-        - publicId
+        - mediaPublicId
         - matchCount
         - episodeHits
       properties:
-        mediaId:
-          type: integer
-          description: Media identifier (look up full details in includes.media)
-          example: 110316
-        publicId:
+        mediaPublicId:
           type: string
-          description: Public identifier for use in URLs and filters
+          description: Media public identifier (look up full details in includes.media)
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: abc123xyz
         matchCount:
           type: integer
           description: Number of matching segments found in this media
+          minimum: 0
           example: 42
         episodeHits:
-          type: object
-          description: Mapping of episode numbers to segment hit counts
+          type: array
+          description: Episode-level hit counts
+          items:
+            type: object
+            required:
+              - episode
+              - hitCount
+            properties:
+              episode:
+                type: integer
+                description: Episode number
+                minimum: 0
+                example: 1
+              hitCount:
+                type: integer
+                description: Number of matching segments in this episode
+                minimum: 0
+                example: 5
           example:
-            '1': 5
-            '2': 8
-            '3': 3
-          additionalProperties:
-            type: integer
+            - episode: 1
+              hitCount: 5
+            - episode: 2
+              hitCount: 8
+            - episode: 3
+              hitCount: 3
     CategoryCount:
       type: object
       description: Count of entries grouped by media category
@@ -5331,6 +4105,7 @@ components:
         count:
           type: integer
           description: Number of entries in this category
+          minimum: 0
           example: 1523
     SearchStatsResponse:
       type: object
@@ -5357,27 +4132,33 @@ components:
               additionalProperties:
                 $ref: '#/components/schemas/Media'
               description: Media objects keyed by media publicId
+    SearchMultipleQuery:
+      type: object
+      description: What to search for (multiple words)
+      required:
+        - words
+      properties:
+        words:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+          description: List of words to search for
+          minItems: 1
+          maxItems: 100
+          example:
+            - 彼女
+            - 私
+        exactMatch:
+          type: boolean
+          default: false
+          description: Whether to use exact matching
     SearchMultipleRequest:
       type: object
       properties:
         query:
-          type: object
-          description: What to search for
-          properties:
-            words:
-              type: array
-              items:
-                type: string
-              description: List of words to search for
-              example:
-                - 彼女
-                - 私
-            exactMatch:
-              type: boolean
-              default: false
-              description: Whether to use exact matching
-          required:
-            - words
+          $ref: '#/components/schemas/SearchMultipleQuery'
         filters:
           $ref: '#/components/schemas/SearchFilters'
         include:
@@ -5392,16 +4173,18 @@ components:
       type: object
       description: Media match count entry
       required:
-        - mediaId
+        - mediaPublicId
         - matchCount
       properties:
-        mediaId:
-          type: integer
-          description: Media identifier (look up full details in includes.media)
-          example: 110316
+        mediaPublicId:
+          type: string
+          description: Media public identifier (look up full details in includes.media)
+          pattern: ^[A-Za-z0-9_-]{12}$
+          example: V1StGXR8_Z5d
         matchCount:
           type: integer
           description: Number of times the word appears in this media
+          minimum: 0
           example: 234
     WordMatch:
       type: object
@@ -5415,6 +4198,7 @@ components:
         word:
           type: string
           description: The word that was searched for
+          minLength: 1
           example: 彼女
         isMatch:
           type: boolean
@@ -5423,6 +4207,7 @@ components:
         matchCount:
           type: integer
           description: Total number of times this word appears across all media
+          minimum: 0
           example: 1523
         media:
           type: array
@@ -5448,13 +4233,126 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
-    MediaIncludeExpansion:
-      type: string
-      description: Resource to expand in media responses
-      enum:
-        - media.characters
-    OpaqueCursorPagination:
+              description: Media objects keyed by mediaPublicId
+    WordCoverageTier:
+      type: object
+      description: Coverage statistics for a frequency tier
+      required:
+        - tier
+        - covered
+        - total
+        - percentage
+      properties:
+        tier:
+          type: integer
+          description: The frequency tier (e.g. 1000 means top 1000 words)
+          example: 5000
+        covered:
+          type: integer
+          description: Number of words with at least one match in the corpus
+          example: 4823
+        total:
+          type: integer
+          description: Total number of words in this tier
+          example: 5000
+        percentage:
+          type: number
+          format: float
+          description: Coverage percentage
+          example: 96.5
+    StatsOverview:
+      type: object
+      description: Corpus statistics overview
+      required:
+        - totalSegments
+        - totalEpisodes
+        - totalMedia
+        - totalFrequencyWords
+        - dialogueHours
+        - tiers
+        - lastUpdated
+        - translations
+      properties:
+        totalSegments:
+          type: integer
+          description: Total number of active segments in the corpus
+          example: 1200000
+        totalEpisodes:
+          type: integer
+          description: Total number of episodes
+          example: 8500
+        totalMedia:
+          type: integer
+          description: Total number of media entries
+          example: 350
+        totalFrequencyWords:
+          type: integer
+          description: Total number of words in the frequency list
+          example: 215900
+        dialogueHours:
+          type: number
+          format: float
+          description: Total hours of Japanese dialogue (subtitle coverage time)
+          example: 2450.5
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/WordCoverageTier'
+        lastUpdated:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the word coverage data was last updated
+        translations:
+          type: object
+          required:
+            - total
+            - enHuman
+            - enMachine
+            - esHuman
+            - esMachine
+          properties:
+            total:
+              type: integer
+              description: Total active segments
+              example: 1200000
+            enHuman:
+              type: integer
+              description: Segments with human English translations
+              example: 800000
+            enMachine:
+              type: integer
+              description: Segments with machine English translations
+              example: 350000
+            esHuman:
+              type: integer
+              description: Segments with human Spanish translations
+              example: 200000
+            esMachine:
+              type: integer
+              description: Segments with machine Spanish translations
+              example: 400000
+    CoveredWord:
+      type: object
+      description: A word from the frequency list with coverage information
+      required:
+        - rank
+        - word
+        - matchCount
+      properties:
+        rank:
+          type: integer
+          description: Frequency rank
+          example: 32
+        word:
+          type: string
+          description: The Japanese word
+          example: 彼女
+        matchCount:
+          type: integer
+          description: Number of matching sentences in the corpus
+          example: 1542
+    CursorPagination:
       type: object
       description: Opaque cursor pagination metadata
       required:
@@ -5468,8 +4366,76 @@ components:
         cursor:
           type: string
           nullable: true
+          minLength: 1
           description: Opaque token for the next page (`null` when `hasMore` is `false`)
-          example: eyJraW5kIjoia2V5c2V0IiwiY3Vyc29yIjo4NDIxfQ
+          example: eyJraW...IxfQ
+    CoveredWordsResponse:
+      type: object
+      description: Paginated list of frequency-list words with coverage information
+      required:
+        - words
+        - pagination
+        - tierStats
+      properties:
+        words:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoveredWord'
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+        tierStats:
+          type: object
+          description: Tier-level word counts (cached)
+          required:
+            - total
+            - covered
+            - uncovered
+          properties:
+            total:
+              type: integer
+            covered:
+              type: integer
+            uncovered:
+              type: integer
+    CoveredWordsUpdateRequest:
+      type: object
+      description: Request body for triggering a word coverage update
+      properties:
+        maxRank:
+          type: integer
+          default: 999999
+          description: Maximum frequency rank to check (defaults to all words)
+        onlyUncovered:
+          type: boolean
+          default: false
+          description: Only check words that currently have zero matches (faster for incremental updates)
+    CoveredWordsUpdateResponse:
+      type: object
+      description: Result of a word coverage update run
+      required:
+        - wordsChecked
+        - newlyCovered
+        - totalCovered
+        - percentage
+      properties:
+        wordsChecked:
+          type: integer
+          example: 50000
+        newlyCovered:
+          type: integer
+          example: 120
+        totalCovered:
+          type: integer
+          example: 42000
+        percentage:
+          type: number
+          format: float
+          example: 84
+    MediaIncludeExpansion:
+      type: string
+      description: Resource to expand in media responses
+      enum:
+        - media.characters
     MediaListResponse:
       type: object
       required:
@@ -5482,7 +4448,7 @@ components:
           items:
             $ref: '#/components/schemas/Media'
         pagination:
-          $ref: '#/components/schemas/OpaqueCursorPagination'
+          $ref: '#/components/schemas/CursorPagination'
         stats:
           type: object
           required:
@@ -5499,6 +4465,14 @@ components:
             totalEpisodes:
               type: integer
               description: Total number of episodes
+    CharacterRole:
+      type: string
+      description: Character role in the media
+      enum:
+        - MAIN
+        - SUPPORTING
+        - BACKGROUND
+      example: MAIN
     CharacterInput:
       type: object
       description: Character data for creating/updating media
@@ -5526,13 +4500,7 @@ components:
           description: Character image URL
           example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
         role:
-          type: string
-          enum:
-            - MAIN
-            - SUPPORTING
-            - BACKGROUND
-          description: Character's role in the media
-          example: MAIN
+          $ref: '#/components/schemas/CharacterRole'
         seiyuu:
           type: object
           required:
@@ -5661,6 +4629,12 @@ components:
             $ref: '#/components/schemas/CharacterInput'
           description: List of characters appearing in the media with their voice actors
           default: []
+    MediaResponse:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/Media.yaml
     Error409:
       type: object
       description: Conflict error response
@@ -5678,16 +4652,20 @@ components:
             - DUPLICATE_KEY
         title:
           type: string
+          minLength: 1
           description: A short, human-readable summary of the problem
         detail:
           type: string
+          minLength: 1
           description: A human-readable explanation specific to this occurrence
         type:
           type: string
           format: uri
+          minLength: 1
           description: A URI reference that identifies the problem type (e.g., GitHub issues link)
         instance:
           type: string
+          minLength: 1
           description: A URI reference that identifies the specific occurrence (e.g., trace ID)
         status:
           type: integer
@@ -5705,6 +4683,7 @@ components:
       required:
         - id
         - publicId
+        - slug
         - nameJa
         - nameRomaji
         - nameEn
@@ -5718,7 +4697,12 @@ components:
         publicId:
           type: string
           description: Public identifier for the media
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: abc123xyz
+        slug:
+          type: string
+          description: URL-friendly slug for the media
+          example: bakuman
         nameJa:
           type: string
           description: Original Japanese name of the media
@@ -5747,42 +4731,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MediaAutocompleteItem'
-    SegmentInternal:
-      description: |
-        Segment with internal fields. For write operations (create, update) all fields are always populated.
-        For GET, optional fields are only populated when requested via include[].
-      allOf:
-        - $ref: '#/components/schemas/Segment'
-        - type: object
-          properties:
-            storage:
-              type: string
-              enum:
-                - LOCAL
-                - R2
-              nullable: true
-              description: Storage backend for segment assets
-              example: R2
-            hashedId:
-              type: string
-              nullable: true
-              description: Hash identifier for the segment
-              example: 0d39e46b14
-            storageBasePath:
-              type: string
-              nullable: true
-              description: Base path in the storage backend
-              example: anime/steins-gate
-            ratingAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: Raw WD Tagger v3 classifier output used to derive content rating
-            posAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: POS tokenization results keyed by engine (sudachi, unidic)
     Error404:
       type: object
       description: Not Found error response
@@ -5799,16 +4747,20 @@ components:
             - NOT_FOUND
         title:
           type: string
+          minLength: 1
           description: A short, human-readable summary of the problem
         detail:
           type: string
+          minLength: 1
           description: A human-readable explanation specific to this occurrence
         type:
           type: string
           format: uri
+          minLength: 1
           description: A URI reference that identifies the problem type (e.g., GitHub issues link)
         instance:
           type: string
+          minLength: 1
           description: A URI reference that identifies the specific occurrence (e.g., trace ID)
         status:
           type: integer
@@ -5829,16 +4781,7 @@ components:
           description: Position of the segment within the episode
           example: 1133
         status:
-          type: string
-          description: Segment status
-          enum:
-            - DELETED
-            - ACTIVE
-            - SUSPENDED
-            - VERIFIED
-            - INVALID
-            - TOO_LONG
-          example: ACTIVE
+          $ref: '#/components/schemas/SegmentStatus'
         startTimeMs:
           type: integer
           description: Start time of the segment in milliseconds from the beginning of the episode
@@ -5903,6 +4846,42 @@ components:
           minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
+    SegmentInternal:
+      description: |
+        Segment with internal fields. For write operations (create, update) all fields are always populated.
+        For GET, optional fields are only populated when requested via include[].
+      allOf:
+        - $ref: '#/components/schemas/Segment'
+        - type: object
+          properties:
+            storage:
+              type: string
+              enum:
+                - LOCAL
+                - R2
+              nullable: true
+              description: Storage backend for segment assets
+              example: R2
+            hashedId:
+              type: string
+              nullable: true
+              description: Hash identifier for the segment
+              example: 0d39e46b14
+            storageBasePath:
+              type: string
+              nullable: true
+              description: Base path in the storage backend
+              example: anime/steins-gate
+            ratingAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: Raw WD Tagger v3 classifier output used to derive content rating
+            posAnalysis:
+              type: object
+              additionalProperties: true
+              nullable: true
+              description: POS tokenization results keyed by engine (sudachi, unidic)
     SegmentContextResponse:
       type: object
       required:
@@ -5920,7 +4899,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by mediaPublicId
     SegmentRevision:
       type: object
       required:
@@ -5964,6 +4943,7 @@ components:
         publicId:
           type: string
           description: Public identifier for the series
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: V1StGXR8_Z5d
         nameJa:
           type: string
@@ -5988,7 +4968,26 @@ components:
           items:
             $ref: '#/components/schemas/Series'
         pagination:
-          $ref: '#/components/schemas/OpaqueCursorPagination'
+          $ref: '#/components/schemas/CursorPagination'
+    SeriesCreateRequest:
+      type: object
+      required:
+        - nameJa
+        - nameRomaji
+        - nameEn
+      properties:
+        nameJa:
+          type: string
+          description: Japanese name of the series
+          example: バクマン。シリーズ
+        nameRomaji:
+          type: string
+          description: Romaji name of the series
+          example: Bakuman. Series
+        nameEn:
+          type: string
+          description: English name of the series
+          example: Bakuman Series
     SeriesWithMedia:
       type: object
       description: Series with ordered media entries
@@ -6030,6 +5029,44 @@ components:
                 example: 1
               media:
                 $ref: '#/components/schemas/Media'
+    SeriesUpdateRequest:
+      type: object
+      properties:
+        nameJa:
+          type: string
+          description: Updated Japanese name
+          example: 更新バクマン。シリーズ
+        nameRomaji:
+          type: string
+          description: Updated Romaji name
+          example: Updated Bakuman. Series
+        nameEn:
+          type: string
+          description: Updated English name
+          example: Updated Bakuman Series
+    AddMediaToSeriesRequest:
+      type: object
+      required:
+        - mediaId
+        - position
+      properties:
+        mediaId:
+          type: string
+          description: Media public ID to add
+          example: abc123def456
+        position:
+          type: integer
+          description: Position in the series (1-indexed)
+          example: 1
+    UpdateSeriesMediaRequest:
+      type: object
+      required:
+        - position
+      properties:
+        position:
+          type: integer
+          description: New position in the series (1-indexed)
+          example: 2
     Character:
       type: object
       description: Anime character
@@ -6048,6 +5085,7 @@ components:
         publicId:
           type: string
           description: Public identifier for the character (use this in public URLs)
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: V1StGXR8_Z5d
         externalIds:
           $ref: '#/components/schemas/ExternalId'
@@ -6064,6 +5102,41 @@ components:
           format: uri
           description: Character image URL
           example: https://s4.anilist.co/file/anilistcdn/character/large/b14545.jpg
+    Seiyuu:
+      type: object
+      description: Japanese voice actor (seiyuu)
+      required:
+        - id
+        - publicId
+        - externalIds
+        - nameJa
+        - nameEn
+        - imageUrl
+      properties:
+        id:
+          type: integer
+          description: Internal seiyuu ID
+          example: 1
+        publicId:
+          type: string
+          description: Public identifier for the seiyuu (use this in public URLs)
+          pattern: ^[A-Za-z0-9_-]{12}$
+          example: V1StGXR8_Z5d
+        externalIds:
+          $ref: '#/components/schemas/ExternalId'
+        nameJa:
+          type: string
+          description: Japanese name of the voice actor
+          example: 阿部敦
+        nameEn:
+          type: string
+          description: English name of the voice actor
+          example: Atsushi Abe
+        imageUrl:
+          type: string
+          format: uri
+          description: Profile image URL
+          example: https://s4.anilist.co/file/anilistcdn/staff/large/n95991.jpg
     CharacterWithMedia:
       description: Character with voice actor and all media appearances
       allOf:
@@ -6087,13 +5160,7 @@ components:
                   media:
                     $ref: '#/components/schemas/Media'
                   role:
-                    type: string
-                    enum:
-                      - MAIN
-                      - SUPPORTING
-                      - BACKGROUND
-                    description: Character role in this media
-                    example: MAIN
+                    $ref: '#/components/schemas/CharacterRole'
     SeiyuuWithRoles:
       type: object
       description: Seiyuu details with optional character appearances
@@ -6138,13 +5205,7 @@ components:
                   media:
                     $ref: '#/components/schemas/Media'
                   role:
-                    type: string
-                    enum:
-                      - MAIN
-                      - SUPPORTING
-                      - BACKGROUND
-                    description: Character role in this media
-                    example: MAIN
+                    $ref: '#/components/schemas/CharacterRole'
     MediaUpdateRequest:
       type: object
       description: Request body for updating an existing media entry (all fields optional)
@@ -6241,17 +5302,19 @@ components:
     Episode:
       type: object
       required:
-        - mediaId
+        - mediaPublicId
         - episodeNumber
         - segmentCount
       properties:
-        mediaId:
-          type: integer
-          description: ID of the media this episode belongs to
-          example: 7674
+        mediaPublicId:
+          type: string
+          description: Media public identifier this episode belongs to
+          pattern: ^[A-Za-z0-9_-]{12}$
+          example: V1StGXR8_Z5d
         episodeNumber:
           type: integer
-          description: Episode number within the media
+          description: Episode number within the media (0 for movies/specials)
+          minimum: 0
           example: 1
         titleEn:
           type: string
@@ -6283,6 +5346,7 @@ components:
           type: integer
           nullable: true
           description: Episode duration in seconds
+          minimum: 0
           example: 1420
         thumbnailUrl:
           type: string
@@ -6292,6 +5356,7 @@ components:
         segmentCount:
           type: integer
           description: Number of segments in this episode
+          minimum: 0
           example: 450
     EpisodeListResponse:
       type: object
@@ -6305,7 +5370,7 @@ components:
             $ref: '#/components/schemas/Episode'
           description: Array of episode objects
         pagination:
-          $ref: '#/components/schemas/OpaqueCursorPagination'
+          $ref: '#/components/schemas/CursorPagination'
     EpisodeCreateRequest:
       type: object
       required:
@@ -6392,17 +5457,9 @@ components:
           description: Position of the segment within the episode
           example: 1133
         status:
-          type: string
-          description: Segment status
-          enum:
-            - DELETED
-            - ACTIVE
-            - SUSPENDED
-            - VERIFIED
-            - INVALID
-            - TOO_LONG
+          allOf:
+            - $ref: '#/components/schemas/SegmentStatus'
           default: ACTIVE
-          example: ACTIVE
         startTimeMs:
           type: integer
           description: Start time of the segment in milliseconds from the beginning of the episode
@@ -6599,6 +5656,18 @@ components:
           maxLength: 1000
           description: Optional description with additional details
           example: The translation doesn't match the spoken Japanese
+    ReportSource:
+      type: string
+      description: Origin of the report
+      enum:
+        - USER
+        - AUTO
+      example: USER
+      x-enum-descriptions:
+        - value: USER
+          description: Report submitted by a user
+        - value: AUTO
+          description: Report generated by an automated media audit
     ReportTargetEpisode:
       type: object
       required:
@@ -6657,6 +5726,44 @@ components:
           MEDIA: '#/components/schemas/ReportTargetMedia'
           EPISODE: '#/components/schemas/ReportTargetEpisode'
           SEGMENT: '#/components/schemas/ReportTargetSegment'
+    ReportReason:
+      type: string
+      description: Reason for the report
+      enum:
+        - WRONG_TRANSLATION
+        - WRONG_TIMING
+        - WRONG_AUDIO
+        - WRONG_JAPANESE_TEXT
+        - LOW_QUALITY_AUDIO
+        - NSFW_NOT_TAGGED
+        - DUPLICATE_SEGMENT
+        - WRONG_METADATA
+        - MISSING_EPISODES
+        - WRONG_COVER_IMAGE
+        - WRONG_TITLE
+        - DUPLICATE_MEDIA
+        - WRONG_EPISODE_NUMBER
+        - IMAGE_ISSUE
+        - INAPPROPRIATE_CONTENT
+        - OTHER
+        - LOW_SEGMENT_MEDIA
+        - EMPTY_EPISODES
+        - MISSING_EPISODES_AUTO
+        - BAD_SEGMENT_RATIO
+        - MEDIA_WITH_NO_EPISODES
+        - MISSING_TRANSLATIONS
+        - DB_ES_SYNC_ISSUES
+        - HIGH_REPORT_DENSITY
+      example: WRONG_TRANSLATION
+    ReportStatus:
+      type: string
+      description: Current status of a report
+      enum:
+        - OPEN
+        - PROCESSING
+        - FIXED
+        - DISMISSED
+      example: OPEN
     Report:
       type: object
       required:
@@ -6678,12 +5785,7 @@ components:
           description: Report ID
           example: 1
         source:
-          type: string
-          enum:
-            - USER
-            - AUTO
-          description: Who created this report
-          example: USER
+          $ref: '#/components/schemas/ReportSource'
         target:
           $ref: '#/components/schemas/ReportTarget'
         auditRunId:
@@ -6691,34 +5793,7 @@ components:
           nullable: true
           description: ID of the audit run that created this report (AUTO only)
         reason:
-          type: string
-          enum:
-            - WRONG_TRANSLATION
-            - WRONG_TIMING
-            - WRONG_AUDIO
-            - WRONG_JAPANESE_TEXT
-            - LOW_QUALITY_AUDIO
-            - NSFW_NOT_TAGGED
-            - DUPLICATE_SEGMENT
-            - WRONG_METADATA
-            - MISSING_EPISODES
-            - WRONG_COVER_IMAGE
-            - WRONG_TITLE
-            - DUPLICATE_MEDIA
-            - WRONG_EPISODE_NUMBER
-            - IMAGE_ISSUE
-            - INAPPROPRIATE_CONTENT
-            - OTHER
-            - LOW_SEGMENT_MEDIA
-            - EMPTY_EPISODES
-            - MISSING_EPISODES_AUTO
-            - BAD_SEGMENT_RATIO
-            - MEDIA_WITH_NO_EPISODES
-            - MISSING_TRANSLATIONS
-            - DB_ES_SYNC_ISSUES
-            - HIGH_REPORT_DENSITY
-          description: Reason for the report
-          example: WRONG_TRANSLATION
+          $ref: '#/components/schemas/ReportReason'
         description:
           type: string
           nullable: true
@@ -6729,16 +5804,7 @@ components:
           description: Check-specific metrics (AUTO reports) or null (USER reports)
           additionalProperties: true
         status:
-          type: string
-          enum:
-            - PENDING
-            - CONCERN
-            - ACCEPTED
-            - REJECTED
-            - RESOLVED
-            - IGNORED
-          description: Current status of the report
-          example: PENDING
+          $ref: '#/components/schemas/ReportStatus'
         adminNotes:
           type: string
           nullable: true
@@ -6764,9 +5830,9 @@ components:
         mediaNameLanguage:
           type: string
           enum:
-            - english
-            - japanese
-            - romaji
+            - ENGLISH
+            - JAPANESE
+            - ROMAJI
           description: Preferred language for media names display
         contentRatingPreferences:
           type: object
@@ -6775,15 +5841,15 @@ components:
             suggestive:
               type: string
               enum:
-                - show
-                - blur
-                - hide
+                - SHOW
+                - BLUR
+                - HIDE
             explicit:
               type: string
               enum:
-                - show
-                - blur
-                - hide
+                - SHOW
+                - BLUR
+                - HIDE
         searchHistory:
           type: object
           properties:
@@ -6889,6 +5955,39 @@ components:
         createdAt:
           type: string
           format: date-time
+    UserActivityRequest:
+      type: object
+      description: Request body for tracking a user activity event
+      required:
+        - activityType
+      properties:
+        activityType:
+          type: string
+          enum:
+            - SEARCH
+            - SEGMENT_PLAY
+            - SHARE
+            - ANKI_EXPORT
+        segmentId:
+          type: string
+        mediaId:
+          type: integer
+        mediaName:
+          type: string
+        japaneseText:
+          type: string
+        searchQuery:
+          type: string
+    AffectedCountResponse:
+      type: object
+      description: Number of records affected by a bulk operation
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          description: Number of records affected
+          example: 42
     HeatmapDayCounts:
       type: object
       description: Activity counts for a single day, broken down by type. Only types with at least 1 event are present.
@@ -6901,6 +6000,53 @@ components:
           type: integer
         SHARE:
           type: integer
+    UserActivityStats:
+      type: object
+      description: Aggregate statistics about a user's activity
+      required:
+        - totalSearches
+        - totalExports
+        - totalPlays
+        - totalListAdds
+        - totalShares
+        - topMedia
+      properties:
+        totalSearches:
+          type: integer
+          example: 1240
+        totalExports:
+          type: integer
+          example: 82
+        totalPlays:
+          type: integer
+          example: 3400
+        totalListAdds:
+          type: integer
+          example: 58
+        totalShares:
+          type: integer
+          example: 17
+        topMedia:
+          type: array
+          items:
+            type: object
+            required:
+              - mediaId
+              - count
+            properties:
+              mediaId:
+                type: integer
+                example: 7674
+              count:
+                type: integer
+                example: 240
+    CollectionVisibility:
+      type: string
+      description: Visibility of a collection
+      enum:
+        - PUBLIC
+        - PRIVATE
+      example: PRIVATE
     Collection:
       type: object
       description: User segment collection
@@ -6921,6 +6067,7 @@ components:
         publicId:
           type: string
           description: Public identifier for the collection
+          pattern: ^[A-Za-z0-9_-]{12}$
           example: V1StGXR8_Z5d
         name:
           type: string
@@ -6934,12 +6081,7 @@ components:
           description: Type of the collection
           example: USER
         visibility:
-          type: string
-          enum:
-            - PUBLIC
-            - PRIVATE
-          description: Visibility of the collection
-          example: PRIVATE
+          $ref: '#/components/schemas/CollectionVisibility'
         segmentCount:
           type: integer
           description: Number of segments in the collection
@@ -7036,8 +6178,8 @@ components:
           items:
             $ref: '#/components/schemas/Collection'
         pagination:
-          $ref: '#/components/schemas/OpaqueCursorPagination'
-    CollectionRequests:
+          $ref: '#/components/schemas/CursorPagination'
+    CollectionCreateRequest:
       type: object
       description: Request body for creating a new collection
       required:
@@ -7048,12 +6190,7 @@ components:
           description: Name of the collection
           example: My Study List
         visibility:
-          type: string
-          enum:
-            - PUBLIC
-            - PRIVATE
-          description: Visibility of the collection
-          example: PRIVATE
+          $ref: '#/components/schemas/CollectionVisibility'
     CollectionWithSegments:
       type: object
       description: Collection with saved segments (search result format)
@@ -7078,12 +6215,7 @@ components:
           description: Name of the collection
           example: Study Favorites
         visibility:
-          type: string
-          enum:
-            - PUBLIC
-            - PRIVATE
-          description: Visibility of the collection
-          example: PRIVATE
+          $ref: '#/components/schemas/CollectionVisibility'
         segmentCount:
           type: integer
           description: Number of segments in the collection
@@ -7126,13 +6258,46 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaId
+              description: Media objects keyed by mediaPublicId
         totalCount:
           type: integer
           description: Total number of segments in the collection
           example: 42
         pagination:
-          $ref: '#/components/schemas/OpaqueCursorPagination'
+          $ref: '#/components/schemas/CursorPagination'
+    CollectionUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Updated Collection Name
+        visibility:
+          $ref: '#/components/schemas/CollectionVisibility'
+    AddSegmentToCollectionRequest:
+      type: object
+      required:
+        - segmentId
+      properties:
+        segmentId:
+          type: string
+          description: Segment publicId or UUID
+          example: V1StGXR8_Z5d
+        note:
+          type: string
+          maxLength: 500
+          description: Optional annotation
+    UpdateCollectionSegmentRequest:
+      type: object
+      properties:
+        position:
+          type: integer
+          description: New position in the collection
+          example: 2
+        note:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Updated annotation
     ReindexRequest:
       type: object
       description: Request to reindex segments from the database into Elasticsearch
@@ -7220,34 +6385,101 @@ components:
               error:
                 type: string
                 description: Error message
-    AdminReport:
-      allOf:
-        - $ref: '#/components/schemas/Report'
-        - type: object
-          required:
-            - reportCount
-            - reporterName
-          properties:
-            reportCount:
-              type: integer
-              description: Number of reports for the same target
-              example: 3
-            reporterName:
-              type: string
-              description: Name of the user who submitted this report
-              example: john_doe
-    AdminReportListResponse:
+    ReportTargetType:
+      type: string
+      description: Kind of entity a report is about
+      enum:
+        - SEGMENT
+        - EPISODE
+        - MEDIA
+      example: SEGMENT
+    AdminReportGroupItem:
       type: object
       required:
-        - reports
-        - pagination
+        - id
+        - reason
+        - description
+        - source
+        - reporterName
+        - createdAt
+        - adminNotes
       properties:
+        id:
+          type: integer
+          description: Report ID
+        reason:
+          $ref: '#/components/schemas/ReportReason'
+        description:
+          type: string
+          nullable: true
+          description: Optional description with additional details
+        source:
+          $ref: '#/components/schemas/ReportSource'
+        reporterName:
+          type: string
+          description: Name of the reporter
+        createdAt:
+          type: string
+          format: date-time
+          description: When the report was created
+        adminNotes:
+          type: string
+          nullable: true
+          description: Notes from the admin who reviewed the report
+    AdminReportGroup:
+      type: object
+      required:
+        - target
+        - mediaName
+        - status
+        - reportCount
+        - reporterCount
+        - firstReportedAt
+        - lastStatusChange
+        - reports
+      properties:
+        target:
+          $ref: '#/components/schemas/ReportTarget'
+        mediaName:
+          type: string
+          description: Display name of the target media (romaji)
+          example: Bocchi the Rock!
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        reportCount:
+          type: integer
+          description: Total number of individual reports in this group
+          example: 3
+        reporterCount:
+          type: integer
+          description: Number of distinct users who reported this target
+          example: 2
+        firstReportedAt:
+          type: string
+          format: date-time
+          description: When the earliest report in this group was created
+        lastStatusChange:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the most recent status change occurred in this group
         reports:
           type: array
           items:
-            $ref: '#/components/schemas/AdminReport'
+            $ref: '#/components/schemas/AdminReportGroupItem'
+          description: Individual reports within this group
+    AdminReportListResponse:
+      type: object
+      required:
+        - groups
+        - pagination
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminReportGroup'
         pagination:
-          $ref: '#/components/schemas/OpaqueCursorPagination'
+          $ref: '#/components/schemas/CursorPagination'
     BatchUpdateReportsRequest:
       type: object
       required:
@@ -7266,34 +6498,84 @@ components:
             - 2
             - 3
         status:
-          type: string
-          enum:
-            - PENDING
-            - CONCERN
-            - ACCEPTED
-            - REJECTED
-            - RESOLVED
-            - IGNORED
-          description: New status for all selected reports
-          example: IGNORED
+          $ref: '#/components/schemas/ReportStatus'
         adminNotes:
           type: string
           maxLength: 1000
           description: Optional admin notes to set on all selected reports
+    BulkDeleteReportsRequest:
+      type: object
+      properties:
+        filters:
+          type: object
+          description: Filters to select which reports to delete. If omitted, deletes all reports.
+          properties:
+            status:
+              type: string
+              description: |
+                Filter by current report status. Accepts a single value or comma-separated list (e.g. "OPEN,DISMISSED").
+            source:
+              $ref: '#/components/schemas/ReportSource'
+            targetType:
+              $ref: '#/components/schemas/ReportTargetType'
+            targetMediaId:
+              type: integer
+              description: Filter by target media ID
+            targetEpisodeNumber:
+              type: integer
+              description: Filter by target episode number
+            targetSegmentId:
+              type: integer
+              description: Filter by target segment ID
+            auditRunId:
+              type: integer
+              description: Filter by audit run ID
+            orphaned:
+              type: boolean
+              description: Only delete reports whose target media no longer exists
+    BulkUpdateReportsRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        adminNotes:
+          type: string
+          maxLength: 1000
+          description: Optional admin notes to set on all matching reports
+        filters:
+          type: object
+          description: Filters to select which reports to update. If omitted, updates all reports.
+          properties:
+            status:
+              type: string
+              description: |
+                Filter by current report status. Accepts a single value or comma-separated list (e.g. "OPEN,PROCESSING").
+            source:
+              $ref: '#/components/schemas/ReportSource'
+            targetType:
+              $ref: '#/components/schemas/ReportTargetType'
+            targetMediaId:
+              type: integer
+              description: Filter by target media ID
+            targetEpisodeNumber:
+              type: integer
+              description: Filter by target episode number
+            targetSegmentId:
+              type: integer
+              description: Filter by target segment ID
+            auditRunId:
+              type: integer
+              description: Filter by audit run ID
+            orphaned:
+              type: boolean
+              description: Only update reports whose target media no longer exists
     UpdateReportRequest:
       type: object
       properties:
         status:
-          type: string
-          enum:
-            - PENDING
-            - CONCERN
-            - ACCEPTED
-            - REJECTED
-            - RESOLVED
-            - IGNORED
-          description: New status for the report
-          example: ACCEPTED
+          $ref: '#/components/schemas/ReportStatus'
         adminNotes:
           type: string
           maxLength: 1000
@@ -7461,6 +6743,28 @@ components:
           type: string
           format: date-time
           description: When this run was executed
+    Announcement:
+      type: object
+      description: Site-wide announcement banner
+      required:
+        - message
+        - type
+        - active
+      properties:
+        message:
+          type: string
+          maxLength: 500
+          example: Scheduled maintenance tonight from 2-4 AM UTC.
+        type:
+          type: string
+          enum:
+            - INFO
+            - WARNING
+            - MAINTENANCE
+          example: INFO
+        active:
+          type: boolean
+          example: true
   examples:
     ValidationFailed:
       summary: Validation Failed
@@ -7575,6 +6879,17 @@ components:
         instance: trace-id-placeholder
         status: 404
   responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error400'
+          examples:
+            ValidationFailed:
+              $ref: '#/components/examples/ValidationFailed'
+            InvalidJson:
+              $ref: '#/components/examples/InvalidJson'
     Unauthorized:
       description: Unauthorized
       content:
@@ -7617,17 +6932,6 @@ components:
           examples:
             InternalServerError:
               $ref: '#/components/examples/InternalServerError'
-    BadRequest:
-      description: Bad Request
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error400'
-          examples:
-            ValidationFailed:
-              $ref: '#/components/examples/ValidationFailed'
-            InvalidJson:
-              $ref: '#/components/examples/InvalidJson'
     Conflict:
       description: Conflict
       content:
@@ -7639,12 +6943,12 @@ components:
               $ref: '#/components/examples/AccountConflict'
             DuplicateKey:
               $ref: '#/components/examples/DuplicateKey'
-    SegmentInternalResponse:
+    SegmentResponse:
       description: OK
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/SegmentInternal'
+            $ref: '#/components/schemas/Segment'
     NotFound:
       description: Not Found
       content:
@@ -7654,6 +6958,12 @@ components:
           examples:
             NotFound:
               $ref: '#/components/examples/NotFound'
+    SegmentInternalResponse:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SegmentInternal'
     SegmentRevisionListResponse:
       description: OK
       content:
@@ -7695,7 +7005,7 @@ components:
                   $ref: '#/components/schemas/Segment'
                 description: Array of segment objects
               pagination:
-                $ref: '#/components/schemas/OpaqueCursorPagination'
+                $ref: '#/components/schemas/CursorPagination'
     SegmentBatchCreateResponse:
       description: Created
       content:
@@ -7714,9 +7024,3 @@ components:
                 type: integer
                 description: Number of segments skipped due to duplicate UUIDs
                 example: 15
-    SegmentResponse:
-      description: OK
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Segment'

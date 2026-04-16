@@ -28,12 +28,11 @@ export const workersInitializer: RuntimeInitializer = {
       connectionString: databaseUrl,
       schema: 'pgboss',
       application_name: 'nadeshiko-backend',
-      poolSize: 5, // Limit PgBoss connections (default 10)
-      monitorStateIntervalSeconds: 120, // Poll every 2min instead of 1min
+      monitorIntervalSeconds: 120, // Poll every 2min instead of 1min
     });
 
     boss.on('error', (error: Error) => {
-      logger.error(`PgBoss error: ${error.message}`);
+      logger.error({ err: error }, 'PgBoss error');
     });
 
     await boss.start();

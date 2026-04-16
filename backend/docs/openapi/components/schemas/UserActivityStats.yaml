@@ -1,0 +1,51 @@
+type: object
+description: Aggregate statistics about a user's activity
+required:
+  - totalSearches
+  - totalExports
+  - totalPlays
+  - totalListAdds
+  - totalShares
+  - topMedia
+properties:
+  totalSearches:
+    type: integer
+    minimum: 0
+    example: 1240
+  totalExports:
+    type: integer
+    minimum: 0
+    example: 82
+  totalPlays:
+    type: integer
+    minimum: 0
+    example: 3400
+  totalListAdds:
+    type: integer
+    minimum: 0
+    example: 58
+  totalShares:
+    type: integer
+    minimum: 0
+    example: 17
+  topMedia:
+    type: array
+    items:
+      type: object
+      required:
+        - mediaPublicId
+        - mediaName
+        - count
+      properties:
+        mediaPublicId:
+          type: string
+          minLength: 1
+          example: V1StGXR8_Z5d
+        mediaName:
+          type: string
+          minLength: 1
+          example: Steins;Gate
+        count:
+          type: integer
+          minimum: 1
+          example: 240

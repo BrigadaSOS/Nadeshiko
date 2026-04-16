@@ -27,7 +27,7 @@ async function handleRetentionCleanup(): Promise<void> {
     });
 
     const count = result.affected || 0;
-    logger.info(`Activity retention cleanup: deleted ${count} records older than 90 days`);
+    logger.info({ count }, 'Activity retention cleanup complete');
   } catch (error) {
     logger.error({ err: error }, 'Error during activity retention cleanup');
     throw error;

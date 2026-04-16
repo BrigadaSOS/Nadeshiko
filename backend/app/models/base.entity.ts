@@ -27,7 +27,11 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
       count: true;
       exists?: { entity: ExistsEntity; where: unknown };
     },
-  ): Promise<{ items: InstanceType<TThis>[]; pagination: { hasMore: boolean; cursor: string | null }; totalCount: number }>;
+  ): Promise<{
+    items: InstanceType<TThis>[];
+    pagination: { hasMore: boolean; cursor: string | null };
+    totalCount: number;
+  }>;
 
   static paginateWithKeyset<TThis extends ConcreteEntity>(
     this: TThis,
@@ -54,18 +58,31 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   ) {
     const orderBy = params.orderBy ?? { column: 'id', direction: 'DESC' as const };
     const qb = params.query();
+    const useTiebreaker = orderBy.column !== 'id';
+    const op = orderBy.direction === 'DESC' ? '<' : '>';
 
     const countPromise = params.count ? qb.clone().getCount() : undefined;
 
-    const decodedCursor = decodeKeysetCursor<number>(params.cursor);
-    if (decodedCursor !== undefined) {
-      const op = orderBy.direction === 'DESC' ? '<' : '>';
-      qb.andWhere(`${qb.alias}.${orderBy.column} ${op} :cursor`, { cursor: decodedCursor });
+    if (useTiebreaker) {
+      const decoded = decodeKeysetCursor<[unknown, number]>(params.cursor);
+      if (decoded !== undefined) {
+        const [cp, ci] = decoded;
+        qb.andWhere(
+          `(${qb.alias}.${orderBy.column} ${op} :cp OR (${qb.alias}.${orderBy.column} = :cp AND ${qb.alias}.id ${op} :ci))`,
+          { cp, ci },
+        );
+      }
+      qb.orderBy(`${qb.alias}.${orderBy.column}`, orderBy.direction);
+      qb.addOrderBy(`${qb.alias}.id`, orderBy.direction);
+    } else {
+      const decoded = decodeKeysetCursor<unknown>(params.cursor);
+      if (decoded !== undefined) {
+        qb.andWhere(`${qb.alias}.id ${op} :cursor`, { cursor: decoded });
+      }
+      qb.orderBy(`${qb.alias}.id`, orderBy.direction);
     }
 
-    qb.orderBy(`${qb.alias}.${orderBy.column}`, orderBy.direction);
     qb.take(params.take + 1);
-
     const [rows, totalCount] = await Promise.all([qb.getMany(), countPromise]);
 
     const hasMore = rows.length > params.take;
@@ -78,10 +95,11 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
       }
     }
 
-    const nextCursor =
-      hasMore && items.length > 0
-        ? encodeKeysetCursor((items[items.length - 1] as Record<string, unknown>)[orderBy.column])
-        : null;
+    let nextCursor: string | null = null;
+    if (hasMore) {
+      const last = items[items.length - 1] as Record<string, unknown>;
+      nextCursor = useTiebreaker ? encodeKeysetCursor([last[orderBy.column], last.id]) : encodeKeysetCursor(last.id);
+    }
 
     return {
       items,

@@ -1,4 +1,0 @@
-type: string
-description: Resource to expand in media responses
-enum:
-  - media.characters

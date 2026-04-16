@@ -1,0 +1,91 @@
+type: object
+description: Request body for creating a new media entry
+required:
+  - nameJa
+  - nameRomaji
+  - nameEn
+  - airingFormat
+  - airingStatus
+  - genres
+  - storage
+  - startDate
+  - category
+  - version
+  - hashSalt
+  - seasonName
+  - seasonYear
+properties:
+  externalIds:
+    $ref: "../schemas/ExternalId.yaml"
+  nameJa:
+    type: string
+    description: Original Japanese name of the media
+    example: バクマン。
+  nameRomaji:
+    type: string
+    description: Romaji transliteration of the media name
+    example: Bakuman.
+  nameEn:
+    type: string
+    description: English name of the media
+    example: Bakuman.
+  airingFormat:
+    type: string
+    description: Format of the media release
+    enum: [TV, MOVIE, OVA, ONA, SPECIAL]
+    example: TV
+  airingStatus:
+    type: string
+    description: Current airing status
+    enum: [FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED]
+    example: FINISHED
+  genres:
+    type: array
+    items:
+      type: string
+    description: List of genres associated with the media
+    example: [Comedy, Drama, Romance, Slice of Life]
+  storage:
+    type: string
+    enum: [LOCAL, R2]
+    description: Storage backend for media assets
+    example: R2
+    default: R2
+  startDate:
+    type: string
+    format: date
+    description: Start date of the media (first airing/release)
+    example: "2010-10-02"
+  endDate:
+    type: string
+    format: date
+    description: End date of the media (last airing/release)
+    example: "2011-04-02"
+  category:
+    $ref: "../schemas/Category.yaml"
+  version:
+    type: string
+    description: Version of the media-sub-splitter used
+    example: "6"
+  hashSalt:
+    type: string
+    description: Hash salt used when generating the hash for the related media assets
+    example: ba0cbe173ed310528f16130273662a60
+  studio:
+    type: string
+    nullable: true
+    description: Animation studio that produced the media. Pass `null` to explicitly mark as unknown.
+    example: J.C.STAFF
+  seasonName:
+    type: string
+    enum: [WINTER, SPRING, SUMMER, FALL]
+    description: Airing season label for the media
+    example: FALL
+  seasonYear:
+    type: integer
+    description: Airing year for the media
+    example: 2010
+  storageBasePath:
+    type: string
+    description: Base path for R2/CDN storage (e.g. "media/21459")
+    example: media/21459

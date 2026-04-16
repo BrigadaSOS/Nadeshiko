@@ -2,7 +2,6 @@ type: object
 required:
   - media
   - categories
-  - includes
 properties:
   media:
     type: array
@@ -14,11 +13,10 @@ properties:
       $ref: "../schemas/CategoryCount.yaml"
   includes:
     type: object
-    required:
-      - media
+    description: Optional related resources requested via `include[]`
     properties:
       media:
         type: object
         additionalProperties:
           $ref: "../schemas/Media.yaml"
-        description: Media objects keyed by media publicId
+        description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.

@@ -1,0 +1,33 @@
+delete:
+  tags:
+    - User
+  operationId: removeExcludedMedia
+  summary: Remove media from excluded list
+  description: |
+    Removes a media entry from the authenticated user's excluded list,
+    making it visible in search results again.
+
+  security:
+    - ApiKey: [WRITE_PROFILE]
+  parameters:
+    - name: mediaPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Public ID of the media to remove from the excluded list
+      example: V1StGXR8_Z5d
+  responses:
+    "204":
+      description: No Content
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

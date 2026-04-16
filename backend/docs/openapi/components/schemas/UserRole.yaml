@@ -1,7 +1,0 @@
-type: string
-description: User role
-enum:
-  - ADMIN
-  - MOD
-  - USER
-  - PATREON

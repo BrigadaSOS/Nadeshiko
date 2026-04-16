@@ -2,9 +2,9 @@ import type { ExportUserData } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
 import { User } from '@app/models/User';
 import { UserActivity } from '@app/models/UserActivity';
-import { Collection, CollectionSegment, Report } from '@app/models';
-import { toUserExportDTO } from './mappers/userExport.mapper';
-import { resolveReportPublicIds } from './mappers/report.mapper';
+import { Collection, CollectionSegment, Media, Report } from '@app/models';
+import { toUserExportDTO } from './mappers/userExportMapper';
+import { resolveReportPublicIds } from './mappers/reportMapper';
 
 const EXPORT_BATCH_SIZE = 1000;
 
@@ -19,7 +19,10 @@ export const exportUserData: ExportUserData = async (_params, respond, req) => {
   ]);
 
   const publicIdMaps = await resolveReportPublicIds(reports);
-  return respond.with200().body(toUserExportDTO(fullUser, activity, collections, reports, publicIdMaps));
+  const mediaPublicIdById = await loadMediaPublicIdMap(activity.map((item) => item.mediaId));
+  return respond
+    .with200()
+    .body(toUserExportDTO(fullUser, activity, mediaPublicIdById, collections, reports, publicIdMaps));
 };
 
 async function loadUserActivityForExport(userId: number): Promise<UserActivity[]> {
@@ -159,4 +162,20 @@ function groupSegmentsByCollectionId(segments: CollectionSegment[]): Map<number,
   }
 
   return byCollectionId;
+}
+
+async function loadMediaPublicIdMap(mediaIds: Array<number | null | undefined>): Promise<Map<number, string>> {
+  const ids = [
+    ...new Set(mediaIds.filter((id): id is number => typeof id === 'number' && Number.isInteger(id) && id > 0)),
+  ];
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const media = await Media.find({
+    where: ids.map((id) => ({ id })),
+    select: ['id', 'publicId'],
+  });
+
+  return new Map(media.map((item) => [item.id, item.publicId]));
 }

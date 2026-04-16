@@ -29,11 +29,10 @@ export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null>
     const boss = getPgBoss();
     // A value of 0 causes a SQL division-by-zero in pg-boss singleton_on calculation.
     const jobId = await boss.sendDebounced(queueName, data, null, 1, `${data.segmentId}`);
-    logger.info(`Enqueued ES sync job ${jobId} for segment ${data.segmentId} (${data.operation})`);
+    logger.info({ jobId, segmentId: data.segmentId, operation: data.operation }, 'Enqueued ES sync job');
     return jobId;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to enqueue ES sync job: ${errorMessage}`);
+    logger.error({ err: error }, 'Failed to enqueue ES sync job');
     return null;
   }
 }
@@ -44,11 +43,10 @@ export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null>
  */
 export async function cancelJobsForSegment(segmentId: number): Promise<boolean> {
   try {
-    logger.info(`Cancel jobs requested for segment ${segmentId} (handled by debounce)`);
+    logger.info({ segmentId }, 'Cancel jobs requested for segment (handled by debounce)');
     return true;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to cancel jobs for segment ${segmentId}: ${errorMessage}`);
+    logger.error({ err: error, segmentId }, 'Failed to cancel jobs for segment');
     return false;
   }
 }
@@ -71,10 +69,9 @@ export async function sendBulkEsSyncJobs(jobs: EsSyncJobData[]): Promise<void> {
     try {
       const boss = getPgBoss();
       await boss.send(queueName, queueJobs);
-      logger.info(`Enqueued ${queueJobs.length} ES sync jobs to ${queueName}`);
+      logger.info({ count: queueJobs.length, queueName }, 'Enqueued bulk ES sync jobs');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(`Failed to enqueue bulk ES sync jobs to ${queueName}: ${errorMessage}`);
+      logger.error({ err: error, queueName }, 'Failed to enqueue bulk ES sync jobs');
     }
   }
 }

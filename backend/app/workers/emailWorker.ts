@@ -23,7 +23,7 @@ async function handleEmailJob(job: Job<EmailJobData>): Promise<void> {
 
   try {
     await sendEmail({ to, subject, html });
-    logger.info(`Successfully sent email to ${to}: ${subject}`);
+    logger.info({ to, subject }, 'Email sent');
   } catch (error) {
     logger.error({ err: error, to, subject }, 'Error processing email job');
     throw error; // Re-throw to trigger pg-boss retry

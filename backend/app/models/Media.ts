@@ -19,13 +19,7 @@ export enum CategoryType {
   JDRAMA = 'JDRAMA',
 }
 
-export enum MediaInclude {
-  MEDIA = 'media',
-  MEDIA_CHARACTERS = 'media.characters',
-}
-
 interface MediaRelationsOptions {
-  includeCharacters?: boolean;
   includeEpisodes?: boolean;
   includeExternalIds?: boolean;
 }
@@ -136,14 +130,12 @@ export class Media extends BaseEntity {
   externalIds!: MediaExternalId[];
 
   static buildRelations({
-    includeCharacters = false,
     includeEpisodes = true,
     includeExternalIds = true,
   }: MediaRelationsOptions = {}): FindOptionsRelations<Media> {
     return {
       ...(includeEpisodes ? { episodes: true } : {}),
       ...(includeExternalIds ? { externalIds: true } : {}),
-      ...(includeCharacters ? { characters: { character: { seiyuu: true } } } : {}),
     };
   }
 
@@ -196,50 +188,6 @@ export class Media extends BaseEntity {
 
     Cache.set(MEDIA_INFO_CACHE, 'all', result, MEDIA_INFO_TTL_MS);
     return result;
-  }
-
-  static async getPaginatedMediaInfo(
-    page: number,
-    pageSize: number,
-  ): Promise<{
-    results: Record<number, ReturnType<typeof Media.toMediaInfoData>>;
-    stats: {
-      totalAnimes: number;
-      totalSegments: number;
-      fullTotalAnimes: number;
-      fullTotalSegments: number;
-    };
-  }> {
-    const offset = (page - 1) * pageSize;
-
-    const media = await Media.find({
-      relations: ['episodes'],
-      order: { createdAt: 'DESC' },
-      take: pageSize,
-      skip: offset,
-    });
-
-    const results: Record<number, ReturnType<typeof Media.toMediaInfoData>> = {};
-    let totalSegments = 0;
-
-    for (const m of media) {
-      const info = Media.toMediaInfoData(m);
-      results[m.id] = info;
-      totalSegments += info.segmentCount ?? 0;
-    }
-
-    // Get global stats
-    const globalStats = await Media.getGlobalStats();
-
-    return {
-      results,
-      stats: {
-        totalAnimes: media.length,
-        totalSegments: totalSegments,
-        fullTotalAnimes: globalStats.fullTotalAnimes,
-        fullTotalSegments: globalStats.fullTotalSegments,
-      },
-    };
   }
 
   static async getGlobalStats(): Promise<{

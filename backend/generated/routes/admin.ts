@@ -15,9 +15,12 @@ import { type NextFunction, type Request, type Response, Router } from 'express'
 import { z } from 'zod/v4';
 import type {
   t_AdminReportListResponse,
+  t_AffectedCountResponse,
+  t_Announcement,
   t_BatchUpdateAdminReportsRequestBodySchema,
   t_BulkDeleteAdminReportsRequestBodySchema,
   t_BulkUpdateAdminReportsRequestBodySchema,
+  t_CursorPagination,
   t_DeleteAdminReportParamSchema,
   t_Error400,
   t_Error401,
@@ -25,20 +28,13 @@ import type {
   t_Error404,
   t_Error429,
   t_Error500,
-  t_GetAdminDashboardActivityQuerySchema,
-  t_GetAdminDashboardOverviewQuerySchema,
   t_GetAdminMediaAuditRunParamSchema,
-  t_GetAdminQueueParamSchema,
   t_ListAdminMediaAuditRunsQuerySchema,
-  t_ListAdminQueueFailedParamSchema,
   t_ListAdminReportsQuerySchema,
   t_MediaAudit,
   t_MediaAuditRun,
-  t_OpaqueCursorPagination,
-  t_PurgeAdminQueueFailedParamSchema,
   t_ReindexResponse,
   t_Report,
-  t_RetryAdminQueueFailedParamSchema,
   t_RunAdminMediaAuditParamSchema,
   t_RunAdminMediaAuditQuerySchema,
   t_RunAuditResponse,
@@ -49,13 +45,16 @@ import type {
   t_UpdateAdminReportRequestBodySchema,
   t_UpdateAnnouncementRequestBodySchema,
 } from '../models.ts';
-import type { BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminDashboardActivityQueryOutput, GetAdminDashboardOverviewQueryOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
+  s_AffectedCountResponse,
+  s_Announcement,
   s_BatchUpdateReportsRequest,
   s_BulkDeleteReportsRequest,
   s_BulkUpdateReportsRequest,
+  s_CursorPagination,
   s_Error400,
   s_Error401,
   s_Error403,
@@ -64,346 +63,14 @@ import {
   s_Error500,
   s_MediaAudit,
   s_MediaAuditRun,
-  s_OpaqueCursorPagination,
   s_ReindexRequest,
   s_ReindexResponse,
   s_Report,
+  s_ReportSource,
+  s_ReportTargetType,
   s_RunAuditResponse,
   s_UpdateReportRequest,
 } from '../schemas.ts';
-
-export type GetAdminDashboardResponder = {
-  with200(): ExpressRuntimeResponse<{
-    activity: {
-      activeSearchers7d: number;
-      dailyActivity30d: {
-        count: number;
-        date: string;
-      }[];
-      topQueries7d: {
-        count: number;
-        query: string;
-      }[];
-      totalCollectionAdds: number;
-      totalExports: number;
-      totalPlays: number;
-      totalSearches: number;
-    };
-    media: {
-      totalCharacters: number;
-      totalEpisodes: number;
-      totalMedia: number;
-      totalSegments: number;
-      totalSeiyuu: number;
-    };
-    system: {
-      app: {
-        version: string;
-      };
-      database: {
-        status: 'connected' | 'disconnected';
-        version?: string | null;
-      };
-      elasticsearch: {
-        clusterName?: string | null;
-        clusterStatus?: string | null;
-        documentCount?: number | null;
-        indexName?: string | null;
-        status: 'connected' | 'disconnected';
-        version?: string | null;
-      };
-      queues: {
-        failedCount: number;
-        queue: string;
-        stuckCount: number;
-      }[];
-      status: 'healthy' | 'degraded';
-    };
-    users: {
-      recentlyActiveCount: number;
-      recentlyRegisteredCount: number;
-      totalUsers: number;
-    };
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminDashboard = (
-  params: Params<void, void, void, void>,
-  respond: GetAdminDashboardResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminDashboardOverviewResponder = {
-  with200(): ExpressRuntimeResponse<{
-    activity: {
-      activeSearchers7d: number;
-      dailyActivity: {
-        count: number;
-        date: string;
-      }[];
-      totalExports: number;
-      totalPlays: number;
-      totalSearches: number;
-      totalShares: number;
-    };
-    media: {
-      totalCharacters: number;
-      totalEpisodes: number;
-      totalMedia: number;
-      totalSegments: number;
-      totalSeiyuu: number;
-    };
-    users: {
-      recentlyActiveCount: number;
-      recentlyRegisteredCount: number;
-      totalUsers: number;
-    };
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminDashboardOverview = (
-  params: Params<void, GetAdminDashboardOverviewQueryOutput, void, void>,
-  respond: GetAdminDashboardOverviewResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminDashboardMediaResponder = {
-  with200(): ExpressRuntimeResponse<{
-    byCategory: {
-      count: number;
-      label: string;
-    }[];
-    byFormat: {
-      count: number;
-      label: string;
-    }[];
-    byGenre: {
-      count: number;
-      label: string;
-    }[];
-    byStatus: {
-      count: number;
-      label: string;
-    }[];
-    byStudio: {
-      count: number;
-      label: string;
-    }[];
-    segmentsByContentRating: {
-      count: number;
-      label: string;
-    }[];
-    segmentsByStatus: {
-      count: number;
-      label: string;
-    }[];
-    topMediaByExports: {
-      count: number;
-      mediaId: number;
-      mediaName: string;
-    }[];
-    topMediaByPlays: {
-      count: number;
-      mediaId: number;
-      mediaName: string;
-    }[];
-    topMediaBySearches: {
-      count: number;
-      mediaId: number;
-      mediaName: string;
-    }[];
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminDashboardMedia = (
-  params: Params<void, void, void, void>,
-  respond: GetAdminDashboardMediaResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminDashboardActivityResponder = {
-  with200(): ExpressRuntimeResponse<{
-    dailyActivityByType: {
-      ankiExport: number;
-      date: string;
-      search: number;
-      segmentPlay: number;
-      share: number;
-    }[];
-    dailyExports: {
-      count: number;
-      date: string;
-    }[];
-    topExportedMedia: {
-      count: number;
-      mediaId: number;
-      mediaName: string;
-    }[];
-    topSearches: {
-      count: number;
-      query: string;
-    }[];
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminDashboardActivity = (
-  params: Params<void, GetAdminDashboardActivityQueryOutput, void, void>,
-  respond: GetAdminDashboardActivityResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminDashboardCollectionsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    averageSize: number;
-    byTypeAndVisibility: {
-      count: number;
-      type: string;
-      visibility: string;
-    }[];
-    topCollections: {
-      id: number;
-      name: string;
-      segmentCount: number;
-      type: string;
-      visibility: string;
-    }[];
-    totalCollections: number;
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminDashboardCollections = (
-  params: Params<void, void, void, void>,
-  respond: GetAdminDashboardCollectionsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminDashboardApiKeysResponder = {
-  with200(): ExpressRuntimeResponse<{
-    keys: {
-      email?: string | null;
-      hint?: string | null;
-      id: number;
-      isActive: boolean;
-      name?: string | null;
-      requestCount: number;
-      username?: string | null;
-    }[];
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminDashboardApiKeys = (
-  params: Params<void, void, void, void>,
-  respond: GetAdminDashboardApiKeysResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminDashboardSystemResponder = {
-  with200(): ExpressRuntimeResponse<{
-    app: {
-      version: string;
-    };
-    database: {
-      status: 'connected' | 'disconnected';
-      version?: string | null;
-    };
-    elasticsearch: {
-      clusterName?: string | null;
-      clusterStatus?: string | null;
-      documentCount?: number | null;
-      indexName?: string | null;
-      indexSizeBytes?: number | null;
-      status: 'connected' | 'disconnected';
-      version?: string | null;
-    };
-    queues: {
-      failedCount: number;
-      queue: string;
-      stuckCount: number;
-    }[];
-    status: 'healthy' | 'degraded';
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminDashboardSystem = (
-  params: Params<void, void, void, void>,
-  respond: GetAdminDashboardSystemResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminHealthResponder = {
-  with200(): ExpressRuntimeResponse<{
-    app: {
-      version: string;
-    };
-    database: {
-      status: 'connected' | 'disconnected';
-      version?: string | null;
-    };
-    elasticsearch: {
-      clusterName?: string | null;
-      clusterStatus?: string | null;
-      documentCount?: number | null;
-      indexName?: string | null;
-      status: 'connected' | 'disconnected';
-      version?: string | null;
-    };
-    status: 'healthy' | 'degraded';
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminHealth = (
-  params: Params<void, void, void, void>,
-  respond: GetAdminHealthResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type TriggerReindexResponder = {
   with200(): ExpressRuntimeResponse<t_ReindexResponse>;
@@ -417,138 +84,6 @@ export type TriggerReindexResponder = {
 export type TriggerReindex = (
   params: Params<void, void, t_TriggerReindexRequestBodySchema | undefined, void>,
   respond: TriggerReindexResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListAdminQueueStatsResponder = {
-  with200(): ExpressRuntimeResponse<
-    {
-      failedCount: number;
-      queue: string;
-      stuckCount: number;
-    }[]
-  >;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListAdminQueueStats = (
-  params: Params<void, void, void, void>,
-  respond: ListAdminQueueStatsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminQueueResponder = {
-  with200(): ExpressRuntimeResponse<{
-    metadata: {
-      createdOn: string;
-      deadLetter?: string | null;
-      deleteAfterSeconds?: number | null;
-      expireInSeconds?: number | null;
-      partition: boolean;
-      policy: string;
-      retentionSeconds?: number | null;
-      retryBackoff?: boolean | null;
-      retryDelay?: number | null;
-      retryDelayMax?: number | null;
-      retryLimit?: number | null;
-      singletonsActive: string[];
-      table: string;
-      updatedOn: string;
-      warningQueueSize?: number | null;
-    };
-    queue: string;
-    stats: {
-      active: number;
-      deferred: number;
-      queued: number;
-      total: number;
-    };
-  }>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminQueue = (
-  params: Params<t_GetAdminQueueParamSchema, void, void, void>,
-  respond: GetAdminQueueResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListAdminQueueFailedResponder = {
-  with200(): ExpressRuntimeResponse<
-    {
-      createdOn: string;
-      error: string | null;
-      id: string;
-      segmentId: number;
-    }[]
-  >;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListAdminQueueFailed = (
-  params: Params<t_ListAdminQueueFailedParamSchema, void, void, void>,
-  respond: ListAdminQueueFailedResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type RetryAdminQueueFailedResponder = {
-  with200(): ExpressRuntimeResponse<{
-    message: string;
-    retriedCount: number;
-    success: boolean;
-  }>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type RetryAdminQueueFailed = (
-  params: Params<t_RetryAdminQueueFailedParamSchema, void, void, void>,
-  respond: RetryAdminQueueFailedResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type PurgeAdminQueueFailedResponder = {
-  with200(): ExpressRuntimeResponse<{
-    message: string;
-    purgedCount: number;
-    success: boolean;
-  }>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type PurgeAdminQueueFailed = (
-  params: Params<t_PurgeAdminQueueFailedParamSchema, void, void, void>,
-  respond: PurgeAdminQueueFailedResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -571,9 +106,7 @@ export type ListAdminReports = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type BatchUpdateAdminReportsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    updated: number;
-  }>;
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -590,9 +123,7 @@ export type BatchUpdateAdminReports = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type BulkUpdateAdminReportsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    updated: number;
-  }>;
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -609,9 +140,7 @@ export type BulkUpdateAdminReports = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type BulkDeleteAdminReportsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    deleted: number;
-  }>;
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -646,9 +175,7 @@ export type UpdateAdminReport = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type DeleteAdminReportResponder = {
-  with200(): ExpressRuntimeResponse<{
-    deleted: number;
-  }>;
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
   with404(): ExpressRuntimeResponse<t_Error404>;
@@ -717,7 +244,7 @@ export type RunAdminMediaAudit = (
 
 export type ListAdminMediaAuditRunsResponder = {
   with200(): ExpressRuntimeResponse<{
-    pagination: t_OpaqueCursorPagination;
+    pagination: t_CursorPagination;
     runs: t_MediaAuditRun[];
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
@@ -755,11 +282,7 @@ export type GetAdminMediaAuditRun = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetAnnouncementResponder = {
-  with200(): ExpressRuntimeResponse<{
-    active: boolean;
-    message: string;
-    type: 'info' | 'warning' | 'maintenance';
-  }>;
+  with200(): ExpressRuntimeResponse<t_Announcement>;
   with204(): ExpressRuntimeResponse<void>;
   with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
@@ -774,11 +297,7 @@ export type GetAnnouncement = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UpdateAnnouncementResponder = {
-  with200(): ExpressRuntimeResponse<{
-    active: boolean;
-    message: string;
-    type: 'info' | 'warning' | 'maintenance';
-  }>;
+  with200(): ExpressRuntimeResponse<t_Announcement>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -787,7 +306,7 @@ export type UpdateAnnouncementResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateAnnouncement = (
-  params: Params<void, void, t_UpdateAnnouncementRequestBodySchema, void>,
+  params: Params<void, void, AnnouncementOutput, void>,
   respond: UpdateAnnouncementResponder,
   req: Request,
   res: Response,
@@ -795,20 +314,7 @@ export type UpdateAnnouncement = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AdminImplementation = {
-  getAdminDashboard: GetAdminDashboard;
-  getAdminDashboardOverview: GetAdminDashboardOverview;
-  getAdminDashboardMedia: GetAdminDashboardMedia;
-  getAdminDashboardActivity: GetAdminDashboardActivity;
-  getAdminDashboardCollections: GetAdminDashboardCollections;
-  getAdminDashboardApiKeys: GetAdminDashboardApiKeys;
-  getAdminDashboardSystem: GetAdminDashboardSystem;
-  getAdminHealth: GetAdminHealth;
   triggerReindex: TriggerReindex;
-  listAdminQueueStats: ListAdminQueueStats;
-  getAdminQueue: GetAdminQueue;
-  listAdminQueueFailed: ListAdminQueueFailed;
-  retryAdminQueueFailed: RetryAdminQueueFailed;
-  purgeAdminQueueFailed: PurgeAdminQueueFailed;
   listAdminReports: ListAdminReports;
   batchUpdateAdminReports: BatchUpdateAdminReports;
   bulkUpdateAdminReports: BulkUpdateAdminReports;
@@ -826,916 +332,6 @@ export type AdminImplementation = {
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
   const router = Router();
-
-  const getAdminDashboardResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          media: z.object({
-            totalMedia: z.coerce.number(),
-            totalEpisodes: z.coerce.number(),
-            totalSegments: z.coerce.number(),
-            totalCharacters: z.coerce.number(),
-            totalSeiyuu: z.coerce.number(),
-          }),
-          users: z.object({
-            totalUsers: z.coerce.number(),
-            recentlyRegisteredCount: z.coerce.number(),
-            recentlyActiveCount: z.coerce.number(),
-          }),
-          activity: z.object({
-            totalSearches: z.coerce.number(),
-            totalExports: z.coerce.number(),
-            totalPlays: z.coerce.number(),
-            totalCollectionAdds: z.coerce.number(),
-            activeSearchers7d: z.coerce.number(),
-            topQueries7d: z.array(z.object({ query: z.string(), count: z.coerce.number() })),
-            dailyActivity30d: z.array(z.object({ date: z.string(), count: z.coerce.number() })),
-          }),
-          system: z.object({
-            status: z.enum(['healthy', 'degraded']),
-            app: z.object({ version: z.string() }),
-            elasticsearch: z.object({
-              status: z.enum(['connected', 'disconnected']),
-              version: z.string().nullable().optional(),
-              clusterName: z.string().nullable().optional(),
-              clusterStatus: z.string().nullable().optional(),
-              indexName: z.string().nullable().optional(),
-              documentCount: z.coerce.number().nullable().optional(),
-            }),
-            database: z.object({
-              status: z.enum(['connected', 'disconnected']),
-              version: z.string().nullable().optional(),
-            }),
-            queues: z.array(
-              z.object({ queue: z.string(), stuckCount: z.coerce.number(), failedCount: z.coerce.number() }),
-            ),
-          }),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminDashboard
-  router.get(`/v1/admin/dashboard`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            activity: {
-              activeSearchers7d: number;
-              dailyActivity30d: {
-                count: number;
-                date: string;
-              }[];
-              topQueries7d: {
-                count: number;
-                query: string;
-              }[];
-              totalCollectionAdds: number;
-              totalExports: number;
-              totalPlays: number;
-              totalSearches: number;
-            };
-            media: {
-              totalCharacters: number;
-              totalEpisodes: number;
-              totalMedia: number;
-              totalSegments: number;
-              totalSeiyuu: number;
-            };
-            system: {
-              app: {
-                version: string;
-              };
-              database: {
-                status: 'connected' | 'disconnected';
-                version?: string | null;
-              };
-              elasticsearch: {
-                clusterName?: string | null;
-                clusterStatus?: string | null;
-                documentCount?: number | null;
-                indexName?: string | null;
-                status: 'connected' | 'disconnected';
-                version?: string | null;
-              };
-              queues: {
-                failedCount: number;
-                queue: string;
-                stuckCount: number;
-              }[];
-              status: 'healthy' | 'degraded';
-            };
-            users: {
-              recentlyActiveCount: number;
-              recentlyRegisteredCount: number;
-              totalUsers: number;
-            };
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminDashboard(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminDashboardResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminDashboardOverviewQuerySchema = z.object({ days: z.string().optional() });
-
-  const getAdminDashboardOverviewResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          media: z.object({
-            totalMedia: z.coerce.number(),
-            totalEpisodes: z.coerce.number(),
-            totalSegments: z.coerce.number(),
-            totalCharacters: z.coerce.number(),
-            totalSeiyuu: z.coerce.number(),
-          }),
-          users: z.object({
-            totalUsers: z.coerce.number(),
-            recentlyRegisteredCount: z.coerce.number(),
-            recentlyActiveCount: z.coerce.number(),
-          }),
-          activity: z.object({
-            totalSearches: z.coerce.number(),
-            totalExports: z.coerce.number(),
-            totalPlays: z.coerce.number(),
-            totalShares: z.coerce.number(),
-            activeSearchers7d: z.coerce.number(),
-            dailyActivity: z.array(z.object({ date: z.string(), count: z.coerce.number() })),
-          }),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminDashboardOverview
-  router.get(`/v1/admin/dashboard/overview`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getAdminDashboardOverviewQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            activity: {
-              activeSearchers7d: number;
-              dailyActivity: {
-                count: number;
-                date: string;
-              }[];
-              totalExports: number;
-              totalPlays: number;
-              totalSearches: number;
-              totalShares: number;
-            };
-            media: {
-              totalCharacters: number;
-              totalEpisodes: number;
-              totalMedia: number;
-              totalSegments: number;
-              totalSeiyuu: number;
-            };
-            users: {
-              recentlyActiveCount: number;
-              recentlyRegisteredCount: number;
-              totalUsers: number;
-            };
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminDashboardOverview(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminDashboardOverviewResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminDashboardMediaResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          byCategory: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
-          byFormat: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
-          byStatus: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
-          byGenre: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
-          byStudio: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
-          segmentsByContentRating: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
-          segmentsByStatus: z.array(z.object({ label: z.string(), count: z.coerce.number() })),
-          topMediaByPlays: z.array(
-            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
-          ),
-          topMediaBySearches: z.array(
-            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
-          ),
-          topMediaByExports: z.array(
-            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
-          ),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminDashboardMedia
-  router.get(`/v1/admin/dashboard/media`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            byCategory: {
-              count: number;
-              label: string;
-            }[];
-            byFormat: {
-              count: number;
-              label: string;
-            }[];
-            byGenre: {
-              count: number;
-              label: string;
-            }[];
-            byStatus: {
-              count: number;
-              label: string;
-            }[];
-            byStudio: {
-              count: number;
-              label: string;
-            }[];
-            segmentsByContentRating: {
-              count: number;
-              label: string;
-            }[];
-            segmentsByStatus: {
-              count: number;
-              label: string;
-            }[];
-            topMediaByExports: {
-              count: number;
-              mediaId: number;
-              mediaName: string;
-            }[];
-            topMediaByPlays: {
-              count: number;
-              mediaId: number;
-              mediaName: string;
-            }[];
-            topMediaBySearches: {
-              count: number;
-              mediaId: number;
-              mediaName: string;
-            }[];
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminDashboardMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminDashboardMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminDashboardActivityQuerySchema = z.object({ days: z.string().optional() });
-
-  const getAdminDashboardActivityResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          dailyActivityByType: z.array(
-            z.object({
-              date: z.string(),
-              search: z.coerce.number(),
-              ankiExport: z.coerce.number(),
-              segmentPlay: z.coerce.number(),
-              share: z.coerce.number(),
-            }),
-          ),
-          topSearches: z.array(z.object({ query: z.string(), count: z.coerce.number() })),
-          dailyExports: z.array(z.object({ date: z.string(), count: z.coerce.number() })),
-          topExportedMedia: z.array(
-            z.object({ mediaId: z.coerce.number(), mediaName: z.string(), count: z.coerce.number() }),
-          ),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminDashboardActivity
-  router.get(`/v1/admin/dashboard/activity`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getAdminDashboardActivityQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            dailyActivityByType: {
-              ankiExport: number;
-              date: string;
-              search: number;
-              segmentPlay: number;
-              share: number;
-            }[];
-            dailyExports: {
-              count: number;
-              date: string;
-            }[];
-            topExportedMedia: {
-              count: number;
-              mediaId: number;
-              mediaName: string;
-            }[];
-            topSearches: {
-              count: number;
-              query: string;
-            }[];
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminDashboardActivity(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminDashboardActivityResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminDashboardCollectionsResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          totalCollections: z.coerce.number(),
-          byTypeAndVisibility: z.array(
-            z.object({ type: z.string(), visibility: z.string(), count: z.coerce.number() }),
-          ),
-          averageSize: z.coerce.number(),
-          topCollections: z.array(
-            z.object({
-              id: z.coerce.number(),
-              name: z.string(),
-              type: z.string(),
-              visibility: z.string(),
-              segmentCount: z.coerce.number(),
-            }),
-          ),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminDashboardCollections
-  router.get(`/v1/admin/dashboard/collections`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            averageSize: number;
-            byTypeAndVisibility: {
-              count: number;
-              type: string;
-              visibility: string;
-            }[];
-            topCollections: {
-              id: number;
-              name: string;
-              segmentCount: number;
-              type: string;
-              visibility: string;
-            }[];
-            totalCollections: number;
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation
-        .getAdminDashboardCollections(input, responder, req, res, next)
-        .catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminDashboardCollectionsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminDashboardApiKeysResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          keys: z.array(
-            z.object({
-              id: z.coerce.number(),
-              name: z.string().nullable().optional(),
-              hint: z.string().nullable().optional(),
-              isActive: PermissiveBoolean,
-              username: z.string().nullable().optional(),
-              email: z.string().nullable().optional(),
-              requestCount: z.coerce.number(),
-            }),
-          ),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminDashboardApiKeys
-  router.get(`/v1/admin/dashboard/api-keys`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            keys: {
-              email?: string | null;
-              hint?: string | null;
-              id: number;
-              isActive: boolean;
-              name?: string | null;
-              requestCount: number;
-              username?: string | null;
-            }[];
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminDashboardApiKeys(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminDashboardApiKeysResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminDashboardSystemResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          status: z.enum(['healthy', 'degraded']),
-          app: z.object({ version: z.string() }),
-          elasticsearch: z.object({
-            status: z.enum(['connected', 'disconnected']),
-            version: z.string().nullable().optional(),
-            clusterName: z.string().nullable().optional(),
-            clusterStatus: z.string().nullable().optional(),
-            indexName: z.string().nullable().optional(),
-            documentCount: z.coerce.number().nullable().optional(),
-            indexSizeBytes: z.coerce.number().nullable().optional(),
-          }),
-          database: z.object({
-            status: z.enum(['connected', 'disconnected']),
-            version: z.string().nullable().optional(),
-          }),
-          queues: z.array(
-            z.object({ queue: z.string(), stuckCount: z.coerce.number(), failedCount: z.coerce.number() }),
-          ),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminDashboardSystem
-  router.get(`/v1/admin/dashboard/system`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            app: {
-              version: string;
-            };
-            database: {
-              status: 'connected' | 'disconnected';
-              version?: string | null;
-            };
-            elasticsearch: {
-              clusterName?: string | null;
-              clusterStatus?: string | null;
-              documentCount?: number | null;
-              indexName?: string | null;
-              indexSizeBytes?: number | null;
-              status: 'connected' | 'disconnected';
-              version?: string | null;
-            };
-            queues: {
-              failedCount: number;
-              queue: string;
-              stuckCount: number;
-            }[];
-            status: 'healthy' | 'degraded';
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminDashboardSystem(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminDashboardSystemResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminHealthResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          status: z.enum(['healthy', 'degraded']),
-          app: z.object({ version: z.string() }),
-          elasticsearch: z.object({
-            status: z.enum(['connected', 'disconnected']),
-            version: z.string().nullable().optional(),
-            clusterName: z.string().nullable().optional(),
-            clusterStatus: z.string().nullable().optional(),
-            indexName: z.string().nullable().optional(),
-            documentCount: z.coerce.number().nullable().optional(),
-          }),
-          database: z.object({
-            status: z.enum(['connected', 'disconnected']),
-            version: z.string().nullable().optional(),
-          }),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminHealth
-  router.get(`/v1/admin/health`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            app: {
-              version: string;
-            };
-            database: {
-              status: 'connected' | 'disconnected';
-              version?: string | null;
-            };
-            elasticsearch: {
-              clusterName?: string | null;
-              clusterStatus?: string | null;
-              documentCount?: number | null;
-              indexName?: string | null;
-              status: 'connected' | 'disconnected';
-              version?: string | null;
-            };
-            status: 'healthy' | 'degraded';
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminHealth(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminHealthResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
 
   const triggerReindexRequestBodySchema = s_ReindexRequest.optional();
 
@@ -1808,461 +404,12 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const listAdminQueueStatsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.array(z.object({ queue: z.string(), stuckCount: z.coerce.number(), failedCount: z.coerce.number() }))],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listAdminQueueStats
-  router.get(`/v1/admin/queues/stats`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<
-            {
-              failedCount: number;
-              queue: string;
-              stuckCount: number;
-            }[]
-          >(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.listAdminQueueStats(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listAdminQueueStatsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminQueueParamSchema = z.object({
-    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
-  });
-
-  const getAdminQueueResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          queue: z.string(),
-          stats: z.object({
-            deferred: z.coerce.number(),
-            queued: z.coerce.number(),
-            active: z.coerce.number(),
-            total: z.coerce.number(),
-          }),
-          metadata: z.object({
-            policy: z.string(),
-            partition: PermissiveBoolean,
-            deadLetter: z.string().nullable().optional(),
-            warningQueueSize: z.coerce.number().nullable().optional(),
-            retryLimit: z.coerce.number().nullable().optional(),
-            retryDelay: z.coerce.number().nullable().optional(),
-            retryBackoff: PermissiveBoolean.nullable().optional(),
-            retryDelayMax: z.coerce.number().nullable().optional(),
-            expireInSeconds: z.coerce.number().nullable().optional(),
-            retentionSeconds: z.coerce.number().nullable().optional(),
-            deleteAfterSeconds: z.coerce.number().nullable().optional(),
-            createdOn: z.iso.datetime({ offset: true }),
-            updatedOn: z.iso.datetime({ offset: true }),
-            singletonsActive: z.array(z.string()),
-            table: z.string(),
-          }),
-        }),
-      ],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminQueue
-  router.get(`/v1/admin/queues/:queueName`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(getAdminQueueParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            metadata: {
-              createdOn: string;
-              deadLetter?: string | null;
-              deleteAfterSeconds?: number | null;
-              expireInSeconds?: number | null;
-              partition: boolean;
-              policy: string;
-              retentionSeconds?: number | null;
-              retryBackoff?: boolean | null;
-              retryDelay?: number | null;
-              retryDelayMax?: number | null;
-              retryLimit?: number | null;
-              singletonsActive: string[];
-              table: string;
-              updatedOn: string;
-              warningQueueSize?: number | null;
-            };
-            queue: string;
-            stats: {
-              active: number;
-              deferred: number;
-              queued: number;
-              total: number;
-            };
-          }>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.getAdminQueue(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminQueueResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const listAdminQueueFailedParamSchema = z.object({
-    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
-  });
-
-  const listAdminQueueFailedResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.array(
-          z.object({
-            id: z.string(),
-            segmentId: z.coerce.number(),
-            error: z.string().nullable(),
-            createdOn: z.iso.datetime({ offset: true }),
-          }),
-        ),
-      ],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listAdminQueueFailed
-  router.get(`/v1/admin/queues/:queueName/failed`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(listAdminQueueFailedParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<
-            {
-              createdOn: string;
-              error: string | null;
-              id: string;
-              segmentId: number;
-            }[]
-          >(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.listAdminQueueFailed(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listAdminQueueFailedResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const retryAdminQueueFailedParamSchema = z.object({
-    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
-  });
-
-  const retryAdminQueueFailedResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ success: PermissiveBoolean, retriedCount: z.coerce.number(), message: z.string() })],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // retryAdminQueueFailed
-  router.post(`/v1/admin/queues/:queueName/retry`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(retryAdminQueueFailedParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            message: string;
-            retriedCount: number;
-            success: boolean;
-          }>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.retryAdminQueueFailed(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(retryAdminQueueFailedResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const purgeAdminQueueFailedParamSchema = z.object({
-    queueName: z.enum(['es-sync-create', 'es-sync-update', 'es-sync-delete']),
-  });
-
-  const purgeAdminQueueFailedResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ success: PermissiveBoolean, purgedCount: z.coerce.number(), message: z.string() })],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // purgeAdminQueueFailed
-  router.delete(`/v1/admin/queues/:queueName/purge`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(purgeAdminQueueFailedParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            message: string;
-            purgedCount: number;
-            success: boolean;
-          }>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.purgeAdminQueueFailed(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(purgeAdminQueueFailedResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
-
   const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().max(100).optional().default(20),
     status: z.string().optional(),
-    source: z.enum(['USER', 'AUTO']).optional(),
-    'target.type': z.enum(['SEGMENT', 'EPISODE', 'MEDIA']).optional(),
+    source: s_ReportSource.optional(),
+    'target.type': s_ReportTargetType.optional(),
     'target.mediaId': z.coerce.number().optional(),
     'target.episodeNumber': z.coerce.number().optional(),
     'target.segmentId': z.coerce.number().optional(),
@@ -2339,7 +486,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const batchUpdateAdminReportsResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ updated: z.coerce.number() })],
+      ['200', s_AffectedCountResponse],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -2361,9 +508,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            updated: number;
-          }>(200);
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);
@@ -2412,7 +557,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const bulkUpdateAdminReportsResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ updated: z.coerce.number() })],
+      ['200', s_AffectedCountResponse],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -2434,9 +579,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            updated: number;
-          }>(200);
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);
@@ -2485,7 +628,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const bulkDeleteAdminReportsResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ deleted: z.coerce.number() })],
+      ['200', s_AffectedCountResponse],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -2507,9 +650,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            deleted: number;
-          }>(200);
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);
@@ -2554,7 +695,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const updateAdminReportParamSchema = z.object({ id: z.coerce.number() });
+  const updateAdminReportParamSchema = z.object({ reportId: z.coerce.number() });
 
   const updateAdminReportRequestBodySchema = s_UpdateReportRequest;
 
@@ -2572,7 +713,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   );
 
   // updateAdminReport
-  router.patch(`/v1/admin/reports/:id`, async (req: Request, res: Response, next: NextFunction) => {
+  router.patch(`/v1/admin/reports/:reportId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: parseRequestInput(updateAdminReportParamSchema, req.params, RequestInputType.RouteParam),
@@ -2631,11 +772,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const deleteAdminReportParamSchema = z.object({ id: z.coerce.number() });
+  const deleteAdminReportParamSchema = z.object({ reportId: z.coerce.number() });
 
   const deleteAdminReportResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ deleted: z.coerce.number() })],
+      ['200', s_AffectedCountResponse],
       ['401', s_Error401],
       ['403', s_Error403],
       ['404', s_Error404],
@@ -2646,7 +787,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   );
 
   // deleteAdminReport
-  router.delete(`/v1/admin/reports/:id`, async (req: Request, res: Response, next: NextFunction) => {
+  router.delete(`/v1/admin/reports/:reportId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: parseRequestInput(deleteAdminReportParamSchema, req.params, RequestInputType.RouteParam),
@@ -2657,9 +798,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            deleted: number;
-          }>(200);
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
         },
         with401() {
           return new ExpressRuntimeResponse<t_Error401>(401);
@@ -2930,7 +1069,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const listAdminMediaAuditRunsResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.object({ runs: z.array(s_MediaAuditRun), pagination: s_OpaqueCursorPagination })],
+      ['200', z.object({ runs: z.array(s_MediaAuditRun), pagination: s_CursorPagination })],
       ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
@@ -2952,7 +1091,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            pagination: t_OpaqueCursorPagination;
+            pagination: t_CursorPagination;
             runs: t_MediaAuditRun[];
           }>(200);
         },
@@ -2996,7 +1135,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const getAdminMediaAuditRunParamSchema = z.object({ id: z.coerce.number() });
+  const getAdminMediaAuditRunParamSchema = z.object({ auditRunId: z.coerce.number() });
 
   const getAdminMediaAuditRunResponseBodyValidator = responseValidationFactory(
     [
@@ -3011,7 +1150,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
   );
 
   // getAdminMediaAuditRun
-  router.get(`/v1/admin/media/audits/runs/:id`, async (req: Request, res: Response, next: NextFunction) => {
+  router.get(`/v1/admin/media/audits/runs/:auditRunId`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: parseRequestInput(getAdminMediaAuditRunParamSchema, req.params, RequestInputType.RouteParam),
@@ -3072,10 +1211,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
   const getAnnouncementResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({ message: z.string(), type: z.enum(['info', 'warning', 'maintenance']), active: PermissiveBoolean }),
-      ],
+      ['200', s_Announcement],
       ['204', z.undefined()],
       ['429', s_Error429],
       ['500', s_Error500],
@@ -3095,11 +1231,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            active: boolean;
-            message: string;
-            type: 'info' | 'warning' | 'maintenance';
-          }>(200);
+          return new ExpressRuntimeResponse<t_Announcement>(200);
         },
         with204() {
           return new ExpressRuntimeResponse<void>(204);
@@ -3138,18 +1270,11 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
     }
   });
 
-  const updateAnnouncementRequestBodySchema = z.object({
-    message: z.string().max(500),
-    type: z.enum(['info', 'warning', 'maintenance']),
-    active: PermissiveBoolean,
-  });
+  const updateAnnouncementRequestBodySchema = s_Announcement;
 
   const updateAnnouncementResponseBodyValidator = responseValidationFactory(
     [
-      [
-        '200',
-        z.object({ message: z.string(), type: z.enum(['info', 'warning', 'maintenance']), active: PermissiveBoolean }),
-      ],
+      ['200', s_Announcement],
       ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
@@ -3171,11 +1296,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<{
-            active: boolean;
-            message: string;
-            type: 'info' | 'warning' | 'maintenance';
-          }>(200);
+          return new ExpressRuntimeResponse<t_Announcement>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);

@@ -1,0 +1,11 @@
+type: object
+description: Request body for triggering a word coverage update
+properties:
+  maxRank:
+    type: integer
+    default: 999999
+    description: Maximum frequency rank to check (defaults to all words)
+  onlyUncovered:
+    type: boolean
+    default: false
+    description: Only check words that currently have zero matches (faster for incremental updates)

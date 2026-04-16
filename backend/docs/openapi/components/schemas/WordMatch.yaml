@@ -9,6 +9,7 @@ properties:
   word:
     type: string
     description: The word that was searched for
+    minLength: 1
     example: "彼女"
   isMatch:
     type: boolean
@@ -17,6 +18,7 @@ properties:
   matchCount:
     type: integer
     description: Total number of times this word appears across all media
+    minimum: 0
     example: 1523
   media:
     type: array

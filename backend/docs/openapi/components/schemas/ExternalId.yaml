@@ -1,19 +1,32 @@
 type: object
-description: Map of external IDs keyed by source. Only sources with values are included.
+description: External IDs for this media, keyed by source. Every source appears as a key; absent mappings are represented with a null value.
+required:
+  - anilist
+  - imdb
+  - tvdb
+  - tmdb
 properties:
   anilist:
     type: string
+    nullable: true
+    minLength: 1
     description: AniList ID
     example: "21459"
   imdb:
     type: string
+    nullable: true
+    minLength: 1
     description: IMDB ID
-    example: "tt1234567"
+    example: tt1234567
   tvdb:
     type: string
+    nullable: true
+    minLength: 1
     description: TVDB ID
     example: "12345"
   tmdb:
     type: string
+    nullable: true
+    minLength: 1
     description: TMDB ID
     example: "90955"

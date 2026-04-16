@@ -7,19 +7,23 @@ required:
   - b
   - e
   - p
+  - p1
+  - p2
+  - p4
+  - cf
 properties:
   s:
     type: string
     description: Surface form (the text as it appears in the sentence)
-    example: "食べ"
+    example: 食べ
   d:
     type: string
     description: Dictionary form (base/lemma form for search)
-    example: "食べる"
+    example: 食べる
   r:
     type: string
     description: Reading in katakana
-    example: "タベ"
+    example: タベ
   b:
     type: integer
     description: Begin character offset in textJa.content
@@ -31,20 +35,28 @@ properties:
   p:
     type: string
     description: Primary part-of-speech tag
-    example: "動詞"
+    example: 動詞
   p1:
     type: string
+    nullable: true
+    minLength: 1
     description: POS subtype 1 (UniDic pos[1])
-    example: "固有名詞"
+    example: 固有名詞
   p2:
     type: string
+    nullable: true
+    minLength: 1
     description: POS subtype 2 (UniDic pos[2])
-    example: "人名"
+    example: 人名
   p4:
     type: string
+    nullable: true
+    minLength: 1
     description: Conjugation type (UniDic pos[4])
-    example: "五段-カ行"
+    example: 五段-カ行
   cf:
     type: string
+    nullable: true
+    minLength: 1
     description: Conjugation form (UniDic pos[5])
-    example: "連用形-一般"
+    example: 連用形-一般

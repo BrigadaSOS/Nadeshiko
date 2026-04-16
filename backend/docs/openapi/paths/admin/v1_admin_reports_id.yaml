@@ -11,7 +11,7 @@ patch:
   security:
     - SessionCookie: [ADMIN]
   parameters:
-    - name: id
+    - name: reportId
       in: path
       required: true
       schema:
@@ -55,7 +55,7 @@ delete:
   security:
     - SessionCookie: [ADMIN]
   parameters:
-    - name: id
+    - name: reportId
       in: path
       required: true
       schema:
@@ -67,13 +67,7 @@ delete:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - deleted
-            properties:
-              deleted:
-                type: integer
-                description: Number of reports deleted
+            $ref: "../../components/schemas/AffectedCountResponse.yaml"
     "401":
       $ref: "../../components/responses/Unauthorized.yaml"
     "403":

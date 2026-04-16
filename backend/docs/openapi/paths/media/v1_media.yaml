@@ -2,6 +2,7 @@ get:
   tags:
     - Media
   operationId: listMedia
+  x-order: 10
   summary: List all media
   description: |
     Returns a paginated list of media with full metadata, including cover/banner images, episode counts, and genres.
@@ -32,18 +33,10 @@ get:
         example: ANIME
     - name: query
       in: query
-      description: Search query for filtering media by name
+      description: Search term to match against media names (English, Japanese, romaji)
       schema:
         type: string
         example: steins
-    - name: include
-      in: query
-      description: Resources to expand in the media response
-      schema:
-        type: array
-        items:
-          $ref: "../../components/schemas/MediaIncludeExpansion.yaml"
-        default: []
   responses:
     "200":
       description: OK
@@ -78,14 +71,14 @@ post:
     content:
       application/json:
         schema:
-          $ref: "../../components/schemas/MediaCreateRequest.yaml"
+          $ref: "../../components/requestBodies/MediaCreateRequest.yaml"
   responses:
     "201":
       description: Created
       content:
         application/json:
           schema:
-            $ref: "../../components/responses/MediaResponse.yaml"
+            $ref: "../../components/schemas/Media.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":

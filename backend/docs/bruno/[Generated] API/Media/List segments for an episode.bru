@@ -1,20 +1,20 @@
 meta {
   name: List segments for an episode
   type: http
-  seq: 32
+  seq: 22
 }
 
 get {
-  url: {{baseUrl}}/v1/media/:mediaId/episodes/:episodeNumber/segments?mediaId=V1StGXR8_Z5d&episodeNumber=1&take=50&cursor=1000
+  url: {{baseUrl}}/v1/media/:mediaPublicId/episodes/:episodeNumber/segments?mediaPublicId=V1StGXR8_Z5d&episodeNumber=1&take=50
   body: none
   auth: bearer
 }
 
 params:query {
-  mediaId: V1StGXR8_Z5d
+  mediaPublicId: V1StGXR8_Z5d
   episodeNumber: 1
   take: 50
-  cursor: 1000
+  cursor:
 }
 
 auth:bearer {

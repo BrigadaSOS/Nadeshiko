@@ -1,0 +1,20 @@
+meta {
+  name: List excluded media
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/v1/user/excluded-media
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

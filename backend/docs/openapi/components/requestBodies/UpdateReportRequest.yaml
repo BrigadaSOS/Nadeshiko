@@ -1,10 +1,7 @@
 type: object
 properties:
   status:
-    type: string
-    enum: [OPEN, PROCESSING, FIXED, DISMISSED]
-    description: New status for the report
-    example: "PROCESSING"
+    $ref: "../schemas/ReportStatus.yaml"
   adminNotes:
     type: string
     maxLength: 1000

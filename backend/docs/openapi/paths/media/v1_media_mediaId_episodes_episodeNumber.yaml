@@ -1,21 +1,23 @@
 get:
   operationId: getEpisode
+  x-order: 40
   tags:
     - Media
   summary: Get single episode
   description: |
-    Returns a specific episode by media ID and episode number.
+    Returns a specific episode by media public ID and episode number.
 
   security:
     - ApiKey: [READ_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
-      example: "V1StGXR8_Z5d"
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Media public ID
+      example: V1StGXR8_Z5d
     - name: episodeNumber
       in: path
       required: true
@@ -25,7 +27,11 @@ get:
       example: 1
   responses:
     "200":
-      $ref: "../../components/responses/EpisodeResponse.yaml"
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Episode.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
@@ -51,13 +57,13 @@ patch:
   security:
     - ApiKey: [UPDATE_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
-      example: "V1StGXR8_Z5d"
+      description: Media public ID
+      example: V1StGXR8_Z5d
     - name: episodeNumber
       in: path
       required: true
@@ -73,7 +79,11 @@ patch:
           $ref: "../../components/schemas/EpisodeUpdateRequest.yaml"
   responses:
     "200":
-      $ref: "../../components/responses/EpisodeResponse.yaml"
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/Episode.yaml"
     "400":
       $ref: "../../components/responses/BadRequest.yaml"
     "401":
@@ -99,13 +109,13 @@ delete:
   security:
     - ApiKey: [REMOVE_MEDIA]
   parameters:
-    - name: mediaId
+    - name: mediaPublicId
       in: path
       required: true
       schema:
         type: string
-      description: Public ID of the media
-      example: "V1StGXR8_Z5d"
+      description: Media public ID
+      example: V1StGXR8_Z5d
     - name: episodeNumber
       in: path
       required: true

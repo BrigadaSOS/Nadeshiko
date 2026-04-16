@@ -1,17 +1,17 @@
 meta {
   name: Get collection statistics
   type: http
-  seq: 62
+  seq: 52
 }
 
 get {
-  url: {{baseUrl}}/v1/collections/:id/stats?id=V1StGXR8_Z5d
+  url: {{baseUrl}}/v1/collections/:collectionPublicId/stats?collectionPublicId=V1StGXR8_Z5d
   body: none
   auth: none
 }
 
 params:query {
-  id: V1StGXR8_Z5d
+  collectionPublicId: V1StGXR8_Z5d
 }
 
 settings {

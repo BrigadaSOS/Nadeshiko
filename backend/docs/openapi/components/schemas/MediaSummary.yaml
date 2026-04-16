@@ -1,86 +1,44 @@
 type: object
-description: Summary information about a media entry for browse/list views
+description: Slim media item returned by autocomplete (names + cover only)
 required:
-  - id
+  - mediaPublicId
   - slug
+  - nameJa
+  - nameRomaji
+  - nameEn
+  - coverUrl
+  - category
 properties:
-  id:
-    type: integer
-    description: Unique identifier for the media
-    example: 110316
+  mediaPublicId:
+    type: string
+    description: Public ID for the media
+    pattern: '^[A-Za-z0-9_-]{12}$'
+    example: V1StGXR8_Z5d
   slug:
     type: string
+    minLength: 1
     description: URL-friendly slug for the media
-    example: "steins-gate"
-  externalIds:
-    $ref: "./ExternalId.yaml"
-  category:
-    $ref: "./Category.yaml"
-  createdAt:
-    type: string
-    format: date-time
-    description: Timestamp when the media entry was created in the database
-    example: "2024-01-15T10:30:00Z"
-  updatedAt:
-    type: integer
-    description: Timestamp when the media entry was last updated
-    example: 1705769100
-  nameRomaji:
-    type: string
-    description: Romaji transliteration of the media name
-    example: "Steins;Gate"
-  nameEn:
-    type: string
-    description: English name of the media
-    example: "Steins;Gate"
+    example: bakuman
   nameJa:
     type: string
+    minLength: 1
     description: Original Japanese name of the media
-    example: "シュタインズ・ゲート"
-  airingFormat:
+    example: バクマン。
+  nameRomaji:
     type: string
-    description: Format of the media release (e.g., TV, OVA, Movie)
-    example: "TV"
-  airingStatus:
+    minLength: 1
+    description: Romaji transliteration of the media name
+    example: Bakuman.
+  nameEn:
     type: string
-    description: Current airing status (FINISHED, RELEASING)
-    example: "FINISHED"
-  startDate:
-    type: string
-    format: date
-    description: Start date of the media (YYYY-MM-DD)
-    example: "2011-04-06"
-  endDate:
-    type: string
-    format: date
-    nullable: true
-    description: End date of the media (null if unknown) (YYYY-MM-DD)
-    example: "2011-09-14"
-  genres:
-    type: array
-    items:
-      type: string
-    description: List of genres associated with the media
-    example: ["Sci-Fi", "Thriller", "Romance"]
+    minLength: 1
+    description: English name of the media
+    example: Bakuman.
   coverUrl:
     type: string
     format: uri
-    description: URL to the cover image
-    example: "https://example.com/media/anime/steins-gate/cover.jpg"
-  bannerUrl:
-    type: string
-    format: uri
-    description: URL to the banner image
-    example: "https://example.com/media/anime/steins-gate/banner.jpg"
-  version:
-    type: string
-    description: Version identifier for the media entry
-    example: "v1.0"
-  segmentCount:
-    type: integer
-    description: Total number of subtitle segments available
-    example: 18542
-  episodeCount:
-    type: integer
-    description: Total number of episodes available
-    example: 24
+    minLength: 1
+    description: Full URL to the cover image
+    example: "https://cdn.example.com/media/anime/bakuman/cover.webp"
+  category:
+    $ref: "./Category.yaml"

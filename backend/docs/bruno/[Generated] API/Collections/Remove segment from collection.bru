@@ -1,28 +1,25 @@
 meta {
   name: Remove segment from collection
   type: http
-  seq: 60
+  seq: 50
 }
 
 delete {
-  url: {{baseUrl}}/v1/collections/:id/segments/:segmentId?id=V1StGXR8_Z5d&segmentId=456
+  url: {{baseUrl}}/v1/collections/:collectionPublicId/segments/:segmentPublicId?collectionPublicId=V1StGXR8_Z5d&segmentPublicId=V1StGXR8_Z5d
   body: none
-  auth: none
+  auth: bearer
 }
 
 params:query {
-  id: V1StGXR8_Z5d
-  segmentId: 456
+  collectionPublicId: V1StGXR8_Z5d
+  segmentPublicId: V1StGXR8_Z5d
+}
+
+auth:bearer {
+  token: {{apiKey}}
 }
 
 settings {
   encodeUrl: true
   timeout: 0
-}
-
-script:pre-request {
-  const sessionToken = bru.getEnvVar("sessionToken");
-  if (sessionToken) {
-    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
-  }
 }

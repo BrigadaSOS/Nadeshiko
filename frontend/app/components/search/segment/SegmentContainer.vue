@@ -16,22 +16,22 @@ type Props = {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  'remove-from-collection': [segmentId: number];
+  'remove-from-collection': [segmentPublicId: string];
 }>();
 
-const confirmingRemoveId = ref<number | null>(null);
+const confirmingRemoveId = ref<string | null>(null);
 
-const confirmRemove = (id: number) => {
-  confirmingRemoveId.value = id;
+const confirmRemove = (publicId: string) => {
+  confirmingRemoveId.value = publicId;
 };
 
 const cancelRemove = () => {
   confirmingRemoveId.value = null;
 };
 
-const executeRemove = (id: number) => {
+const executeRemove = (publicId: string) => {
   confirmingRemoveId.value = null;
-  emit('remove-from-collection', id);
+  emit('remove-from-collection', publicId);
 };
 const { locale } = useI18n();
 const resultList = computed(() => props.searchData?.results ?? []);
@@ -62,7 +62,7 @@ if (props.highlightedPosition != null) {
 const scrollFocusedIntoView = () => {
   const result = resultList.value[focusedIndex.value ?? -1];
   if (result) {
-    const el = document.getElementById(result.segment.uuid);
+    const el = document.getElementById(result.segment.publicId);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 };
@@ -147,7 +147,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 // Sync focused index when player changes track (via Arrow Left/Right)
 watch(currentResult, (result) => {
   if (result) {
-    const idx = resultList.value.findIndex((r) => r.segment.uuid === result.segment.uuid);
+    const idx = resultList.value.findIndex((r) => r.segment.publicId === result.segment.publicId);
     if (idx !== -1) {
       focusedIndex.value = idx;
     }
@@ -231,7 +231,7 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
 
 const onEditSuccess = (updated: SearchResult) => {
   const list = resultList.value;
-  const idx = list.findIndex((r) => r.segment.uuid === updated.segment.uuid);
+  const idx = list.findIndex((r) => r.segment.publicId === updated.segment.publicId);
   if (idx !== -1) {
     const item = list[idx];
     if (item) item.segment = { ...updated.segment };
@@ -280,33 +280,33 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
       :mediaName="reportTarget?.mediaName"
     />
 
-    <div v-for="(result, index) in resultList" :key="result.segment.uuid"
-      :id="result.segment.uuid"
+    <div v-for="(result, index) in resultList" :key="result.segment.publicId"
+      :id="result.segment.publicId"
       data-testid="segment-card"
       class="items-stretch b-2 min-[650px]:rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
       :class="{
-        'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.uuid === currentResult.segment.uuid,
+        'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.publicId === currentResult.segment.publicId,
         'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
-        'bg-neutral-700/30 hover:bg-neutral-700/35': focusedIndex === index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
-        'hover:bg-neutral-800/20': focusedIndex !== index && !(currentResult && result.segment.uuid === currentResult.segment.uuid),
+        'bg-neutral-700/30 hover:bg-neutral-700/35': focusedIndex === index && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
+        'hover:bg-neutral-800/20': focusedIndex !== index && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
       }">
       <!-- Image -->
       <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
         <img loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
-          @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid)) && zoomImage(result.segment.urls.imageUrl)"
+          @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId)) && zoomImage(result.segment.urls.imageUrl)"
           class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
-          :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.uuid) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
+          :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
           :key="result.segment.urls.imageUrl" />
         <button
           v-if="shouldBlur(result.segment.contentRating)"
-          @click="revealedContent.has(result.segment.uuid) ? revealedContent.delete(result.segment.uuid) : revealedContent.add(result.segment.uuid)"
+          @click="revealedContent.has(result.segment.publicId) ? revealedContent.delete(result.segment.publicId) : revealedContent.add(result.segment.publicId)"
           class="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/50 hover:bg-black/70 text-white transition-colors z-10 flex items-center gap-1.5 text-xs">
           <UiBaseIcon
-            :path="revealedContent.has(result.segment.uuid) ? mdiEye : mdiEyeOff"
+            :path="revealedContent.has(result.segment.publicId) ? mdiEye : mdiEyeOff"
             w="w-3.5" h="h-3.5" size="14" />
-          <span>{{ revealedContent.has(result.segment.uuid) ? $t('segment.contentRatingHide') : $t('segment.contentRatingShow') }}</span>
+          <span>{{ revealedContent.has(result.segment.publicId) ? $t('segment.contentRatingHide') : $t('segment.contentRatingShow') }}</span>
         </button>
       </div>
       <!-- End Image -->
@@ -314,8 +314,8 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
       <!-- Remove from collection button -->
       <div v-if="collectionId" class="absolute top-2 right-2 z-10">
         <button
-          v-if="confirmingRemoveId !== result.segment.id"
-          @click.stop="confirmRemove(result.segment.id)"
+          v-if="confirmingRemoveId !== result.segment.publicId"
+          @click.stop="confirmRemove(result.segment.publicId)"
           class="opacity-0 group-hover:opacity-100 transition-opacity p-2 aspect-square flex items-center justify-center rounded-md bg-modal-background hover:bg-button-accent-main text-white/70 hover:text-white"
           :title="$t('accountSettings.collections.removeFromCollection')"
         >
@@ -324,7 +324,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
         <div v-else class="flex items-center gap-2 bg-modal-background rounded-md px-3 py-2">
           <span class="text-sm text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
           <button
-            @click.stop="executeRemove(result.segment.id)"
+            @click.stop="executeRemove(result.segment.publicId)"
             class="px-3 py-1.5 rounded text-sm bg-button-accent-main hover:bg-button-accent-hover text-white font-medium"
           >{{ $t('accountSettings.collections.yes') }}</button>
           <button
@@ -344,7 +344,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             <!-- Audio button -->
             <button data-testid="audio-play-button" @click="playerStore.setPlaylist(resultList, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
-              <UiBaseIcon v-if="!(isPlaying && currentResult && currentResult.segment.uuid === result.segment.uuid)" w="w-5" h="h-5" size="24"
+              <UiBaseIcon v-if="!(isPlaying && currentResult && currentResult.segment.publicId === result.segment.publicId)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
               <span v-else
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
