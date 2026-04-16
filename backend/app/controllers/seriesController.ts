@@ -8,24 +8,23 @@ import type {
   UpdateSeriesMedia,
   RemoveMediaFromSeries,
 } from 'generated/routes/media';
-import { ILike } from 'typeorm';
 import { Media, MediaInclude, Series, SeriesMedia } from '@app/models';
 import { toSeriesDTO, toSeriesListDTO, toSeriesWithMediaDTO } from './mappers/series.mapper';
 
 export const listSeries: ListSeries = async ({ query }, respond) => {
-  const { items: series, pagination } = await Series.paginateWithOffset({
+  const { items: series, pagination } = await Series.paginateWithKeyset({
     take: query.take,
     cursor: query.cursor,
-    find: {
-      where: query.query
-        ? [
-            { nameEn: ILike(`%${query.query}%`) },
-            { nameJa: ILike(`%${query.query}%`) },
-            { nameRomaji: ILike(`%${query.query}%`) },
-          ]
-        : undefined,
-
-      order: { nameEn: 'ASC', id: 'ASC' },
+    orderBy: { column: 'id', direction: 'ASC' },
+    query: () => {
+      const qb = Series.createQueryBuilder('series');
+      if (query.query) {
+        qb.where(
+          '(series.name_en ILIKE :q OR series.name_ja ILIKE :q OR series.name_romaji ILIKE :q)',
+          { q: `%${query.query}%` },
+        );
+      }
+      return qb;
     },
   });
 

@@ -36,13 +36,10 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
     whereClause.visibility = CollectionVisibility.PRIVATE;
   }
 
-  const { items: collections, pagination } = await Collection.paginateWithOffset({
+  const { items: collections, pagination } = await Collection.paginateWithKeyset({
     take: query.take,
     cursor: query.cursor,
-    find: {
-      where: whereClause,
-      order: { createdAt: 'DESC' },
-    },
+    query: () => Collection.createQueryBuilder('collection').where(whereClause),
   });
 
   // Get segment counts for all fetched collections in a single query
@@ -92,13 +89,15 @@ export const getCollection: GetCollection = async ({ params, query }, respond, r
     items: segmentItems,
     totalCount,
     pagination,
-  } = await CollectionSegment.paginateWithOffset({
+  } = await CollectionSegment.paginateWithKeyset({
     take: query.take,
     cursor: query.cursor,
-    findAndCount: {
-      where: { collectionId: collection.id },
-      order: { position: 'ASC' },
-    },
+    orderBy: { column: 'id', direction: 'ASC' },
+    count: true,
+    query: () =>
+      CollectionSegment.createQueryBuilder('cs').where('cs.collectionId = :collectionId', {
+        collectionId: collection.id,
+      }),
   });
 
   if (segmentItems.length === 0) {
@@ -243,13 +242,15 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
     items: segmentItems,
     totalCount,
     pagination,
-  } = await CollectionSegment.paginateWithOffset({
+  } = await CollectionSegment.paginateWithKeyset({
     take: query.take,
     cursor: query.cursor,
-    findAndCount: {
-      where: { collectionId: collection.id },
-      order: { position: 'ASC' },
-    },
+    orderBy: { column: 'id', direction: 'ASC' },
+    count: true,
+    query: () =>
+      CollectionSegment.createQueryBuilder('cs').where('cs.collectionId = :collectionId', {
+        collectionId: collection.id,
+      }),
   });
 
   if (segmentItems.length === 0) {
@@ -267,7 +268,6 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
   const segmentIds = segmentItems.map((item) => item.segmentId);
   const { segments: searchResults, includes } = await SegmentDocument.findByIds(segmentIds);
 
-  // Preserve collection ordering
   const resultById = new Map(searchResults.map((r) => [r.id, r]));
   const segments = segmentItems
     .map((item) => resultById.get(item.segmentId))

@@ -134,21 +134,26 @@ async function submitSidebarSearch() {
                         </template>
                         <template #content>
                             <SearchDropdownContent :header="$t('navbar.buttons.profile')">
-                                <NuxtLink v-if="isAuth" to="/user/settings" data-testid="nav-settings" :prefetch="false">
-                                    <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
-                                </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/sync" data-testid="nav-anki" :prefetch="false">
-                                    <SearchDropdownItem text="Anki" />
-                                </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/collections" data-testid="nav-collections" :prefetch="false">
-                                    <SearchDropdownItem text="Collections" />
-                                </NuxtLink>
-                                <NuxtLink v-if="isAuth" to="/user/activity" data-testid="nav-activity" :prefetch="false">
-                                    <SearchDropdownItem text="Activity" />
-                                </NuxtLink>
-                                <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
-                                <hr v-if="isAuth" class="my-1 border-neutral-700" />
-                                <SearchDropdownItem v-if="isAuth" data-testid="nav-logout" @click="logout" :text="$t('navbar.buttons.logout')" />
+                                <ClientOnly>
+                                    <NuxtLink v-if="isAuth" to="/user/settings" data-testid="nav-settings" :prefetch="false">
+                                        <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
+                                    </NuxtLink>
+                                    <NuxtLink v-if="isAuth" to="/user/sync" data-testid="nav-anki" :prefetch="false">
+                                        <SearchDropdownItem text="Anki" />
+                                    </NuxtLink>
+                                    <NuxtLink v-if="isAuth" to="/user/collections" data-testid="nav-collections" :prefetch="false">
+                                        <SearchDropdownItem text="Collections" />
+                                    </NuxtLink>
+                                    <NuxtLink v-if="isAuth" to="/user/activity" data-testid="nav-activity" :prefetch="false">
+                                        <SearchDropdownItem text="Activity" />
+                                    </NuxtLink>
+                                    <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
+                                    <hr v-if="isAuth" class="my-1 border-neutral-700" />
+                                    <SearchDropdownItem v-if="isAuth" data-testid="nav-logout" @click="logout" :text="$t('navbar.buttons.logout')" />
+                                    <template #fallback>
+                                        <SearchDropdownItem @click="openLoginModal" :text="$t('navbar.buttons.login')" />
+                                    </template>
+                                </ClientOnly>
                             </SearchDropdownContent>
                         </template>
                     </SearchDropdownContainer>
@@ -221,38 +226,48 @@ async function submitSidebarSearch() {
             </div>
 
             <div class="border-t dark:border-neutral-700 py-2">
-                <template v-if="isAuth">
-                    <NuxtLink to="/user/settings"
-                        class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
-                        <UiBaseIcon :path="mdiCogOutline" :size="18" />
-                        {{ $t('navbar.buttons.settings') }}
-                    </NuxtLink>
-                    <NuxtLink to="/user/sync"
-                        class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
-                        <UiBaseIcon :path="mdiSync" :size="18" />
-                        Anki
-                    </NuxtLink>
-                    <NuxtLink to="/user/collections"
-                        class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
-                        <UiBaseIcon :path="mdiFormatListBulletedSquare" :size="18" />
-                        Collections
-                    </NuxtLink>
-                    <NuxtLink to="/user/activity"
-                        class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
-                        <UiBaseIcon :path="mdiHistory" :size="18" />
-                        Activity
-                    </NuxtLink>
-                </template>
-                <button v-if="!isAuth" @click="openLoginModal"
-                    class="nd-sidebar-link flex items-center gap-3 px-5 py-3 w-full text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
-                    <UiBaseIcon :path="mdiLogin" :size="18" />
-                    {{ $t('navbar.buttons.login') }}
-                </button>
-                <button v-if="isAuth" @click="logout"
-                    class="nd-sidebar-link flex items-center gap-3 px-5 py-3 w-full text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
-                    <UiBaseIcon :path="mdiLogout" :size="18" />
-                    {{ $t('navbar.buttons.logout') }}
-                </button>
+                <ClientOnly>
+                    <template v-if="isAuth">
+                        <NuxtLink to="/user/settings"
+                            class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                            <UiBaseIcon :path="mdiCogOutline" :size="18" />
+                            {{ $t('navbar.buttons.settings') }}
+                        </NuxtLink>
+                        <NuxtLink to="/user/sync"
+                            class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                            <UiBaseIcon :path="mdiSync" :size="18" />
+                            Anki
+                        </NuxtLink>
+                        <NuxtLink to="/user/collections"
+                            class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                            <UiBaseIcon :path="mdiFormatListBulletedSquare" :size="18" />
+                            Collections
+                        </NuxtLink>
+                        <NuxtLink to="/user/activity"
+                            class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                            <UiBaseIcon :path="mdiHistory" :size="18" />
+                            Activity
+                        </NuxtLink>
+                    </template>
+                    <button v-if="!isAuth" @click="openLoginModal"
+                        class="nd-sidebar-link flex items-center gap-3 px-5 py-3 w-full text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                        <UiBaseIcon :path="mdiLogin" :size="18" />
+                        {{ $t('navbar.buttons.login') }}
+                    </button>
+                    <button v-if="isAuth" @click="logout"
+                        class="nd-sidebar-link flex items-center gap-3 px-5 py-3 w-full text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                        <UiBaseIcon :path="mdiLogout" :size="18" />
+                        {{ $t('navbar.buttons.logout') }}
+                    </button>
+                    <template #fallback>
+                        <button
+                            class="nd-sidebar-link flex items-center gap-3 px-5 py-3 w-full text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                        >
+                            <UiBaseIcon :path="mdiLogin" :size="18" />
+                            {{ $t('navbar.buttons.login') }}
+                        </button>
+                    </template>
+                </ClientOnly>
             </div>
 
             <div class="mt-auto border-t dark:border-neutral-700 py-3 px-5">

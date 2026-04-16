@@ -6,17 +6,16 @@ import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episode.mapper';
 export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaId } });
 
-  const { items: episodes, pagination } = await Episode.paginateWithOffset({
+  const { items: episodes, pagination } = await Episode.paginateWithKeyset({
     take: query.take,
     cursor: query.cursor,
+    orderBy: { column: 'id', direction: 'ASC' },
     exists: {
       entity: Media,
       where: { id: media.id },
     },
-    find: {
-      where: { mediaId: media.id },
-      order: { episodeNumber: 'ASC' },
-    },
+    query: () =>
+      Episode.createQueryBuilder('episode').where('episode.mediaId = :mediaId', { mediaId: media.id }),
   });
 
   return respond.with200().body({
