@@ -2,7 +2,7 @@ import { Client, HttpConnection } from '@elastic/elasticsearch';
 import { config, type AppConfig } from '@config/config';
 import { logger } from '@config/log';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
-import type { t_ReindexResponse } from 'generated/models';
+import type { ReindexResponse } from '@app/models/segmentDocument/SegmentIndexer';
 
 export const INDEX_NAME = config.ELASTICSEARCH_INDEX;
 
@@ -225,9 +225,9 @@ export async function resetElasticsearchIndexWithClient(esClient?: Client): Prom
 }
 
 export async function reindexZeroDowntime(
-  populateFn: (targetIndex: string) => Promise<t_ReindexResponse>,
+  populateFn: (targetIndex: string) => Promise<ReindexResponse>,
   esClient?: Client,
-): Promise<t_ReindexResponse> {
+): Promise<ReindexResponse> {
   const clientToUse = esClient || client;
 
   const currentPhysical = await resolvePhysicalIndex(clientToUse);

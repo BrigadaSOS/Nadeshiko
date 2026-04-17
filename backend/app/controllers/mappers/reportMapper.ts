@@ -25,20 +25,20 @@ const toReportTargetDTO = (report: Report, ids: ReportPublicIds): t_Report['targ
     case 'SEGMENT':
       return {
         type: 'SEGMENT',
-        mediaId: ids.mediaPublicId,
-        segmentId: ids.segmentPublicId ?? null,
+        mediaPublicId: ids.mediaPublicId,
+        segmentPublicId: ids.segmentPublicId ?? null,
         ...(report.targetEpisodeNumber != null ? { episodeNumber: report.targetEpisodeNumber } : {}),
       };
     case 'EPISODE':
       return {
         type: 'EPISODE',
-        mediaId: ids.mediaPublicId,
+        mediaPublicId: ids.mediaPublicId,
         episodeNumber: requireReportField(report, 'targetEpisodeNumber', report.targetEpisodeNumber),
       };
     default:
       return {
         type: 'MEDIA',
-        mediaId: ids.mediaPublicId,
+        mediaPublicId: ids.mediaPublicId,
       };
   }
 };

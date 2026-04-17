@@ -72,10 +72,8 @@ const searchMediaToHide = (query: string) => {
     void (async () => {
       searchLoading.value = true;
       try {
-        const response = await sdk.searchMedia({
-          body: { query: trimmedQuery, take: SEARCH_MAX_RESULTS },
-        });
-        hiddenMediaSearchResults.value = response.data?.media ?? [];
+        const response = await sdk.searchMedia({ query: trimmedQuery, take: SEARCH_MAX_RESULTS });
+        hiddenMediaSearchResults.value = response.media;
       } catch {
         hiddenMediaSearchResults.value = [];
       } finally {

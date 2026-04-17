@@ -64,7 +64,6 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
   );
 };
 
-
 export const listAdminReports: ListAdminReports = async ({ query }, respond) => {
   const filters = toAdminReportFilters(query);
 
@@ -103,7 +102,6 @@ export const listAdminReports: ListAdminReports = async ({ query }, respond) => 
   });
 };
 
-
 export const updateAdminReport: UpdateAdminReport = async ({ params, body }, respond) => {
   const report = await Report.findAndUpdateOrFail({
     where: { id: params.reportId },
@@ -122,7 +120,6 @@ export const updateAdminReport: UpdateAdminReport = async ({ params, body }, res
   return respond.with200().body(toReportDTO(r, ids));
 };
 
-
 export const batchUpdateAdminReports: BatchUpdateAdminReports = async ({ body }, respond) => {
   const { ids, status, adminNotes } = body;
 
@@ -135,7 +132,6 @@ export const batchUpdateAdminReports: BatchUpdateAdminReports = async ({ body },
 
   return respond.with200().body({ count: updated });
 };
-
 
 export const bulkUpdateAdminReports: BulkUpdateAdminReports = async ({ body }, respond) => {
   const { status, adminNotes, filters } = body;
@@ -156,7 +152,6 @@ export const bulkUpdateAdminReports: BulkUpdateAdminReports = async ({ body }, r
   return respond.with200().body({ count: result.affected ?? 0 });
 };
 
-
 export const deleteAdminReport: DeleteAdminReport = async ({ params }, respond) => {
   const report = await Report.findOne({ where: { id: params.reportId } });
   if (!report) {
@@ -166,7 +161,6 @@ export const deleteAdminReport: DeleteAdminReport = async ({ params }, respond) 
   const deleted = await deleteReportGroup(report);
   return respond.with200().body({ count: deleted });
 };
-
 
 export const bulkDeleteAdminReports: BulkDeleteAdminReports = async ({ body }, respond) => {
   const { filters } = body;
@@ -182,7 +176,6 @@ export const bulkDeleteAdminReports: BulkDeleteAdminReports = async ({ body }, r
   const result = await qb.execute();
   return respond.with200().body({ count: result.affected ?? 0 });
 };
-
 
 function parseBulkFilters(filters: {
   status?: string;
@@ -206,7 +199,6 @@ function parseBulkFilters(filters: {
   };
 }
 
-
 function hasAnyFilter(filters: AdminReportFilters): boolean {
   return !!(
     filters.statuses ||
@@ -219,7 +211,6 @@ function hasAnyFilter(filters: AdminReportFilters): boolean {
     filters.orphaned
   );
 }
-
 
 function applyTargetGroupWhere(
   qb: { andWhere(where: string, params?: Record<string, unknown>): unknown },
@@ -243,14 +234,12 @@ function applyTargetGroupWhere(
   }
 }
 
-
 async function updateReportGroup(report: Report, patch: Record<string, unknown>): Promise<number> {
   const qb = Report.createQueryBuilder('r').update(Report).set(patch);
   applyTargetGroupWhere(qb, '"Report"', report, 'g');
   const result = await qb.execute();
   return result.affected ?? 0;
 }
-
 
 async function updateReportGroups(reports: Report[], patch: Record<string, unknown>): Promise<number> {
   if (reports.length === 0) return 0;
@@ -269,14 +258,12 @@ async function updateReportGroups(reports: Report[], patch: Record<string, unkno
   return results.reduce((sum, n) => sum + n, 0);
 }
 
-
 async function deleteReportGroup(report: Report): Promise<number> {
   const qb = Report.createQueryBuilder('r').delete().from(Report);
   applyTargetGroupWhere(qb, '"Report"', report, 'g');
   const result = await qb.execute();
   return result.affected ?? 0;
 }
-
 
 function applyReportFilters(
   qb: { andWhere(where: string, params?: Record<string, unknown>): unknown },
@@ -315,7 +302,6 @@ function applyReportFilters(
   }
 }
 
-
 async function resolveReportTarget(
   target: CreateReportRequestOutput['target'],
 ): Promise<{ segmentId: number | null; mediaId: number }> {
@@ -325,7 +311,9 @@ async function resolveReportTarget(
   }
 
   if (target.type === 'SEGMENT') {
-    const segment = await Segment.findOne({ where: [{ publicId: target.segmentPublicId }, { uuid: target.segmentPublicId }] });
+    const segment = await Segment.findOne({
+      where: [{ publicId: target.segmentPublicId }, { uuid: target.segmentPublicId }],
+    });
     if (!segment) {
       throw new NotFoundError(`Segment with ID ${target.segmentPublicId} not found`);
     }
@@ -340,7 +328,6 @@ async function resolveReportTarget(
 
   return { segmentId: null, mediaId: media.id };
 }
-
 
 async function fetchGroupMembers(groupReps: Report[], filters: AdminReportFilters): Promise<Report[]> {
   // Build OR conditions for each target group's composite key

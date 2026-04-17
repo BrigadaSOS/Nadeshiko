@@ -23,8 +23,7 @@ const {
   refresh: refreshStats,
   error: statsError,
 } = await useAsyncData('stats-overview', async () => {
-  const { data } = await sdk.getStatsOverview();
-  return data;
+  return await sdk.getStatsOverview();
 });
 
 const updating = ref(false);
@@ -34,10 +33,7 @@ async function triggerUpdate(onlyUncovered: boolean) {
   updating.value = true;
   updateResult.value = null;
   try {
-    const { data } = await sdk.triggerCoveredWordsUpdate({
-      body: { onlyUncovered },
-    });
-    updateResult.value = data;
+    updateResult.value = await sdk.triggerCoveredWordsUpdate({ onlyUncovered });
     await refreshStats();
   } catch (err) {
     console.error('Coverage update failed:', err);

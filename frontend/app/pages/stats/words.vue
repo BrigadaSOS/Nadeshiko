@@ -20,7 +20,7 @@ function tierIndex(t: number): number {
 
 function tierMinRank(t: number): number {
   const idx = tierIndex(t);
-  return idx <= 0 ? 0 : TIERS[idx - 1];
+  return idx <= 0 ? 0 : (TIERS[idx - 1] ?? 0);
 }
 
 function tierLabel(t: number): string {
@@ -56,10 +56,9 @@ async function fetchWordsRaw(
   cursor: string | undefined,
   take: number,
 ): Promise<GetCoveredWordsResponse | null> {
-  const { data } = await sdk.getCoveredWords({
-    query: { tier, minRank, filter: filter as 'ALL' | 'COVERED' | 'UNCOVERED', cursor, take },
-  });
-  return data ?? null;
+  return await sdk
+    .getCoveredWords({ tier, minRank, filter: filter as 'ALL' | 'COVERED' | 'UNCOVERED', cursor, take })
+    .catch(() => null);
 }
 
 const { data: initialData } = await useAsyncData(

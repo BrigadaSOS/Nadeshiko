@@ -219,6 +219,11 @@ export default {
       audio: 'Audio',
       video: 'Video',
     },
+    deleteEpisode: 'Eliminar episodio',
+    deleteEpisodeConfirm: '¿Eliminar el episodio {episode} y todos sus segmentos?',
+    deleteEpisodeYes: 'Eliminar',
+    deleteEpisodeSuccess: 'Episodio eliminado correctamente',
+    deleteEpisodeError: 'Error al eliminar el episodio',
   },
   filterContent: {
     searchPlaceholder: 'Buscar aquí',
@@ -275,6 +280,8 @@ export default {
         sortlengthnone: 'Ninguno',
         sortlengthmin: 'Más cortas',
         sortlengthmax: 'Más largas',
+        sortasc: 'Más cortas',
+        sortdesc: 'Más largas',
         sortrandom: 'Aleatorio',
         sorttime_asc: 'Cronológico',
         sorttime_desc: 'Inverso',
@@ -476,6 +483,7 @@ export default {
       DELETED: 'Eliminado',
       INVALID: 'Inválido',
       TOO_LONG: 'Muy largo',
+      HIDDEN: 'Oculto',
     },
     contentRating: {
       SAFE: 'Seguro',

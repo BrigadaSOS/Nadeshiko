@@ -49,7 +49,7 @@ const posthog = usePostHog();
 const updatePreference = async (key: string, value: string) => {
   savingPreferences.value = true;
   try {
-    await sdk.updateUserPreferences({ body: { [key]: value } });
+    await sdk.updateUserPreferences({ [key]: value });
     user_store.preferences = { ...user_store.preferences, [key]: value };
     posthog?.capture('setting_changed', { setting_name: key, value });
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
@@ -81,8 +81,8 @@ const mediaNameExample = computed(() => {
 const PREVIEW_SEGMENT_UUID = 'skU_sjEmsvrE';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
   sdk
-    .getSegmentContext({ path: { publicId: PREVIEW_SEGMENT_UUID }, query: { take: 1 } })
-    .then((r) => (r.data ? resolveContextResponse(r.data) : null))
+    .getSegmentContext({ segmentPublicId: PREVIEW_SEGMENT_UUID, take: 1 })
+    .then((r) => resolveContextResponse(r))
     .catch(() => null),
 );
 const previewSegment = computed(() => previewData.value?.segments?.[0] ?? null);
@@ -103,7 +103,7 @@ const updateContentRatingPreference = async (category: string, value: string) =>
   try {
     const current = user_store.preferences?.contentRatingPreferences ?? {};
     const updated = { ...current, [category]: value };
-    await sdk.updateUserPreferences({ body: { contentRatingPreferences: updated } });
+    await sdk.updateUserPreferences({ contentRatingPreferences: updated });
     user_store.preferences = { ...user_store.preferences, contentRatingPreferences: updated };
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
   } catch (error) {
@@ -241,7 +241,7 @@ const exportData = async () => {
   if (exportingData.value) return;
   exportingData.value = true;
   try {
-    const { data } = await sdk.exportUserData();
+    const data = await sdk.exportUserData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

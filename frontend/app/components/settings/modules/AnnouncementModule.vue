@@ -18,8 +18,8 @@ const { data: existing } = await useAsyncData(
   'settings-admin-announcement',
   async () => {
     try {
-      const { data } = await sdk.getAnnouncement();
-      return (data ?? null) as AnnouncementData | null;
+      const data = await sdk.getAnnouncement();
+      return data ? ({ message: data.message, type: data.type, active: data.active } as AnnouncementData) : null;
     } catch {
       return null;
     }
@@ -49,14 +49,13 @@ const save = async () => {
   saving.value = true;
 
   try {
-    const { data } = await sdk.updateAnnouncement({
-      body: { message: form.message.trim(), type: form.type, active: form.active },
+    const data = await sdk.updateAnnouncement({
+      message: form.message.trim(),
+      type: form.type,
+      active: form.active,
     });
-
-    if (data) {
-      existing.value = data as AnnouncementData;
-      useToastSuccess('Announcement updated');
-    }
+    existing.value = data as AnnouncementData;
+    useToastSuccess('Announcement updated');
   } catch {
     useToastError('Failed to update announcement');
   } finally {
@@ -69,15 +68,14 @@ const clear = async () => {
   saving.value = true;
 
   try {
-    const { data } = await sdk.updateAnnouncement({
-      body: { message: form.message || 'No announcement', type: form.type, active: false },
+    const data = await sdk.updateAnnouncement({
+      message: form.message || 'No announcement',
+      type: form.type,
+      active: false,
     });
-
-    if (data) {
-      existing.value = data as AnnouncementData;
-      form.active = false;
-      useToastSuccess('Announcement deactivated');
-    }
+    existing.value = data as AnnouncementData;
+    form.active = false;
+    useToastSuccess('Announcement deactivated');
   } catch {
     useToastError('Failed to deactivate announcement');
   } finally {

@@ -19,11 +19,8 @@ export const exportUserData: ExportUserData = async (_params, respond, req) => {
   ]);
 
   const publicIdMaps = await resolveReportPublicIds(reports);
-  return respond
-    .with200()
-    .body(toUserExportDTO(fullUser, activity, collections, reports, publicIdMaps));
+  return respond.with200().body(toUserExportDTO(fullUser, activity, collections, reports, publicIdMaps));
 };
-
 
 async function loadUserActivityForExport(userId: number): Promise<UserActivity[]> {
   const activity: UserActivity[] = [];
@@ -57,7 +54,6 @@ async function loadUserActivityForExport(userId: number): Promise<UserActivity[]
   return activity;
 }
 
-
 async function loadUserReportsForExport(userId: number): Promise<Report[]> {
   const reports: Report[] = [];
   let cursor: { createdAt: Date; id: number } | null = null;
@@ -89,7 +85,6 @@ async function loadUserReportsForExport(userId: number): Promise<Report[]> {
 
   return reports;
 }
-
 
 async function loadCollectionsForExport(userId: number): Promise<Collection[]> {
   const collections: Collection[] = [];
@@ -130,7 +125,6 @@ async function loadCollectionsForExport(userId: number): Promise<Collection[]> {
   return collections;
 }
 
-
 async function loadCollectionSegments(collectionIds: number[]): Promise<CollectionSegment[]> {
   const allSegments: CollectionSegment[] = [];
 
@@ -151,7 +145,6 @@ async function loadCollectionSegments(collectionIds: number[]): Promise<Collecti
 
   return allSegments;
 }
-
 
 function groupSegmentsByCollectionId(segments: CollectionSegment[]): Map<number, CollectionSegment[]> {
   const byCollectionId = new Map<number, CollectionSegment[]>();

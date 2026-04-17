@@ -7,7 +7,7 @@ export function useBlogNotification() {
 
     const now = new Date().toISOString();
     const sdk = useNadeshikoSdk();
-    await sdk.updateUserPreferences({ body: { blogLastVisited: now } });
+    await sdk.updateUserPreferences({ blogLastVisited: now });
     store.preferences.blogLastVisited = now;
     hasNewPost.value = false;
   };

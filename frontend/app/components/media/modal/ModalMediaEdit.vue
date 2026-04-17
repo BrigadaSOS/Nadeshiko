@@ -107,15 +107,15 @@ const submitEdit = async () => {
     };
 
     body.externalIds = {
-      anilist: form.anilistId || null,
-      imdb: form.imdbId || null,
-      tvdb: form.tvdbId || null,
-      tmdb: form.tmdbId || null,
+      anilist: form.anilistId || '',
+      imdb: form.imdbId || '',
+      tvdb: form.tvdbId || '',
+      tmdb: form.tmdbId || '',
     };
 
     await sdk.updateMedia({
-      path: { mediaPublicId: props.media.mediaPublicId },
-      body,
+      mediaPublicId: props.media.mediaPublicId,
+      ...body,
     });
 
     const updatedMedia = {
@@ -159,9 +159,7 @@ const submitDelete = async () => {
   errorMessage.value = '';
 
   try {
-    await sdk.deleteMedia({
-      path: { mediaPublicId: props.media.mediaPublicId },
-    });
+    await sdk.deleteMedia(props.media.mediaPublicId);
 
     emit('delete:success', props.media.mediaPublicId);
     useToastSuccess(t('modalMediaEdit.deleteSuccess'));

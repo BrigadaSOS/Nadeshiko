@@ -2,12 +2,23 @@ import { client, INDEX_NAME } from '@config/elasticsearch';
 import { logger } from '@config/log';
 import { Media, Segment, type PosAnalysisData } from '@app/models';
 import { In, type SelectQueryBuilder } from 'typeorm';
-import type { t_ReindexResponse } from 'generated/models';
 import type { SegmentDocumentShape, SlimToken, ReindexMediaItem } from '../SegmentDocument';
 
 export interface BulkResult {
   succeeded: number;
   failed: number;
+  errors: { segmentId: number; error: string }[];
+}
+
+export interface ReindexResponse {
+  success: boolean;
+  message: string;
+  stats: {
+    totalSegments: number;
+    successfulIndexes: number;
+    failedIndexes: number;
+    mediaProcessed: number;
+  };
   errors: { segmentId: number; error: string }[];
 }
 
@@ -162,7 +173,7 @@ export class SegmentIndexer {
     return { succeeded, failed, errors };
   }
 
-  static async reindex(media?: ReindexMediaItem[], targetIndex?: string): Promise<t_ReindexResponse> {
+  static async reindex(media?: ReindexMediaItem[], targetIndex?: string): Promise<ReindexResponse> {
     const stats = { totalSegments: 0, successfulIndexes: 0, failedIndexes: 0, mediaProcessed: 0 };
     const errors: { segmentId: number; error: string }[] = [];
     const processedMediaIds = new Set<number>();
@@ -239,7 +250,7 @@ export class SegmentIndexer {
 
   private static async reindexInPages(
     buildQuery: (lastId: number) => SelectQueryBuilder<Segment>,
-    stats: t_ReindexResponse['stats'],
+    stats: ReindexResponse['stats'],
     errors: { segmentId: number; error: string }[],
     processedMediaIds: Set<number>,
     targetIndex?: string,

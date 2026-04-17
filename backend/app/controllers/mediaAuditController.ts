@@ -29,7 +29,6 @@ export const listAdminMediaAudits: ListAdminMediaAudits = async (_params, respon
   return respond.with200().body(toAdminMediaAuditListDTO(auditRegistry, dbAuditMap, latestRunsByAuditName));
 };
 
-
 export const updateAdminMediaAudit: UpdateAdminMediaAudit = async ({ params, body }, respond) => {
   const audit = await getMediaAuditOrFail(params.name);
   mergeAuditUpdate(audit, body);
@@ -39,7 +38,6 @@ export const updateAdminMediaAudit: UpdateAdminMediaAudit = async ({ params, bod
   return respond.with200().body(toMediaAuditDTO(audit, getRegistryAudit(audit.name)));
 };
 
-
 export const runAdminMediaAudit: RunAdminMediaAudit = async ({ params, query }, respond) => {
   const { name } = params;
   const category = query?.category;
@@ -48,7 +46,6 @@ export const runAdminMediaAudit: RunAdminMediaAudit = async ({ params, query }, 
 
   return respond.with200().body(toRunAuditResponseDTO(result));
 };
-
 
 export const listAdminMediaAuditRuns: ListAdminMediaAuditRuns = async ({ query }, respond) => {
   const { items: runs, pagination } = await MediaAuditRun.paginateWithKeyset({
@@ -71,7 +68,6 @@ export const listAdminMediaAuditRuns: ListAdminMediaAuditRuns = async ({ query }
   });
 };
 
-
 export const getAdminMediaAuditRun: GetAdminMediaAuditRun = async ({ params }, respond) => {
   const run = await getMediaAuditRunOrFail(params.auditRunId);
 
@@ -93,11 +89,9 @@ export const getAdminMediaAuditRun: GetAdminMediaAuditRun = async ({ params }, r
   });
 };
 
-
 function getRegistryAudit(name: string) {
   return auditRegistry.find((audit) => audit.name === name);
 }
-
 
 async function getMediaAuditOrFail(name: string): Promise<MediaAudit> {
   const audit = await MediaAudit.findOne({ where: { name } });
@@ -109,7 +103,6 @@ async function getMediaAuditOrFail(name: string): Promise<MediaAudit> {
   return audit;
 }
 
-
 async function getMediaAuditRunOrFail(id: number): Promise<MediaAuditRun> {
   const run = await MediaAuditRun.findOne({ where: { id } });
 
@@ -119,7 +112,6 @@ async function getMediaAuditRunOrFail(id: number): Promise<MediaAuditRun> {
 
   return run;
 }
-
 
 async function getLatestRunsByAuditName(): Promise<Map<string, MediaAuditRun>> {
   const runs = await MediaAuditRun.createQueryBuilder('run')
@@ -131,7 +123,6 @@ async function getLatestRunsByAuditName(): Promise<Map<string, MediaAuditRun>> {
 
   return new Map(runs.map((run) => [run.auditName, run]));
 }
-
 
 function mergeAuditUpdate(audit: MediaAudit, body: Parameters<UpdateAdminMediaAudit>[0]['body']): void {
   if (body.threshold !== undefined) {
@@ -148,7 +139,6 @@ function mergeAuditUpdate(audit: MediaAudit, body: Parameters<UpdateAdminMediaAu
     audit.enabled = body.enabled;
   }
 }
-
 
 function validateThresholdPatch(
   audit: MediaAuditCheck,
@@ -168,7 +158,6 @@ function validateThresholdPatch(
 
   return validated;
 }
-
 
 function validateThresholdValue(field: ThresholdField, value: unknown): number | boolean {
   if (field.type === 'boolean') {

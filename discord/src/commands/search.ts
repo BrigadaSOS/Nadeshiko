@@ -83,7 +83,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     query: interaction.options.getString('query') ?? undefined,
     exact: interaction.options.getBoolean('exact') ?? false,
     category: interaction.options.getString('category') ?? undefined,
-    mediaId: interaction.options.getString('media') ?? undefined,
+    mediaPublicId: interaction.options.getString('media') ?? undefined,
     display: {
       language: (interaction.options.getString('language') as Language) ?? settings.language,
     },
@@ -94,7 +94,7 @@ export type SearchParams = {
   query?: string;
   exact?: boolean;
   category?: string;
-  mediaId?: string;
+  mediaPublicId?: string;
   episodes?: number[];
   display: DisplayOptions;
 };
@@ -105,7 +105,7 @@ export async function executeSearch(
 ) {
   await interaction.deferReply();
 
-  const { query, exact, category, mediaId, episodes, display } = params;
+  const { query, exact, category, mediaPublicId, episodes, display } = params;
   const isRandomMode = !query;
   const searchQuery = query || '';
 
@@ -114,7 +114,7 @@ export async function executeSearch(
 
     let cachedSearchStats: Awaited<ReturnType<typeof getSearchStats>> | null = null;
     if (isRandomMode) {
-      const [randomResult, searchStats] = await Promise.all([fetchRandom(mediaId, episodes), getSearchStats()]);
+      const [randomResult, searchStats] = await Promise.all([fetchRandom(mediaPublicId, episodes), getSearchStats()]);
       result = randomResult;
       cachedSearchStats = searchStats;
     } else {
@@ -122,7 +122,7 @@ export async function executeSearch(
         exactMatch: exact || undefined,
         take: BOT_CONFIG.maxSearchResults,
         category,
-        mediaId,
+        mediaPublicId,
         episodes,
       });
     }
@@ -143,7 +143,7 @@ export async function executeSearch(
     let currentMedia = result.includes.media[currentSegment.mediaPublicId];
 
     const contextState = createContextState();
-    const searchState = createSearchModalState(mediaId);
+    const searchState = createSearchModalState(mediaPublicId);
     const filterState = createFilterMediaState();
     filterState.cachedSearchStats = cachedSearchStats;
 
@@ -153,7 +153,7 @@ export async function executeSearch(
       const q = searchState.lastQuery;
       const base = q ? `${BOT_CONFIG.frontendUrl}/search/${encodeURIComponent(q)}` : `${BOT_CONFIG.frontendUrl}/search`;
       const params = new URLSearchParams();
-      if (searchState.mediaId) params.set('media', searchState.mediaId);
+      if (searchState.mediaPublicId) params.set('media', searchState.mediaPublicId);
       const eps = searchState.lastSearchOptions.episodes;
       if (eps?.length) params.set('episode', eps.join(','));
       const qs = params.toString();
@@ -170,8 +170,8 @@ export async function executeSearch(
     const buildStatsPrefix = () => {
       const stats = filterState.cachedSearchStats;
       if (!stats) return undefined;
-      if (searchState.mediaId) {
-        const mediaStat = stats.media.find((m) => m.publicId === searchState.mediaId);
+      if (searchState.mediaPublicId) {
+        const mediaStat = stats.media.find((m) => m.mediaPublicId === searchState.mediaPublicId);
         const count = mediaStat?.matchCount ?? 0;
         const name = searchState.mediaName ?? 'Unknown';
         return `🔎 Searching from **${count.toLocaleString()}** sentences in **${name}**`;
@@ -225,7 +225,7 @@ export async function executeSearch(
         filterState.nameFilter = '';
 
         if (isRandomMode && !searchState.results) {
-          const newResult = await fetchRandom(searchState.mediaId);
+          const newResult = await fetchRandom(searchState.mediaPublicId);
           if (newResult.segments.length === 0) {
             await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.` });
             return;
@@ -246,7 +246,7 @@ export async function executeSearch(
           const newQuery = searchState.lastQuery;
           const newResult = await search(newQuery, {
             take: BOT_CONFIG.maxSearchResults,
-            mediaId: searchState.mediaId,
+            mediaPublicId: searchState.mediaPublicId,
             ...searchState.lastSearchOptions,
           });
           if (newResult.segments.length === 0) {
@@ -263,7 +263,7 @@ export async function executeSearch(
 
       if (i.isStringSelectMenu() && i.customId === 'search_select' && searchState.results) {
         await i.deferUpdate();
-        const idx = searchState.results.segments.findIndex((s) => s.publicId === i.values[0]);
+        const idx = searchState.results.segments.findIndex((s) => s.segmentPublicId === i.values[0]);
         if (idx === -1) return;
         searchState.currentIndex = idx;
         syncCurrentSegment();
@@ -309,7 +309,7 @@ export async function executeSearch(
           contextState.viewingContext = false;
           await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
         } else {
-          const newResult = await fetchRandom(searchState.mediaId);
+          const newResult = await fetchRandom(searchState.mediaPublicId);
           if (newResult.segments.length === 0) return;
           currentSegment = newResult.segments[0];
           currentMedia = newResult.includes.media[currentSegment.mediaPublicId];

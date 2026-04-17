@@ -10,7 +10,7 @@ const posthog = usePostHog();
 const { data: initialData } = await useAsyncData(
   'settings-account-collections',
   async () => {
-    const { data } = await sdk.listCollections({ query: { take: 100 } }).catch(() => ({ data: null }));
+    const data = await sdk.listCollections({ take: 100 }).catch(() => null);
     return data?.collections ?? ([] as Collection[]);
   },
   {
@@ -68,8 +68,8 @@ const submitRename = async () => {
   isRenaming.value = true;
   try {
     await sdk.updateCollection({
-      path: { collectionPublicId: renameTarget.value.collectionPublicId },
-      body: { name: renameValue.value.trim() },
+      collectionPublicId: renameTarget.value.collectionPublicId,
+      name: renameValue.value.trim(),
     });
 
     const target = renameTarget.value;
@@ -106,13 +106,8 @@ const submitCreate = async () => {
 
   isCreating.value = true;
   try {
-    const { data } = await sdk.createCollection({
-      body: { name: createName.value.trim() },
-    });
-
-    if (data) {
-      collections.value.unshift(data);
-    }
+    const data = await sdk.createCollection({ name: createName.value.trim() });
+    collections.value.unshift(data);
 
     posthog?.capture('collection_created');
     useToastSuccess(t('accountSettings.collections.createSuccess'));
@@ -140,8 +135,8 @@ const submitToggleVisibility = async () => {
   const newVisibility = visibilityTarget.value.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
   try {
     await sdk.updateCollection({
-      path: { collectionPublicId: visibilityTarget.value.collectionPublicId },
-      body: { visibility: newVisibility },
+      collectionPublicId: visibilityTarget.value.collectionPublicId,
+      visibility: newVisibility,
     });
 
     const idx = collections.value.findIndex((c) => c.collectionPublicId === visibilityTarget.value?.collectionPublicId);
@@ -172,9 +167,7 @@ const submitDelete = async () => {
 
   isDeleting.value = true;
   try {
-    await sdk.deleteCollection({
-      path: { collectionPublicId: deleteTarget.value.collectionPublicId },
-    });
+    await sdk.deleteCollection(deleteTarget.value.collectionPublicId);
 
     collections.value = collections.value.filter(
       (c) => c.collectionPublicId !== deleteTarget.value?.collectionPublicId,

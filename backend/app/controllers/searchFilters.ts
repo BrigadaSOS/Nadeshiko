@@ -17,7 +17,6 @@ export async function resolveMediaFilterIds(filters?: t_SearchFilters): Promise<
   resolveItems(filters.media.exclude, mediaInfo.results);
 }
 
-
 function resolveItems(items: t_MediaFilterItem[] | undefined, mediaMap: MediaInfoMap): void {
   if (!items) return;
 
@@ -30,7 +29,6 @@ function resolveItems(items: t_MediaFilterItem[] | undefined, mediaMap: MediaInf
     }
   }
 }
-
 
 function resolveMediaId(identifier: string, mediaMap: MediaInfoMap): number | null {
   for (const [id, info] of mediaMap) {

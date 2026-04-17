@@ -28,7 +28,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction) {
   const settings = getGuildSettings(interaction.guildId);
   await executeSearch(interaction, {
-    mediaId: interaction.options.getString('media') ?? undefined,
+    mediaPublicId: interaction.options.getString('media') ?? undefined,
     display: {
       language: (interaction.options.getString('language') as Language) ?? settings.language,
     },

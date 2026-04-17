@@ -1,44 +1,65 @@
 import type { Segment, Media, SearchResponse, SearchStatsResponse, ContextResponse } from '../../api';
 
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends Array<infer U> ? Array<DeepPartial<U>> : T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
+
 let idCounter = 0;
 function nextId() {
   return ++idCounter;
 }
 
-export function makeSegment(overrides: Partial<Segment> = {}): Segment {
+export function makeSegment(overrides: DeepPartial<Segment> = {}): Segment {
   const id = nextId();
-  const publicId = overrides.publicId ?? `seg-${id}`;
+  const segmentPublicId = overrides.segmentPublicId ?? `seg-${id}`;
   return {
-    id,
-    uuid: `uuid-${id}`,
-    publicId,
+    segmentPublicId,
     position: 1,
     status: 'ACTIVE',
     startTimeMs: 60000,
     endTimeMs: 63000,
     contentRating: 'SAFE',
     episode: 1,
-    mediaId: 1,
     mediaPublicId: 'media-1',
-    textJa: { content: 'テスト' },
-    textEn: { content: 'Test', isMachineTranslated: false },
-    textEs: { content: 'Prueba', isMachineTranslated: true },
+    textJa: {
+      content: 'テスト',
+      highlight: 'テスト',
+      tokens: [],
+      ...overrides.textJa,
+    },
+    textEn: {
+      content: 'Test',
+      isMachineTranslated: false,
+      highlight: 'Test',
+      ...overrides.textEn,
+    },
+    textEs: {
+      content: 'Prueba',
+      isMachineTranslated: true,
+      highlight: 'Prueba',
+      ...overrides.textEs,
+    },
     urls: {
-      imageUrl: `https://example.com/${publicId}.jpg`,
-      audioUrl: `https://example.com/${publicId}.mp3`,
-      videoUrl: `https://example.com/${publicId}.mp4`,
+      imageUrl: `https://example.com/${segmentPublicId}.jpg`,
+      audioUrl: `https://example.com/${segmentPublicId}.mp3`,
+      videoUrl: `https://example.com/${segmentPublicId}.mp4`,
+      ...overrides.urls,
     },
     ...overrides,
   } as Segment;
 }
 
-export function makeMedia(overrides: Partial<Media> = {}): Media {
+export function makeMedia(overrides: DeepPartial<Media> = {}): Media {
   const id = nextId();
   return {
-    id,
-    publicId: overrides.publicId ?? `media-${id}`,
+    mediaPublicId: overrides.mediaPublicId ?? `media-${id}`,
     slug: 'test-media',
-    externalIds: {},
+    externalIds: {
+      anilist: '',
+      imdb: '',
+      tvdb: '',
+      tmdb: '',
+    },
     nameJa: 'テストメディア',
     nameRomaji: 'Test Media',
     nameEn: 'Test Media',
@@ -48,10 +69,12 @@ export function makeMedia(overrides: Partial<Media> = {}): Media {
     coverUrl: 'https://example.com/cover.jpg',
     bannerUrl: 'https://example.com/banner.jpg',
     startDate: '2024-01-01',
+    endDate: '2024-03-01',
     category: 'ANIME',
     segmentCount: 1000,
     episodeCount: 12,
-    seasonName: 'Winter',
+    studio: 'Test Studio',
+    seasonName: 'WINTER',
     seasonYear: 2024,
     ...overrides,
   } as Media;
@@ -75,15 +98,14 @@ export function makeSearchResponse(
 }
 
 export function makeSearchStatsResponse(
-  mediaStats: { publicId: string; matchCount: number }[],
+  mediaStats: { mediaPublicId: string; matchCount: number }[],
   mediaMap: Record<string, Media>,
 ): SearchStatsResponse {
   return {
-    media: mediaStats.map((m, i) => ({
-      mediaId: i + 1,
-      publicId: m.publicId,
+    media: mediaStats.map((m) => ({
+      mediaPublicId: m.mediaPublicId,
       matchCount: m.matchCount,
-      episodeHits: {},
+      episodeHits: [],
     })),
     categories: [],
     includes: { media: mediaMap },

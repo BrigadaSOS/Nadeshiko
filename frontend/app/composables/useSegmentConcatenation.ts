@@ -127,13 +127,11 @@ export function useSegmentConcatenation() {
     try {
       const sdk = useNadeshikoSdk();
       const raw = await sdk.getSegmentContext({
-        path: { segmentPublicId: result.segment.segmentPublicId },
-        query: {
-          take: 1,
-          contentRating: contentRating.value,
-        },
+        segmentPublicId: result.segment.segmentPublicId,
+        take: 1,
+        contentRating: contentRating.value,
       });
-      const response = raw.data ? resolveContextResponse(raw.data) : null;
+      const response = raw ? resolveContextResponse(raw) : null;
 
       if (response && response.segments.length > 0) {
         const previousSegment = response.segments[0];

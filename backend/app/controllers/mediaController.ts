@@ -58,7 +58,6 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
   });
 };
 
-
 async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaResponder) {
   const normalizedQuery = (query.query ?? '').trim().toLowerCase();
   const escaped = escapeLikePattern(normalizedQuery);
@@ -114,7 +113,6 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
   });
 }
 
-
 export const createMedia: CreateMedia = async ({ body }, respond) => {
   const attrs = toMediaCreateAttributes(body);
   const romajiName = String(attrs.nameRomaji || '');
@@ -128,7 +126,6 @@ export const createMedia: CreateMedia = async ({ body }, respond) => {
   return respond.with201().body(toMediaDTO(media) as any);
 };
 
-
 export const getMedia: GetMedia = async ({ params }, respond) => {
   const media = await Media.findOneOrFail({
     where: { publicId: params.mediaPublicId },
@@ -137,7 +134,6 @@ export const getMedia: GetMedia = async ({ params }, respond) => {
 
   return respond.with200().body(toMediaDTO(media) as any);
 };
-
 
 export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
@@ -168,7 +164,6 @@ export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
   return respond.with200().body(toMediaDTO(updated) as any);
 };
 
-
 export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
 
@@ -189,7 +184,6 @@ export const deleteMedia: DeleteMedia = async ({ params }, respond) => {
 
   return respond.with204();
 };
-
 
 export const searchMedia: SearchMedia = async ({ body }, respond) => {
   const normalizedQuery = body.query.trim().toLowerCase();
@@ -233,7 +227,6 @@ export const searchMedia: SearchMedia = async ({ body }, respond) => {
   });
 };
 
-
 const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
 
 async function resolveUniqueSlug(name: string, excludeMediaId?: number): Promise<string> {
@@ -259,7 +252,6 @@ async function resolveUniqueSlug(name: string, excludeMediaId?: number): Promise
   while (slugSet.has(`${baseSlug}-${counter}`)) counter++;
   return `${baseSlug}-${counter}`;
 }
-
 
 async function replaceMediaExternalIds(mediaId: number, externalIds: t_ExternalId): Promise<MediaExternalId[]> {
   await MediaExternalId.delete({ mediaId });

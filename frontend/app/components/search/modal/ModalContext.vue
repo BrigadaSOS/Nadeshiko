@@ -24,14 +24,12 @@ const getContextSentence = async () => {
   contextData.value = null;
 
   try {
-    const { data } = await sdk.getSegmentContext({
-      path: { segmentPublicId: sentence.segment.segmentPublicId },
-      query: {
-        take: 15,
-        contentRating: contentRating.value,
-      },
+    const data = await sdk.getSegmentContext({
+      segmentPublicId: sentence.segment.segmentPublicId,
+      take: 15,
+      contentRating: contentRating.value,
     });
-    const response = data ? resolveContextResponse(data) : { segments: [] };
+    const response = resolveContextResponse(data);
     contextData.value = { results: response.segments };
     highlightedPosition.value = sentence.segment.position;
     await nextTick();

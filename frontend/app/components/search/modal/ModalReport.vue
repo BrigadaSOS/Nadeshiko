@@ -1,22 +1,12 @@
 <script setup lang="ts">
 import type { SearchResult } from '~/types/search';
-import type { CreateReportRequest } from '@brigadasos/nadeshiko-sdk';
+import type { CreateReportRequest, UserReportTarget } from '@brigadasos/nadeshiko-sdk';
 import { mdiTranslate } from '@mdi/js';
 
 const { t } = useI18n();
 
 const props = defineProps<{
-  target:
-    | {
-        type: 'SEGMENT';
-        mediaId: string;
-        segmentId: string;
-      }
-    | {
-        type: 'MEDIA';
-        mediaId: string;
-      }
-    | null;
+  target: UserReportTarget | null;
   segment: SearchResult | null;
   mediaName?: string;
 }>();
@@ -106,16 +96,14 @@ const submitReport = async () => {
 
   try {
     const sdk = useNadeshikoSdk();
-    const target =
+    const target: UserReportTarget =
       tab.value === 'SEGMENT' && props.target?.type === 'SEGMENT'
         ? props.target
-        : { type: 'MEDIA' as const, mediaId: props.target?.mediaId };
+        : { type: 'MEDIA', mediaPublicId: props.target.mediaPublicId };
     await sdk.createUserReport({
-      body: {
-        target,
-        reason: form.reason as CreateReportRequest['reason'],
-        description: form.description || undefined,
-      },
+      target,
+      reason: form.reason as CreateReportRequest['reason'],
+      description: form.description || undefined,
     });
 
     useToastSuccess(t('reports.submitSuccess'));

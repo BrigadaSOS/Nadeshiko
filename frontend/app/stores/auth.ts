@@ -225,7 +225,7 @@ export const userStore = defineStore('user', {
 
         this.preferences = await useNadeshikoSdk()
           .getUserPreferences()
-          .then((r) => (r.data ?? {}) as Record<string, any>)
+          .then((r) => r as Record<string, any>)
           .catch(() => ({}) as Record<string, any>);
       } catch {
         this.resetAuthState();

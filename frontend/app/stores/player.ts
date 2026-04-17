@@ -87,13 +87,11 @@ export const usePlayerStore = defineStore('player', {
               const sdk = useNadeshikoSdk();
               sdk
                 .trackUserActivity({
-                  body: {
-                    activityType: 'SEGMENT_PLAY',
-                    segmentPublicId: this.currentResult?.segment.segmentPublicId,
-                    mediaPublicId: this.currentResult?.media.mediaPublicId,
-                    mediaName: this.currentResult?.media.nameRomaji,
-                    japaneseText: this.currentResult?.segment.textJa.content,
-                  },
+                  activityType: 'SEGMENT_PLAY',
+                  segmentPublicId: this.currentResult?.segment.segmentPublicId,
+                  mediaPublicId: this.currentResult?.media.mediaPublicId,
+                  mediaName: this.currentResult?.media.nameRomaji,
+                  japaneseText: this.currentResult?.segment.textJa.content,
                 })
                 .catch(() => {});
             }
