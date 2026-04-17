@@ -34,7 +34,10 @@ marked.use({
       const lang = (token.lang || '').toLowerCase();
       const safeLang = (SHIKI_LANGS as string[]).includes(lang) ? (lang as BundledLanguage) : SHIKI_FALLBACK_LANG;
       try {
-        (token as unknown as Record<string, unknown>)._highlighted = hl.codeToHtml(token.text, { lang: safeLang, theme: SHIKI_THEME });
+        (token as unknown as Record<string, unknown>)._highlighted = hl.codeToHtml(token.text, {
+          lang: safeLang,
+          theme: SHIKI_THEME,
+        });
       } catch {
         // fall back to default renderer
       }
@@ -42,7 +45,7 @@ marked.use({
   },
   renderer: {
     code(token) {
-      return (token as unknown as Record<string, unknown>)._highlighted as string | undefined ?? false;
+      return ((token as unknown as Record<string, unknown>)._highlighted as string | undefined) ?? false;
     },
   },
 });
@@ -54,7 +57,9 @@ function stripMdcDirectives(content: string): string {
     .join('\n');
 }
 
-async function parseMarkdown(raw: string): Promise<{ frontmatter: Record<string, unknown>; html: string; rawbody: string }> {
+async function parseMarkdown(
+  raw: string,
+): Promise<{ frontmatter: Record<string, unknown>; html: string; rawbody: string }> {
   const { data, content } = matter(raw);
   const cleaned = stripMdcDirectives(content);
   const html = await marked.parse(cleaned);
