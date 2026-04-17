@@ -17,8 +17,8 @@ env:
     - DISCORD_BOT_TOKEN
     - DISCORD_API_KEY_MASTER
   clear:
-    NADESHIKO_API_URL: "https://api.nadeshiko.co"
-    NADESHIKO_FRONTEND_URL: "https://nadeshiko.co"
+    NADESHIKO_API_URL: "https://api-dev.nadeshiko.co"
+    NADESHIKO_FRONTEND_URL: "https://dev.nadeshiko.co"
     NODE_ENV: "production"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: "nadeshiko-discord"

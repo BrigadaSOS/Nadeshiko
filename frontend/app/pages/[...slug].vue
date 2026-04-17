@@ -358,6 +358,35 @@ useHead(() => ({
   color: var(--button-color-accent);
 }
 
+/* Code blocks (shiki) */
+.content-markdown :deep(pre.shiki) {
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.5rem 0 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.content-markdown :deep(pre.shiki code) {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Inline code */
+.content-markdown :deep(code) {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.875em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.15em 0.4em;
+  border-radius: 0.3em;
+  color: #e1e4e8;
+}
+
 /* Contributor card overrides */
 .content-markdown :deep(.about-contributor-card img) {
   margin: 0;

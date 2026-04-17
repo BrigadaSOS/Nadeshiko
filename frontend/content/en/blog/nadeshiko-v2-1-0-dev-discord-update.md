@@ -66,15 +66,13 @@ New features and endpoints will be purely additive. The API is version-tagged an
 
 More of Nadeshiko's core functionality is now accessible via API:
 
-| Endpoint | Description |
-|----------|-------------|
-| `searchWords` | Look up multiple words simultaneously, get match counts per media |
-| `searchMedia` | Autocomplete media titles |
-| `getSearchStats` | Category counts and media lists for building filter UIs |
-| `getStatsOverview` | Corpus-wide statistics: segment count, media coverage tiers |
-| Collections API | Full CRUD for saved sentence collections |
-| User Activity | Personal activity tracking and heatmap visualization |
-| `getSegmentContext` | Fetch surrounding segments for context expansion |
+- **`searchWords`** — Look up multiple words simultaneously, get match counts per media
+- **`searchMedia`** — Autocomplete media titles
+- **`getSearchStats`** — Category counts and media lists for building filter UIs
+- **`getStatsOverview`** — Corpus-wide statistics: segment count, media coverage tiers
+- **Collections API** — Full CRUD for saved sentence collections
+- **User Activity** — Personal activity tracking and heatmap visualization
+- **`getSegmentContext`** — Fetch surrounding segments for context expansion
 
 Additional endpoints are in development to expose the full depth of Nadeshiko's dataset.
 
