@@ -95,9 +95,11 @@ if (import.meta.client) {
     <div class="mx-auto">
             <div class="relative text-white">
                 <div class="pt-2">
-                    <div class="md:max-w-[70%] mx-auto">
+                    <div class="md:max-w-[90%] mx-auto">
                         <h1 class="sr-only">{{ metaTags.title }}</h1>
-                        <SearchBaseInputSegment />
+                        <div class="px-4 md:px-0">
+                            <SearchBaseInputSegment />
+                        </div>
                         <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
                     </div>
                 </div>

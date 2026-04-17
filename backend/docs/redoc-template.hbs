@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf8" />
+  <title>{{title}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+    }
+
+    .ndk-redoc-schema-collapsed {
+      display: none !important;
+    }
+
+    .ndk-redoc-schema-toggle {
+      margin-left: 12px;
+      border: 1px solid rgba(38, 50, 56, 0.3);
+      border-radius: 999px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85em;
+      line-height: 1.4;
+      padding: 2px 10px;
+      vertical-align: middle;
+    }
+
+    .ndk-redoc-schema-toggle:hover {
+      border-color: rgba(50, 50, 159, 0.6);
+      color: #32329f;
+    }
+  </style>
+  {{{redocHead}}}
+  {{#unless disableGoogleFont}}<link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">{{/unless}}
+</head>
+
+<body>
+  {{{redocHTML}}}
+  <script>
+    (function () {
+      const APPLIED_ATTR = 'data-ndk-schema-toggle-applied';
+
+      function createToggleButton(targets) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ndk-redoc-schema-toggle';
+
+        const setCollapsed = (collapsed) => {
+          for (const target of targets) {
+            target.classList.toggle('ndk-redoc-schema-collapsed', collapsed);
+          }
+          button.textContent = collapsed ? 'Show schema' : 'Hide schema';
+          button.setAttribute('aria-expanded', String(!collapsed));
+        };
+
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const expanded = button.getAttribute('aria-expanded') === 'true';
+          setCollapsed(expanded);
+        });
+
+        setCollapsed(true);
+        return button;
+      }
+
+      function getRequestSchemaTargets(heading) {
+        const targets = [];
+        let current = heading.nextElementSibling;
+
+        while (current) {
+          if (/^H[1-6]$/.test(current.tagName)) break;
+          const firstChild = current.firstElementChild;
+          if (firstChild && firstChild.tagName === 'H3') break;
+          targets.push(current);
+          current = current.nextElementSibling;
+        }
+
+        return targets;
+      }
+
+      function getResponseSchemaTargets(heading) {
+        const parent = heading.parentElement;
+        if (!parent) return [];
+        return Array.from(parent.children).filter((child) => child !== heading);
+      }
+
+      function applySchemaToggles(root) {
+        const headings = root.querySelectorAll('h5');
+
+        for (const heading of headings) {
+          if (heading.hasAttribute(APPLIED_ATTR)) continue;
+
+          const text = heading.textContent || '';
+          let targets = [];
+
+          if (text.includes('Request Body schema:')) {
+            targets = getRequestSchemaTargets(heading);
+          } else if (text.includes('Response Schema:')) {
+            targets = getResponseSchemaTargets(heading);
+          } else {
+            continue;
+          }
+
+          if (targets.length === 0) continue;
+
+          heading.appendChild(createToggleButton(targets));
+          heading.setAttribute(APPLIED_ATTR, 'true');
+        }
+      }
+
+      function start() {
+        const redocRoot = document.getElementById('redoc');
+        if (!redocRoot) return;
+
+        applySchemaToggles(redocRoot);
+
+        const observer = new MutationObserver(() => {
+          applySchemaToggles(redocRoot);
+        });
+
+        observer.observe(redocRoot, { childList: true, subtree: true });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start, { once: true });
+      } else {
+        start();
+      }
+    })();
+  </script>
+</body>
+
+</html>

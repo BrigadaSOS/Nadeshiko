@@ -2,7 +2,8 @@ plugins:
   - "./docs/plugins/sort-paths.js"
 
 openapi:
-  expandResponses: all
+  expandDefaultRequest: false
+  expandDefaultResponse: false
   jsonSamplesExpandLevel: all
   schemasExpansionLevel: all
 

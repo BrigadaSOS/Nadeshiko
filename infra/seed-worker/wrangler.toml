@@ -1,6 +1,7 @@
 name = "nadeshiko-seed"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
+account_id = "69706df70c95c734ba43a679b10a5bf9"
 
 [[r2_buckets]]
 binding = "SEED_BUCKET"
