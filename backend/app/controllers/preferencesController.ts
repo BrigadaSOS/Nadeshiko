@@ -9,6 +9,7 @@ export const getUserPreferences: GetUserPreferences = async (_params, respond, r
   return respond.with200().body(user.preferences);
 };
 
+
 export const updateUserPreferences: UpdateUserPreferences = async ({ body }, respond, req) => {
   const user = assertUser(req);
 

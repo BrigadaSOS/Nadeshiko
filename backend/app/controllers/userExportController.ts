@@ -2,7 +2,7 @@ import type { ExportUserData } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
 import { User } from '@app/models/User';
 import { UserActivity } from '@app/models/UserActivity';
-import { Collection, CollectionSegment, Media, Report } from '@app/models';
+import { Collection, CollectionSegment, Report } from '@app/models';
 import { toUserExportDTO } from './mappers/userExportMapper';
 import { resolveReportPublicIds } from './mappers/reportMapper';
 
@@ -19,11 +19,11 @@ export const exportUserData: ExportUserData = async (_params, respond, req) => {
   ]);
 
   const publicIdMaps = await resolveReportPublicIds(reports);
-  const mediaPublicIdById = await loadMediaPublicIdMap(activity.map((item) => item.mediaId));
   return respond
     .with200()
-    .body(toUserExportDTO(fullUser, activity, mediaPublicIdById, collections, reports, publicIdMaps));
+    .body(toUserExportDTO(fullUser, activity, collections, reports, publicIdMaps));
 };
+
 
 async function loadUserActivityForExport(userId: number): Promise<UserActivity[]> {
   const activity: UserActivity[] = [];
@@ -57,6 +57,7 @@ async function loadUserActivityForExport(userId: number): Promise<UserActivity[]
   return activity;
 }
 
+
 async function loadUserReportsForExport(userId: number): Promise<Report[]> {
   const reports: Report[] = [];
   let cursor: { createdAt: Date; id: number } | null = null;
@@ -88,6 +89,7 @@ async function loadUserReportsForExport(userId: number): Promise<Report[]> {
 
   return reports;
 }
+
 
 async function loadCollectionsForExport(userId: number): Promise<Collection[]> {
   const collections: Collection[] = [];
@@ -128,6 +130,7 @@ async function loadCollectionsForExport(userId: number): Promise<Collection[]> {
   return collections;
 }
 
+
 async function loadCollectionSegments(collectionIds: number[]): Promise<CollectionSegment[]> {
   const allSegments: CollectionSegment[] = [];
 
@@ -149,6 +152,7 @@ async function loadCollectionSegments(collectionIds: number[]): Promise<Collecti
   return allSegments;
 }
 
+
 function groupSegmentsByCollectionId(segments: CollectionSegment[]): Map<number, CollectionSegment[]> {
   const byCollectionId = new Map<number, CollectionSegment[]>();
 
@@ -162,20 +166,4 @@ function groupSegmentsByCollectionId(segments: CollectionSegment[]): Map<number,
   }
 
   return byCollectionId;
-}
-
-async function loadMediaPublicIdMap(mediaIds: Array<number | null | undefined>): Promise<Map<number, string>> {
-  const ids = [
-    ...new Set(mediaIds.filter((id): id is number => typeof id === 'number' && Number.isInteger(id) && id > 0)),
-  ];
-  if (ids.length === 0) {
-    return new Map();
-  }
-
-  const media = await Media.find({
-    where: ids.map((id) => ({ id })),
-    select: ['id', 'publicId'],
-  });
-
-  return new Map(media.map((item) => [item.id, item.publicId]));
 }

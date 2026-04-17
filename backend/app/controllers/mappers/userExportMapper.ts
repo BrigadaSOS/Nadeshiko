@@ -19,7 +19,6 @@ export const toExportCollectionDTO = (collection: Collection): t_UserExportColle
 export const toUserExportDTO = (
   user: User,
   activity: UserActivity[],
-  mediaPublicIdById: Map<number, string>,
   collections: Collection[],
   reports: Report[],
   publicIdMaps: ReportPublicIdMaps,
@@ -31,7 +30,7 @@ export const toUserExportDTO = (
     createdAt: user.createdAt.toISOString(),
   },
   preferences: user.preferences || {},
-  activity: activity.map((item) => toUserActivityDTO(item, mediaPublicIdById)),
+  activity: activity.map(toUserActivityDTO),
   collections: collections.map(toExportCollectionDTO),
   reports: reports.map((report) =>
     toReportDTO(report, {

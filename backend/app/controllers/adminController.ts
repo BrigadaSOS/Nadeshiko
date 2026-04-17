@@ -23,6 +23,7 @@ export const triggerReindex: TriggerReindex = async ({ body }, respond) => {
   return respond.with200().body(result);
 };
 
+
 function toReindexMediaItems(body: t_TriggerReindexRequestBodySchema | undefined): ReindexMediaItem[] | undefined {
   return body?.media?.map((item) => ({
     mediaId: item.mediaId,

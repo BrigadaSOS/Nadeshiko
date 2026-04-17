@@ -3,28 +3,16 @@ import { assertUser } from '@app/middleware/authentication';
 import { AccountQuotaUsage, Media, User } from '@app/models';
 import { NotFoundError } from '@app/errors';
 import { toMediaSummaryDTO } from './mappers/sharedMapper';
+import { toUserMeDTO } from './mappers/userMapper';
 
 export const getMe: GetMe = async (_params, respond, req) => {
   const user = assertUser(req);
   const quota = await AccountQuotaUsage.getForUser(user.id, user.monthlyQuotaLimit);
-  const { periodStart, periodEnd } = AccountQuotaUsage.getQuotaWindow(quota.periodYyyymm);
+  const window = AccountQuotaUsage.getQuotaWindow(quota.periodYyyymm);
 
-  return respond.with200().body({
-    user: {
-      username: user.username,
-      role: user.role,
-      createdAt: user.createdAt.toISOString(),
-    },
-    quota: {
-      limit: quota.quotaLimit,
-      used: quota.quotaUsed,
-      remaining: quota.quotaRemaining,
-      periodYyyymm: quota.periodYyyymm,
-      periodStart,
-      periodEnd,
-    },
-  });
+  return respond.with200().body(toUserMeDTO(user, quota, window));
 };
+
 
 export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req) => {
   const user = assertUser(req);
@@ -48,6 +36,7 @@ export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req
       .map(toMediaSummaryDTO),
   });
 };
+
 
 export const addExcludedMedia: AddExcludedMedia = async ({ body }, respond, req) => {
   const user = assertUser(req);
@@ -79,6 +68,7 @@ export const addExcludedMedia: AddExcludedMedia = async ({ body }, respond, req)
 
   return respond.with204();
 };
+
 
 export const removeExcludedMedia: RemoveExcludedMedia = async ({ params }, respond, req) => {
   const user = assertUser(req);
