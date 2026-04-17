@@ -29,6 +29,7 @@ export const getAnnouncement: GetAnnouncement = async (_params, respond) => {
   return respond.with200().body(result);
 };
 
+
 export const updateAnnouncement: UpdateAnnouncement = async ({ body }, respond) => {
   let row = await Announcement.findOne({ where: {} });
 

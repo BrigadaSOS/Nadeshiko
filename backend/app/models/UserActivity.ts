@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn, type FindOptionsWhere } from 'typeorm';
+import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn, type FindOptionsWhere, type SelectQueryBuilder } from 'typeorm';
 import type { User } from './User';
 import { BaseEntity } from './base.entity';
 
@@ -11,7 +11,7 @@ export enum ActivityType {
 
 export interface UserActivityTrackData {
   segmentId?: string;
-  mediaId?: number;
+  mediaPublicId?: string;
   searchQuery?: string;
   mediaName?: string;
   japaneseText?: string;
@@ -33,8 +33,8 @@ export class UserActivity extends BaseEntity {
   @Column({ name: 'segment_id', type: 'varchar', nullable: true })
   segmentId?: string | null;
 
-  @Column({ name: 'media_id', type: 'int', nullable: true })
-  mediaId?: number | null;
+  @Column({ name: 'media_public_id', type: 'varchar', nullable: true })
+  mediaPublicId?: string | null;
 
   @Column({ name: 'search_query', type: 'varchar', nullable: true })
   searchQuery?: string | null;
@@ -62,7 +62,7 @@ export class UserActivity extends BaseEntity {
       userId: user.id,
       activityType,
       segmentId: data.segmentId ?? null,
-      mediaId: data.mediaId ?? null,
+      mediaPublicId: data.mediaPublicId ?? null,
       searchQuery: data.searchQuery ?? null,
       mediaName: data.mediaName ?? null,
       japaneseText: data.japaneseText ?? null,
@@ -78,7 +78,7 @@ export class UserActivity extends BaseEntity {
     totalPlays: number;
     totalListAdds: number;
     totalShares: number;
-    topMedia: Array<{ mediaId: number; count: number }>;
+    topMedia: Array<{ mediaPublicId: string; count: number }>;
   }> {
     const countsQb = UserActivity.createQueryBuilder('activity')
       .select('activity.activity_type', 'activityType')
@@ -97,10 +97,10 @@ export class UserActivity extends BaseEntity {
     }
 
     const topMediaQb = UserActivity.createQueryBuilder('activity')
-      .select('activity.media_id', 'mediaId')
+      .select('activity.media_public_id', 'mediaPublicId')
       .addSelect('COUNT(*)', 'count')
-      .where('activity.user_id = :userId AND activity.media_id IS NOT NULL', { userId })
-      .groupBy('activity.media_id')
+      .where('activity.user_id = :userId AND activity.media_public_id IS NOT NULL', { userId })
+      .groupBy('activity.media_public_id')
       .orderBy('count', 'DESC')
       .limit(10);
 
@@ -108,7 +108,7 @@ export class UserActivity extends BaseEntity {
       topMediaQb.andWhere('activity.created_at >= :since', { since });
     }
 
-    const topMediaRows = await topMediaQb.getRawMany<{ mediaId: string; count: string }>();
+    const topMediaRows = await topMediaQb.getRawMany<{ mediaPublicId: string; count: string }>();
 
     return {
       totalSearches: countMap[ActivityType.SEARCH] || 0,
@@ -117,7 +117,7 @@ export class UserActivity extends BaseEntity {
       totalListAdds: 0,
       totalShares: countMap[ActivityType.SHARE] || 0,
       topMedia: topMediaRows.map((row) => ({
-        mediaId: Number(row.mediaId),
+        mediaPublicId: row.mediaPublicId,
         count: Number(row.count),
       })),
     };
@@ -144,6 +144,29 @@ export class UserActivity extends BaseEntity {
       result[row.day][row.activityType] = Number(row.count);
     }
     return result;
+  }
+
+  static buildUserQuery(
+    userId: number,
+    filters: { activityType?: string; date?: string },
+  ): SelectQueryBuilder<UserActivity> {
+    const qb = UserActivity.createQueryBuilder('activity').where('activity.user_id = :userId', { userId });
+    if (filters.activityType) {
+      qb.andWhere('activity.activity_type = :activityType', { activityType: filters.activityType });
+    }
+    if (filters.date) {
+      qb.andWhere('DATE(activity.created_at) = :date', { date: filters.date });
+    }
+    return qb;
+  }
+
+  static async deleteForUserByDate(userId: number, date: string): Promise<number> {
+    const result = await UserActivity.createQueryBuilder()
+      .delete()
+      .where('user_id = :userId', { userId })
+      .andWhere('DATE(created_at) = :date', { date })
+      .execute();
+    return result.affected || 0;
   }
 
   static async clearForUser(userId: number, activityType?: string): Promise<number> {

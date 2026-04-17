@@ -52,11 +52,15 @@ const segmentToEdit = ref<SearchResult | null>(null);
 const focusedIndex = ref<number | null>(null);
 
 if (props.highlightedPosition != null) {
-  watch(resultList, (list) => {
-    if (props.highlightedPosition == null) return;
-    const idx = list.findIndex((r) => r.segment.position === props.highlightedPosition);
-    if (idx !== -1) focusedIndex.value = idx;
-  }, { immediate: true });
+  watch(
+    resultList,
+    (list) => {
+      if (props.highlightedPosition == null) return;
+      const idx = list.findIndex((r) => r.segment.position === props.highlightedPosition);
+      if (idx !== -1) focusedIndex.value = idx;
+    },
+    { immediate: true },
+  );
 }
 
 const scrollFocusedIntoView = () => {
