@@ -163,10 +163,8 @@ const fetchRevisions = async () => {
   if (!props.segment) return;
   isLoadingRevisions.value = true;
   try {
-    const { data } = await sdk.listSegmentRevisions({
-      path: { segmentPublicId: props.segment.segment.segmentPublicId },
-    });
-    revisions.value = data?.revisions ?? [];
+    const data = await sdk.listSegmentRevisions(props.segment.segment.segmentPublicId);
+    revisions.value = data.revisions;
   } catch {
     revisions.value = [];
   } finally {
@@ -224,10 +222,8 @@ const deleteEpisode = async () => {
 
   try {
     await sdk.deleteEpisode({
-      path: {
-        mediaPublicId: props.segment.media.mediaPublicId,
-        episodeNumber: props.segment.segment.episode,
-      },
+      mediaPublicId: props.segment.media.mediaPublicId,
+      episodeNumber: props.segment.segment.episode,
     });
 
     useToastSuccess(t('modalSegmentEdit.deleteEpisodeSuccess'));
@@ -270,23 +266,23 @@ const submitEdit = async () => {
       body.posAnalysis = JSON.parse(form.posAnalysisJson);
     }
 
-    const { data: updatedSegment } = await sdk.updateSegment({
-      path: { segmentPublicId: props.segment.segment.segmentPublicId },
-      body,
+    const updatedSegment = await sdk.updateSegment({
+      segmentPublicId: props.segment.segment.segmentPublicId,
+      ...body,
     });
-    lastRatingAnalysis = updatedSegment?.ratingAnalysis ?? null;
-    lastPosAnalysis = updatedSegment?.posAnalysis ?? null;
-    internalHashedId.value = updatedSegment?.hashedId ?? null;
-    internalStorage.value = updatedSegment?.storage ?? null;
-    internalStorageBasePath.value = updatedSegment?.storageBasePath ?? null;
+    lastRatingAnalysis = updatedSegment.ratingAnalysis ?? null;
+    lastPosAnalysis = updatedSegment.posAnalysis ?? null;
+    internalHashedId.value = updatedSegment.hashedId ?? null;
+    internalStorage.value = updatedSegment.storage ?? null;
+    internalStorageBasePath.value = updatedSegment.storageBasePath ?? null;
 
     const updated: SearchResult = {
       ...props.segment,
       segment: {
         ...props.segment.segment,
         textJa: { ...props.segment.segment.textJa, content: form.ja },
-        textEn: { content: form.en, isMachineTranslated: form.enMt },
-        textEs: { content: form.es, isMachineTranslated: form.esMt },
+        textEn: { ...props.segment.segment.textEn, content: form.en, isMachineTranslated: form.enMt },
+        textEs: { ...props.segment.segment.textEs, content: form.es, isMachineTranslated: form.esMt },
         status: form.status,
         contentRating: form.contentRating,
         position: form.position,

@@ -67,7 +67,6 @@ export const listCollections: ListCollections = async ({ query }, respond, req) 
   });
 };
 
-
 export const createCollection: CreateCollection = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
@@ -83,7 +82,6 @@ export const createCollection: CreateCollection = async ({ body }, respond, req)
   return respond.with201().body(toCollectionDTO(collection));
 };
 
-
 export const getCollection: GetCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
@@ -93,7 +91,6 @@ export const getCollection: GetCollection = async ({ params }, respond, req) => 
 
   return respond.with200().body(toCollectionDTO(collection, segmentCount));
 };
-
 
 export const updateCollection: UpdateCollection = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
@@ -109,7 +106,6 @@ export const updateCollection: UpdateCollection = async ({ params, body }, respo
   return respond.with200().body(toCollectionDTO(updated));
 };
 
-
 export const deleteCollection: DeleteCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
@@ -123,7 +119,6 @@ export const deleteCollection: DeleteCollection = async ({ params }, respond, re
 
   return respond.with204();
 };
-
 
 export const addSegmentToCollection: AddSegmentToCollection = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
@@ -166,7 +161,6 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
   return respond.with204();
 };
 
-
 export const updateCollectionSegment: UpdateCollectionSegment = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
@@ -186,7 +180,6 @@ export const updateCollectionSegment: UpdateCollectionSegment = async ({ params,
   return respond.with204();
 };
 
-
 export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({ params }, respond, req) => {
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
@@ -201,7 +194,6 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
   return respond.with204();
 };
 
-
 export const searchCollectionSegments: SearchCollectionSegments = async ({ params, body }, respond, req) => {
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: params.collectionPublicId } });
@@ -214,7 +206,6 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
 
   return respond.with200().body(toSearchResponseDTO(results, body.include));
 };
-
 
 export const getCollectionStats: GetCollectionStats = async ({ params }, respond, req) => {
   const user = assertUser(req);
@@ -273,7 +264,6 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   return respond.with200().body({ media, categories, includes });
 };
 
-
 const isAdmin = (user: Pick<User, 'role'>): boolean => user.role === UserRoleType.ADMIN;
 
 const assertCollectionOwnership = (collection: Collection, user: Pick<User, 'id' | 'role'>): void => {
@@ -281,7 +271,6 @@ const assertCollectionOwnership = (collection: Collection, user: Pick<User, 'id'
     throw new AccessDeniedError('You do not have permission to modify this collection.');
   }
 };
-
 
 async function fetchCollectionSegmentIds(collectionId: number): Promise<number[]> {
   const rows = await CollectionSegment.createQueryBuilder('cs')
@@ -292,7 +281,6 @@ async function fetchCollectionSegmentIds(collectionId: number): Promise<number[]
 
   return rows.map((row) => Number(row.segmentId)).filter(Number.isFinite);
 }
-
 
 const assertCollectionReadable = (collection: Collection, user: Pick<User, 'id' | 'role'>): void => {
   if (collection.visibility === CollectionVisibility.PUBLIC) {
@@ -305,7 +293,6 @@ const assertCollectionReadable = (collection: Collection, user: Pick<User, 'id' 
 
   throw new AccessDeniedError('You do not have permission to view this collection.');
 };
-
 
 const toCategory = (value: string | undefined): CategoryOutput => (value === 'JDRAMA' ? 'JDRAMA' : 'ANIME');
 

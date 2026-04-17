@@ -1,4 +1,13 @@
-import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn, type FindOptionsWhere, type SelectQueryBuilder } from 'typeorm';
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  Index,
+  ManyToOne,
+  JoinColumn,
+  type FindOptionsWhere,
+  type SelectQueryBuilder,
+} from 'typeorm';
 import type { User } from './User';
 import { BaseEntity } from './base.entity';
 

@@ -78,7 +78,7 @@ async function main() {
             await interaction.respond(
               results.map((m) => ({
                 name: getMediaName(m).slice(0, 100),
-                value: m.publicId,
+                value: m.mediaPublicId,
               })),
             );
           },

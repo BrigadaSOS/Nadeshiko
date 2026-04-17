@@ -31,7 +31,6 @@ export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => 
   });
 };
 
-
 export const createEpisode: CreateEpisode = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
 
@@ -50,7 +49,6 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
   return respond.with201().body(toEpisodeDTO(episode, media.publicId));
 };
 
-
 export const getEpisode: GetEpisode = async ({ params }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
 
@@ -64,7 +62,6 @@ export const getEpisode: GetEpisode = async ({ params }, respond) => {
   return respond.with200().body(toEpisodeDTO(episode, media.publicId));
 };
 
-
 export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
 
@@ -75,7 +72,6 @@ export const updateEpisode: UpdateEpisode = async ({ params, body }, respond) =>
 
   return respond.with200().body(toEpisodeDTO(episode, media.publicId));
 };
-
 
 export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });

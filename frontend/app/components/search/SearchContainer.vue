@@ -168,14 +168,19 @@ applyRouteQuery(route);
 const fetchStats = async () => {
   try {
     if (props.collectionId) {
-      const { data, response } = await sdk.getCollectionStats({
-        path: { collectionPublicId: props.collectionId },
+      const result = await sdk.getCollectionStats({
+        collectionPublicId: props.collectionId,
+        throwOnError: false,
       });
-      if (response.status === 403 || response.status === 401) {
-        await navigateTo('/', { redirectCode: 302 });
+      if ('error' in result) {
+        if (result.response.status === 403 || result.response.status === 401) {
+          await navigateTo('/', { redirectCode: 302 });
+          return;
+        }
+        statsData.value = { media: [], categories: [] };
         return;
       }
-      statsData.value = data ? resolveStatsResponse(data) : { media: [], categories: [] };
+      statsData.value = resolveStatsResponse(result.data);
       return;
     }
 
@@ -203,14 +208,12 @@ const fetchStats = async () => {
       filters.languages = includedLanguages.value;
     }
 
-    const { data } = await sdk.getSearchStats({
-      body: {
-        query: query.value ? { search: query.value } : undefined,
-        filters,
-        include: ['media'],
-      },
+    const data = await sdk.getSearchStats({
+      query: query.value ? { search: query.value } : undefined,
+      filters,
+      include: ['media'],
     });
-    statsData.value = data ? resolveStatsResponse(data) : { media: [], categories: [] };
+    statsData.value = resolveStatsResponse(data);
   } catch {
     statsData.value = {
       media: [],
@@ -242,18 +245,21 @@ const fetchSentences = async () => {
     let response;
 
     if (props.collectionId) {
-      const { data, response: fetchResponse } = await sdk.searchCollectionSegments({
-        path: { collectionPublicId: props.collectionId },
-        body: {
-          ...(cursor.value ? { cursor: cursor.value } : {}),
-          take: 20,
-        },
+      const result = await sdk.searchCollectionSegments({
+        collectionPublicId: props.collectionId,
+        ...(cursor.value ? { cursor: cursor.value } : {}),
+        take: 20,
+        throwOnError: false,
       });
-      if (fetchResponse.status === 403 || fetchResponse.status === 401) {
-        await navigateTo('/', { redirectCode: 302 });
-        return;
+      if ('error' in result) {
+        if (result.response.status === 403 || result.response.status === 401) {
+          await navigateTo('/', { redirectCode: 302 });
+          return;
+        }
+        response = null;
+      } else {
+        response = resolveSearchResponse(result.data);
       }
-      response = data ? resolveSearchResponse(data) : null;
     } else {
       const filters: SearchFilters = {};
 
@@ -293,20 +299,18 @@ const fetchSentences = async () => {
       }
 
       const isInitialSearch = !cursor.value;
-      const { data } = await sdk.search({
-        body: {
-          query: query.value ? { search: query.value } : undefined,
-          take: 30,
-          sort:
-            sort.value && sort.value.toUpperCase() !== 'RELEVANCE'
-              ? { mode: sort.value.toUpperCase() as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
-              : undefined,
-          cursor: cursor.value || undefined,
-          filters,
-          include: ['media'],
-        },
+      const data = await sdk.search({
+        query: query.value ? { search: query.value } : undefined,
+        take: 30,
+        sort:
+          sort.value && sort.value.toUpperCase() !== 'RELEVANCE'
+            ? { mode: sort.value.toUpperCase() as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
+            : undefined,
+        cursor: cursor.value || undefined,
+        filters,
+        include: ['media'],
       });
-      response = data ? resolveSearchResponse(data) : null;
+      response = resolveSearchResponse(data);
 
       if (isInitialSearch && query.value && query.value !== lastTrackedQuery.value && import.meta.client) {
         lastTrackedQuery.value = query.value;
@@ -324,7 +328,7 @@ const fetchSentences = async () => {
           });
         }
         if (userStore().isLoggedIn) {
-          sdk.trackUserActivity({ body: { activityType: 'SEARCH', searchQuery: query.value } }).catch(() => {});
+          sdk.trackUserActivity({ activityType: 'SEARCH', searchQuery: query.value }).catch(() => {});
         }
       }
     }
@@ -435,7 +439,8 @@ const handleRemoveFromCollection = async (segmentPublicId: string) => {
   if (!props.collectionId) return;
   try {
     await sdk.removeSegmentFromCollection({
-      path: { collectionPublicId: props.collectionId, segmentPublicId },
+      collectionPublicId: props.collectionId,
+      segmentPublicId,
     });
     // Remove from current results
     if (sentenceData.value?.results) {

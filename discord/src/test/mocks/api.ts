@@ -29,11 +29,11 @@ export function registerMocks() {
     search: mockSearch,
     fetchRandom: mockFetchRandom,
     getSegmentContext: mockGetSegmentContext,
-    getSegmentByUuid: mockGetSegmentByUuid,
+    getSegment: mockGetSegmentByUuid,
     getStats: mockGetStats,
     getSearchStats: mockGetSearchStats,
 
-    autocompleteMedia: mockAutocompleteMedia,
+    searchMedia: mockAutocompleteMedia,
     listMedia: mockListMedia,
     downloadFile: mockDownloadFile,
     initSdk: () => {},

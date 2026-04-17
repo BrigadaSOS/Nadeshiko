@@ -23,8 +23,7 @@ export const useLabsStore = defineStore('labs', {
     async fetchFeatures() {
       try {
         const sdk = useNadeshikoSdk();
-        const { data } = await sdk.listUserLabs();
-        this.features = (data ?? []) as UserLabFeature[];
+        this.features = await sdk.listUserLabs();
         this.loaded = true;
       } catch (error) {
         console.error('[Labs] Failed to fetch features:', error);
@@ -33,9 +32,9 @@ export const useLabsStore = defineStore('labs', {
     async toggleLab(key: string, enable: boolean) {
       const sdk = useNadeshikoSdk();
       if (enable) {
-        await sdk.enrollUserLab({ path: { key } });
+        await sdk.enrollUserLab(key);
       } else {
-        await sdk.unenrollUserLab({ path: { key } });
+        await sdk.unenrollUserLab(key);
       }
 
       const feature = this.features.find((f) => f.key === key);

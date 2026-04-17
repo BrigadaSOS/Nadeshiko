@@ -27,7 +27,6 @@ export const listUserActivity: ListUserActivity = async ({ query }, respond, req
   });
 };
 
-
 export const getUserActivityHeatmap: GetUserActivityHeatmap = async ({ query }, respond, req) => {
   const user = assertUser(req);
 
@@ -35,7 +34,6 @@ export const getUserActivityHeatmap: GetUserActivityHeatmap = async ({ query }, 
 
   return respond.with200().body({ activityByDay });
 };
-
 
 export const getUserActivityStats: GetUserActivityStats = async ({ query }, respond, req) => {
   const user = assertUser(req);
@@ -54,7 +52,6 @@ export const getUserActivityStats: GetUserActivityStats = async ({ query }, resp
   });
 };
 
-
 export const deleteUserActivity: DeleteUserActivity = async ({ query }, respond, req) => {
   const user = assertUser(req);
 
@@ -62,7 +59,6 @@ export const deleteUserActivity: DeleteUserActivity = async ({ query }, respond,
 
   return respond.with200().body({ count });
 };
-
 
 export const trackUserActivity: TrackUserActivity = async ({ body }, respond, req) => {
   const user = assertUser(req);
@@ -80,7 +76,6 @@ export const trackUserActivity: TrackUserActivity = async ({ body }, respond, re
   return respond.with204().body(undefined);
 };
 
-
 export const deleteUserActivityByDate: DeleteUserActivityByDate = async ({ params }, respond, req) => {
   const user = assertUser(req);
 
@@ -88,7 +83,6 @@ export const deleteUserActivityByDate: DeleteUserActivityByDate = async ({ param
 
   return respond.with200().body({ count });
 };
-
 
 export const deleteUserActivityById: DeleteUserActivityById = async ({ params }, respond, req) => {
   const user = assertUser(req);
@@ -100,4 +94,3 @@ export const deleteUserActivityById: DeleteUserActivityById = async ({ params },
 
   return respond.with204().body(undefined);
 };
-

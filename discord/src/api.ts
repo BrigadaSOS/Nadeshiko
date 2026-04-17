@@ -2,20 +2,27 @@ import { createNadeshikoClient, type NadeshikoClient } from '@brigadasos/nadeshi
 import type {
   Segment,
   Media,
-  SearchResponse,
-  GetSegmentContextResponse,
+  MediaSummary,
+  SearchResponse as SdkSearchResponse,
+  GetSegmentContextResponse as SdkGetSegmentContextResponse,
   GetStatsOverviewResponse,
-  SearchStatsResponse,
+  SearchStatsResponse as SdkSearchStatsResponse,
 } from '@brigadasos/nadeshiko-sdk';
 import { BOT_CONFIG } from './config';
 import { createLogger } from './logger';
 
 const log = createLogger('api');
 
-export type { Segment, Media, SearchResponse, SearchStatsResponse };
-export type ContextResponse = GetSegmentContextResponse;
+export type { Segment, Media };
+export type SearchResponse = Omit<SdkSearchResponse, 'includes'> & { includes: { media: Record<string, Media> } };
+export type SearchStatsResponse = Omit<SdkSearchStatsResponse, 'includes'> & {
+  includes: { media: Record<string, Media> };
+};
+export type ContextResponse = Omit<SdkGetSegmentContextResponse, 'includes'> & {
+  includes: { media: Record<string, Media> };
+};
 export type StatsResponse = GetStatsOverviewResponse;
-export type { MediaAutocompleteItem } from '@brigadasos/nadeshiko-sdk';
+export type MediaAutocompleteItem = MediaSummary;
 
 let sdk: NadeshikoClient;
 
@@ -49,16 +56,21 @@ export async function search(
     sort?: string;
     seed?: number;
     category?: string;
-    mediaId?: string;
+    mediaPublicId?: string;
     episodes?: number[];
     lengthMin?: number;
     lengthMax?: number;
   } = {},
 ): Promise<SearchResponse> {
-  const mediaInclude = options.mediaId
+  const mediaInclude = options.mediaPublicId
     ? {
         media: {
-          include: [{ mediaId: options.mediaId, ...(options.episodes ? { episodes: options.episodes } : {}) }],
+          include: [
+            {
+              mediaPublicId: options.mediaPublicId,
+              ...(options.episodes ? { episodes: options.episodes } : {}),
+            },
+          ],
         },
       }
     : {};
@@ -69,7 +81,7 @@ export async function search(
       : {};
 
   const filters = {
-    status: ['ACTIVE', 'VERIFIED'] as ('ACTIVE' | 'VERIFIED')[],
+    status: ['ACTIVE'] as 'ACTIVE'[],
     ...(options.category ? { category: [options.category as 'ANIME' | 'JDRAMA'] } : {}),
     ...mediaInclude,
     ...lengthFilter,
@@ -86,72 +98,87 @@ export async function search(
 
   log.debug({ body }, 'Search request');
 
-  const { data } = await sdk.search({ body });
+  const data = await sdk.search(body);
+  const response: SearchResponse = {
+    ...data,
+    includes: {
+      media: data.includes?.media ?? {},
+    },
+  };
 
   log.debug(
-    { hits: data.segments.length, total: data.pagination.estimatedTotalHits, hasMore: data.pagination.hasMore },
+    {
+      hits: response.segments.length,
+      total: response.pagination.estimatedTotalHits,
+      hasMore: response.pagination.hasMore,
+    },
     'Search response',
   );
 
-  return data;
+  return response;
 }
 
-export function fetchRandom(mediaId?: string, episodes?: number[]) {
+export function fetchRandom(mediaPublicId?: string, episodes?: number[]) {
   return search('', {
     take: 1,
     sort: 'RANDOM',
     seed: Math.floor(Math.random() * 1_000_000),
-    mediaId,
+    mediaPublicId,
     episodes,
   });
 }
 
-export async function getSegmentContext(uuid: string, take = 5): Promise<ContextResponse> {
-  log.debug({ uuid, take }, 'Context request');
-  const { data } = await sdk.getSegmentContext({
-    path: { uuid },
-    query: { take },
+export async function getSegmentContext(segmentPublicId: string, take = 5): Promise<ContextResponse> {
+  log.debug({ segmentPublicId, take }, 'Context request');
+  const data = await sdk.getSegmentContext({
+    segmentPublicId,
+    take,
+    include: ['media'],
   });
-  log.debug({ uuid, segments: data.segments.length }, 'Context response');
-  return data;
+  const response: ContextResponse = {
+    ...data,
+    includes: {
+      media: data.includes?.media ?? {},
+    },
+  };
+  log.debug({ segmentPublicId, segments: response.segments.length }, 'Context response');
+  return response;
 }
 
-// TODO: Add include=media support to backend's /v1/media/segments/{uuid} endpoint
-// so we don't need the extra context request just to get the media name.
-export async function getSegmentByUuid(uuid: string): Promise<{ segment: Segment; media: Media | null }> {
-  log.debug({ uuid }, 'Segment request');
+export async function getSegment(segmentPublicId: string): Promise<{ segment: Segment; media: Media | null }> {
+  log.debug({ segmentPublicId }, 'Segment request');
   const [segmentRes, contextRes] = await Promise.all([
-    sdk.getSegmentByUuid({ path: { uuid } }),
-    sdk.getSegmentContext({ path: { uuid }, query: { take: 1 } }),
+    sdk.getSegment(segmentPublicId),
+    sdk.getSegmentContext({
+      segmentPublicId,
+      take: 1,
+      include: ['media'],
+    }),
   ]);
 
-  const segment = segmentRes.data as Segment;
-  const media = contextRes.data.includes?.media?.[segment.mediaPublicId] ?? null;
+  const segment = segmentRes;
+  const media = contextRes.includes?.media?.[segment.mediaPublicId] ?? null;
 
-  log.debug({ uuid, mediaPublicId: segment.mediaPublicId }, 'Segment response');
+  log.debug({ segmentPublicId, mediaPublicId: segment.mediaPublicId }, 'Segment response');
   return { segment, media };
 }
 
 export async function listMedia(take = 40, cursor?: string) {
   log.debug({ take, cursor }, 'List media request');
-  const { data } = await sdk.listMedia({
-    query: { take, cursor },
-  });
+  const data = await sdk.listMedia({ take, cursor });
   log.debug({ count: data.media.length, hasMore: data.pagination.hasMore }, 'List media response');
   return data;
 }
 
-export async function autocompleteMedia(query: string, take = 10) {
+export async function searchMedia(query: string, take = 10) {
   log.debug({ query, take }, 'Media autocomplete request');
-  const { data } = await sdk.autocompleteMedia({
-    query: { query, take },
-  });
+  const data = await sdk.searchMedia({ query, take });
   log.debug({ query, results: data.media.length }, 'Media autocomplete response');
   return data;
 }
 
 export async function getStats(): Promise<StatsResponse> {
-  const { data } = await sdk.getStatsOverview();
+  const data = await sdk.getStatsOverview();
   log.debug({ totalSegments: data.totalSegments, totalMedia: data.totalMedia }, 'Stats response');
   return data;
 }
@@ -161,15 +188,19 @@ export async function getSearchStats(
   options?: { exactMatch?: boolean; category?: string },
 ): Promise<SearchStatsResponse> {
   log.debug({ query, ...options }, 'Search stats request');
-  const { data } = await sdk.getSearchStats({
-    body: {
-      query: query ? { search: query, exactMatch: options?.exactMatch } : undefined,
-      filters: options?.category ? { category: [options.category as 'ANIME' | 'JDRAMA'] } : undefined,
-      include: ['media'],
-    },
+  const data = await sdk.getSearchStats({
+    query: query ? { search: query, exactMatch: options?.exactMatch } : undefined,
+    filters: options?.category ? { category: [options.category as 'ANIME' | 'JDRAMA'] } : undefined,
+    include: ['media'],
   });
-  log.debug({ mediaCount: data.media.length, categories: data.categories.length }, 'Search stats response');
-  return data;
+  const response: SearchStatsResponse = {
+    ...data,
+    includes: {
+      media: data.includes?.media ?? {},
+    },
+  };
+  log.debug({ mediaCount: response.media.length, categories: response.categories.length }, 'Search stats response');
+  return response;
 }
 
 export async function downloadFile(url: string): Promise<Buffer | null> {

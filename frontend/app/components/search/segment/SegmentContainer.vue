@@ -5,6 +5,7 @@ import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import { useLabsStore } from '~/stores/labs';
 import type { SearchResult, SearchResponse } from '~/types/search';
+import type { UserReportTarget } from '@brigadasos/nadeshiko-sdk';
 
 type Props = {
   searchData: SearchResponse | null;
@@ -166,16 +167,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
 });
 const reportTarget = ref<{
-  target:
-    | {
-        type: 'SEGMENT';
-        mediaId: string;
-        segmentId: string;
-      }
-    | {
-        type: 'MEDIA';
-        mediaId: string;
-      };
+  target: UserReportTarget;
   segment: SearchResult;
   mediaName?: string;
 } | null>(null);
@@ -226,8 +218,12 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
   reportTarget.value = {
     target:
       type === 'SEGMENT'
-        ? { type: 'SEGMENT', mediaId: result.media.mediaPublicId, segmentId: result.segment.segmentPublicId }
-        : { type: 'MEDIA', mediaId: result.media.mediaPublicId },
+        ? {
+            type: 'SEGMENT',
+            mediaPublicId: result.media.mediaPublicId,
+            segmentPublicId: result.segment.segmentPublicId,
+          }
+        : { type: 'MEDIA', mediaPublicId: result.media.mediaPublicId },
     segment: result,
     mediaName: mediaName(result.media),
   };

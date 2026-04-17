@@ -54,7 +54,7 @@ const schemaOrgDefs = computed(() => {
   if (isBlogPost.value) {
     breadcrumbItems.push({ name: 'Blog', item: '/blog' });
   }
-  breadcrumbItems.push({ name: title.value, item: route.path });
+  breadcrumbItems.push({ name: title.value ?? '', item: route.path });
   defs.push(defineBreadcrumb({ itemListElement: breadcrumbItems }));
 
   if (isBlogPost.value && data.value?.title) {

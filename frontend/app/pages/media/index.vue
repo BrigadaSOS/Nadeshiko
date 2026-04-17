@@ -108,14 +108,13 @@ const {
 } = await useAsyncData(
   () => `search-media-${searchQuery.value}-${filterCategory.value}`,
   async () => {
-    const response = await sdk.listMedia({
+    const raw = await sdk.listMedia({
       query: {
         query: searchQuery.value || undefined,
         take: pageSize,
         category: filterCategory.value || undefined,
       },
     });
-    const raw = response.data;
     return {
       media: raw?.media ?? [],
       hasMore: raw?.pagination?.hasMore ?? false,
@@ -213,7 +212,7 @@ const loadMore = async () => {
 
   loadingMore.value = true;
   try {
-    const response = await sdk.listMedia({
+    const raw = await sdk.listMedia({
       query: {
         cursor: nextCursor.value,
         query: searchQuery.value || undefined,
@@ -221,7 +220,6 @@ const loadMore = async () => {
         category: filterCategory.value || undefined,
       },
     });
-    const raw = response.data;
     const newMedia = raw?.media ?? [];
     media.value = [...media.value, ...newMedia];
     hasMore.value = raw?.pagination?.hasMore ?? false;

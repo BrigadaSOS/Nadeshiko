@@ -82,7 +82,6 @@ export const getStatsOverview: GetStatsOverview = async (_params, respond) => {
   return respond.with200().body(body);
 };
 
-
 export const getCoveredWords: GetCoveredWords = async ({ query }, respond) => {
   const tier = Number(query.tier);
   const minRank = Number(query.minRank ?? 0);
@@ -137,7 +136,6 @@ export const getCoveredWords: GetCoveredWords = async ({ query }, respond) => {
     tierStats,
   });
 };
-
 
 export const triggerCoveredWordsUpdate: TriggerCoveredWordsUpdate = async ({ body }, respond) => {
   const result = await WordFrequency.updateCoverage({

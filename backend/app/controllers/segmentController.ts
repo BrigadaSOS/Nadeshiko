@@ -51,7 +51,6 @@ export const listSegments: ListSegments = async ({ params, query }, respond) => 
   });
 };
 
-
 export const createSegment: CreateSegment = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId }, relations: ['externalIds'] });
 
@@ -69,7 +68,6 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
 
   return respond.with201().body(toSegmentInternalDTO(segment, undefined, media.publicId));
 };
-
 
 export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId }, relations: ['externalIds'] });
@@ -129,7 +127,6 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
   return respond.with201().body({ created: allIds.length, skipped: attributes.length - allIds.length });
 };
 
-
 export const updateSegment: UpdateSegment = async ({ params, body }, respond, req) => {
   const { segment, mediaPublicId } = await findSegmentByUuidOrPublicId(params.segmentPublicId);
 
@@ -138,13 +135,11 @@ export const updateSegment: UpdateSegment = async ({ params, body }, respond, re
   return respond.with200().body(toSegmentInternalDTO(segment, undefined, mediaPublicId));
 };
 
-
 export const getSegment: GetSegment = async ({ params }, respond) => {
   const { segment, mediaPublicId } = await findSegmentByUuidOrPublicId(params.segmentPublicId);
 
   return respond.with200().body(toSegmentDTO(segment, mediaPublicId));
 };
-
 
 export const listSegmentRevisions: ListSegmentRevisions = async ({ params }, respond) => {
   const { segment } = await findSegmentByUuidOrPublicId(params.segmentPublicId);
@@ -160,7 +155,6 @@ export const listSegmentRevisions: ListSegmentRevisions = async ({ params }, res
   });
 };
 
-
 export const getSegmentContext: GetSegmentContext = async ({ params, query }, respond) => {
   const { segment } = await findSegmentByUuidOrPublicId(params.segmentPublicId);
 
@@ -175,7 +169,6 @@ export const getSegmentContext: GetSegmentContext = async ({ params, query }, re
   return respond.with200().body(toSearchResponseDTO(searchResults, query.include));
 };
 
-
 async function findSegmentByUuidOrPublicId(
   uuidOrPublicId: string,
 ): Promise<{ segment: Segment; mediaPublicId: string }> {
@@ -188,7 +181,6 @@ async function findSegmentByUuidOrPublicId(
   const media = await Media.findOneOrFail({ where: { id: segment.mediaId }, select: ['publicId'] });
   return { segment, mediaPublicId: media.publicId };
 }
-
 
 function getPrimaryExternalId(media: Media): string {
   const preferred = [
@@ -204,7 +196,6 @@ function getPrimaryExternalId(media: Media): string {
   throw new InvalidRequestError(`Media ${media.id} is missing an external ID (AniList, TMDB, etc.)`);
 }
 
-
 async function applySegmentUpdate(segment: Segment, body: SegmentUpdateRequestOutput, userId: number): Promise<void> {
   const snapshot = toSegmentSnapshot(segment);
   Object.assign(segment, toSegmentUpdatePatch(body));
@@ -214,7 +205,6 @@ async function applySegmentUpdate(segment: Segment, body: SegmentUpdateRequestOu
     logger.error({ err }, 'Failed to create segment revision');
   });
 }
-
 
 async function createSegmentRevision(
   segmentId: number,

@@ -8,8 +8,7 @@ const sdk = useNadeshikoSdk();
 const { data: featuresData } = await useAsyncData(
   'settings-labs-features',
   async () => {
-    const { data } = await sdk.listUserLabs().catch(() => ({ data: null }));
-    return (data ?? []) as typeof labsStore.features;
+    return await sdk.listUserLabs().catch(() => [] as typeof labsStore.features);
   },
   {
     default: () => [],

@@ -53,9 +53,9 @@ const fetchSentenceData = async () => {
 
     if (route.query.uuid) {
       const segmentPublicId = String(route.query.uuid);
-      const { data: segment } = await sdk.getSegment({ path: { segmentPublicId } });
+      const segment = await sdk.getSegment(segmentPublicId);
       if (!segment) return null;
-      const { data: media } = await sdk.getMedia({ path: { mediaPublicId: segment.mediaPublicId } });
+      const media = await sdk.getMedia(segment.mediaPublicId);
       return resolveSearchResponse({
         segments: [segment],
         includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
@@ -92,22 +92,23 @@ const fetchSentenceData = async () => {
         ? { mode: sortParam as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
         : undefined;
 
-    const { data, response } = await sdk.search({
-      body: {
-        query: q ? { search: q } : undefined,
-        take: 30,
-        sort,
-        filters,
-        include: ['media'],
-      },
+    const result = await sdk.search({
+      query: q ? { search: q } : undefined,
+      take: 30,
+      sort,
+      filters,
+      include: ['media'],
+      throwOnError: false,
     });
 
-    if (response.status >= 500) {
-      searchFetchFailed.value = true;
+    if ('error' in result) {
+      if (result.response.status >= 500) {
+        searchFetchFailed.value = true;
+      }
       return null;
     }
 
-    return data ? resolveSearchResponse(data) : null;
+    return resolveSearchResponse(result.data);
   } catch {
     searchFetchFailed.value = true;
     return null;
@@ -134,14 +135,12 @@ const fetchStatsData = async () => {
       filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
     }
 
-    const { data } = await sdk.getSearchStats({
-      body: {
-        query: q ? { search: q } : undefined,
-        filters,
-        include: ['media'],
-      },
+    const data = await sdk.getSearchStats({
+      query: q ? { search: q } : undefined,
+      filters,
+      include: ['media'],
     });
-    return data ? resolveStatsResponse(data) : null;
+    return resolveStatsResponse(data);
   } catch (error) {
     console.error('Error fetching search stats:', error);
     return null;
@@ -297,11 +296,10 @@ const metaTags = computed(() => {
 
 useHead(metaTags);
 
-const schemaOrgType = computed(() => {
-  if (mediaQueryParam.value) return 'CollectionPage';
-  return 'SearchResultsPage';
-});
-useSchemaOrg([defineWebPage({ '@type': schemaOrgType })]);
+const schemaOrgType = computed<'CollectionPage' | 'SearchResultsPage'>(() =>
+  mediaQueryParam.value ? 'CollectionPage' : 'SearchResultsPage',
+);
+useSchemaOrg([defineWebPage({ '@type': schemaOrgType.value })]);
 </script>
 
 <template>

@@ -9,15 +9,19 @@ const collectionId = computed(() => String(route.params.id));
 const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data, response } = await sdk.searchCollectionSegments({
-      path: { collectionPublicId: collectionId.value },
-      body: { take: 20, include: ['media'] },
+    const result = await sdk.searchCollectionSegments({
+      collectionPublicId: collectionId.value,
+      take: 20,
+      include: ['media'],
+      throwOnError: false,
     });
-    if (response.status === 403 || response.status === 401) {
-      await navigateTo('/', { redirectCode: 302 });
+    if ('error' in result) {
+      if (result.response.status === 403 || result.response.status === 401) {
+        await navigateTo('/', { redirectCode: 302 });
+      }
       return null;
     }
-    return data ? resolveSearchResponse(data) : null;
+    return resolveSearchResponse(result.data);
   } catch {
     return null;
   }
@@ -26,10 +30,8 @@ const fetchSentenceData = async () => {
 const fetchStatsData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data } = await sdk.getCollectionStats({
-      path: { collectionPublicId: collectionId.value },
-    });
-    return data ? resolveStatsResponse(data) : null;
+    const data = await sdk.getCollectionStats(collectionId.value);
+    return resolveStatsResponse(data);
   } catch {
     return null;
   }
@@ -51,14 +53,17 @@ const { data: collectionDetails } = await useAsyncData(
   `collection-details-${collectionId.value}`,
   async () => {
     const sdk = useNadeshikoSdk();
-    const { data, response } = await sdk.getCollection({
-      path: { collectionPublicId: collectionId.value },
+    const result = await sdk.getCollection({
+      collectionPublicId: collectionId.value,
+      throwOnError: false,
     });
-    if (response.status === 403 || response.status === 401) {
-      await navigateTo('/', { redirectCode: 302 });
+    if ('error' in result) {
+      if (result.response.status === 403 || result.response.status === 401) {
+        await navigateTo('/', { redirectCode: 302 });
+      }
       return null;
     }
-    return data ? { name: data.name } : null;
+    return { name: result.data.name };
   },
   { server: true, lazy: false },
 );

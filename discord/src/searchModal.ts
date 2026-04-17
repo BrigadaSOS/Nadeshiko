@@ -36,7 +36,7 @@ export const filterMediaButton = new ButtonBuilder()
 export type SearchModalState = {
   results: SearchResponse | null;
   currentIndex: number;
-  mediaId: string | undefined;
+  mediaPublicId: string | undefined;
   mediaName: string | undefined;
   lastQuery: string;
   pages: SearchResponse[];
@@ -83,12 +83,12 @@ export const randomResultButton = new ButtonBuilder()
   .setStyle(ButtonStyle.Secondary)
   .setEmoji('🎲');
 
-export function createSearchModalState(mediaId?: string): SearchModalState {
-  const mediaItem = mediaId ? findMediaByPublicId(mediaId) : undefined;
+export function createSearchModalState(mediaPublicId?: string): SearchModalState {
+  const mediaItem = mediaPublicId ? findMediaByPublicId(mediaPublicId) : undefined;
   return {
     results: null,
     currentIndex: 0,
-    mediaId,
+    mediaPublicId,
     mediaName: mediaItem ? getMediaName(mediaItem) : undefined,
     lastQuery: '',
     pages: [],
@@ -122,7 +122,7 @@ export async function goToNextPage(state: SearchModalState): Promise<boolean> {
   const newResults = await search(state.lastQuery, {
     take: BOT_CONFIG.maxSearchResults,
     cursor,
-    mediaId: state.mediaId,
+    mediaPublicId: state.mediaPublicId,
     exactMatch: state.lastSearchOptions.exactMatch,
     category: state.lastSearchOptions.category,
     episodes: state.lastSearchOptions.episodes,
@@ -194,7 +194,7 @@ export async function goToSkipForward(state: SearchModalState, count = 5): Promi
     const bulkResults = await search(state.lastQuery, {
       take: bulkTake,
       cursor,
-      mediaId: state.mediaId,
+      mediaPublicId: state.mediaPublicId,
       exactMatch: state.lastSearchOptions.exactMatch,
       category: state.lastSearchOptions.category,
       episodes: state.lastSearchOptions.episodes,
@@ -324,7 +324,7 @@ export async function handleModalSubmit(
 
   const searchResult = await search(searchQuery, {
     take: BOT_CONFIG.maxSearchResults,
-    mediaId: state.mediaId,
+    mediaPublicId: state.mediaPublicId,
     episodes,
     sort,
   });
@@ -371,7 +371,7 @@ export async function renderSearchResult(
   const components = buildSearchSelectComponents(
     state.results.segments,
     state.results.includes.media,
-    seg.publicId,
+    seg.segmentPublicId,
     linkUrl,
     buttons,
     pageOffset,
@@ -386,7 +386,7 @@ export async function renderSearchResult(
 export const MEDIA_PER_PAGE = 24;
 
 export type FilterMediaItem = {
-  publicId: string;
+  mediaPublicId: string;
   name: string;
   nameEn?: string;
   nameJa?: string;
@@ -427,9 +427,9 @@ export async function showFilterMediaSelect(
     filterState.cachedSearchStats ?? (await getSearchStats(state.lastQuery || undefined, state.lastSearchOptions));
   filterState.cachedSearchStats = stats;
   filterState.allMedia = stats.media.map((m) => {
-    const media = stats.includes.media[m.publicId];
+    const media = stats.includes.media[m.mediaPublicId];
     return {
-      publicId: m.publicId,
+      mediaPublicId: m.mediaPublicId,
       name: getMediaName(media),
       nameEn: media?.nameEn ?? undefined,
       nameJa: media?.nameJa ?? undefined,
@@ -441,8 +441,8 @@ export async function showFilterMediaSelect(
   filterState.nameFilter = '';
   filterState.filteredMedia = filterState.allMedia;
 
-  if (state.mediaId) {
-    const idx = filterState.filteredMedia.findIndex((m) => m.publicId === state.mediaId);
+  if (state.mediaPublicId) {
+    const idx = filterState.filteredMedia.findIndex((m) => m.mediaPublicId === state.mediaPublicId);
     filterState.mediaPage = idx >= 0 ? Math.floor(idx / MEDIA_PER_PAGE) : 0;
   } else {
     filterState.mediaPage = 0;
@@ -476,9 +476,9 @@ export async function renderFilterMediaPage(
     const parts = [m.nameJa, `${m.matchCount.toLocaleString()} sentences`].filter(Boolean);
     return {
       label: `${start + i + 1}) ${m.name}`.slice(0, 100),
-      value: m.publicId,
+      value: m.mediaPublicId,
       description: parts.join(' - ').slice(0, 100),
-      default: m.publicId === state.mediaId,
+      default: m.mediaPublicId === state.mediaPublicId,
     };
   });
 
@@ -486,7 +486,7 @@ export async function renderFilterMediaPage(
     label: 'All media (no filter)',
     value: '__all__',
     description: 'Remove media filter',
-    default: !state.mediaId,
+    default: !state.mediaPublicId,
   });
 
   const selectMenu = new StringSelectMenuBuilder()
@@ -551,11 +551,11 @@ export function handleFilterMediaSelect(
   const value = selectInteraction.values[0];
 
   if (value === '__all__') {
-    state.mediaId = undefined;
+    state.mediaPublicId = undefined;
     state.mediaName = undefined;
   } else {
-    state.mediaId = value;
-    const filterItem = filterState.allMedia.find((m) => m.publicId === value);
+    state.mediaPublicId = value;
+    const filterItem = filterState.allMedia.find((m) => m.mediaPublicId === value);
     state.mediaName = filterItem?.name ?? getMediaName(findMediaByPublicId(value));
   }
 }

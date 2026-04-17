@@ -18,7 +18,6 @@ export const listUserLabs: ListUserLabs = async (_params, respond, req) => {
   return respond.with200().body(response);
 };
 
-
 export const enrollUserLab: EnrollUserLab = async ({ params }, respond, req) => {
   const user = assertUser(req);
 
@@ -31,7 +30,6 @@ export const enrollUserLab: EnrollUserLab = async ({ params }, respond, req) => 
 
   return respond.with204();
 };
-
 
 export const unenrollUserLab: UnenrollUserLab = async ({ params }, respond, req) => {
   const user = assertUser(req);

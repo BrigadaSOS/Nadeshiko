@@ -116,9 +116,8 @@ const loadCollections = async () => {
 
   collectionsLoading.value = true;
   try {
-    const { data } = await sdk.listCollections({ query: { take: 100 } });
-    const allItems = data?.collections ?? [];
-    const items = allItems
+    const data = await sdk.listCollections({ take: 100 });
+    const items = data.collections
       .filter((c) => c.type !== 'ANKI_EXPORT')
       .map((c) => ({ id: c.collectionPublicId, name: c.name }));
     collections.value = items;
@@ -151,8 +150,8 @@ const addToCollection = async (collection: CollectionOption, isQuickAdd = false)
   addingCollectionId.value = collection.id;
   try {
     await sdk.addSegmentToCollection({
-      path: { collectionPublicId: collection.id },
-      body: { segmentPublicId: props.content.segment.segmentPublicId },
+      collectionPublicId: collection.id,
+      segmentPublicId: props.content.segment.segmentPublicId,
     });
     posthog?.capture('segment_added_to_collection', {
       collection_name: collection.name,

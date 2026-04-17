@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ButtonBuilder, ButtonStyle, type ChatInputCommandInteraction } from 'discord.js';
-import { getSegmentByUuid } from '../api';
+import { getSegment } from '../api';
 import { getMediaName } from '../embeds';
 import {
   renderSegmentReply,
@@ -36,7 +36,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const id = parseSegmentId(interaction.options.getString('id', true));
 
   try {
-    const { segment, media } = await getSegmentByUuid(id);
+    const { segment, media } = await getSegment(id);
     const resolvedMedia = media ?? undefined;
     const display = getGuildSettings(interaction.guildId);
     const contextState = createContextState();
@@ -44,7 +44,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const params = new URLSearchParams();
     if (resolvedMedia) {
-      params.set('media', resolvedMedia.publicId);
+      params.set('media', resolvedMedia.mediaPublicId);
       params.set('episode', String(segment.episode));
     }
     const qs = params.toString();
@@ -99,7 +99,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       if ((i.customId === 'search_in_media' || i.customId === 'search_in_episode') && resolvedMedia) {
         collector.stop('search_transition');
         await executeSearch(i, {
-          mediaId: resolvedMedia.publicId,
+          mediaPublicId: resolvedMedia.mediaPublicId,
           episodes: i.customId === 'search_in_episode' ? [segment.episode] : undefined,
           display,
         });
@@ -112,7 +112,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       try {
         const params = new URLSearchParams();
         if (resolvedMedia) {
-          params.set('media', resolvedMedia.publicId);
+          params.set('media', resolvedMedia.mediaPublicId);
           params.set('episode', String(segment.episode));
         }
         const qs = params.toString();

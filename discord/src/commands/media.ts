@@ -6,7 +6,7 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { autocompleteMedia, search, fetchRandom } from '../api';
+import { searchMedia, fetchRandom } from '../api';
 import type { Segment, Media } from '../api';
 import { buildMediaSearchMessage, getMediaName, type DisplayOptions } from '../embeds';
 import {
@@ -57,7 +57,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const category = interaction.options.getString('category') as 'ANIME' | 'JDRAMA' | null;
 
   try {
-    const result = await autocompleteMedia(query);
+    const result = await searchMedia(query);
     const media = category ? result.media.filter((m) => m.category === category) : result.media;
 
     const content = buildMediaSearchMessage(media, query);
@@ -73,7 +73,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .addOptions(
         media.slice(0, 25).map((m, i) => ({
           label: `${i + 1}. ${getMediaName(m).slice(0, 90)}`,
-          value: m.publicId,
+          value: m.mediaPublicId,
           description: m.nameJa?.slice(0, 100),
         })),
       );
@@ -100,7 +100,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const getMediaUrl = () => {
       const params = new URLSearchParams();
-      if (searchState.mediaId) params.set('media', searchState.mediaId);
+      if (searchState.mediaPublicId) params.set('media', searchState.mediaPublicId);
       const qs = params.toString();
       return qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
     };
@@ -119,12 +119,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       if (i.isStringSelectMenu() && i.customId === 'media_select') {
         await i.deferUpdate();
 
-        const mediaId = i.values[0];
-        searchState.mediaId = mediaId;
-        const selected = media.find((m) => m.publicId === mediaId);
+        const mediaPublicId = i.values[0];
+        searchState.mediaPublicId = mediaPublicId;
+        const selected = media.find((m) => m.mediaPublicId === mediaPublicId);
         searchState.mediaName = getMediaName(selected);
 
-        const randomResult = await fetchRandom(mediaId);
+        const randomResult = await fetchRandom(mediaPublicId);
 
         if (randomResult.segments.length === 0) {
           await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.`, ephemeral: true });
@@ -142,7 +142,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
       if (i.isStringSelectMenu() && i.customId === 'search_select' && searchState.results) {
         await i.deferUpdate();
-        const idx = searchState.results.segments.findIndex((s) => s.publicId === i.values[0]);
+        const idx = searchState.results.segments.findIndex((s) => s.segmentPublicId === i.values[0]);
         if (idx === -1) return;
         searchState.currentIndex = idx;
         contextState.viewingContext = false;
@@ -158,9 +158,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         await i.deferUpdate();
         handleFilterMediaSelect(i, searchState, filterState);
 
-        if (!searchState.mediaId) return;
+        if (!searchState.mediaPublicId) return;
 
-        const newResult = await fetchRandom(searchState.mediaId);
+        const newResult = await fetchRandom(searchState.mediaPublicId);
         if (newResult.segments.length === 0) {
           await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.`, ephemeral: true });
           return;
@@ -199,12 +199,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         return;
       }
 
-      if (i.customId === 'reroll' && searchState.mediaId) {
+      if (i.customId === 'reroll' && searchState.mediaPublicId) {
         await i.deferUpdate();
         contextState.viewingContext = false;
         searchState.results = null;
 
-        const newResult = await fetchRandom(searchState.mediaId);
+        const newResult = await fetchRandom(searchState.mediaPublicId);
         if (newResult.segments.length === 0) return;
 
         currentSegment = newResult.segments[0];
@@ -214,7 +214,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         return;
       }
 
-      if (i.customId === 'advanced_search' && searchState.mediaId) {
+      if (i.customId === 'advanced_search' && searchState.mediaPublicId) {
         await showSearchModal(i, `Search in ${searchState.mediaName}`);
         return;
       }
