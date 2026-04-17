@@ -9,7 +9,7 @@
 #   GRAFANA_ANNOTATION_TOKEN env var (fetched from AWS SSM in secrets files)
 #   Grafana reachable at monitoring:3000 via Tailscale
 
-set -euo pipefail
+set -uo pipefail
 
 GRAFANA_URL="${GRAFANA_URL:-http://monitoring:3000}"
 
@@ -32,19 +32,16 @@ ANNOTATION_TEXT="**${SERVICE}** deployed version \`${VERSION}\`"
 ANNOTATION_TEXT="${ANNOTATION_TEXT}\n\nBy: ${PERFORMER}"
 [ -n "$RUNTIME" ] && ANNOTATION_TEXT="${ANNOTATION_TEXT} (${RUNTIME}s)"
 
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${GRAFANA_URL}/api/annotations" \
+# Make curl non-fatal - annotation is nice-to-have
+curl -s -X POST "${GRAFANA_URL}/api/annotations" \
   -H "Authorization: Bearer ${GRAFANA_ANNOTATION_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
     \"text\": \"${ANNOTATION_TEXT}\",
     \"tags\": [\"deploy\", \"${SERVICE}\"]
-  }")
+  }" || {
+    echo "Warning: Failed to create Grafana deploy annotation (curl failed)"
+    exit 0
+  }
 
-HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-BODY=$(echo "$RESPONSE" | head -1)
-
-if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-  echo "Deploy annotation created for ${SERVICE} (${VERSION})"
-else
-  echo "Warning: Failed to create deploy annotation (HTTP ${HTTP_CODE}): ${BODY}"
-fi
+echo "Deploy annotation created for ${SERVICE} (${VERSION})"
