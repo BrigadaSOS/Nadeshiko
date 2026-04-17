@@ -1,15 +1,15 @@
 type: object
 required:
   - type
-  - mediaId
-  - segmentId
+  - mediaPublicId
+  - segmentPublicId
 properties:
   type:
     type: string
     enum: [SEGMENT]
     description: Report target type
     example: "SEGMENT"
-  mediaId:
+  mediaPublicId:
     type: string
     description: publicId of the media this report targets
     example: "V1StGXR8_Z5d"
@@ -17,7 +17,7 @@ properties:
     type: integer
     description: Episode number containing the segment
     example: 5
-  segmentId:
+  segmentPublicId:
     type: string
     description: Segment publicId
     example: "abc123def456"

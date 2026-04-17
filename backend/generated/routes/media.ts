@@ -1282,7 +1282,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
 
   const getEpisodeParamSchema = z.object({
     mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-    episodeNumber: z.coerce.number(),
+    episodeNumber: z.coerce.number().min(0),
   });
 
   const getEpisodeResponseBodyValidator = responseValidationFactory(
@@ -1361,7 +1361,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const updateEpisodeParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number() });
+  const updateEpisodeParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number().min(0) });
 
   const updateEpisodeRequestBodySchema = s_EpisodeUpdateRequest;
 
@@ -1441,7 +1441,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const deleteEpisodeParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number() });
+  const deleteEpisodeParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number().min(0) });
 
   const deleteEpisodeResponseBodyValidator = responseValidationFactory(
     [
@@ -1519,7 +1519,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const listSegmentsParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number() });
+  const listSegmentsParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number().min(0) });
 
   const listSegmentsQuerySchema = z.object({
     take: z.coerce.number().min(1).max(100).optional().default(50),
@@ -1686,7 +1686,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     },
   );
 
-  const createSegmentsBatchParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number() });
+  const createSegmentsBatchParamSchema = z.object({
+    mediaPublicId: z.string(),
+    episodeNumber: z.coerce.number().min(0),
+  });
 
   const createSegmentsBatchRequestBodySchema = s_SegmentBatchCreateRequest;
 

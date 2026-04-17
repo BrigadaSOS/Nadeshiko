@@ -116,7 +116,7 @@ const scrollImmersiveView = async () => {
   const result = currentResult.value;
   if (!result || !lyricsContainer.value) return;
 
-  const elementId = `sentence-${result.segment.publicId}`;
+  const elementId = `sentence-${result.segment.segmentPublicId}`;
   const immersiveElement = await waitForElement(elementId);
 
   if (immersiveElement) {
@@ -140,7 +140,7 @@ const scrollMainView = async () => {
   const result = currentResult.value;
   if (!result) return;
 
-  const mainPageElement = await waitForElement(result.segment.publicId);
+  const mainPageElement = await waitForElement(result.segment.segmentPublicId);
   if (mainPageElement) {
     mainPageElement.scrollIntoView({ behavior, block: 'center' });
   }
@@ -335,8 +335,8 @@ const getAnimeImage = (result: any) => {
                                 class="w-full h-full overflow-y-auto no-scrollbar scroll-smooth flex flex-col justify-center mask-gradient">
                                 <div
                                     class="flex flex-col items-center justify-center w-full min-h-0 py-12 transition-all duration-500">
-                                    <p v-for="(sentence, index) in playlist" :key="sentence.segment.publicId"
-                                        :id="`sentence-${sentence.segment.publicId}`"
+                                    <p v-for="(sentence, index) in playlist" :key="sentence.segment.segmentPublicId"
+                                        :id="`sentence-${sentence.segment.segmentPublicId}`"
                                         lang="ja"
                                         :class="getSentenceStyle(index).classes" :style="getSentenceStyle(index).style"
                                         v-html="getJapaneseContent(sentence)"

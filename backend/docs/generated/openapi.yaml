@@ -883,7 +883,8 @@ paths:
           required: true
           schema:
             type: integer
-          description: Episode number
+            minimum: 0
+          description: Episode number (0 for movies/specials)
           example: 1
       responses:
         '200':
@@ -928,7 +929,8 @@ paths:
           required: true
           schema:
             type: integer
-          description: Episode number
+            minimum: 0
+          description: Episode number (0 for movies/specials)
           example: 1
       requestBody:
         required: true
@@ -979,7 +981,8 @@ paths:
           required: true
           schema:
             type: integer
-          description: Episode number
+            minimum: 0
+          description: Episode number (0 for movies/specials)
           example: 1
       responses:
         '204':
@@ -1021,7 +1024,8 @@ paths:
           required: true
           schema:
             type: integer
-          description: Episode number
+            minimum: 0
+          description: Episode number (0 for movies/specials)
           example: 1
         - name: take
           in: query
@@ -1136,7 +1140,8 @@ paths:
           required: true
           schema:
             type: integer
-          description: Episode number
+            minimum: 0
+          description: Episode number (0 for movies/specials)
           example: 1
       requestBody:
         required: true
@@ -2194,47 +2199,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/reindex:
-    post:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: triggerReindex
-      summary: Reindex segments into Elasticsearch
-      description: |
-        Reindexes segments from the PostgreSQL database into Elasticsearch.
-        Allows filtering by specific media entries and episodes.
-
-        **Behavior:**
-        - If no filters provided, reindexes all segments
-        - If `media` is provided, reindexes segments from those media entries
-        - If a media item includes `episodes`, only those episodes are reindexed for that media
-      security:
-        - SessionCookie:
-            - ADMIN
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReindexRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReindexResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -4743,7 +4707,8 @@ components:
           example: https://example.com/thumbnails/episode1.jpg
         episodeNumber:
           type: integer
-          description: Episode number within the media (must be unique for this media)
+          description: Episode number within the media (must be unique for this media; 0 for movies/specials)
+          minimum: 0
           example: 1
     EpisodeUpdateRequest:
       type: object
@@ -4958,7 +4923,7 @@ components:
       type: object
       required:
         - type
-        - mediaId
+        - mediaPublicId
       properties:
         type:
           type: string
@@ -4966,7 +4931,7 @@ components:
             - MEDIA
           description: Report target type
           example: MEDIA
-        mediaId:
+        mediaPublicId:
           type: string
           description: publicId of the media this report targets
           example: V1StGXR8_Z5d
@@ -4974,8 +4939,8 @@ components:
       type: object
       required:
         - type
-        - mediaId
-        - segmentId
+        - mediaPublicId
+        - segmentPublicId
       properties:
         type:
           type: string
@@ -4983,7 +4948,7 @@ components:
             - SEGMENT
           description: Report target type
           example: SEGMENT
-        mediaId:
+        mediaPublicId:
           type: string
           description: publicId of the media this report targets
           example: V1StGXR8_Z5d
@@ -4991,7 +4956,7 @@ components:
           type: integer
           description: Episode number containing the segment
           example: 5
-        segmentId:
+        segmentPublicId:
           type: string
           description: Segment publicId
           example: abc123def456
@@ -5052,7 +5017,7 @@ components:
       type: object
       required:
         - type
-        - mediaId
+        - mediaPublicId
         - episodeNumber
       properties:
         type:
@@ -5061,7 +5026,7 @@ components:
             - EPISODE
           description: Report target type
           example: EPISODE
-        mediaId:
+        mediaPublicId:
           type: string
           description: publicId of the media this report targets
           example: V1StGXR8_Z5d
@@ -5073,8 +5038,8 @@ components:
       type: object
       required:
         - type
-        - mediaId
-        - segmentId
+        - mediaPublicId
+        - segmentPublicId
       properties:
         type:
           type: string
@@ -5082,7 +5047,7 @@ components:
             - SEGMENT
           description: Report target type
           example: SEGMENT
-        mediaId:
+        mediaPublicId:
           type: string
           description: publicId of the media this report targets
           example: V1StGXR8_Z5d
@@ -5090,7 +5055,7 @@ components:
           type: integer
           description: Episode number containing the segment
           example: 5
-        segmentId:
+        segmentPublicId:
           type: string
           nullable: true
           description: Segment publicId
@@ -5588,6 +5553,7 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
           description: Name of the collection
           example: My Study List
         visibility:
@@ -5626,93 +5592,6 @@ components:
           nullable: true
           maxLength: 500
           description: Updated annotation
-    ReindexRequest:
-      type: object
-      description: Request to reindex segments from the database into Elasticsearch
-      properties:
-        media:
-          type: array
-          description: |-
-            Array of media to reindex. If not provided, all media will be reindexed.
-            Each media can optionally specify which episodes to reindex.
-            If episodes are not specified for a media, all episodes will be reindexed.
-          items:
-            type: object
-            required:
-              - mediaId
-            properties:
-              mediaId:
-                type: integer
-                description: The ID of the media
-                example: 5
-              episodes:
-                type: array
-                description: |-
-                  Optional array of episode numbers to reindex.
-                  If not provided, all episodes for this media will be reindexed.
-                items:
-                  type: integer
-                example:
-                  - 1
-                  - 3
-                  - 5
-          example:
-            - mediaId: 5
-              episodes:
-                - 1
-                - 3
-            - mediaId: 10
-    ReindexResponse:
-      type: object
-      description: Response from the reindex operation
-      required:
-        - success
-        - message
-        - stats
-        - errors
-      properties:
-        success:
-          type: boolean
-          description: Whether the reindex operation completed successfully
-        message:
-          type: string
-          description: Human-readable message about the reindex operation
-        stats:
-          type: object
-          description: Statistics about the reindex operation
-          required:
-            - totalSegments
-            - successfulIndexes
-            - failedIndexes
-            - mediaProcessed
-          properties:
-            totalSegments:
-              type: integer
-              description: Total number of segments processed
-            successfulIndexes:
-              type: integer
-              description: Number of segments successfully indexed
-            failedIndexes:
-              type: integer
-              description: Number of segments that failed to index
-            mediaProcessed:
-              type: integer
-              description: Number of media items processed
-        errors:
-          type: array
-          description: Array of errors that occurred during reindexing (if any)
-          items:
-            type: object
-            required:
-              - segmentId
-              - error
-            properties:
-              segmentId:
-                type: integer
-                description: ID of the segment that failed
-              error:
-                type: string
-                description: Error message
     ReportTargetType:
       type: string
       description: Kind of entity a report is about

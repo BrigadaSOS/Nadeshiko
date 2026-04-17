@@ -12,8 +12,8 @@ const stripTags = (text: string) => {
 type ActivityItem = {
   id: number;
   activityType: string;
-  segmentId?: string | null;
-  mediaId?: number | null;
+  segmentPublicId?: string | null;
+  mediaPublicId?: string | null;
   searchQuery?: string | null;
   mediaName?: string | null;
   japaneseText?: string | null;
@@ -26,7 +26,7 @@ type ActivityStats = {
   totalPlays: number;
   totalShares: number;
   streakDays?: number;
-  topMedia: { mediaId: number; count: number }[];
+  topMedia: { mediaPublicId: string; mediaName: string; count: number }[];
 };
 
 type StatsRange = '7d' | '30d' | '90d' | 'all';
@@ -323,7 +323,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
     if (
       prev &&
       prev.activityType === item.activityType &&
-      prev.segmentId === item.segmentId &&
+      prev.segmentPublicId === item.segmentPublicId &&
       prev.searchQuery === item.searchQuery
     ) {
       prev.count++;
@@ -677,8 +677,8 @@ onMounted(async () => {
                 {{ activity.searchQuery }}
               </a>
               <a
-                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE' || activity.activityType === 'ANKI_EXPORT') && activity.segmentId && (activity.mediaName || activity.japaneseText)"
-                :href="`/sentence/${activity.segmentId}`"
+                v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE' || activity.activityType === 'ANKI_EXPORT') && activity.segmentPublicId && (activity.mediaName || activity.japaneseText)"
+                :href="`/sentence/${activity.segmentPublicId}`"
                 class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
               >
                 <span v-if="activity.mediaName" class="text-gray-400">{{ activity.mediaName }}</span>

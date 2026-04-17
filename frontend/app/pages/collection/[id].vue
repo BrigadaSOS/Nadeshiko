@@ -9,26 +9,15 @@ const collectionId = computed(() => String(route.params.id));
 const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data, response } = await sdk.getCollection({
-      path: { collectionId: collectionId.value },
-      query: { take: 20 },
+    const { data, response } = await sdk.searchCollectionSegments({
+      path: { collectionPublicId: collectionId.value },
+      body: { take: 20, include: ['media'] },
     });
     if (response.status === 403 || response.status === 401) {
       await navigateTo('/', { redirectCode: 302 });
       return null;
     }
-    if (!data) return null;
-    const segments = (data.segments ?? []).map((entry: any) => entry.result).filter(Boolean);
-    return resolveSearchResponse({
-      segments,
-      includes: data.includes,
-      pagination: {
-        hasMore: data.pagination?.hasMore ?? false,
-        cursor: data.pagination?.cursor ?? '',
-        estimatedTotalHits: data.totalCount ?? 0,
-        estimatedTotalHitsRelation: 'EXACT',
-      },
-    });
+    return data ? resolveSearchResponse(data) : null;
   } catch {
     return null;
   }
@@ -37,7 +26,9 @@ const fetchSentenceData = async () => {
 const fetchStatsData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data } = await sdk.getCollectionStats({ path: { collectionId: collectionId.value } });
+    const { data } = await sdk.getCollectionStats({
+      path: { collectionPublicId: collectionId.value },
+    });
     return data ? resolveStatsResponse(data) : null;
   } catch {
     return null;
@@ -61,8 +52,7 @@ const { data: collectionDetails } = await useAsyncData(
   async () => {
     const sdk = useNadeshikoSdk();
     const { data, response } = await sdk.getCollection({
-      path: { collectionId: collectionId.value },
-      query: { take: 1 },
+      path: { collectionPublicId: collectionId.value },
     });
     if (response.status === 403 || response.status === 401) {
       await navigateTo('/', { redirectCode: 302 });

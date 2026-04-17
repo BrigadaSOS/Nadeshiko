@@ -33,12 +33,10 @@ import type {
   t_ListAdminReportsQuerySchema,
   t_MediaAudit,
   t_MediaAuditRun,
-  t_ReindexResponse,
   t_Report,
   t_RunAdminMediaAuditParamSchema,
   t_RunAdminMediaAuditQuerySchema,
   t_RunAuditResponse,
-  t_TriggerReindexRequestBodySchema,
   t_UpdateAdminMediaAuditParamSchema,
   t_UpdateAdminMediaAuditRequestBodySchema,
   t_UpdateAdminReportParamSchema,
@@ -63,31 +61,12 @@ import {
   s_Error500,
   s_MediaAudit,
   s_MediaAuditRun,
-  s_ReindexRequest,
-  s_ReindexResponse,
   s_Report,
   s_ReportSource,
   s_ReportTargetType,
   s_RunAuditResponse,
   s_UpdateReportRequest,
 } from '../schemas.ts';
-
-export type TriggerReindexResponder = {
-  with200(): ExpressRuntimeResponse<t_ReindexResponse>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type TriggerReindex = (
-  params: Params<void, void, t_TriggerReindexRequestBodySchema | undefined, void>,
-  respond: TriggerReindexResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type ListAdminReportsResponder = {
   with200(): ExpressRuntimeResponse<t_AdminReportListResponse>;
@@ -314,7 +293,6 @@ export type UpdateAnnouncement = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AdminImplementation = {
-  triggerReindex: TriggerReindex;
   listAdminReports: ListAdminReports;
   batchUpdateAdminReports: BatchUpdateAdminReports;
   bulkUpdateAdminReports: BulkUpdateAdminReports;
@@ -332,77 +310,6 @@ export type AdminImplementation = {
 
 export function createAdminRouter(implementation: AdminImplementation): Router {
   const router = Router();
-
-  const triggerReindexRequestBodySchema = s_ReindexRequest.optional();
-
-  const triggerReindexResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_ReindexResponse],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // triggerReindex
-  router.post(`/v1/admin/reindex`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(triggerReindexRequestBodySchema, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_ReindexResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      const response = await implementation.triggerReindex(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(triggerReindexResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      next(error);
-    }
-  });
 
   const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),

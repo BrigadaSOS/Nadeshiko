@@ -2,24 +2,32 @@ import type { ListEpisodes, CreateEpisode, GetEpisode, UpdateEpisode, DeleteEpis
 import { Episode, Media, Segment } from '@app/models';
 import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episodeMapper';
+import { encodeKeysetCursor, decodeKeysetCursor } from '@lib/cursor';
 
 export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
+  // findOneOrFail handles the 404 case if the media doesn't exist
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
 
-  const { items: episodes, pagination } = await Episode.paginateWithKeyset({
-    take: query.take,
-    cursor: query.cursor,
-    orderBy: { column: 'id', direction: 'ASC' },
-    exists: {
-      entity: Media,
-      where: { id: media.id },
-    },
-    query: () => Episode.createQueryBuilder('episode').where('episode.mediaId = :mediaId', { mediaId: media.id }),
-  });
+  const take = query.take;
+  const afterEpisodeNumber = decodeKeysetCursor<number>(query.cursor);
+
+  const qb = Episode.createQueryBuilder('episode')
+    .where('episode.mediaId = :mediaId', { mediaId: media.id })
+    .orderBy('episode.episodeNumber', 'ASC')
+    .take(take + 1);
+
+  if (afterEpisodeNumber !== undefined) {
+    qb.andWhere('episode.episodeNumber > :after', { after: afterEpisodeNumber });
+  }
+
+  const rows = await qb.getMany();
+  const hasMore = rows.length > take;
+  const episodes = hasMore ? rows.slice(0, take) : rows;
+  const nextCursor = hasMore ? encodeKeysetCursor(episodes[episodes.length - 1].episodeNumber) : null;
 
   return respond.with200().body({
     episodes: toEpisodeListDTO(episodes, media.publicId),
-    pagination,
+    pagination: { hasMore, cursor: nextCursor },
   });
 };
 

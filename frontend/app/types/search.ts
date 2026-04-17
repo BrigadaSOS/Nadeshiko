@@ -3,6 +3,7 @@ export type {
   MediaFilterItem,
   Segment,
   CategoryCount,
+  Media,
   SearchResponse as SdkSearchResponse,
   SearchStatsResponse as SdkSearchStatsResponse,
   SearchMultipleResponse as SdkSearchMultipleResponse,
@@ -10,16 +11,7 @@ export type {
   MediaListResponse as SdkMediaListResponse,
 } from '@brigadasos/nadeshiko-sdk';
 
-import type {
-  Media as SdkMedia,
-  Segment,
-  MediaSearchStats,
-  PaginationInfo,
-  WordMatchMedia,
-} from '@brigadasos/nadeshiko-sdk';
-
-/** SDK Media extended with slug (added before SDK is republished). */
-export type Media = SdkMedia & { slug: string };
+import type { Media, Segment, MediaSearchStats, SearchPagination, WordMatchMedia } from '@brigadasos/nadeshiko-sdk';
 
 /** A search result with includes resolved (segment joined with its media). */
 export type SearchResult = {
@@ -33,7 +25,7 @@ export type SearchResult = {
 /** Search response with includes resolved into flat SearchResult array. */
 export type SearchResponse = {
   results: SearchResult[];
-  pagination?: PaginationInfo;
+  pagination?: SearchPagination;
 };
 
 /** MediaSearchStats enriched with media metadata from includes. */

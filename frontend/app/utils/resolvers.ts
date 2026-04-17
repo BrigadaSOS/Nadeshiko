@@ -18,31 +18,31 @@ import type {
 } from '~/types/search';
 import type { WordMatch } from '@brigadasos/nadeshiko-sdk';
 
-const EMPTY_MEDIA: Media = {
-  id: 0,
-  publicId: '',
-  externalIds: {},
+const emptyMedia = (mediaPublicId: string): Media => ({
+  mediaPublicId,
+  slug: '',
+  externalIds: { anilist: '', imdb: '', tmdb: '', tvdb: '' },
   nameJa: '',
   nameRomaji: '',
   nameEn: '',
-  airingFormat: '',
-  airingStatus: '',
+  airingFormat: 'TV',
+  airingStatus: 'FINISHED',
   genres: [],
   coverUrl: '',
   bannerUrl: '',
   startDate: '',
+  endDate: '',
   category: 'ANIME',
   segmentCount: 0,
   episodeCount: 0,
   studio: '',
-  slug: '',
-  seasonName: '',
+  seasonName: 'WINTER',
   seasonYear: 0,
-};
+});
 
 function resolveSearchResult(segment: Segment, mediaMap: Record<string, Media>): SearchResult {
   return {
-    media: mediaMap[segment.mediaPublicId] ?? { ...EMPTY_MEDIA, id: segment.mediaId, publicId: segment.mediaPublicId },
+    media: mediaMap[segment.mediaPublicId] ?? emptyMedia(segment.mediaPublicId),
     segment,
     blobAudio: null,
     blobAudioUrl: null,
@@ -69,14 +69,14 @@ export function resolveStatsResponse(raw: SdkSearchStatsResponse): SearchStatsRe
 
   const media: ResolvedMediaStats[] =
     raw.media?.map((stat) => {
-      const included = mediaMap[stat.publicId];
+      const included = mediaMap[stat.mediaPublicId];
       return {
         ...stat,
         nameRomaji: included?.nameRomaji ?? '',
         nameEn: included?.nameEn ?? '',
         nameJa: included?.nameJa ?? '',
         category: included?.category ?? 'ANIME',
-        airingFormat: included?.airingFormat ?? '',
+        airingFormat: included?.airingFormat ?? 'TV',
         slug: included?.slug ?? '',
       };
     }) ?? [];

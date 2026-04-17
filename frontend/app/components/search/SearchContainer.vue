@@ -38,7 +38,7 @@ const { t } = useI18n();
 const sdk = useNadeshikoSdk();
 const posthog = usePostHog();
 const { contentRating } = useContentRating();
-const { excludedLanguages } = useTranslationVisibility();
+const { includedLanguages } = useTranslationVisibility();
 const route = useRoute();
 const router = useRouter();
 const playerStore = usePlayerStore();
@@ -92,7 +92,7 @@ const searchData = computed(() => {
   const hidden = new Set(hiddenMediaIds.value);
 
   const allMedia = statsPayload?.media || ([] as ResolvedMediaStats[]);
-  const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.publicId)) : allMedia;
+  const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.mediaPublicId)) : allMedia;
 
   const categories =
     hidden.size > 0 ? recomputeCategories(filteredMedia) : statsPayload?.categories || ([] as ResolvedCategoryCount[]);
@@ -111,7 +111,7 @@ const animeTabName = computed(() => {
     return props.collectionName ?? t('searchContainer.collectionTabPrefix');
   }
   if (media.value) {
-    const mediaStat = (searchData.value?.media || []).find((item) => item.publicId === media.value);
+    const mediaStat = (searchData.value?.media || []).find((item) => item.mediaPublicId === media.value);
     const mediaSource = mediaStat || searchData.value?.results?.[0]?.media || null;
 
     if (mediaSource) {
@@ -168,7 +168,9 @@ applyRouteQuery(route);
 const fetchStats = async () => {
   try {
     if (props.collectionId) {
-      const { data, response } = await sdk.getCollectionStats({ path: { collectionId: props.collectionId } });
+      const { data, response } = await sdk.getCollectionStats({
+        path: { collectionPublicId: props.collectionId },
+      });
       if (response.status === 403 || response.status === 401) {
         await navigateTo('/', { redirectCode: 302 });
         return;
@@ -185,7 +187,9 @@ const fetchStats = async () => {
     }
 
     if (props.listMediaIds && props.listMediaIds.length > 0) {
-      filters.media = { include: props.listMediaIds.map((id: number) => ({ mediaId: String(id) })) };
+      filters.media = {
+        include: props.listMediaIds.map((id: number) => ({ mediaPublicId: String(id) })),
+      };
     }
 
     filters.contentRating = contentRating.value;
@@ -195,8 +199,8 @@ const fetchStats = async () => {
         exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
       };
     }
-    if (excludedLanguages.value.length > 0) {
-      filters.languages = { exclude: excludedLanguages.value };
+    if (includedLanguages.value) {
+      filters.languages = includedLanguages.value;
     }
 
     const { data } = await sdk.getSearchStats({
@@ -239,8 +243,8 @@ const fetchSentences = async () => {
 
     if (props.collectionId) {
       const { data, response: fetchResponse } = await sdk.searchCollectionSegments({
-        path: { collectionId: props.collectionId },
-        query: {
+        path: { collectionPublicId: props.collectionId },
+        body: {
           ...(cursor.value ? { cursor: cursor.value } : {}),
           take: 20,
         },
@@ -258,10 +262,11 @@ const fetchSentences = async () => {
         filters.category = [mappedCategory];
       }
 
-      // Build media include filter
-      const mediaInclude: Array<{ mediaId: string; episodes?: number[] }> = [];
+      const mediaInclude: Array<{ mediaPublicId: string; episodes?: number[] }> = [];
       if (media.value) {
-        const mediaEntry: { mediaId: string; episodes?: number[] } = { mediaId: String(media.value) };
+        const mediaEntry: { mediaPublicId: string; episodes?: number[] } = {
+          mediaPublicId: String(media.value),
+        };
         if (episode.value !== null) {
           mediaEntry.episodes = [episode.value];
         }
@@ -269,7 +274,7 @@ const fetchSentences = async () => {
       }
       if (props.listMediaIds && props.listMediaIds.length > 0) {
         for (const id of props.listMediaIds) {
-          mediaInclude.push({ mediaId: String(id) });
+          mediaInclude.push({ mediaPublicId: String(id) });
         }
       }
       if (mediaInclude.length > 0) {
@@ -283,8 +288,8 @@ const fetchSentences = async () => {
           exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
         };
       }
-      if (excludedLanguages.value.length > 0) {
-        filters.languages = { exclude: excludedLanguages.value };
+      if (includedLanguages.value) {
+        filters.languages = includedLanguages.value;
       }
 
       const isInitialSearch = !cursor.value;
@@ -417,26 +422,26 @@ const categoryFilter = (categoryKey: string) => {
 
 const selectedMediaStat = computed(() => {
   if (!media.value || !searchData.value?.media) return null;
-  return searchData.value.media.find((stat) => stat.publicId === media.value) ?? null;
+  return searchData.value.media.find((stat) => stat.mediaPublicId === media.value) ?? null;
 });
 
 const isSelectedMediaMovie = computed(() => selectedMediaStat.value?.airingFormat === 'MOVIE');
 
 const getEpisodeHitsData = () => {
-  return selectedMediaStat.value?.episodeHits || {};
+  return selectedMediaStat.value?.episodeHits || [];
 };
 
 const handleRemoveFromCollection = async (segmentPublicId: string) => {
   if (!props.collectionId) return;
   try {
     await sdk.removeSegmentFromCollection({
-      path: { collectionId: props.collectionId, segmentId: segmentPublicId },
+      path: { collectionPublicId: props.collectionId, segmentPublicId },
     });
     // Remove from current results
     if (sentenceData.value?.results) {
       sentenceData.value = {
         ...sentenceData.value,
-        results: sentenceData.value.results.filter((r) => r.segment.publicId !== segmentPublicId),
+        results: sentenceData.value.results.filter((r) => r.segment.segmentPublicId !== segmentPublicId),
       };
     }
     // Refresh stats

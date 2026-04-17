@@ -37,14 +37,14 @@ const openEditModal = (mediaInfo) => {
 };
 
 const onEditSuccess = (updatedMedia) => {
-  const index = media.value.findIndex((m) => m.id === updatedMedia.id);
+  const index = media.value.findIndex((m) => m.mediaPublicId === updatedMedia.mediaPublicId);
   if (index !== -1) {
     media.value[index] = { ...media.value[index], ...updatedMedia };
   }
 };
 
-const onDeleteSuccess = (mediaId) => {
-  media.value = media.value.filter((m) => m.id !== mediaId);
+const onDeleteSuccess = (mediaPublicId) => {
+  media.value = media.value.filter((m) => m.mediaPublicId !== mediaPublicId);
 };
 
 const secondaryMediaNames = (mediaInfo) => {
@@ -160,7 +160,7 @@ const filteredMedia = computed(() => {
   if (showHidden.value) return media.value;
   const hidden = new Set(hiddenMediaIds.value);
   if (hidden.size === 0) return media.value;
-  return media.value.filter((m) => !hidden.has(m.publicId));
+  return media.value.filter((m) => !hidden.has(m.mediaPublicId));
 });
 
 const hasHiddenMedia = computed(() => hiddenMediaIds.value.length > 0);
@@ -240,7 +240,7 @@ const handleFilterChange = (category) => {
 const trackMediaSelected = (mediaInfo, viewMode) => {
   const posthog = usePostHog();
   posthog?.capture('media_selected', {
-    media_id: mediaInfo.publicId,
+    media_id: mediaInfo.mediaPublicId,
     media_name: mediaName(mediaInfo),
     view_mode: viewMode,
   });
@@ -358,14 +358,14 @@ watch([searchQuery, filterCategory], () => {
         <div
           v-if="!loading || filteredMedia.length > 0"
           v-for="(mediaInfo, index) in filteredMedia"
-          :key="mediaInfo.id"
+          :key="mediaInfo.mediaPublicId"
           data-testid="media-card-container"
           class="flex flex-col items-center"
         >
           <div
             class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
-            <NuxtLink data-testid="media-card" :to="`/search?media=${mediaInfo.publicId}`" @click="trackMediaSelected(mediaInfo, 'grid')">
+            <NuxtLink data-testid="media-card" :to="`/search?media=${mediaInfo.mediaPublicId}`" @click="trackMediaSelected(mediaInfo, 'grid')">
               <img
                 :src="mediaInfo.coverUrl"
                 :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
@@ -383,7 +383,7 @@ watch([searchQuery, filterCategory], () => {
               <UiBaseIcon :path="mdiPencilOutline" w="w-4" h="h-4" size="16" />
             </button>
           </div>
-          <NuxtLink :to="`/search?media=${mediaInfo.publicId}`" class="mt-2 text-center justify-center flex flex-col items-center">
+          <NuxtLink :to="`/search?media=${mediaInfo.mediaPublicId}`" class="mt-2 text-center justify-center flex flex-col items-center">
             <h3 lang="ja" data-testid="media-card-title" class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
               {{ mediaName(mediaInfo) }}
             </h3>
@@ -419,7 +419,7 @@ watch([searchQuery, filterCategory], () => {
         <div
           v-if="filteredMedia.length > 0"
           v-for="(mediaInfo, index) in filteredMedia"
-          :key="mediaInfo.id"
+          :key="mediaInfo.mediaPublicId"
           data-testid="media-list-item"
           class="w-full relative mb-4"
         >
@@ -506,7 +506,7 @@ watch([searchQuery, filterCategory], () => {
                   </a>
 
                   <NuxtLink
-                    :to="`/search?media=${mediaInfo.publicId}`"
+                    :to="`/search?media=${mediaInfo.mediaPublicId}`"
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-input-focus-ring dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
                     @click="trackMediaSelected(mediaInfo, 'list')"
                   >

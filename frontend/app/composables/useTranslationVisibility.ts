@@ -144,11 +144,14 @@ export function useTranslationVisibility() {
 
   const englishMode = computed(() => prefs.value.englishMode);
   const spanishMode = computed(() => prefs.value.spanishMode);
-  const excludedLanguages = computed<Array<'en' | 'es'>>(() => {
-    const excluded: Array<'en' | 'es'> = [];
-    if (englishMode.value === 'hidden') excluded.push('en');
-    if (spanishMode.value === 'hidden') excluded.push('es');
-    return excluded;
+  const includedLanguages = computed<Array<'EN' | 'ES'> | undefined>(() => {
+    const englishHidden = englishMode.value === 'hidden';
+    const spanishHidden = spanishMode.value === 'hidden';
+    if (!englishHidden && !spanishHidden) return undefined;
+    const included: Array<'EN' | 'ES'> = [];
+    if (!englishHidden) included.push('EN');
+    if (!spanishHidden) included.push('ES');
+    return included;
   });
 
   const cycleEnglishMode = () => updateModePreference('englishMode', nextMode(englishMode.value));
@@ -157,7 +160,7 @@ export function useTranslationVisibility() {
   return {
     englishMode,
     spanishMode,
-    excludedLanguages,
+    includedLanguages,
     cycleEnglishMode,
     cycleSpanishMode,
   };

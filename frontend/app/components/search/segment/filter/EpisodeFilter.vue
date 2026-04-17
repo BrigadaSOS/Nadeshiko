@@ -5,8 +5,8 @@ const route = useRoute();
 
 const props = defineProps({
   episodeHits: {
-    type: Object,
-    default: () => ({}),
+    type: Array,
+    default: () => [],
   },
   selectedMediaId: {
     type: [Number, String],
@@ -21,10 +21,10 @@ const selectedEpisodeId = computed(() => {
 });
 
 const episodesList = computed(() => {
-  return Object.entries(props.episodeHits)
-    .map(([epNum, count]) => ({
-      episode: Number(epNum),
-      count,
+  return [...props.episodeHits]
+    .map((entry) => ({
+      episode: entry.episode,
+      count: entry.hitCount,
     }))
     .sort((a, b) => a.episode - b.episode);
 });

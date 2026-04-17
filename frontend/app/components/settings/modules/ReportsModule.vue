@@ -1,27 +1,17 @@
 <script setup lang="ts">
-import type { MediaAudit, MediaAuditRun } from '@brigadasos/nadeshiko-sdk';
+import type {
+  AdminReportGroup,
+  AdminReportListResponse,
+  MediaAudit,
+  MediaAuditRun,
+  ReportStatus,
+  UpdateReportRequest,
+  BulkUpdateReportsRequest,
+  BulkDeleteReportsRequest,
+} from '@brigadasos/nadeshiko-sdk';
 
-// TODO: replace with SDK types once regenerated
-type ReportGroupItem = {
-  id: number;
-  reason: string;
-  description: string | null;
-  source: string;
-  reporterName: string;
-  createdAt: string;
-  adminNotes: string | null;
-};
-
-type ReportGroup = {
-  target: { type: string; mediaId: string; episodeNumber?: number; segmentId?: string | null };
-  mediaName: string;
-  status: string;
-  reportCount: number;
-  reporterCount: number;
-  firstReportedAt: string;
-  lastStatusChange: string | null;
-  reports: ReportGroupItem[];
-};
+type ReportGroup = AdminReportGroup;
+type ReportGroupItem = AdminReportGroup['reports'][number];
 
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();
@@ -89,11 +79,11 @@ const buildReportQuery = (append = false) => {
 const fetchReports = async (append = false) => {
   isLoading.value = true;
   try {
-    const data = await $fetch<{ groups: ReportGroup[]; pagination: { hasMore: boolean; cursor: string | null } }>(
-      '/v1/admin/reports',
-      { query: buildReportQuery(append) },
-    );
-    const result = data ?? { groups: [], pagination: { hasMore: false, cursor: null } };
+    const { data } = await sdk.listAdminReports({ query: buildReportQuery(append) });
+    const result: AdminReportListResponse = data ?? {
+      groups: [],
+      pagination: { hasMore: false, cursor: '' },
+    };
 
     if (append) {
       groups.value.push(...result.groups);
@@ -149,16 +139,15 @@ const runAudit = async (auditName: string) => {
 };
 
 const updateReport = async (reportId: number, status?: string, adminNotes?: string) => {
-  const body: Record<string, string> = {};
+  const body: { status?: string; adminNotes?: string } = {};
   if (status !== undefined) body.status = status;
   if (adminNotes !== undefined) body.adminNotes = adminNotes;
 
   try {
-    await $fetch(`/v1/admin/reports/${reportId}`, {
-      method: 'PATCH',
-      body,
+    await sdk.updateAdminReport({
+      path: { reportId },
+      body: body as UpdateReportRequest,
     });
-    // Re-fetch to get updated group state
     await fetchReports();
     useToastSuccess(t('reports.admin.updateSuccess'));
   } catch {
@@ -283,12 +272,11 @@ const batchUpdate = async (status: string) => {
 
   isBatchUpdating.value = true;
   try {
-    const { updated } = await $fetch<{ count: number }>('/v1/admin/reports/batch', {
-      method: 'PATCH',
-      body: { ids, status },
+    const { data } = await sdk.batchUpdateAdminReports({
+      body: { ids, status: status as ReportStatus },
     });
     selectedGroupIndices.value = new Set();
-    useToastSuccess(`${updated} report(s) updated`);
+    useToastSuccess(`${data?.count ?? 0} report(s) updated`);
     await fetchReports();
   } catch {
     useToastError('Failed to update reports');
@@ -302,9 +290,7 @@ const batchDelete = async () => {
   if (ids.length === 0) return;
 
   isBatchUpdating.value = true;
-  const results = await Promise.allSettled(
-    ids.map((id) => $fetch<{ count: number }>(`/v1/admin/reports/${id}`, { method: 'DELETE' })),
-  );
+  const results = await Promise.allSettled(ids.map((id) => sdk.deleteAdminReport({ path: { reportId: id } })));
 
   const succeeded = results.filter((r) => r.status === 'fulfilled').length;
   const failed = results.length - succeeded;
@@ -316,8 +302,8 @@ const batchDelete = async () => {
   isBatchUpdating.value = false;
 };
 
-const buildBulkFilters = () => {
-  const filters: Record<string, string | boolean> = {};
+const buildBulkFilters = (): BulkUpdateReportsRequest['filters'] => {
+  const filters: BulkUpdateReportsRequest['filters'] = {};
   if (bulkStatusFilter.value) filters.status = bulkStatusFilter.value;
   if (sourceFilter.value) filters.source = sourceFilter.value;
   if (orphanedFilter.value) filters.orphaned = true;
@@ -328,15 +314,14 @@ const bulkDismissAllMatching = async () => {
   showDismissConfirm.value = false;
   isBulkDismissing.value = true;
   try {
-    const result = await $fetch<{ count: number }>('/v1/admin/reports/bulk', {
-      method: 'PATCH',
+    const { data } = await sdk.bulkUpdateAdminReports({
       body: {
         status: 'DISMISSED',
         filters: buildBulkFilters(),
       },
     });
 
-    useToastSuccess(`${result.count} report(s) dismissed`);
+    useToastSuccess(`${data?.count ?? 0} report(s) dismissed`);
     await fetchReports();
   } catch {
     useToastError('Failed to dismiss reports');
@@ -359,10 +344,8 @@ const deleteReport = async () => {
   pendingDeleteId.value = null;
 
   try {
-    const result = await $fetch<{ count: number }>(`/v1/admin/reports/${reportId}`, {
-      method: 'DELETE',
-    });
-    useToastSuccess(`${result.count} report(s) deleted`);
+    await sdk.deleteAdminReport({ path: { reportId } });
+    useToastSuccess('Report deleted');
     await fetchReports();
   } catch {
     useToastError('Failed to delete report');
@@ -373,14 +356,13 @@ const bulkDeleteAllMatching = async () => {
   showDeleteConfirm.value = false;
   isBulkDeleting.value = true;
   try {
-    const result = await $fetch<{ count: number }>('/v1/admin/reports/bulk', {
-      method: 'DELETE',
+    const { data } = await sdk.bulkDeleteAdminReports({
       body: {
-        filters: buildBulkFilters(),
+        filters: buildBulkFilters() as BulkDeleteReportsRequest['filters'],
       },
     });
 
-    useToastSuccess(`${result.count} report(s) deleted`);
+    useToastSuccess(`${data?.count ?? 0} report(s) deleted`);
     await fetchReports();
   } catch {
     useToastError('Failed to delete reports');
