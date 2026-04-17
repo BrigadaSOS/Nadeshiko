@@ -31,9 +31,7 @@ const SettingsCollectionsModule = defineAsyncComponent(
 const SettingsHiddenMediaModule = defineAsyncComponent(
   () => import('../../components/settings/modules/HiddenMediaModule.vue'),
 );
-const SettingsUsersModule = defineAsyncComponent(
-  () => import('../../components/settings/modules/DashboardModule.vue'),
-);
+const SettingsUsersModule = defineAsyncComponent(() => import('../../components/settings/modules/DashboardModule.vue'));
 const SettingsReportsModule = defineAsyncComponent(() => import('../../components/settings/modules/ReportsModule.vue'));
 const SettingsAnnouncementModule = defineAsyncComponent(
   () => import('../../components/settings/modules/AnnouncementModule.vue'),
