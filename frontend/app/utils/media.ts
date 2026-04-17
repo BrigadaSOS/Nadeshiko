@@ -187,20 +187,20 @@ export async function copyToClipboard(item: string) {
 }
 
 export async function getSharingURL(params: {
-  publicId: string;
-  mediaId?: number;
+  segmentPublicId: string;
+  mediaPublicId?: string;
   mediaName?: string;
   japaneseText?: string;
 }) {
   const { $i18n } = useNuxtApp();
   try {
-    await navigator.clipboard.writeText(`${window.location.origin}/sentence/${params.publicId}`);
+    await navigator.clipboard.writeText(`${window.location.origin}/sentence/${params.segmentPublicId}`);
     const message = $i18n.t('searchpage.main.labels.copiedsharingurl');
     useToastSuccess(message);
 
     const posthog = usePostHog();
     posthog?.capture('segment_shared', {
-      media_id: params.mediaId,
+      media_public_id: params.mediaPublicId,
       media_name: params.mediaName,
     });
 
@@ -211,8 +211,8 @@ export async function getSharingURL(params: {
         .trackUserActivity({
           body: {
             activityType: 'SHARE',
-            segmentId: params.publicId,
-            mediaId: params.mediaId,
+            segmentPublicId: params.segmentPublicId,
+            mediaPublicId: params.mediaPublicId,
             mediaName: params.mediaName,
             japaneseText: params.japaneseText,
           },

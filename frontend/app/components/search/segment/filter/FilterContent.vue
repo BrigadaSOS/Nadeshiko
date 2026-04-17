@@ -80,7 +80,7 @@ const filteredMedia = computed(() => {
   });
 
   const allOption = {
-    publicId: null,
+    mediaPublicId: null,
     displayName: allLabel.value,
     matchCount: totalCount,
   };
@@ -105,14 +105,13 @@ const selectedMediaId = computed(() => {
   return route.query.media ? String(route.query.media) : null;
 });
 
-const filterAnime = (publicId, _animeName) => {
+const filterAnime = (mediaPublicId, _animeName) => {
   const query = { ...route.query };
 
-  if (!publicId) {
+  if (!mediaPublicId) {
     delete query.media;
   } else {
-    query.media = publicId;
-    // Clear episode filter when selecting a different media
+    query.media = mediaPublicId;
     delete query.episode;
   }
 
@@ -151,9 +150,9 @@ const clearFilters = () => {
                 </div>
             </div>
             <div class="overflow-auto snap-y max-h-[14rem]">
-                <li class="snap-start" v-for="item in filteredMedia" :key="item.publicId || 'all'">
-                    <button @click="filterAnime(item.publicId, item.displayName)"
-                        :class="{ 'bg-sgrayhover': (!item.publicId && selectedMediaId === null) || (item.publicId === selectedMediaId) }"
+                <li class="snap-start" v-for="item in filteredMedia" :key="item.mediaPublicId || 'all'">
+                    <button @click="filterAnime(item.mediaPublicId, item.displayName)"
+                        :class="{ 'bg-sgrayhover': (!item.mediaPublicId && selectedMediaId === null) || (item.mediaPublicId === selectedMediaId) }"
                         class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
                         <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.displayName }}</span>
                         <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">

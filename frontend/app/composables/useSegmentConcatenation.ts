@@ -127,7 +127,7 @@ export function useSegmentConcatenation() {
     try {
       const sdk = useNadeshikoSdk();
       const raw = await sdk.getSegmentContext({
-        path: { uuid: result.segment.publicId },
+        path: { segmentPublicId: result.segment.segmentPublicId },
         query: {
           take: 1,
           contentRating: contentRating.value,

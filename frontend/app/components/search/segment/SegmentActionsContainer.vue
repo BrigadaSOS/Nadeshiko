@@ -86,7 +86,7 @@ const concatSentence = (direction: 'forward' | 'backward' | 'both') => {
   emit('concat-sentence', props.content, direction);
   posthog?.capture('segment_expanded', {
     direction,
-    media_id: props.content.media.id,
+    media_id: props.content.media.mediaPublicId,
   });
 };
 
@@ -97,8 +97,8 @@ const revertConcat = () => {
 const openContextModal = () => {
   emit('open-context-modal', props.content);
   posthog?.capture('context_viewed', {
-    media_id: props.content.media.id,
-    segment_id: props.content.segment.publicId,
+    media_id: props.content.media.mediaPublicId,
+    segment_id: props.content.segment.segmentPublicId,
   });
 };
 
@@ -118,7 +118,9 @@ const loadCollections = async () => {
   try {
     const { data } = await sdk.listCollections({ query: { take: 100 } });
     const allItems = data?.collections ?? [];
-    const items = allItems.filter((c) => c.type !== 'ANKI_EXPORT').map((c) => ({ id: c.publicId, name: c.name }));
+    const items = allItems
+      .filter((c) => c.type !== 'ANKI_EXPORT')
+      .map((c) => ({ id: c.collectionPublicId, name: c.name }));
     collections.value = items;
     collectionsLoaded.value = true;
 
@@ -149,8 +151,8 @@ const addToCollection = async (collection: CollectionOption, isQuickAdd = false)
   addingCollectionId.value = collection.id;
   try {
     await sdk.addSegmentToCollection({
-      path: { collectionId: collection.id },
-      body: { segmentId: props.content.segment.publicId },
+      path: { collectionPublicId: collection.id },
+      body: { segmentPublicId: props.content.segment.segmentPublicId },
     });
     posthog?.capture('segment_added_to_collection', {
       collection_name: collection.name,
@@ -340,7 +342,7 @@ const openCollectionsPage = async () => {
     data-testid="share-button"
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
-    @click="getSharingURL({ publicId: content.segment.publicId, mediaId: content.media.id, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
+    @click="getSharingURL({ segmentPublicId: content.segment.segmentPublicId, mediaPublicId: content.media.mediaPublicId, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
   >
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>

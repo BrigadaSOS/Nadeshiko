@@ -55,11 +55,11 @@ async function fetchWordsRaw(
   filter: string,
   cursor: string | undefined,
   take: number,
-): Promise<GetCoveredWordsResponse> {
+): Promise<GetCoveredWordsResponse | null> {
   const { data } = await sdk.getCoveredWords({
     query: { tier, minRank, filter: filter as 'ALL' | 'COVERED' | 'UNCOVERED', cursor, take },
   });
-  return data;
+  return data ?? null;
 }
 
 const { data: initialData } = await useAsyncData(
@@ -76,6 +76,7 @@ async function fetchWords(cursor: string | undefined = undefined, append: boolea
   loading.value = true;
   try {
     const data = await fetchWordsRaw(activeTier.value, tierMinRank(activeTier.value), activeFilter.value, cursor, 500);
+    if (!data) return;
     if (append) {
       words.value = [...words.value, ...data.words];
     } else {

@@ -223,10 +223,10 @@ export const userStore = defineStore('user', {
           }
         }
 
-        this.preferences = await $fetch<Record<string, any>>('/v1/user/preferences', {
-          method: 'GET',
-          credentials: 'include',
-        }).catch(() => ({}));
+        this.preferences = await useNadeshikoSdk()
+          .getUserPreferences()
+          .then((r) => (r.data ?? {}) as Record<string, any>)
+          .catch(() => ({}) as Record<string, any>);
       } catch {
         this.resetAuthState();
       }

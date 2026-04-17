@@ -8,7 +8,7 @@ const route = useRoute();
 
 const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
-const { excludedLanguages } = useTranslationVisibility();
+const { includedLanguages } = useTranslationVisibility();
 const { hiddenMediaExcludeFilter } = useHiddenMedia();
 
 const firstQueryValue = (value: string | string[] | undefined | null) => (Array.isArray(value) ? value[0] : value);
@@ -52,11 +52,10 @@ const fetchSentenceData = async () => {
     const q = searchQuery.value;
 
     if (route.query.uuid) {
-      // UUID lookup: fetch segment + media directly
-      const uuid = String(route.query.uuid);
-      const { data: segment } = await sdk.getSegment({ path: { publicId: uuid } });
+      const segmentPublicId = String(route.query.uuid);
+      const { data: segment } = await sdk.getSegment({ path: { segmentPublicId } });
       if (!segment) return null;
-      const { data: media } = await sdk.getMedia({ path: { mediaId: segment.mediaPublicId } });
+      const { data: media } = await sdk.getMedia({ path: { mediaPublicId: segment.mediaPublicId } });
       return resolveSearchResponse({
         segments: [segment],
         includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
@@ -70,8 +69,8 @@ const fetchSentenceData = async () => {
     }
 
     if (mediaQueryParam.value) {
-      const mediaEntry: { mediaId: string; episodes?: number[] } = {
-        mediaId: mediaQueryParam.value,
+      const mediaEntry: { mediaPublicId: string; episodes?: number[] } = {
+        mediaPublicId: mediaQueryParam.value,
       };
       if (episodeNumberParam.value !== null) {
         mediaEntry.episodes = [episodeNumberParam.value];
@@ -80,8 +79,8 @@ const fetchSentenceData = async () => {
     }
 
     filters.contentRating = contentRating.value;
-    if (excludedLanguages.value.length > 0) {
-      filters.languages = { exclude: excludedLanguages.value };
+    if (includedLanguages.value) {
+      filters.languages = includedLanguages.value;
     }
     if (!mediaQueryParam.value && hiddenMediaExcludeFilter.value.length > 0) {
       filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
@@ -128,8 +127,8 @@ const fetchStatsData = async () => {
     }
 
     filters.contentRating = contentRating.value;
-    if (excludedLanguages.value.length > 0) {
-      filters.languages = { exclude: excludedLanguages.value };
+    if (includedLanguages.value) {
+      filters.languages = includedLanguages.value;
     }
     if (hiddenMediaExcludeFilter.value.length > 0) {
       filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
@@ -252,7 +251,7 @@ const metaTags = computed(() => {
   } else if (mediaQueryParam.value && (initialSentenceData.value?.results?.length ?? 0) > 0) {
     const firstResult = initialSentenceData.value?.results[0];
     const animeName = firstResult ? mediaName(firstResult.media) : '';
-    const mediaStats = initialStatsData.value?.media?.find((s) => s.publicId === mediaQueryParam.value);
+    const mediaStats = initialStatsData.value?.media?.find((s) => s.mediaPublicId === mediaQueryParam.value);
 
     const filterEpisode = episodeNumberParam.value;
 
@@ -260,14 +259,14 @@ const metaTags = computed(() => {
     const episodeHits = mediaStats?.episodeHits;
 
     if (episodeHits && filterEpisode) {
-      totalResults = episodeHits[filterEpisode] || 0;
+      totalResults = episodeHits.find((h) => h.episode === filterEpisode)?.hitCount ?? 0;
     }
 
     const title = animeName;
     let description = `${totalResults.toLocaleString()} Japanese sentences from ${animeName} with English and Spanish translations`;
 
-    if (episodeHits && Object.keys(episodeHits).length > 0) {
-      const episodeCount = Object.keys(episodeHits).length;
+    if (episodeHits && episodeHits.length > 0) {
+      const episodeCount = episodeHits.length;
       if (filterEpisode) {
         description = `${totalResults.toLocaleString()} Japanese sentences from ${animeName} episode ${filterEpisode} with English and Spanish translations`;
       } else {

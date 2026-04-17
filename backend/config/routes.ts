@@ -13,7 +13,6 @@ import { requireSession, enforceAdminAccess } from '@app/middleware/routePolicie
 import { routeAuth } from 'generated/routeAuth';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
-import { triggerReindex } from '@app/controllers/adminController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
 import {
@@ -166,7 +165,6 @@ const CollectionsRoutes = createCollectionsRouter({
 });
 
 const AdminRoutes = createAdminRouter({
-  triggerReindex,
   listAdminReports,
   batchUpdateAdminReports,
   bulkUpdateAdminReports,

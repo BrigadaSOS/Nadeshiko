@@ -277,7 +277,7 @@ export const ankiStore = defineStore('anki', {
         const { data: listData } = await sdk.listCollections({ query: { take: 100 } });
 
         const existing = (listData?.collections ?? []).find((collection) => collection.type === 'ANKI_EXPORT');
-        if (existing) return existing.publicId;
+        if (existing) return existing.collectionPublicId;
 
         const { data: created } = await sdk.createCollection({
           body: {
@@ -286,7 +286,7 @@ export const ankiStore = defineStore('anki', {
           },
         });
 
-        return created?.publicId ?? null;
+        return created?.collectionPublicId ?? null;
       } catch {
         return null;
       }
@@ -297,19 +297,19 @@ export const ankiStore = defineStore('anki', {
       if (!userStore().isLoggedIn) return;
 
       try {
-        const collectionId = await this.getOrCreateAnkiExportsCollectionId();
-        if (!collectionId) return;
+        const collectionPublicId = await this.getOrCreateAnkiExportsCollectionId();
+        if (!collectionPublicId) return;
 
-        await $fetch(`/v1/collections/${collectionId}/segments`, {
-          method: 'POST',
-          credentials: 'include',
-          body: { segmentPublicId: sentence.segment.publicId },
+        const sdk = useNadeshikoSdk();
+        await sdk.addSegmentToCollection({
+          path: { collectionPublicId },
+          body: { segmentPublicId: sentence.segment.segmentPublicId },
         });
       } catch (error: unknown) {
         const err = error as { statusCode?: number };
         if (err.statusCode !== 409) {
           console.warn('[Anki] Could not sync segment to Anki Exports collection', {
-            segmentId: sentence.segment.publicId,
+            segmentId: sentence.segment.segmentPublicId,
             error,
           });
         }
@@ -388,7 +388,7 @@ export const ankiStore = defineStore('anki', {
 
         if (needsImage) {
           const req = this.executeAction('storeMediaFile', {
-            filename: `${sentence.segment.publicId}.webp`,
+            filename: `${sentence.segment.segmentPublicId}.webp`,
             url: sentence.segment.urls.imageUrl,
           }).then((r) => {
             imageResult = r;
@@ -402,12 +402,12 @@ export const ankiStore = defineStore('anki', {
             const blob64 = await blobToBase64(sentence.blobAudio);
             const raw = blob64.substring(blob64.indexOf(',') + 1);
             req = this.executeAction('storeMediaFile', {
-              filename: `${sentence.segment.publicId}.wav`,
+              filename: `${sentence.segment.segmentPublicId}.wav`,
               data: raw,
             });
           } else {
             req = this.executeAction('storeMediaFile', {
-              filename: `${sentence.segment.publicId}.mp3`,
+              filename: `${sentence.segment.segmentPublicId}.mp3`,
               url: sentence.segment.urls.audioUrl,
             });
           }
@@ -479,7 +479,7 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-info': {
                   const isMovie = sentence.media.airingFormat === 'MOVIE';
                   const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
-                  const sentenceUrl = `${window.location.origin}/sentence/${sentence.segment.publicId}`;
+                  const sentenceUrl = `${window.location.origin}/sentence/${sentence.segment.segmentPublicId}`;
                   const info =
                     `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
                     `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`;
@@ -515,8 +515,8 @@ export const ankiStore = defineStore('anki', {
             .trackUserActivity({
               body: {
                 activityType: 'ANKI_EXPORT',
-                segmentId: sentence.segment.publicId,
-                mediaId: sentence.media.id,
+                segmentPublicId: sentence.segment.segmentPublicId,
+                mediaPublicId: sentence.media.mediaPublicId,
                 mediaName: mediaName(sentence.media),
                 japaneseText: sentence.segment.textJa.content,
               },
@@ -527,7 +527,7 @@ export const ankiStore = defineStore('anki', {
         const posthog = usePostHog();
         posthog?.capture('anki_export_completed', {
           media_name: mediaName(sentence.media),
-          media_id: sentence.media.id,
+          media_id: sentence.media.mediaPublicId,
           export_method: id ? 'search_by_id' : 'last_card',
         });
 

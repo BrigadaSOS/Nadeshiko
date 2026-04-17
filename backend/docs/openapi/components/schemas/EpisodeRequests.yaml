@@ -36,7 +36,8 @@ EpisodeFields: &episodeFields
 EpisodeNumberField: &episodeNumberField
   episodeNumber:
     type: integer
-    description: Episode number within the media (must be unique for this media)
+    description: Episode number within the media (must be unique for this media; 0 for movies/specials)
+    minimum: 0
     example: 1
 
 EpisodeCreateRequest:

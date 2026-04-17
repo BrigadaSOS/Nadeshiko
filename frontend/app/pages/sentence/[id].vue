@@ -11,9 +11,9 @@ const id = computed(() => String(route.params.id));
 const fetchSentenceData = async () => {
   try {
     const sdk = useNadeshikoSdk();
-    const { data: segment } = await sdk.getSegment({ path: { publicId: id.value } });
+    const { data: segment } = await sdk.getSegment({ path: { segmentPublicId: id.value } });
     if (!segment) return null;
-    const { data: media } = await sdk.getMedia({ path: { mediaId: segment.mediaPublicId } });
+    const { data: media } = await sdk.getMedia({ path: { mediaPublicId: segment.mediaPublicId } });
     return resolveSearchResponse({
       segments: [segment],
       includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
@@ -35,15 +35,15 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
   return {
     media: [
       {
-        mediaId: result.media.id,
-        publicId: result.media.publicId,
+        mediaPublicId: result.media.mediaPublicId,
         matchCount: 1,
-        episodeHits: {},
+        episodeHits: [],
         nameRomaji: result.media.nameRomaji,
         nameEn: result.media.nameEn,
         nameJa: result.media.nameJa,
         category: result.media.category,
         airingFormat: result.media.airingFormat,
+        slug: result.media.slug,
       },
     ],
     categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1 }],

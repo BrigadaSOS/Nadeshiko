@@ -7,22 +7,6 @@ COPY package.json bun.lock ./
 COPY patches ./patches
 RUN bun install --frozen-lockfile
 
-FROM base AS toolbox
-RUN apt-get update && apt-get install -y --no-install-recommends unzip ca-certificates && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY --from=install /app/node_modules ./node_modules
-COPY bin ./bin
-COPY app ./app
-COPY config ./config
-COPY db ./db
-COPY lib ./lib
-COPY generated ./generated
-COPY scripts ./scripts
-COPY tsconfig.json ./tsconfig.json
-COPY package.json bun.lock ./
-ENTRYPOINT []
-CMD ["sleep", "infinity"]
-
 FROM node:22-slim AS release
 WORKDIR /app
 COPY --from=install /app/node_modules ./node_modules

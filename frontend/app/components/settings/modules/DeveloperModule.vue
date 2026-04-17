@@ -44,8 +44,11 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
   return unwrap(await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []));
 };
 
-const fetchMe = async (): Promise<Record<string, unknown> | null> =>
-  $fetch<Record<string, unknown>>('/v1/user/me', { method: 'GET', credentials: 'include' }).catch(() => null);
+const fetchMe = () =>
+  sdk
+    .getMe()
+    .then((r) => r.data ?? null)
+    .catch(() => null);
 
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData(
   'developer-api-keys',
@@ -56,13 +59,12 @@ const { data: apiData, refresh: refreshApiKeys } = await useAsyncData(
       .map(normalizeApiKey)
       .filter((k) => k.isActive)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    const q = ((meRes?.quota ?? null) || {}) as Record<string, unknown>;
     return {
       keys,
       quota: {
-        quotaUsed: Number(q.used ?? 0),
-        quotaLimit: Number(q.limit ?? 5000),
-        quotaRemaining: Number(q.remaining ?? 0),
+        quotaUsed: meRes?.quota?.used ?? 0,
+        quotaLimit: meRes?.quota?.limit ?? 5000,
+        quotaRemaining: meRes?.quota?.remaining ?? 0,
       },
     };
   },

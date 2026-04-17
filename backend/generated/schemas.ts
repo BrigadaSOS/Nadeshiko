@@ -71,7 +71,7 @@ export const s_EpisodeCreateRequest = z.object({
   airedAt: z.iso.datetime({ offset: true }).optional(),
   lengthSeconds: z.coerce.number().optional(),
   thumbnailUrl: z.string().optional(),
-  episodeNumber: z.coerce.number(),
+  episodeNumber: z.coerce.number().min(0),
 });
 
 export const s_EpisodeUpdateRequest = z.object({
@@ -221,22 +221,6 @@ export const s_MediaSearchStats = z.object({
   episodeHits: z.array(z.object({ episode: z.coerce.number().min(0), hitCount: z.coerce.number().min(0) })),
 });
 
-export const s_ReindexRequest = z.object({
-  media: z.array(z.object({ mediaId: z.coerce.number(), episodes: z.array(z.coerce.number()).optional() })).optional(),
-});
-
-export const s_ReindexResponse = z.object({
-  success: PermissiveBoolean,
-  message: z.string(),
-  stats: z.object({
-    totalSegments: z.coerce.number(),
-    successfulIndexes: z.coerce.number(),
-    failedIndexes: z.coerce.number(),
-    mediaProcessed: z.coerce.number(),
-  }),
-  errors: z.array(z.object({ segmentId: z.coerce.number(), error: z.string() })),
-});
-
 export const s_ReportReason = z.enum([
   'WRONG_TRANSLATION',
   'WRONG_TIMING',
@@ -270,24 +254,24 @@ export const s_ReportStatus = z.enum(['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED'
 
 export const s_ReportTargetEpisode = z.object({
   type: z.enum(['EPISODE']),
-  mediaId: z.string(),
+  mediaPublicId: z.string(),
   episodeNumber: z.coerce.number(),
 });
 
-export const s_ReportTargetMedia = z.object({ type: z.enum(['MEDIA']), mediaId: z.string() });
+export const s_ReportTargetMedia = z.object({ type: z.enum(['MEDIA']), mediaPublicId: z.string() });
 
 export const s_ReportTargetSegment = z.object({
   type: z.enum(['SEGMENT']),
-  mediaId: z.string(),
+  mediaPublicId: z.string(),
   episodeNumber: z.coerce.number().optional(),
-  segmentId: z.string().nullable(),
+  segmentPublicId: z.string().nullable(),
 });
 
 export const s_ReportTargetSegmentInput = z.object({
   type: z.enum(['SEGMENT']),
-  mediaId: z.string(),
+  mediaPublicId: z.string(),
   episodeNumber: z.coerce.number().optional(),
-  segmentId: z.string(),
+  segmentPublicId: z.string(),
 });
 
 export const s_ReportTargetType = z.enum(['SEGMENT', 'EPISODE', 'MEDIA']);
@@ -496,7 +480,10 @@ export const s_Collection = z.object({
   updatedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
-export const s_CollectionCreateRequest = z.object({ name: z.string(), visibility: s_CollectionVisibility.optional() });
+export const s_CollectionCreateRequest = z.object({
+  name: z.string().min(1),
+  visibility: s_CollectionVisibility.optional(),
+});
 
 export const s_CollectionUpdateRequest = z.object({
   name: z.string().optional(),
