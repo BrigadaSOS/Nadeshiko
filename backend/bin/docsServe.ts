@@ -7,6 +7,8 @@ import { extname, join, resolve } from 'node:path';
 const ROOT_DIR = process.cwd();
 const OPENAPI_DIR = join(ROOT_DIR, 'docs', 'openapi');
 const REDOCLY_CONFIG = join(ROOT_DIR, 'redocly.yaml');
+const PACKAGE_JSON = join(ROOT_DIR, 'package.json');
+const REDOC_TEMPLATE = join(ROOT_DIR, 'docs', 'redoc-template.hbs');
 const ARTIFACTS_DIR = resolve(ROOT_DIR, process.env.DOCS_ARTIFACTS_DIR || '../frontend/public/docs/api');
 const BUILD_COMMAND = process.env.DOCS_BUILD_COMMAND || 'docs:build';
 const REDOC_THEME_CONFIG = join(ROOT_DIR, 'docs', 'redoc-theme.openapi.json');
@@ -47,6 +49,12 @@ function computeFingerprint(): string {
   const files = listYamlFiles(OPENAPI_DIR).sort();
   if (existsSync(REDOCLY_CONFIG)) {
     files.push(REDOCLY_CONFIG);
+  }
+  if (existsSync(PACKAGE_JSON)) {
+    files.push(PACKAGE_JSON);
+  }
+  if (existsSync(REDOC_TEMPLATE)) {
+    files.push(REDOC_TEMPLATE);
   }
   if (existsSync(REDOC_THEME_CONFIG)) {
     files.push(REDOC_THEME_CONFIG);

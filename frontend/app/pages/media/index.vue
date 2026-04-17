@@ -109,11 +109,9 @@ const {
   () => `search-media-${searchQuery.value}-${filterCategory.value}`,
   async () => {
     const raw = await sdk.listMedia({
-      query: {
-        query: searchQuery.value || undefined,
-        take: pageSize,
-        category: filterCategory.value || undefined,
-      },
+      query: searchQuery.value || undefined,
+      take: pageSize,
+      category: filterCategory.value || undefined,
     });
     return {
       media: raw?.media ?? [],
@@ -213,12 +211,10 @@ const loadMore = async () => {
   loadingMore.value = true;
   try {
     const raw = await sdk.listMedia({
-      query: {
-        cursor: nextCursor.value,
-        query: searchQuery.value || undefined,
-        take: pageSize,
-        category: filterCategory.value || undefined,
-      },
+      cursor: nextCursor.value,
+      query: searchQuery.value || undefined,
+      take: pageSize,
+      category: filterCategory.value || undefined,
     });
     const newMedia = raw?.media ?? [];
     media.value = [...media.value, ...newMedia];
