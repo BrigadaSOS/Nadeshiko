@@ -1,3 +1,5 @@
+import { getSingletonHighlighter } from 'shiki';
+import type { BundledLanguage, BundledTheme } from 'shiki';
 import { marked } from 'marked';
 import matter from 'gray-matter';
 
@@ -20,6 +22,31 @@ export interface BlogPost {
 const pageCache = new Map<string, ContentPage | null>();
 const blogCache = new Map<string, BlogPost[]>();
 
+const SHIKI_THEME: BundledTheme = 'github-dark';
+const SHIKI_LANGS: BundledLanguage[] = ['typescript', 'javascript', 'python', 'bash', 'shell', 'json', 'yaml'];
+const SHIKI_FALLBACK_LANG: BundledLanguage = 'bash';
+
+marked.use({
+  async: true,
+  walkTokens: async (token) => {
+    if (token.type === 'code') {
+      const hl = await getSingletonHighlighter({ themes: [SHIKI_THEME], langs: SHIKI_LANGS });
+      const lang = (token.lang || '').toLowerCase();
+      const safeLang = (SHIKI_LANGS as string[]).includes(lang) ? (lang as BundledLanguage) : SHIKI_FALLBACK_LANG;
+      try {
+        (token as unknown as Record<string, unknown>)._highlighted = hl.codeToHtml(token.text, { lang: safeLang, theme: SHIKI_THEME });
+      } catch {
+        // fall back to default renderer
+      }
+    }
+  },
+  renderer: {
+    code(token) {
+      return (token as unknown as Record<string, unknown>)._highlighted as string | undefined ?? false;
+    },
+  },
+});
+
 function stripMdcDirectives(content: string): string {
   return content
     .split('\n')
@@ -27,10 +54,10 @@ function stripMdcDirectives(content: string): string {
     .join('\n');
 }
 
-function parseMarkdown(raw: string): { frontmatter: Record<string, unknown>; html: string; rawbody: string } {
+async function parseMarkdown(raw: string): Promise<{ frontmatter: Record<string, unknown>; html: string; rawbody: string }> {
   const { data, content } = matter(raw);
   const cleaned = stripMdcDirectives(content);
-  const html = marked.parse(cleaned, { async: false }) as string;
+  const html = await marked.parse(cleaned);
   return { frontmatter: data, html, rawbody: raw };
 }
 
@@ -48,7 +75,7 @@ export async function getContentPage(locale: string, slug: string): Promise<Cont
     return null;
   }
 
-  const { frontmatter, html } = parseMarkdown(raw);
+  const { frontmatter, html } = await parseMarkdown(raw);
   const page: ContentPage = {
     title: (frontmatter.title as string) || '',
     description: (frontmatter.description as string) || '',
@@ -74,7 +101,7 @@ export async function getBlogPosts(locale: string): Promise<BlogPost[]> {
     const raw = await storage.getItem<string>(key);
     if (!raw) continue;
 
-    const { frontmatter, rawbody } = parseMarkdown(raw);
+    const { frontmatter, rawbody } = await parseMarkdown(raw);
     const slug = key.replace(`${locale}:blog:`, '').replace(/\.md$/, '');
 
     posts.push({
@@ -103,7 +130,7 @@ export async function getBlogPost(locale: string, slug: string): Promise<(BlogPo
   const raw = await storage.getItem<string>(key);
   if (!raw) return null;
 
-  const { frontmatter, html, rawbody } = parseMarkdown(raw);
+  const { frontmatter, html, rawbody } = await parseMarkdown(raw);
   return {
     path: `/blog/${slug}`,
     title: (frontmatter.title as string) || '',

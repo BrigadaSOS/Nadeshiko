@@ -66,15 +66,13 @@ Nuevas funciones y endpoints serán puramente aditivos. La API tiene versionado 
 
 Más funcionalidad core de Nadeshiko ahora accesible vía API:
 
-| Endpoint | Descripción |
-|----------|-------------|
-| `searchWords` | Busca múltiples palabras simultáneamente, obtén conteos por media |
-| `searchMedia` | Autocompletado de títulos de media |
-| `getSearchStats` | Conteos por categoría y lista de media para UIs de filtro |
-| `getStatsOverview` | Estadísticas del corpus: total de segmentos, tiers de cobertura |
-| Collections API | CRUD completo para colecciones de frases guardadas |
-| User Activity | Tracking de actividad personal y visualización de heatmaps |
-| `getSegmentContext` | Obtén segmentos circundantes para expansión de contexto |
+- **`searchWords`** — Busca múltiples palabras simultáneamente, obtén conteos por media
+- **`searchMedia`** — Autocompletado de títulos de media
+- **`getSearchStats`** — Conteos por categoría y lista de media para UIs de filtro
+- **`getStatsOverview`** — Estadísticas del corpus: total de segmentos, tiers de cobertura
+- **Collections API** — CRUD completo para colecciones de frases guardadas
+- **User Activity** — Tracking de actividad personal y visualización de heatmaps
+- **`getSegmentContext`** — Obtén segmentos circundantes para expansión de contexto
 
 Más endpoints están en desarrollo para exponer la profundidad completa del dataset de Nadeshiko.
 
