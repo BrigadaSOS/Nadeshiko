@@ -64,9 +64,9 @@ export function useHiddenMedia() {
     try {
       const sdk = useNadeshikoSdk();
       if (isUnhiding) {
-        await sdk.removeExcludedMedia({ path: { mediaPublicId: media.publicId } });
+        await sdk.removeExcludedMedia({ mediaPublicId: media.publicId });
       } else {
-        await sdk.addExcludedMedia({ body: { mediaPublicId: media.publicId } });
+        await sdk.addExcludedMedia({ mediaPublicId: media.publicId });
       }
     } catch {
       // Revert on failure by re-fetching would be ideal, but keep optimistic update for now

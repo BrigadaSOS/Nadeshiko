@@ -69,22 +69,21 @@ const { data: initialData } = await useAsyncData(
   async () => {
     const since7d = sinceForRange('7d');
     const [statsRes, activityRes, prefsRes, heatmapRes] = await Promise.all([
-      sdk.getUserActivityStats({ query: since7d ? { since: since7d } : undefined }).catch(() => ({ data: null })),
-      sdk.listUserActivity({ query: { take: ACTIVITY_PAGE_SIZE } }).catch(() => ({ data: null })),
-      sdk.getUserPreferences().catch(() => ({ data: null })),
-      sdk.getUserActivityHeatmap({ query: { days: HEATMAP_DAYS } }).catch(() => ({ data: null })),
+      sdk.getUserActivityStats(since7d ? { since: since7d } : {}).catch(() => null),
+      sdk.listUserActivity({ take: ACTIVITY_PAGE_SIZE }).catch(() => null),
+      sdk.getUserPreferences().catch(() => null),
+      sdk.getUserActivityHeatmap({ days: HEATMAP_DAYS }).catch(() => null),
     ]);
 
-    const activityData = activityRes.data;
-    const prefsData = prefsRes.data as Record<string, any> | null;
+    const prefsData = prefsRes as Record<string, any> | null;
 
     return {
-      stats: (statsRes.data ?? null) as ActivityStats | null,
-      activities: (activityData?.activities ?? []) as ActivityItem[],
-      hasMore: activityData?.pagination?.hasMore ?? false,
-      cursor: activityData?.pagination?.cursor ?? null,
+      stats: statsRes as ActivityStats | null,
+      activities: (activityRes?.activities ?? []) as ActivityItem[],
+      hasMore: activityRes?.pagination?.hasMore ?? false,
+      cursor: activityRes?.pagination?.cursor ?? null,
       trackingEnabled: prefsData?.searchHistory?.enabled !== false,
-      heatmapRaw: (heatmapRes.data?.activityByDay ?? {}) as HeatmapRawData,
+      heatmapRaw: (heatmapRes?.activityByDay ?? {}) as HeatmapRawData,
     };
   },
   {
@@ -131,17 +130,15 @@ const heatmapCountsByDay = computed<Record<string, number>>(() => {
 });
 
 const fetchTrackingState = async () => {
-  const { data } = await sdk.getUserPreferences().catch(() => ({ data: null }));
+  const data = await sdk.getUserPreferences().catch(() => null);
   const prefs = data as Record<string, any> | null;
   trackingEnabled.value = prefs?.searchHistory?.enabled !== false;
 };
 
 const fetchStats = async () => {
   const since = sinceForRange(statsRange.value);
-  const { data } = await sdk
-    .getUserActivityStats({ query: since ? { since } : undefined })
-    .catch(() => ({ data: null }));
-  stats.value = (data ?? null) as ActivityStats | null;
+  const data = await sdk.getUserActivityStats(since ? { since } : {}).catch(() => null);
+  stats.value = data as ActivityStats | null;
 };
 
 const fetchActivity = async (append = false) => {
@@ -150,7 +147,7 @@ const fetchActivity = async (append = false) => {
   if (selectedDay.value) query.date = selectedDay.value;
   if (activityTypeFilter.value) query.activityType = activityTypeFilter.value;
 
-  const { data } = await sdk.listUserActivity({ query }).catch(() => ({ data: null }));
+  const data = await sdk.listUserActivity(query).catch(() => null);
 
   if (append) {
     activities.value.push(...((data?.activities ?? []) as ActivityItem[]));
@@ -191,7 +188,7 @@ const toggleTracking = async () => {
   togglingTracking.value = true;
   const newValue = !trackingEnabled.value;
   try {
-    await sdk.updateUserPreferences({ body: { searchHistory: { enabled: newValue } } });
+    await sdk.updateUserPreferences({ searchHistory: { enabled: newValue } });
     trackingEnabled.value = newValue;
     const posthog = usePostHog();
     posthog?.capture('activity_tracking_toggled', { enabled: newValue });
@@ -228,7 +225,7 @@ const deleteActivity = async (id: number) => {
   if (deletingIds.value.has(id)) return;
   deletingIds.value.add(id);
   try {
-    await sdk.deleteUserActivityById({ path: { id } });
+    await sdk.deleteUserActivityById(id);
     activities.value = activities.value.filter((a) => a.id !== id);
   } catch (error) {
     console.error('[Activity] Failed to delete activity:', error);
@@ -245,7 +242,7 @@ const clearDayActivity = async () => {
 
   clearingDay.value = true;
   try {
-    await sdk.deleteUserActivityByDate({ path: { date: selectedDay.value } });
+    await sdk.deleteUserActivityByDate(selectedDay.value);
     activities.value = [];
     hasMore.value = false;
     activityCursor.value = null;
@@ -335,7 +332,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
   return groups;
 });
 
-const HEATMAP_PALETTES: Record<string, readonly string[]> = {
+const HEATMAP_PALETTES = {
   default: [
     'bg-white/5 border-white/10',
     'bg-amber-900/50 border-amber-800/60',
@@ -373,7 +370,10 @@ const HEATMAP_PALETTES: Record<string, readonly string[]> = {
   ],
 };
 
-const activePalette = computed(() => HEATMAP_PALETTES[heatmapFilter.value ?? 'default'] ?? HEATMAP_PALETTES.default);
+const activePalette = computed(() => {
+  const key = (heatmapFilter.value ?? 'default') as keyof typeof HEATMAP_PALETTES;
+  return HEATMAP_PALETTES[key] ?? HEATMAP_PALETTES.default;
+});
 
 const heatCellClass = (count: number): string => {
   const palette = activePalette.value;
@@ -428,7 +428,7 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
 
 const loadHeatmap = async () => {
   heatmapLoading.value = true;
-  const { data } = await sdk.getUserActivityHeatmap({ query: { days: HEATMAP_DAYS } }).catch(() => ({ data: null }));
+  const data = await sdk.getUserActivityHeatmap({ days: HEATMAP_DAYS }).catch(() => null);
   heatmapRaw.value = (data?.activityByDay ?? {}) as HeatmapRawData;
   heatmapLoading.value = false;
 };

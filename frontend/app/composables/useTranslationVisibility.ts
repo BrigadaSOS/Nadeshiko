@@ -81,9 +81,7 @@ export function useTranslationVisibility() {
   const persistToServer = async (next: TranslationVisibilityPreferences): Promise<boolean> => {
     try {
       const sdk = useNadeshikoSdk();
-      await sdk.updateUserPreferences({
-        body: { [USER_PREFS_KEY]: next } as Record<string, unknown>,
-      });
+      await sdk.updateUserPreferences({ [USER_PREFS_KEY]: next } as Record<string, unknown>);
       user.preferences = {
         ...(user.preferences ?? {}),
         [USER_PREFS_KEY]: next,

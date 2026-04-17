@@ -8,7 +8,7 @@
     "build": "nuxt build",
     "dev": "bun --bun nuxt dev | pino-pretty",
     "lint": "biome check .",
-    "typecheck": "bun --bun nuxt typecheck",
+    "typecheck": "vue-tsc --noEmit",
     "lint:fix": "biome check . --write",
     "preview": "bun --bun nuxt preview",
     "postinstall": "bun --bun nuxt prepare",
@@ -21,7 +21,7 @@
     "setup": "bun run bin/setup.ts"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "2.1.0-internal.c9a848d",
+    "@brigadasos/nadeshiko-sdk": "2.1.0-internal.a19aa87",
     "@mdi/js": "^7.4.47",
     "@nuxtjs/i18n": "^10.2.1",
     "@nuxtjs/seo": "5.1.0",
@@ -70,6 +70,7 @@
     "typescript": "^6.0.2",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue-components": "^32.0.0",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.0",
+    "vue-tsc": "^3.2.6"
   }
 }

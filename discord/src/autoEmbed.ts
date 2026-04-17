@@ -1,5 +1,5 @@
 import { type Message } from 'discord.js';
-import { getSegmentByUuid } from './api';
+import { getSegment } from './api';
 import { buildSegmentMessage } from './embeds';
 import { BOT_CONFIG } from './config';
 import {
@@ -31,10 +31,10 @@ export async function handleAutoEmbed(message: Message) {
   const segmentId = matches[0][1];
 
   try {
-    const { segment, media } = await getSegmentByUuid(segmentId);
+    const { segment, media } = await getSegment(segmentId);
     const params = new URLSearchParams();
     if (media) {
-      params.set('media', media.publicId);
+      params.set('media', media.mediaPublicId);
       params.set('episode', String(segment.episode));
     }
     const qs = params.toString();
@@ -71,7 +71,7 @@ export async function handleAutoEmbed(message: Message) {
       try {
         const params = new URLSearchParams();
         if (media) {
-          params.set('media', media.publicId);
+          params.set('media', media.mediaPublicId);
           params.set('episode', String(segment.episode));
         }
         const qs = params.toString();

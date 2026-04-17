@@ -11,8 +11,8 @@ const { data: announcement } = await useAsyncData(
   'system-announcement',
   async () => {
     try {
-      const { data, response } = await sdk.getAnnouncement();
-      if (response.status === 204 || !data || typeof data !== 'object' || !('active' in data)) {
+      const data = await sdk.getAnnouncement();
+      if (!data || !('active' in data)) {
         return null;
       }
       return { message: data.message, type: data.type, active: data.active } as AnnouncementData;

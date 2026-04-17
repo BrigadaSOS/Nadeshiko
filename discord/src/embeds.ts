@@ -46,8 +46,8 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - 1)}...`;
 }
 
-function mediaSearchUrl(media: { publicId: string }, episode?: number): string {
-  const params = new URLSearchParams({ media: media.publicId });
+function mediaSearchUrl(media: { mediaPublicId: string }, episode?: number): string {
+  const params = new URLSearchParams({ media: media.mediaPublicId });
   if (episode != null) params.set('episode', String(episode));
   return `${BOT_CONFIG.frontendUrl}/search?${params}`;
 }
@@ -60,7 +60,7 @@ export function buildSegmentMessage(
   const mediaName = getMediaName(media);
   const timestamp = formatTimestamp(segment.startTimeMs);
 
-  const sentenceUrl = `${BOT_CONFIG.frontendUrl}/sentence/${segment.publicId}`;
+  const sentenceUrl = `${BOT_CONFIG.frontendUrl}/sentence/${segment.segmentPublicId}`;
   const mediaLink = media ? `[${mediaName}](<${mediaSearchUrl(media)}>)` : mediaName;
   const episodeLink = media
     ? `[Episode ${segment.episode}](<${mediaSearchUrl(media, segment.episode)}>)`
@@ -104,7 +104,6 @@ export function buildContextLines(
 
   const lines = segments.map((seg, i) => {
     const isSelected = i === selectedIndex;
-    const ts = formatTimestamp(seg.startTimeMs);
     const jaText = stripAllHtmlTags(seg.textJa.content);
     const diff = i - selectedIndex;
     const prefix = isSelected ? `▶)` : `${diff})`;

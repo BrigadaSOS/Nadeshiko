@@ -72,7 +72,6 @@ export function asObject(data: unknown): Record<string, unknown> {
 async function fetchMe() {
   return useNadeshikoSdk()
     .getMe()
-    .then((r) => r.data ?? null)
     .catch(() => null);
 }
 

@@ -209,13 +209,11 @@ export async function getSharingURL(params: {
       const sdk = useNadeshikoSdk();
       sdk
         .trackUserActivity({
-          body: {
-            activityType: 'SHARE',
-            segmentPublicId: params.segmentPublicId,
-            mediaPublicId: params.mediaPublicId,
-            mediaName: params.mediaName,
-            japaneseText: params.japaneseText,
-          },
+          activityType: 'SHARE',
+          segmentPublicId: params.segmentPublicId,
+          mediaPublicId: params.mediaPublicId,
+          mediaName: params.mediaName,
+          japaneseText: params.japaneseText,
         })
         .catch(() => {});
     }

@@ -9,13 +9,11 @@ export const search: Search = async ({ body }, respond) => {
   return respond.with200().body(toSearchResponseDTO(searchResults, body.include));
 };
 
-
 export const getSearchStats: GetSearchStats = async ({ body }, respond) => {
   await resolveMediaFilterIds(body.filters);
   const stats = await SegmentDocument.searchStats(body);
   return respond.with200().body(toSearchResponseDTO(stats, body.include));
 };
-
 
 export const searchWords: SearchWords = async ({ body }, respond) => {
   await resolveMediaFilterIds(body.filters);

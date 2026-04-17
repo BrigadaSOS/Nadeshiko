@@ -15,7 +15,7 @@ import type {
   SearchFiltersOutput,
   SearchStatsResponseOutput,
 } from 'generated/outputTypes';
-import type { t_ReindexResponse } from 'generated/models';
+import type { ReindexResponse } from './segmentDocument/SegmentIndexer';
 
 import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQuery';
 import { SegmentResponse } from './segmentDocument/SegmentResponse';
@@ -387,7 +387,7 @@ export class SegmentDocument {
     return SegmentIndexer.bulkDelete(ids);
   }
 
-  static reindex(media?: ReindexMediaItem[], targetIndex?: string): Promise<t_ReindexResponse> {
+  static reindex(media?: ReindexMediaItem[], targetIndex?: string): Promise<ReindexResponse> {
     return SegmentIndexer.reindex(media, targetIndex);
   }
 }

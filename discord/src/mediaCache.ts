@@ -1,4 +1,4 @@
-import { autocompleteMedia } from './api';
+import { searchMedia } from './api';
 import type { MediaAutocompleteItem } from './api';
 
 const nameCache = new Map<string, MediaAutocompleteItem>();
@@ -7,13 +7,13 @@ export async function searchMediaCache(query: string, limit = 25): Promise<Media
   if (!query.trim()) {
     return [];
   }
-  const result = await autocompleteMedia(query, limit);
+  const result = await searchMedia(query, limit);
   for (const m of result.media) {
-    nameCache.set(m.publicId, m);
+    nameCache.set(m.mediaPublicId, m);
   }
   return result.media.slice(0, limit);
 }
 
-export function findMediaByPublicId(publicId: string): MediaAutocompleteItem | undefined {
-  return nameCache.get(publicId);
+export function findMediaByPublicId(mediaPublicId: string): MediaAutocompleteItem | undefined {
+  return nameCache.get(mediaPublicId);
 }

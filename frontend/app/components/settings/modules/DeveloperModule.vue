@@ -44,11 +44,7 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
   return unwrap(await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []));
 };
 
-const fetchMe = () =>
-  sdk
-    .getMe()
-    .then((r) => r.data ?? null)
-    .catch(() => null);
+const fetchMe = () => sdk.getMe().catch(() => null);
 
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData(
   'developer-api-keys',

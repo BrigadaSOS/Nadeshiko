@@ -279,6 +279,8 @@ export default {
         sortlengthnone: 'None',
         sortlengthmin: 'Shortest',
         sortlengthmax: 'Largest',
+        sortasc: 'Shortest',
+        sortdesc: 'Largest',
         sorttime_asc: 'Chronological',
         sorttime_desc: 'Reverse',
         sortrandom: 'Random',
@@ -478,6 +480,7 @@ export default {
       DELETED: 'Deleted',
       INVALID: 'Invalid',
       TOO_LONG: 'Too Long',
+      HIDDEN: 'Hidden',
     },
     contentRating: {
       SAFE: 'Safe',

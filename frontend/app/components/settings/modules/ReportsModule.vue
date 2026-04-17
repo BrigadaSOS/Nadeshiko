@@ -79,33 +79,29 @@ const buildReportQuery = (append = false) => {
 const fetchReports = async (append = false) => {
   isLoading.value = true;
   try {
-    const { data } = await sdk.listAdminReports({ query: buildReportQuery(append) });
-    const result: AdminReportListResponse = data ?? {
-      groups: [],
-      pagination: { hasMore: false, cursor: '' },
-    };
+    const result = await sdk.listAdminReports(buildReportQuery(append));
 
     if (append) {
       groups.value.push(...result.groups);
     } else {
       groups.value = result.groups;
     }
-    hasMore.value = result.pagination?.hasMore ?? false;
-    cursor.value = result.pagination?.cursor ?? null;
+    hasMore.value = result.pagination.hasMore;
+    cursor.value = result.pagination.cursor;
   } finally {
     isLoading.value = false;
   }
 };
 
 const fetchAudits = async () => {
-  const { data } = await sdk.listAdminMediaAudits().catch(() => ({ data: null }));
+  const data = await sdk.listAdminMediaAudits().catch(() => null);
   audits.value = (Array.isArray(data) ? data : []) as MediaAudit[];
 };
 
 const fetchRuns = async () => {
   try {
-    const { data } = await sdk.listAdminMediaAuditRuns({ query: { take: 50 } });
-    runs.value = data?.runs ?? [];
+    const data = await sdk.listAdminMediaAuditRuns({ take: 50 });
+    runs.value = data.runs;
   } catch (err) {
     console.error('Failed to fetch audit runs:', err);
   }
@@ -128,8 +124,8 @@ watch([sourceFilter, statusFilterQuery, orphanedFilter], () => {
 const runAudit = async (auditName: string) => {
   runningAudits.value.add(auditName);
   try {
-    const { data } = await sdk.runAdminMediaAudit({ path: { name: auditName } });
-    useToastSuccess(`${auditName}: ${data?.totalReports ?? 0} findings`);
+    const data = await sdk.runAdminMediaAudit(auditName);
+    useToastSuccess(`${auditName}: ${data.totalReports ?? 0} findings`);
     await fetchReports();
     await fetchAudits();
   } catch {
@@ -139,15 +135,12 @@ const runAudit = async (auditName: string) => {
 };
 
 const updateReport = async (reportId: number, status?: string, adminNotes?: string) => {
-  const body: { status?: string; adminNotes?: string } = {};
-  if (status !== undefined) body.status = status;
+  const body: UpdateReportRequest = {};
+  if (status !== undefined) body.status = status as UpdateReportRequest['status'];
   if (adminNotes !== undefined) body.adminNotes = adminNotes;
 
   try {
-    await sdk.updateAdminReport({
-      path: { reportId },
-      body: body as UpdateReportRequest,
-    });
+    await sdk.updateAdminReport({ reportId, ...body });
     await fetchReports();
     useToastSuccess(t('reports.admin.updateSuccess'));
   } catch {
@@ -166,10 +159,8 @@ const saveAuditConfig = async () => {
 
   try {
     await sdk.updateAdminMediaAudit({
-      path: { name: editingAudit.value.name },
-      body: {
-        threshold: editThreshold.value,
-      },
+      name: editingAudit.value.name,
+      threshold: editThreshold.value,
     });
     useToastSuccess('Audit config updated');
     showAuditConfig.value = false;
@@ -272,11 +263,9 @@ const batchUpdate = async (status: string) => {
 
   isBatchUpdating.value = true;
   try {
-    const { data } = await sdk.batchUpdateAdminReports({
-      body: { ids, status: status as ReportStatus },
-    });
+    const data = await sdk.batchUpdateAdminReports({ ids, status: status as ReportStatus });
     selectedGroupIndices.value = new Set();
-    useToastSuccess(`${data?.count ?? 0} report(s) updated`);
+    useToastSuccess(`${data.count} report(s) updated`);
     await fetchReports();
   } catch {
     useToastError('Failed to update reports');
@@ -290,7 +279,7 @@ const batchDelete = async () => {
   if (ids.length === 0) return;
 
   isBatchUpdating.value = true;
-  const results = await Promise.allSettled(ids.map((id) => sdk.deleteAdminReport({ path: { reportId: id } })));
+  const results = await Promise.allSettled(ids.map((id) => sdk.deleteAdminReport({ reportId: id })));
 
   const succeeded = results.filter((r) => r.status === 'fulfilled').length;
   const failed = results.length - succeeded;
@@ -314,14 +303,12 @@ const bulkDismissAllMatching = async () => {
   showDismissConfirm.value = false;
   isBulkDismissing.value = true;
   try {
-    const { data } = await sdk.bulkUpdateAdminReports({
-      body: {
-        status: 'DISMISSED',
-        filters: buildBulkFilters(),
-      },
+    const data = await sdk.bulkUpdateAdminReports({
+      status: 'DISMISSED',
+      filters: buildBulkFilters(),
     });
 
-    useToastSuccess(`${data?.count ?? 0} report(s) dismissed`);
+    useToastSuccess(`${data.count} report(s) dismissed`);
     await fetchReports();
   } catch {
     useToastError('Failed to dismiss reports');
@@ -344,7 +331,7 @@ const deleteReport = async () => {
   pendingDeleteId.value = null;
 
   try {
-    await sdk.deleteAdminReport({ path: { reportId } });
+    await sdk.deleteAdminReport({ reportId });
     useToastSuccess('Report deleted');
     await fetchReports();
   } catch {
@@ -356,13 +343,11 @@ const bulkDeleteAllMatching = async () => {
   showDeleteConfirm.value = false;
   isBulkDeleting.value = true;
   try {
-    const { data } = await sdk.bulkDeleteAdminReports({
-      body: {
-        filters: buildBulkFilters() as BulkDeleteReportsRequest['filters'],
-      },
+    const data = await sdk.bulkDeleteAdminReports({
+      filters: buildBulkFilters() as BulkDeleteReportsRequest['filters'],
     });
 
-    useToastSuccess(`${data?.count ?? 0} report(s) deleted`);
+    useToastSuccess(`${data.count} report(s) deleted`);
     await fetchReports();
   } catch {
     useToastError('Failed to delete reports');
@@ -577,24 +562,24 @@ const bulkDeleteAllMatching = async () => {
                     {{ group.target.type }}
                   </span>
                 </td>
-                <td class="px-3 py-3 text-xs max-w-[250px]" :title="group.mediaName || group.target.mediaId">
-                  <template v-if="group.target.mediaId">
+                <td class="px-3 py-3 text-xs max-w-[250px]" :title="group.mediaName || group.target.mediaPublicId">
+                  <template v-if="group.target.mediaPublicId">
                     <NuxtLink
-                      :to="`/media/${group.target.mediaId}`"
+                      :to="`/media/${group.target.mediaPublicId}`"
                       class="block truncate font-medium text-white hover:text-purple-300 underline"
                       @click.stop
                     >
-                      {{ group.mediaName || group.target.mediaId }}
+                      {{ group.mediaName || group.target.mediaPublicId }}
                     </NuxtLink>
-                    <span v-if="group.target.episodeNumber" class="text-neutral-400">EP{{ group.target.episodeNumber }}</span>
+                    <span v-if="group.target.type !== 'MEDIA' && group.target.episodeNumber" class="text-neutral-400">EP{{ group.target.episodeNumber }}</span>
                     <NuxtLink
-                      v-if="group.target.type === 'SEGMENT' && group.target.segmentId"
-                      :to="`/sentence/${group.target.segmentId}`"
+                      v-if="group.target.type === 'SEGMENT' && group.target.segmentPublicId"
+                      :to="`/sentence/${group.target.segmentPublicId}`"
                       class="block text-purple-400 hover:text-purple-300 underline truncate"
-                      :title="group.target.segmentId"
+                      :title="group.target.segmentPublicId"
                       @click.stop
                     >
-                      {{ group.target.segmentId }}
+                      {{ group.target.segmentPublicId }}
                     </NuxtLink>
                   </template>
                   <span v-else class="text-red-400 italic">deleted</span>
@@ -619,12 +604,12 @@ const bulkDeleteAllMatching = async () => {
                   {{ group.lastStatusChange ? formatRelativeDate(group.lastStatusChange) : '-' }}
                 </td>
                 <td class="px-3 py-3" @click.stop>
-                  <div class="flex gap-1 flex-wrap">
-                    <button class="px-2 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50" @click="updateReport(group.reports[0].id, 'OPEN')">Open</button>
-                    <button class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50" @click="updateReport(group.reports[0].id, 'PROCESSING')">Processing</button>
-                    <button class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50" @click="updateReport(group.reports[0].id, 'FIXED')">Fixed</button>
-                    <button class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50" @click="updateReport(group.reports[0].id, 'DISMISSED')">Dismiss</button>
-                    <button class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50" @click="confirmDeleteReport(group.reports[0].id)">Delete</button>
+                  <div v-if="group.reports[0]" class="flex gap-1 flex-wrap">
+                    <button class="px-2 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50" @click="updateReport(group.reports[0]!.id, 'OPEN')">Open</button>
+                    <button class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50" @click="updateReport(group.reports[0]!.id, 'PROCESSING')">Processing</button>
+                    <button class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50" @click="updateReport(group.reports[0]!.id, 'FIXED')">Fixed</button>
+                    <button class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50" @click="updateReport(group.reports[0]!.id, 'DISMISSED')">Dismiss</button>
+                    <button class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50" @click="confirmDeleteReport(group.reports[0]!.id)">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -784,22 +769,20 @@ const bulkDeleteAllMatching = async () => {
     <ConfirmModal
       :visible="showDismissConfirm"
       title="Dismiss all matching reports?"
+      description="This will dismiss all reports matching the current filters. This action can be undone by reopening individual reports."
       confirm-label="Dismiss All"
       @confirm="bulkDismissAllMatching"
       @cancel="showDismissConfirm = false"
-    >
-      This will dismiss <strong>all</strong> reports matching the current filters. This action can be undone by reopening individual reports.
-    </ConfirmModal>
+    />
 
     <ConfirmModal
       :visible="showDeleteConfirm"
       title="Delete all matching reports?"
+      description="This will permanently delete all reports matching the current filters. This cannot be undone."
       confirm-label="Delete All"
       @confirm="bulkDeleteAllMatching"
       @cancel="showDeleteConfirm = false"
-    >
-      This will <strong>permanently delete</strong> all reports matching the current filters. This cannot be undone.
-    </ConfirmModal>
+    />
 
     <ConfirmModal
       :visible="pendingDeleteId !== null"

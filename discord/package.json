@@ -12,7 +12,7 @@
   },
   "license": "AGPL-3.0",
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "2.0.6-internal.e0449f8",
+    "@brigadasos/nadeshiko-sdk": "2.1.0-internal.a19aa87",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",

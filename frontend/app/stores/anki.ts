@@ -113,9 +113,7 @@ export const ankiStore = defineStore('anki', {
     async saveProfiles(profiles: AnkiProfile[]) {
       const store = userStore();
       const sdk = useNadeshikoSdk();
-      await sdk.updateUserPreferences({
-        body: { ankiProfiles: profiles },
-      });
+      await sdk.updateUserPreferences({ ankiProfiles: profiles });
       store.preferences = { ...store.preferences, ankiProfiles: profiles };
       const posthog = usePostHog();
       posthog?.capture('anki_profile_configured', { profile_count: profiles.length });
@@ -274,19 +272,16 @@ export const ankiStore = defineStore('anki', {
 
       try {
         const sdk = useNadeshikoSdk();
-        const { data: listData } = await sdk.listCollections({ query: { take: 100 } });
-
-        const existing = (listData?.collections ?? []).find((collection) => collection.type === 'ANKI_EXPORT');
+        const listData = await sdk.listCollections({ take: 100 });
+        const existing = listData.collections.find((collection) => collection.type === 'ANKI_EXPORT');
         if (existing) return existing.collectionPublicId;
 
-        const { data: created } = await sdk.createCollection({
-          body: {
-            name: DEFAULT_ANKI_EXPORTS_COLLECTION,
-            visibility: 'PRIVATE',
-          },
+        const created = await sdk.createCollection({
+          name: DEFAULT_ANKI_EXPORTS_COLLECTION,
+          visibility: 'PRIVATE',
         });
 
-        return created?.collectionPublicId ?? null;
+        return created.collectionPublicId;
       } catch {
         return null;
       }
@@ -302,8 +297,8 @@ export const ankiStore = defineStore('anki', {
 
         const sdk = useNadeshikoSdk();
         await sdk.addSegmentToCollection({
-          path: { collectionPublicId },
-          body: { segmentPublicId: sentence.segment.segmentPublicId },
+          collectionPublicId,
+          segmentPublicId: sentence.segment.segmentPublicId,
         });
       } catch (error: unknown) {
         const err = error as { statusCode?: number };
@@ -513,13 +508,11 @@ export const ankiStore = defineStore('anki', {
           const sdk = useNadeshikoSdk();
           sdk
             .trackUserActivity({
-              body: {
-                activityType: 'ANKI_EXPORT',
-                segmentPublicId: sentence.segment.segmentPublicId,
-                mediaPublicId: sentence.media.mediaPublicId,
-                mediaName: mediaName(sentence.media),
-                japaneseText: sentence.segment.textJa.content,
-              },
+              activityType: 'ANKI_EXPORT',
+              segmentPublicId: sentence.segment.segmentPublicId,
+              mediaPublicId: sentence.media.mediaPublicId,
+              mediaName: mediaName(sentence.media),
+              japaneseText: sentence.segment.textJa.content,
             })
             .catch(() => {});
         }

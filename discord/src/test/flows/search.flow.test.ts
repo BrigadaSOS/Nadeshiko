@@ -22,8 +22,8 @@ import {
   makeContextResponse,
 } from '../mocks/fixtures';
 
-const media1 = makeMedia({ publicId: 'media-1', nameRomaji: 'Oshi No Ko', nameJa: '推しの子' });
-const media2 = makeMedia({ publicId: 'media-2', nameRomaji: 'Spy x Family', nameJa: 'スパイファミリー' });
+const media1 = makeMedia({ mediaPublicId: 'media-1', nameRomaji: 'Oshi No Ko', nameJa: '推しの子' });
+const media2 = makeMedia({ mediaPublicId: 'media-2', nameRomaji: 'Spy x Family', nameJa: 'スパイファミリー' });
 
 describe('/search flow', () => {
   let flow: FlowRunner;
@@ -36,13 +36,13 @@ describe('/search flow', () => {
 
   test('search with query shows results', async () => {
     const seg1 = makeSegment({
-      publicId: 'seg-1',
+      segmentPublicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
     });
     const seg2 = makeSegment({
-      publicId: 'seg-2',
+      segmentPublicId: 'seg-2',
       textJa: { content: '食べました', highlight: '<em>食べ</em>ました' },
       mediaPublicId: 'media-2',
       episode: 1,
@@ -66,14 +66,14 @@ describe('/search flow', () => {
 
   test('search with no query shows random sentence', async () => {
     const seg = makeSegment({
-      publicId: 'seg-random',
+      segmentPublicId: 'seg-random',
       textJa: { content: 'ランダムな文' },
       mediaPublicId: 'media-1',
     });
 
     mockFetchRandom.mockResolvedValue(makeSearchResponse([seg], { 'media-1': media1 }));
     mockGetSearchStats.mockResolvedValue(
-      makeSearchStatsResponse([{ publicId: 'media-1', matchCount: 5000 }], { 'media-1': media1 }),
+      makeSearchStatsResponse([{ mediaPublicId: 'media-1', matchCount: 5000 }], { 'media-1': media1 }),
     );
 
     const step = await flow.executeCommand(execute, {});
@@ -89,7 +89,7 @@ describe('/search flow', () => {
   test('search -> click Search button -> fill modal -> results', async () => {
     // Step 1: initial random
     const randomSeg = makeSegment({
-      publicId: 'seg-random',
+      segmentPublicId: 'seg-random',
       textJa: { content: 'ランダム' },
       mediaPublicId: 'media-1',
     });
@@ -105,7 +105,7 @@ describe('/search flow', () => {
 
     // Step 3: submit modal with query
     const searchSeg = makeSegment({
-      publicId: 'seg-search-1',
+      segmentPublicId: 'seg-search-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
     });
@@ -125,7 +125,7 @@ describe('/search flow', () => {
   test('search -> filter media -> select media -> filtered results', async () => {
     // Step 1: search with query
     const seg1 = makeSegment({
-      publicId: 'seg-1',
+      segmentPublicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
     });
@@ -137,8 +137,8 @@ describe('/search flow', () => {
     mockGetSearchStats.mockResolvedValue(
       makeSearchStatsResponse(
         [
-          { publicId: 'media-1', matchCount: 80 },
-          { publicId: 'media-2', matchCount: 20 },
+          { mediaPublicId: 'media-1', matchCount: 80 },
+          { mediaPublicId: 'media-2', matchCount: 20 },
         ],
         { 'media-1': media1, 'media-2': media2 },
       ),
@@ -152,7 +152,7 @@ describe('/search flow', () => {
 
     // Step 3: select Oshi No Ko
     const filteredSeg = makeSegment({
-      publicId: 'seg-filtered',
+      segmentPublicId: 'seg-filtered',
       textJa: { content: '食べたくない', highlight: '<em>食べ</em>たくない' },
       mediaPublicId: 'media-1',
     });
@@ -176,13 +176,13 @@ describe('/search flow', () => {
   test('full flow: random -> search modal -> filter media -> refine search', async () => {
     // Step 1: random mode
     const randomSeg = makeSegment({
-      publicId: 'seg-r',
+      segmentPublicId: 'seg-r',
       textJa: { content: '元気ですか' },
       mediaPublicId: 'media-1',
     });
     mockFetchRandom.mockResolvedValue(makeSearchResponse([randomSeg], { 'media-1': media1 }));
     mockGetSearchStats.mockResolvedValue(
-      makeSearchStatsResponse([{ publicId: 'media-1', matchCount: 10000 }], { 'media-1': media1 }),
+      makeSearchStatsResponse([{ mediaPublicId: 'media-1', matchCount: 10000 }], { 'media-1': media1 }),
     );
 
     const step1 = await flow.executeCommand(execute, {});
@@ -194,12 +194,12 @@ describe('/search flow', () => {
 
     // Step 3: submit search
     const searchSeg1 = makeSegment({
-      publicId: 'seg-s1',
+      segmentPublicId: 'seg-s1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
     });
     const searchSeg2 = makeSegment({
-      publicId: 'seg-s2',
+      segmentPublicId: 'seg-s2',
       textJa: { content: '食べる', highlight: '<em>食べる</em>' },
       mediaPublicId: 'media-2',
     });
@@ -222,8 +222,8 @@ describe('/search flow', () => {
     mockGetSearchStats.mockResolvedValue(
       makeSearchStatsResponse(
         [
-          { publicId: 'media-1', matchCount: 120 },
-          { publicId: 'media-2', matchCount: 80 },
+          { mediaPublicId: 'media-1', matchCount: 120 },
+          { mediaPublicId: 'media-2', matchCount: 80 },
         ],
         { 'media-1': media1, 'media-2': media2 },
       ),
@@ -234,7 +234,7 @@ describe('/search flow', () => {
 
     // Step 5: select Oshi No Ko
     const filteredSeg = makeSegment({
-      publicId: 'seg-f1',
+      segmentPublicId: 'seg-f1',
       textJa: { content: '食べて', highlight: '<em>食べ</em>て' },
       mediaPublicId: 'media-1',
       episode: 5,
@@ -251,7 +251,7 @@ describe('/search flow', () => {
 
     // Step 7: submit with episode filter
     const episodeSeg = makeSegment({
-      publicId: 'seg-ep',
+      segmentPublicId: 'seg-ep',
       textJa: { content: '食べたかった', highlight: '<em>食べ</em>たかった' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -272,7 +272,7 @@ describe('/search flow', () => {
 
   test('search -> context -> shows surrounding sentences', async () => {
     const seg = makeSegment({
-      publicId: 'seg-1',
+      segmentPublicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -283,14 +283,14 @@ describe('/search flow', () => {
 
     // Click context button
     const ctxBefore = makeSegment({
-      publicId: 'ctx-before',
+      segmentPublicId: 'ctx-before',
       textJa: { content: 'その前の文' },
       mediaPublicId: 'media-1',
       episode: 3,
       startTimeMs: 57000,
     });
     const ctxAfter = makeSegment({
-      publicId: 'ctx-after',
+      segmentPublicId: 'ctx-after',
       textJa: { content: 'その後の文' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -309,7 +309,7 @@ describe('/search flow', () => {
 
   test('search -> context -> select different sentence', async () => {
     const seg = makeSegment({
-      publicId: 'seg-1',
+      segmentPublicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -320,14 +320,14 @@ describe('/search flow', () => {
 
     // Open context
     const ctxBefore = makeSegment({
-      publicId: 'ctx-before',
+      segmentPublicId: 'ctx-before',
       textJa: { content: 'その前の文' },
       mediaPublicId: 'media-1',
       episode: 3,
       startTimeMs: 57000,
     });
     const ctxAfter = makeSegment({
-      publicId: 'ctx-after',
+      segmentPublicId: 'ctx-after',
       textJa: { content: 'その後の文' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -347,7 +347,7 @@ describe('/search flow', () => {
 
   test('search -> context -> back to original restores search view', async () => {
     const seg = makeSegment({
-      publicId: 'seg-1',
+      segmentPublicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -358,7 +358,7 @@ describe('/search flow', () => {
 
     // Open context
     const ctxSeg = makeSegment({
-      publicId: 'ctx-1',
+      segmentPublicId: 'ctx-1',
       textJa: { content: 'コンテキスト' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -380,21 +380,21 @@ describe('/search flow', () => {
 
   test('random -> context -> back to original restores segment view', async () => {
     const seg = makeSegment({
-      publicId: 'seg-r',
+      segmentPublicId: 'seg-r',
       textJa: { content: 'ランダムな文' },
       mediaPublicId: 'media-1',
       episode: 5,
     });
     mockFetchRandom.mockResolvedValue(makeSearchResponse([seg], { 'media-1': media1 }));
     mockGetSearchStats.mockResolvedValue(
-      makeSearchStatsResponse([{ publicId: 'media-1', matchCount: 3000 }], { 'media-1': media1 }),
+      makeSearchStatsResponse([{ mediaPublicId: 'media-1', matchCount: 3000 }], { 'media-1': media1 }),
     );
 
     await flow.executeCommand(execute, {});
 
     // Open context
     const ctxSeg = makeSegment({
-      publicId: 'ctx-1',
+      segmentPublicId: 'ctx-1',
       textJa: { content: 'コンテキスト文' },
       mediaPublicId: 'media-1',
       episode: 5,
