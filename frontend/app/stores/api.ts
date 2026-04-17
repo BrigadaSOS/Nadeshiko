@@ -69,8 +69,11 @@ export function asObject(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 }
 
-async function fetchMe(): Promise<Record<string, unknown> | null> {
-  return $fetch<Record<string, unknown>>('/v1/user/me', { method: 'GET', credentials: 'include' }).catch(() => null);
+async function fetchMe() {
+  return useNadeshikoSdk()
+    .getMe()
+    .then((r) => r.data ?? null)
+    .catch(() => null);
 }
 
 export const apiStore = defineStore('api', {

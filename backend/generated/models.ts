@@ -312,21 +312,6 @@ export type t_MediaSummary = {
   slug: string;
 };
 
-export type t_ReindexResponse = {
-  errors: {
-    error: string;
-    segmentId: number;
-  }[];
-  message: string;
-  stats: {
-    failedIndexes: number;
-    mediaProcessed: number;
-    successfulIndexes: number;
-    totalSegments: number;
-  };
-  success: boolean;
-};
-
 export type t_Report = {
   adminNotes: string | null;
   auditRunId: number | null;
@@ -378,26 +363,26 @@ export type t_ReportTarget = t_ReportTargetMedia | t_ReportTargetEpisode | t_Rep
 
 export type t_ReportTargetEpisode = {
   episodeNumber: number;
-  mediaId: string;
+  mediaPublicId: string;
   type: 'EPISODE';
 };
 
 export type t_ReportTargetMedia = {
-  mediaId: string;
+  mediaPublicId: string;
   type: 'MEDIA';
 };
 
 export type t_ReportTargetSegment = {
   episodeNumber?: number;
-  mediaId: string;
-  segmentId: string | null;
+  mediaPublicId: string;
+  segmentPublicId: string | null;
   type: 'SEGMENT';
 };
 
 export type t_ReportTargetSegmentInput = {
   episodeNumber?: number;
-  mediaId: string;
-  segmentId: string;
+  mediaPublicId: string;
+  segmentPublicId: string;
   type: 'SEGMENT';
 };
 
@@ -1092,13 +1077,6 @@ export type t_TrackUserActivityRequestBodySchema = {
 export type t_TriggerCoveredWordsUpdateRequestBodySchema = {
   maxRank?: number;
   onlyUncovered?: boolean;
-};
-
-export type t_TriggerReindexRequestBodySchema = {
-  media?: {
-    episodes?: number[];
-    mediaId: number;
-  }[];
 };
 
 export type t_UnenrollUserLabParamSchema = {

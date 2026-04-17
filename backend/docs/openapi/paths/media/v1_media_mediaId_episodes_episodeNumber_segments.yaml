@@ -22,7 +22,8 @@ get:
       required: true
       schema:
         type: integer
-      description: Episode number
+        minimum: 0
+      description: Episode number (0 for movies/specials)
       example: 1
     - name: take
       in: query

@@ -36,7 +36,7 @@ const filteredRecentMedia = computed(() => {
   const list = media.value?.media ?? [];
   const hidden = new Set(hiddenMediaIds.value);
   if (hidden.size === 0) return list;
-  return list.filter((m) => !hidden.has(m.id));
+  return list.filter((m) => !hidden.has(m.mediaPublicId));
 });
 
 const sdk = useNadeshikoSdk();
@@ -282,8 +282,8 @@ const {
                                                     class="grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-3">
                                                     <NuxtLink
                                                         v-for="(media_info, index) in filteredRecentMedia"
-                                                        :key="media_info.id"
-                                                        :to="`/search?media=${media_info.publicId}`"
+                                                        :key="media_info.mediaPublicId"
+                                                        :to="`/search?media=${media_info.mediaPublicId}`"
                                                         data-testid="media-card"
                                                         class="w-full relative">
                                                         <div class="w-full">

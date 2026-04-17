@@ -58,8 +58,8 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
 
   return respond.with201().body(
     toReportDTO(report, {
-      mediaPublicId: body.target.mediaId,
-      segmentPublicId: 'segmentId' in body.target ? body.target.segmentId : null,
+      mediaPublicId: body.target.mediaPublicId,
+      segmentPublicId: 'segmentPublicId' in body.target ? body.target.segmentPublicId : null,
     }),
   );
 };
@@ -319,15 +319,15 @@ function applyReportFilters(
 async function resolveReportTarget(
   target: CreateReportRequestOutput['target'],
 ): Promise<{ segmentId: number | null; mediaId: number }> {
-  const media = await Media.findOne({ where: { publicId: target.mediaId }, select: ['id', 'publicId'] });
+  const media = await Media.findOne({ where: { publicId: target.mediaPublicId }, select: ['id', 'publicId'] });
   if (!media) {
-    throw new NotFoundError(`Media with publicId ${target.mediaId} not found`);
+    throw new NotFoundError(`Media with publicId ${target.mediaPublicId} not found`);
   }
 
   if (target.type === 'SEGMENT') {
-    const segment = await Segment.findOne({ where: [{ publicId: target.segmentId }, { uuid: target.segmentId }] });
+    const segment = await Segment.findOne({ where: [{ publicId: target.segmentPublicId }, { uuid: target.segmentPublicId }] });
     if (!segment) {
-      throw new NotFoundError(`Segment with ID ${target.segmentId} not found`);
+      throw new NotFoundError(`Segment with ID ${target.segmentPublicId} not found`);
     }
     if (segment.mediaId !== media.id) {
       throw new InvalidRequestError('SEGMENT target mediaId does not match segment mediaId');

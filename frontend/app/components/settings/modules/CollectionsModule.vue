@@ -68,13 +68,13 @@ const submitRename = async () => {
   isRenaming.value = true;
   try {
     await sdk.updateCollection({
-      path: { collectionId: renameTarget.value.publicId },
+      path: { collectionPublicId: renameTarget.value.collectionPublicId },
       body: { name: renameValue.value.trim() },
     });
 
     const target = renameTarget.value;
     if (!target) return;
-    const idx = collections.value.findIndex((c) => c.publicId === target.publicId);
+    const idx = collections.value.findIndex((c) => c.collectionPublicId === target.collectionPublicId);
     const item = collections.value[idx];
     if (item) item.name = renameValue.value.trim();
 
@@ -111,16 +111,7 @@ const submitCreate = async () => {
     });
 
     if (data) {
-      collections.value.unshift({
-        id: data.id,
-        publicId: data.publicId,
-        name: data.name,
-        type: data.type,
-        visibility: data.visibility as 'PUBLIC' | 'PRIVATE',
-        segmentCount: 0,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
-      });
+      collections.value.unshift(data);
     }
 
     posthog?.capture('collection_created');
@@ -149,11 +140,11 @@ const submitToggleVisibility = async () => {
   const newVisibility = visibilityTarget.value.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
   try {
     await sdk.updateCollection({
-      path: { collectionId: visibilityTarget.value.publicId },
+      path: { collectionPublicId: visibilityTarget.value.collectionPublicId },
       body: { visibility: newVisibility },
     });
 
-    const idx = collections.value.findIndex((c) => c.publicId === visibilityTarget.value?.publicId);
+    const idx = collections.value.findIndex((c) => c.collectionPublicId === visibilityTarget.value?.collectionPublicId);
     const item = collections.value[idx];
     if (item) item.visibility = newVisibility;
 
@@ -182,10 +173,12 @@ const submitDelete = async () => {
   isDeleting.value = true;
   try {
     await sdk.deleteCollection({
-      path: { collectionId: deleteTarget.value.publicId },
+      path: { collectionPublicId: deleteTarget.value.collectionPublicId },
     });
 
-    collections.value = collections.value.filter((c) => c.publicId !== deleteTarget.value?.publicId);
+    collections.value = collections.value.filter(
+      (c) => c.collectionPublicId !== deleteTarget.value?.collectionPublicId,
+    );
 
     posthog?.capture('collection_deleted');
     useToastSuccess(t('accountSettings.collections.deleted'));
@@ -229,10 +222,10 @@ const submitDelete = async () => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="collection in collections" :key="collection.publicId" data-testid="collection-row">
+          <tr v-for="collection in collections" :key="collection.collectionPublicId" data-testid="collection-row">
             <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <NuxtLink
-                :to="`/collection/${collection.publicId}`"
+                :to="`/collection/${collection.collectionPublicId}`"
                 class="font-medium truncate block hover:text-blue-400 transition-colors"
               >
                 {{ collection.name }}
@@ -263,7 +256,7 @@ const submitDelete = async () => {
                   type="button"
                   data-testid="collection-menu-toggle"
                   class="p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
-                  @click="toggleMenu(collection.publicId)"
+                  @click="toggleMenu(collection.collectionPublicId)"
                 >
                   <UiBaseIcon :path="mdiDotsVertical" size="18" />
                 </button>
@@ -277,7 +270,7 @@ const submitDelete = async () => {
                   leave-to-class="opacity-0 scale-95"
                 >
                   <div
-                    v-if="openMenuId === collection.publicId"
+                    v-if="openMenuId === collection.collectionPublicId"
                     class="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-white/10 bg-neutral-800 shadow-xl py-1"
                   >
                     <button

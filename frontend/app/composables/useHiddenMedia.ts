@@ -26,7 +26,7 @@ export function useHiddenMedia() {
   const hiddenMediaIds = computed<string[]>(() => items.value.map((item) => item.mediaPublicId));
 
   const hiddenMediaExcludeFilter = computed<MediaFilterItem[]>(() =>
-    items.value.map((item) => ({ mediaId: item.mediaPublicId })),
+    items.value.map((item) => ({ mediaPublicId: item.mediaPublicId })),
   );
 
   const isMediaHidden = (mediaPublicId: string): boolean => {
@@ -42,22 +42,19 @@ export function useHiddenMedia() {
     if (!user.isLoggedIn) return;
 
     const existing = items.value.findIndex((item) => item.mediaPublicId === media.publicId);
-    let nextItems: HiddenMediaItem[];
-
-    if (existing >= 0) {
-      nextItems = items.value.filter((_, i) => i !== existing);
-    } else {
-      nextItems = [
-        ...items.value,
-        {
-          mediaPublicId: media.publicId,
-          nameEn: media.nameEn,
-          nameJa: media.nameJa,
-          nameRomaji: media.nameRomaji,
-          hiddenAt: new Date().toISOString(),
-        },
-      ];
-    }
+    const isUnhiding = existing >= 0;
+    const nextItems: HiddenMediaItem[] = isUnhiding
+      ? items.value.filter((_, i) => i !== existing)
+      : [
+          ...items.value,
+          {
+            mediaPublicId: media.publicId,
+            nameEn: media.nameEn,
+            nameJa: media.nameJa,
+            nameRomaji: media.nameRomaji,
+            hiddenAt: new Date().toISOString(),
+          },
+        ];
 
     user.preferences = {
       ...(user.preferences ?? {}),
@@ -66,11 +63,11 @@ export function useHiddenMedia() {
 
     try {
       const sdk = useNadeshikoSdk();
-      await sdk.updateUserPreferences({
-        body: {
-          hiddenMedia: nextItems.map(({ hiddenAt: _, ...rest }) => rest),
-        },
-      });
+      if (isUnhiding) {
+        await sdk.removeExcludedMedia({ path: { mediaPublicId: media.publicId } });
+      } else {
+        await sdk.addExcludedMedia({ body: { mediaPublicId: media.publicId } });
+      }
     } catch {
       // Revert on failure by re-fetching would be ideal, but keep optimistic update for now
     }

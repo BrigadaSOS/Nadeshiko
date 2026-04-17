@@ -47,7 +47,7 @@ export const usePlayerStore = defineStore('player', {
       if (result && import.meta.client) {
         const posthog = usePostHog();
         posthog?.capture('search_result_clicked', {
-          media_id: result.media.id,
+          media_id: result.media.mediaPublicId,
           media_name: result.media.nameRomaji,
           result_position: startIndex,
         });
@@ -75,9 +75,9 @@ export const usePlayerStore = defineStore('player', {
 
             const posthog = usePostHog();
             posthog?.capture('segment_played', {
-              media_id: this.currentResult?.media.id,
+              media_id: this.currentResult?.media.mediaPublicId,
               media_name: this.currentResult?.media.nameRomaji,
-              segment_id: this.currentResult?.segment.publicId,
+              segment_id: this.currentResult?.segment.segmentPublicId,
               playlist_position: this.currentIndex,
               is_autoplay: this.autoplay,
             });
@@ -89,8 +89,8 @@ export const usePlayerStore = defineStore('player', {
                 .trackUserActivity({
                   body: {
                     activityType: 'SEGMENT_PLAY',
-                    segmentId: this.currentResult?.segment.publicId,
-                    mediaId: this.currentResult?.media.id,
+                    segmentPublicId: this.currentResult?.segment.segmentPublicId,
+                    mediaPublicId: this.currentResult?.media.mediaPublicId,
                     mediaName: this.currentResult?.media.nameRomaji,
                     japaneseText: this.currentResult?.segment.textJa.content,
                   },
@@ -190,8 +190,8 @@ export const usePlayerStore = defineStore('player', {
         this.isPlaying = true;
         const posthog = usePostHog();
         posthog?.capture('segment_replayed', {
-          media_id: this.currentResult?.media.id,
-          segment_id: this.currentResult?.segment.publicId,
+          media_id: this.currentResult?.media.mediaPublicId,
+          segment_id: this.currentResult?.segment.segmentPublicId,
         });
       }
     },

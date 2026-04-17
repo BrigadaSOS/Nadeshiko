@@ -1,33 +1,15 @@
 <script setup lang="ts">
-import type { MediaUpdateRequest } from '@brigadasos/nadeshiko-sdk';
+import type { Media, MediaUpdateRequest } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
 
 const props = defineProps<{
-  media: {
-    id: number;
-    publicId: string;
-    nameJa: string;
-    nameRomaji: string;
-    nameEn: string;
-    airingFormat: string;
-    airingStatus: string;
-    category: string;
-    genres: string[];
-    studio: string;
-    startDate: string;
-    endDate?: string | null;
-    seasonName: string;
-    seasonYear: number;
-    coverUrl: string;
-    bannerUrl?: string;
-    externalIds?: { anilist?: string; imdb?: string; tvdb?: string; tmdb?: string };
-  } | null;
+  media: Media | null;
 }>();
 
 const emit = defineEmits<{
   'update:success': [media: typeof props.media];
-  'delete:success': [mediaId: number];
+  'delete:success': [mediaPublicId: string];
 }>();
 
 const sdk = useNadeshikoSdk();
@@ -110,8 +92,8 @@ const submitEdit = async () => {
       nameJa: form.nameJa,
       nameRomaji: form.nameRomaji,
       nameEn: form.nameEn,
-      airingFormat: form.airingFormat,
-      airingStatus: form.airingStatus,
+      airingFormat: form.airingFormat as MediaUpdateRequest['airingFormat'],
+      airingStatus: form.airingStatus as MediaUpdateRequest['airingStatus'],
       category: form.category as MediaUpdateRequest['category'],
       genres: form.genres
         .split(',')
@@ -120,21 +102,19 @@ const submitEdit = async () => {
       studio: form.studio,
       startDate: form.startDate || undefined,
       endDate: form.endDate || undefined,
-      seasonName: form.seasonName,
+      seasonName: form.seasonName as MediaUpdateRequest['seasonName'],
       seasonYear: form.seasonYear,
     };
 
-    const externalIds: Record<string, string> = {};
-    if (form.anilistId) externalIds.anilist = form.anilistId;
-    if (form.imdbId) externalIds.imdb = form.imdbId;
-    if (form.tvdbId) externalIds.tvdb = form.tvdbId;
-    if (form.tmdbId) externalIds.tmdb = form.tmdbId;
-    if (Object.keys(externalIds).length > 0) {
-      body.externalIds = externalIds;
-    }
+    body.externalIds = {
+      anilist: form.anilistId || null,
+      imdb: form.imdbId || null,
+      tvdb: form.tvdbId || null,
+      tmdb: form.tmdbId || null,
+    };
 
     await sdk.updateMedia({
-      path: { mediaId: props.media.publicId },
+      path: { mediaPublicId: props.media.mediaPublicId },
       body,
     });
 
@@ -180,10 +160,10 @@ const submitDelete = async () => {
 
   try {
     await sdk.deleteMedia({
-      path: { mediaId: props.media.publicId },
+      path: { mediaPublicId: props.media.mediaPublicId },
     });
 
-    emit('delete:success', props.media.id);
+    emit('delete:success', props.media.mediaPublicId);
     useToastSuccess(t('modalMediaEdit.deleteSuccess'));
     closeModal();
   } catch {
@@ -240,12 +220,8 @@ const submitDelete = async () => {
             />
             <div class="space-y-2 min-w-0 flex-1">
               <div class="flex items-center gap-2 text-neutral-300">
-                <span class="text-neutral-500 min-w-[4.5rem]">ID</span>
-                <span class="font-mono text-neutral-300">#{{ media.id }}</span>
-              </div>
-              <div class="flex items-center gap-2 text-neutral-300">
                 <span class="text-neutral-500 min-w-[4.5rem]">Public ID</span>
-                <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ media.publicId }}</code>
+                <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ media.mediaPublicId }}</code>
               </div>
               <div v-if="media.coverUrl" class="flex items-center gap-2 text-neutral-300">
                 <span class="text-neutral-500 min-w-[4.5rem]">Cover</span>

@@ -1,14 +1,14 @@
 type: object
 required:
   - type
-  - mediaId
+  - mediaPublicId
 properties:
   type:
     type: string
     enum: [MEDIA]
     description: Report target type
     example: "MEDIA"
-  mediaId:
+  mediaPublicId:
     type: string
     description: publicId of the media this report targets
     example: "V1StGXR8_Z5d"

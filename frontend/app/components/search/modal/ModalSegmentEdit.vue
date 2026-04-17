@@ -81,12 +81,12 @@ const statusPillClasses = (value: string, active: boolean) => {
 
 const copyUuid = async () => {
   if (!props.segment) return;
-  await navigator.clipboard.writeText(props.segment.segment.uuid);
+  await navigator.clipboard.writeText(props.segment.segment.segmentPublicId);
 };
 
 const copyPublicId = async () => {
   if (!props.segment) return;
-  await navigator.clipboard.writeText(props.segment.segment.publicId);
+  await navigator.clipboard.writeText(props.segment.segment.segmentPublicId);
 };
 
 const validateJson = (json: string, field: 'ratingAnalysis' | 'posAnalysis'): boolean => {
@@ -144,29 +144,7 @@ watch(
     internalStorage.value = null;
     internalStorageBasePath.value = null;
 
-    isLoadingInternal.value = true;
-    try {
-      const { data } = await sdk.getSegmentByUuid({
-        path: { publicId: seg.segment.publicId },
-        query: { include: ['ratingAnalysis', 'posAnalysis', 'hashedId', 'storage', 'storageBasePath'] },
-      });
-      lastRatingAnalysis = data?.ratingAnalysis ?? null;
-      lastPosAnalysis = data?.posAnalysis ?? null;
-      internalHashedId.value = data?.hashedId ?? null;
-      internalStorage.value = data?.storage ?? null;
-      internalStorageBasePath.value = data?.storageBasePath ?? null;
-      if (data?.ratingAnalysis) {
-        form.ratingAnalysisJson = JSON.stringify(data.ratingAnalysis, null, 2);
-      }
-      if (data?.posAnalysis) {
-        form.posAnalysisJson = JSON.stringify(data.posAnalysis, null, 2);
-      }
-    } catch {
-      lastRatingAnalysis = null;
-      lastPosAnalysis = null;
-    } finally {
-      isLoadingInternal.value = false;
-    }
+    isLoadingInternal.value = false;
 
     if (showHistory.value) {
       fetchRevisions();
@@ -185,7 +163,9 @@ const fetchRevisions = async () => {
   if (!props.segment) return;
   isLoadingRevisions.value = true;
   try {
-    const { data } = await sdk.listSegmentRevisions({ path: { publicId: props.segment.segment.publicId } });
+    const { data } = await sdk.listSegmentRevisions({
+      path: { segmentPublicId: props.segment.segment.segmentPublicId },
+    });
     revisions.value = data?.revisions ?? [];
   } catch {
     revisions.value = [];
@@ -243,9 +223,11 @@ const deleteEpisode = async () => {
   errorMessage.value = '';
 
   try {
-    await $fetch(`/v1/media/${props.segment.media.id}/episodes/${props.segment.segment.episode}`, {
-      method: 'DELETE',
-      credentials: 'include',
+    await sdk.deleteEpisode({
+      path: {
+        mediaPublicId: props.segment.media.mediaPublicId,
+        episodeNumber: props.segment.segment.episode,
+      },
     });
 
     useToastSuccess(t('modalSegmentEdit.deleteEpisodeSuccess'));
@@ -288,10 +270,15 @@ const submitEdit = async () => {
       body.posAnalysis = JSON.parse(form.posAnalysisJson);
     }
 
-    await sdk.updateSegmentByUuid({
-      path: { publicId: props.segment.segment.publicId },
+    const { data: updatedSegment } = await sdk.updateSegment({
+      path: { segmentPublicId: props.segment.segment.segmentPublicId },
       body,
     });
+    lastRatingAnalysis = updatedSegment?.ratingAnalysis ?? null;
+    lastPosAnalysis = updatedSegment?.posAnalysis ?? null;
+    internalHashedId.value = updatedSegment?.hashedId ?? null;
+    internalStorage.value = updatedSegment?.storage ?? null;
+    internalStorageBasePath.value = updatedSegment?.storageBasePath ?? null;
 
     const updated: SearchResult = {
       ...props.segment,
@@ -425,12 +412,12 @@ const submitEdit = async () => {
             <!-- ID + position -->
             <div class="flex items-center gap-2 text-neutral-300">
               <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
-              <span class="font-mono text-neutral-300">#{{ segment.segment.id }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
+              <span class="font-mono text-neutral-300">#{{ segment.segment.segmentPublicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
             </div>
             <!-- UUID -->
             <div class="flex items-center gap-2 text-neutral-300">
               <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.uuid') }}</span>
-              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.uuid }}</code>
+              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.segmentPublicId }}</code>
               <button
                 type="button"
                 class="text-neutral-500 hover:text-neutral-300 transition-colors"
@@ -446,7 +433,7 @@ const submitEdit = async () => {
             <!-- Public ID -->
             <div class="flex items-center gap-2 text-neutral-300">
               <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.publicId') }}</span>
-              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.publicId }}</code>
+              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.segmentPublicId }}</code>
               <button
                 type="button"
                 class="text-neutral-500 hover:text-neutral-300 transition-colors"
@@ -462,7 +449,7 @@ const submitEdit = async () => {
             <!-- Media ID -->
             <div class="flex items-center gap-2 text-neutral-300">
               <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.mediaId') }}</span>
-              <span class="font-mono text-neutral-300">{{ segment.segment.mediaId }}</span>
+              <span class="font-mono text-neutral-300">{{ segment.segment.mediaPublicId }}</span>
             </div>
             <!-- Hashed ID (from internal fetch) -->
             <div class="flex items-center gap-2 text-neutral-300">
